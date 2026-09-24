@@ -137,7 +137,7 @@ variable "nodes_config" {
 variable "proxmox_datastore" {
   description = "Default Proxmox datastore for all nodes"
   type        = string
-  default     = "Nvme1"
+  default     = "tank-vm"
 }
 
 variable "cluster_name" {
@@ -299,7 +299,7 @@ variable "bitwarden_token" {
 variable "git_repository_url" {
   description = "Git repository URL for ArgoCD ApplicationSets (customize for forks)"
   type        = string
-  default     = "https://github.com/theepicsaxguy/homelab.git"
+  default     = "https://github.com/SmadjaPaul/kube-ops.git"
 }
 
 variable "encryption_passphrase" {
