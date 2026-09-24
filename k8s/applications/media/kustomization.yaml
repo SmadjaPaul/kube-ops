@@ -11,7 +11,8 @@ resources:
 - jellyseerr-secrets.yaml
 - jellyseerr
 - sabnzbd
-- whisperasr
+# Disabled for initial AOOSTAR bootstrap: local inference workload
+# - whisperasr
 - immich
 - audiobookshelf
 - audiobookrequest
