@@ -3,8 +3,11 @@ kind: Kustomization
 
 resources:
 - project.yaml
-- frigate
+# Disabled for initial bootstrap: hardware/camera-dependent workload
+# - frigate
 - mqtt
-- hassio
-- zigbee2mqtt
-- matter-server
+# Disabled for initial bootstrap: Home Assistant is intentionally deferred
+# - hassio
+# Disabled for initial bootstrap: hardware-dependent workloads
+# - zigbee2mqtt
+# - matter-server
