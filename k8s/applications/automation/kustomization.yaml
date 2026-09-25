@@ -6,8 +6,6 @@ resources:
 # Disabled for initial bootstrap: hardware/camera-dependent workload
 # - frigate
 - mqtt
-# Disabled for initial bootstrap: Home Assistant is intentionally deferred
-# - hassio
-# Disabled for initial bootstrap: hardware-dependent workloads
-# - zigbee2mqtt
-# - matter-server
+- hassio
+- zigbee2mqtt
+- matter-server
