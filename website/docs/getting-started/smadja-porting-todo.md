@@ -31,11 +31,11 @@ This fork is intentionally being ported with the smallest possible delta from up
 4. Confirm whether the Matter BLE proxy is required. It is disabled because the upstream USB device and address are not part of the Smadja hardware inventory.
 5. Create a local `tofu/terraform.tfvars` from the example. Use Proxmox endpoint `https://10.0.20.51:8006`, node/cluster `tatouine`, and credentials from the existing secret authority. Never commit the token.
 6. Resolve the upstream Bitwarden Secrets Manager dependency. The current Smadja authority is Doppler for external/bootstrap/recovery and SOPS/age for cluster-owned static secrets. For the first upstream boot, either provide Bitwarden exactly as upstream expects or make a separately reviewed minimal ESO backend adaptation. Do not silently redesign secrets in this porting PR.
-7. Configure the state encryption passphrase and remote OpenTofu backend. The existing infrastructure state is in OCI Object Storage; do not point this new cluster at an upstream or existing state key without an explicit migration decision.
+7. Configure the state encryption passphrase and initialize the NEW `kube-ops/homeops-v2/terraform.tfstate` key in the existing OCI Object Storage bucket. This is fresh cluster state: no `terraform state mv`, import, backend migration, or reuse of any `homelab-infra` state is allowed.
 8. Replace remaining upstream environment literals throughout Kubernetes manifests: `peekoff.com`, `10.25.150.0/24`, `host3`, `Nvme1`, `velocity`, TrueNAS/NFS endpoints, Cloudflare tunnel identity, Backblaze B2/MinIO identities, and upstream Authentik users/groups. Verify each occurrence semantically rather than using a blind replacement for addresses.
-9. Configure Cloudflare for `smadja.dev`. Reuse existing Cloudflare ownership where possible, but do not alter current production DNS or tunnel routes until the candidate cluster is healthy.
+9. Keep Cloudflare, UniFi, AdGuard, Doppler bootstrap, Migadu and all other infrastructure external to the candidate cluster in `SmadjaPaul/homelab-infra`. `kube-ops` may consume the resulting endpoints/tokens but must not provision duplicate external resources. Do not alter current production DNS or tunnel routes until the candidate cluster is healthy.
 10. Reconcile Authentik groups with the Smadja baseline: `family`, `media`, `dev`, `data`, `iot`, `admin`, and `authentik-admins`. Do not import upstream real users.
-11. Audit the application catalog before first Argo sync. Disable hardware-dependent or expensive workloads that cannot run on the current host, especially GPU workloads, Frigate, Minecraft, Zigbee, and other devices not present locally. This is an environment gate, not an architecture rewrite.
+11. Audit the application catalog before first Argo sync. V1 intentionally disables the business stack, including `jmap-webmail`, TMail/Auth mail integration, outbound SMTP, future Stalwart/Bulwark/Listmonk/Twenty/Chatwoot/SES components, and any other business-only workload. Hardware-dependent or expensive workloads remain disabled where not proven. Personal/family services stay in scope.
 12. Confirm Proxmox CSI can create volumes on `tank-vm` and create the least-privilege CSI account expected by the upstream bootstrap.
 13. Determine migration separately for data currently stored on the existing 10 TiB Talos disk. Do not attach, format, delete, or repurpose that disk during candidate-cluster bootstrap.
 
@@ -50,6 +50,7 @@ Before any apply, the local agent must prove:
 - the OpenTofu plan contains no destroy or mutation of existing Smadja Proxmox resources;
 - the candidate uses new VM IDs and collision-free LAN addresses;
 - no secret is committed;
+- the `kube-ops` OpenTofu plan contains only candidate-cluster resources and does not manage Cloudflare, UniFi, AdGuard, Migadu, Doppler bootstrap or other external provider resources;
 - no Cloudflare production route is changed by the infrastructure plan;
 - the existing Flux cluster and its 10 TiB data disk remain untouched.
 
