@@ -1,0 +1,15 @@
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: doppler-cluster
+  annotations:
+    smadja.dev/provider: doppler
+spec:
+  provider:
+    doppler:
+      auth:
+        secretRef:
+          dopplerToken:
+            key: token
+            name: doppler-access-token
+            namespace: external-secrets

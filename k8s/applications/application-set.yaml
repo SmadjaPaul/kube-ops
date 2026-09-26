@@ -13,7 +13,7 @@ spec:
     preserveResourcesOnDeletion: true
   generators:
     - git:
-        repoURL: https://github.com/theepicsaxguy/homelab.git
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
         revision: main
         directories:
           - path: k8s/applications/media
@@ -37,7 +37,7 @@ spec:
     spec:
       project: applications
       source:
-        repoURL: https://github.com/theepicsaxguy/homelab.git
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
         targetRevision: main
         path: '{{ path }}'
         kustomize: {}

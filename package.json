@@ -2,7 +2,8 @@
   "type": "module",
   "scripts": {
     "build": "cd website && npm run build",
-    "install:all": "npm install && cd website && npm install"
+    "install:all": "npm install && cd website && npm install",
+    "check:v1-contract": "bash scripts/check-v1-active-contract.sh"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.0.2",

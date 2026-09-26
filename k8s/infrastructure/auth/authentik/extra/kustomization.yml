@@ -25,7 +25,8 @@ configMapGenerator:
       - ./blueprints/apps-kubernetes.yaml
       - ./blueprints/apps-cloudflare.yaml
       - ./blueprints/apps-pinepods.yaml
-      - ./blueprints/apps-tmail.yaml
+      # V1: mail UI/provider integration deferred to business stack V2.
+      # - ./blueprints/apps-tmail.yaml
       - ./blueprints/groups.yaml
       - ./blueprints/users.yaml
       - ./blueprints/brands.yaml

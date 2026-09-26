@@ -1,7 +1,7 @@
 # Gatekeeper Helm Chart Values
 # Chart version 3.18.2 includes seccompProfile: RuntimeDefault by default
 
-replicas: 3
+replicas: 1
 
 # Controller manager resources
 controllerManager:

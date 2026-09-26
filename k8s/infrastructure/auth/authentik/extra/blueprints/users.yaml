@@ -1,12 +1,12 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
 # yamllint disable-file
-# prettier-ignore-start
-# eslint-disable
 ---
 version: 1
 metadata:
-  name: Users
+  name: Users - Smadja V1
 entries:
+  # Primary operator identity. Values come from Doppler so personal identifiers
+  # are not duplicated in this repository.
   - id: !Env ADMIN_USERNAME
     model: authentik_core.user
     identifiers:
@@ -15,24 +15,37 @@ entries:
       username: !Env ADMIN_USERNAME
       name: !Env ADMIN_NAME
       email: !Env ADMIN_EMAIL
+      is_active: true
       groups:
-        # admin-level groups
+        - !Find [authentik_core.group, [name, "authentik-admins"]]
+        - !Find [authentik_core.group, [name, "admin"]]
+        - !Find [authentik_core.group, [name, "family"]]
+        - !Find [authentik_core.group, [name, "dev"]]
+        - !Find [authentik_core.group, [name, "media"]]
+        - !Find [authentik_core.group, [name, "data"]]
+        - !Find [authentik_core.group, [name, "iot"]]
+        # Compatibility memberships for upstream app-specific policy bindings.
         - !Find [authentik_core.group, [name, "ArgoCD Admins"]]
         - !Find [authentik_core.group, [name, "Grafana Admins"]]
-        # membership in every user group
         - !Find [authentik_core.group, [name, "ArgoCD Viewers"]]
         - !Find [authentik_core.group, [name, "Grafana Users"]]
-        - !Find [authentik_core.group, [name, "Frigate Users"]]
         - !Find [authentik_core.group, [name, "Home Assistant Users"]]
         - !Find [authentik_core.group, [name, "Immich Users"]]
         - !Find [authentik_core.group, [name, "Jellyfin Users"]]
+        - !Find [authentik_core.group, [name, "Jellyfin Admins"]]
+        - !Find [authentik_core.group, [name, "Jellyseerr Users"]]
         - !Find [authentik_core.group, [name, "Media Users"]]
         - !Find [authentik_core.group, [name, "Open WebUI Users"]]
         - !Find [authentik_core.group, [name, "Karakeep Users"]]
         - !Find [authentik_core.group, [name, "Kubectl Users"]]
         - !Find [authentik_core.group, [name, "Litellm Admins"]]
         - !Find [authentik_core.group, [name, "Litellm Users"]]
+        - !Find [authentik_core.group, [name, "OpenCode Users"]]
+        - !Find [authentik_core.group, [name, "audiobookshelf users"]]
+        - !Find [authentik_core.group, [name, "audiobookshelf admins"]]
 
+  # Family identity. Values come from Doppler; membership mirrors the canonical
+  # V1 identity baseline from home-ops.
   - id: !Env USER_USERNAME
     model: authentik_core.user
     identifiers:
@@ -41,15 +54,17 @@ entries:
       username: !Env USER_USERNAME
       name: !Env USER_NAME
       email: !Env USER_EMAIL
+      is_active: true
       groups:
-        - !Find [authentik_core.group, [name, "ArgoCD Viewers"]]
-        - !Find [authentik_core.group, [name, "Grafana Users"]]
-        - !Find [authentik_core.group, [name, "Frigate Users"]]
+        - !Find [authentik_core.group, [name, "family"]]
+        - !Find [authentik_core.group, [name, "media"]]
+        - !Find [authentik_core.group, [name, "iot"]]
+        # Compatibility memberships for family-facing upstream app policies.
         - !Find [authentik_core.group, [name, "Home Assistant Users"]]
         - !Find [authentik_core.group, [name, "Immich Users"]]
         - !Find [authentik_core.group, [name, "Jellyfin Users"]]
+        - !Find [authentik_core.group, [name, "Jellyseerr Users"]]
         - !Find [authentik_core.group, [name, "Media Users"]]
         - !Find [authentik_core.group, [name, "Open WebUI Users"]]
         - !Find [authentik_core.group, [name, "Karakeep Users"]]
-        - !Find [authentik_core.group, [name, "Kubectl Users"]]
-        - !Find [authentik_core.group, [name, "Litellm Users"]]
+        - !Find [authentik_core.group, [name, "audiobookshelf users"]]

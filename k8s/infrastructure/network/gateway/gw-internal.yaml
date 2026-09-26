@@ -5,66 +5,26 @@ metadata:
   namespace: gateway
 spec:
   gatewayClassName: cilium
-  infrastructure:
-    annotations:
-      io.cilium/lb-ipam-ips: 10.25.150.220
   listeners:
     - protocol: HTTPS
       port: 443
-      name: https-gateway
-      hostname: "*.peekoff.com"
+      name: https-subdomains
+      hostname: "*.smadja.dev"
       tls:
         certificateRefs:
           - kind: Secret
-            name: cert-peekoff
+            name: cert-smadja
       allowedRoutes:
         namespaces:
           from: All
     - protocol: HTTPS
       port: 443
-      name: https-domain-gateway
-      hostname: peekoff.com
+      name: https-apex
+      hostname: smadja.dev
       tls:
         certificateRefs:
           - kind: Secret
-            name: cert-peekoff
-    - protocol: HTTPS
-      port: 443
-      name: https-goingdark-gateway
-      hostname: goingdark.social
-      tls:
-        certificateRefs:
-          - kind: Secret
-            name: cert-goingdark
-      allowedRoutes:
-        namespaces:
-          from: All
-    - protocol: HTTPS
-      port: 443
-      name: https-domain-goingdark-gateway
-      hostname: "*.goingdark.social"
-      tls:
-        certificateRefs:
-          - kind: Secret
-            name: cert-goingdark
-      allowedRoutes:
-        namespaces:
-          from: All
-    - protocol: TCP
-      port: 1883
-      name: mqtt-tcp
-      allowedRoutes:
-        namespaces:
-          from: All
-    - protocol: TCP
-      port: 8555
-      name: frigate-webrtc-tcp
-      allowedRoutes:
-        namespaces:
-          from: All
-    - protocol: TCP
-      port: 5580
-      name: matter-server-ble-tcp
+            name: cert-smadja
       allowedRoutes:
         namespaces:
           from: All

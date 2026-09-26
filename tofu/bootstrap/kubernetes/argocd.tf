@@ -2,7 +2,7 @@ resource "null_resource" "argocd_kustomize" {
   depends_on = [
     null_resource.wait_for_cert_manager,
     null_resource.wait_for_external_secrets,
-    null_resource.bitwarden_access_token
+    null_resource.doppler_access_token
   ]
 
   provisioner "local-exec" {

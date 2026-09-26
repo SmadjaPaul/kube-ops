@@ -16,14 +16,14 @@ variable "argocd_version" {
   default     = "9.2.3"
 }
 
-variable "bitwarden_token" {
-  description = "Bitwarden Secrets Manager API token for External Secrets Operator"
+variable "doppler_token" {
+  description = "Doppler service token for the cluster External Secrets compatibility store"
   type        = string
   sensitive   = true
 
   validation {
-    condition     = var.bitwarden_token != ""
-    error_message = "Bitwarden token must be provided. Set the 'bitwarden_token' variable or TF_VAR_bitwarden_token environment variable."
+    condition     = var.doppler_token != ""
+    error_message = "Doppler token must be provided. Set the 'doppler_token' variable or TF_VAR_doppler_token environment variable."
   }
 }
 

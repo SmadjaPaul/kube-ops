@@ -9,7 +9,7 @@ metadata:
 entries:
   - model: authentik_brands.brand
     identifiers:
-      domain: peekoff.com
+      domain: smadja.dev
     attrs:
       branding_title: Peekoff.
       branding_logo: https://homelab.orkestack.com/img/logo.png

@@ -1,6 +1,8 @@
 machine:
   certSANs:
+%{ if vip != null && vip != "" ~}
     - ${vip}
+%{ endif ~}
 %{ if network.api_lb_vip != null && network.api_lb_vip != "" ~}
     - ${network.api_lb_vip}
 %{ endif ~}
@@ -34,8 +36,10 @@ machine:
     interfaces:
       - interface: eth0
         dhcp: true
+%{ if vip != null && vip != "" ~}
         vip:
           ip: ${vip}
+%{ endif ~}
 
   nodeLabels:
     topology.kubernetes.io/region: ${cluster_name}
@@ -61,7 +65,7 @@ machine:
 cluster:
   coreDNS:
     disabled: true
-  allowSchedulingOnControlPlanes: false
+  allowSchedulingOnControlPlanes: true
   clusterName: ${cluster_domain}
   apiServer:
 %{ if oidc != null }

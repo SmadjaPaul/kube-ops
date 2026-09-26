@@ -1,81 +1,29 @@
----
-# ExternalSecret for Backblaze B2 credentials (PostgreSQL backups)
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: b2-cnpg-credentials
-  namespace: immich
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: bitwarden-backend
-    kind: ClusterSecretStore
-  target:
-    name: b2-cnpg-credentials
-    creationPolicy: Owner
-  data:
-    - secretKey: AWS_ACCESS_KEY_ID
-      remoteRef:
-        key: backblaze-b2-cnpg-access-key-id
-    - secretKey: AWS_SECRET_ACCESS_KEY
-      remoteRef:
-        key: backblaze-b2-cnpg-secret-access-key
----
-# Local MinIO backup (fast recovery)
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: immich-minio-store
-  namespace: immich
-spec:
-  retentionPolicy: "14d"
-  configuration:
-    destinationPath: s3://homelab-postgres-backups/immich/immich-postgresql
-    endpointURL: https://truenas.peekoff.com:30293
-    s3Credentials:
-      accessKeyId:
-        name: longhorn-minio-credentials
-        key: AWS_ACCESS_KEY_ID
-      secretAccessKey:
-        name: longhorn-minio-credentials
-        key: AWS_SECRET_ACCESS_KEY
----
-# Offsite Backblaze B2 backup (disaster recovery)
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: immich-b2-store
-  namespace: immich
-spec:
-  retentionPolicy: "30d"
-  configuration:
-    destinationPath: s3://homelab-cnpg-b2/immich/immich-postgresql
-    endpointURL: https://s3.us-west-002.backblazeb2.com
-    s3Credentials:
-      accessKeyId:
-        name: b2-cnpg-credentials
-        key: AWS_ACCESS_KEY_ID
-      secretAccessKey:
-        name: b2-cnpg-credentials
-        key: AWS_SECRET_ACCESS_KEY
----
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: immich-postgresql
   namespace: immich
 spec:
-  instances: 2
+  instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7
-
+  bootstrap:
+    initdb:
+      database: immich
+      owner: immich
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS "vector";
+        - CREATE EXTENSION IF NOT EXISTS "earthdistance" CASCADE;
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: immich-hetzner-store
   storage:
     size: 15Gi
     storageClass: proxmox-csi
-
   walStorage:
     size: 20Gi
     storageClass: proxmox-csi
-
   resources:
     requests:
       memory: 512Mi
@@ -83,7 +31,6 @@ spec:
     limits:
       memory: 1Gi
       cpu: 1000m
-
   postgresql:
     parameters:
       max_connections: "100"
@@ -97,42 +44,11 @@ spec:
       effective_io_concurrency: "200"
       work_mem: "2621kB"
       huge_pages: "off"
-      min_wal_size: "1GB"
+      min_wal_size: "512MB"
       max_wal_size: "2GB"
-
-  plugins:
-  - name: barman-cloud.cloudnative-pg.io
-    enabled: true
-    isWALArchiver: true
-    parameters:
-      barmanObjectName: immich-minio-store
-
-  externalClusters:
-    - name: immich-postgresql-b2-backup
-      plugin:
-        name: barman-cloud.cloudnative-pg.io
-        parameters:
-          barmanObjectName: immich-b2-store
-    - name: immich-postgresql-minio-backup
-      plugin:
-        name: barman-cloud.cloudnative-pg.io
-        parameters:
-          barmanObjectName: immich-minio-store
-
-  bootstrap:
-    initdb:
-      database: immich
-      owner: immich
-      postInitApplicationSQL:
-        - CREATE EXTENSION IF NOT EXISTS "vector";
-        - CREATE EXTENSION IF NOT EXISTS "earthdistance" CASCADE;
-
   monitoring:
     enablePodMonitor: false
-
-  minSyncReplicas: 1
-  maxSyncReplicas: 1
-
+  minSyncReplicas: 0
+  maxSyncReplicas: 0
   affinity:
-    enablePodAntiAffinity: true
-    topologyKey: kubernetes.io/hostname
+    enablePodAntiAffinity: false

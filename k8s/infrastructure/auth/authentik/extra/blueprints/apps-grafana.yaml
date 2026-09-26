@@ -22,7 +22,7 @@ entries:
   - id: grafana_provider
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/infra-observability/grafana
+      name: k8s.smadja.dev/infra-observability/grafana
     attrs:
       authorization_flow:
         !Find [
@@ -42,7 +42,7 @@ entries:
 
       client_type: confidential
       redirect_uris:
-        - url: https://grafana.peekoff.com/login/generic_oauth
+        - url: https://grafana.smadja.dev/login/generic_oauth
           matching_mode: strict
       client_id: !Env GRAFANA_CLIENT_ID
       client_secret: !Env GRAFANA_CLIENT_SECRET

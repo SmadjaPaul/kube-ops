@@ -33,7 +33,7 @@ variable "cluster" {
     name               = string
     endpoint           = string
     gateway            = string
-    vip                = string
+    vip                = optional(string)
     talos_version      = string
     proxmox_cluster    = string
     kubernetes_version = optional(string, "1.32.0")
@@ -55,12 +55,12 @@ variable "network" {
   description = "Network configuration for the cluster."
   type = object({
     gateway     = string
-    vip         = string
+    vip         = optional(string)
     api_lb_vip  = optional(string)
     cidr_prefix = number
     dns_servers = list(string)
     bridge      = string
-    vlan_id     = number
+    vlan_id     = optional(number)
   })
 }
 
@@ -138,17 +138,9 @@ variable "nodes" {
   validation {
     condition = alltrue([
       for n in values(var.nodes) :
-      lookup(n, "is_external", false) ? n.mac_address == null : n.mac_address != null
+      n.mac_address == null || can(regex("^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$", n.mac_address))
     ])
-    error_message = "External nodes must not have mac_address; internal nodes must have mac_address."
-  }
-
-  validation {
-    condition = alltrue([
-      for n in values(var.nodes) :
-      lookup(n, "is_external", false) || can(regex("^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$", n.mac_address))
-    ])
-    error_message = "MAC addresses must use the format 00:11:22:33:44:55."
+    error_message = "When set, MAC addresses must use the format 00:11:22:33:44:55."
   }
 }
 

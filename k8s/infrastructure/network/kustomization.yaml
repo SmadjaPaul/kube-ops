@@ -4,7 +4,8 @@ kind: Kustomization
 resources:
 - project.yaml
 - cilium
-- cloudflared
+# Deferred until the Smadja tunnel runtime is bound to the proven local Gateway service.
+# - cloudflared
 - gateway
 - coredns
 - policies

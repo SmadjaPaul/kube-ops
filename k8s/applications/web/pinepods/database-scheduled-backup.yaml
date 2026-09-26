@@ -1,14 +1,15 @@
----
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: pinepods-db-backup
+  name: pinepods-db-weekly
   namespace: pinepods
 spec:
-  schedule: "0 0 2 * * 0"
+  schedule: "0 30 3 * * 0"
   backupOwnerReference: self
   cluster:
     name: pinepods-db
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: pinepods-hetzner-store

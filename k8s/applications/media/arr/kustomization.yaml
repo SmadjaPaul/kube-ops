@@ -3,7 +3,7 @@ kind: Kustomization
 
 configMapGenerator:
 - literals:
-  - TZ="Europe/Stockholm"
+  - TZ="Europe/Paris"
   - PUID="2501"
   - PGID="2501"
   name: common-env

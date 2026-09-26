@@ -1,0 +1,22 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: pinepods-hetzner-store
+  namespace: pinepods
+spec:
+  retentionPolicy: "14d"
+  configuration:
+    destinationPath: s3://smadja-dev-homelab-backups/cnpg/pinepods
+    endpointURL: https://fsn1.your-objectstorage.com
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-hetzner-credentials
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-hetzner-credentials
+        key: AWS_SECRET_ACCESS_KEY
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip

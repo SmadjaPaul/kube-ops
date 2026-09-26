@@ -125,19 +125,12 @@ variable "nodes_config" {
     error_message = "VM IDs must be unique among internal nodes."
   }
 
-  validation {
-    condition = alltrue([
-      for n in values(var.nodes_config) :
-      lookup(n, "is_external", false) ? n.mac_address == null : n.mac_address != null
-    ])
-    error_message = "External nodes must not have mac_address; internal nodes must have mac_address."
-  }
 }
 
 variable "proxmox_datastore" {
   description = "Default Proxmox datastore for all nodes"
   type        = string
-  default     = "Nvme1"
+  default     = "tank-vm"
 }
 
 variable "cluster_name" {
@@ -160,12 +153,12 @@ variable "network" {
   description = "Network configuration for the cluster."
   type = object({
     gateway     = string
-    vip         = string
+    vip         = optional(string)
     api_lb_vip  = string
     cidr_prefix = number
     dns_servers = list(string)
     bridge      = string
-    vlan_id     = number
+    vlan_id     = optional(number)
   })
 }
 
@@ -289,8 +282,8 @@ variable "bootstrap_argocd_version" {
   default     = "9.2.3"
 }
 
-variable "bitwarden_token" {
-  description = "Bitwarden Secrets Manager API token for External Secrets Operator"
+variable "doppler_token" {
+  description = "Doppler service token for External Secrets Operator"
   type        = string
   default     = ""
   sensitive   = true
@@ -299,7 +292,7 @@ variable "bitwarden_token" {
 variable "git_repository_url" {
   description = "Git repository URL for ArgoCD ApplicationSets (customize for forks)"
   type        = string
-  default     = "https://github.com/theepicsaxguy/homelab.git"
+  default     = "https://github.com/SmadjaPaul/kube-ops.git"
 }
 
 variable "encryption_passphrase" {

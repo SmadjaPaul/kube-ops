@@ -9,7 +9,8 @@ resources:
 - opencode
 - perplexica
 - qdrant
-- vllm-embed
+# Disabled for initial AOOSTAR bootstrap: GPU/local inference workload
+# - vllm-embed
 - gpt-researcher
 - openclaw
 - pocket-tts

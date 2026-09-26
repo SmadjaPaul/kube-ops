@@ -1,11 +1,10 @@
----
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: authentik-postgresql-backup
+  name: authentik-postgresql-weekly
   namespace: auth
 spec:
-  schedule: "0 0 2 * * *"  # Daily at 2 AM instead of weekly
+  schedule: "0 0 2 * * 0"
   backupOwnerReference: self
   cluster:
     name: authentik-postgresql-restored
@@ -13,4 +12,4 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: authentik-b2-store  # Backup to B2 for offsite storage
+      barmanObjectName: authentik-hetzner-store

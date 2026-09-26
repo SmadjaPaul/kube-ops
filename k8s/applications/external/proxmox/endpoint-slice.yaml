@@ -13,5 +13,5 @@ ports:
     port: 8006
 endpoints:
   - addresses:
-      - 172.20.20.5  # host3
+      - 10.0.20.51 # tatouine
     conditions: { } # https://github.com/argoproj/argo-cd/issues/15554

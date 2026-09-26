@@ -17,7 +17,7 @@ entries:
   - id: pinepods_provider
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/web/pinepods
+      name: k8s.smadja.dev/web/pinepods
     attrs:
       authorization_flow:
         !Find [
@@ -39,7 +39,7 @@ entries:
       client_id: !Env PINEPODS_CLIENT_ID
       client_secret: !Env PINEPODS_CLIENT_SECRET
       redirect_uris:
-        - url: https://pinepods.peekoff.com/api/auth/callback
+        - url: https://pinepods.smadja.dev/api/auth/callback
           matching_mode: strict
 
       access_code_validity: minutes=1

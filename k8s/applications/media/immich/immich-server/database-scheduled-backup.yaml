@@ -1,11 +1,10 @@
----
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: immich-postgresql-backup
+  name: immich-postgresql-weekly
   namespace: immich
 spec:
-  schedule: "0 0 2 * * 1"
+  schedule: "0 0 3 * * 0"
   backupOwnerReference: self
   cluster:
     name: immich-postgresql
@@ -13,4 +12,4 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: immich-b2-store
+      barmanObjectName: immich-hetzner-store

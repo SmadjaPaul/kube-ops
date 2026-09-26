@@ -3,8 +3,11 @@ kind: Kustomization
 
 resources:
 - project.yaml
-- frigate
+# Disabled for initial bootstrap: hardware/camera-dependent workload
+# - frigate
 - mqtt
 - hassio
-- zigbee2mqtt
-- matter-server
+# Deferred: upstream coordinator binding 10.0.10.160 is not a Smadja hardware contract.
+# - zigbee2mqtt
+# Deferred: upstream BLE/LB binding requires local hardware/address allocation.
+# - matter-server

@@ -2,12 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  # Daily local backups (14d TTL)
+  # One offsite tier only: daily Kopia backups, 14-day TTL.
+  # CNPG database volumes are protected independently through Barman/WAL archiving.
   - daily-home-assistant.yaml
   - daily-immich.yaml
-  - daily-unifi.yaml
   - daily-babybuddy.yaml
-  - daily-minecraft.yaml
   - daily-jellyfin.yaml
   - daily-radarr.yaml
   - daily-sonarr.yaml
@@ -20,7 +19,6 @@ resources:
   - daily-qdrant.yaml
   - daily-karakeep.yaml
   - daily-pinepods.yaml
-  - daily-frigate.yaml
   - daily-mqtt.yaml
   - daily-zigbee2mqtt.yaml
   - daily-perplexica.yaml
@@ -29,12 +27,3 @@ resources:
   - daily-opencode.yaml
   - daily-pocket-tts.yaml
   - daily-trilium.yaml
-  # Weekly offsite backups (90d TTL, Backblaze B2)
-  - weekly-offsite-home-assistant.yaml
-  - weekly-offsite-immich.yaml
-  - weekly-offsite-babybuddy.yaml
-  - weekly-offsite-unifi.yaml
-  - weekly-offsite-minecraft.yaml
-  - weekly-offsite-karakeep.yaml
-  - weekly-offsite-openwebui.yaml
-  - weekly-offsite-trilium.yaml

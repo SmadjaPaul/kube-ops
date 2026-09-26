@@ -1,6 +1,8 @@
 machine:
   certSANs:
+%{ if vip != null && vip != "" ~}
     - ${vip}
+%{ endif ~}
     - ${node_ip}
 %{ if external_api_endpoint != null ~}
     - ${external_api_endpoint}
