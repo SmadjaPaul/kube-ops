@@ -7,4 +7,3 @@ resources:
 - cert-manager
 - descheduler
 - external-secrets
-- velero
