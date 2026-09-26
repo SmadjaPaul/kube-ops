@@ -48,7 +48,7 @@ spec:
         - name: GROUP
           value: "bazarr"
         - name: TZ
-          value: "Europe/Stockholm"
+          value: "Europe/Paris"
         - name: UMASK
           value: "002"
         volumeMounts:
@@ -84,7 +84,7 @@ spec:
       name: config
     spec:
       accessModes: ["ReadWriteOnce"]
-      storageClassName: "proxmox-csi-2"
+      storageClassName: "proxmox-csi"
       resources:
         requests:
           storage: 1Gi
