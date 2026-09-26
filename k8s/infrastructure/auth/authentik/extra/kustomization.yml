@@ -3,8 +3,7 @@ kind: Kustomization
 
 resources:
   - secrets.yml
-  # V1: SMTP is intentionally disabled; no mail provider dependency at bootstrap.
-  # - smtp-externalsecret.yaml
+  - smtp-externalsecret.yaml
 
 generatorOptions:
   disableNameSuffixHash: false
