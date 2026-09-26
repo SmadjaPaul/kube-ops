@@ -40,6 +40,8 @@ global:
         name: authentik-core-secrets
     - secretRef:
         name: authentik-blueprint-secrets
+    - secretRef:
+        name: authentik-smtp-credentials
 
   # -- Additional volumeMounts to all deployed Deployments. Does not apply to GeoIP
   # @default -- `[]` (See [values.yaml])
@@ -81,7 +83,15 @@ authentik:
   web:
     # -- Relative path the authentik instance will be available at. Value _must_ contain both a leading and trailing slash.
     path: /
-  # V1: outbound email intentionally disabled. Add SMTP only with the business mail stack.
+  email:
+    host: "env://AUTHENTIK_EMAIL__HOST"
+    port: "env://AUTHENTIK_EMAIL__PORT"
+    username: "env://AUTHENTIK_EMAIL__USERNAME"
+    password: "env://AUTHENTIK_EMAIL__PASSWORD"
+    use_tls: false
+    use_ssl: true
+    timeout: 30
+    from: "env://AUTHENTIK_EMAIL__FROM"
   outposts:
     # -- Template used for managed outposts. The following placeholders can be used
     # %(type)s - the type of the outpost
