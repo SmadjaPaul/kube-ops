@@ -1,57 +1,83 @@
 ---
 sidebar_position: 4
 title: Smadja environment porting TODO
-description: Unknown environment bindings to resolve before the first OpenTofu plan.
+description: Remaining bindings to resolve before the V1 clean install.
 ---
 
 # Smadja environment porting TODO
 
-This fork is intentionally being ported with the smallest possible delta from upstream. Known values from the existing Smadja infrastructure have been applied. Values that cannot be proven from the existing repositories are listed here instead of being guessed.
+The V1 no longer builds a parallel candidate cluster. The old Talos cluster is disposable: `homelab-infra` destroys it through its existing state, then `kube-ops` recreates the target directly as VMID 101 / `10.0.20.60`.
 
-## Known bindings already applied
+## Fixed bindings
 
-- Proxmox node and cluster: `tatouine`.
+- Proxmox host: `tatouine`.
 - Proxmox API endpoint: `https://10.0.20.51:8006`.
-- LAN: `10.0.20.0/24`.
-- LAN gateway: `10.0.20.1`.
-- DNS: `10.0.20.53`, with `1.1.1.1` as secondary.
-- Proxmox bridge: `vmbr0`.
-- Primary domain: `smadja.dev`.
-- Authentik public endpoint: `auth.smadja.dev`.
-- Proxmox VM datastore used by the existing Talos data disk: `tank-vm`.
-- Proxmox ISO/image datastore: `tank-iso`.
-- Argo CD repository: `SmadjaPaul/kube-ops`.
-- Upstream LB and BLE proxy definitions are disabled until local addresses are allocated.
+- VMID: `101`.
+- Talos node IP: `10.0.20.60/24`.
+- gateway: `10.0.20.1`.
+- DNS: `10.0.20.53`, then `1.1.1.1`.
+- bridge: `vmbr0`, untagged.
+- Talos system disk: 100 GiB on `nvme-vm`.
+- application PVC datastore: `tank-vm` through Proxmox CSI.
+- Talos: `v1.13.10`.
+- Kubernetes: `1.36.3`.
+- no Talos VIP, dedicated LB VM, worker VM or BLE proxy VM.
+- GitOps repository: `SmadjaPaul/kube-ops`.
+- fresh state key: `kube-ops/homeops/terraform.tfstate`.
+- runtime secret provider: Doppler via `ClusterSecretStore/doppler-cluster`.
+- Migadu remains the V1 SMTP/mail provider.
 
-## Resolve before tofu plan
+## Resolve before the destructive cutover
 
-1. Allocate a collision-free Kubernetes VIP and API load-balancer VIP on `10.0.20.0/24`. Replace `TODO_LAN_VIP` and `TODO_API_LB_VIP` in `tofu/config.auto.tfvars`.
-2. Decide the initial Talos topology for the 64 GB AOOSTAR host. Rewrite `tofu/nodes.auto.tfvars`; all upstream `10.25.150.x` addresses, MAC addresses, VM IDs, and the `velocity` datastore belong to the upstream author's environment and must not be deployed.
-3. Confirm whether a dedicated pair of load-balancer VMs is required. It is disabled for the first port because the current Smadja environment has no proven free VM IDs, MAC addresses, or reserved addresses for those VMs.
-4. Confirm whether the Matter BLE proxy is required. It is disabled because the upstream USB device and address are not part of the Smadja hardware inventory.
-5. Create a local `tofu/terraform.tfvars` from the example. Use Proxmox endpoint `https://10.0.20.51:8006`, node/cluster `tatouine`, and credentials from the existing secret authority. Never commit the token.
-6. Resolve the upstream Bitwarden Secrets Manager dependency. The current Smadja authority is Doppler for external/bootstrap/recovery and SOPS/age for cluster-owned static secrets. For the first upstream boot, either provide Bitwarden exactly as upstream expects or make a separately reviewed minimal ESO backend adaptation. Do not silently redesign secrets in this porting PR.
-7. Configure the state encryption passphrase and initialize the NEW `kube-ops/homeops-v2/terraform.tfstate` key in the existing OCI Object Storage bucket. This is fresh cluster state: no `terraform state mv`, import, backend migration, or reuse of any `homelab-infra` state is allowed.
-8. Replace remaining upstream environment literals throughout Kubernetes manifests: `peekoff.com`, `10.25.150.0/24`, `host3`, `Nvme1`, `velocity`, TrueNAS/NFS endpoints, Cloudflare tunnel identity, Backblaze B2/MinIO identities, and upstream Authentik users/groups. Verify each occurrence semantically rather than using a blind replacement for addresses.
-9. Keep Cloudflare, UniFi, AdGuard, Doppler bootstrap, Migadu and all other infrastructure external to the candidate cluster in `SmadjaPaul/homelab-infra`. `kube-ops` may consume the resulting endpoints/tokens but must not provision duplicate external resources. Do not alter current production DNS or tunnel routes until the candidate cluster is healthy.
-10. Reconcile Authentik groups with the Smadja baseline: `family`, `media`, `dev`, `data`, `iot`, `admin`, and `authentik-admins`. Do not import upstream real users.
-11. Audit the application catalog before first Argo sync. V1 intentionally disables the business stack, including `jmap-webmail`, TMail/Auth mail integration, outbound SMTP, future Stalwart/Bulwark/Listmonk/Twenty/Chatwoot/SES components, and any other business-only workload. Hardware-dependent or expensive workloads remain disabled where not proven. Personal/family services stay in scope.
-12. Confirm Proxmox CSI can create volumes on `tank-vm` and create the least-privilege CSI account expected by the upstream bootstrap.
-13. Determine migration separately for data currently stored on the existing 10 TiB Talos disk. Do not attach, format, delete, or repurpose that disk during candidate-cluster bootstrap.
+1. Run the static gates in both PRs. Fix every syntax, Kustomize, Helm or OpenTofu validation error before any live plan.
+2. In `homelab-infra`, run a live `terraform/proxmox` plan against the existing OCI state. The allowed destructive delta is the legacy Talos module only: VM101, its disposable 10 TiB guest disk, Talos machine material and module-owned boot artifact if planned. Any change to `bond0`, `vmbr0`, ZFS/tank, another VM/LXC or an unrelated Proxmox object is a hard stop.
+3. Verify VM101 contains no application data that must survive. This V1 intentionally has no backup/restore gate because the operator has declared the cluster disposable.
+4. In `kube-ops`, create local uncommitted provider variables for Proxmox credentials and state encryption. Never copy credentials into Git.
+5. Verify that `proxmox_cluster = "tatouine"` has the semantics expected by this fork. If it is only a topology label, keep it; if the provider requires another cluster identifier, use live read-only Proxmox evidence.
+6. Port the active Cilium load-balancer/L2 address configuration from upstream `10.25.150.x` to a small proven-free range on `10.0.20.0/24`. Do not guess addresses and do not enable BGP for V1.
+7. Remove or port every active upstream literal: `peekoff.com`, `10.25.150.*`, `host3`, `Nvme1`, `velocity`, TrueNAS addresses, upstream Cloudflare identifiers and upstream real-user identities. Disabled manifests may remain as upstream reference only if they cannot be reconciled by Argo.
+8. Inventory the rendered active `ExternalSecret` resources. Every store must resolve to `doppler-cluster`; every remote key must be `UPPER_SNAKE_CASE`.
+9. Apply the `homelab-infra/terraform/doppler` change that creates `cluster/prd`, read-only `eso-cluster` and `infrastructure/prd:ESO_CLUSTER`.
+10. Materialize only the active required key names into `cluster/prd`. Reuse existing values from current Doppler domains where identity continuity is useful; generate new values for disposable app credentials. Do not reveal values in logs, prompts or PRs.
+11. Keep Migadu SMTP keys available for Authentik: `MIGADU_SMTP_HOST`, `MIGADU_SMTP_PORT`, `MIGADU_SMTP_USER`, `MIGADU_SMTP_PASSWORD`, and `MIGADU_SMTP_FROM`.
+12. Replace upstream Authentik users/groups with the Smadja taxonomy: `family`, `media`, `dev`, `data`, `iot`, `admin`, `authentik-admins`. Do not import upstream real users.
+13. Prove Proxmox CSI can use `tank-vm` with the least-privilege Proxmox credentials expected by the chart.
+14. Keep Velero, CNPG B2 schedules and all legacy MinIO/TrueNAS backup assumptions disabled until the cluster is green.
+15. Keep the business stack disabled: Stalwart, Bulwark/jmap-webmail, TMail, La Suite Messages, Listmonk, Twenty, Chatwoot and SES. Migadu SMTP is the explicit exception.
+16. Keep GPT Researcher, Pocket-TTS and Whisper enabled. Keep vLLM, Frigate and Minecraft disabled for first green.
+17. Scale control-plane services and CNPG databases to one replica where extra replicas provide no physical availability on the single AOOSTAR.
 
-## Local-agent acceptance gate
+## Live cutover sequence
 
-Before any apply, the local agent must prove:
+The cutover must be sequential. Never allow both repositories to manage VMID 101 simultaneously.
 
-- no unresolved `TODO_*` value is consumed by OpenTofu;
-- no active Talos node uses an upstream IP, MAC address, VM ID, node name, or datastore;
-- no active route or certificate targets `peekoff.com`;
-- `tofu fmt` and `tofu validate` pass;
-- the OpenTofu plan contains no destroy or mutation of existing Smadja Proxmox resources;
-- the candidate uses new VM IDs and collision-free LAN addresses;
-- no secret is committed;
-- the `kube-ops` OpenTofu plan contains only candidate-cluster resources and does not manage Cloudflare, UniFi, AdGuard, Migadu, Doppler bootstrap or other external provider resources;
-- no Cloudflare production route is changed by the infrastructure plan;
-- the existing Flux cluster and its 10 TiB data disk remain untouched.
+1. Merge the reviewed repository-boundary/destruction PR in `homelab-infra`.
+2. Re-run the live Proxmox plan.
+3. With explicit operator approval, apply the legacy Talos destruction.
+4. Verify VMID 101 is absent and `10.0.20.60` is free.
+5. Initialize `kube-ops` against the fresh OCI state key. Do not import anything.
+6. Run the `kube-ops` plan. It must create exactly the intended clean cluster substrate; unexpected destroys or unrelated external-provider resources are a hard stop.
+7. Apply the Talos cluster and prove Talos, Kubernetes, Cilium and CoreDNS health using the node IP.
+8. Bootstrap External Secrets and the Doppler service token.
+9. Bootstrap Argo CD, then reconcile infrastructure in layers.
+10. Bring CNPG and Authentik green before enabling application layers.
+11. Bring personal apps, AI/media and home automation green.
+12. Only then point or verify the Cloudflare wildcard tunnel/public DNS path to the new Gateway.
+13. After sustained green state, implement B2/backup policy and prove one restore.
 
-Stop on any destructive or ambiguous plan. The next step after this document is resolution of these environment bindings, not refactoring upstream architecture.
+## Acceptance
+
+V1 is complete when:
+
+- one Talos node `homeops-01` is Ready and schedulable;
+- Cilium/CoreDNS/Gateway and Proxmox CSI are healthy;
+- every active `ExternalSecret` is Ready from Doppler;
+- Argo CD has no unexplained OutOfSync/Degraded application;
+- Authentik login works and Migadu SMTP sends a test message;
+- GPT Researcher, Pocket-TTS and Whisper are deployed at one replica;
+- selected personal/media/home-automation applications are healthy;
+- no active resource points at upstream domains, networks, datastores or identities;
+- the business stack and backup stack remain intentionally deferred;
+- the old Flux cluster no longer exists.
+
+Do not refactor upstream architecture while executing this runbook. The target is first stable cluster, then cleanup.
