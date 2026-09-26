@@ -1,64 +1,3 @@
----
-# ExternalSecret for Backblaze B2 credentials (PostgreSQL backups)
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: b2-cnpg-credentials
-  namespace: auth
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: doppler-cluster
-    kind: ClusterSecretStore
-  target:
-    name: b2-cnpg-credentials
-    creationPolicy: Owner
-  data:
-    - secretKey: AWS_ACCESS_KEY_ID
-      remoteRef:
-        key: BACKBLAZE_B2_CNPG_ACCESS_KEY_ID
-    - secretKey: AWS_SECRET_ACCESS_KEY
-      remoteRef:
-        key: BACKBLAZE_B2_CNPG_SECRET_ACCESS_KEY
----
-# Local MinIO backup (fast recovery)
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: authentik-minio-store
-  namespace: auth
-spec:
-  retentionPolicy: "14d"
-  configuration:
-    destinationPath: s3://homelab-postgres-backups/auth/authentik-postgresql
-    endpointURL: https://truenas.peekoff.com:30293
-    s3Credentials:
-      accessKeyId:
-        name: longhorn-minio-credentials
-        key: AWS_ACCESS_KEY_ID
-      secretAccessKey:
-        name: longhorn-minio-credentials
-        key: AWS_SECRET_ACCESS_KEY
----
-# Offsite Backblaze B2 backup (disaster recovery)
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: authentik-b2-store
-  namespace: auth
-spec:
-  retentionPolicy: "30d"
-  configuration:
-    destinationPath: s3://homelab-cnpg-b2/auth/authentik-postgresql
-    endpointURL: https://s3.us-west-002.backblazeb2.com
-    s3Credentials:
-      accessKeyId:
-        name: b2-cnpg-credentials
-        key: AWS_ACCESS_KEY_ID
-      secretAccessKey:
-        name: b2-cnpg-credentials
-        key: AWS_SECRET_ACCESS_KEY
----
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -67,14 +6,16 @@ metadata:
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
   storage:
     size: 40Gi
     storageClass: proxmox-csi
-
   walStorage:
     size: 30Gi
     storageClass: proxmox-csi
-
   resources:
     requests:
       memory: 512Mi
@@ -82,7 +23,6 @@ spec:
     limits:
       memory: 1Gi
       cpu: 1000m
-
   postgresql:
     parameters:
       max_connections: "100"
@@ -98,34 +38,9 @@ spec:
       huge_pages: "off"
       min_wal_size: "1GB"
       max_wal_size: "3GB"
-
-  plugins:
-  - name: barman-cloud.cloudnative-pg.io
-    enabled: true
-    isWALArchiver: true
-    parameters:
-      barmanObjectName: authentik-minio-store
-
-  externalClusters:
-    - name: authentik-postgresql-b2-backup
-      plugin:
-        name: barman-cloud.cloudnative-pg.io
-        parameters:
-          barmanObjectName: authentik-b2-store
-    - name: authentik-postgresql-minio-backup
-      plugin:
-        name: barman-cloud.cloudnative-pg.io
-        parameters:
-          barmanObjectName: authentik-minio-store
-
-  # Bootstrap section removed - migration complete, cluster running in normal operational mode
-
   monitoring:
     enablePodMonitor: false
-
   minSyncReplicas: 0
   maxSyncReplicas: 0
-
   affinity:
     enablePodAntiAffinity: false
-    topologyKey: kubernetes.io/hostname
