@@ -21,6 +21,11 @@ spec:
     initdb:
       database: omnigent
       owner: omnigent
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: omnigent-hetzner-store
   storage:
     size: 10Gi
     storageClass: proxmox-csi
