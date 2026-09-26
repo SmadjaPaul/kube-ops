@@ -1,0 +1,54 @@
+---
+name: Kubernetes Desired State
+
+on:
+  pull_request:
+    paths:
+      - 'k8s/**'
+      - 'scripts/check-v1-active-contract.sh'
+      - 'scripts/check-post-v1-staged.sh'
+      - 'package.json'
+      - '.github/workflows/kubernetes-desired-state.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'k8s/**'
+      - 'scripts/check-v1-active-contract.sh'
+      - 'scripts/check-post-v1-staged.sh'
+      - 'package.json'
+      - '.github/workflows/kubernetes-desired-state.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+
+      - name: Install kustomize
+        run: go install sigs.k8s.io/kustomize/kustomize/v5@v5.8.1
+
+      - name: Verify tools
+        run: |
+          export PATH="$HOME/go/bin:$PATH"
+          kustomize version
+          helm version
+
+      - name: Render active desired state
+        run: |
+          export PATH="$HOME/go/bin:$PATH"
+          npm run check:v1-contract
+
+      - name: Render staged post-V1 applications
+        run: |
+          export PATH="$HOME/go/bin:$PATH"
+          npm run check:post-v1-staged
