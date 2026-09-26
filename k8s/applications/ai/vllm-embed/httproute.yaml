@@ -8,7 +8,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'embeddings.peekoff.com'
+    - 'embeddings.smadja.dev'
   rules:
     - matches:
         - path:
