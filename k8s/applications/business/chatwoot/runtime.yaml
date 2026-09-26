@@ -11,6 +11,17 @@ spec:
   target:
     name: chatwoot-runtime
     creationPolicy: Owner
+    template:
+      engineVersion: v2
+      data:
+        SECRET_KEY_BASE: "{{ .SECRET_KEY_BASE }}"
+        REDIS_PASSWORD: "{{ .REDIS_PASSWORD }}"
+        REDIS_URL: "redis://:{{ .REDIS_PASSWORD }}@chatwoot-redis:6379"
+        SMTP_ADDRESS: "{{ .SMTP_ADDRESS }}"
+        SMTP_PORT: "{{ .SMTP_PORT }}"
+        SMTP_USERNAME: "{{ .SMTP_USERNAME }}"
+        SMTP_PASSWORD: "{{ .SMTP_PASSWORD }}"
+        MAILER_SENDER_EMAIL: "{{ .MAILER_SENDER_EMAIL }}"
   data:
     - secretKey: SECRET_KEY_BASE
       remoteRef: { key: APP_CHATWOOT_SECRET_KEY_BASE }
