@@ -31,7 +31,7 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 
 <k8s>
 <k8s_rules>
-- Use ExternalSecret external-secrets.io/v1 with ClusterSecretStore bitwarden-backend; name each Bitwarden item app-<application>-<secret-name>; set refreshInterval 1h.
+- Use ExternalSecret external-secrets.io/v1 with ClusterSecretStore doppler-cluster; Doppler remote keys use UPPER_SNAKE_CASE and refreshInterval 1h.
 - Avoid ExternalSecret for CNPG application credentials; use CNPG auto-generated <cluster-name>-app secrets instead.
 - Use Kubernetes Secret created by kubectl for service-to-service credentials.
 - Use CiliumNetworkPolicy v2 with default-deny ingress and egress in every application namespace; never use standard NetworkPolicy resources.
