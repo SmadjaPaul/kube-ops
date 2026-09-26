@@ -77,11 +77,19 @@ inventory="$(awk '
   }
 ' "$rendered")"
 
-external_secret_count="$(grep -Ec '^[[:space:]]*kind:[[:space:]]*ExternalSecret[[:space:]]*"$(printf '%s\n' "$inventory" | awk '$1=="KEY" {n++} END {print n+0}')"
-if (( external_secret_count > 0 && inventory_key_count == 0 )); then
+external_secret_count="$(grep -Ec '^[[:space:]]*kind:[[:space:]]*ExternalSecret[[:space:]]*$' "$rendered" || true)"
+if (( external_secret_count == 0 )); then
+  echo "ERROR: active desired state unexpectedly renders zero ExternalSecrets" >&2
+  grep -En 'ExternalSecret|remoteRef:|secretStoreRef:' "$rendered" | head -40 >&2 || true
+  exit 1
+fi
+
+inventory_key_count="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {n++} END {print n+0}')"
+if (( inventory_key_count == 0 )); then
   echo "ERROR: rendered ExternalSecrets exist but no remoteRef keys were inventoried" >&2
   exit 1
 fi
+
 bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $2!="doppler-cluster" {print $2}' | sort -u)"
 if [[ -n "$bad_stores" ]]; then
   echo "ERROR: active ExternalSecrets reference non-Doppler stores:" >&2
