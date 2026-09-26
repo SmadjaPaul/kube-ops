@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
 - project.yaml
 - argocd
+- argocd-mcp
 - cert-manager
 - descheduler
 - external-secrets
