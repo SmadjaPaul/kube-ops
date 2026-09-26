@@ -32,7 +32,7 @@ for root in "${roots[@]}"; do
   printf '\n---\n' >>"$rendered"
 done
 
-forbidden='peekoff\\.com|10\\.25\\.150\\.|172\\.20\\.20\\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\\.'
+forbidden='peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\.'
 if grep -Ein "$forbidden" "$rendered"; then
   echo "ERROR: active rendered desired state still contains an upstream/legacy storage or secret-provider binding" >&2
   exit 1
