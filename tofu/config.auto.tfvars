@@ -8,7 +8,7 @@ external_api_endpoint = "api.kube.smadja.dev"
 network = {
   gateway     = "10.0.20.1"
   vip         = "TODO_LAN_VIP"
-  api_lb_vip  = "TODO_API_LB_VIP"
+  api_lb_vip  = ""
   cidr_prefix = 24
   dns_servers = ["10.0.20.53", "1.1.1.1"]
   bridge      = "vmbr0"
@@ -18,18 +18,18 @@ network = {
 proxmox_cluster = "tatouine"
 
 versions = {
-  talos      = "v1.12.5"
-  kubernetes = "1.35.2"
+  talos      = "v1.13.9"
+  kubernetes = "1.36.3"
 }
 
 talos_image = {
   schematic_path    = "talos/image/schematic.yaml.tftpl"
-  update_version    = "v1.13.2" # renovate: github-releases=siderolabs/talos
+  update_version    = "v1.13.9" # renovate: github-releases=siderolabs/talos
   proxmox_datastore = "tank-iso"
 }
 
 kubernetes_image = {
-  update_version = "1.36.1" # renovate: github-releases=kubernetes/kubernetes versioning=loose
+  update_version = "1.36.3" # renovate: github-releases=kubernetes/kubernetes versioning=loose
 }
 
 oidc = {
