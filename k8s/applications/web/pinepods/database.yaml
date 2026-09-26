@@ -11,6 +11,11 @@ spec:
     initdb:
       database: app
       owner: app
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: pinepods-hetzner-store
   storage:
     size: 60Gi
     storageClass: proxmox-csi
