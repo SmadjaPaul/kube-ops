@@ -56,7 +56,7 @@ inventory="$(awk '
     in_remote=0
     next
   }
-  /^[[:space:]]*remoteRef:[[:space:]]*$/ {
+  /^[[:space:]]*(-[[:space:]]+)?remoteRef:[[:space:]]*$/ {
     in_remote=1
     in_store=0
     next
