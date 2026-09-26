@@ -8,7 +8,7 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: bitwarden-backend
+    name: doppler-cluster
     kind: ClusterSecretStore
   target:
     name: b2-cnpg-credentials
@@ -16,10 +16,10 @@ spec:
   data:
     - secretKey: AWS_ACCESS_KEY_ID
       remoteRef:
-        key: backblaze-b2-cnpg-access-key-id
+        key: BACKBLAZE_B2_CNPG_ACCESS_KEY_ID
     - secretKey: AWS_SECRET_ACCESS_KEY
       remoteRef:
-        key: backblaze-b2-cnpg-secret-access-key
+        key: BACKBLAZE_B2_CNPG_SECRET_ACCESS_KEY
 ---
 # Local MinIO backup (fast recovery)
 apiVersion: barmancloud.cnpg.io/v1
