@@ -106,7 +106,7 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: postgresql
-  description: "Allow PostgreSQL client connections and WAL archiving to RustFS"
+  description: "Allow PostgreSQL client connections and WAL archiving to Hetzner Object Storage"
   ingress:
   - fromEndpoints:
     - matchLabels:
@@ -118,10 +118,10 @@ spec:
         protocol: TCP
   egress:
   - toFQDNs:
-    - matchName: "truenas.peekoff.com"
+    - matchName: "fsn1.your-objectstorage.com"
     toPorts:
     - ports:
-      - port: "30293"
+      - port: "443"
         protocol: TCP
   - toEntities:
     - world
