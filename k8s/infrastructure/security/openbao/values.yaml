@@ -1,0 +1,95 @@
+injector:
+  enabled: false
+ui:
+  enabled: false
+server:
+  image:
+    repository: openbao/openbao
+    tag: "2.6.2"
+  statefulSet:
+    securityContext:
+      pod:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      container:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop: ["ALL"]
+        seccompProfile:
+          type: RuntimeDefault
+  extraSecretEnvironmentVars:
+    - envName: OPENBAO_SEAL_KEY
+      secretName: openbao-seal
+      secretKey: OPENBAO_SEAL_KEY
+  standalone:
+    enabled: true
+    config: |
+      ui = false
+      disable_mlock = true
+      listener "tcp" {
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+        tls_disable = 1
+      }
+      storage "raft" {
+        path = "/openbao/data"
+        node_id = "openbao-0"
+      }
+      seal "static" {
+        current_key_id = "doppler-v1"
+        current_key = "env://OPENBAO_SEAL_KEY"
+      }
+      initialize "transit_mount" {
+        request "enable_transit" {
+          operation = "update"
+          path = "sys/mounts/transit"
+          data = { type = "transit", description = "Transit engine for Omnigent Credential Store" }
+        }
+      }
+      initialize "omnigent_key" {
+        request "create_omnigent_credentials" {
+          operation = "update"
+          path = "transit/keys/omnigent-credentials"
+          data = { type = "aes256-gcm96", derived = true }
+        }
+      }
+      initialize "omnigent_policy" {
+        request "write_omnigent_transit_policy" {
+          operation = "update"
+          path = "sys/policy/omnigent-transit"
+          data = { policy = "path \"transit/encrypt/omnigent-credentials\" { capabilities = [\"update\"] } path \"transit/decrypt/omnigent-credentials\" { capabilities = [\"update\"] }" }
+        }
+      }
+      initialize "kubernetes_auth" {
+        request "enable_kubernetes_auth" {
+          operation = "update"
+          path = "sys/auth/kubernetes"
+          data = { type = "kubernetes", description = "Kubernetes service account auth for Omnigent Agent" }
+        }
+        request "configure_kubernetes_auth" {
+          operation = "update"
+          path = "auth/kubernetes/config"
+          data = { kubernetes_host = "https://kubernetes.default.svc" }
+        }
+        request "write_omnigent_kubernetes_role" {
+          operation = "update"
+          path = "auth/kubernetes/role/omnigent"
+          data = {
+            bound_service_account_names = ["omnigent-server"]
+            bound_service_account_namespaces = ["omnigent"]
+            token_policies = ["omnigent-transit"]
+            token_ttl = "1h"
+            token_max_ttl = "1h"
+          }
+        }
+      }
+  dataStorage:
+    enabled: true
+    size: 2Gi
+    storageClass: proxmox-csi
+    accessMode: ReadWriteOnce
