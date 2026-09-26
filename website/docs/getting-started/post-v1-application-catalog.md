@@ -13,28 +13,28 @@ This document is a coverage map, not an instruction to deploy every listed servi
 
 | Domain | Applications |
 |---|---|
-| Personal/media | Immich, Jellyfin, Audiobookshelf |
-| Life | Home Assistant; Frigate manifests retained but disabled |
-| Productivity | Karakeep |
+| Personal/media | Immich, Jellyfin, Audiobookshelf; Paperless manifests staged |
+| Life | Home Assistant, Mealie, Actual Budget; Dawarich staged; Frigate manifests retained but disabled |
+| Productivity | Karakeep, Vikunja |
 | AI | Open WebUI, LiteLLM, Qdrant, OpenCode, OpenClaw, GPT Researcher, Pocket-TTS, Whisper ASR, Omnigent |
-| Data | PostgreSQL via CloudNativePG |
-| Tools | IT-Tools |
+| Data | PostgreSQL via CloudNativePG; Metabase staged |
+| Tools | IT-Tools, SearXNG, Stirling PDF, ntfy |
 | Additional upstream apps | Arr stack, Jellyseerr, SABnzbd, Pinepods, Kiwix, Trilium, Babybuddy, Perplexica |
 
 ## Catalogue gaps
 
 | Domain | Not yet covered |
 |---|---|
-| Personal cloud | oCIS, Paperless-ngx, Vaultwarden, Roundcube |
+| Personal cloud | oCIS, Vaultwarden, Roundcube |
 | Media | Navidrome, Calibre-Web Automated, RomM |
-| Life | SparkyFitness, Mealie, Actual Budget, Dawarich |
-| Productivity | Vikunja, Memos, Outline, FreshRSS |
-| Dev | Woodpecker CI, Harbor, Coder; Forgejo remains N100/external rather than a kube-ops app |
+| Life | SparkyFitness |
+| Productivity | Memos, Outline, FreshRSS |
+| Dev | Renovate is staged; Woodpecker CI, Harbor, Coder; Forgejo remains N100/external rather than a kube-ops app |
 | Creation | Penpot, WordPress, Postiz |
-| Data | Airflow 3, Garage S3, DuckDB, dbt, Metabase |
-| Tools | SearXNG, Stirling PDF, PairDrop, ntfy, Changedetection.io |
+| Data | Airflow 3, Garage S3, DuckDB, dbt |
+| Tools | PairDrop, Changedetection.io |
 
-Renovate is a repository automation concern rather than a long-running application and should be evaluated separately from this runtime list.
+Renovate is present as a staged CronJob and remains disabled until a repository-scoped GitHub credential is provisioned.
 
 ## La Suite coverage
 
@@ -76,4 +76,6 @@ Zigbee2MQTT and Matter Server remain disabled until their Smadja-specific coordi
 
 ## Edge binding
 
-The upstream Cilium `10.25.150.x` LB pool is disabled. A small free range on the Servers VLAN must be proven from live UniFi/DHCP evidence before Cloudflared/L2 exposure is activated.
+Public exposure no longer depends on a LAN LoadBalancer address. `homelab-infra` owns a proxied wildcard DNS record and the remote-managed Cloudflare Tunnel wildcard. The in-cluster Cloudflared daemon connects with its scoped tunnel token and forwards directly to the external Cilium Gateway ClusterIP. `kube-ops` owns hostname fan-out through HTTPRoutes.
+
+The Cilium L2 pool remains disabled until a free Servers-VLAN range is proven; it is needed only for direct LAN/offline Gateway access, not for Cloudflare exposure.
