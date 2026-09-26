@@ -1,5 +1,5 @@
 bitwarden-sdk-server:
-  enabled: true
+  enabled: false
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 65534
