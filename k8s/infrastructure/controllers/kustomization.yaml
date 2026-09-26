@@ -9,4 +9,5 @@ resources:
 - descheduler
 - external-secrets
 - reloader
+- keda
 - velero
