@@ -32,7 +32,7 @@ for root in "${roots[@]}"; do
   printf '\n---\n' >>"$rendered"
 done
 
-forbidden='peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|s3://|barmanObjectName|kind:[[:space:]]+ObjectStore'
+forbidden='peekoff\\.com|10\\.25\\.150\\.|172\\.20\\.20\\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\\.'
 if grep -Ein "$forbidden" "$rendered"; then
   echo "ERROR: active rendered desired state still contains an upstream/legacy storage or secret-provider binding" >&2
   exit 1
@@ -72,7 +72,18 @@ fi
 echo "ACTIVE_NFS_REFERENCES=0"
 echo "ACTIVE_TRUENAS_REFERENCES=0"
 echo "ACTIVE_MINIO_S3_BACKUP_REFERENCES=0"
+echo "ACTIVE_BACKBLAZE_REFERENCES=0"
 echo "ACTIVE_BITWARDEN_REFERENCES=0"
+if ! grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered"; then
+  echo "ERROR: Hetzner fsn1 object storage endpoint is not present in active desired state" >&2
+  exit 1
+fi
+if grep -E 'kind:[[:space:]]+ObjectStore' "$rendered" >/dev/null && ! grep -q 's3://smadja-dev-homelab-backups/cnpg/' "$rendered"; then
+  echo "ERROR: active CNPG ObjectStores are not targeting the canonical Hetzner bucket" >&2
+  exit 1
+fi
+
+echo "ACTIVE_HETZNER_BACKUP_ENDPOINT=PASS"
 echo "ACTIVE_DOPPLER_STORES=PASS"
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN"
 printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | sort -u
