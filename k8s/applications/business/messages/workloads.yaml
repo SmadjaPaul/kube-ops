@@ -28,11 +28,21 @@ spec:
             - secretRef:
                 name: messages-runtime
           env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: host }
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: port }
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: dbname }
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: user }
             - name: DB_PASSWORD
               valueFrom:
-                secretKeyRef:
-                  name: messages-postgresql-app
-                  key: password
+                secretKeyRef: { name: messages-postgresql-app, key: password }
           ports:
             - name: backend
               containerPort: 8000
@@ -110,11 +120,21 @@ spec:
             - secretRef:
                 name: messages-runtime
           env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: host }
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: port }
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: dbname }
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: user }
             - name: DB_PASSWORD
               valueFrom:
-                secretKeyRef:
-                  name: messages-postgresql-app
-                  key: password
+                secretKeyRef: { name: messages-postgresql-app, key: password }
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
