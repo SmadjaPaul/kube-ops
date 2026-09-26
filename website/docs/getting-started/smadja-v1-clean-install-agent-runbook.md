@@ -43,7 +43,7 @@ Do not reopen these decisions unless runtime evidence proves them impossible:
 - Migadu remains the V1 hosted mail/SMTP provider;
 - GPT Researcher, Pocket-TTS and Whisper remain enabled;
 - vLLM, Frigate, Minecraft and the business stack remain disabled for first green;
-- backup/restore infrastructure is deferred until after first green;
+- Hetzner Object Storage is the V1 offsite backup backend; CNPG and Velero are enabled before first-green acceptance;
 - Kubernetes UniFi Network Application remains disabled because the UGC Fiber owns UniFi Network.
 
 ## Repository boundary
@@ -404,6 +404,60 @@ Velero and CNPG offsite schedules
 
 An optional app that blocks the cluster for an upstream-specific dependency should be disabled and reported, not allowed to delay the stable core.
 
+## V1 backup contract — Hetzner Object Storage
+
+The canonical offsite backend is:
+
+```text
+provider: Hetzner Object Storage
+location: fsn1 (Falkenstein)
+endpoint: https://fsn1.your-objectstorage.com
+bucket: smadja-dev-homelab-backups
+visibility: private
+object lock: disabled for V1
+versioning: disabled for V1
+```
+
+Hetzner documents `fsn1.your-objectstorage.com` as the Falkenstein S3 endpoint. Ingress and S3 API requests are not charged; V1 therefore optimizes primarily for retained object volume rather than upload frequency.
+
+Doppler `cluster/prd` must contain:
+
+```text
+HETZNER_S3_ACCESS_KEY_ID
+HETZNER_S3_SECRET_ACCESS_KEY
+HETZNER_S3_VELERO_REPOSITORY_PASSWORD
+```
+
+No credential value may be printed.
+
+CNPG contract:
+
+```text
+WAL archive: continuous
+archive_timeout: CNPG default (5m)
+WAL compression: gzip
+maxParallel: 2
+base backup: weekly, staggered on Sunday
+recovery window: 14d
+prefix: cnpg/<cluster>
+```
+
+Velero contract:
+
+```text
+backend: same Hetzner bucket
+prefix: velero/
+uploader: Kopia
+parallelFilesUpload: 2
+schedule: daily for enabled V1 stateful workloads
+TTL: 14d
+secondary weekly B2 tier: removed
+disabled-app schedules: not active
+```
+
+CNPG protects PostgreSQL/PITR. Velero protects Kubernetes resources and non-database persistent data. Do not create a MinIO/Garage dependency merely for backup.
+
+
 ## Phase 10 — edge cutover
 
 Only after internal health is proven:
@@ -416,13 +470,18 @@ Only after internal health is proven:
 
 Do not use a broad catch-all route that bypasses authentication.
 
-## Phase 11 — post-green backup
+## Phase 11 — prove restore
 
-This is deliberately after first green because V1 starts with no user data.
+Backup is part of V1 desired state, but durability is not proven until restore is tested.
 
-Implement the simplest offsite backup policy compatible with Proxmox CSI/CNPG, then prove one restore before calling the platform durable.
+1. verify every CNPG ObjectStore is reachable and WAL archiving progresses;
+2. verify each weekly ScheduledBackup can complete against Hetzner;
+3. verify Velero's default BackupStorageLocation is Available;
+4. execute one small Velero backup/restore smoke test;
+5. restore one disposable CNPG database from Hetzner and verify PITR mechanics;
+6. record retained size and reassess the 14-day policy after real usage is observed.
 
-Do not resurrect upstream TrueNAS/MinIO assumptions merely to match the reference repository.
+Do not resurrect upstream TrueNAS/MinIO/B2 assumptions.
 
 ## Final report
 
@@ -451,6 +510,10 @@ EXTERNALSECRETS_NOT_READY=
 DOPPLER_REQUIRED_KEYS=
 DOPPLER_MISSING_EXTERNAL_KEYS=
 ACTIVE_LEGACY_STORAGE_REFERENCES=0
+HETZNER_BACKUP_LOCATION=
+CNPG_WAL_ARCHIVE=
+VELERO_STORAGE_LOCATION=
+RESTORE_SMOKE=
 
 ARGO_DEGRADED_APPS=
 AUTHENTIK_LOGIN=
