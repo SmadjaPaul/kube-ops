@@ -1,0 +1,93 @@
+image:
+  repository: chatwoot/chatwoot
+  tag: v4.18.0
+  pullPolicy: IfNotPresent
+
+web:
+  replicaCount: 1
+  hpa:
+    enabled: false
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1536Mi
+
+worker:
+  replicaCount: 1
+  hpa:
+    enabled: false
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1536Mi
+
+services:
+  name: http
+  internalPort: 3000
+  targetPort: 3000
+  type: ClusterIP
+  annotations: {}
+
+ingress:
+  enabled: false
+
+postgresql:
+  enabled: false
+  postgresqlHost: chatwoot-postgresql-rw
+  postgresqlPort: 5432
+  auth:
+    username: chatwoot
+    database: chatwoot
+    existingSecret: chatwoot-postgresql-app
+    secretKeys:
+      adminPasswordKey: password
+
+redis:
+  enabled: false
+  host: chatwoot-redis
+  port: 6379
+  password: ""
+  existingSecret: chatwoot-runtime
+  existingSecretKey: REDIS_PASSWORD
+  auth:
+    existingSecret: chatwoot-runtime
+    existingSecretPasswordKey: REDIS_PASSWORD
+
+existingEnvSecret: chatwoot-runtime
+
+env:
+  ACTIVE_STORAGE_SERVICE: local
+  ENABLE_ACCOUNT_SIGNUP: false
+  FORCE_SSL: true
+  FRONTEND_URL: https://support.smadja.dev
+  INSTALLATION_ENV: helm
+  LOG_LEVEL: info
+  RAILS_ENV: production
+  RAILS_LOG_TO_STDOUT: true
+  RAILS_MAX_THREADS: 5
+  REDIS_TLS: false
+  SECRET_KEY_BASE: overridden-by-existing-secret
+  SMTP_AUTHENTICATION: plain
+  SMTP_ENABLE_STARTTLS_AUTO: true
+  SMTP_OPENSSL_VERIFY_MODE: peer
+  USE_INBOX_AVATAR_FOR_BOT: true
+
+hooks:
+  migrate:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+
+securityContext:
+  seccompProfile:
+    type: RuntimeDefault
