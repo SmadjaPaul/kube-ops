@@ -4,13 +4,17 @@ metadata:
   name: messages-migrate
   namespace: messages
   annotations:
-    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "10"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
-  backoffLimit: 3
+  backoffLimit: 6
   template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: messages-migrate
     spec:
-      restartPolicy: Never
+      restartPolicy: OnFailure
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -27,11 +31,21 @@ spec:
             - secretRef:
                 name: messages-runtime
           env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: host }
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: port }
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: dbname }
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef: { name: messages-postgresql-app, key: user }
             - name: DB_PASSWORD
               valueFrom:
-                secretKeyRef:
-                  name: messages-postgresql-app
-                  key: password
+                secretKeyRef: { name: messages-postgresql-app, key: password }
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
