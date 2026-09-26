@@ -111,6 +111,6 @@ module "bootstrap_kubernetes" {
   external_secrets_version = var.bootstrap_external_secrets_version
   argocd_version           = var.bootstrap_argocd_version
 
-  bitwarden_token    = var.bitwarden_token
+  doppler_token      = var.doppler_token
   git_repository_url = var.git_repository_url
 }
