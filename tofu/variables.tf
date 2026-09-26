@@ -153,7 +153,7 @@ variable "network" {
   description = "Network configuration for the cluster."
   type = object({
     gateway     = string
-    vip         = string
+    vip         = optional(string)
     api_lb_vip  = string
     cidr_prefix = number
     dns_servers = list(string)
