@@ -11,11 +11,6 @@ data:
   LOGGING_LEVEL_LOGGERS_ROOT: INFO
   LOGGING_LEVEL_LOGGERS_APP: INFO
 
-  DB_HOST: messages-postgresql-rw
-  DB_NAME: messages
-  DB_USER: messages
-  DB_PORT: "5432"
-
   REDIS_URL: redis://messages-redis:6379
   CELERY_BROKER_URL: redis://messages-redis:6379
   OPENSEARCH_INDEX_THREADS: "False"
@@ -41,6 +36,7 @@ data:
   OIDC_OP_TOKEN_ENDPOINT: https://auth.smadja.dev/application/o/token/
   OIDC_OP_USER_ENDPOINT: https://auth.smadja.dev/application/o/userinfo/
   OIDC_OP_JWKS_ENDPOINT: https://auth.smadja.dev/application/o/messages/jwks/
+  OIDC_OP_LOGOUT_ENDPOINT: https://auth.smadja.dev/application/o/messages/end-session/
   OIDC_REDIRECT_ALLOWED_HOSTS: messages.smadja.dev
   OIDC_REDIRECT_REQUIRE_HTTPS: "True"
   LOGIN_REDIRECT_URL: https://messages.smadja.dev
