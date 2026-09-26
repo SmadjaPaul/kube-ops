@@ -7,11 +7,16 @@ command -v kustomize >/dev/null 2>&1 || {
 }
 
 roots=(
+  k8s/infrastructure/controllers/argocd-mcp
   k8s/applications/business/stalwart
   k8s/applications/business/bulwark
   k8s/applications/business/twenty
   k8s/applications/business/chatwoot
   k8s/applications/business/messages
+  k8s/applications/catalog/renovate
+  k8s/applications/catalog/paperless
+  k8s/applications/catalog/dawarich
+  k8s/applications/catalog/metabase
 )
 
 rendered="$(mktemp)"
