@@ -22,7 +22,7 @@ V1 is a clean replacement of the existing Talos/Flux cluster. There is no applic
 - Proxmox CSI dynamically provisions application volumes on `tank-vm`;
 - no legacy 10 TiB guest disk;
 - no Talos VIP and no dedicated load-balancer VMs in V1;
-- no BGP for first boot; use the existing upstream Cilium L2/Gateway path once the local load-balancer address pool is ported;
+- no BGP for first boot; the upstream Cilium L2 pool is disabled until a free Servers-VLAN range is proven in UniFi;
 - workloads are allowed on the control plane;
 - Talos/Kubernetes bootstrap uses the control-plane IP directly and does not depend on public DNS being live.
 
@@ -48,7 +48,7 @@ V1 uses Doppler, not Bitwarden Secrets Manager.
 - Cilium, Gateway API, Argo CD, cert-manager, External Secrets, Proxmox CSI, CNPG and the useful upstream security/observability baseline;
 - Authentik as central identity;
 - Migadu retained as hosted mail and SMTP transport, including Authentik outbound mail;
-- Home Assistant, MQTT, Zigbee2MQTT and Matter Server;
+- Home Assistant and MQTT; Zigbee2MQTT and Matter Server remain in-repo but are deferred until Smadja-specific coordinator/BLE/LB bindings are proven;
 - Immich and the selected media/personal applications;
 - OpenWebUI, LiteLLM, OpenCode, OpenClaw, Qdrant, GPT Researcher, Pocket-TTS and Whisper ASR;
 - one replica wherever extra replicas provide no useful availability on the single physical host;
@@ -64,6 +64,10 @@ V1 uses Doppler, not Bitwarden Secrets Manager.
 - Minecraft;
 - vLLM local embedding workload until dedicated compute justifies it;
 - adding new applications that are not required for the first stable cluster.
+
+## Edge binding rule
+
+The Gateway manifests are ported to `smadja.dev`, but the upstream `10.25.150.x` LB pool is not carried over. Cloudflared runtime is deferred until a local Gateway address/service contract is proven. Do not invent an address range.
 
 ## Stability rule
 
