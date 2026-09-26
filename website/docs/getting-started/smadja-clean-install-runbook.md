@@ -17,7 +17,7 @@ Do not execute instructions from older revisions of this page. In particular, V1
 - no Talos VIP;
 - `ClusterSecretStore/doppler-cluster`, never `bitwarden-backend`;
 - Proxmox CSI on `tank-vm`;
-- no active upstream NFS, TrueNAS, MinIO or B2 backup dependency before first green;
+- no active upstream NFS, TrueNAS, MinIO or B2 dependency; CNPG and Velero use Hetzner Object Storage directly;
 - destructive retirement of the old VM101 followed by a fresh VM101 from `kube-ops` state.
 
 The canonical runbook is the only migration authority.
