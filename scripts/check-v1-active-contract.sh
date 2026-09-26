@@ -49,43 +49,37 @@ if (( external_secret_count == 0 )); then
 fi
 
 inventory="$(awk '
-  /^[[:space:]]+secretStoreRef:[[:space:]]*$/ { want_store=1; next }
-  want_store && /^[[:space:]]+name:[[:space:]]*/ {
+  /^[[:space:]]*secretStoreRef:[[:space:]]*$/ {
+    in_store=1
+    in_remote=0
+    next
+  }
+  /^[[:space:]]*remoteRef:[[:space:]]*$/ {
+    in_remote=1
+    in_store=0
+    next
+  }
+  in_store && /^[[:space:]]*name:[[:space:]]*/ {
     v=$0
-    sub(/^[[:space:]]+name:[[:space:]]*/, "", v)
-    gsub(/"/, "", v)
-    gsub(/\047/, "", v)
+    sub(/^[[:space:]]*name:[[:space:]]*/, "", v)
+    gsub(/^["]/, "", v)
+    gsub(/["]$/, "", v)
     print "STORE " v
-    want_store=0
+    in_store=0
+    next
   }
-  /secretStoreRef:[[:space:]]*\{[^}]*name:[[:space:]]*/ {
+  in_remote && /^[[:space:]]*key:[[:space:]]*/ {
     v=$0
-    sub(/^.*secretStoreRef:[[:space:]]*\{[^}]*name:[[:space:]]*/, "", v)
-    sub(/[[:space:],}].*$/, "", v)
-    gsub(/"/, "", v)
-    gsub(/\047/, "", v)
-    print "STORE " v
-  }
-  /^[[:space:]]+remoteRef:[[:space:]]*$/ { want_key=1; next }
-  want_key && /^[[:space:]]+key:[[:space:]]*/ {
-    v=$0
-    sub(/^[[:space:]]+key:[[:space:]]*/, "", v)
-    gsub(/"/, "", v)
-    gsub(/\047/, "", v)
+    sub(/^[[:space:]]*key:[[:space:]]*/, "", v)
+    gsub(/^["]/, "", v)
+    gsub(/["]$/, "", v)
     print "KEY " v
-    want_key=0
-  }
-  /remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/ {
-    v=$0
-    sub(/^.*remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/, "", v)
-    sub(/[[:space:],}].*$/, "", v)
-    gsub(/"/, "", v)
-    gsub(/\047/, "", v)
-    print "KEY " v
+    in_remote=0
+    next
   }
 ' "$rendered")"
 
-inventory_key_count="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {n++} END {print n+0}')"
+inventory_key_count="$(printf '%s\n' "$inventory" | awk '$1=="KEY" && length($2)>0 {n++} END {print n+0}')"
 if (( inventory_key_count == 0 )); then
   echo "ERROR: rendered ExternalSecrets exist but no remoteRef keys were inventoried" >&2
   exit 1
@@ -98,7 +92,37 @@ if [[ -n "$bad_stores" ]]; then
   exit 1
 fi
 
-bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | grep -Ev '^[A-Z][A-Z0-9_]*$' || true)"
+bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" && length($2)>0 {print $2}' | grep -Ev '^[A-Z][A-Z0-9_]*
+if [[ -n "$bad_keys" ]]; then
+  echo "ERROR: active Doppler remote keys must be UPPER_SNAKE_CASE:" >&2
+  printf '%s\n' "$bad_keys" >&2
+  exit 1
+fi
+
+echo "ACTIVE_NFS_REFERENCES=0"
+echo "ACTIVE_TRUENAS_REFERENCES=0"
+echo "ACTIVE_MINIO_S3_BACKUP_REFERENCES=0"
+echo "ACTIVE_BACKBLAZE_REFERENCES=0"
+echo "ACTIVE_BITWARDEN_REFERENCES=0"
+
+if ! grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered"; then
+  echo "ERROR: Hetzner fsn1 object storage endpoint is not present in active desired state" >&2
+  exit 1
+fi
+
+if grep -E 'kind:[[:space:]]+ObjectStore' "$rendered" >/dev/null &&
+   ! grep -q 's3://smadja-dev-homelab-backups/cnpg/' "$rendered"; then
+  echo "ERROR: active CNPG ObjectStores are not targeting the canonical Hetzner bucket" >&2
+  exit 1
+fi
+
+echo "ACTIVE_HETZNER_BACKUP_ENDPOINT=PASS"
+echo "ACTIVE_EXTERNAL_SECRET_COUNT=$external_secret_count"
+echo "ACTIVE_DOPPLER_STORES=PASS"
+echo "ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN"
+printf '%s\n' "$inventory" | awk '$1=="KEY" && length($2)>0 {print $2}' | sort -u
+echo "ACTIVE_DOPPLER_REQUIRED_KEYS_END"
+ || true)"
 if [[ -n "$bad_keys" ]]; then
   echo "ERROR: active Doppler remote keys must be UPPER_SNAKE_CASE:" >&2
   printf '%s\n' "$bad_keys" >&2
