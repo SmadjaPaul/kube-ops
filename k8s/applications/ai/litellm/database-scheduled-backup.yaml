@@ -1,17 +1,15 @@
----
-# Weekly backup to Backblaze B2 (offsite, disaster recovery)
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: litellm-postgresql-b2-backup
+  name: litellm-postgresql-weekly
   namespace: litellm
 spec:
-  schedule: "0 0 3 * * 0"  # Weekly on Sunday at 3 AM
+  schedule: "0 30 2 * * 0"
   backupOwnerReference: self
   cluster:
-    name: litellm-postgresql-restored  # Updated to restored cluster
+    name: litellm-postgresql-restored
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: litellm-b2-store
+      barmanObjectName: litellm-hetzner-store
