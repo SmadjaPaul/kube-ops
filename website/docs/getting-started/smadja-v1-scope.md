@@ -51,7 +51,10 @@ V1 uses Doppler, not Bitwarden Secrets Manager.
 - Home Assistant, MQTT, Zigbee2MQTT and Matter Server;
 - Immich and the selected media/personal applications;
 - OpenWebUI, LiteLLM, OpenCode, OpenClaw, Qdrant, GPT Researcher, Pocket-TTS and Whisper ASR;
-- one replica wherever extra replicas provide no useful availability on the single physical host.
+- one replica wherever extra replicas provide no useful availability on the single physical host;
+- Hetzner Object Storage in `fsn1` as the single V1 offsite S3 backend;
+- continuous CNPG WAL archiving plus weekly base backups with a 14-day recovery window;
+- Velero/Kopia daily filesystem backups for enabled stateful workloads with 14-day TTL.
 
 ## Deferred or disabled for first green cluster
 
@@ -60,7 +63,6 @@ V1 uses Doppler, not Bitwarden Secrets Manager.
 - Frigate until camera configuration exists;
 - Minecraft;
 - vLLM local embedding workload until dedicated compute justifies it;
-- Velero, CNPG B2 schedules, upstream MinIO/TrueNAS backup assumptions and restore paths;
 - adding new applications that are not required for the first stable cluster.
 
 ## Stability rule
@@ -76,8 +78,9 @@ legacy cluster destroy
   -> CNPG / Authentik
   -> personal applications
   -> AI / media / home automation
+  -> CNPG WAL + Velero backups to Hetzner
   -> Cloudflare public edge
-  -> backup / restore proof
+  -> restore proof
 ```
 
-Do not enable the next layer while the current layer is unhealthy. Backup/DR is the first post-green hardening step.
+Do not enable the next layer while the current layer is unhealthy. Backup resources are part of V1 desired state; restore proof remains the durability gate after first green.
