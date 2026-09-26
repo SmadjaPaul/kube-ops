@@ -7,6 +7,49 @@ version: 1
 metadata:
   name: Groups - Applications
 entries:
+  - id: authentik-admins
+    model: authentik_core.group
+    identifiers:
+      name: authentik-admins
+    attrs:
+      name: authentik-admins
+      is_superuser: true
+  - id: admin
+    model: authentik_core.group
+    identifiers:
+      name: admin
+    attrs:
+      name: admin
+  - id: family
+    model: authentik_core.group
+    identifiers:
+      name: family
+    attrs:
+      name: family
+  - id: dev
+    model: authentik_core.group
+    identifiers:
+      name: dev
+    attrs:
+      name: dev
+  - id: media
+    model: authentik_core.group
+    identifiers:
+      name: media
+    attrs:
+      name: media
+  - id: data
+    model: authentik_core.group
+    identifiers:
+      name: data
+    attrs:
+      name: data
+  - id: iot
+    model: authentik_core.group
+    identifiers:
+      name: iot
+    attrs:
+      name: iot
   - id: argocd-admins
     model: authentik_core.group
     identifiers:
