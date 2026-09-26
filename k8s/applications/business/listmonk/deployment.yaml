@@ -18,6 +18,10 @@ spec:
         app.kubernetes.io/name: listmonk
     spec:
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -38,6 +42,10 @@ spec:
             - secretRef:
                 name: listmonk-runtime
           env:
+            - name: PUID
+              value: "65534"
+            - name: PGID
+              value: "65534"
             - name: TZ
               value: Europe/Paris
             - name: LISTMONK_app__address
