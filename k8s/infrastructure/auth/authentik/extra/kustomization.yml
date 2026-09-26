@@ -3,7 +3,8 @@ kind: Kustomization
 
 resources:
   - secrets.yml
-  - smtp-externalsecret.yaml
+  # V1: SMTP is intentionally disabled; no mail provider dependency at bootstrap.
+  # - smtp-externalsecret.yaml
 
 generatorOptions:
   disableNameSuffixHash: false
@@ -25,7 +26,8 @@ configMapGenerator:
       - ./blueprints/apps-kubernetes.yaml
       - ./blueprints/apps-cloudflare.yaml
       - ./blueprints/apps-pinepods.yaml
-      - ./blueprints/apps-tmail.yaml
+      # V1: mail UI/provider integration deferred to business stack V2.
+      # - ./blueprints/apps-tmail.yaml
       - ./blueprints/groups.yaml
       - ./blueprints/users.yaml
       - ./blueprints/brands.yaml
