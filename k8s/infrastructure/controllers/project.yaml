@@ -8,13 +8,14 @@ metadata:
 spec:
   description: Project for core infrastructure controllers
   sourceRepos:
-    - 'https://github.com/theepicsaxguy/homelab'
+    - 'https://github.com/SmadjaPaul/kube-ops'
   destinations:
     - namespace: 'argocd'
       server: '*'
     - namespace: 'kube-system'
       server: '*'
     - namespace: 'velero'
+    - namespace: 'reloader'
       server: '*'
   clusterResourceWhitelist:
     - group: '*'
