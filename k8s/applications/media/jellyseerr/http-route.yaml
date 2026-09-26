@@ -10,7 +10,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - "ansok.peekoff.com"
+    - "ansok.smadja.dev"
   rules:
     - matches:
         - path:
