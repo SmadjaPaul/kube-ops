@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mealie
+  namespace: mealie
+  annotations:
+    secret.reloader.stakater.com/reload: "mealie-runtime"
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mealie
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mealie
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 911
+        runAsGroup: 911
+        fsGroup: 911
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mealie
+          image: ghcr.io/mealie-recipes/mealie:v3.28.0
+          envFrom:
+            - secretRef:
+                name: mealie-runtime
+          env:
+            - { name: BASE_URL, value: "https://mealie.smadja.dev" }
+            - { name: ALLOW_SIGNUP, value: "false" }
+            - { name: OIDC_AUTH_ENABLED, value: "true" }
+            - { name: OIDC_CLIENT_ID, value: "mealie" }
+            - { name: OIDC_CONFIGURATION_URL, value: "https://auth.smadja.dev/application/o/mealie/.well-known/openid-configuration" }
+            - { name: OIDC_PROVIDER_NAME, value: "Authentik" }
+            - { name: OIDC_AUTO_REDIRECT, value: "true" }
+            - { name: OIDC_USER_GROUP, value: "family" }
+            - { name: OIDC_ADMIN_GROUP, value: "admin" }
+            - { name: OIDC_SIGNUP_ENABLED, value: "true" }
+            - { name: OIDC_REQUIRES_EMAIL_VERIFICATION, value: "false" }
+          ports:
+            - { name: http, containerPort: 9000 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: data, mountPath: /app/data }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: mealie-data }
