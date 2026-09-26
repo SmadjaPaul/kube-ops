@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: renovate-config
+  namespace: renovate
+data:
+  config.json: |
+    {
+      "platform": "github",
+      "repositories": [
+        "SmadjaPaul/kube-ops",
+        "SmadjaPaul/homelab-infra"
+      ],
+      "dependencyDashboard": true,
+      "prConcurrentLimit": 5,
+      "prHourlyLimit": 2,
+      "rangeStrategy": "pin",
+      "labels": ["dependencies"]
+    }
