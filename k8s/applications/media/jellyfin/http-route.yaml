@@ -10,7 +10,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'film.peekoff.com'
+    - 'film.smadja.dev'
   rules:
     - matches:
         - path:
