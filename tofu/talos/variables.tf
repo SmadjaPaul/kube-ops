@@ -33,7 +33,7 @@ variable "cluster" {
     name               = string
     endpoint           = string
     gateway            = string
-    vip                = string
+    vip                = optional(string)
     talos_version      = string
     proxmox_cluster    = string
     kubernetes_version = optional(string, "1.32.0")
@@ -55,7 +55,7 @@ variable "network" {
   description = "Network configuration for the cluster."
   type = object({
     gateway     = string
-    vip         = string
+    vip         = optional(string)
     api_lb_vip  = optional(string)
     cidr_prefix = number
     dns_servers = list(string)
