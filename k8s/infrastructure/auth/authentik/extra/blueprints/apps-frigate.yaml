@@ -10,7 +10,7 @@ entries:
   - id: frigate_proxy_provider
     model: authentik_providers_proxy.proxyprovider
     identifiers:
-      name: k8s.peekoff.com/services-frigate
+      name: k8s.smadja.dev/services-frigate
     attrs:
       # Standard flows
       authorization_flow:
@@ -25,7 +25,7 @@ entries:
         ]
 
       # External URL that users will access
-      external_host: https://frigate.peekoff.com
+      external_host: https://frigate.smadja.dev
 
       # Internal service URL - Frigate service in frigate namespace
       internal_host: http://frigate.frigate.svc.cluster.local:5000
@@ -49,7 +49,7 @@ entries:
       group: Home Automation
       meta_description: AI-powered NVR with real-time object detection
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/frigate.png
-      meta_launch_url: https://frigate.peekoff.com
+      meta_launch_url: https://frigate.smadja.dev
       provider: !KeyOf frigate_proxy_provider
       policy_engine_mode: any
 
