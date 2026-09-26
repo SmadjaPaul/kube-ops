@@ -16,6 +16,9 @@ spec:
         app.kubernetes.io/name: bulwark
     spec:
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
         seccompProfile:
           type: RuntimeDefault
       containers:
