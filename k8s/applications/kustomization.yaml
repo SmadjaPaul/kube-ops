@@ -12,6 +12,7 @@ resources:
 - network
 - games
 - business
+- catalog
 
 
 generatorOptions:
