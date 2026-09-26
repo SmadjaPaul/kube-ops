@@ -7,6 +7,7 @@ configs:
     url: https://argocd.smadja.dev
     kustomize.buildOptions: '--enable-helm'
     accounts.kubechecks: apiKey
+    accounts.observer: apiKey
     # OIDC Configuration
     dex.config: |
       connectors:
@@ -50,6 +51,7 @@ configs:
       p, role:kubechecks, projects, update,    *, allow
       p, role:kubechecks, clusters, get, *, allow
       g, kubechecks, role:kubechecks
+      g, observer, role:readonly
 
 crds:
   install: true
