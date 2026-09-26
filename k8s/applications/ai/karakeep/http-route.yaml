@@ -10,7 +10,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'karakeep.peekoff.com'
+    - 'karakeep.smadja.dev'
   rules:
     - matches:
         - path:
