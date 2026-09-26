@@ -13,4 +13,5 @@ resources:
 # - vllm-embed
 - gpt-researcher
 - openclaw
+- omnigent
 - pocket-tts
