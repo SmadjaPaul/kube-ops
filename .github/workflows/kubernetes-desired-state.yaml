@@ -33,6 +33,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.x'
+          cache: false
 
       - name: Install kustomize
         run: go install sigs.k8s.io/kustomize/kustomize/v5@v5.8.1
@@ -42,6 +43,11 @@ jobs:
           export PATH="$HOME/go/bin:$PATH"
           kustomize version
           helm version
+
+      - name: Validate gate scripts
+        run: |
+          bash -n scripts/check-v1-active-contract.sh
+          bash -n scripts/check-post-v1-staged.sh
 
       - name: Render active desired state
         run: |
