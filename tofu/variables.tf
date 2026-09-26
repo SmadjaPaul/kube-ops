@@ -125,13 +125,6 @@ variable "nodes_config" {
     error_message = "VM IDs must be unique among internal nodes."
   }
 
-  validation {
-    condition = alltrue([
-      for n in values(var.nodes_config) :
-      lookup(n, "is_external", false) ? n.mac_address == null : n.mac_address != null
-    ])
-    error_message = "External nodes must not have mac_address; internal nodes must have mac_address."
-  }
 }
 
 variable "proxmox_datastore" {
