@@ -49,6 +49,22 @@ inventory="$(awk '
     print "STORE " v
     want_store=0
   }
+  external && /remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/ {
+    v=$0
+    sub(/^.*remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/, "", v)
+    sub(/[[:space:],}].*$/, "", v)
+    gsub(/["'"'"']/, "", v)
+    print "KEY " v
+    next
+  }
+  external && /secretStoreRef:[[:space:]]*\{[^}]*name:[[:space:]]*/ {
+    v=$0
+    sub(/^.*secretStoreRef:[[:space:]]*\{[^}]*name:[[:space:]]*/, "", v)
+    sub(/[[:space:],}].*$/, "", v)
+    gsub(/["'"'"']/, "", v)
+    print "STORE " v
+    next
+  }
   external && /^[[:space:]]+remoteRef:[[:space:]]*$/ { want_key=1; next }
   external && want_key && /^[[:space:]]+key:[[:space:]]*/ {
     v=$0; sub(/^[[:space:]]+key:[[:space:]]*/, "", v); gsub(/["'"'"']/, "", v)
