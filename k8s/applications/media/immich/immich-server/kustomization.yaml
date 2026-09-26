@@ -3,9 +3,7 @@ kind: Kustomization
 namespace: immich
 resources:
   - immich-config-external-secret.yaml
-  - minio-externalsecret.yaml
   - database.yaml
-  - database-scheduled-backup.yaml
   - podmonitor.yaml
   - serviceaccount.yaml
   - service.yaml
