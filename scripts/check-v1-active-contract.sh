@@ -19,6 +19,7 @@ roots=(
   k8s/applications/web
   k8s/applications/tools
   k8s/applications/business
+  k8s/applications/catalog
 )
 
 rendered="$(mktemp)"
