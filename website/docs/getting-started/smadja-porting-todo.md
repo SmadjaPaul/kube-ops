@@ -27,6 +27,22 @@ The V1 no longer builds a parallel candidate cluster. The old Talos cluster is d
 - runtime secret provider: Doppler via `ClusterSecretStore/doppler-cluster`.
 - Migadu remains the V1 SMTP/mail provider.
 
+## Already converged in the V1 branch
+
+- legacy media NFS PV removed from the active Argo graph and deleted;
+- `media-share` is a dynamic 2 TiB `ReadWriteOnce` PVC on `proxmox-csi`; the V1 is single-node, so Jellyfin/SABnzbd may share that claim without introducing an NFS server;
+- active `proxmox-csi-2` aliases removed from the media workloads touched by this migration;
+- the duplicate legacy clean-install runbook is superseded by the canonical V1 agent runbook;
+- `scripts/check-v1-active-contract.sh` renders active roots and fails on legacy NFS/TrueNAS/S3/Bitwarden/upstream bindings while emitting the active Doppler key-name inventory.
+
+Run before every destructive plan:
+
+```bash
+npm run check:v1-contract
+```
+
+The command prints secret **names only**, never secret values.
+
 ## Resolve before the destructive cutover
 
 1. Run the static gates in both PRs. Fix every syntax, Kustomize, Helm or OpenTofu validation error before any live plan.
@@ -36,13 +52,13 @@ The V1 no longer builds a parallel candidate cluster. The old Talos cluster is d
 5. Verify that `proxmox_cluster = "tatouine"` has the semantics expected by this fork. If it is only a topology label, keep it; if the provider requires another cluster identifier, use live read-only Proxmox evidence.
 6. Port the active Cilium load-balancer/L2 address configuration from upstream `10.25.150.x` to a small proven-free range on `10.0.20.0/24`. Do not guess addresses and do not enable BGP for V1.
 7. Remove or port every active upstream literal: `peekoff.com`, `10.25.150.*`, `host3`, `Nvme1`, `velocity`, TrueNAS addresses, upstream Cloudflare identifiers and upstream real-user identities. Disabled manifests may remain as upstream reference only if they cannot be reconciled by Argo.
-8. Inventory the rendered active `ExternalSecret` resources. Every store must resolve to `doppler-cluster`; every remote key must be `UPPER_SNAKE_CASE`.
+8. Run `npm run check:v1-contract`. Treat its `ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN/END` output as the canonical key-name inventory. Every active store must resolve to `doppler-cluster`; every remote key must be `UPPER_SNAKE_CASE`.
 9. Apply the `homelab-infra/terraform/doppler` change that creates `cluster/prd`, read-only `eso-cluster` and `infrastructure/prd:ESO_CLUSTER`.
-10. Materialize only the active required key names into `cluster/prd`. Reuse existing values from current Doppler domains where identity continuity is useful; generate new values for disposable app credentials. Do not reveal values in logs, prompts or PRs.
+10. Compare the emitted required key names with `cluster/prd` and the existing Doppler domains. Record only status (`READY`, `FOUND_SOURCE`, `GENERATE`, `MISSING_EXTERNAL`) and key names. Materialize only the active required names into `cluster/prd`; reuse existing values where continuity matters and generate fresh values only for disposable credentials. Do not reveal values in logs, prompts or PRs.
 11. Keep Migadu SMTP keys available for Authentik: `MIGADU_SMTP_HOST`, `MIGADU_SMTP_PORT`, `MIGADU_SMTP_USER`, `MIGADU_SMTP_PASSWORD`, and `MIGADU_SMTP_FROM`.
 12. Replace upstream Authentik users/groups with the Smadja taxonomy: `family`, `media`, `dev`, `data`, `iot`, `admin`, `authentik-admins`. Do not import upstream real users.
 13. Prove Proxmox CSI can use `tank-vm` with the least-privilege Proxmox credentials expected by the chart.
-14. Keep Velero, CNPG B2 schedules and all legacy MinIO/TrueNAS backup assumptions disabled until the cluster is green.
+14. Keep Velero, CNPG B2 schedules and all legacy MinIO/TrueNAS backup assumptions disabled until the cluster is green. `npm run check:v1-contract` must report `ACTIVE_NFS_REFERENCES=0`, `ACTIVE_TRUENAS_REFERENCES=0` and `ACTIVE_MINIO_S3_BACKUP_REFERENCES=0`.
 15. Keep the business stack disabled: Stalwart, Bulwark/jmap-webmail, TMail, La Suite Messages, Listmonk, Twenty, Chatwoot and SES. Migadu SMTP is the explicit exception.
 16. Keep GPT Researcher, Pocket-TTS and Whisper enabled. Keep vLLM, Frigate and Minecraft disabled for first green.
 17. Scale control-plane services and CNPG databases to one replica where extra replicas provide no physical availability on the single AOOSTAR.
