@@ -33,7 +33,7 @@ The V1 no longer builds a parallel candidate cluster. The old Talos cluster is d
 - `media-share` is a dynamic 2 TiB `ReadWriteOnce` PVC on `proxmox-csi`; the V1 is single-node, so Jellyfin/SABnzbd may share that claim without introducing an NFS server;
 - active `proxmox-csi-2` aliases removed from the media workloads touched by this migration;
 - the duplicate legacy clean-install runbook is superseded by the canonical V1 agent runbook;
-- `scripts/check-v1-active-contract.sh` renders active roots and fails on legacy NFS/TrueNAS/S3/Bitwarden/upstream bindings while emitting the active Doppler key-name inventory.
+- `scripts/check-v1-active-contract.sh` renders active roots and fails on legacy NFS/TrueNAS/Backblaze/MinIO/Bitwarden/upstream bindings while allowing only the canonical Hetzner backup endpoint and emitting the active Doppler key-name inventory.
 
 Run before every destructive plan:
 
@@ -58,7 +58,7 @@ The command prints secret **names only**, never secret values.
 11. Keep Migadu SMTP keys available for Authentik: `MIGADU_SMTP_HOST`, `MIGADU_SMTP_PORT`, `MIGADU_SMTP_USER`, `MIGADU_SMTP_PASSWORD`, and `MIGADU_SMTP_FROM`.
 12. Replace upstream Authentik users/groups with the Smadja taxonomy: `family`, `media`, `dev`, `data`, `iot`, `admin`, `authentik-admins`. Do not import upstream real users.
 13. Prove Proxmox CSI can use `tank-vm` with the least-privilege Proxmox credentials expected by the chart.
-14. Keep Velero, CNPG B2 schedules and all legacy MinIO/TrueNAS backup assumptions disabled until the cluster is green. `npm run check:v1-contract` must report `ACTIVE_NFS_REFERENCES=0`, `ACTIVE_TRUENAS_REFERENCES=0` and `ACTIVE_MINIO_S3_BACKUP_REFERENCES=0`.
+14. Keep Velero and CNPG backup resources enabled against Hetzner Object Storage. Remove Backblaze B2, MinIO and TrueNAS from the active graph. `npm run check:v1-contract` must report zero legacy backup references and `ACTIVE_HETZNER_BACKUP_ENDPOINT=PASS`.
 15. Keep the business stack disabled: Stalwart, Bulwark/jmap-webmail, TMail, La Suite Messages, Listmonk, Twenty, Chatwoot and SES. Migadu SMTP is the explicit exception.
 16. Keep GPT Researcher, Pocket-TTS and Whisper enabled. Keep vLLM, Frigate and Minecraft disabled for first green.
 17. Scale control-plane services and CNPG databases to one replica where extra replicas provide no physical availability on the single AOOSTAR.
@@ -93,7 +93,7 @@ V1 is complete when:
 - GPT Researcher, Pocket-TTS and Whisper are deployed at one replica;
 - selected personal/media/home-automation applications are healthy;
 - no active resource points at upstream domains, networks, datastores or identities;
-- the business stack and backup stack remain intentionally deferred;
+- the business stack remains deferred; CNPG and Velero backups target Hetzner Object Storage;
 - the old Flux cluster no longer exists.
 
 Do not refactor upstream architecture while executing this runbook. The target is first stable cluster, then cleanup.
