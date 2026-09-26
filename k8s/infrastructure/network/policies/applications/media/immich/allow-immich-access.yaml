@@ -72,10 +72,10 @@ spec:
       - port: "80"
         protocol: TCP
   - toFQDNs:
-    - matchName: "truenas.peekoff.com"
+    - matchName: "fsn1.your-objectstorage.com"
     toPorts:
     - ports:
-      - port: "30293"
+      - port: "443"
         protocol: TCP
 ---
 apiVersion: cilium.io/v2
@@ -89,13 +89,13 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: postgresql
-  description: "Allow PostgreSQL WAL archiving to RustFS"
+  description: "Allow PostgreSQL WAL archiving to Hetzner Object Storage"
   egress:
   - toFQDNs:
-    - matchName: "truenas.peekoff.com"
+    - matchName: "fsn1.your-objectstorage.com"
     toPorts:
     - ports:
-      - port: "30293"
+      - port: "443"
         protocol: TCP
   - toEndpoints:
     - matchLabels:
