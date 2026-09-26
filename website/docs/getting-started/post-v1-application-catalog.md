@@ -36,16 +36,13 @@ This document is a coverage map, not an instruction to deploy every listed servi
 
 Renovate is a repository automation concern rather than a long-running application and should be evaluated separately from this runtime list.
 
-## La Suite gap
+## La Suite coverage
 
-The previous `home-ops` repository already contains architectural/runtime work for:
+The previous `home-ops` repository already contains architectural/runtime work for Docs, Transfers, Drive and Meet. Those four are not yet carried into `kube-ops`.
 
-- Docs;
-- Transfers;
-- Drive;
-- Meet.
+La Suite Messages is now different: its Kubernetes contract is present in `kube-ops` but remains staged/off by default. The staged shape is backend + frontend + worker, CNPG, lean Redis, Authentik as generic OIDC provider, Migadu outbound relay and Hetzner application object storage. OpenSearch, inbound MTA and Rspamd are deliberately deferred.
 
-Those are not yet carried into `kube-ops`. The recommended order remains Docs first, then Transfers/Drive, with Meet separate because LiveKit/TURN/UDP changes the network contract.
+The next La Suite porting order remains Docs first, then Transfers/Drive, with Meet separate because LiveKit/TURN/UDP changes the network contract.
 
 ## Business stack
 
@@ -53,15 +50,15 @@ The business expansion is tracked separately from the general catalogue because 
 
 ### Wave 1 — low-footprint
 
-- Stalwart;
-- Bulwark Webmail;
-- Listmonk.
+- Listmonk is reconciled by the business root;
+- Stalwart is staged with `proxmox-csi` persistence and HTTP reverse-proxy contract;
+- Bulwark Webmail 1.11.0 is staged with persistent settings/admin state.
 
 ### Wave 2 — capacity-gated
 
-- Twenty CRM;
-- Chatwoot;
-- La Suite Messages.
+- Twenty CRM: staged with CNPG, lean Redis and `proxmox-csi` local storage;
+- Chatwoot: staged from the official Helm chart with external CNPG and lean Redis;
+- La Suite Messages: staged in production-lite mode with Hetzner application object storage.
 
 ### External mail delivery
 
@@ -71,7 +68,7 @@ The business expansion is tracked separately from the general catalogue because 
 
 ## Capacity rule
 
-The single Talos VM starts at 6 vCPU / 32 GiB. Do not activate all Wave 2 workloads merely because manifests exist. Observe memory, CPU, PostgreSQL and storage pressure after Wave 1 + Omnigent, then activate Wave 2 one application at a time.
+The single Talos VM starts at 6 vCPU / 32 GiB. Do not activate all staged workloads merely because manifests exist. Observe memory, CPU, PostgreSQL and storage pressure after Wave 1 + Omnigent, then activate Wave 2 one application at a time.
 
 ## Hardware-bound deferrals
 
