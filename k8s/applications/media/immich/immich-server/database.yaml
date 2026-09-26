@@ -13,6 +13,11 @@ spec:
       postInitApplicationSQL:
         - CREATE EXTENSION IF NOT EXISTS "vector";
         - CREATE EXTENSION IF NOT EXISTS "earthdistance" CASCADE;
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: immich-hetzner-store
   storage:
     size: 15Gi
     storageClass: proxmox-csi
