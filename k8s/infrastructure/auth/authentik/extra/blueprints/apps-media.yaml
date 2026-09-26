@@ -10,7 +10,7 @@ entries:
   - id: provider-bazarr
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/services-media/bazarr
+      name: k8s.smadja.dev/services-media/bazarr
     attrs:
       authorization_flow:
         !Find [
@@ -32,7 +32,7 @@ entries:
       client_id: !Env BAZARR_CLIENT_ID
       client_secret: !Env BAZARR_CLIENT_SECRET
       redirect_uris:
-        - url: https://bazarr.peekoff.com/oauth2/callback
+        - url: https://bazarr.smadja.dev/oauth2/callback
           matching_mode: strict
 
       access_code_validity: minutes=1
@@ -66,7 +66,7 @@ entries:
   - id: provider-lidarr
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/services-media/lidarr
+      name: k8s.smadja.dev/services-media/lidarr
     attrs:
       authorization_flow:
         !Find [
@@ -88,7 +88,7 @@ entries:
       client_id: !Env LIDARR_CLIENT_ID
       client_secret: !Env LIDARR_CLIENT_SECRET
       redirect_uris:
-        - url: https://lidarr.peekoff.com/oauth2/callback
+        - url: https://lidarr.smadja.dev/oauth2/callback
           matching_mode: strict
 
       access_code_validity: minutes=1
@@ -122,7 +122,7 @@ entries:
   - id: provider-prowlarr
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/services-media/prowlarr
+      name: k8s.smadja.dev/services-media/prowlarr
     attrs:
       authorization_flow:
         !Find [
@@ -144,7 +144,7 @@ entries:
       client_id: !Env PROWLARR_CLIENT_ID
       client_secret: !Env PROWLARR_CLIENT_SECRET
       redirect_uris:
-        - url: https://prowlarr.peekoff.com/oauth2/callback
+        - url: https://prowlarr.smadja.dev/oauth2/callback
           matching_mode: strict
 
       access_code_validity: minutes=1
@@ -178,7 +178,7 @@ entries:
   - id: provider-radarr
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/services-media/radarr
+      name: k8s.smadja.dev/services-media/radarr
     attrs:
       authorization_flow:
         !Find [
@@ -200,7 +200,7 @@ entries:
       client_id: !Env RADARR_CLIENT_ID
       client_secret: !Env RADARR_CLIENT_SECRET
       redirect_uris:
-        - url: https://radarr.peekoff.com/oauth2/callback
+        - url: https://radarr.smadja.dev/oauth2/callback
           matching_mode: strict
 
       access_code_validity: minutes=1
@@ -234,7 +234,7 @@ entries:
   - id: provider-sonarr
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/services-media/sonarr
+      name: k8s.smadja.dev/services-media/sonarr
     attrs:
       authorization_flow:
         !Find [
@@ -256,7 +256,7 @@ entries:
       client_id: !Env SONARR_CLIENT_ID
       client_secret: !Env SONARR_CLIENT_SECRET
       redirect_uris:
-        - url: https://sonarr.peekoff.com/oauth2/callback
+        - url: https://sonarr.smadja.dev/oauth2/callback
           matching_mode: strict
 
       access_code_validity: minutes=1
@@ -290,7 +290,7 @@ entries:
   - id: provider-sabnzbd
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/services-media/sabnzbd
+      name: k8s.smadja.dev/services-media/sabnzbd
     attrs:
       authorization_flow:
         !Find [
@@ -312,7 +312,7 @@ entries:
       client_id: !Env SABNZBD_CLIENT_ID
       client_secret: !Env SABNZBD_CLIENT_SECRET
       redirect_uris:
-        - url: https://sabnzbd.peekoff.com/oauth2/callback
+        - url: https://sabnzbd.smadja.dev/oauth2/callback
           matching_mode: strict
 
       access_code_validity: minutes=1
@@ -347,7 +347,7 @@ entries:
   - id: provider-jellyseerr
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
-      name: k8s.peekoff.com/services-media/jellyseerr
+      name: k8s.smadja.dev/services-media/jellyseerr
     attrs:
       authorization_flow:
         !Find [
@@ -367,7 +367,7 @@ entries:
 
       client_type: confidential
       redirect_uris:
-        - url: http://ansok.peekoff.com/login?provider=authentik&callback=true
+        - url: http://ansok.smadja.dev/login?provider=authentik&callback=true
           matching_mode: strict
       client_id: !Env JELLYSEERR_CLIENT_ID
       client_secret: !Env JELLYSEERR_CLIENT_SECRET
@@ -405,7 +405,7 @@ entries:
    - id: provider-audiobookshelf
      model: authentik_providers_oauth2.oauth2provider
      identifiers:
-       name: k8s.peekoff.com/services-media/audiobookshelf
+       name: k8s.smadja.dev/services-media/audiobookshelf
     attrs:
       authorization_flow:
         !Find [
@@ -427,13 +427,13 @@ entries:
        client_id: !Env AUDIOBOOKSHELF_CLIENT_ID
        client_secret: !Env AUDIOBOOKSHELF_CLIENT_SECRET
        redirect_uris:
-         - url: https://audiobookshelf.peekoff.com/audiobookshelf/auth/openid/callback
+         - url: https://audiobookshelf.smadja.dev/audiobookshelf/auth/openid/callback
            matching_mode: strict
          - url: audiobookshelf://oauth
            matching_mode: strict
-         - url: https://audiobookshelf.peekoff.com/auth/openid/mobile-redirect
+         - url: https://audiobookshelf.smadja.dev/auth/openid/mobile-redirect
            matching_mode: strict
-         - url: https://audiobookshelf.peekoff.com/auth/openid/callback
+         - url: https://audiobookshelf.smadja.dev/auth/openid/callback
            matching_mode: strict
 
        access_code_validity: minutes=1
