@@ -1,0 +1,21 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-actual-budget
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: actual-budget
+spec:
+  schedule: "25 2 * * *"
+  template:
+    includedNamespaces:
+      - actual-budget
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h
