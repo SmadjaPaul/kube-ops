@@ -1,23 +1,17 @@
+# Compatibility store name retained for minimal upstream delta in V1.
+# Provider is Doppler; V2 may rename this object and its consumers.
 apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: bitwarden-backend
+  annotations:
+    smadja.dev/provider: doppler
 spec:
   provider:
-    bitwardensecretsmanager:
-      apiURL: https://api.bitwarden.com
-      identityURL: https://identity.bitwarden.com
+    doppler:
       auth:
         secretRef:
-          credentials:
+          dopplerToken:
             key: token
-            name: bitwarden-access-token
+            name: doppler-access-token
             namespace: external-secrets
-      bitwardenServerSDKURL: https://bitwarden-sdk-server.external-secrets.svc.cluster.local:9998
-      caProvider:
-        type: Secret
-        name: bitwarden-tls-certs
-        key: ca.crt
-        namespace: external-secrets
-      organizationID: 4a014e57-f197-4852-9831-b287013e47b6
-      projectID: d22d5a96-5177-43a4-bdc5-b287015de957
