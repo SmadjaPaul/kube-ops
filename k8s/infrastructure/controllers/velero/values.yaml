@@ -8,35 +8,41 @@ initContainers:
     volumeMounts:
       - mountPath: /target
         name: plugins
+
 rbac:
   create: true
   clusterAdministrator: true
+
 serviceAccount:
   server:
     create: true
+
 credentials:
   useSecret: true
-  existingSecret: velero-minio-credentials
+  existingSecret: velero-hetzner-credentials
+
 configuration:
   uploaderType: kopia
   uploaderConfig:
+    # Keep WAN pressure and local disk contention bounded on the single node.
     parallelFilesUpload: 2
   backupRepositoryConfigMap: velero-repository-config
   repoMaintenanceJobConfigMap: velero-repo-maintenance-job-config
   backupStorageLocation:
     - name: default
       provider: aws
-      bucket: velero
+      bucket: smadja-dev-homelab-backups
+      prefix: velero
       default: true
       config:
-        region: us-west-1
-        s3ForcePathStyle: "true"
-        s3Url: https://truenas.peekoff.com:30293
+        region: fsn1
+        s3ForcePathStyle: "false"
+        s3Url: https://fsn1.your-objectstorage.com
   repositoryMaintenanceJob:
     repositoryConfigData:
       name: "velero-repo-maintenance"
       global:
-        keepLatestMaintenanceJobs: 3
+        keepLatestMaintenanceJobs: 2
         podResources:
           cpuRequest: "100m"
           cpuLimit: "500m"
@@ -55,19 +61,22 @@ configuration:
             drop:
               - ALL
           readOnlyRootFilesystem: true
+
 resources:
   requests:
-    cpu: 200m
+    cpu: 100m
     memory: 256Mi
   limits:
     cpu: 500m
     memory: 512Mi
+
 nodeAgent:
   tolerations:
     - key: "gpu"
       operator: "Equal"
       value: "true"
       effect: "NoSchedule"
+
 metrics:
   enabled: true
   serviceMonitor:
