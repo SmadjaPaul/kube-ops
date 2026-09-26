@@ -3,7 +3,8 @@ kind: Kustomization
 
 resources:
   - announce.yaml
-  - ip-pool.yaml
+  # Deferred until a free Servers-VLAN LB range is proven in UniFi.
+  # - ip-pool.yaml
 
 helmCharts:
   - name: cilium
