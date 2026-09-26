@@ -289,8 +289,8 @@ variable "bootstrap_argocd_version" {
   default     = "9.2.3"
 }
 
-variable "bitwarden_token" {
-  description = "Bitwarden Secrets Manager API token for External Secrets Operator"
+variable "doppler_token" {
+  description = "Doppler service token for External Secrets Operator"
   type        = string
   default     = ""
   sensitive   = true
