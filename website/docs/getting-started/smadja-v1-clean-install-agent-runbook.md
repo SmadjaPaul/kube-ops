@@ -112,7 +112,15 @@ Do not blind-replace IP addresses.
 
 Render the same roots Argo will reconcile and fail on every error.
 
-Use the repository's canonical validation commands first. Where direct rendering is necessary:
+The canonical first gate is:
+
+```bash
+npm run check:v1-contract
+```
+
+It renders the active Argo roots, rejects legacy upstream/storage/secret-provider bindings, validates that active ExternalSecrets use `doppler-cluster` with `UPPER_SNAKE_CASE` keys, and emits the required Doppler **key names only**.
+
+Where direct rendering is necessary:
 
 ```bash
 kustomize build --enable-helm k8s/infrastructure/controllers >/dev/null
@@ -169,7 +177,9 @@ Requirements:
 - every active `remoteRef.key` is `UPPER_SNAKE_CASE`;
 - do not inspect or report secret values.
 
-Compare required names with the existing Doppler domains:
+Use the key-name list emitted between `ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN` and `ACTIVE_DOPPLER_REQUIRED_KEYS_END` as the canonical required set.
+
+Compare those names with `cluster/prd` and, when a target key is absent, with the existing Doppler domains:
 
 ```text
 edge/prd
@@ -179,7 +189,16 @@ storage/prd
 crypto/prd
 ```
 
-Populate `cluster/prd` using existing values when continuity matters. Generate new values for disposable application secrets when continuity is irrelevant.
+Maintain a value-free convergence report with one of these statuses per required key:
+
+```text
+READY
+FOUND_SOURCE
+GENERATE
+MISSING_EXTERNAL
+```
+
+Populate `cluster/prd` using existing values when continuity matters. Generate new values for disposable application secrets when continuity is irrelevant. Any `MISSING_EXTERNAL` key required by an enabled application is a pre-cutover blocker.
 
 Do not migrate anything to Bitwarden.
 
@@ -287,6 +306,8 @@ Prove:
 - deleting the smoke workload behaves as expected under the selected Retain policy.
 
 Do not reintroduce the old giant hostpath/OpenEBS disk.
+
+The V1 media share is intentionally a 2 TiB `ReadWriteOnce` PVC on `proxmox-csi`. This is valid for the single-node V1 because the consuming pods are co-located on the same Kubernetes node. Do not add NFS merely to preserve the upstream RWX shape. If a future multi-node topology needs concurrent cross-node mounts, revisit RWX as a separate architecture change.
 
 ### External Secrets
 
@@ -427,6 +448,9 @@ GATEWAY_HEALTH=
 PROXMOX_CSI_SMOKE=
 DOPPLER_STORE_READY=
 EXTERNALSECRETS_NOT_READY=
+DOPPLER_REQUIRED_KEYS=
+DOPPLER_MISSING_EXTERNAL_KEYS=
+ACTIVE_LEGACY_STORAGE_REFERENCES=0
 
 ARGO_DEGRADED_APPS=
 AUTHENTIK_LOGIN=
