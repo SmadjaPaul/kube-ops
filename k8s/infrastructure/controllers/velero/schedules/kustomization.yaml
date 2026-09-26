@@ -27,3 +27,8 @@ resources:
   - daily-opencode.yaml
   - daily-pocket-tts.yaml
   - daily-trilium.yaml
+
+  - daily-mealie.yaml
+  - daily-actual-budget.yaml
+  - daily-ntfy.yaml
+  - daily-stirling-pdf.yaml
