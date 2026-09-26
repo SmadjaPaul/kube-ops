@@ -26,6 +26,23 @@ spec:
         runAsGroup: 65532
         fsGroup: 65532
         seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: bootstrap-admin
+          image: binwiederhier/ntfy:v2.28.0
+          command: ["sh","-c"]
+          args:
+            - >-
+              export NTFY_AUTH_FILE=/var/lib/ntfy/auth.db;
+              ntfy user add --role=admin admin ||
+              ntfy user change-pass admin
+          envFrom:
+            - secretRef:
+                name: ntfy-runtime
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/ntfy }
       containers:
         - name: ntfy
           image: binwiederhier/ntfy:v2.28.0
