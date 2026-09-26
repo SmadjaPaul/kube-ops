@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: omnigent-artifacts
+  namespace: omnigent
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: proxmox-csi
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: omnigent-postgresql
+  namespace: omnigent
+spec:
+  instances: 1
+  bootstrap:
+    initdb:
+      database: omnigent
+      owner: omnigent
+  storage:
+    size: 10Gi
+    storageClass: proxmox-csi
+  affinity:
+    enablePodAntiAffinity: false
