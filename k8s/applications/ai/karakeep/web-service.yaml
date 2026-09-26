@@ -3,7 +3,6 @@ kind: Service
 metadata:
   name: web
   annotations:
-    io.cilium/lb-ipam-ips: 10.25.150.230
 spec:
   clusterIP: None
   selector:
