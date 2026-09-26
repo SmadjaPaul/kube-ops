@@ -3,7 +3,8 @@
   "scripts": {
     "build": "cd website && npm run build",
     "install:all": "npm install && cd website && npm install",
-    "check:v1-contract": "bash scripts/check-v1-active-contract.sh"
+    "check:v1-contract": "bash scripts/check-v1-active-contract.sh",
+    "check:post-v1-staged": "bash scripts/check-post-v1-staged.sh"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.0.2",
