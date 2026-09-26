@@ -4,7 +4,8 @@ kind: Kustomization
 resources:
 - project.yaml
 - argocd
-- argocd-mcp
+# Staged until a readonly Argo API token is minted into Doppler.
+# - argocd-mcp
 - cert-manager
 - descheduler
 - external-secrets
