@@ -1,0 +1,20 @@
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: pocket-tts
+  namespace: pocket-tts
+spec:
+  hosts:
+    - tts.smadja.dev
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  scaleTargetRef:
+    name: pocket-tts
+    kind: Deployment
+    apiVersion: apps/v1
+    service: pocket-tts
+    port: 49112
+  replicas:
+    min: 0
+    max: 1
