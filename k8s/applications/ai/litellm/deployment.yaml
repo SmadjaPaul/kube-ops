@@ -86,17 +86,17 @@ spec:
         - name: COLD_STORAGE_CUSTOM_LOGGER
           value: "s3_v2"
         - name: GENERIC_AUTHORIZATION_ENDPOINT
-          value: "https://sso.peekoff.com/application/o/authorize/"
+          value: "https://auth.smadja.dev/application/o/authorize/"
         - name: GENERIC_TOKEN_ENDPOINT
-          value: "https://sso.peekoff.com/application/o/token/"
+          value: "https://auth.smadja.dev/application/o/token/"
         - name: GENERIC_USERINFO_ENDPOINT
-          value: "https://sso.peekoff.com/application/o/userinfo/"
+          value: "https://auth.smadja.dev/application/o/userinfo/"
         - name: PROXY_BASE_URL
-          value: "https://litellm.peekoff.com"
+          value: "https://litellm.smadja.dev"
         - name: GENERIC_SCOPE
           value: "openid profile email groups roles"
         - name: PROXY_LOGOUT_URL
-          value: "https://sso.peekoff.com/application/o/litellm/end-session/"
+          value: "https://auth.smadja.dev/application/o/litellm/end-session/"
         - name: HOME
           value: /tmp
         - name: LITELLM_MIGRATION_DIR
