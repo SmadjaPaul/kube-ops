@@ -18,13 +18,13 @@ network = {
 proxmox_cluster = "tatouine"
 
 versions = {
-  talos      = "v1.13.9"
+  talos      = "v1.13.10"
   kubernetes = "1.36.3"
 }
 
 talos_image = {
   schematic_path    = "talos/image/schematic.yaml.tftpl"
-  update_version    = "v1.13.9" # renovate: github-releases=siderolabs/talos
+  update_version    = "v1.13.10" # renovate: github-releases=siderolabs/talos
   proxmox_datastore = "tank-iso"
 }
 
