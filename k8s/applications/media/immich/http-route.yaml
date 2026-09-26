@@ -10,7 +10,7 @@ spec:
     - name: external
       namespace: gateway
   hostnames:
-    - "photo.peekoff.com"
+    - "photo.smadja.dev"
   rules:
     - matches:
         - path:
