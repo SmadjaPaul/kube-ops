@@ -61,7 +61,7 @@ machine:
 cluster:
   coreDNS:
     disabled: true
-  allowSchedulingOnControlPlanes: false
+  allowSchedulingOnControlPlanes: true
   clusterName: ${cluster_domain}
   apiServer:
 %{ if oidc != null }
