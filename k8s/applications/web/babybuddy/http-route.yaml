@@ -10,7 +10,7 @@ spec:
     - name: external
       namespace: gateway
   hostnames:
-    - "bebis.peekoff.com"
+    - "bebis.smadja.dev"
   rules:
     - matches:
         - path:
