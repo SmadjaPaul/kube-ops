@@ -11,8 +11,6 @@ resources:
 - qdrant
 # Disabled for initial AOOSTAR bootstrap: GPU/local inference workload
 # - vllm-embed
-# Disabled for initial bootstrap: optional burst research worker
-# - gpt-researcher
+- gpt-researcher
 - openclaw
-# Disabled for initial AOOSTAR bootstrap: local inference workload
-# - pocket-tts
+- pocket-tts
