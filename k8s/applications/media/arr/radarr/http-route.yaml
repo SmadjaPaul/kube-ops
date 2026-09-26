@@ -8,7 +8,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'radarr.peekoff.com'
+    - 'radarr.smadja.dev'
   rules:
     - matches:
         - path:
