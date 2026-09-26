@@ -1,6 +1,6 @@
-cluster_name          = "homeops"
+cluster_name          = "homeops-v2"
 cluster_domain        = "cluster.local"
-external_api_endpoint = "api.kube.smadja.dev"
+external_api_endpoint = "api.kube-v2.smadja.dev"
 
 # Smadja environment bindings known from homelab-infra.
 # VIPs are deliberately left as TODOs instead of guessing addresses that may
