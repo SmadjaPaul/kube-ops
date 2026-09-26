@@ -45,7 +45,8 @@ inventory="$(awk '
   want_store && /^[[:space:]]+name:[[:space:]]*/ {
     v=$0
     sub(/^[[:space:]]+name:[[:space:]]*/, "", v)
-    gsub(/["'"'"']/, "", v)
+    gsub(/"/, "", v)
+    gsub(/\047/, "", v)
     print "STORE " v
     want_store=0
   }
@@ -53,14 +54,16 @@ inventory="$(awk '
     v=$0
     sub(/^.*secretStoreRef:[[:space:]]*\{[^}]*name:[[:space:]]*/, "", v)
     sub(/[[:space:],}].*$/, "", v)
-    gsub(/["'"'"']/, "", v)
+    gsub(/"/, "", v)
+    gsub(/\047/, "", v)
     print "STORE " v
   }
   /^[[:space:]]+remoteRef:[[:space:]]*$/ { want_key=1; next }
   want_key && /^[[:space:]]+key:[[:space:]]*/ {
     v=$0
     sub(/^[[:space:]]+key:[[:space:]]*/, "", v)
-    gsub(/["'"'"']/, "", v)
+    gsub(/"/, "", v)
+    gsub(/\047/, "", v)
     print "KEY " v
     want_key=0
   }
@@ -68,7 +71,8 @@ inventory="$(awk '
     v=$0
     sub(/^.*remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/, "", v)
     sub(/[[:space:],}].*$/, "", v)
-    gsub(/["'"'"']/, "", v)
+    gsub(/"/, "", v)
+    gsub(/\047/, "", v)
     print "KEY " v
   }
 ' "$rendered")"
