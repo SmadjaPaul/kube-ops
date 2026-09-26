@@ -45,6 +45,9 @@ The command prints secret **names only**, never secret values.
 
 ## Resolve before the destructive cutover
 
+0. **Gateway/LB binding**: prove a free `10.0.20.0/24` Cilium LB range from live UniFi/DHCP evidence, then activate the pool and bind Cloudflared to the resulting Gateway service. Do not reuse upstream `10.25.150.x`.
+0. **Smart-home hardware binding**: Zigbee2MQTT and Matter Server remain disabled until the local Zigbee coordinator/BLE path is explicitly identified.
+
 1. Run the static gates in both PRs. Fix every syntax, Kustomize, Helm or OpenTofu validation error before any live plan.
 2. In `homelab-infra`, run a live `terraform/proxmox` plan against the existing OCI state. The allowed destructive delta is the legacy Talos module only: VM101, its disposable 10 TiB guest disk, Talos machine material and module-owned boot artifact if planned. Any change to `bond0`, `vmbr0`, ZFS/tank, another VM/LXC or an unrelated Proxmox object is a hard stop.
 3. Verify VM101 contains no application data that must survive. This V1 intentionally has no backup/restore gate because the operator has declared the cluster disposable.
