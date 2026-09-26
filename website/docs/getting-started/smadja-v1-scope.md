@@ -21,43 +21,63 @@ V1 is a clean replacement of the existing Talos/Flux cluster. There is no applic
 - VMID `101`, IP `10.0.20.60`, 6 vCPU, 32 GiB RAM, 100 GiB system disk on `nvme-vm`;
 - Proxmox CSI dynamically provisions application volumes on `tank-vm`;
 - no legacy 10 TiB guest disk;
-- dedicated load-balancer VMs disabled;
-- BGP disabled for first boot; use the upstream Cilium L2/Gateway path;
-- one free Talos VIP must be proven on `10.0.20.0/24` before apply;
-- workloads are allowed on the control plane.
+- no Talos VIP and no dedicated load-balancer VMs in V1;
+- no BGP for first boot; use the existing upstream Cilium L2/Gateway path once the local load-balancer address pool is ported;
+- workloads are allowed on the control plane;
+- Talos/Kubernetes bootstrap uses the control-plane IP directly and does not depend on public DNS being live.
+
+## Versions
+
+- Talos `v1.13.10`;
+- Kubernetes `1.36.3`.
+
+The V1 deliberately stays on the patched Talos 1.13 line rather than combining the architecture migration with a Talos 1.14 minor upgrade.
 
 ## Secrets
 
 V1 uses Doppler, not Bitwarden Secrets Manager.
 
-- External Secrets Operator uses a Doppler-backed compatibility `ClusterSecretStore` named `bitwarden-backend` to minimize the fork delta.
-- `homelab-infra/terraform/doppler` creates `cluster/prd` and the read-only `eso-cluster` token; its bootstrap reference is `infrastructure/prd:ESO_CLUSTER`.
-- The migration agent materializes the remote key names expected by active upstream `ExternalSecret` objects into `cluster/prd`, reusing existing values where appropriate and generating disposable application secrets where no prior identity matters.
-- Secret values must never be printed, committed, copied into prompts or persisted in local files.
+- External Secrets Operator uses `ClusterSecretStore/doppler-cluster`.
+- `homelab-infra/terraform/doppler` owns a temporary compatibility runtime domain `cluster/prd` and read-only service token `eso-cluster`; the operator-only bootstrap reference is `infrastructure/prd:ESO_CLUSTER`.
+- Active `ExternalSecret.remoteRef.key` values use Doppler-safe `UPPER_SNAKE_CASE`.
+- The migration agent inventories only active secret references, then materializes those names into `cluster/prd` from existing Doppler domains or generates new disposable application credentials where appropriate.
+- Secret values must never be printed, committed, copied into prompts or persisted in repository files.
 
 ## Enabled
 
-- Talos 1.13.9 + Kubernetes 1.36.3;
 - Cilium, Gateway API, Argo CD, cert-manager, External Secrets, Proxmox CSI, CNPG and the useful upstream security/observability baseline;
 - Authentik as central identity;
-- Migadu retained only as the existing hosted mail/SMTP transport;
+- Migadu retained as hosted mail and SMTP transport, including Authentik outbound mail;
 - Home Assistant, MQTT, Zigbee2MQTT and Matter Server;
-- Immich and the media/personal applications selected from upstream;
+- Immich and the selected media/personal applications;
 - OpenWebUI, LiteLLM, OpenCode, OpenClaw, Qdrant, GPT Researcher, Pocket-TTS and Whisper ASR;
-- single replicas wherever HA has no value on one physical node.
+- one replica wherever extra replicas provide no useful availability on the single physical host.
 
-## Deferred or disabled for first stable cluster
+## Deferred or disabled for first green cluster
 
 - Stalwart, Bulwark/jmap-webmail, TMail, La Suite Messages, Listmonk, Twenty, Chatwoot, SES and the rest of the business stack;
 - Kubernetes UniFi Network Application because the UGC Fiber already provides UniFi Network;
 - Frigate until camera configuration exists;
 - Minecraft;
 - vLLM local embedding workload until dedicated compute justifies it;
-- legacy TrueNAS/MinIO backup assumptions and any upstream backup target that has not been ported;
-- adding new applications that are not already required for the first stable cluster.
+- Velero, CNPG B2 schedules, upstream MinIO/TrueNAS backup assumptions and restore paths;
+- adding new applications that are not required for the first stable cluster.
 
 ## Stability rule
 
-Bootstrap in layers: Talos/Cilium/CoreDNS -> CSI/controllers -> ESO/Doppler -> Argo -> Authentik/CNPG -> personal apps -> AI/media/home automation -> public edge. Do not enable the next layer while the current one is unhealthy.
+Bootstrap in layers:
 
-Backup/DR is the first post-green hardening step: configure the selected offsite target and prove one restore after the cluster is stable.
+```text
+legacy cluster destroy
+  -> Talos / Cilium / CoreDNS
+  -> Proxmox CSI / core controllers
+  -> ESO / Doppler
+  -> Argo CD
+  -> CNPG / Authentik
+  -> personal applications
+  -> AI / media / home automation
+  -> Cloudflare public edge
+  -> backup / restore proof
+```
+
+Do not enable the next layer while the current layer is unhealthy. Backup/DR is the first post-green hardening step.
