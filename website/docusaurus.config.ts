@@ -10,13 +10,13 @@ const config: Config = {
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
-  url: 'https://homelab.orkestack.com', // Or your real site URL
+  url: 'https://kube-ops.smadja.dev', // Or your real site URL
   baseUrl: '/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'theepicsaxguy', // Usually your GitHub org/user name.
-  projectName: 'homelab', // Usually your repo name.
+  organizationName: 'SmadjaPaul', // Usually your GitHub org/user name.
+  projectName: 'kube-ops', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   markdown: {
@@ -39,7 +39,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: 'sidebars.ts',
-          editUrl: 'https://github.com/theepicsaxguy/homelab/edit/main/website/',
+          editUrl: 'https://github.com/SmadjaPaul/kube-ops/edit/main/website/',
           exclude: ['styles/**'],
         },
         theme: {
@@ -92,12 +92,12 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          href: 'https://github.com/theepicsaxguy/homelab',
+          href: 'https://github.com/SmadjaPaul/kube-ops',
           label: 'GitHub',
           position: 'right',
         },
         {
-          href: 'https://goingdark.social/',
+          href: 'https://github.com/SmadjaPaul/kube-ops',
           label: 'Mastodon',
           position: 'right',
         },
@@ -120,16 +120,16 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/theepicsaxguy/homelab',
+              href: 'https://github.com/SmadjaPaul/kube-ops',
             },
             {
               label: 'Mastodon',
-              href: 'https://goingdark.social/',
+              href: 'https://github.com/SmadjaPaul/kube-ops',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} theepicsaxguy. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} SmadjaPaul. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
