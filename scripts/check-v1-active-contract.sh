@@ -73,7 +73,51 @@ inventory="$(awk '
   }
 ' "$rendered")"
 
-external_secret_count="$(grep -Ec '^kind:[[:space:]]*ExternalSecret[[:space:]]*$' "$rendered" || true)"
+external_secret_count="$(grep -Ec '^[[:space:]]*kind:[[:space:]]*ExternalSecret[[:space:]]*"$(printf '%s\n' "$inventory" | awk '$1=="KEY" {n++} END {print n+0}')"
+if (( external_secret_count > 0 && inventory_key_count == 0 )); then
+  echo "ERROR: rendered ExternalSecrets exist but no remoteRef keys were inventoried" >&2
+  exit 1
+fi
+bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $2!="doppler-cluster" {print $2}' | sort -u)"
+if [[ -n "$bad_stores" ]]; then
+  echo "ERROR: active ExternalSecrets reference non-Doppler stores:" >&2
+  printf '%s\n' "$bad_stores" >&2
+  exit 1
+fi
+
+bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | grep -Ev '^[A-Z][A-Z0-9_]*$' || true)"
+if [[ -n "$bad_keys" ]]; then
+  echo "ERROR: active Doppler remote keys must be UPPER_SNAKE_CASE:" >&2
+  printf '%s\n' "$bad_keys" >&2
+  exit 1
+fi
+
+echo "ACTIVE_NFS_REFERENCES=0"
+echo "ACTIVE_TRUENAS_REFERENCES=0"
+echo "ACTIVE_MINIO_S3_BACKUP_REFERENCES=0"
+echo "ACTIVE_BACKBLAZE_REFERENCES=0"
+echo "ACTIVE_BITWARDEN_REFERENCES=0"
+if ! grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered"; then
+  echo "ERROR: Hetzner fsn1 object storage endpoint is not present in active desired state" >&2
+  exit 1
+fi
+if grep -E 'kind:[[:space:]]+ObjectStore' "$rendered" >/dev/null && ! grep -q 's3://smadja-dev-homelab-backups/cnpg/' "$rendered"; then
+  echo "ERROR: active CNPG ObjectStores are not targeting the canonical Hetzner bucket" >&2
+  exit 1
+fi
+
+echo "ACTIVE_HETZNER_BACKUP_ENDPOINT=PASS"
+echo "ACTIVE_EXTERNAL_SECRET_COUNT=$external_secret_count"
+echo "ACTIVE_DOPPLER_STORES=PASS"
+echo "ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN"
+printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | sort -u
+echo "ACTIVE_DOPPLER_REQUIRED_KEYS_END"
+ "$rendered" || true)"
+if (( external_secret_count == 0 )); then
+  echo "ERROR: active desired state unexpectedly renders zero ExternalSecrets" >&2
+  grep -En 'ExternalSecret|remoteRef:|secretStoreRef:' "$rendered" | head -40 >&2 || true
+  exit 1
+fi
 inventory_key_count="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {n++} END {print n+0}')"
 if (( external_secret_count > 0 && inventory_key_count == 0 )); then
   echo "ERROR: rendered ExternalSecrets exist but no remoteRef keys were inventoried" >&2
