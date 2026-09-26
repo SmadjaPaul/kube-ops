@@ -65,7 +65,7 @@ metadata:
   name: authentik-postgresql-restored
   namespace: auth
 spec:
-  instances: 2
+  instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7
   storage:
     size: 40Gi
@@ -123,9 +123,9 @@ spec:
   monitoring:
     enablePodMonitor: false
 
-  minSyncReplicas: 1
-  maxSyncReplicas: 1
+  minSyncReplicas: 0
+  maxSyncReplicas: 0
 
   affinity:
-    enablePodAntiAffinity: true
+    enablePodAntiAffinity: false
     topologyKey: kubernetes.io/hostname
