@@ -18,7 +18,6 @@ metadata:
   name: mosquitto-external
   namespace: mqtt
   annotations:
-    io.cilium/lb-ipam-ips: 10.25.150.226
 spec:
   type: LoadBalancer
   ports:
