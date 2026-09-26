@@ -1,74 +1,16 @@
 nodes_config = {
-  "ctrl-00" = {
+  "homeops-01" = {
     machine_type  = "controlplane"
-    ip            = "10.25.150.11"
-    mac_address   = "bc:24:11:e6:ba:07"
-    startup_order = 3
-    vm_id         = 8101
+    host_node     = "tatouine"
+    ip            = "10.0.20.60"
+    vm_id         = 101
+    datastore_id  = "nvme-vm"
+    root_disk_size = 100
+    ram_dedicated = 32768
+    cpu_units     = 1024
+    description   = "Smadja homeops single-node Talos control plane"
+    tags          = ["k8s", "control-plane", "homeops"]
+    on_boot       = true
     upgrade       = false
   }
-  "ctrl-01" = {
-    machine_type  = "controlplane"
-    ip            = "10.25.150.12"
-    mac_address   = "bc:24:11:44:94:5c"
-    startup_order = 4
-    vm_id         = 8102
-    datastore_id  = "velocity"
-    upgrade       = false
-  }
-  "ctrl-02" = {
-    machine_type  = "controlplane"
-    ip            = "10.25.150.13"
-    mac_address   = "bc:24:11:1e:1d:2f"
-    startup_order = 5
-    vm_id         = 8103
-    upgrade       = false
-  }
-  "work-00" = {
-    machine_type   = "worker"
-    ip             = "10.25.150.21"
-    mac_address    = "bc:24:11:64:5b:cb"
-    startup_order  = 6
-    vm_id          = 8201
-    root_disk_size = 60
-    upgrade        = true
-  }
-  "work-01" = {
-    machine_type   = "worker"
-    ip             = "10.25.150.22"
-    mac_address    = "bc:24:11:c9:22:c3"
-    startup_order  = 7
-    vm_id          = 8202
-    root_disk_size = 60
-    upgrade        = true
-  }
-  "work-02" = {
-    machine_type   = "worker"
-    ip             = "10.25.150.23"
-    mac_address    = "bc:24:11:6f:20:03"
-    startup_order  = 8
-    vm_id          = 8203
-    root_disk_size = 60
-    upgrade        = true
-  }
-  # "work-04" = {
-  #   machine_type       = "worker"
-  #   ip                 = "10.25.150.24"
-  #   mac_address        = "bc:24:11:7f:20:04"
-  #   vm_id              = 8204
-  #   ram_dedicated      = 5168
-  #   datastore_id       = "rpool2"
-  #   igpu               = true
-  #   gpu_node_exclusive = true
-  #   gpu_devices        = ["0000:03:00.0", "0000:03:00.1"]
-  #   gpu_device_meta = {
-  #     "0000:03:00.0" = { id = "10de:13ba", subsystem_id = "10de:1097", iommu_group = 50 }
-  #     "0000:03:00.1" = { id = "10de:0fbc", subsystem_id = "10de:1097", iommu_group = 50 }
-  #   }
-  # }
-  # "baremetal-01" = {
-  #   machine_type = "worker"
-  #   ip           = "10.25.150.30"
-  #   is_external  = true
-  # }
 }
