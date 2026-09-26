@@ -10,7 +10,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'research.peekoff.com'
+    - 'research.smadja.dev'
   rules:
     # API and WebSocket routes go through the ws-rewriter service
     # which handles URL rewriting for /api/ws -> /ws
