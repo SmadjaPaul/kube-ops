@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: vikunja-app, namespace: vikunja }
+spec:
+  podSelector: { matchLabels: { app.kubernetes.io/name: vikunja } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: gateway }
+      ports:
+        - { protocol: TCP, port: 3456 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: vikunja-postgresql, namespace: vikunja }
+spec:
+  podSelector: { matchLabels: { cnpg.io/cluster: vikunja-postgresql } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: vikunja }
+      ports:
+        - { protocol: TCP, port: 5432 }
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: cnpg-system }
+      ports:
+        - { protocol: TCP, port: 8000 }
