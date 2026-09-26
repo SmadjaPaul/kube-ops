@@ -37,17 +37,18 @@ done
 
 forbidden='peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\.'
 if grep -Ein "$forbidden" "$rendered"; then
-  echo "ERROR: active rendered desired state still contains an upstream/legacy storage or secret-provider binding" >&2
+  echo "ERROR: active rendered desired state still contains an upstream/legacy binding" >&2
   exit 1
 fi
 
 external_secret_count="$(grep -Ec '^[[:space:]]*kind:[[:space:]]*ExternalSecret[[:space:]]*$' "$rendered" || true)"
 if (( external_secret_count == 0 )); then
   echo "ERROR: active desired state unexpectedly renders zero ExternalSecrets" >&2
-  grep -En 'ExternalSecret|remoteRef:|secretStoreRef:' "$rendered" | head -40 >&2 || true
   exit 1
 fi
 
+# Kustomize normalizes inline mappings into block YAML. Record only fields
+# inside secretStoreRef/remoteRef blocks from the rendered desired state.
 inventory="$(awk '
   /^[[:space:]]*secretStoreRef:[[:space:]]*$/ {
     in_store=1
@@ -62,8 +63,8 @@ inventory="$(awk '
   in_store && /^[[:space:]]*name:[[:space:]]*/ {
     v=$0
     sub(/^[[:space:]]*name:[[:space:]]*/, "", v)
-    gsub(/^["]/, "", v)
-    gsub(/["]$/, "", v)
+    gsub(/^"/, "", v)
+    gsub(/"$/, "", v)
     print "STORE " v
     in_store=0
     next
@@ -71,8 +72,8 @@ inventory="$(awk '
   in_remote && /^[[:space:]]*key:[[:space:]]*/ {
     v=$0
     sub(/^[[:space:]]*key:[[:space:]]*/, "", v)
-    gsub(/^["]/, "", v)
-    gsub(/["]$/, "", v)
+    gsub(/^"/, "", v)
+    gsub(/"$/, "", v)
     print "KEY " v
     in_remote=0
     next
@@ -85,14 +86,14 @@ if (( inventory_key_count == 0 )); then
   exit 1
 fi
 
-bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $2!="doppler-cluster" {print $2}' | sort -u)"
+bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && length($2)>0 && $2!="doppler-cluster" {print $2}' | sort -u)"
 if [[ -n "$bad_stores" ]]; then
   echo "ERROR: active ExternalSecrets reference non-Doppler stores:" >&2
   printf '%s\n' "$bad_stores" >&2
   exit 1
 fi
 
-bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" && length($2)>0 {print $2}' | grep -Ev '^[A-Z][A-Z0-9_]*
+bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" && length($2)>0 {print $2}' | grep -Ev '^[A-Z][A-Z0-9_]*$' || true)"
 if [[ -n "$bad_keys" ]]; then
   echo "ERROR: active Doppler remote keys must be UPPER_SNAKE_CASE:" >&2
   printf '%s\n' "$bad_keys" >&2
@@ -110,7 +111,7 @@ if ! grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered"; then
   exit 1
 fi
 
-if grep -E 'kind:[[:space:]]+ObjectStore' "$rendered" >/dev/null &&
+if grep -Eq '^[[:space:]]*kind:[[:space:]]*ObjectStore[[:space:]]*$' "$rendered" &&
    ! grep -q 's3://smadja-dev-homelab-backups/cnpg/' "$rendered"; then
   echo "ERROR: active CNPG ObjectStores are not targeting the canonical Hetzner bucket" >&2
   exit 1
@@ -121,34 +122,4 @@ echo "ACTIVE_EXTERNAL_SECRET_COUNT=$external_secret_count"
 echo "ACTIVE_DOPPLER_STORES=PASS"
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN"
 printf '%s\n' "$inventory" | awk '$1=="KEY" && length($2)>0 {print $2}' | sort -u
-echo "ACTIVE_DOPPLER_REQUIRED_KEYS_END"
- || true)"
-if [[ -n "$bad_keys" ]]; then
-  echo "ERROR: active Doppler remote keys must be UPPER_SNAKE_CASE:" >&2
-  printf '%s\n' "$bad_keys" >&2
-  exit 1
-fi
-
-echo "ACTIVE_NFS_REFERENCES=0"
-echo "ACTIVE_TRUENAS_REFERENCES=0"
-echo "ACTIVE_MINIO_S3_BACKUP_REFERENCES=0"
-echo "ACTIVE_BACKBLAZE_REFERENCES=0"
-echo "ACTIVE_BITWARDEN_REFERENCES=0"
-
-if ! grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered"; then
-  echo "ERROR: Hetzner fsn1 object storage endpoint is not present in active desired state" >&2
-  exit 1
-fi
-
-if grep -E 'kind:[[:space:]]+ObjectStore' "$rendered" >/dev/null &&
-   ! grep -q 's3://smadja-dev-homelab-backups/cnpg/' "$rendered"; then
-  echo "ERROR: active CNPG ObjectStores are not targeting the canonical Hetzner bucket" >&2
-  exit 1
-fi
-
-echo "ACTIVE_HETZNER_BACKUP_ENDPOINT=PASS"
-echo "ACTIVE_EXTERNAL_SECRET_COUNT=$external_secret_count"
-echo "ACTIVE_DOPPLER_STORES=PASS"
-echo "ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN"
-printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | sort -u
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_END"
