@@ -15,4 +15,7 @@ resources:
 - redis.yaml
 - svc.yaml
 - database.yaml
+- database-scheduled-backup.yaml
+- database-objectstore.yaml
+- database-s3-credentials.yaml
 - podmonitor.yaml
