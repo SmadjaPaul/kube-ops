@@ -7,7 +7,7 @@ external_api_endpoint = "api.kube.smadja.dev"
 # conflict with existing LAN reservations. See website/docs/getting-started/smadja-porting-todo.md.
 network = {
   gateway     = "10.0.20.1"
-  vip         = "TODO_LAN_VIP"
+  vip         = null
   api_lb_vip  = ""
   cidr_prefix = 24
   dns_servers = ["10.0.20.53", "1.1.1.1"]
