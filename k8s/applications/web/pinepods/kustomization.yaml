@@ -7,6 +7,9 @@ resources:
   - externalsecret.yaml
   - pvc.yaml
   - database.yaml
+  - database-scheduled-backup.yaml
+  - database-objectstore.yaml
+  - database-hetzner-credentials.yaml
   - podmonitor.yaml
   - valkey.yaml
   - deployment.yaml
