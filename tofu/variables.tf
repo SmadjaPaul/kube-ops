@@ -158,7 +158,7 @@ variable "network" {
     cidr_prefix = number
     dns_servers = list(string)
     bridge      = string
-    vlan_id     = number
+    vlan_id     = optional(number)
   })
 }
 
