@@ -10,6 +10,11 @@ spec:
     initdb:
       database: app
       owner: app
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: litellm-hetzner-store
   storage:
     size: 10Gi
     storageClass: proxmox-csi
