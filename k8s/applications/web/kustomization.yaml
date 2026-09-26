@@ -6,5 +6,6 @@ resources:
   - babybuddy
   - kiwix
   - pinepods
-  - jmap-webmail
+  # V1: business mail stack intentionally disabled; retain manifests for V2.
+  # - jmap-webmail
   - trilium
