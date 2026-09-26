@@ -9,7 +9,7 @@ resource "talos_machine_bootstrap" "this" {
 }
 
 resource "terraform_data" "kubeconfig_endpoint_trigger" {
-  input = coalesce(var.external_api_endpoint, var.cluster.endpoint)
+  input = var.cluster.endpoint
 }
 
 resource "talos_cluster_kubeconfig" "this" {
@@ -18,7 +18,7 @@ resource "talos_cluster_kubeconfig" "this" {
     talos_machine_configuration_apply.this
   ]
   node                 = [for k, v in var.nodes : v.ip if v.machine_type == "controlplane"][0]
-  endpoint             = coalesce(var.external_api_endpoint, var.cluster.endpoint)
+  endpoint             = var.cluster.endpoint
   client_configuration = talos_machine_secrets.this.client_configuration
   timeouts = {
     read = "1m"
