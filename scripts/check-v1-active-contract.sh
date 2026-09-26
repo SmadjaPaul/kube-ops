@@ -41,38 +41,44 @@ if grep -Ein "$forbidden" "$rendered"; then
 fi
 
 inventory="$(awk '
-  /^---[[:space:]]*$/ { external=0; want_store=0; want_key=0 }
-  /^kind:[[:space:]]*ExternalSecret[[:space:]]*$/ { external=1 }
-  external && /^[[:space:]]+secretStoreRef:[[:space:]]*$/ { want_store=1; next }
-  external && want_store && /^[[:space:]]+name:[[:space:]]*/ {
-    v=$0; sub(/^[[:space:]]+name:[[:space:]]*/, "", v); gsub(/["'"'"']/, "", v)
+  /^[[:space:]]+secretStoreRef:[[:space:]]*$/ { want_store=1; next }
+  want_store && /^[[:space:]]+name:[[:space:]]*/ {
+    v=$0
+    sub(/^[[:space:]]+name:[[:space:]]*/, "", v)
+    gsub(/["'"'"']/, "", v)
     print "STORE " v
     want_store=0
   }
-  external && /remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/ {
-    v=$0
-    sub(/^.*remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/, "", v)
-    sub(/[[:space:],}].*$/, "", v)
-    gsub(/["'"'"']/, "", v)
-    print "KEY " v
-    next
-  }
-  external && /secretStoreRef:[[:space:]]*\{[^}]*name:[[:space:]]*/ {
+  /secretStoreRef:[[:space:]]*\{[^}]*name:[[:space:]]*/ {
     v=$0
     sub(/^.*secretStoreRef:[[:space:]]*\{[^}]*name:[[:space:]]*/, "", v)
     sub(/[[:space:],}].*$/, "", v)
     gsub(/["'"'"']/, "", v)
     print "STORE " v
-    next
   }
-  external && /^[[:space:]]+remoteRef:[[:space:]]*$/ { want_key=1; next }
-  external && want_key && /^[[:space:]]+key:[[:space:]]*/ {
-    v=$0; sub(/^[[:space:]]+key:[[:space:]]*/, "", v); gsub(/["'"'"']/, "", v)
+  /^[[:space:]]+remoteRef:[[:space:]]*$/ { want_key=1; next }
+  want_key && /^[[:space:]]+key:[[:space:]]*/ {
+    v=$0
+    sub(/^[[:space:]]+key:[[:space:]]*/, "", v)
+    gsub(/["'"'"']/, "", v)
     print "KEY " v
     want_key=0
   }
+  /remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/ {
+    v=$0
+    sub(/^.*remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/, "", v)
+    sub(/[[:space:],}].*$/, "", v)
+    gsub(/["'"'"']/, "", v)
+    print "KEY " v
+  }
 ' "$rendered")"
 
+external_secret_count="$(grep -Ec '^kind:[[:space:]]*ExternalSecret[[:space:]]*$' "$rendered" || true)"
+inventory_key_count="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {n++} END {print n+0}')"
+if (( external_secret_count > 0 && inventory_key_count == 0 )); then
+  echo "ERROR: rendered ExternalSecrets exist but no remoteRef keys were inventoried" >&2
+  exit 1
+fi
 bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $2!="doppler-cluster" {print $2}' | sort -u)"
 if [[ -n "$bad_stores" ]]; then
   echo "ERROR: active ExternalSecrets reference non-Doppler stores:" >&2
