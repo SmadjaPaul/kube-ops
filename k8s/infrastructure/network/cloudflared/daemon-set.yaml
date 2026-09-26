@@ -29,9 +29,16 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - tunnel
-            - --config
-            - /etc/cloudflared/config/config.yaml
+            - --no-autoupdate
             - run
+            - --token
+            - $(TUNNEL_TOKEN)
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tunnel-token
+                  key: TUNNEL_TOKEN
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
