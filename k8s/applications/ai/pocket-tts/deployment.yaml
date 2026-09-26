@@ -7,7 +7,6 @@ metadata:
     app.kubernetes.io/name: pocket-tts
     app.kubernetes.io/part-of: ai
 spec:
-  replicas: 1
   strategy:
     type: Recreate
   selector:
