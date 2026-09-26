@@ -12,7 +12,7 @@ network = {
   cidr_prefix = 24
   dns_servers = ["10.0.20.53", "1.1.1.1"]
   bridge      = "vmbr0"
-  vlan_id     = 0
+  vlan_id     = null
 }
 
 proxmox_cluster = "tatouine"
