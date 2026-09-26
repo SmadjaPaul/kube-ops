@@ -12,11 +12,13 @@ roots=(
   k8s/infrastructure/storage
   k8s/infrastructure/database
   k8s/infrastructure/auth
+  k8s/infrastructure/security
   k8s/applications/ai
   k8s/applications/media
   k8s/applications/automation
   k8s/applications/web
   k8s/applications/tools
+  k8s/applications/business
 )
 
 rendered="$(mktemp)"
