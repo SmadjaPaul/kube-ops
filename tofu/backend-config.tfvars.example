@@ -9,7 +9,7 @@
 #   tofu init -backend-config=backend-config.tfvars
 #
 bucket = "homelab-tfstate"
-key    = "kube-ops/homeops-v2/terraform.tfstate"
+key    = "kube-ops/homeops/terraform.tfstate"
 region = "eu-paris-1"
 
 endpoint = "https://axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com"
