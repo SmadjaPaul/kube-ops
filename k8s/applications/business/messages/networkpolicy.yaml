@@ -42,7 +42,7 @@ spec:
             matchExpressions:
               - key: app.kubernetes.io/name
                 operator: In
-                values: [messages-web, messages-worker]
+                values: [messages-web, messages-worker, messages-migrate]
       ports:
         - protocol: TCP
           port: 5432
