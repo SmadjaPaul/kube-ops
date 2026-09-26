@@ -134,7 +134,7 @@ spec:
     - matchName: "api.cloudflare.com"
     - matchName: "gateway.ai.cloudflare.com"
     - matchPattern: "*.openai.azure.com"
-    - matchName: "sso.peekoff.com"
+    - matchName: "auth.smadja.dev"
     - matchName: "raw.githubusercontent.com"
     toPorts:
     - ports:
@@ -152,13 +152,13 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: postgresql
-  description: "Allow PostgreSQL WAL archiving to RustFS"
+  description: "Allow PostgreSQL WAL archiving to Hetzner Object Storage"
   egress:
   - toFQDNs:
-    - matchName: "truenas.peekoff.com"
+    - matchName: "fsn1.your-objectstorage.com"
     toPorts:
     - ports:
-      - port: "30293"
+      - port: "443"
         protocol: TCP
   - toEndpoints:
     - matchLabels:
