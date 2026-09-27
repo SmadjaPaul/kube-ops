@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-smadja
+  namespace: gateway
+spec:
+  dnsNames:
+    - "*.smadja.dev"
+    - smadja.dev
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: cloudflare-issuer
+  secretName: cert-smadja
+  usages:
+    - digital signature
+    - key encipherment
