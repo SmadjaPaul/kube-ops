@@ -1,20 +1,38 @@
-apiVersion: http.keda.sh/v1alpha1
-kind: HTTPScaledObject
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
 metadata:
   name: pocket-tts
   namespace: pocket-tts
 spec:
-  hosts:
-    - tts.smadja.dev
+  target:
+    service: pocket-tts
+    port: 49112
+  rules:
+    - hosts:
+        - tts.smadja.dev
   scalingMetric:
     concurrency:
       targetValue: 1
+  coldStart:
+    maxPendingRequests: 4
+    overflow: Reject
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: pocket-tts
+  namespace: pocket-tts
+spec:
   scaleTargetRef:
-    name: pocket-tts
-    kind: Deployment
     apiVersion: apps/v1
-    service: pocket-tts
-    port: 49112
-  replicas:
-    min: 0
-    max: 1
+    kind: Deployment
+    name: pocket-tts
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 600
+  pollingInterval: 15
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.keda:9090
+        interceptorRoute: pocket-tts
