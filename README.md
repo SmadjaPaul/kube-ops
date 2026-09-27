@@ -1,57 +1,62 @@
 # kube-ops
 
-Canonical GitOps repository for the Smadja home Kubernetes cluster.
+Canonical Kubernetes GitOps repository for the Smadja home cluster.
+
+## Ownership
+
+`homelab-infra` creates and owns the substrate: Proxmox networking, VM101 / `10.0.20.60`, Talos machine lifecycle, external providers and bootstrap credentials.
+
+`kube-ops` starts at the kubeconfig handoff and owns Kubernetes desired state.
+
+There is intentionally no Terraform/OpenTofu state in this repository.
 
 ## V1
 
-The first-green deployment is intentionally small and rebuildable:
+The first-green target is:
 
-- AOOSTAR WTR Max / Proxmox host `tatouine`;
-- one schedulable Talos control-plane VM: VM101 / `10.0.20.60`;
-- Talos `v1.13.10` and Kubernetes `1.36.3`;
-- Cilium + Gateway API;
-- Argo CD as the steady-state reconciler;
-- Proxmox CSI for persistent volumes;
-- CloudNativePG;
+- one schedulable Talos control-plane node;
+- Talos `v1.13.10` / Kubernetes `1.36.3`;
+- Gateway API CRDs + Cilium `1.20.2`;
+- External Secrets + Doppler;
 - cert-manager;
-- External Secrets with Doppler;
+- Argo CD as the sole steady-state reconciler;
+- Proxmox CSI backed by `tank-vm`;
+- CloudNativePG;
 - Authentik;
 - Velero/Kopia and CNPG Barman backups to Hetzner Object Storage;
-- Migadu retained for SMTP;
-- GPT Researcher, Pocket-TTS and Whisper retained.
+- Migadu SMTP;
+- GPT Researcher, Pocket-TTS and Whisper.
 
-The business stack, vLLM, Frigate, Minecraft and other post-V1 expansion remain outside the first-green ApplicationSets.
+Business workloads, vLLM, Frigate and Minecraft stay outside first green.
 
-## Repository boundary
+## Bootstrap
 
-`kube-ops` owns the disposable Talos VM lifecycle for this cluster and all Kubernetes/Argo desired state.
-
-`homelab-infra` owns physical/external infrastructure such as Proxmox host configuration, UniFi/LAN, Cloudflare DNS/Tunnel, Doppler bootstrap, Hetzner Object Storage and Migadu.
-
-## Deployment model
-
-The intended path is:
+After `homelab-infra` has created Talos and the operator has materialized its kubeconfig, run:
 
 ```text
-OpenTofu -> Talos -> Cilium bootstrap -> cert-manager -> External Secrets
--> Doppler access -> Argo CD -> infrastructure ApplicationSet
--> applications ApplicationSet
+DOPPLER_TOKEN=<cluster/prd scoped service token> ./scripts/bootstrap-cluster.sh
 ```
 
-After bootstrap, Kubernetes changes flow through Git -> Argo CD -> Kubernetes.
+The script applies only the minimum chicken-and-egg components:
 
-Before any live apply, run `npm run check:v1-contract`, OpenTofu validation, and review the full plan. Destructive Proxmox actions are never implicit.
+```text
+Gateway API CRDs
+  -> Cilium
+  -> External Secrets
+  -> Doppler access Secret
+  -> cert-manager
+  -> Argo CD
+  -> infrastructure/application ApplicationSets
+```
 
-## Layout
+The manifests applied during bootstrap are the same Git-managed manifests Argo subsequently reconciles; bootstrap does not create a parallel desired-state system.
 
-- `tofu/`: Talos VM provisioning and bootstrap.
-- `k8s/infrastructure/`: cluster infrastructure managed by Argo CD.
-- `k8s/applications/`: user-facing workloads managed by Argo CD.
-- `images/`: custom container images when an upstream image is insufficient.
-- `website/`: inherited documentation source; it is not part of the V1 runtime deployment.
+## Normal operation
 
-## V1 invariants
+After bootstrap the mutation path is:
 
-Active V1 desired state must not depend on the upstream `theepicsaxguy/homelab` repository, `peekoff.com`, TrueNAS/NFS, MinIO, Backblaze B2, Bitwarden or `proxmox-csi-2`.
+```text
+Git -> Argo CD -> Kubernetes
+```
 
-The canonical repository is `https://github.com/SmadjaPaul/kube-ops.git`.
+Run `npm run check:v1-contract` before merging Kubernetes changes.
