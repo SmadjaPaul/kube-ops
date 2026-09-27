@@ -11,7 +11,7 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: https://github.com/theepicsaxguy/homelab.git
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
         revision: main
         directories:
           - path: k8s/infrastructure/controllers
@@ -21,7 +21,6 @@ spec:
           - path: k8s/infrastructure/deployment
           - path: k8s/infrastructure/auth
           - path: k8s/infrastructure/database
-          - path: k8s/infrastructure/security
   template:
     metadata:
       name: 'infra-{{ path.basename }}'
@@ -32,10 +31,10 @@ spec:
     spec:
       project: infrastructure
       source:
-        repoURL: https://github.com/theepicsaxguy/homelab.git
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
         targetRevision: main
         path: '{{ path }}'
-        kustomize: {} # Let Kustomize handle naming
+        kustomize: {}
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:
