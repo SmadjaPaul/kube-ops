@@ -1,14 +1,29 @@
 existingConfigSecret: proxmox-csi-plugin
 existingConfigSecretKey: config.yaml
 
+nodeSelector:
+  node-role.kubernetes.io/control-plane: ""
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    effect: NoSchedule
+
+node:
+  tolerations:
+    - operator: Exists
+
 storageClass:
   - name: proxmox-csi
-    cache: writethrough
-    fstype: ext4
-    reclaimPolicy: Retain
-    volumeBindingMode: Immediate
-    ssd: true
     storage: tank-vm
+    fstype: ext4
+    cache: writethrough
+    ssd: true
+    reclaimPolicy: Retain
+    volumeBindingMode: WaitForFirstConsumer
     mountOptions:
       - noatime
-    default: true
+    allowedTopologies:
+      - matchLabelExpressions:
+          - key: topology.kubernetes.io/region
+            values: [homeops]
+          - key: topology.kubernetes.io/zone
+            values: [tatouine]

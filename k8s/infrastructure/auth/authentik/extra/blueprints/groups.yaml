@@ -1,7 +1,5 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
 # yamllint disable-file
-# prettier-ignore-start
-# eslint-disable
 ---
 version: 1
 metadata:
@@ -9,164 +7,101 @@ metadata:
 entries:
   - id: authentik-admins
     model: authentik_core.group
-    identifiers:
-      name: authentik-admins
-    attrs:
-      name: authentik-admins
-      is_superuser: true
+    identifiers: {name: authentik-admins}
+    attrs: {name: authentik-admins, is_superuser: true}
   - id: admin
     model: authentik_core.group
-    identifiers:
-      name: admin
-    attrs:
-      name: admin
+    identifiers: {name: admin}
+    attrs: {name: admin}
   - id: family
     model: authentik_core.group
-    identifiers:
-      name: family
-    attrs:
-      name: family
+    identifiers: {name: family}
+    attrs: {name: family}
   - id: dev
     model: authentik_core.group
-    identifiers:
-      name: dev
-    attrs:
-      name: dev
+    identifiers: {name: dev}
+    attrs: {name: dev}
   - id: media
     model: authentik_core.group
-    identifiers:
-      name: media
-    attrs:
-      name: media
+    identifiers: {name: media}
+    attrs: {name: media}
   - id: data
     model: authentik_core.group
-    identifiers:
-      name: data
-    attrs:
-      name: data
+    identifiers: {name: data}
+    attrs: {name: data}
   - id: iot
     model: authentik_core.group
-    identifiers:
-      name: iot
-    attrs:
-      name: iot
-  - id: argocd-admins
-    model: authentik_core.group
-    identifiers:
-      name: ArgoCD Admins
-    attrs:
-      name: ArgoCD Admins
-  - id: argocd-viewers
-    model: authentik_core.group
-    identifiers:
-      name: ArgoCD Viewers
-    attrs:
-      name: ArgoCD Viewers
+    identifiers: {name: iot}
+    attrs: {name: iot}
   - id: grafana-admins
     model: authentik_core.group
-    identifiers:
-      name: Grafana Admins
-    attrs:
-      name: Grafana Admins
+    identifiers: {name: Grafana Admins}
+    attrs: {name: Grafana Admins}
   - id: grafana-users
     model: authentik_core.group
-    identifiers:
-      name: Grafana Users
-    attrs:
-      name: Grafana Users
+    identifiers: {name: Grafana Users}
+    attrs: {name: Grafana Users}
   - id: frigate-users
     model: authentik_core.group
-    identifiers:
-      name: Frigate Users
-    attrs:
-      name: Frigate Users
+    identifiers: {name: Frigate Users}
+    attrs: {name: Frigate Users}
   - id: home-assistant-users
     model: authentik_core.group
-    identifiers:
-      name: Home Assistant Users
-    attrs:
-      name: Home Assistant Users
+    identifiers: {name: Home Assistant Users}
+    attrs: {name: Home Assistant Users}
   - id: immich-users
     model: authentik_core.group
-    identifiers:
-      name: Immich Users
-    attrs:
-      name: Immich Users
+    identifiers: {name: Immich Users}
+    attrs: {name: Immich Users}
   - id: jellyfin-users
     model: authentik_core.group
-    identifiers:
-      name: Jellyfin Users
-    attrs:
-      name: Jellyfin Users
+    identifiers: {name: Jellyfin Users}
+    attrs: {name: Jellyfin Users}
   - id: jellyfin-admins
     model: authentik_core.group
-    identifiers:
-      name: Jellyfin Admins
-    attrs:
-      name: Jellyfin Admins
+    identifiers: {name: Jellyfin Admins}
+    attrs: {name: Jellyfin Admins}
   - id: jellyseerr-users
     model: authentik_core.group
-    identifiers:
-      name: Jellyseerr Users
-    attrs:
-      name: Jellyseerr Users
+    identifiers: {name: Jellyseerr Users}
+    attrs: {name: Jellyseerr Users}
   - id: media-users
     model: authentik_core.group
-    identifiers:
-      name: Media Users
-    attrs:
-      name: Media Users
+    identifiers: {name: Media Users}
+    attrs: {name: Media Users}
   - id: qbittorrent-users
     model: authentik_core.group
-    identifiers:
-      name: qBittorrent Users
-    attrs:
-      name: qBittorrent Users
+    identifiers: {name: qBittorrent Users}
+    attrs: {name: qBittorrent Users}
   - id: openwebui-users
     model: authentik_core.group
-    identifiers:
-      name: Open WebUI Users
-    attrs:
-      name: Open WebUI Users
+    identifiers: {name: Open WebUI Users}
+    attrs: {name: Open WebUI Users}
   - id: karakeep-users
     model: authentik_core.group
-    identifiers:
-      name: Karakeep Users
-    attrs:
-      name: Karakeep Users
+    identifiers: {name: Karakeep Users}
+    attrs: {name: Karakeep Users}
   - id: kubectl-users
     model: authentik_core.group
-    identifiers:
-      name: Kubectl Users
-    attrs:
-      name: Kubectl Users
+    identifiers: {name: Kubectl Users}
+    attrs: {name: Kubectl Users}
   - id: litellm-users
     model: authentik_core.group
-    identifiers:
-      name: Litellm Users
-    attrs:
-      name: Litellm Users
+    identifiers: {name: Litellm Users}
+    attrs: {name: Litellm Users}
   - id: litellm-admins
     model: authentik_core.group
-    identifiers:
-      name: Litellm Admins
-    attrs:
-      name: Litellm Admins
+    identifiers: {name: Litellm Admins}
+    attrs: {name: Litellm Admins}
   - id: opencode-users
     model: authentik_core.group
-    identifiers:
-      name: OpenCode Users
-    attrs:
-      name: OpenCode Users
+    identifiers: {name: OpenCode Users}
+    attrs: {name: OpenCode Users}
   - id: audiobookshelf-users
     model: authentik_core.group
-    identifiers:
-      name: audiobookshelf users
-    attrs:
-      name: audiobookshelf users
+    identifiers: {name: audiobookshelf users}
+    attrs: {name: audiobookshelf users}
   - id: audiobookshelf-admins
     model: authentik_core.group
-    identifiers:
-      name: audiobookshelf admins
-    attrs:
-      name: audiobookshelf admins
+    identifiers: {name: audiobookshelf admins}
+    attrs: {name: audiobookshelf admins}

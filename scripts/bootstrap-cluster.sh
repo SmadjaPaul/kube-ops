@@ -1,57 +1,65 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$repo_root"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
 
-for cmd in kubectl kustomize; do
+for cmd in kubectl helm; do
   command -v "$cmd" >/dev/null 2>&1 || {
     echo "ERROR: $cmd is required" >&2
     exit 2
   }
 done
 
-: "${DOPPLER_TOKEN:?set DOPPLER_TOKEN to the read-only cluster/prd ESO service token}"
+kubectl cluster-info >/dev/null
 
-kubectl get --raw=/readyz >/dev/null
+echo "== Gateway API v1.6.1 =="
+kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
+kubectl wait --for=condition=Established crd/gatewayclasses.gateway.networking.k8s.io --timeout=120s
+kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=120s
 
-apply_root() {
-  local root=$1
-  echo "== bootstrap: $root =="
-  kustomize build --enable-helm "$root" |
-    kubectl apply --server-side --force-conflicts -f -
-}
-
-apply_root k8s/infrastructure/network/gateway-api-crds
-apply_root k8s/infrastructure/network/cilium
+echo "== Cilium 1.20.2 =="
+helm repo add cilium https://helm.cilium.io --force-update >/dev/null
+helm upgrade --install cilium cilium/cilium   --version 1.20.2   --namespace kube-system   -f k8s/infrastructure/network/cilium/values.yaml   --wait --timeout 10m
 kubectl -n kube-system rollout status daemonset/cilium --timeout=5m
 kubectl -n kube-system rollout status deployment/cilium-operator --timeout=5m
 
-apply_root k8s/infrastructure/controllers/external-secrets
-kubectl -n external-secrets rollout status deployment/external-secrets --timeout=5m
+echo "== External Secrets 2.6.0 =="
+helm repo add external-secrets https://charts.external-secrets.io --force-update >/dev/null
+helm upgrade --install external-secrets external-secrets/external-secrets   --version 2.6.0   --namespace external-secrets   --create-namespace   -f k8s/infrastructure/controllers/external-secrets/values.yaml   --wait --timeout 5m
 
-token_file="$(mktemp)"
-trap 'rm -f "$token_file"' EXIT
-chmod 600 "$token_file"
-printf '%s' "$DOPPLER_TOKEN" >"$token_file"
-kubectl create secret generic doppler-access-token   --namespace external-secrets   --from-file=token="$token_file"   --dry-run=client -o yaml |
-  kubectl apply --server-side -f -
-rm -f "$token_file"
-trap - EXIT
+if [[ -z "${DOPPLER_CLUSTER_TOKEN:-}" ]]; then
+  command -v doppler >/dev/null 2>&1 || {
+    echo "ERROR: set DOPPLER_CLUSTER_TOKEN or install/login to the Doppler CLI" >&2
+    exit 2
+  }
+  DOPPLER_CLUSTER_TOKEN="$(doppler secrets get ESO_CLUSTER --project infrastructure --config prd --plain)"
+fi
+: "${DOPPLER_CLUSTER_TOKEN:?Doppler cluster service token is empty}"
 
-apply_root k8s/infrastructure/controllers/cert-manager
-kubectl -n cert-manager rollout status deployment/cert-manager --timeout=5m
-kubectl -n cert-manager rollout status deployment/cert-manager-webhook --timeout=5m
+kubectl -n external-secrets create secret generic doppler-access-token   --from-literal=token="$DOPPLER_CLUSTER_TOKEN"   --dry-run=client -o yaml |
+  kubectl apply --server-side --field-manager=kube-ops-bootstrap -f -
+unset DOPPLER_CLUSTER_TOKEN
 
-apply_root k8s/infrastructure/controllers/argocd
-kubectl -n argocd rollout status deployment/argocd-server --timeout=5m
-kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=5m
-kubectl -n argocd rollout status deployment/argocd-applicationset-controller --timeout=5m
+kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f k8s/infrastructure/controllers/external-secrets/doppler-store.yaml
+kubectl wait --for=condition=Ready clustersecretstore/doppler-cluster --timeout=2m
 
-kubectl apply --server-side -f k8s/infrastructure/project.yaml
-kubectl apply --server-side -f k8s/infrastructure/application-set.yaml
-kubectl apply --server-side -f k8s/applications/project.yaml
-kubectl apply --server-side -f k8s/applications/application-set.yaml
+echo "== cert-manager v1.20.2 =="
+helm repo add jetstack https://charts.jetstack.io --force-update >/dev/null
+helm upgrade --install cert-manager jetstack/cert-manager   --version v1.20.2   --namespace cert-manager   --create-namespace   -f k8s/infrastructure/controllers/cert-manager/values.yaml   --wait --timeout 5m
+kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f k8s/infrastructure/controllers/cert-manager/cert-manager-secrets-external.yaml   -f k8s/infrastructure/controllers/cert-manager/internal-ca-issuer.yaml   -f k8s/infrastructure/controllers/cert-manager/cloudflare-issuer.yaml
+kubectl -n cert-manager wait --for=condition=Ready externalsecret/cert-manager-secrets --timeout=2m
 
-echo "BOOTSTRAP_COMPLETE=PASS"
-echo "Steady state is now Git -> Argo CD -> Kubernetes."
+echo "== Argo CD 10.3.3 =="
+helm repo add argo https://argoproj.github.io/argo-helm --force-update >/dev/null
+helm upgrade --install argocd argo/argo-cd   --version 10.3.3   --namespace argocd   --create-namespace   -f k8s/infrastructure/controllers/argocd/values.yaml   --wait --timeout 10m
+
+# Seed the OIDC secret projection before Authentik is reconciled. The values
+# already live in Doppler and are shared with the Authentik blueprint.
+kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f k8s/infrastructure/controllers/argocd/externalsecret.yaml
+
+echo "== Argo root handoff =="
+kubectl apply --server-side --field-manager=kube-ops-bootstrap   -k k8s/bootstrap/argocd-root
+
+echo "BOOTSTRAP=PASS"
+echo "Argo CD now owns steady-state reconciliation from SmadjaPaul/kube-ops main."

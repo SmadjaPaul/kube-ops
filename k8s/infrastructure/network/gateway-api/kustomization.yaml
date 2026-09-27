@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Cilium 1.20 requires Gateway API v1.6.1. Pin the upstream release instead of
+# following main so Argo and bootstrap render the same API surface.
+resources:
+  - https://github.com/kubernetes-sigs/gateway-api/config/crd/standard?ref=v1.6.1
+
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-30"

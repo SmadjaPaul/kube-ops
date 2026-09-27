@@ -6,36 +6,18 @@ metadata:
   labels:
     app.kubernetes.io/part-of: applications
     app.kubernetes.io/managed-by: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
 spec:
-  description: Applications components managed through GitOps (all resources allowed)
+  description: User workloads reconciled from the canonical kube-ops repository
   sourceRepos:
-    - '*'
+    - https://github.com/SmadjaPaul/kube-ops.git
   destinations:
-    - server: '*'
-      namespace: '*'
+    - namespace: '*'
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
-    - group: "*"
-      kind: "*"
+    - group: ''
+      kind: Namespace
   namespaceResourceWhitelist:
-    - group: "*"
-      kind: "*"
-  roles:
-    - name: admin
-      description: Full permissions
-      policies:
-        - p, proj:applications:admin, applications, *, *, allow
-    - name: readonly
-      description: Read-only access
-      policies:
-        - p, proj:applications:readonly, applications, get, *, allow
-  syncWindows:
-    - kind: allow
-      schedule: '* * * * *'
-      duration: 24h
-      applications:
-        - '*'
-      manualSync: true
+    - group: '*'
+      kind: '*'
   orphanedResources:
     warn: true

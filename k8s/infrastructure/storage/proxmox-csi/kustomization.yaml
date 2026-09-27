@@ -13,7 +13,3 @@ helmCharts:
     includeCRDs: true
     namespace: csi-proxmox
     valuesFile: values.yaml
-
-patches:
-  - path: storageclass-patch.yaml
-  - path: deployment-patch.yaml

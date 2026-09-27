@@ -4,13 +4,13 @@ kind: Kustomization
 resources:
 - project.yaml
 - application-set.yaml
+- controllers
 - network
 - storage
-- controllers
+- monitoring
 - deployment
 - auth
 - database
-- security
 
 generatorOptions:
   disableNameSuffixHash: true

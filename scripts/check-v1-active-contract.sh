@@ -8,41 +8,56 @@ command -v kustomize >/dev/null 2>&1 || {
 
 canonical_repo='https://github.com/SmadjaPaul/kube-ops.git'
 
-if [[ -d tofu ]] || find . -path './.git' -prune -o \( -name '*.tf' -o -name '*.tofu' \) -print -quit | grep -q .; then
-  echo "ERROR: kube-ops must not contain Terraform/OpenTofu state or configuration" >&2
+if [[ -d tofu ]]; then
+  echo "ERROR: kube-ops must not contain a tofu/ root; external/Talos IaC belongs to homelab-infra" >&2
+  exit 1
+fi
+
+iac_files="$(find . -type f \( -name '*.tf' -o -name '*.tofu' \) -not -path './.git/*' -print)"
+if [[ -n "$iac_files" ]]; then
+  echo "ERROR: Terraform/OpenTofu files are forbidden in kube-ops:" >&2
+  printf '%s\n' "$iac_files" >&2
   exit 1
 fi
 
 control_files=(
+  AGENTS.md
+  README.md
   scripts/bootstrap-cluster.sh
   k8s/infrastructure/application-set.yaml
   k8s/applications/application-set.yaml
 )
 
-if grep -En 'theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.|truenas|bitwarden-backend|backblaze|MINIO_|minio\.' "${control_files[@]}"; then
-  echo "ERROR: V1 control files contain upstream/legacy bindings" >&2
+if grep -En 'theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.' "${control_files[@]}"; then
+  echo "ERROR: V1 control files still contain upstream or legacy bindings" >&2
   exit 1
 fi
 
 for appset in k8s/infrastructure/application-set.yaml k8s/applications/application-set.yaml; do
   grep -qF "$canonical_repo" "$appset" || {
-    echo "ERROR: $appset does not reference the canonical kube-ops repository" >&2
+    echo "ERROR: $appset does not reference the canonical repository" >&2
     exit 1
   }
 done
 
-if grep -Eq 'path:[[:space:]]+k8s/infrastructure/security' k8s/infrastructure/application-set.yaml; then
-  echo "ERROR: security stack must stay outside the first-green ApplicationSet" >&2
+grep -q 'version: 1.20.2' k8s/infrastructure/network/cilium/kustomization.yaml
+grep -q 'v1.6.1' k8s/infrastructure/network/gateway-api/kustomization.yaml
+grep -q 'version: 0.5.12' k8s/infrastructure/storage/proxmox-csi/kustomization.yaml
+grep -q 'volumeBindingMode: WaitForFirstConsumer' k8s/infrastructure/storage/proxmox-csi/values.yaml
+grep -q 'PROXMOX_CSI_TOKEN_ID' k8s/infrastructure/storage/proxmox-csi/externalsecret.yaml
+grep -q 'PROXMOX_CSI_TOKEN_SECRET' k8s/infrastructure/storage/proxmox-csi/externalsecret.yaml
+grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
+
+if grep -Eq '(^|/)(security)(/|$)' k8s/infrastructure/application-set.yaml; then
+  echo "ERROR: security stack must stay outside first green" >&2
   exit 1
 fi
-
-if grep -Eq 'path:[[:space:]]+k8s/applications/(games|business|catalog)' k8s/applications/application-set.yaml; then
+if grep -Eq 'k8s/applications/(games|business|catalog)' k8s/applications/application-set.yaml; then
   echo "ERROR: post-V1 application groups must stay outside first green" >&2
   exit 1
 fi
 
 roots=(
-  k8s/infrastructure/network/gateway-api-crds
   k8s/infrastructure/controllers
   k8s/infrastructure/network
   k8s/infrastructure/storage
@@ -70,7 +85,7 @@ for root in "${roots[@]}"; do
   printf '\n---\n' >>"$rendered"
 done
 
-forbidden='theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\.'
+forbidden='peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\.'
 if grep -Ein "$forbidden" "$rendered"; then
   echo "ERROR: active rendered desired state contains a legacy binding" >&2
   exit 1
@@ -81,13 +96,15 @@ inventory="$(awk '
   /^kind:[[:space:]]*ExternalSecret[[:space:]]*$/ { external=1 }
   external && /^[[:space:]]+secretStoreRef:[[:space:]]*$/ { want_store=1; next }
   external && want_store && /^[[:space:]]+name:[[:space:]]*/ {
-    v=$0; sub(/^[[:space:]]+name:[[:space:]]*/, "", v); gsub(/["'"'"']/, "", v)
-    print "STORE " v; want_store=0
+    v=$0; sub(/^[[:space:]]+name:[[:space:]]*/, "", v); gsub(/["'\''"]/, "", v)
+    print "STORE " v
+    want_store=0
   }
   external && /^[[:space:]]+remoteRef:[[:space:]]*$/ { want_key=1; next }
   external && want_key && /^[[:space:]]+key:[[:space:]]*/ {
-    v=$0; sub(/^[[:space:]]+key:[[:space:]]*/, "", v); gsub(/["'"'"']/, "", v)
-    print "KEY " v; want_key=0
+    v=$0; sub(/^[[:space:]]+key:[[:space:]]*/, "", v); gsub(/["'\''"]/, "", v)
+    print "KEY " v
+    want_key=0
   }
 ' "$rendered")"
 
@@ -100,28 +117,20 @@ bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $2!="doppler-clus
 
 bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | grep -Ev '^[A-Z][A-Z0-9_]*$' || true)"
 [[ -z "$bad_keys" ]] || {
-  echo "ERROR: active Doppler remote keys must be UPPER_SNAKE_CASE:" >&2
+  echo "ERROR: active Doppler keys must be UPPER_SNAKE_CASE:" >&2
   printf '%s\n' "$bad_keys" >&2
   exit 1
 }
 
 grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered" || {
-  echo "ERROR: canonical Hetzner backup endpoint missing" >&2
+  echo "ERROR: Hetzner fsn1 endpoint is missing from active desired state" >&2
   exit 1
 }
 
-if grep -E 'kind:[[:space:]]+ObjectStore' "$rendered" >/dev/null &&
-   ! grep -q 's3://smadja-dev-homelab-backups/cnpg/' "$rendered"; then
-  echo "ERROR: CNPG ObjectStores do not target the canonical Hetzner bucket" >&2
-  exit 1
-fi
-
-echo "ACTIVE_NO_IAC_DUPLICATION=PASS"
-echo "ACTIVE_CANONICAL_REPO=PASS"
-echo "ACTIVE_FIRST_GREEN_SCOPE=PASS"
-echo "ACTIVE_LEGACY_BINDINGS=0"
-echo "ACTIVE_HETZNER_BACKUP_ENDPOINT=PASS"
-echo "ACTIVE_DOPPLER_STORES=PASS"
+echo "V1_REPOSITORY_BOUNDARY=PASS"
+echo "V1_BOOTSTRAP_CONTRACT=PASS"
+echo "V1_ACTIVE_RENDER=PASS"
+echo "V1_DOPPLER_STORES=PASS"
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN"
 printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | sort -u
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_END"

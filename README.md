@@ -1,62 +1,60 @@
 # kube-ops
 
-Canonical Kubernetes GitOps repository for the Smadja home cluster.
+Canonical GitOps repository for the Smadja Kubernetes cluster.
 
 ## Ownership
 
-`homelab-infra` creates and owns the substrate: Proxmox networking, VM101 / `10.0.20.60`, Talos machine lifecycle, external providers and bootstrap credentials.
+`homelab-infra` owns everything below the Kubernetes API: Proxmox networking, VM101, Talos machine configuration/secrets/bootstrap, external providers and runtime credentials.
 
-`kube-ops` starts at the kubeconfig handoff and owns Kubernetes desired state.
-
-There is intentionally no Terraform/OpenTofu state in this repository.
+`kube-ops` starts at the Kubernetes API. It contains no Terraform/OpenTofu state and cannot create or destroy VM101.
 
 ## V1
 
-The first-green target is:
-
-- one schedulable Talos control-plane node;
-- Talos `v1.13.10` / Kubernetes `1.36.3`;
-- Gateway API CRDs + Cilium `1.20.2`;
-- External Secrets + Doppler;
-- cert-manager;
-- Argo CD as the sole steady-state reconciler;
-- Proxmox CSI backed by `tank-vm`;
+- one schedulable Talos control-plane at `10.0.20.60`;
+- Talos `1.13.10`, Kubernetes `1.36.3`;
+- Gateway API `v1.6.1`;
+- Cilium `1.20.2` with kube-proxy replacement;
+- Argo CD as the steady-state reconciler;
+- Proxmox CSI chart `0.5.12` / plugin `v0.20.0`;
+- cert-manager + External Secrets/Doppler;
 - CloudNativePG;
 - Authentik;
-- Velero/Kopia and CNPG Barman backups to Hetzner Object Storage;
-- Migadu SMTP;
-- GPT Researcher, Pocket-TTS and Whisper.
-
-Business workloads, vLLM, Frigate and Minecraft stay outside first green.
+- Velero/Kopia and CNPG Barman to Hetzner Object Storage;
+- in-cluster cloudflared using the remotely-managed wildcard tunnel;
+- Migadu retained for SMTP.
 
 ## Bootstrap
 
-After `homelab-infra` has created Talos and the operator has materialized its kubeconfig, run:
-
-```text
-DOPPLER_TOKEN=<cluster/prd scoped service token> ./scripts/bootstrap-cluster.sh
-```
-
-The script applies only the minimum chicken-and-egg components:
+After `homelab-infra` has produced a healthy Talos/Kubernetes API and a kubeconfig:
 
 ```text
 Gateway API CRDs
   -> Cilium
   -> External Secrets
-  -> Doppler access Secret
+  -> bootstrap Doppler token
   -> cert-manager
   -> Argo CD
-  -> infrastructure/application ApplicationSets
+  -> AppProjects/ApplicationSets
+  -> Git -> Argo -> Kubernetes
 ```
 
-The manifests applied during bootstrap are the same Git-managed manifests Argo subsequently reconciles; bootstrap does not create a parallel desired-state system.
+Run:
 
-## Normal operation
-
-After bootstrap the mutation path is:
-
-```text
-Git -> Argo CD -> Kubernetes
+```bash
+./scripts/bootstrap-cluster.sh
 ```
 
-Run `npm run check:v1-contract` before merging Kubernetes changes.
+The script consumes `DOPPLER_CLUSTER_TOKEN` when supplied. Otherwise it reads `ESO_CLUSTER` from Doppler `infrastructure/prd` through the authenticated Doppler CLI. It never prints the token.
+
+After the root ApplicationSets exist, all normal changes are reconciled by Argo CD.
+
+## Layout
+
+- `k8s/infrastructure/`: cluster infrastructure desired state;
+- `k8s/applications/`: first-green applications;
+- `k8s/bootstrap/`: the tiny Argo root handoff only;
+- `scripts/bootstrap-cluster.sh`: one-time/idempotent bootstrap;
+- `images/`: custom images where upstream is insufficient;
+- `website/`: inherited documentation source, not a runtime surface.
+
+Run `npm run check:v1-contract` before deployment.

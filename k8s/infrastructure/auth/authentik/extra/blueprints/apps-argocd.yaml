@@ -1,46 +1,18 @@
-# Schema validation disabled - Authentik blueprints use custom YAML tags incompatible with JSON schema
-# yamllint disable
-# prettier-ignore
-# eslint-disable
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
 ---
 version: 1
 metadata:
   name: Apps - ArgoCD
 entries:
-  - id: argocd-admin-group
-    model: authentik_core.group
-    identifiers:
-      name: ArgoCD Admins
-    attrs:
-      name: ArgoCD Admins
-  - id: argocd-viewer-group
-    model: authentik_core.group
-    identifiers:
-      name: ArgoCD Viewers
-    attrs:
-      name: ArgoCD Viewers
   - id: argocd_provider
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
       name: k8s.smadja.dev/argocd
     attrs:
-      authorization_flow:
-        !Find [
-          authentik_flows.flow,
-          [slug, "default-provider-authorization-implicit-consent"],
-        ]
-      signing_key:
-        !Find [
-          authentik_crypto.certificatekeypair,
-          [name, "authentik Self-signed Certificate"],
-        ]
-      invalidation_flow:
-        !Find [
-          authentik_flows.flow,
-          [slug, "default-provider-invalidation-flow"],
-        ]
-
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
       client_type: confidential
       redirect_uris:
         - url: https://argocd.smadja.dev/api/dex/callback
@@ -50,7 +22,6 @@ entries:
       access_code_validity: minutes=1
       access_token_validity: hours=1
       refresh_token_validity: days=30
-
       sub_mode: hashed_user_id
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
@@ -70,17 +41,23 @@ entries:
       provider: !KeyOf argocd_provider
       policy_engine_mode: any
 
-  - id: argocd_admins_policy_binding
+  - id: argocd_admin_binding
     model: authentik_policies.policybinding
     identifiers:
       target: !KeyOf argocd_application
-      group: !Find [authentik_core.group, [name, "ArgoCD Admins"]]
-    attrs:
-      order: 1
-  - id: argocd_viewers_policy_binding
+      group: !Find [authentik_core.group, [name, "admin"]]
+    attrs: {order: 1}
+
+  - id: argocd_superadmin_binding
     model: authentik_policies.policybinding
     identifiers:
       target: !KeyOf argocd_application
-      group: !Find [authentik_core.group, [name, "ArgoCD Viewers"]]
-    attrs:
-      order: 2
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs: {order: 2}
+
+  - id: argocd_dev_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf argocd_application
+      group: !Find [authentik_core.group, [name, "dev"]]
+    attrs: {order: 3}
