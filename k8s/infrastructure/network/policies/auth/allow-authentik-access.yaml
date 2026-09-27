@@ -118,10 +118,10 @@ spec:
         protocol: TCP
   egress:
   - toFQDNs:
-    - matchName: "truenas.peekoff.com"
+    - matchName: "fsn1.your-objectstorage.com"
     toPorts:
     - ports:
-      - port: "30293"
+      - port: "443"
         protocol: TCP
   - toEntities:
     - world

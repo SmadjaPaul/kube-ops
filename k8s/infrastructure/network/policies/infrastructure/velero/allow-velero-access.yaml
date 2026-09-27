@@ -33,10 +33,10 @@ spec:
       - port: "443"
         protocol: TCP
   - toFQDNs:
-    - matchName: "truenas.peekoff.com"
+    - matchName: "fsn1.your-objectstorage.com"
     toPorts:
     - ports:
-      - port: "30293"
+      - port: "443"
         protocol: TCP
   - toEndpoints:
     - matchLabels:
