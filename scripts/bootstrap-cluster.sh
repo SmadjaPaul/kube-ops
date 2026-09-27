@@ -52,11 +52,15 @@ kubectl -n cert-manager wait --for=condition=Ready externalsecret/cert-manager-s
 
 echo "== Argo CD 10.3.3 =="
 helm repo add argo https://argoproj.github.io/argo-helm --force-update >/dev/null
-helm upgrade --install argocd argo/argo-cd   --version 10.3.3   --namespace argocd   --create-namespace   -f k8s/infrastructure/controllers/argocd/values.yaml   --wait --timeout 10m
+# Bootstrap Argo without Dex first. The steady-state Argo application later
+# enables Dex from Git after ESO has populated argocd-secret. This avoids a
+# first-boot dependency cycle between Argo readiness and its OIDC credential.
+helm upgrade --install argocd argo/argo-cd   --version 10.3.3   --namespace argocd   --create-namespace   -f k8s/infrastructure/controllers/argocd/values.yaml   --set dex.enabled=false   --wait --timeout 10m
 
-# Seed the OIDC secret projection before Authentik is reconciled. The values
-# already live in Doppler and are shared with the Authentik blueprint.
+# Project the OIDC credential into the chart-created argocd-secret before Argo
+# starts reconciling its own steady-state chart with Dex enabled.
 kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f k8s/infrastructure/controllers/argocd/externalsecret.yaml
+kubectl -n argocd wait --for=condition=Ready externalsecret/argocd-secret --timeout=2m
 
 echo "== Argo root handoff =="
 kubectl apply --server-side --field-manager=kube-ops-bootstrap   -k k8s/bootstrap/argocd-root
