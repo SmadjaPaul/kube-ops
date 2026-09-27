@@ -3,10 +3,7 @@ kind: Service
 metadata:
   name: open-webui-service
   namespace: open-webui
-  annotations:
-    io.cilium/lb-ipam-ips: 10.25.150.229
 spec:
-  clusterIP: None
   selector:
     app: open-webui
   ports:

@@ -5,7 +5,7 @@ namespace: karakeep
 
 configMapGenerator:
 - literals:
-  - NEXTAUTH_URL=https://karakeep.peekoff.com
+  - NEXTAUTH_URL=https://karakeep.smadja.dev
   - KARAKEEP_VERSION=0.25.0
   name: karakeep-configuration
 

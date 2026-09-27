@@ -24,7 +24,7 @@ data:
           }
           header_up X-Forwarded-For {http.request.remote.host}
           header_up X-Forwarded-Proto https
-          header_up X-Forwarded-Host research.peekoff.com
+          header_up X-Forwarded-Host research.smadja.dev
         }
       }
 
@@ -33,7 +33,7 @@ data:
         reverse_proxy gpt-researcher-backend:8000 {
           header_up X-Forwarded-For {http.request.remote.host}
           header_up X-Forwarded-Proto https
-          header_up X-Forwarded-Host research.peekoff.com
+          header_up X-Forwarded-Host research.smadja.dev
         }
       }
 
@@ -41,7 +41,7 @@ data:
       reverse_proxy gpt-researcher-backend:8000 {
         header_up X-Forwarded-For {http.request.remote.host}
         header_up X-Forwarded-Proto https
-        header_up X-Forwarded-Host research.peekoff.com
+        header_up X-Forwarded-Host research.smadja.dev
       }
     }
 
