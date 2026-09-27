@@ -9,7 +9,7 @@ configs:
       connectors:
       - config:
           issuer: https://auth.smadja.dev/application/o/argocd/
-          clientID: $dex.authentik.clientId
+          clientID: argocd
           clientSecret: $dex.authentik.clientSecret
           insecureEnableGroups: true
           scopes:

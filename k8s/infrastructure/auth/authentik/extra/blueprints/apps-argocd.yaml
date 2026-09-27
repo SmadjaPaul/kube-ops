@@ -17,7 +17,7 @@ entries:
       redirect_uris:
         - url: https://argocd.smadja.dev/api/dex/callback
           matching_mode: strict
-      client_id: !Env ARGOCD_CLIENT_ID
+      client_id: argocd
       client_secret: !Env ARGOCD_CLIENT_SECRET
       access_code_validity: minutes=1
       access_token_validity: hours=1
