@@ -21,8 +21,6 @@ if [[ -n "$iac_files" ]]; then
 fi
 
 control_files=(
-  AGENTS.md
-  README.md
   scripts/bootstrap-cluster.sh
   k8s/infrastructure/application-set.yaml
   k8s/applications/application-set.yaml
