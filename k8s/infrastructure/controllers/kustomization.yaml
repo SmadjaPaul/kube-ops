@@ -11,4 +11,5 @@ resources:
 - external-secrets
 - reloader
 - keda
+- metrics-server
 - velero
