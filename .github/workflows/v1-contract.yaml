@@ -1,0 +1,47 @@
+name: V1 Contract
+
+on:
+  pull_request:
+    paths:
+      - 'k8s/**'
+      - 'scripts/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - '.github/workflows/v1-contract.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'k8s/**'
+      - 'scripts/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - '.github/workflows/v1-contract.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Helm
+        run: |
+          curl -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
+      - name: Install Kustomize
+        run: |
+          curl -fsSLo /tmp/kustomize.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tgz -C /tmp
+          sudo install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Validate first-green desired state
+        run: npm run check:v1-contract
+
+      - name: Validate bootstrap shell
+        run: bash -n scripts/bootstrap-cluster.sh
