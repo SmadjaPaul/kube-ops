@@ -6,10 +6,42 @@ command -v kustomize >/dev/null 2>&1 || {
   exit 2
 }
 
+canonical_repo='https://github.com/SmadjaPaul/kube-ops.git'
+control_files=(
+  k8s/infrastructure/application-set.yaml
+  k8s/applications/application-set.yaml
+  tofu/variables.tf
+  tofu/bootstrap/kubernetes/argocd.tf
+)
+
+if grep -En 'theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.' "${control_files[@]}"; then
+  echo "ERROR: V1 bootstrap/control files still contain upstream or legacy bindings" >&2
+  exit 1
+fi
+
+for appset in k8s/infrastructure/application-set.yaml k8s/applications/application-set.yaml; do
+  if ! grep -qF "$canonical_repo" "$appset"; then
+    echo "ERROR: $appset does not reference the canonical kube-ops repository" >&2
+    exit 1
+  fi
+done
+
+if grep -Eq 'path:[[:space:]]+k8s/infrastructure/security' k8s/infrastructure/application-set.yaml; then
+  echo "ERROR: security stack must stay outside the first-green ApplicationSet" >&2
+  exit 1
+fi
+
+if grep -Eq 'path:[[:space:]]+k8s/applications/(games|business|catalog)' k8s/applications/application-set.yaml; then
+  echo "ERROR: post-V1 application groups must stay outside the first-green ApplicationSet" >&2
+  exit 1
+fi
+
 roots=(
   k8s/infrastructure/controllers
   k8s/infrastructure/network
   k8s/infrastructure/storage
+  k8s/infrastructure/monitoring
+  k8s/infrastructure/deployment
   k8s/infrastructure/database
   k8s/infrastructure/auth
   k8s/applications/ai
@@ -17,6 +49,8 @@ roots=(
   k8s/applications/automation
   k8s/applications/web
   k8s/applications/tools
+  k8s/applications/external
+  k8s/applications/network
 )
 
 rendered="$(mktemp)"
@@ -69,16 +103,21 @@ if [[ -n "$bad_keys" ]]; then
   exit 1
 fi
 
+echo "ACTIVE_CANONICAL_REPO=PASS"
+echo "ACTIVE_FIRST_GREEN_SCOPE=PASS"
 echo "ACTIVE_NFS_REFERENCES=0"
 echo "ACTIVE_TRUENAS_REFERENCES=0"
 echo "ACTIVE_MINIO_S3_BACKUP_REFERENCES=0"
 echo "ACTIVE_BACKBLAZE_REFERENCES=0"
 echo "ACTIVE_BITWARDEN_REFERENCES=0"
+
 if ! grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered"; then
   echo "ERROR: Hetzner fsn1 object storage endpoint is not present in active desired state" >&2
   exit 1
 fi
-if grep -E 'kind:[[:space:]]+ObjectStore' "$rendered" >/dev/null && ! grep -q 's3://smadja-dev-homelab-backups/cnpg/' "$rendered"; then
+
+if grep -E 'kind:[[:space:]]+ObjectStore' "$rendered" >/dev/null &&
+   ! grep -q 's3://smadja-dev-homelab-backups/cnpg/' "$rendered"; then
   echo "ERROR: active CNPG ObjectStores are not targeting the canonical Hetzner bucket" >&2
   exit 1
 fi
