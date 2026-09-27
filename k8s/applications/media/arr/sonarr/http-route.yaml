@@ -8,7 +8,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'sonarr.peekoff.com'
+    - 'sonarr.smadja.dev'
   rules:
     - matches:
         - path:
