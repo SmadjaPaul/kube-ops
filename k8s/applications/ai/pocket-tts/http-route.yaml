@@ -10,7 +10,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'tts.peekoff.com'
+    - 'tts.smadja.dev'
   rules:
     - matches:
         - path:

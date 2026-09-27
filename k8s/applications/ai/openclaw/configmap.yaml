@@ -145,7 +145,7 @@ data:
         "controlUi": {
           "enabled": true,
           "basePath": "/openclaw",
-          "allowedOrigins": ["https://openclaw.peekoff.com"]
+          "allowedOrigins": ["https://openclaw.smadja.dev"]
         },
         "auth": {
           "mode": "token",
