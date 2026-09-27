@@ -7,10 +7,8 @@ resources:
 - ai
 - media
 - tools
-- external
 - web
-- network
-- games
+- automation
 
 
 generatorOptions:
