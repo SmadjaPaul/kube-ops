@@ -19,9 +19,7 @@ spec:
           - path: k8s/applications/media
           - path: k8s/applications/tools
           - path: k8s/applications/ai
-          - path: k8s/applications/external
           - path: k8s/applications/web
-          - path: k8s/applications/network
           - path: k8s/applications/automation
   template:
     metadata:
