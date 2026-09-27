@@ -14,8 +14,6 @@ if [[ -d tofu ]] || find . -path './.git' -prune -o \( -name '*.tf' -o -name '*.
 fi
 
 control_files=(
-  AGENTS.md
-  README.md
   scripts/bootstrap-cluster.sh
   k8s/infrastructure/application-set.yaml
   k8s/applications/application-set.yaml
