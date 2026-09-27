@@ -2,9 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: it-tools-service
-  namespace: it-tools                # ← put it in the same namespace as the HTTPRoute
-  annotations:
-    io.cilium/lb-ipam-ips: 10.25.150.228
+  namespace: it-tools
 spec:
   selector:
     app: it-tools
@@ -12,11 +10,8 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 80
-  type: LoadBalancer
-
-
+  type: ClusterIP
 ---
-# Preview service
 apiVersion: v1
 kind: Service
 metadata:
