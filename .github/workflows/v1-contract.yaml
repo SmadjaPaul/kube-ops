@@ -28,14 +28,14 @@ jobs:
 
       - name: Install Helm
         run: |
-          curl -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz
           tar -xzf /tmp/helm.tgz -C /tmp
           sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
           helm version --short
 
       - name: Install Kustomize
         run: |
-          curl -fsSLo /tmp/kustomize.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kustomize.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
           tar -xzf /tmp/kustomize.tgz -C /tmp
           sudo install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
           kustomize version
