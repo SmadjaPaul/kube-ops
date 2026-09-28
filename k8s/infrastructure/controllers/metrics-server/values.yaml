@@ -1,0 +1,21 @@
+replicas: 1
+
+image:
+  repository: registry.k8s.io/metrics-server/metrics-server
+  tag: v0.9.0
+  pullPolicy: IfNotPresent
+
+args:
+  - --kubelet-preferred-address-types=InternalIP,Hostname
+  - --metric-resolution=30s
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 192Mi
+
+podDisruptionBudget:
+  enabled: false

@@ -1,0 +1,8 @@
+reloader:
+  watchGlobally: true
+  autoReloadAll: false
+  reloadOnCreate: false
+  reloadOnDelete: false
+  syncAfterRestart: true
+deployment:
+  replicas: 1

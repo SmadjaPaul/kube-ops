@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-mcp
+  namespace: agent-observers
+  annotations:
+    secret.reloader.stakater.com/reload: "argocd-mcp"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argocd-mcp
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp
+          image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.8.0
+          args: ["node","dist/index.js","http","--stateless"]
+          env:
+            - name: ARGOCD_BASE_URL
+              value: http://argocd-server.argocd.svc.cluster.local
+            - name: ARGOCD_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: argocd-mcp
+                  key: ARGOCD_API_TOKEN
+            - name: MCP_READ_ONLY
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-mcp
+  namespace: agent-observers
+spec:
+  selector:
+    app.kubernetes.io/name: argocd-mcp
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

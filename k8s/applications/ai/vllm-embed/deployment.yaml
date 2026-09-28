@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-embed
+  labels:
+    app: vllm-embed
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: vllm-embed
+  template:
+    metadata:
+      labels:
+        app: vllm-embed
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      hostIPC: false
+      hostPID: false
+      hostNetwork: false
+      containers:
+        - name: vllm-openai
+          image: ghcr.io/theepicsaxguy/vllm-cpu:v0.11.0-cfc13f2
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              python3 -m vllm.entrypoints.openai.api_server
+              --model Qwen/Qwen3-Embedding-0.6B
+              --runner pooling
+              --task embed
+              --port 8000
+              --host 0.0.0.0
+              --dtype bfloat16
+              --enforce-eager
+              --max-model-len 1024
+              --max-num-seqs 4
+              --max-num-batched-tokens 1024
+              --override-pooler-config '{"pooling_type": "LAST", "normalize": true, "enable_chunked_processing": true, "max_embed_len": 16384}'
+              --api-key $VLLM_API_KEY
+          env:
+            # --- SPEED OPTIMIZATIONS ---
+            - name: OMP_NUM_THREADS
+              value: "4"
+            - name: MKL_NUM_THREADS
+              value: "4"
+            - name: VLLM_CPU_OMP_THREADS_BIND
+              value: "0-3"
+            - name: KMP_BLOCKTIME
+              value: "1"
+            - name: KMP_SETTINGS
+              value: "1"
+            - name: KMP_AFFINITY
+              value: "granularity=fine,compact,1,0"
+
+            # --- MEMORY STABILITY ---
+            - name: MALLOC_ARENA_MAX
+              value: "1"
+            - name: VLLM_CPU_KVCACHE_SPACE
+              value: "1"
+              
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: app-vllm-embed-hf-token
+                  key: HUGGING_FACE_HUB_TOKEN
+            - name: VLLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-vllm-embed-api-key
+                  key: VLLM_API_KEY
+          ports:
+            - name: http
+              containerPort: 8000
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+            - name: tmp
+              mountPath: /tmp
+            - name: var-tmp
+              mountPath: /var/tmp
+            - name: dev-shm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: "2000m"
+              memory: "3Gi"
+            limits:
+              cpu: "4000m"
+              memory: "4Gi"
+      volumes:
+        - name: hf-cache
+          persistentVolumeClaim:
+            claimName: vllm-model-cache
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: var-tmp
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: dev-shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
