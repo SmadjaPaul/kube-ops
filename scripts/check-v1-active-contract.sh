@@ -6,6 +6,16 @@ command -v kustomize >/dev/null 2>&1 || {
   exit 2
 }
 
+if [[ -d tofu ]]; then
+  echo "ERROR: kube-ops must not own OpenTofu/Talos/Proxmox substrate; use homelab-infra" >&2
+  exit 1
+fi
+
+if git grep -nE 'theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.' --   k8s/infrastructure/application-set.yaml   k8s/applications/application-set.yaml 2>/dev/null; then
+  echo "ERROR: canonical Argo roots still contain an upstream repository or network binding" >&2
+  exit 1
+fi
+
 roots=(
   k8s/infrastructure/controllers
   k8s/infrastructure/network
