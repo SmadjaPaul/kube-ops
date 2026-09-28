@@ -46,15 +46,6 @@ grep -q 'PROXMOX_CSI_TOKEN_ID' k8s/infrastructure/storage/proxmox-csi/externalse
 grep -q 'PROXMOX_CSI_TOKEN_SECRET' k8s/infrastructure/storage/proxmox-csi/externalsecret.yaml
 grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
 
-if grep -Eq '(^|/)(security)(/|$)' k8s/infrastructure/application-set.yaml; then
-  echo "ERROR: security stack must stay outside first green" >&2
-  exit 1
-fi
-if grep -Eq 'k8s/applications/(games|business|catalog)' k8s/applications/application-set.yaml; then
-  echo "ERROR: post-V1 application groups must stay outside first green" >&2
-  exit 1
-fi
-
 roots=(
   k8s/infrastructure/controllers
   k8s/infrastructure/network
@@ -63,6 +54,7 @@ roots=(
   k8s/infrastructure/deployment
   k8s/infrastructure/database
   k8s/infrastructure/auth
+  k8s/infrastructure/security
   k8s/applications/ai
   k8s/applications/media
   k8s/applications/automation

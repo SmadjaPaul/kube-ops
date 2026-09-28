@@ -4,9 +4,10 @@ kind: Kustomization
 namespace: opencode
 
 resources:
-  - namespace.yaml
-  - externalsecret.yaml
-  - deployment.yaml
-  - service.yaml
-  - pvc.yaml
-  - http-route.yaml
+- policy-exception.yaml
+- namespace.yaml
+- externalsecret.yaml
+- deployment.yaml
+- service.yaml
+- pvc.yaml
+- http-route.yaml
