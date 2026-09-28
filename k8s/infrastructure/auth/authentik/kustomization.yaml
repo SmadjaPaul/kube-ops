@@ -8,8 +8,6 @@ resources:
 - database-hetzner-credentials.yaml
 - podmonitor.yaml
 - httproute.yaml
-- outpost-externalsecret.yaml
-- referencegrant.yaml
 - extra
 helmCharts:
 - name: authentik

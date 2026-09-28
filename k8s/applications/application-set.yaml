@@ -17,10 +17,26 @@ spec:
         revision: main
         directories:
           - path: k8s/applications/media
+          - path: k8s/applications/media/jellyseerr
+            exclude: true
+          - path: k8s/applications/media/sabnzbd
+            exclude: true
           - path: k8s/applications/tools
           - path: k8s/applications/ai
+          - path: k8s/applications/ai/opencode
+            exclude: true
           - path: k8s/applications/web
+          - path: k8s/applications/web/babybuddy
+            exclude: true
+          - path: k8s/applications/web/pinepods
+            exclude: true
           - path: k8s/applications/automation
+          - path: k8s/applications/automation/frigate
+            exclude: true
+          - path: k8s/applications/automation/hassio
+            exclude: true
+          - path: k8s/applications/automation/mqtt
+            exclude: true
   template:
     metadata:
       name: 'apps-{{ path.basename }}'
