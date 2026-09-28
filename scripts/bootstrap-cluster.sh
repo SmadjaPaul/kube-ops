@@ -20,6 +20,14 @@ kubectl apply --server-side --field-manager=argocd-controller   -f https://githu
 kubectl wait --for=condition=Established crd/gatewayclasses.gateway.networking.k8s.io --timeout=120s
 kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=120s
 
+# After the root handoff, Argo CD is the sole steady-state owner.  A rerun
+# must not make Helm compete with Argo over Cilium/ESO/cert-manager fields.
+if kubectl -n argocd get applicationset infrastructure >/dev/null 2>&1; then
+  echo "Argo root already present; steady-state ownership belongs to Argo CD."
+  echo "BOOTSTRAP=PASS"
+  exit 0
+fi
+
 echo "== Cilium 1.20.2 =="
 helm repo add cilium https://helm.cilium.io --force-update >/dev/null
 helm upgrade --install cilium cilium/cilium   --version 1.20.2   --namespace kube-system   -f k8s/infrastructure/network/cilium/values.yaml   --wait --timeout 10m
