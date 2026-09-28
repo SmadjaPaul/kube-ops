@@ -9,8 +9,6 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: '0'
 spec:
-  syncPolicy:
-    preserveResourcesOnDeletion: true
   generators:
     - git:
         repoURL: https://github.com/SmadjaPaul/kube-ops.git

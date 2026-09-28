@@ -60,6 +60,7 @@ roots=(
   k8s/applications/automation
   k8s/applications/web
   k8s/applications/tools
+  k8s/applications/games
 )
 
 source_forbidden='peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\.'
@@ -118,9 +119,9 @@ bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | grep -Ev '
   exit 1
 }
 
-# Hetzner Object Storage is deliberately post-FIRST_GREEN. When backup
-# resources are active, retain the provider endpoint contract; when backups
-# are deferred, no S3 endpoint or credential is required in the active graph.
+# Backup resources are part of the full desired-state contract. When CNPG
+# object-store resources are active, they must retain the canonical Hetzner
+# endpoint; credentials remain externally provisioned through Doppler/ESO.
 if grep -q '^kind:[[:space:]]*\(ObjectStore\|ScheduledBackup\)[[:space:]]*$' "$rendered"; then
   grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered" || {
     echo "ERROR: active backup resources are missing the Hetzner fsn1 endpoint" >&2
