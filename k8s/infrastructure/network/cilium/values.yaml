@@ -125,9 +125,6 @@ ingressController:
   enabled: false
   default: true
   loadbalancerMode: shared
-  service:
-    annotations:
-      io.cilium/lb-ipam-ips: 10.25.150.223
 
 # Network Policy Audit Mode - Log violations without blocking
 policyAuditMode: false
