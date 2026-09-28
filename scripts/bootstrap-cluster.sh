@@ -14,21 +14,9 @@ done
 kubectl cluster-info >/dev/null
 
 echo "== Gateway API v1.6.1 =="
-# Keep the standard channel CRDs managed normally.  Gateway's own admission
-# policy rejects replacing them with the full experimental bundle, so project
-# only the additional TCP/UDP route CRDs required by this repository.
-kubectl apply --server-side --force-conflicts --field-manager=kube-ops-bootstrap   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
-gateway_manifest="$(mktemp)"
-trap 'rm -f "$gateway_manifest"' EXIT
-curl -fsSL https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/experimental-install.yaml >"$gateway_manifest"
-# The Gateway release policy intentionally blocks channel upgrades.  Remove
-# only that guard for the narrow CRD transition, then restore it immediately.
-kubectl delete validatingadmissionpolicy safe-upgrades.gateway.networking.k8s.io --ignore-not-found
-kubectl delete validatingadmissionpolicybinding safe-upgrades.gateway.networking.k8s.io --ignore-not-found
-yq eval 'select(.kind == "CustomResourceDefinition" and (.metadata.name == "tcproutes.gateway.networking.k8s.io" or .metadata.name == "udproutes.gateway.networking.k8s.io"))' "$gateway_manifest" |
-  kubectl apply --server-side --force-conflicts --field-manager=kube-ops-bootstrap -f -
-yq eval 'select(.kind == "ValidatingAdmissionPolicy" or .kind == "ValidatingAdmissionPolicyBinding")' "$gateway_manifest" |
-  kubectl apply --server-side --force-conflicts --field-manager=kube-ops-bootstrap -f -
+# Argo CD uses the same field manager after handoff, so reruns remain
+# idempotent without force-conflicts or competing ownership.
+kubectl apply --server-side --field-manager=argocd-controller   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
 kubectl wait --for=condition=Established crd/gatewayclasses.gateway.networking.k8s.io --timeout=120s
 kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=120s
 
