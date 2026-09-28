@@ -5,6 +5,7 @@ resources:
 - database.yaml
 - podmonitor.yaml
 - httproute.yaml
+- referencegrant.yaml
 - extra
 helmCharts:
 - name: authentik

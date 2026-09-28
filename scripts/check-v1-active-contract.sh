@@ -126,10 +126,15 @@ bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | grep -Ev '
   exit 1
 }
 
-grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered" || {
-  echo "ERROR: Hetzner fsn1 endpoint is missing from active desired state" >&2
-  exit 1
-}
+# Hetzner Object Storage is deliberately post-FIRST_GREEN. When backup
+# resources are active, retain the provider endpoint contract; when backups
+# are deferred, no S3 endpoint or credential is required in the active graph.
+if grep -q '^kind:[[:space:]]*\(ObjectStore\|ScheduledBackup\)[[:space:]]*$' "$rendered"; then
+  grep -q 'https://fsn1\.your-objectstorage\.com' "$rendered" || {
+    echo "ERROR: active backup resources are missing the Hetzner fsn1 endpoint" >&2
+    exit 1
+  }
+fi
 
 echo "V1_REPOSITORY_BOUNDARY=PASS"
 echo "V1_BOOTSTRAP_CONTRACT=PASS"

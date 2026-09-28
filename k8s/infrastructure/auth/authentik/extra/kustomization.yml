@@ -2,4 +2,34 @@
 kind: Kustomization
 
 resources:
-  - core-secrets.yml
+  - secrets.yml
+  - smtp-externalsecret.yaml
+
+generatorOptions:
+  disableNameSuffixHash: false
+
+configMapGenerator:
+  - name: authentik-blueprints
+    files:
+      - ./blueprints/apps-opencode.yaml
+      - ./blueprints/apps-argocd.yaml
+      - ./blueprints/apps-frigate.yaml
+      - ./blueprints/apps-grafana.yaml
+      - ./blueprints/apps-home-assistant.yaml
+      - ./blueprints/apps-immich.yaml
+      - ./blueprints/apps-jellyfin.yaml
+      - ./blueprints/apps-media.yaml
+      - ./blueprints/apps-openwebui.yaml
+      - ./blueprints/apps-litellm.yaml
+      - ./blueprints/apps-karakeep.yaml
+      - ./blueprints/apps-kubernetes.yaml
+      - ./blueprints/apps-cloudflare.yaml
+      - ./blueprints/apps-pinepods.yaml
+      - ./blueprints/groups.yaml
+      - ./blueprints/brands.yaml
+      - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml
+      - ./blueprints/flows-passwordless-authentication.yaml
+      - ./blueprints/flows-default-authentication-passwordless.yaml
+      - ./blueprints/flows-webauthn-setup.yaml
+      - ./blueprints/oauth-scopes.yaml
+      - ./blueprints/outposts.yaml
