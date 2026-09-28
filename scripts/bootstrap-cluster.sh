@@ -16,7 +16,7 @@ kubectl cluster-info >/dev/null
 echo "== Gateway API v1.6.1 =="
 # FIRST_GREEN uses TCPRoute resources; the experimental bundle includes the
 # v1alpha2 TCP/UDP route CRDs in addition to the standard Gateway API set.
-kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/experimental-install.yaml
+kubectl apply --server-side --force-conflicts --field-manager=kube-ops-bootstrap   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/experimental-install.yaml
 kubectl wait --for=condition=Established crd/gatewayclasses.gateway.networking.k8s.io --timeout=120s
 kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=120s
 
