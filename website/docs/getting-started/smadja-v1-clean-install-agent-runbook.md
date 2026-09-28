@@ -126,7 +126,7 @@ On the same trusted LAN-capable workstation:
 ```bash
 export KUBECONFIG=/protected/path/kubeconfig
 export DOPPLER_CLUSTER_TOKEN='<read-only cluster/prd token>'
-./scripts/bootstrap-kubernetes.sh
+bash scripts/bootstrap-kubernetes.sh
 ```
 
 The script performs only the unavoidable bootstrap:
