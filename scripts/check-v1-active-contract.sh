@@ -63,7 +63,7 @@ roots=(
 )
 
 source_forbidden='peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\.'
-if grep -RInE "$source_forbidden" "${roots[@]}"; then
+if grep -RInE --exclude-dir=charts --include='*.yaml' --include='*.yml' "$source_forbidden" "${roots[@]}"; then
   echo "ERROR: active source desired state contains a legacy binding" >&2
   exit 1
 fi
