@@ -5,9 +5,16 @@ image:
   tag: v0.9.0
   pullPolicy: IfNotPresent
 
-args:
+# The chart prepends `defaultArgs` to `args`; override the former so the
+# Talos kubelet hostname (present in its serving certificate) is selected
+# before the node InternalIP.
+defaultArgs:
+  - --cert-dir=/tmp
   - --kubelet-preferred-address-types=Hostname,InternalIP
+  - --kubelet-use-node-status-port
   - --metric-resolution=30s
+
+args: []
 
 resources:
   requests:
