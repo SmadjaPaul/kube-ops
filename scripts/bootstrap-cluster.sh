@@ -14,7 +14,9 @@ done
 kubectl cluster-info >/dev/null
 
 echo "== Gateway API v1.6.1 =="
-kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
+# FIRST_GREEN uses TCPRoute resources; the experimental bundle includes the
+# v1alpha2 TCP/UDP route CRDs in addition to the standard Gateway API set.
+kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/experimental-install.yaml
 kubectl wait --for=condition=Established crd/gatewayclasses.gateway.networking.k8s.io --timeout=120s
 kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.io --timeout=120s
 
@@ -63,7 +65,12 @@ kubectl apply --server-side --field-manager=kube-ops-bootstrap   -f k8s/infrastr
 kubectl -n argocd wait --for=condition=Ready externalsecret/argocd-secret --timeout=2m
 
 echo "== Argo root handoff =="
-kubectl apply --server-side --field-manager=kube-ops-bootstrap   -k k8s/bootstrap/argocd-root
+# The root handoff intentionally composes the AppProjects/ApplicationSets from
+# their owning infrastructure/application directories.  Those directories are
+# siblings of bootstrap/argocd-root, so use Kustomize's explicit opt-in for
+# loading trusted repository-local paths outside the entry directory.
+kubectl kustomize --load-restrictor LoadRestrictionsNone k8s/bootstrap/argocd-root |
+  kubectl apply --server-side --field-manager=kube-ops-bootstrap -f -
 
 echo "BOOTSTRAP=PASS"
 echo "Argo CD now owns steady-state reconciliation from SmadjaPaul/kube-ops main."
