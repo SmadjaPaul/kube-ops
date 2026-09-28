@@ -6,7 +6,7 @@ image:
   pullPolicy: IfNotPresent
 
 args:
-  - --kubelet-preferred-address-types=InternalIP,Hostname
+  - --kubelet-preferred-address-types=Hostname,InternalIP
   - --metric-resolution=30s
 
 resources:
