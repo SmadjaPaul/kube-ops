@@ -168,7 +168,7 @@ server:
     # -- authentik server service labels
     labels: {}
     # -- authentik server service type
-    type: LoadBalancer
+    type: ClusterIP
 
 
 worker:
