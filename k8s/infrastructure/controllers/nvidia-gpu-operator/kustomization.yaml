@@ -12,6 +12,8 @@ helmCharts:
     includeCRDs: true
     namespace: gpu-operator
     valuesInline:
+      nfd:
+        enabled: false
       driver:
         nodeSelector:
           feature.node.kubernetes.io/pci-0300_10de.present: "true"

@@ -17,14 +17,11 @@ spec:
         revision: main
         directories:
           - path: k8s/applications/media
-          - path: k8s/applications/media/sabnzbd
-            exclude: true
           - path: k8s/applications/tools
           - path: k8s/applications/ai
           - path: k8s/applications/web
-          - path: k8s/applications/web/babybuddy
-            exclude: true
           - path: k8s/applications/automation
+          - path: k8s/applications/games
   template:
     metadata:
       name: 'apps-{{ path.basename }}'

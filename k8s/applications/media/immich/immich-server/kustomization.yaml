@@ -4,6 +4,9 @@ namespace: immich
 resources:
   - immich-config-external-secret.yaml
   - database.yaml
+  - database-scheduled-backup.yaml
+  - database-objectstore.yaml
+  - database-hetzner-credentials.yaml
   - podmonitor.yaml
   - serviceaccount.yaml
   - service.yaml
