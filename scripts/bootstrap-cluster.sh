@@ -22,7 +22,7 @@ kubectl wait --for=condition=Established crd/httproutes.gateway.networking.k8s.i
 
 # After the root handoff, Argo CD is the sole steady-state owner.  A rerun
 # must not make Helm compete with Argo over Cilium/ESO/cert-manager fields.
-if kubectl -n argocd get applicationset infrastructure >/dev/null 2>&1; then
+if kubectl -n argocd get application root >/dev/null 2>&1; then
   echo "Argo root already present; steady-state ownership belongs to Argo CD."
   echo "BOOTSTRAP=PASS"
   exit 0
