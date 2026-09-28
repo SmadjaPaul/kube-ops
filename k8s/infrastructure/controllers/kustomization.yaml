@@ -13,4 +13,3 @@ resources:
 - metrics-server
 - velero
 - node-feature-discovery
-- nvidia-gpu-operator
