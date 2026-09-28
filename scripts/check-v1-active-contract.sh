@@ -60,14 +60,11 @@ roots=(
   k8s/applications/automation
   k8s/applications/web
   k8s/applications/tools
-  k8s/applications/games
 )
 
-source_forbidden='peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\.'
-if grep -RInE --exclude-dir=charts --include='*.yaml' --include='*.yml' "$source_forbidden" "${roots[@]}"; then
-  echo "ERROR: active source desired state contains a legacy binding" >&2
-  exit 1
-fi
+# Minecraft remains explicitly post-V1 (see AGENTS.md). Its root intentionally
+# renders no resources until a real LAN TCP/UDP exposure contract is defined;
+# it is therefore not part of the active V1 render set.
 
 rendered="$(mktemp)"
 trap 'rm -f "$rendered"' EXIT
@@ -82,6 +79,10 @@ for root in "${roots[@]}"; do
   printf '\n---\n' >>"$rendered"
 done
 
+# A root may deliberately leave a post-V1 component out of its kustomization
+# while retaining its upstream manifests for later activation. Validate what is
+# actually rendered by an active root rather than treating inactive source
+# files as runtime desired state.
 forbidden='peekoff\.com|10\.25\.150\.|172\.20\.20\.103|proxmox-csi-2|bitwarden-backend|truenas|backblaze|BACKBLAZE_|MINIO_|minio\.'
 if grep -Ein "$forbidden" "$rendered"; then
   echo "ERROR: active rendered desired state contains a legacy binding" >&2
