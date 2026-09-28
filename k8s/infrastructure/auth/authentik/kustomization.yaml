@@ -3,13 +3,8 @@ kind: Kustomization
 namespace: auth
 resources:
 - database.yaml
-- database-scheduled-backup.yaml
-- database-objectstore.yaml
-- database-hetzner-credentials.yaml
 - podmonitor.yaml
 - httproute.yaml
-- outpost-externalsecret.yaml
-- referencegrant.yaml
 - extra
 helmCharts:
 - name: authentik

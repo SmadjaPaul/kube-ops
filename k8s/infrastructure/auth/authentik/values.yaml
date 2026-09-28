@@ -39,8 +39,6 @@ global:
     - secretRef:
         name: authentik-core-secrets
     - secretRef:
-        name: authentik-blueprint-secrets
-    - secretRef:
         name: authentik-smtp-credentials
 
   # -- Additional volumeMounts to all deployed Deployments. Does not apply to GeoIP
