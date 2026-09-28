@@ -52,5 +52,6 @@ spec:
           - CreateNamespace=true
           - ApplyOutOfSyncOnly=true
           - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true
           - PruneLast=true
           - RespectIgnoreDifferences=true
