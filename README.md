@@ -1,116 +1,138 @@
-# Over-Engineered GitOps Homelab
+# kube-ops
 
-[![CI](https://github.com/theepicsaxguy/homelab/actions/workflows/image-build.yaml/badge.svg)](https://github.com/theepicsaxguy/homelab/actions/workflows/image-build.yaml) ![License](https://img.shields.io/github/license/theepicsaxguy/homelab)
+Canonical Kubernetes desired state for the Smadja homelab.
 
-After rebuilding my homelab one too many times, I committed to managing it entirely with GitOps. This repository is the result: a blueprint for a resilient, production-inspired Kubernetes cluster.
+## Ownership boundary
 
-I'm sharing it to document my own journey and to help others build a stable, maintainable homelab without repeating my mistakes.
- **[Explore the Documentation](https://homelab.orkestack.com/)** │ **[See the Architecture](https://homelab.orkestack.com/docs/architecture)** │ **[Get Started](https://homelab.orkestack.com/docs/getting-started)**
+`SmadjaPaul/homelab-infra` owns everything required to make the Kubernetes API reachable:
 
-## The Stack
+- Proxmox host/network;
+- Talos VM101 and machine secrets;
+- Proxmox CSI API identity;
+- UniFi and AdGuard;
+- Cloudflare account, DNS and Tunnel configuration;
+- Doppler bootstrap/runtime domains;
+- Hetzner Object Storage;
+- Migadu.
 
- This lab is built on a foundation of powerful, open-source tools that work together to create a fully automated system.
+This repository starts from a reachable Kubernetes API and owns:
 
-| Category           | Tool                                                                                               | Description                                                   |
-| ------------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Hypervisor**     | [Proxmox VE](https://www.proxmox.com/en/proxmox-virtual-environment)                               | Manages the bare‑metal server and virtual machines.           |
-| **OS**             | [Talos Linux](https://www.talos.dev/)                                                              | Minimal, secure, API‑managed operating system for Kubernetes. |
-| **Infrastructure** | [OpenTofu](https://opentofu.org/)                                                                  | Declaratively provisions all infrastructure (IaC).            |
-| **GitOps Engine**  | [Argo CD](https://argo-cd.readthedocs.io/en/stable/)                                               | Deploys and manages every app from this Git repo.             |
-| **Networking**     | [Cilium](https://cilium.io/)                                                                       | eBPF‑based networking, security, and observability.           |
-| **Storage**        | [Longhorn](https://longhorn.io/)                                                                   | Distributed block‑storage for stateful workloads.             |
-| **Secrets**        | [External Secrets](https://external-secrets.io/latest/)                                            | Syncs secrets from Bitwarden into Kubernetes.                 |
-| **Authentication** | [Authentik](https://goauthentik.io/)                                                               | Single Sign‑On (SSO) across all services.                     |
-| **Certificates**   | [cert‑manager](https://cert-manager.io/)                                                           | Automates TLS certificate issuance and renewal.               |
-| **API Gateway**    | [Gateway API](https://gateway-api.sigs.k8s.io/)                                                    | Next‑generation Kubernetes ingress and traffic management.    |
-| **Database**       | [CloudNativePG](https://cloudnative-pg.io/) | Manages highly‑available PostgreSQL clusters with native K8s integration.                 |
-| **CI / Checks**    | [Kubechecks](https://github.com/zapier/kubechecks)                                                 | Validates Argo CD changes before rollout.                     |
-| **Tunnel**         | [Cloudflared](https://github.com/cloudflare/cloudflared)                                           | Creates secure Cloudflare tunnels for private services.       |
+- Cilium and Gateway API;
+- Argo CD;
+- cert-manager and External Secrets;
+- Proxmox CSI Kubernetes controller/StorageClass;
+- CloudNativePG;
+- Authentik;
+- observability/security controllers;
+- applications.
 
----
+There is intentionally **no OpenTofu/Terraform substrate code in this repository**.
 
-## Hardware
+## V1 cluster
 
-| Name   | Device                      | CPU                   | RAM           | Storage           | Purpose         |
-|--------|-----------------------------|-----------------------|---------------|-------------------|-----------------|
-| Host3  | Dell Precision Tower 7810   | 2× Xeon E5-2650 v3    | 78 GB DDR4    | 1x 1TB SSD - 1x 1TB Nvme SSD  | Hypervisor      |
-| NAS    | Supermicro X8DTU            | Xeon E5620            | 16 GB DDR3    | 2x 3TB HDD Mirror   | Shared storage  |
-
----
-
-## Quick Start
-
-1. Make sure you have Proxmox access with your SSH key and install `opentofu`, `talosctl`, `kubectl`, and `argocd`. A little Kubernetes and Git know-how helps.
-2. Clone this repository and follow the steps in the [Quick Start guide](https://homelab.orkestack.com/docs/getting-started).
-
----
-
-## Why This Homelab?
-
-- **Everything as Code:** I describe the entire lab in this repo. That gives me a full audit trail and lets me rebuild from scratch.
-- **Automated from Day One:** Provisioning, deployments, and secrets run on autopilot.
-- **Secure by Default:** Non-root containers, network policies, and single sign-on are baked in from the start.
-- **Real-World Learning:** I'm applying enterprise ideas at home so I can tinker and pick up new skills.
-
-## Who Is This For?
-
-- **The Learner:** Understand how a production-grade Kubernetes stack really works.
-- **The Tinkerer:** Deploy self-hosted apps on a stable base without endless upkeep.
-- **The Pro:** Experiment with enterprise patterns or run a lab that "just works."
-
----
-
-## Folder Structure
-
-```shell
-.
-├── 📂 website                # Documentation site
-├── 📂 k8s                 # Kubernetes manifests
-│   ├── 📂 applications            # Applications
-│   ├── 📂 infrastructure           # Infrastructure components
-├── 📂 images                 # custom containers
-└── 📂 tofu                # Tofu configuration
-    └── 📂 talos       # Talos configuration
+```text
+Proxmox: tatouine
+Talos VM: homeops-01
+VMID: 101
+IP: 10.0.20.60/24
+CPU: 6 vCPU
+RAM: 32 GiB
+OS disk: 100 GiB nvme-vm
+Kubernetes: 1.36.3
+Talos: 1.13.10
+PVC backend: Proxmox CSI -> tank-vm
+GitOps: Argo CD
 ```
 
-More details are in [Architecture](https://homelab.orkestack.com/docs/architecture).
+The cluster is single-node and the control plane is schedulable.
 
----
+## Bootstrap
 
-## Roadmap
+The only imperative bootstrap is the chicken-and-egg path needed before Argo can reconcile itself.
 
-- [ ] Hybrid cloud backups
-- [ ] Node autoscaling
-- [ ] Additional monitoring dashboards
+Prerequisites:
 
----
+- a kubeconfig produced by `homelab-infra`;
+- `kubectl`;
+- `kustomize`;
+- the read-only Doppler `cluster/prd` service token in `DOPPLER_CLUSTER_TOKEN`.
 
-## Limitations
+Run:
 
-These docs describe how my cluster works today. Hardware or configuration changes
-could make some steps outdated. Treat them as a reference to adapt rather than a
-drop‑in manual.
+```bash
+export KUBECONFIG=/protected/path/kubeconfig
+export DOPPLER_CLUSTER_TOKEN='<provided out of band>'
+./scripts/bootstrap-kubernetes.sh
+```
 
----
+The script installs:
 
-## Contributing
+```text
+Gateway API CRDs v1.4.1
+-> Cilium
+-> cert-manager
+-> External Secrets
+-> Doppler ClusterSecretStore
+-> Argo CD
+-> canonical ApplicationSets
+```
 
-You can contribute! I'm currently the sole maintainer and would welcome collaboration on anything from typo fixes to new applications.
+After that point Argo CD owns steady-state mutation. Do not use imperative application applies as an alternate control plane.
 
-1. **Read the Docs:** Start with the [Contributing Guide](.github/CONTRIBUTING.md) to learn the workflow and standards.
-2. **Find an Issue:** Look for items labeled [good first issue](https://github.com/theepicsaxguy/homelab/labels/good%20first%20issue) to get started quickly.
-3. **Suggest an Idea:** Have a feature request? [**Open an issue**](https://github.com/theepicsaxguy/homelab/issues/new?template=feature_request.md) and let's talk about it.
+## External edge
 
-For questions, open an issue or start a discussion. More details are at [homelab.orkestack.com](https://homelab.orkestack.com).
+Cloudflare owns one remotely managed wildcard Tunnel rule:
 
----
+```text
+*.smadja.dev
+    -> cloudflared pod
+    -> cilium-gateway-external.gateway.svc.cluster.local:443
+    -> Gateway/gateway/external
+    -> per-application HTTPRoute
+```
 
-## License
+Adding a normal public application therefore requires an `HTTPRoute` hostname, not a new Cloudflare Tunnel ingress rule or DNS record.
 
-MIT – see [LICENSE](LICENSE) for details.
+The bare apex `smadja.dev` is not covered by the wildcard Tunnel rule.
 
----
+## Storage and backup
 
-## Credits
+Application PVCs use `proxmox-csi` backed by `tank-vm`.
 
-Inspired by [Vehagn's Homelab](https://github.com/vehagn/homelab).
+Offsite durability uses Hetzner Object Storage:
+
+- CNPG: continuous WAL + weekly base backup, 14-day recovery window;
+- Velero/Kopia: filesystem/Kubernetes-resource backup, 14-day TTL.
+
+Do not introduce TrueNAS, NFS, MinIO or Backblaze merely to preserve the upstream repository shape.
+
+## Secrets
+
+Kubernetes consumes one read-only `ClusterSecretStore/doppler-cluster`.
+
+Doppler remains external/bootstrap/recovery authority. Secret values never belong in Git, logs, plans or agent output.
+
+OpenBao is a narrow exception used only as the Transit cipher backend for Omnigent's encrypted Credential Store.
+
+## Scaling
+
+KEDA + its HTTP add-on are installed. Pocket-TTS is the first scale-to-zero workload. Expand scale-to-zero only after measuring cold-start behavior.
+
+## Validation
+
+```bash
+npm run check:v1-contract
+npm run check:post-v1-staged
+```
+
+The active gate renders all reconciled roots, rejects legacy upstream/storage bindings, checks the Doppler secret contract, and forbids direct application `LoadBalancer`/`NodePort` Services.
+
+The staged gate renders capacity- or bootstrap-gated applications without activating them.
+
+## Related repository
+
+External infrastructure and the destructive cluster replacement procedure live in:
+
+```text
+https://github.com/SmadjaPaul/homelab-infra
+```
