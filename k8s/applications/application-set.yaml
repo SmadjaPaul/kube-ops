@@ -24,6 +24,8 @@ spec:
           - path: k8s/applications/web
           - path: k8s/applications/web/babybuddy
             exclude: true
+          - path: k8s/applications/web/jmap-webmail
+            exclude: true
           - path: k8s/applications/automation
   template:
     metadata:
