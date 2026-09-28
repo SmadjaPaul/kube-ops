@@ -1,15 +1,11 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  labels:
-    app: cloudflared
   name: cloudflared
   namespace: cloudflared
+  labels:
+    app: cloudflared
 spec:
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
   selector:
     matchLabels:
       app: cloudflared
@@ -18,75 +14,59 @@ spec:
       labels:
         app: cloudflared
     spec:
-      securityContext:
-        runAsNonRoot: true
       hostNetwork: false
       hostPID: false
       hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2026.6.0 # renovate: docker=cloudflare/cloudflared
+          image: cloudflare/cloudflared:2026.6.0
           imagePullPolicy: IfNotPresent
           args:
             - tunnel
-            - --config
-            - /etc/cloudflared/config/config.yaml
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
             - run
+            - --token
+            - $(TUNNEL_TOKEN)
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tunnel-token
+                  key: TUNNEL_TOKEN
+          ports:
+            - name: metrics
+              containerPort: 2000
           securityContext:
             allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
             runAsNonRoot: true
             runAsUser: 1000
             readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
             seccompProfile:
               type: RuntimeDefault
-          startupProbe:
-            httpGet:
-              path: /ready
-              port: 2000
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 12
-          livenessProbe:
-            httpGet:
-              path: /ready
-              port: 2000
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: 2000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            failureThreshold: 1
           resources:
             requests:
-              cpu: 50m
+              cpu: 25m
               memory: 64Mi
             limits:
-              cpu: 100m
               memory: 128Mi
-          volumeMounts:
-            - name: config
-              mountPath: /etc/cloudflared/config/config.yaml
-              subPath: config.yaml
-            - name: credentials
-              mountPath: /etc/cloudflared/credentials
-              readOnly: true
-      tolerations:
-        - key: "gpu"
-          operator: "Equal"
-          value: "true"
-          effect: "NoSchedule"
+          startupProbe:
+            httpGet: {path: /ready, port: metrics}
+            periodSeconds: 10
+            failureThreshold: 12
+          readinessProbe:
+            httpGet: {path: /ready, port: metrics}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /ready, port: metrics}
+            periodSeconds: 30
       restartPolicy: Always
-      volumes:
-        - name: config
-          configMap:
-            name: config
-        - name: credentials
-          secret:
-            secretName: tunnel-credentials

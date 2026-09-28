@@ -165,7 +165,7 @@ app-template:
                 "enabled": true,
                 "basePath": "/openclaw",
                 "dangerouslyDisableDeviceAuth": true,
-                "allowedOrigins": ["https://openclaw.peekoff.com"]
+                "allowedOrigins": ["https://openclaw.smadja.dev"]
               },
               "auth": {
                 "mode": "token",
@@ -181,7 +181,7 @@ app-template:
       type: persistentVolumeClaim
       size: 5Gi
       accessMode: ReadWriteOnce
-      storageClass: proxmox-csi-2
+      storageClass: proxmox-csi
       retain: true
 
   defaultPodOptions:

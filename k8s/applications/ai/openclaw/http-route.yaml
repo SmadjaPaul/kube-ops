@@ -14,7 +14,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'openclaw.peekoff.com'
+    - 'openclaw.smadja.dev'
   rules:
     - matches:
         - path:

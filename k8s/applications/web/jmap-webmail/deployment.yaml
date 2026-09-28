@@ -46,7 +46,7 @@ spec:
               name: http
           env:
             - name: JMAP_SERVER_URL
-              value: "https://mailadmin.peekoff.com"
+              value: "https://mailadmin.smadja.dev"
             - name: APP_NAME
               value: "JMAP Webmail"
             - name: TZ

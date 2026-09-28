@@ -8,12 +8,8 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - "argocd.peekoff.com"
+    - argocd.smadja.dev
   rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
+    - backendRefs:
         - name: argocd-server
           port: 80

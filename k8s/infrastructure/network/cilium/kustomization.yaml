@@ -1,30 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-resources:
-  - announce.yaml
-  # Deferred until a free Servers-VLAN LB range is proven in UniFi.
-  # - ip-pool.yaml
-
 helmCharts:
   - name: cilium
     repo: https://helm.cilium.io
-    version: 1.19.4
+    version: 1.20.2
     releaseName: cilium
     namespace: kube-system
     includeCRDs: true
     valuesFile: values.yaml
 
-# NOTE:
-#   When Cilium releases 1.18 the issue in applications/automation/mqtt/service.yaml should be resolved.
-#   drops pure-TCP Gateway listeners.  See:
-#   https://github.com/cilium/cilium/issues/38192  (TCP listener missing)
-#   https://github.com/cilium/cilium/issues/34821  (model source empty)
-#   Remove this Service *and* re-add the listener after upgrading to >=1.18.
-
-# patches:
-#   - target:
-#       kind: ConfigMap
-#       name: cilium-config
-#       namespace: kube-system
-#     path: multicast-configmap.yaml
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-20"

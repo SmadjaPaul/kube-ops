@@ -19,7 +19,7 @@ deployment:
     - name: KUBECHECKS_ENABLE_HOOKS_RENDERER
       value: "true"
     - name: KUBECHECKS_WEBHOOK_URL_BASE
-      value: "https://kubechecks.peekoff.com"
+      value: "https://kubechecks.smadja.dev"
     - name: KUBECHECKS_ENSURE_WEBHOOKS
       value: "true"
     # - name: KUBECHECKS_OPENAI_API_TOKEN

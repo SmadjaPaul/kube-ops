@@ -3,8 +3,6 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
-  - cert-peekoff.yaml
+  - cert-smadja.yaml
   - gw-external.yaml
   - gw-internal.yaml
-  # Deferred: admin surfaces use NetBird/private access; upstream TLS passthrough removed.
-  # - gw-tls-passthrough.yaml

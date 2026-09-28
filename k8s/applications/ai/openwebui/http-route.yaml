@@ -10,7 +10,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'chat.peekoff.com'
+    - 'chat.smadja.dev'
   rules:
     - matches:
         - path:

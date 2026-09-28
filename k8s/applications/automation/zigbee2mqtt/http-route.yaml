@@ -10,7 +10,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - "zigbee2mqtt.peekoff.com"
+    - "zigbee2mqtt.smadja.dev"
   rules:
     - matches:
         - path:

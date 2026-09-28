@@ -10,7 +10,7 @@ spec:
     - name: external
       namespace: gateway
   hostnames:
-    - pinepods.peekoff.com
+    - pinepods.smadja.dev
   rules:
     - matches:
         - path:

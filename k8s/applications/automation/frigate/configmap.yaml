@@ -73,7 +73,7 @@ data:
       # WebRTC fallback keeps high-quality stream when MSE times out (e.g. mobile/Safari). Port 8555 exposed via gateway TCPRoute (internal + external).
       webrtc:
         candidates:
-          - frigate.peekoff.com:8555
+          - frigate.smadja.dev:8555
           - stun:8555
       streams:
         vagga:

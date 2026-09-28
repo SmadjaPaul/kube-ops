@@ -10,7 +10,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - 'film.peekoff.com'
+    - 'jellyfin.smadja.dev'
   rules:
     - matches:
         - path:

@@ -54,10 +54,10 @@ spec:
       - port: "80"
         protocol: TCP
   - toFQDNs:
-    - matchName: "truenas.peekoff.com"
+    - matchName: "fsn1.your-objectstorage.com"
     toPorts:
     - ports:
-      - port: "30293"
+      - port: "443"
         protocol: TCP
 ---
 apiVersion: cilium.io/v2
@@ -74,10 +74,10 @@ spec:
   description: "Allow PostgreSQL WAL archiving to RustFS"
   egress:
   - toFQDNs:
-    - matchName: "truenas.peekoff.com"
+    - matchName: "fsn1.your-objectstorage.com"
     toPorts:
     - ports:
-      - port: "30293"
+      - port: "443"
         protocol: TCP
   - toEndpoints:
     - matchLabels:

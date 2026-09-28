@@ -10,7 +10,7 @@ spec:
     - name: external
       namespace: gateway
   hostnames:
-    - "audiobookrequest.peekoff.com"
+    - "audiobookrequest.smadja.dev"
   rules:
     - matches:
         - path:
