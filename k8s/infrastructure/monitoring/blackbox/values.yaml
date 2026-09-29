@@ -38,8 +38,6 @@ config:
 serviceMonitor:
   enabled: true
   defaults:
-    labels:
-      release: kube-prometheus-stack
     interval: 5m
     scrapeTimeout: 15s
     module: http_ui
@@ -89,8 +87,6 @@ serviceMonitor:
 
 prometheusRule:
   enabled: true
-  additionalLabels:
-    release: kube-prometheus-stack
   rules:
     - alert: V1UserReadySyntheticProbeFailed
       expr: probe_success{v1_user_ready="true"} == 0
