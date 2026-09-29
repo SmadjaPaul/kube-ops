@@ -8,6 +8,36 @@ resources:
   - http-route.yaml
   - pdb.yaml
 
+patches:
+  # The upstream chart omits metadata.namespace and Kustomize does not apply
+  # the namespace transformer to Helm-generated resources. Keep the rendered
+  # workload namespaced so Argo can validate and apply the application.
+  - target:
+      version: v1
+      kind: ServiceAccount
+      name: kubechecks
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: kubechecks
+  - target:
+      version: v1
+      kind: Service
+      name: kubechecks
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: kubechecks
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: kubechecks
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: kubechecks
+
 helmCharts:
   - name: kubechecks
     repo: https://zapier.github.io/kubechecks
@@ -15,4 +45,3 @@ helmCharts:
     releaseName: kubechecks
     namespace: kubechecks
     valuesFile: values.yaml
-
