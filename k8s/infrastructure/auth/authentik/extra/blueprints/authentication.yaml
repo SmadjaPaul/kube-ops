@@ -47,10 +47,9 @@ entries:
       pretend_user_exists: true
       case_insensitive_matching: true
       enable_remember_me: false
-      enrollment_flow: !Find [
-        authentik_flows.flow,
-        [slug, default-enrollment-flow]
-      ]
+      # Human enrollment is invitation-only. Invitation links execute the
+      # dedicated enrollment flow directly; do not expose generic signup.
+      enrollment_flow: null
       recovery_flow: !Find [
         authentik_flows.flow,
         [slug, default-recovery-flow]

@@ -71,3 +71,11 @@ entries:
       group: !Find [authentik_core.group, [name, "Open WebUI Users"]]
     attrs:
       order: 1
+
+  - id: openwebui_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf openwebui_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100

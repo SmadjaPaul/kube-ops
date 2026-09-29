@@ -71,3 +71,11 @@ entries:
       group: !Find [authentik_core.group, [name, "Pinepods Users"]]
     attrs:
       order: 1
+
+  - id: pinepods_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf pinepods_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100

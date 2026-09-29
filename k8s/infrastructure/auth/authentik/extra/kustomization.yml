@@ -26,12 +26,12 @@ configMapGenerator:
       - ./blueprints/apps-cloudflare.yaml
       - ./blueprints/apps-pinepods.yaml
       - ./blueprints/groups.yaml
+      - ./blueprints/flows-invitation-operator.yaml
       - ./blueprints/qa-e2e-user.yaml
       - ./blueprints/brands.yaml
       - ./blueprints/authentication.yaml
       - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml
       - ./blueprints/oauth-scopes.yaml
-      - ./blueprints/outposts.yaml
-    # users.yaml is intentionally excluded until ADMIN_*/USER_* identity values
-    # are delivered through ESO; notifications.yaml stays excluded until its
-    # optional Slack webhook exists.
+      - ./blueprints/outposts.yaml    # Human users enroll through short-lived Authentik invitations; no human
+    # password or invitation token is stored in Git/Doppler. notifications.yaml
+    # stays excluded until its optional Slack webhook exists.

@@ -69,3 +69,11 @@ entries:
       group: !Find [authentik_core.group, [name, "Immich Users"]]
     attrs:
       order: 1
+
+  - id: immich_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf immich_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100

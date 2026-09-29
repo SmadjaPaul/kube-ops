@@ -86,3 +86,11 @@ entries:
       group: !Find [authentik_core.group, [name, "Litellm Admins"]]
     attrs:
       order: 2
+
+  - id: litellm_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf litellm_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
