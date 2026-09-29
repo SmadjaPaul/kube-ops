@@ -57,6 +57,9 @@ spec:
         envFrom:
         - secretRef:
             name: litellm-secrets
+        - secretRef:
+            name: litellm-provider-secrets
+            optional: true
         env:
         - name: PGUSER
           valueFrom:
