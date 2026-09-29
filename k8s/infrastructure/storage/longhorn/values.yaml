@@ -1,0 +1,68 @@
+# Longhorn is staged alongside Proxmox CSI until the dedicated Talos data
+# volume is present and a runtime canary has passed. Do not make it the
+# cluster default or migrate existing PVCs in this foundation change.
+#
+# V1 is intentional: Talos provides iscsi-tools + util-linux-tools and the V2
+# SPDK engine would add dedicated CPU/hugepage overhead that is unnecessary on
+# the current single-node cluster.
+service:
+  ui:
+    type: ClusterIP
+
+persistence:
+  createStorageClass: true
+  defaultClass: false
+  defaultClassReplicaCount: 1
+  defaultFsType: ext4
+  reclaimPolicy: Retain
+  volumeBindingMode: Immediate
+  defaultDataLocality: best-effort
+  dataEngine: v1
+
+preUpgradeChecker:
+  # Longhorn documents this hook as unsuitable for Argo CD / GitOps upgrades.
+  jobEnabled: false
+
+csi:
+  kubeletRootDir: /var/lib/kubelet
+  # HA replicas of stateless CSI sidecars add scheduler pressure but no
+  # machine-level availability on a single-node cluster.
+  attacherReplicaCount: 1
+  provisionerReplicaCount: 1
+  resizerReplicaCount: 1
+  snapshotterReplicaCount: 1
+
+defaultSettings:
+  defaultDataPath: /var/mnt/k8s-persistent/longhorn
+  v1DataEngine: true
+  v2DataEngine: false
+  defaultReplicaCount: '{"v1":"1","v2":"1"}'
+  storageOverProvisioningPercentage: 100
+  storageMinimalAvailablePercentage: 10
+  defaultDataLocality: best-effort
+  createDefaultDiskLabeledNodes: false
+  autoSalvage: true
+  autoDeletePodWhenVolumeDetachedUnexpectedly: true
+  # Longhorn defaults V1 instance-manager requests to 12% of allocatable CPU.
+  # The current node carries many mostly-idle services, so reserve 6% for the
+  # V1 data plane initially and validate it with real I/O before further tuning.
+  guaranteedInstanceManagerCPU: '{"v1":"6","v2":"0"}'
+
+longhornManager:
+  priorityClass: system-cluster-critical
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+longhornDriver:
+  priorityClass: system-cluster-critical
+
+metrics:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
