@@ -59,7 +59,14 @@ spec:
             - -c
             - |
               set -- /data/*.zim
-              [ -f "$1" ] && exec kiwix-serve --port=8080 --skipInvalid "$@" || exec kiwix-serve --port=8080 --skipInvalid
+              if [ -f "$1" ]; then
+                exec kiwix-serve --port=8080 --skipInvalid "$@"
+              fi
+              # The data PVC is intentionally reconstructible and may be empty
+              # immediately after a clean rebuild. Keep the HTTP service alive
+              # until a ZIM is provisioned instead of exiting on an empty argv.
+              touch /tmp/empty.zim
+              exec kiwix-serve --port=8080 --skipInvalid /tmp/empty.zim
           ports:
             - containerPort: 8080
               name: http
