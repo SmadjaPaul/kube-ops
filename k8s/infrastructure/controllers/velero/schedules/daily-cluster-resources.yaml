@@ -1,0 +1,24 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-cluster-resources
+  namespace: velero
+  labels:
+    backup-tier: control-plane
+spec:
+  schedule: "0 4 * * *"
+  template:
+    includeClusterResources: true
+    excludedNamespaces:
+      - velero
+    excludedResources:
+      - events
+      - events.events.k8s.io
+      - persistentvolumes
+      - persistentvolumeclaims
+      - volumesnapshots.snapshot.storage.k8s.io
+      - volumesnapshotcontents.snapshot.storage.k8s.io
+    snapshotVolumes: false
+    defaultVolumesToFsBackup: false
+    storageLocation: default
+    ttl: 336h
