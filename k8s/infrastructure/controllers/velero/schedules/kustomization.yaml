@@ -2,28 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  # One offsite tier only: daily Kopia backups, 14-day TTL.
-  # CNPG database volumes are protected independently through Barman/WAL archiving.
-  - daily-home-assistant.yaml
-  - daily-immich.yaml
-  - daily-babybuddy.yaml
-  - daily-jellyfin.yaml
-  - daily-radarr.yaml
-  - daily-sonarr.yaml
-  - daily-prowlarr.yaml
-  - daily-sabnzbd.yaml
-  - daily-audiobookshelf.yaml
-  - daily-audiobookrequest.yaml
-  - daily-jellyseerr.yaml
-  - daily-openwebui.yaml
-  - daily-qdrant.yaml
-  - daily-karakeep.yaml
-  - daily-pinepods.yaml
-  - daily-mqtt.yaml
-  - daily-zigbee2mqtt.yaml
-  - daily-perplexica.yaml
-  - daily-openclaw.yaml
-  - daily-gpt-researcher.yaml
-  - daily-opencode.yaml
-  - daily-pocket-tts.yaml
-  - daily-trilium.yaml
+  # Resource-only disaster-recovery backup. Application data has an explicit
+  # owner: CNPG/Barman for PostgreSQL and VolSync/restic for selected PVCs.
+  - daily-cluster-resources.yaml
