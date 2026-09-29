@@ -5,7 +5,7 @@ auth:
 
 fullnameOverride: immich-redis
 
-primary:
+master:
   persistence:
     enabled: true
     size: 1Gi
