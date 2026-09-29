@@ -1,0 +1,29 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-fast
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+parameters:
+  numberOfReplicas: "1"
+  fsType: ext4
+  dataEngine: v1
+  dataLocality: best-effort
+  diskSelector: fast
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-bulk
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+parameters:
+  numberOfReplicas: "1"
+  fsType: ext4
+  dataEngine: v1
+  dataLocality: best-effort
+  diskSelector: bulk
