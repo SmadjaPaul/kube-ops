@@ -8,7 +8,6 @@ resources:
 - database-scheduled-backup.yaml
 - database-objectstore.yaml
 - database-hetzner-credentials.yaml
-- outpost-externalsecret.yaml
 - referencegrant.yaml
 - extra
 helmCharts:
