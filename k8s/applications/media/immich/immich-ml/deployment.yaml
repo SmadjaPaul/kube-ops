@@ -35,11 +35,6 @@ spec:
               value: immich
             - name: DB_SSL
               value: 'true'
-            - name: DB_URL
-              valueFrom:
-                secretKeyRef:
-                  key: DB_URL
-                  name: immich-db-url
             - name: DB_USERNAME
               value: immich
             - name: IMMICH_CONFIG_FILE
