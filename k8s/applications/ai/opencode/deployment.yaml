@@ -25,61 +25,33 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-        - name: installer
-          image: node:24.16.0
+        - name: kustomize
+          image: ghcr.io/kubernetes-sigs/kustomize/kustomize:v5.7.1
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
-          args:
-            - |
-              set -eu
-
-              SHARED_BIN="/opt/shared-tools/bin"
-
-              if command -v curl >/dev/null 2>&1; then
-                FETCH="curl -fsSL"
-              elif command -v wget >/dev/null 2>&1; then
-                FETCH="wget -q -O -"
-              else
-                echo "[ERROR] curl or wget required but not found"
-                exit 1
-              fi
-
-              mkdir -p "$SHARED_BIN"
-
-              # Kustomize (latest)
-              ARCH="$(uname -m)"
-              case "$ARCH" in
-                x86_64) KUSTOMIZE_ARCH="amd64" ;;
-                aarch64) KUSTOMIZE_ARCH="arm64" ;;
-                *) echo "[ERROR] Unsupported arch: $ARCH"; exit 1 ;;
-              esac
-
-              echo "[installer] Installing kustomize (latest)..."
-              KUSTOMIZE_URL="$($FETCH https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | \
-                grep browser_download_url | grep "linux_${KUSTOMIZE_ARCH}\.tar\.gz" | head -n1 | cut -d '"' -f4)"
-              [ -n "$KUSTOMIZE_URL" ] || { echo "[ERROR] Could not resolve latest kustomize URL"; exit 1; }
-              $FETCH "$KUSTOMIZE_URL" > /tmp/kustomize.tar.gz
-              tar --no-same-owner -xzf /tmp/kustomize.tar.gz -C /tmp
-              cp /tmp/kustomize "$SHARED_BIN/"
-              chmod 755 "$SHARED_BIN/kustomize"
-              echo "[installer] ✓ kustomize $(/opt/shared-tools/bin/kustomize version 2>&1)"
-
-              # Helm (latest via official script)
-              echo "[installer] Installing helm (latest via get-helm-4)..."
-              $FETCH https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 > /tmp/get_helm.sh
-              chmod 700 /tmp/get_helm.sh
-              export PATH="$SHARED_BIN:$PATH"
-              export HELM_INSTALL_DIR="$SHARED_BIN"
-              export USE_SUDO="false"
-              export TAR_OPTIONS="--no-same-owner --no-same-permissions"
-              /tmp/get_helm.sh
-              echo "[installer] ✓ helm $(/opt/shared-tools/bin/helm version --short 2>&1)"
-
-              echo "[installer] ✅ All tools verified and ready!"
+          args: ["cp /app/kustomize /opt/shared-tools/bin/kustomize && chmod 755 /opt/shared-tools/bin/kustomize"]
           securityContext:
-            runAsUser: 0
-            runAsNonRoot: false
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: shared-tools
+              mountPath: /opt/shared-tools
+        - name: helm
+          image: alpine/helm:3.18.6
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args: ["cp /usr/bin/helm /opt/shared-tools/bin/helm && chmod 755 /opt/shared-tools/bin/helm"]
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           volumeMounts:

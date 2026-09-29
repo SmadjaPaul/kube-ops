@@ -1,0 +1,31 @@
+apiVersion: kyverno.io/v2
+kind: PolicyException
+metadata:
+  name: home-assistant-required-host-access
+  namespace: home-assistant
+  annotations:
+    description: "Narrow exception for Home Assistant host networking and required device capabilities."
+spec:
+  match:
+    any:
+      - resources:
+          kinds:
+            - StatefulSet
+          namespaces:
+            - home-assistant
+          names:
+            - home-assistant
+      - resources:
+          kinds:
+            - Pod
+          namespaces:
+            - home-assistant
+          names:
+            - home-assistant-0
+  exceptions:
+    - policyName: nsa-hardening-all-namespaces
+      ruleNames:
+        - require-non-root-containers
+        - require-dropped-capabilities
+        - require-read-only-root-filesystem
+        - disallow-host-namespace-sharing
