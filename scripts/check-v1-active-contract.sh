@@ -61,6 +61,25 @@ grep -q 'path: /var/mnt/k8s-fast' k8s/infrastructure/storage/longhorn/node-homeo
 grep -q 'path: /var/mnt/k8s-bulk' k8s/infrastructure/storage/longhorn/node-homeops.yaml
 grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
 
+# Authentik V1 stays on the current stable series and uses upstream-native
+# authentication flows rather than carrying a parallel passwordless graph.
+grep -q 'version: 2026.8.3' k8s/infrastructure/auth/authentik/kustomization.yaml
+grep -q 'type: ClusterIP' k8s/infrastructure/auth/authentik/values.yaml
+grep -q 'base_url: "https://auth.smadja.dev"' k8s/infrastructure/auth/authentik/values.yaml
+grep -q 'disable_startup_analytics: true' k8s/infrastructure/auth/authentik/values.yaml
+grep -q 'disable_update_check: true' k8s/infrastructure/auth/authentik/values.yaml
+grep -q './blueprints/authentication.yaml' k8s/infrastructure/auth/authentik/extra/kustomization.yml
+grep -q 'domain: authentik-default' k8s/infrastructure/auth/authentik/extra/blueprints/brands.yaml
+grep -q 'branding_default_flow_background: /static/dist/assets/images/flow_background.jpg' k8s/infrastructure/auth/authentik/extra/blueprints/brands.yaml
+if grep -q 'flows-passwordless-authentication.yaml\|flows-default-authentication-passwordless.yaml\|flows-webauthn-setup.yaml' k8s/infrastructure/auth/authentik/extra/kustomization.yml; then
+  echo "ERROR: Authentik must use the upstream-native authentication baseline" >&2
+  exit 1
+fi
+if grep -q 'homelab\.orkestack\.com\|sso\.smadja\.dev' k8s/infrastructure/auth/authentik/extra/blueprints/{brands,outposts}.yaml; then
+  echo "ERROR: Authentik branding/outposts contain stale external bindings" >&2
+  exit 1
+fi
+
 roots=(
   k8s/infrastructure/controllers
   k8s/infrastructure/network

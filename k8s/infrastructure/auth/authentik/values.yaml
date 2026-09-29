@@ -72,6 +72,10 @@ authentik:
   enabled: true
   # -- Log level for server and worker
   log_level: info
+  # Git/Renovate own lifecycle updates; keep the IdP from making unnecessary
+  # outbound version/analytics calls.
+  disable_startup_analytics: true
+  disable_update_check: true
   # -- Secret key used for cookie singing and unique user IDs,
   # don't change this after the first install
   events:
@@ -100,6 +104,9 @@ authentik:
     timeout: 30
     from: "env://AUTHENTIK_EMAIL__FROM"
   outposts:
+    # Native OIDC is preferred. The embedded outpost has no active consumer;
+    # the separate managed Proxy Outpost remains only for Frigate.
+    disable_embedded_outpost: true
     # -- Template used for managed outposts. The following placeholders can be used
     # %(type)s - the type of the outpost
     # %(version)s - version of your authentik install

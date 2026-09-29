@@ -1,51 +1,14 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
 # yamllint disable-file
-# prettier-ignore-start
-# eslint-disable
-# NOTE: Authentik's Kubernetes integration manages outpost workloads and tokens.
-# Application exposure remains Git-owned through Gateway API HTTPRoutes.
 ---
 version: 1
 metadata:
   name: Outposts
 entries:
+  # Native OIDC is the default. Keep a single managed proxy outpost only for
+  # applications that cannot consume OIDC directly.
   - model: authentik_outposts.outpost
-    identifiers:
-      managed: goauthentik.io/outposts/embedded
-    attrs:
-      service_connection:
-        !Find [
-          authentik_outposts.outpostserviceconnection,
-          [name, "Local Kubernetes Cluster"],
-        ]
-      providers: []
-      config:
-        log_level: info
-        authentik_host: https://auth.smadja.dev
-        object_naming_template: ak-outpost-%(name)s
-        kubernetes_disabled_components:
-          - ingress
-          - httproute
-        kubernetes_namespace: auth
-
-  # LDAP Outpost commented out due to validation error - requires at least one LDAP provider
-  # - model: authentik_outposts.outpost
-  #   identifiers:
-  #     name: "LDAP Outpost"
-  #   attrs:
-  #     type: ldap
-  #     service_connection:
-  #       !Find [
-  #         authentik_outposts.outpostserviceconnection,
-  #         [name, "Local Kubernetes Cluster"],
-  #       ]
-  #     providers: [] # This list needs to contain at least one LDAP provider if the outpost is enabled
-  #     config:
-  #       log_level: info
-  #       authentik_host: https://auth.smadja.dev
-  #       kubernetes_namespace: auth
-
-  - model: authentik_outposts.outpost
+    state: present
     identifiers:
       name: "Proxy Outpost"
     attrs:
@@ -60,10 +23,6 @@ entries:
             authentik_core.provider,
             [name, "k8s.smadja.dev/services-frigate"],
           ]
-        - !Find [
-            authentik_core.provider,
-            [name, "k8s.smadja.dev/services-opencode"],
-          ]
       config:
         log_level: info
         authentik_host: https://auth.smadja.dev
@@ -71,7 +30,7 @@ entries:
         kubernetes_namespace: auth
         kubernetes_replicas: 1
         kubernetes_service_type: ClusterIP
-        # Git owns application HTTPRoutes; Authentik only manages the outpost workload.
+        # Gateway API resources are Git-owned in kube-ops.
         kubernetes_disabled_components:
           - ingress
           - httproute

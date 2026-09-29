@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+version: 1
+metadata:
+  name: Authentik - Native authentication baseline
+entries:
+  # Blueprint discovery order is intentionally unspecified. Apply the packaged
+  # upstream objects before overlaying the minimal HOME-specific settings.
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Default - Password change flow
+      required: true
+
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Default - Authentication flow
+      required: true
+
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Default - WebAuthn MFA setup flow
+      required: true
+
+  # Keep Authentik's upstream default authentication flow. Enable native
+  # passkey conditional UI on the Identification stage instead of maintaining a
+  # separate passwordless flow.
+  - model: authentik_stages_identification.identificationstage
+    state: present
+    identifiers:
+      name: default-authentication-identification
+    attrs:
+      user_fields:
+        - email
+        - username
+      passwordless_flow: null
+      webauthn_stage: !Find [
+        authentik_stages_authenticator_validate.authenticatorvalidatestage,
+        [name, default-authentication-mfa-validation]
+      ]
+      sources: []
+      show_matched_user: false
+      show_source_labels: false
+      pretend_user_exists: true
+      case_insensitive_matching: true
+      enable_remember_me: false
+      enrollment_flow: !Find [
+        authentik_flows.flow,
+        [slug, default-enrollment-flow]
+      ]
+      recovery_flow: !Find [
+        authentik_flows.flow,
+        [slug, default-recovery-flow]
+      ]
+
+  - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+    state: present
+    identifiers:
+      name: default-authentication-mfa-validation
+    attrs:
+      not_configured_action: skip
+      device_classes:
+        - webauthn
+        - totp
+        - static
+      last_auth_threshold: "seconds=0"
+      webauthn_user_verification: required
+
+  - model: authentik_stages_authenticator_webauthn.authenticatorwebauthnstage
+    state: present
+    identifiers:
+      name: default-authenticator-webauthn-setup
+    attrs:
+      user_verification: required
+
+  - model: authentik_stages_user_login.userloginstage
+    state: present
+    identifiers:
+      name: default-authentication-login
+    attrs:
+      session_duration: "seconds=0"
+      remember_me_offset: "seconds=0"
+      remember_device: "seconds=0"
+      terminate_other_sessions: false
+
+  # Remove the legacy reference-repo passwordless graph after the upstream
+  # Identification stage no longer references it.
+  - model: authentik_flows.flow
+    state: absent
+    identifiers:
+      slug: passwordless-authentication-flow
+
+  - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+    state: absent
+    identifiers:
+      name: passwordless-webauthn-validation
+
+  - model: authentik_stages_user_login.userloginstage
+    state: absent
+    identifiers:
+      name: passwordless-user-login
+
+  - model: authentik_flows.flow
+    state: absent
+    identifiers:
+      slug: webauthn-device-setup
+
+  - model: authentik_stages_authenticator_webauthn.authenticatorwebauthnstage
+    state: absent
+    identifiers:
+      name: webauthn-setup-stage
