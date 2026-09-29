@@ -1,0 +1,35 @@
+name: E2E Static
+
+on:
+  pull_request:
+    paths:
+      - 'tests/e2e/**'
+      - 'k8s/infrastructure/monitoring/blackbox/**'
+      - 'k8s/infrastructure/auth/authentik/extra/**'
+      - '.github/workflows/e2e-static.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'tests/e2e/**'
+      - 'k8s/infrastructure/monitoring/blackbox/**'
+      - 'k8s/infrastructure/auth/authentik/extra/**'
+      - '.github/workflows/e2e-static.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install pinned Playwright package
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Discover browser tests
+        run: npm run list
