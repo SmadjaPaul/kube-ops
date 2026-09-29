@@ -33,7 +33,8 @@ spec:
   - toEndpoints:
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: immich
-        app.kubernetes.io/name: immich-redis-master
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/instance: immich-redis
     toPorts:
     - ports:
       - port: "6379"
