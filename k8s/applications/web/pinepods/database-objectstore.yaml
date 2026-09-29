@@ -4,7 +4,7 @@ metadata:
   name: pinepods-hetzner-store
   namespace: pinepods
 spec:
-  retentionPolicy: "14d"
+  retentionPolicy: "30d"
   instanceSidecarConfiguration:
     env:
       - name: AWS_DEFAULT_REGION
