@@ -1,16 +1,48 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
 # yamllint disable-file
-# prettier-ignore-start
-# eslint-disable
 ---
 version: 1
 metadata:
   name: Brands
 entries:
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Default - Brand
+      required: true
+
+  # Remove the stale apex-only brand imported from the reference repository.
+  # auth.smadja.dev otherwise falls back to authentik-default and silently
+  # misses the intended title/background.
   - model: authentik_brands.brand
+    state: absent
     identifiers:
       domain: smadja.dev
+
+  # Own the default brand so every pre-authentication flow has one deterministic
+  # presentation and one explicit authentication flow.
+  - model: authentik_brands.brand
+    state: present
+    identifiers:
+      domain: authentik-default
     attrs:
-      branding_title: Peekoff.
-      branding_logo: https://homelab.orkestack.com/img/logo.png
-      branding_favicon: https://homelab.orkestack.com/img/favicon.ico
+      branding_title: smadja.dev
+      branding_logo: /static/dist/assets/icons/icon_left_brand.svg
+      branding_favicon: /static/dist/assets/icons/icon.png
+      branding_default_flow_background: /static/dist/assets/images/flow_background.jpg
+      flow_authentication: !Find [
+        authentik_flows.flow,
+        [slug, default-authentication-flow]
+      ]
+      flow_user_switch: !Find [
+        authentik_flows.flow,
+        [slug, default-authentication-flow]
+      ]
+      flow_invalidation: !Find [
+        authentik_flows.flow,
+        [slug, default-invalidation-flow]
+      ]
+      flow_user_settings: !Find [
+        authentik_flows.flow,
+        [slug, default-user-settings-flow]
+      ]
