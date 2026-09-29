@@ -189,6 +189,7 @@ worker:
   enabled: true
   deploymentAnnotations:
     secret.reloader.stakater.com/reload: "authentik-blueprint-secrets"
+    configmap.reloader.stakater.com/reload: "authentik-blueprints"
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
