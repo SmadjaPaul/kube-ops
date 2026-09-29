@@ -31,6 +31,16 @@ configuration:
     parallelFilesUpload: 2
   backupRepositoryConfigMap: velero-repository-config
   repoMaintenanceJobConfigMap: velero-repo-maintenance-job-config
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      bucket: smadja-dev-homelab-backups
+      prefix: velero
+      default: true
+      config:
+        region: fsn1
+        s3ForcePathStyle: "false"
+        s3Url: https://fsn1.your-objectstorage.com
   repositoryMaintenanceJob:
     repositoryConfigData:
       name: "velero-repo-maintenance"
