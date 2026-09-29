@@ -161,7 +161,7 @@ spec:
                   key: LITELLM_API_KEY
           resources:
             requests:
-              cpu: '250m'
+              cpu: '100m'
               memory: '2Gi'
             limits:
               cpu: '2000m'
