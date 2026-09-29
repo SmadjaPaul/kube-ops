@@ -14,6 +14,8 @@ entries:
       signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
       invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
       client_type: confidential
+      grant_types:
+        - authorization_code
       redirect_uris:
         - url: https://argocd.smadja.dev/api/dex/callback
           matching_mode: strict
