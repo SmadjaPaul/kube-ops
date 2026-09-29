@@ -5,6 +5,10 @@ metadata:
   namespace: litellm
 spec:
   retentionPolicy: "14d"
+  instanceSidecarConfiguration:
+    env:
+      - name: AWS_DEFAULT_REGION
+        value: fsn1
   configuration:
     destinationPath: s3://smadja-dev-homelab-backups/cnpg/litellm
     endpointURL: https://fsn1.your-objectstorage.com
