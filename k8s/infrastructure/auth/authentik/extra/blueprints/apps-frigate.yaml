@@ -60,3 +60,11 @@ entries:
       group: !Find [authentik_core.group, [name, "Frigate Users"]]
     attrs:
       order: 1
+
+  - id: frigate_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf frigate_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
