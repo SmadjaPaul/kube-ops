@@ -80,6 +80,8 @@ spec:
                   key: OAUTH_CLIENT_SECRET
             - name: OAUTH_PROVIDER_NAME
               value: 'authentik'
+            - name: ENABLE_OAUTH
+              value: 'true'
             - name: ENABLE_LOGIN_FORM
               value: 'false'
             - name: ENABLE_SIGNUP
@@ -88,6 +90,8 @@ spec:
               value: 'https://auth.smadja.dev/application/o/openwebui/.well-known/openid-configuration'
             - name: OPENID_REDIRECT_URI
               value: 'https://chat.smadja.dev/oauth/oidc/callback'
+            - name: WEBUI_URL
+              value: 'https://chat.smadja.dev'
             - name: ENABLE_OAUTH_SIGNUP
               value: 'true'
             - name: CORS_ALLOW_ORIGIN
