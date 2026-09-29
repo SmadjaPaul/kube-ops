@@ -1,9 +1,11 @@
-# Install and manage Velero CRDs on a fresh cluster so BackupStorageLocation,
-# Schedule, and Repository resources can be reconciled before any backup
-# destination credentials are supplied.
+# Velero owns Kubernetes API/resource disaster recovery only.
+# PVC bytes are intentionally protected by VolSync/restic, while PostgreSQL
+# is protected by CloudNativePG/Barman. Keeping these roles separate avoids
+# duplicate large-volume backups and makes restore ownership explicit.
 upgradeCRDs: true
-deployNodeAgent: true
+deployNodeAgent: false
 snapshotsEnabled: false
+
 initContainers:
   - name: velero-plugin-for-aws
     image: velero/velero-plugin-for-aws:v1.14.1
@@ -25,12 +27,6 @@ credentials:
   existingSecret: velero-hetzner-credentials
 
 configuration:
-  uploaderType: kopia
-  uploaderConfig:
-    # Keep WAN pressure and local disk contention bounded on the single node.
-    parallelFilesUpload: 2
-  backupRepositoryConfigMap: velero-repository-config
-  repoMaintenanceJobConfigMap: velero-repo-maintenance-job-config
   backupStorageLocation:
     - name: default
       provider: aws
@@ -41,29 +37,6 @@ configuration:
         region: fsn1
         s3ForcePathStyle: "false"
         s3Url: https://fsn1.your-objectstorage.com
-  repositoryMaintenanceJob:
-    repositoryConfigData:
-      name: "velero-repo-maintenance"
-      global:
-        keepLatestMaintenanceJobs: 2
-        podResources:
-          cpuRequest: "100m"
-          cpuLimit: "500m"
-          memoryRequest: "256Mi"
-          memoryLimit: "512Mi"
-        podSecurityContext:
-          runAsNonRoot: true
-          runAsUser: 65534
-          runAsGroup: 65534
-          fsGroup: 65534
-          seccompProfile:
-            type: RuntimeDefault
-        containerSecurityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-              - ALL
-          readOnlyRootFilesystem: true
 
 resources:
   requests:
@@ -72,13 +45,6 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
-
-nodeAgent:
-  tolerations:
-    - key: "gpu"
-      operator: "Equal"
-      value: "true"
-      effect: "NoSchedule"
 
 metrics:
   enabled: true
