@@ -1,0 +1,30 @@
+apiVersion: longhorn.io/v1beta2
+kind: Node
+metadata:
+  name: homeops-01
+  namespace: longhorn-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  allowScheduling: true
+  disks:
+    fast-nvme:
+      allowScheduling: true
+      diskDriver: ""
+      diskType: filesystem
+      evictionRequested: false
+      path: /var/mnt/k8s-fast
+      storageReserved: 0
+      tags:
+        - fast
+        - nvme
+    bulk-hdd:
+      allowScheduling: true
+      diskDriver: ""
+      diskType: filesystem
+      evictionRequested: false
+      path: /var/mnt/k8s-bulk
+      storageReserved: 0
+      tags:
+        - bulk
+        - hdd
