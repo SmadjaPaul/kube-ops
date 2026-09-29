@@ -33,3 +33,6 @@ configMapGenerator:
       - ./blueprints/flows-webauthn-setup.yaml
       - ./blueprints/oauth-scopes.yaml
       - ./blueprints/outposts.yaml
+    # users.yaml is intentionally excluded until ADMIN_*/USER_* identity values
+    # are delivered through ESO; notifications.yaml stays excluded until its
+    # optional Slack webhook exists.
