@@ -29,3 +29,7 @@ spec:
         - require-dropped-capabilities
         - require-read-only-root-filesystem
         - disallow-host-namespace-sharing
+        - autogen-require-non-root-containers
+        - autogen-require-dropped-capabilities
+        - autogen-require-read-only-root-filesystem
+        - autogen-disallow-host-namespace-sharing
