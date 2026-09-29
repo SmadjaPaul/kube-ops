@@ -1,10 +1,10 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: pinepods-db-weekly
+  name: pinepods-db-daily
   namespace: pinepods
 spec:
-  schedule: "0 30 3 * * 0"
+  schedule: "0 30 3 * * *"
   backupOwnerReference: self
   cluster:
     name: pinepods-db
