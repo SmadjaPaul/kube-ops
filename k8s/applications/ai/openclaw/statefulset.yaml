@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/part-of: ai
 spec:
   serviceName: openclaw
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: openclaw

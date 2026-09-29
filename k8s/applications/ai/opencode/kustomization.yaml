@@ -5,7 +5,6 @@ namespace: opencode
 
 resources:
 - namespace.yaml
-- externalsecret.yaml
 - deployment.yaml
 - service.yaml
 - pvc.yaml

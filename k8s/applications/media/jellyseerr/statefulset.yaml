@@ -9,7 +9,7 @@ metadata:
 spec:
   # The serviceName must match the name of the headless Service
   serviceName: "jellyseerr"
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: jellyseerr
