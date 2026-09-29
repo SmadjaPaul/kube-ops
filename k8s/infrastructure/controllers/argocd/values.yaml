@@ -24,6 +24,10 @@ configs:
   params:
     controller.diff.server.side: true
     server.insecure: true
+    # Kustomize's Helm inflator extracts charts into the repo-server working
+    # directory. Serialize manifest generation so concurrent applications do
+    # not untar the same chart into the same destination.
+    reposerver.parallelism.limit: "1"
 
   rbac:
     create: true
