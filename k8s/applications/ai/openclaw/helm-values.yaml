@@ -181,7 +181,7 @@ app-template:
       type: persistentVolumeClaim
       size: 5Gi
       accessMode: ReadWriteOnce
-      storageClass: proxmox-csi
+      storageClass: longhorn-fast
       retain: true
 
   defaultPodOptions:

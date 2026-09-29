@@ -14,7 +14,7 @@ spec:
         name: config
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: proxmox-csi
+        storageClassName: longhorn-fast
         resources:
           requests:
             storage: 5Gi
@@ -22,7 +22,7 @@ spec:
         name: metadata
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: proxmox-csi
+        storageClassName: longhorn-fast
         resources:
           requests:
             storage: 20Gi
@@ -30,7 +30,7 @@ spec:
         name: audiobooks
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: proxmox-csi
+        storageClassName: longhorn-bulk
         resources:
           requests:
             storage: 100Gi
@@ -38,7 +38,7 @@ spec:
         name: podcasts
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: proxmox-csi
+        storageClassName: longhorn-bulk
         resources:
           requests:
             storage: 50Gi

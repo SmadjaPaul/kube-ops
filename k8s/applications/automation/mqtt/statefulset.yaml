@@ -77,7 +77,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: proxmox-csi
+        storageClassName: longhorn-fast
         resources:
           requests:
             storage: 1Gi

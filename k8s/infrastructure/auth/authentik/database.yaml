@@ -17,10 +17,10 @@ spec:
         barmanObjectName: authentik-hetzner-store
   storage:
     size: 40Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   walStorage:
     size: 30Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   resources:
     requests:
       memory: 512Mi

@@ -53,7 +53,7 @@ spec:
         name: config
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: "proxmox-csi"
+        storageClassName: "longhorn-fast"
         resources:
           requests:
             storage: 4Gi
