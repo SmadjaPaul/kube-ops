@@ -12,8 +12,22 @@ test('OPENWEBUI_E2E reaches authenticated main UI without model call', async ({ 
 
   try {
     await page.goto(URLs.openwebui, { waitUntil: 'domcontentloaded' });
+
+    const loginEntry = page
+      .getByRole('button', { name: /sign in|log in|login|single sign-on|sso|openid|oidc/i })
+      .or(page.getByRole('link', { name: /sign in|log in|login|single sign-on|sso|openid|oidc/i }))
+      .first();
+    if (await loginEntry.isVisible().catch(() => false)) await loginEntry.click();
+
+    await page.waitForLoadState('domcontentloaded');
     await maybeAuthenticateAtAuthentik(page);
-    await page.waitForURL((url) => url.hostname === new URL(URLs.openwebui).hostname, { timeout: 30_000 });
+
+    if (new URL(page.url()).hostname === new URL(URLs.authentik).hostname) {
+      await page.waitForURL((url) => url.hostname === new URL(URLs.openwebui).hostname, {
+        timeout: 30_000,
+      });
+    }
+
     await assertNoInfiniteLoading(page);
 
     const mainUi = page.locator('textarea, [contenteditable="true"], nav').first();
