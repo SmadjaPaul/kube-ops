@@ -1,5 +1,5 @@
 fullnameOverride: blackbox-exporter
-releaseLabel: true
+releaseLabel: false
 hostNetwork: false
 
 resources:
@@ -46,42 +46,49 @@ serviceMonitor:
       url: https://auth.smadja.dev
       module: http_ui
       labels:
+        release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
     - name: argocd-ui
       url: https://argocd.smadja.dev
       module: http_ui
       labels:
+        release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
     - name: openwebui-ui
       url: https://chat.smadja.dev
       module: http_ui
       labels:
+        release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
     - name: home-assistant-ui
       url: https://hassio.smadja.dev
       module: http_ui
       labels:
+        release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
     - name: authentik-argocd-discovery
       url: https://auth.smadja.dev/application/o/argocd/.well-known/openid-configuration
       module: http_oidc
       labels:
+        release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
     - name: authentik-openwebui-discovery
       url: https://auth.smadja.dev/application/o/openwebui/.well-known/openid-configuration
       module: http_oidc
       labels:
+        release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
     - name: authentik-home-assistant-discovery
       url: https://auth.smadja.dev/application/o/home-assistant/.well-known/openid-configuration
       module: http_oidc
       labels:
+        release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
 
