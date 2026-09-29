@@ -4,6 +4,8 @@
 # eslint-disable
 ---
 version: 1
+# Intentionally not mounted until a Slack webhook is provisioned through the
+# canonical secret authority. Keeping this file dormant avoids a fake dependency.
 metadata:
   name: Notifications
 entries:
@@ -24,7 +26,7 @@ entries:
       transports:
         - !KeyOf transport
       severity: alert
-      group: !Find [authentik_core.group, [name, "authentik Admins"]]
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
 
   - id: notification_policy_binding_0
     model: authentik_policies.policybinding

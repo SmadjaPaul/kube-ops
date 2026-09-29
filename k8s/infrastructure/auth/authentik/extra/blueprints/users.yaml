@@ -2,6 +2,9 @@
 # yamllint disable-file
 ---
 version: 1
+# Intentionally not mounted by extra/kustomization.yml until ADMIN_*/USER_*
+# identity inputs are delivered declaratively through ESO. Keep the blueprint
+# canonical in the meantime so it cannot reintroduce retired ArgoCD groups.
 metadata:
   name: Users - Smadja V1
 entries:
@@ -24,10 +27,8 @@ entries:
         - !Find [authentik_core.group, [name, "media"]]
         - !Find [authentik_core.group, [name, "data"]]
         - !Find [authentik_core.group, [name, "iot"]]
-        # Compatibility memberships for upstream app-specific policy bindings.
-        - !Find [authentik_core.group, [name, "ArgoCD Admins"]]
+        # Application-specific memberships retained where their policies still use them.
         - !Find [authentik_core.group, [name, "Grafana Admins"]]
-        - !Find [authentik_core.group, [name, "ArgoCD Viewers"]]
         - !Find [authentik_core.group, [name, "Grafana Users"]]
         - !Find [authentik_core.group, [name, "Home Assistant Users"]]
         - !Find [authentik_core.group, [name, "Immich Users"]]

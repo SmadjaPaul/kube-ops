@@ -2,8 +2,8 @@
 # yamllint disable-file
 # prettier-ignore-start
 # eslint-disable
-# NOTE: Using embedded outpost approach - Authentik manages the outpost automatically
-# ExternalSecret for outpost token is managed separately in outpost-externalsecret.yaml
+# NOTE: Authentik's Kubernetes integration manages outpost workloads and tokens.
+# Application exposure remains Git-owned through Gateway API HTTPRoutes.
 ---
 version: 1
 metadata:
@@ -21,15 +21,12 @@ entries:
       providers: []
       config:
         log_level: info
-        authentik_host: https://sso.smadja.dev
+        authentik_host: https://auth.smadja.dev
         object_naming_template: ak-outpost-%(name)s
         kubernetes_disabled_components:
-          - ingress  # Use HTTPRoute instead
+          - ingress
+          - httproute
         kubernetes_namespace: auth
-        kubernetes_httproute_parent_refs:
-          - name: eg-http-public
-            namespace: core-eg
-            sectionName: https
 
   # LDAP Outpost commented out due to validation error - requires at least one LDAP provider
   # - model: authentik_outposts.outpost
@@ -45,7 +42,7 @@ entries:
   #     providers: [] # This list needs to contain at least one LDAP provider if the outpost is enabled
   #     config:
   #       log_level: info
-  #       authentik_host: https://sso.smadja.dev
+  #       authentik_host: https://auth.smadja.dev
   #       kubernetes_namespace: auth
 
   - model: authentik_outposts.outpost
@@ -69,9 +66,12 @@ entries:
           ]
       config:
         log_level: info
-        authentik_host: https://sso.smadja.dev
+        authentik_host: https://auth.smadja.dev
         object_naming_template: ak-outpost-%(name)s
         kubernetes_namespace: auth
         kubernetes_replicas: 1
         kubernetes_service_type: ClusterIP
-        kubernetes_disabled_components: []
+        # Git owns application HTTPRoutes; Authentik only manages the outpost workload.
+        kubernetes_disabled_components:
+          - ingress
+          - httproute
