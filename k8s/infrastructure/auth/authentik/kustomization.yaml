@@ -4,6 +4,7 @@ namespace: auth
 resources:
 - database.yaml
 - database-scheduled-backup.yaml
+- backup-pre-reset-20260929.yaml
 - database-objectstore.yaml
 - database-hetzner-credentials.yaml
 - podmonitor.yaml
