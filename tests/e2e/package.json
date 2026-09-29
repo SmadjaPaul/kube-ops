@@ -1,0 +1,16 @@
+{
+  "name": "homelab-user-ready-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "list": "playwright test --list",
+    "test": "playwright test",
+    "test:authentik": "playwright test authentik.spec.ts",
+    "test:argocd": "playwright test argocd.spec.ts",
+    "test:openwebui": "playwright test openwebui.spec.ts",
+    "test:home-assistant": "playwright test home-assistant.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0"
+  }
+}
