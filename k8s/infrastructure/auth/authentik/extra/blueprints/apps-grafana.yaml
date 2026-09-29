@@ -83,3 +83,11 @@ entries:
       group: !Find [authentik_core.group, [name, "Grafana Admins"]]
     attrs:
       order: 2
+
+  - id: grafana_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf grafana_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
