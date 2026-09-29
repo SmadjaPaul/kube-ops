@@ -62,3 +62,10 @@ entries:
     attrs:
       order: 1
 
+  - id: karakeep-application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf karakeep-application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
