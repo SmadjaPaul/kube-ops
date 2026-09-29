@@ -14,4 +14,4 @@ spec:
   data:
     - secretKey: OPENAI_API_KEY
       remoteRef:
-        key: APP_OPENWEBUI_LITELLM_API_KEY
+        key: APP_LITELLM_MASTER_KEY
