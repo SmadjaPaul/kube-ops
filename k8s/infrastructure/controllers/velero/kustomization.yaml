@@ -6,6 +6,11 @@ resources:
   - namespace.yaml
   - externalsecret.yaml
   - storage-class-mapping.yaml
+  - schedules/
+  - repository-config.yaml
+  - auto-cleanup-jobs-policy.yaml
+  - maintenance-job-config.yaml
+  - backup-smoke-20260929.yaml
   - prometheusrule.yaml
 
 helmCharts:
