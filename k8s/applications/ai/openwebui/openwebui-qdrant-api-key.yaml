@@ -15,4 +15,3 @@ spec:
     - secretKey: QDRANT_API_KEY
       remoteRef:
         key: APP_QDRANT_API_KEY
-        property: QDRANT__SERVICE__API_KEY
