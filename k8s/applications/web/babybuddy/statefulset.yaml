@@ -7,7 +7,7 @@ metadata:
     app: babybuddy
 spec:
   serviceName: "babybuddy"
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: babybuddy
