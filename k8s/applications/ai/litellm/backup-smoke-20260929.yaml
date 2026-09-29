@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: litellm-hetzner-smoke-20260929
+  namespace: litellm
+  labels:
+    backup.smadja.dev/purpose: smoke
+spec:
+  cluster:
+    name: litellm-postgresql-restored
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: litellm-hetzner-store
