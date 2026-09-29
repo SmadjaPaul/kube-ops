@@ -4,7 +4,7 @@ metadata:
   name: immich-hetzner-store
   namespace: immich
 spec:
-  retentionPolicy: "14d"
+  retentionPolicy: "30d"
   instanceSidecarConfiguration:
     env:
       - name: AWS_DEFAULT_REGION
