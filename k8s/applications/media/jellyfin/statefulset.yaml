@@ -33,7 +33,7 @@ spec:
               drop: ['ALL']
           resources:
             requests:
-              cpu: '2000m'
+              cpu: '500m'
               memory: '2Gi'
             limits:
               cpu: '4000m'
