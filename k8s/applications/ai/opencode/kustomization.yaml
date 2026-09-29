@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: opencode
 
 resources:
-- policy-exception.yaml
 - namespace.yaml
 - externalsecret.yaml
 - deployment.yaml

@@ -14,6 +14,7 @@ resources:
   - serviceaccount.yaml
   - svc.yaml
   - statefulset.yaml
+  - policy-exception.yaml
   - external-secret.yaml
   - ha-mcp-externalsecret.yaml
   - ha-mcp-deployment.yaml
