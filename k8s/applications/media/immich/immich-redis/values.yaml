@@ -9,6 +9,7 @@ primary:
   persistence:
     enabled: true
     size: 1Gi
+    storageClass: longhorn-fast
   resources:
     requests:
       cpu: 100m
