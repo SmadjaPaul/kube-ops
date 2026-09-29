@@ -26,6 +26,7 @@ configMapGenerator:
       - ./blueprints/apps-cloudflare.yaml
       - ./blueprints/apps-pinepods.yaml
       - ./blueprints/groups.yaml
+      - ./blueprints/qa-e2e-user.yaml
       - ./blueprints/brands.yaml
       - ./blueprints/authentication.yaml
       - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml
