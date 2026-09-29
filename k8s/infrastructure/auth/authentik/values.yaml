@@ -83,6 +83,13 @@ authentik:
   web:
     # -- Relative path the authentik instance will be available at. Value _must_ contain both a leading and trailing slash.
     path: /
+    # Seed the 2026.8+ Base URL system setting with the canonical public URL.
+    base_url: "https://auth.smadja.dev"
+  listen:
+    # 2026.8 only trusts forwarded headers from configured proxy networks.
+    # Keep the upstream private-network defaults explicit until the live
+    # Gateway-to-authentik peer CIDR is measured and can be narrowed safely.
+    trusted_proxy_cidrs: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fe80::/10,::1/128"
   email:
     host: "env://AUTHENTIK_EMAIL__HOST"
     port: "env://AUTHENTIK_EMAIL__PORT"
@@ -168,7 +175,7 @@ server:
     # -- authentik server service labels
     labels: {}
     # -- authentik server service type
-    type: LoadBalancer
+    type: ClusterIP
 
 
 worker:
