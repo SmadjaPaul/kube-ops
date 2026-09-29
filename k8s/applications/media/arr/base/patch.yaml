@@ -1,8 +1,4 @@
 - op: add
-  path: /spec/template/spec/nodeSelector
-  value:
-    topology.kubernetes.io/zone: host3
-- op: add
   path: /spec/template/spec/securityContext
   value:
     runAsNonRoot: true
