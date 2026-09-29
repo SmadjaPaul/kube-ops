@@ -1,4 +1,7 @@
-upgradeCRDs: false
+# Install and manage Velero CRDs on a fresh cluster so BackupStorageLocation,
+# Schedule, and Repository resources can be reconciled before any backup
+# destination credentials are supplied.
+upgradeCRDs: true
 deployNodeAgent: true
 snapshotsEnabled: false
 initContainers:
