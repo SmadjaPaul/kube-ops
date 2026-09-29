@@ -46,6 +46,14 @@ defaultSettings:
   # V1 data plane initially and validate it with real I/O before further tuning.
   guaranteedInstanceManagerCPU: '{"v1":"6","v2":"0"}'
 
+networkPolicies:
+  # Internal Longhorn policies are disabled because the parent storage
+  # kustomization owns selector labels for immutable workloads. The chart's
+  # generated policies would otherwise receive non-pod ownership labels and
+  # isolate the CSI plugin from the manager. Cluster-wide Cilium policy remains
+  # the network security boundary for this controller namespace.
+  restrictInternalTraffic: false
+
 longhornManager:
   priorityClass: system-cluster-critical
   resources:
