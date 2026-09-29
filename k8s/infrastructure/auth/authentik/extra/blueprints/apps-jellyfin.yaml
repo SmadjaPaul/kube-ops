@@ -82,3 +82,11 @@ entries:
       group: !Find [authentik_core.group, [name, "Jellyfin Admins"]]
     attrs:
       order: 2
+
+  - id: jellyfin_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf jellyfin_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
