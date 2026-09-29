@@ -20,10 +20,10 @@ spec:
         barmanObjectName: immich-hetzner-store
   storage:
     size: 15Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   walStorage:
     size: 20Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   resources:
     requests:
       memory: 512Mi

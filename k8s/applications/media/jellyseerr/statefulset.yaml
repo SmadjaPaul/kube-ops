@@ -88,7 +88,7 @@ spec:
     spec:
       accessModes:
       - ReadWriteOnce
-      storageClassName: proxmox-csi
+      storageClassName: longhorn-fast
       resources:
         requests:
           storage: 5Gi

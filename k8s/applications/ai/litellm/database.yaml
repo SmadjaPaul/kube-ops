@@ -17,10 +17,10 @@ spec:
         barmanObjectName: litellm-hetzner-store
   storage:
     size: 10Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   walStorage:
     size: 10Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
     resizeInUseVolumes: true
   resources:
     requests:

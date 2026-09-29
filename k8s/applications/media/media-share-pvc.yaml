@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-bulk
   resources:
     requests:
       storage: 2Ti
