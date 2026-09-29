@@ -44,6 +44,15 @@ grep -q 'version: 0.5.12' k8s/infrastructure/storage/proxmox-csi/kustomization.y
 grep -q 'volumeBindingMode: WaitForFirstConsumer' k8s/infrastructure/storage/proxmox-csi/values.yaml
 grep -q 'PROXMOX_CSI_TOKEN_ID' k8s/infrastructure/storage/proxmox-csi/externalsecret.yaml
 grep -q 'PROXMOX_CSI_TOKEN_SECRET' k8s/infrastructure/storage/proxmox-csi/externalsecret.yaml
+
+# Longhorn is introduced as a staged V1 storage backend while Proxmox CSI
+# remains available for existing PVCs. It must not become the default until the
+# dedicated Talos data volume and runtime storage canary are proven.
+grep -q 'version: 1.12.1' k8s/infrastructure/storage/longhorn/kustomization.yaml
+grep -q 'defaultClass: false' k8s/infrastructure/storage/longhorn/values.yaml
+grep -q 'defaultClassReplicaCount: 1' k8s/infrastructure/storage/longhorn/values.yaml
+grep -q 'defaultDataPath: /var/mnt/k8s-persistent/longhorn' k8s/infrastructure/storage/longhorn/values.yaml
+grep -q 'v2DataEngine: false' k8s/infrastructure/storage/longhorn/values.yaml
 grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
 
 roots=(
