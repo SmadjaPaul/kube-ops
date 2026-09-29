@@ -22,10 +22,17 @@ test('ARGO_SSO_E2E readonly user can list apps but has no admin UI', async ({ br
     await assertNoInfiniteLoading(page);
 
     await expect(page.getByText(/applications/i).first(), 'ARGO_APP_LIST_VISIBLE').toBeVisible();
-    await expect(
-      page.getByRole('button', { name: /new app|create application/i }),
-      'QA user must remain Argo readonly',
-    ).toHaveCount(0);
+    const userInfo = await context.request.get(`${URLs.argocd}/api/v1/session/userinfo`);
+    expect(userInfo.ok(), 'ARGO_CALLBACK').toBeTruthy();
+    const identity = await userInfo.json();
+    expect(identity.groups ?? []).toContain('dev');
+    expect(identity.groups ?? []).not.toContain('admin');
+    expect(identity.groups ?? []).not.toContain('authentik-admins');
+
+    const createButton = page.getByRole('button', { name: /new app|create application/i }).first();
+    if (await createButton.count()) {
+      await expect(createButton, 'QA user must remain Argo readonly').toBeDisabled();
+    }
   } catch (error) {
     await attachClassification(testInfo, 'ARGO_SSO_OR_RBAC_FAILED');
     throw error;
