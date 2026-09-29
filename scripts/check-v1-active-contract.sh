@@ -50,9 +50,15 @@ grep -q 'PROXMOX_CSI_TOKEN_SECRET' k8s/infrastructure/storage/proxmox-csi/extern
 # dedicated Talos data volume and runtime storage canary are proven.
 grep -q 'version: 1.12.1' k8s/infrastructure/storage/longhorn/kustomization.yaml
 grep -q 'defaultClass: false' k8s/infrastructure/storage/longhorn/values.yaml
-grep -q 'defaultClassReplicaCount: 1' k8s/infrastructure/storage/longhorn/values.yaml
-grep -q 'defaultDataPath: /var/mnt/k8s-persistent/longhorn' k8s/infrastructure/storage/longhorn/values.yaml
+grep -q 'createStorageClass: false' k8s/infrastructure/storage/longhorn/values.yaml
+grep -q 'defaultDataPath: /var/mnt/k8s-fast/longhorn' k8s/infrastructure/storage/longhorn/values.yaml
 grep -q 'v2DataEngine: false' k8s/infrastructure/storage/longhorn/values.yaml
+grep -q 'name: longhorn-fast' k8s/infrastructure/storage/longhorn/storageclasses.yaml
+grep -q 'diskSelector: fast' k8s/infrastructure/storage/longhorn/storageclasses.yaml
+grep -q 'name: longhorn-bulk' k8s/infrastructure/storage/longhorn/storageclasses.yaml
+grep -q 'diskSelector: bulk' k8s/infrastructure/storage/longhorn/storageclasses.yaml
+grep -q 'path: /var/mnt/k8s-fast' k8s/infrastructure/storage/longhorn/node-homeops.yaml
+grep -q 'path: /var/mnt/k8s-bulk' k8s/infrastructure/storage/longhorn/node-homeops.yaml
 grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
 
 roots=(
