@@ -1,0 +1,158 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+version: 1
+metadata:
+  name: Enrollment - Operator invitation
+entries:
+  # Git owns the reusable enrollment flow. Invitation objects/tokens are
+  # intentionally runtime-only: create short-lived, single-use invitations in
+  # authentik and send them through the configured SMTP transport.
+  - id: operator-invitation-flow
+    model: authentik_flows.flow
+    identifiers:
+      slug: operator-invitation-enrollment
+    attrs:
+      name: Operator invitation enrollment
+      title: Operator invitation
+      designation: enrollment
+      authentication: require_unauthenticated
+
+  - id: operator-invitation-stage
+    model: authentik_stages_invitation.invitationstage
+    identifiers:
+      name: operator-invitation-stage
+    attrs:
+      continue_flow_without_invitation: false
+
+  - id: operator-invitation-field-username
+    model: authentik_stages_prompt.prompt
+    identifiers:
+      name: operator-invitation-field-username
+    attrs:
+      field_key: username
+      label: Username
+      type: username
+      required: true
+      placeholder: Username
+      placeholder_expression: false
+      order: 0
+
+  - id: operator-invitation-field-password
+    model: authentik_stages_prompt.prompt
+    identifiers:
+      name: operator-invitation-field-password
+    attrs:
+      field_key: password
+      label: Password
+      type: password
+      required: true
+      placeholder: Password
+      placeholder_expression: false
+      order: 1
+
+  - id: operator-invitation-field-password-repeat
+    model: authentik_stages_prompt.prompt
+    identifiers:
+      name: operator-invitation-field-password-repeat
+    attrs:
+      field_key: password_repeat
+      label: Password (repeat)
+      type: password
+      required: true
+      placeholder: Password (repeat)
+      placeholder_expression: false
+      order: 2
+
+  - id: operator-invitation-field-name
+    model: authentik_stages_prompt.prompt
+    identifiers:
+      name: operator-invitation-field-name
+    attrs:
+      field_key: name
+      label: Name
+      type: text
+      required: true
+      placeholder: Name
+      placeholder_expression: false
+      order: 0
+
+  - id: operator-invitation-field-email
+    model: authentik_stages_prompt.prompt
+    identifiers:
+      name: operator-invitation-field-email
+    attrs:
+      field_key: email
+      label: Email
+      type: email
+      required: true
+      placeholder: Email
+      placeholder_expression: false
+      order: 1
+
+  - id: operator-invitation-prompt-credentials
+    model: authentik_stages_prompt.promptstage
+    identifiers:
+      name: operator-invitation-prompt-credentials
+    attrs:
+      fields:
+        - !KeyOf operator-invitation-field-username
+        - !KeyOf operator-invitation-field-password
+        - !KeyOf operator-invitation-field-password-repeat
+
+  - id: operator-invitation-prompt-details
+    model: authentik_stages_prompt.promptstage
+    identifiers:
+      name: operator-invitation-prompt-details
+    attrs:
+      fields:
+        - !KeyOf operator-invitation-field-name
+        - !KeyOf operator-invitation-field-email
+
+  - id: operator-invitation-user-write
+    model: authentik_stages_user_write.userwritestage
+    identifiers:
+      name: operator-invitation-user-write
+    attrs:
+      user_creation_mode: always_create
+      user_type: internal
+      user_path_template: users/internal/operators
+      create_users_group: !Find [authentik_core.group, [name, "authentik-admins"]]
+
+  - id: operator-invitation-user-login
+    model: authentik_stages_user_login.userloginstage
+    identifiers:
+      name: operator-invitation-user-login
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf operator-invitation-flow
+      stage: !KeyOf operator-invitation-stage
+      order: 5
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: true
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf operator-invitation-flow
+      stage: !KeyOf operator-invitation-prompt-credentials
+      order: 10
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf operator-invitation-flow
+      stage: !KeyOf operator-invitation-prompt-details
+      order: 15
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf operator-invitation-flow
+      stage: !KeyOf operator-invitation-user-write
+      order: 20
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf operator-invitation-flow
+      stage: !KeyOf operator-invitation-user-login
+      order: 100
