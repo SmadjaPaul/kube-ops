@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+version: 1
+metadata:
+  name: QA - E2E User
+entries:
+  - id: e2e-user
+    model: authentik_core.user
+    state: present
+    identifiers:
+      username: e2e-user
+    attrs:
+      username: e2e-user
+      name: E2E User
+      is_active: true
+      password: !Env E2E_USER_PASSWORD
+      groups:
+        - !Find [authentik_core.group, [name, "family"]]
+        - !Find [authentik_core.group, [name, "dev"]]
+        - !Find [authentik_core.group, [name, "Home Assistant Users"]]
+        - !Find [authentik_core.group, [name, "Open WebUI Users"]]
