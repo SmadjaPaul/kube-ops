@@ -26,7 +26,7 @@ spec:
             sizeLimit: 1Gi
       containers:
         - name: chrome
-          image: gcr.io/zenika-hub/alpine-chrome:124
+          image: ghcr.io/karakeep-app/karakeep-chrome:release
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -35,15 +35,12 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-          command:
-            - chromium-browser
-            - --headless
-            - --no-sandbox
+          args:
             - --disable-gpu
             - --disable-dev-shm-usage
-            - --remote-debugging-address=0.0.0.0
-            - --remote-debugging-port=9222
             - --hide-scrollbars
+            - --disable-blink-features=AutomationControlled
+            - --window-size=1440,900
           resources:
             requests:
               cpu: '100m'
@@ -67,4 +64,3 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 1
-
