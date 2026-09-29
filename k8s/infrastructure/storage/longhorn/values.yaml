@@ -10,14 +10,11 @@ service:
     type: ClusterIP
 
 persistence:
-  createStorageClass: true
+  # Do not create the upstream generic "longhorn" class.  The cluster exposes
+  # explicit fast/bulk classes so workloads cannot silently land on the wrong
+  # physical tier.
+  createStorageClass: false
   defaultClass: false
-  defaultClassReplicaCount: 1
-  defaultFsType: ext4
-  reclaimPolicy: Retain
-  volumeBindingMode: Immediate
-  defaultDataLocality: best-effort
-  dataEngine: v1
 
 preUpgradeChecker:
   # Longhorn documents this hook as unsuitable for Argo CD / GitOps upgrades.
@@ -33,16 +30,17 @@ csi:
   snapshotterReplicaCount: 1
 
 defaultSettings:
-  defaultDataPath: /var/mnt/k8s-persistent/longhorn
+  defaultDataPath: /var/mnt/k8s-fast/longhorn
   v1DataEngine: true
   v2DataEngine: false
   defaultReplicaCount: '{"v1":"1","v2":"1"}'
   storageOverProvisioningPercentage: 100
   storageMinimalAvailablePercentage: 10
   defaultDataLocality: best-effort
-  createDefaultDiskLabeledNodes: false
+  createDefaultDiskLabeledNodes: true
   autoSalvage: true
   autoDeletePodWhenVolumeDetachedUnexpectedly: true
+  allowVolumeCreationWithDegradedAvailability: false
   # Longhorn defaults V1 instance-manager requests to 12% of allocatable CPU.
   # The current node carries many mostly-idle services, so reserve 6% for the
   # V1 data plane initially and validate it with real I/O before further tuning.
