@@ -21,7 +21,8 @@ serviceAccount:
     create: true
 
 credentials:
-  useSecret: false
+  useSecret: true
+  existingSecret: velero-hetzner-credentials
 
 configuration:
   uploaderType: kopia
