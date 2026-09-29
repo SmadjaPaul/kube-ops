@@ -1,0 +1,102 @@
+fullnameOverride: blackbox-exporter
+releaseLabel: true
+hostNetwork: false
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+config:
+  modules:
+    http_ui:
+      prober: http
+      timeout: 10s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        valid_status_codes: [200, 301, 302, 303, 307, 308]
+        method: GET
+        follow_redirects: true
+        preferred_ip_protocol: ip4
+        tls_config:
+          insecure_skip_verify: false
+    http_oidc:
+      prober: http
+      timeout: 10s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        valid_status_codes: [200]
+        method: GET
+        follow_redirects: false
+        preferred_ip_protocol: ip4
+        tls_config:
+          insecure_skip_verify: false
+
+serviceMonitor:
+  enabled: true
+  defaults:
+    labels:
+      release: kube-prometheus-stack
+    interval: 5m
+    scrapeTimeout: 15s
+    module: http_ui
+  targets:
+    - name: authentik-ui
+      url: https://auth.smadja.dev
+      module: http_ui
+      labels:
+        qa_level: l2
+        v1_user_ready: "true"
+    - name: argocd-ui
+      url: https://argocd.smadja.dev
+      module: http_ui
+      labels:
+        qa_level: l2
+        v1_user_ready: "true"
+    - name: openwebui-ui
+      url: https://chat.smadja.dev
+      module: http_ui
+      labels:
+        qa_level: l2
+        v1_user_ready: "true"
+    - name: home-assistant-ui
+      url: https://hassio.smadja.dev
+      module: http_ui
+      labels:
+        qa_level: l2
+        v1_user_ready: "true"
+    - name: authentik-argocd-discovery
+      url: https://auth.smadja.dev/application/o/argocd/.well-known/openid-configuration
+      module: http_oidc
+      labels:
+        qa_level: l2
+        v1_user_ready: "true"
+    - name: authentik-openwebui-discovery
+      url: https://auth.smadja.dev/application/o/openwebui/.well-known/openid-configuration
+      module: http_oidc
+      labels:
+        qa_level: l2
+        v1_user_ready: "true"
+    - name: authentik-home-assistant-discovery
+      url: https://auth.smadja.dev/application/o/home-assistant/.well-known/openid-configuration
+      module: http_oidc
+      labels:
+        qa_level: l2
+        v1_user_ready: "true"
+
+prometheusRule:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack
+  rules:
+    - alert: V1UserReadySyntheticProbeFailed
+      expr: probe_success{v1_user_ready="true"} == 0
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "V1 user-ready synthetic probe is failing"
+        description: "Blackbox target {{ $labels.instance }} has failed for 10 minutes."
