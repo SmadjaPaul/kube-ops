@@ -53,11 +53,13 @@ spec:
                 secretKeyRef:
                   name: gpt-researcher-secrets
                   key: TAVILY_API_KEY
+                  optional: true
             - name: LANGCHAIN_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: gpt-researcher-secrets
                   key: LANGCHAIN_API_KEY
+                  optional: true
             - name: LOGGING_LEVEL
               value: 'INFO'
             # Environment variables take precedence over config.json for FastAPI requests
