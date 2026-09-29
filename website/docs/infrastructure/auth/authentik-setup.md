@@ -1,286 +1,123 @@
 ---
 sidebar_position: 1
 title: Authentik Setup Guide
-description: Comprehensive guide for Authentik SSO configuration and integration
+description: Canonical Authentik identity and OIDC contract for the homelab
 ---
 
 # Authentik SSO Integration Guide
 
-This guide covers the setup and management of Authentik Single Sign-On (SSO) in my Kubernetes cluster.
+Authentik is the cluster identity provider. The V1 target is Authentik 2026.8.3,
+managed through Git-backed Blueprints and exposed only through Gateway API at
+`https://auth.smadja.dev`.
 
-## Architecture Overview
+## Architecture
 
-Authentik is deployed with two main components:
-
-1. **Authentik Server**
-   - Core authentication service
-   - User management interface
-   - Policy configuration
-   - Accessible at https://sso.your.domain.tld
-
-2. **Proxy Outpost**
-   - Authentication proxy (ports 9000/9443)
-   - Handles SSO for protected applications
-   - Integrated with Cilium Gateway API
-
-## Proxy Architecture
-
-```mermaid
-graph LR
-    A[External User] --> B[Gateway API]
-    B --> C[Authentik Proxy]
-    C --> D[Auth Flow]
-    D --> E[Internal Service]
-    C -.-> F[Authentik Server]
+```text
+Browser
+  -> Cloudflare
+  -> Cloudflare Tunnel
+  -> Cilium Gateway API
+  -> authentik-server ClusterIP
+  -> Authentik
 ```
 
-## Kubernetes API Authentication
+The server Service is intentionally `ClusterIP`; Gateway API is the only
+application entrypoint.
 
-Cluster logins go through Authentik using a dedicated OAuth 2.0 provider:
+Native OIDC is preferred for applications that support it. A managed Authentik
+Proxy Outpost is retained only for applications that cannot consume OIDC
+directly (currently Frigate). Authentik-managed Ingress and HTTPRoute creation
+is disabled so application exposure remains Git-owned.
 
-```yaml
-apiServer:
-  extraArgs:
-    oidc-issuer-url: https://sso.your.domain.tld/application/o/kubectl/
-    oidc-client-id: kubectl
-    oidc-username-claim: preferred_username
-    oidc-groups-claim: groups
+## Authentication flow
+
+V1 reuses Authentik's packaged `default-authentication-flow` and applies only
+small, explicit overlays:
+
+- email or username identification;
+- account-enumeration protection with `pretend_user_exists`;
+- no matched-user disclosure before authentication;
+- native WebAuthn/passkey conditional UI through the default authenticator
+  validation stage;
+- WebAuthn user verification required when a device is used;
+- browser-close login sessions with no remember-device persistence.
+
+The old reference-repository `passwordless-authentication-flow` and its
+parallel WebAuthn setup flow are deliberately removed. Authentik's upstream
+flow remains the authority.
+
+## Brand and login presentation
+
+The canonical Brand is `authentik-default`, which ensures pre-authentication
+flows resolve consistently for `auth.smadja.dev`.
+
+The default flow background uses Authentik's bundled asset:
+
+```text
+/static/dist/assets/images/flow_background.jpg
 ```
 
-Add your users to the **Kubectl Users** group in Authentik to grant access.
+Logo and favicon also use bundled Authentik assets. This avoids an external
+branding dependency on another domain.
 
-## Blueprint Users
+## Reverse proxy contract
 
-Two sample accounts are bootstrapped via Authentik blueprints to show how group membership controls access:
+Authentik 2026.8 trusts forwarded headers only from configured proxy networks.
+The deployment therefore sets `AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS` and
+`AUTHENTIK_WEB__BASE_URL=https://auth.smadja.dev`.
 
-- **admin-user**: belongs to every user group and sits in the ArgoCD and Grafana admin groups.
-- **standard-user**: a regular account added to the same user groups without admin privileges.
+If login pages show mixed-content failures or an endless loading state, first
+verify the direct Gateway-to-Authentik peer address and forwarded
+`Host`/`X-Forwarded-Proto` headers before changing the trust list.
 
-Passwords and emails come from ExternalSecrets entries referenced in `authentik-blueprint-secrets`.
+## Privacy and lifecycle
 
-## Database Backups
+Git/Renovate own Authentik upgrades. The deployment disables Authentik startup
+analytics and the built-in update checker, and keeps error reporting disabled.
 
-The database backups upload to MinIO with credentials managed by an ExternalSecret:
+Database state is stored in CloudNativePG. Backups are sent to the canonical
+Hetzner Object Storage path and are part of the separate backup/restore
+contract.
 
-```yaml
-# k8s/infrastructure/auth/authentik/minio-externalsecret.yaml
-spec:
-  target:
-    name: longhorn-minio-credentials
-```
+## Authorization
 
-## Configuration Guide
+Applications should have explicit group or policy bindings. Authentication
+success alone is not an authorization decision.
 
-### 1. Protecting a New Application
+The canonical platform groups include:
 
-#### Step 1: Authentik Configuration
+- `authentik-admins`: Authentik superuser administration;
+- `admin`: platform administration without implicitly making the user an
+  Authentik superuser;
+- `family`, `dev`, `media`, `data`, `iot`: workload-facing access
+  groups.
 
-1. Access Authentik admin interface (https://sso.your.domain.tld)
-2. Create a new Proxy Provider:
-   ```yaml
-   name: my-application
-   external_host: app.your.domain.tld
-   internal_host: http://my-service.namespace.svc:8080
-   mode: forward_single
-   ```
-3. Create an Application:
-   ```yaml
-   name: My Application
-   slug: my-application
-   provider: my-application-proxy
-   policy_engine_mode: any
-   ```
+Application-specific compatibility groups remain only where an application
+blueprint still consumes them.
 
-#### Step 2: Gateway Configuration
+## Runtime acceptance
 
-Create an HTTPRoute:
+Authentik is not considered V1-ready from pod health alone. Acceptance requires:
 
-```yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: my-application
-  namespace: my-namespace
-spec:
-  parentRefs:
-    - name: external  # or internal based on access needs
-      namespace: gateway
-  hostnames:
-    - "app.your.domain.tld"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: ak-outpost-authentik-embedded-outpost
-          namespace: auth
-          port: 9000
-```
+1. a fresh private-browser login using a normal human password;
+2. completion of the post-login redirect with no infinite loading state;
+3. Argo CD OIDC through Dex and Authentik;
+4. OpenWebUI login and usable main UI;
+5. Home Assistant onboarding/login and the expected MQTT/Zigbee2MQTT path;
+6. authorization matching the user's groups.
 
-### 2. Security Best Practices
+Recovery links are break-glass mechanisms and do not count as a normal human
+login test.
 
-#### Network Policies
+## Troubleshooting
 
-```yaml
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: allow-ak-outpost-authentik-embedded-outpost
-  namespace: my-namespace
-spec:
-  endpointSelector:
-    matchLabels:
-      app: my-service
-  ingress:
-    - fromEndpoints:
-        - matchLabels:
-            app: ak-outpost-authentik-embedded-outpost
-            io.kubernetes.pod.namespace: auth
-```
+For an authentication failure, collect the smallest useful evidence:
 
-#### TLS Configuration
+- the last `/api/v3/flows/executor/default-authentication-flow/` response;
+- whether the authenticated session cookie was created;
+- whether the browser requested the final `next` URL;
+- the active Brand from `/api/v3/core/brands/current/`;
+- server/worker BlueprintInstance errors;
+- proxy scheme/host observations.
 
-- Always use HTTPS for external access
-- Certificates managed by cert-manager
-- Internal communication can use HTTP
-
-## Maintenance Guide
-
-### 1. Regular Tasks
-
-- Monitor Authentik logs for security events
-- Review access policies quarterly
-- Update Authentik version when available
-- Rotate API tokens annually
-
-### 2. Troubleshooting
-
-#### Authentication Issues
-
-1. Check Proxy Status:
-```shell
-kubectl -n auth logs -l app=ak-outpost-authentik-embedded-outpost
-```
-
-2. Verify Network Policies:
-```shell
-kubectl -n auth get ciliumnetworkpolicies
-```
-
-3. Test Authentication Flow:
-```shell
-curl -v "https://app.your.domain.tld"
-# Should redirect to SSO
-```
-
-#### Common Issues
-
-1. **503 Service Unavailable**
-   - Check Proxy deployment status
-   <!-- vale off -->
-   - Verify backend service health
-   <!-- vale on -->
-   - Review network policies
-
-2. **Authentication Loop**
-   - Clear browser cookies
-   - Check Provider configuration
-   - Verify cookie domains
-
-<!-- vale off -->
-3. **Backend Unreachable**
-   - Verify service DNS resolution
-   - Check network policy rules
-   - Validate service ports
-<!-- vale on -->
-
-## Integration Examples
-
-### Basic Web Application
-
-```yaml
-# HTTPRoute for a basic web app
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: webapp
-  namespace: apps
-spec:
-  parentRefs:
-    - name: external
-      namespace: gateway
-  hostnames:
-    - "webapp.your.domain.tld"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: ak-outpost-authentik-embedded-outpost
-          namespace: auth
-          port: 9000
-```
-
-### API Service
-
-```yaml
-# HTTPRoute for an API service
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: api
-  namespace: services
-spec:
-  parentRefs:
-    - name: internal
-      namespace: gateway
-  hostnames:
-    - "api.internal.your.domain.tld"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: ak-outpost-authentik-embedded-outpost
-          namespace: auth
-          port: 9000
-```
-
-## Performance Optimization
-
-1. **Caching Configuration**
-   - Enable Redis caching
-   - Configure appropriate TTLs
-   - Monitor cache hit rates
-
-2. **Resource Allocation**
-   ```yaml
-   resources:
-     requests:
-       cpu: 500m
-       memory: 512Mi
-     limits:
-       cpu: 1000m
-       memory: 1Gi
-   ```
-
-## Monitoring
-
-### Key Metrics
-
-- Authentication success/failure rates
-- Response times
-- Session counts
-- Token validity
-
-### Alert Rules
-
-```yaml
-alerts:
-  - auth_failure_rate > 10%
-  - response_time_95th > 2s
-  - proxy_5xx_rate > 1%
-```
+Never print passwords, cookies, tokens, OIDC client secrets, or recovery links.
