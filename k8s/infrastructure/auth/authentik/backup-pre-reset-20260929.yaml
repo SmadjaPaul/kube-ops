@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: authentik-pre-reset-20260929
+  namespace: auth
+  labels:
+    backup.smadja.dev/purpose: pre-reset
+spec:
+  cluster:
+    name: authentik-postgresql-restored
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: authentik-hetzner-store
