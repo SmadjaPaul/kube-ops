@@ -190,6 +190,11 @@ worker:
   deploymentAnnotations:
     secret.reloader.stakater.com/reload: "authentik-blueprint-secrets"
     configmap.reloader.stakater.com/auto: "true"
+  # Force one desired-state rollout so the already-merged blueprint reload
+  # wiring is applied to the existing worker pod. Subsequent ConfigMap changes
+  # are handled by the Reloader annotation above.
+  podAnnotations:
+    authentik.smadja.dev/blueprint-reconcile: "1"
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
