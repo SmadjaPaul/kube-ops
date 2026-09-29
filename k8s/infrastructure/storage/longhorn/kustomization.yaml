@@ -5,6 +5,8 @@ namespace: longhorn-system
 
 resources:
   - namespace.yaml
+  - node-homeops.yaml
+  - storageclasses.yaml
 
 helmCharts:
   - name: longhorn
