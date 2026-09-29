@@ -1,5 +1,5 @@
 # Kopia Repository Configuration for Velero
-# Optimized for B2 to reduce Class B and Class C transaction usage
+# Conservative settings for the single Hetzner S3 offsite tier.
 apiVersion: v1
 kind: ConfigMap
 metadata:
