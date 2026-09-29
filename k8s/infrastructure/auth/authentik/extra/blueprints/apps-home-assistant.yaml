@@ -123,3 +123,19 @@ entries:
       group: !Find [authentik_core.group, [name, "Home Assistant Users"]]
     attrs:
       order: 1
+
+  - id: homeassistant_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf homeassistant_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+  - id: zigbee2mqtt_application_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf zigbee2mqtt_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
