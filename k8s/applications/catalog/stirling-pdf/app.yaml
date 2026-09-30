@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata: { name: stirling-config, namespace: stirling-pdf }
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-fast
   resources:
     requests: { storage: 2Gi }
 ---

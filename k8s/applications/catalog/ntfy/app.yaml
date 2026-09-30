@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata: { name: ntfy-data, namespace: ntfy }
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-fast
   resources:
     requests: { storage: 1Gi }
 ---

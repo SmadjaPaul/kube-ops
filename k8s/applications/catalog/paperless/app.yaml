@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata: { name: paperless-data, namespace: paperless }
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-fast
   resources: { requests: { storage: 5Gi } }
 ---
 apiVersion: v1
@@ -11,7 +11,7 @@ kind: PersistentVolumeClaim
 metadata: { name: paperless-media, namespace: paperless }
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-fast
   resources: { requests: { storage: 20Gi } }
 ---
 apiVersion: apps/v1

@@ -16,6 +16,6 @@ spec:
         barmanObjectName: vikunja-hetzner-store
   storage:
     size: 5Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   affinity:
     enablePodAntiAffinity: false
