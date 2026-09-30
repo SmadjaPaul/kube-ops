@@ -3,7 +3,7 @@
 ---
 version: 1
 metadata:
-  name: QA - E2E User
+  name: QA - E2E User v2
   labels:
     smad.dev/reconcile: "2026-09-30"
 entries:
