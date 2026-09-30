@@ -15,7 +15,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Architecture',
-      items: ['architecture'],
+      items: ['architecture', 'local-first-network'],
     },
     {
       type: 'category',
