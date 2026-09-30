@@ -41,6 +41,8 @@ entries:
         ]
 
       client_type: confidential
+      grant_types:
+        - authorization_code
       redirect_uris:
         - url: https://grafana.smadja.dev/login/generic_oauth
           matching_mode: strict

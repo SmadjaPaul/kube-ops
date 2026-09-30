@@ -30,12 +30,14 @@ entries:
         ]
 
       client_type: confidential
+      grant_types:
+        - authorization_code
       client_id: !Env IMMICH_CLIENT_ID
       client_secret: !Env IMMICH_CLIENT_SECRET
       redirect_uris:
-        - url: https://photo.smadja.dev/auth/login
+        - url: https://immich.smadja.dev/auth/login
           matching_mode: strict
-        - url: https://photo.smadja.dev/user-settings
+        - url: https://immich.smadja.dev/user-settings
           matching_mode: strict
         - url: app.immich:///oauth-callback
           matching_mode: strict

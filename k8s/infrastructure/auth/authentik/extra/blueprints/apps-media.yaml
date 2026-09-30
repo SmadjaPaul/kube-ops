@@ -423,6 +423,8 @@ entries:
           [slug, "default-provider-invalidation-flow"],
         ]
       client_type: confidential
+      grant_types:
+        - authorization_code
       client_id: !Env AUDIOBOOKSHELF_CLIENT_ID
       client_secret: !Env AUDIOBOOKSHELF_CLIENT_SECRET
       redirect_uris:
