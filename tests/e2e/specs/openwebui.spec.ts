@@ -14,8 +14,14 @@ test('OPENWEBUI_E2E reaches authenticated main UI without model call', async ({ 
     await page.goto(URLs.openwebui, { waitUntil: 'domcontentloaded' });
 
     const loginEntry = page
-      .getByRole('button', { name: /sign in|log in|login|single sign-on|sso|openid|oidc/i })
-      .or(page.getByRole('link', { name: /sign in|log in|login|single sign-on|sso|openid|oidc/i }))
+      .getByRole('button', {
+        name: /sign in|log in|login|single sign-on|sso|openid|oidc|authentik/i,
+      })
+      .or(
+        page.getByRole('link', {
+          name: /sign in|log in|login|single sign-on|sso|openid|oidc|authentik/i,
+        }),
+      )
       .first();
     if (await loginEntry.isVisible().catch(() => false)) await loginEntry.click();
 
@@ -30,7 +36,10 @@ test('OPENWEBUI_E2E reaches authenticated main UI without model call', async ({ 
 
     await assertNoInfiniteLoading(page);
 
-    const mainUi = page.locator('textarea, [contenteditable="true"], nav').first();
+    // Open WebUI v0.9.5 gives the primary composer a stable #chat-input id.
+    // Keep navigation as a fallback for accounts that land on an authenticated
+    // page before the composer is mounted.
+    const mainUi = page.locator('#chat-input, nav').first();
     await expect(mainUi, 'OPENWEBUI_MAIN_UI_VISIBLE').toBeVisible({ timeout: 30_000 });
 
     const sessionResponse = await page.request.get('/api/v1/auths/');
