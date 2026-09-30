@@ -21,6 +21,8 @@ spec:
       server: '*'
     - namespace: 'openclaw-operator-system'
       server: '*'
+    - namespace: 'openclaw'
+      server: '*'
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'

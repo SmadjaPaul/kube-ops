@@ -49,3 +49,17 @@ spec:
           resources:
             requests: { cpu: 50m, memory: 128Mi }
             limits: { cpu: "1", memory: 768Mi }
+          volumeMounts:
+            - { name: files, mountPath: /app/vikunja/files }
+      volumes:
+        - name: files
+          persistentVolumeClaim: { claimName: vikunja-files }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: vikunja-files, namespace: vikunja }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-fast
+  resources:
+    requests: { storage: 2Gi }

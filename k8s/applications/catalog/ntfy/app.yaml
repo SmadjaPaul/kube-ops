@@ -32,9 +32,23 @@ spec:
           command: ["sh","-c"]
           args:
             - >-
+              set -eu;
               export NTFY_AUTH_FILE=/var/lib/ntfy/auth.db;
-              ntfy user add --role=admin admin ||
-              ntfy user change-pass admin
+              ntfy serve --no-upgrade >/tmp/ntfy-serve.log 2>&1 &
+              SERVER_PID=$$!;
+              for i in $$(seq 1 30); do
+                [ -f /var/lib/ntfy/auth.db ] && break;
+                sleep 1;
+              done;
+              if [ ! -f /var/lib/ntfy/auth.db ]; then
+                echo "ntfy auth.db not created after 30s" >&2;
+                cat /tmp/ntfy-serve.log >&2 || true;
+                kill $$SERVER_PID 2>/dev/null || true;
+                exit 1;
+              fi;
+              ntfy user add --role=admin admin || ntfy user change-pass admin;
+              kill $$SERVER_PID 2>/dev/null || true;
+              wait $$SERVER_PID 2>/dev/null || true
           envFrom:
             - secretRef:
                 name: ntfy-runtime
@@ -43,6 +57,7 @@ spec:
             capabilities: { drop: ["ALL"] }
           volumeMounts:
             - { name: data, mountPath: /var/lib/ntfy }
+            - { name: tmp, mountPath: /tmp }
       containers:
         - name: ntfy
           image: binwiederhier/ntfy:v2.28.0
