@@ -3,7 +3,9 @@
 ---
 version: 1
 metadata:
-  name: QA - E2E User Reconcile
+  name: QA - E2E User
+  labels:
+    smad.dev/reconcile: "2026-09-30"
 entries:
   - id: e2e-user
     model: authentik_core.user
