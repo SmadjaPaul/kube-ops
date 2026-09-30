@@ -20,6 +20,7 @@ spec:
           - path: k8s/applications/web
           - path: k8s/applications/automation
           - path: k8s/applications/games
+          - path: k8s/applications/restore
   template:
     metadata:
       name: 'apps-{{ path.basename }}'
