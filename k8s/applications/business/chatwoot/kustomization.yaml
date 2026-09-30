@@ -17,3 +17,45 @@ helmCharts:
     releaseName: chatwoot
     namespace: chatwoot
     valuesFile: values.yaml
+
+# The upstream Chatwoot chart templates do not emit `metadata.namespace`,
+# so the kustomize `namespace:` transformer cannot rewrite them. Apply
+# JSON patches to inject the namespace on the rendered resources.
+patches:
+  - target:
+      group: ""
+      version: v1
+      kind: Service
+      name: chatwoot
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: chatwoot
+  - target:
+      group: ""
+      version: v1
+      kind: Secret
+      name: chatwoot-env
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: chatwoot
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: chatwoot-web
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: chatwoot
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: chatwoot-worker
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: chatwoot
+

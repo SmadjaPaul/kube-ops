@@ -19,7 +19,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: searxng
-          image: searxng/searxng:2026.6.19-93f66bfb4
+          image: searxng/searxng:2026.9.30-a9d990033
           envFrom:
             - secretRef: { name: searxng-runtime }
           ports:
