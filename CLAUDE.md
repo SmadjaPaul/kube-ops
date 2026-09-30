@@ -1,4 +1,4 @@
-Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom images, and Docusaurus documentation.
+Homelab GitOps repository built on Talos Kubernetes with Argo CD, custom images, and Docusaurus documentation. External infrastructure and Talos lifecycle IaC belong to SmadjaPaul/homelab-infra.
 
 <Global_rules>
 - Always use parallel subagents to save context, time and stay on track.
@@ -24,9 +24,10 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 
 <repo_paths>
 - /k8s
-- /tofu
 - /images
 - /website
+- /scripts
+- /tests
 </repo_paths>
 
 <k8s>
@@ -37,22 +38,25 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 - Use CiliumNetworkPolicy v2 with default-deny ingress and egress in every application namespace; never use standard NetworkPolicy resources.
 </k8s_rules>
 <k8s_network>
-- Use Gateway API HTTPRoute for external access via external gateway 10.25.150.222.
-- Use internal gateway for internal-only routes.
+- Use Gateway API HTTPRoute for application routing.
+- Public exposure is Cloudflare Tunnel -> in-cluster cloudflared -> Cilium Gateway -> HTTPRoute.
+- Use internal routes for services that must not be publicly exposed.
 - Use Cilium 1.18+ for TCP Gateway listeners.
-- Use Cloudflare DNS A record pointing to 10.25.150.222 for external routes.
 - Avoid NodePort for external services.
-- Avoid wildcard DNS certificates.
+- Wildcard public DNS/certificates are allowed only through the canonical Cloudflare/cert-manager path.
 </k8s_network>
 <k8s_backup>
-- Use Velero with Kopia filesystem backups for proxmox-csi volumes.
-- Use Velero restore before PV retain recovery; use PV retain recovery when Velero restore fails.
+- Use Velero with Kopia filesystem backups for ordinary Kubernetes PVC state.
+- V1 backup storage is Hetzner Object Storage in fsn1; do not add MinIO or Backblaze B2 targets.
+- Use filesystem backup rather than CSI snapshots for the V1 offsite path.
+- Treat application-level restore verification as required evidence; a completed Backup object alone is insufficient.
 </k8s_backup>
 <k8s_cnpg>
-- Use ObjectStore CRD with barman-cloud plugin only.
-- Store continuous WAL in MinIO with retentionPolicy 14d and weekly base backups in Backblaze B2 with retentionPolicy 30d.
+- Use ObjectStore CRD with the barman-cloud plugin only.
+- Store continuous WAL and scheduled base backups in the canonical Hetzner Object Storage bucket under application-specific cnpg prefixes.
 - Set plugin isWALArchiver true.
 - Use ScheduledBackup method plugin with pluginConfiguration name barman-cloud.cloudnative-pg.io.
+- Do not treat Velero as the PostgreSQL PITR mechanism.
 </k8s_cnpg>
 </k8s>
 
@@ -75,9 +79,9 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 </k8s_automation>
 
 <k8s_media>
-- Use NFS PV with server truenas.peekoff.com path /mnt/media; mount via subPath for app-specific folders.
-- Avoid Longhorn for new media workloads.
-- Avoid Kubernetes backups for large NFS media libraries.
+- Use the V1 Longhorn storage classes for in-cluster media/application PVCs: longhorn-fast for latency-sensitive state and longhorn-bulk for capacity-oriented state.
+- Do not reintroduce TrueNAS/NFS media dependencies into active V1 state.
+- Exclude reproducible caches, downloads, thumbnails, and other Derived data from backup when safe.
 </k8s_media>
 
 <k8s_games>
@@ -98,28 +102,30 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 <controllers>
 - Deploy Cert Manager before External Secrets, CNPG, and Argo CD.
 - Use Argo CD Helm chart version 9.2.3 with ApplicationSet Git generator for discovery.
-- Use Velero defaultVolumesToFsBackup true; avoid CSI snapshots for Proxmox CSI.
+- Use Velero defaultVolumesToFsBackup true for stateful application schedules; avoid CSI snapshots for the V1 offsite backup path.
 </controllers>
 
 <storage>
-- Use StorageClass proxmox-csi on every PVC; reclaimPolicy Retain, cacheMode writethrough, filesystem ext4, mount option noatime.
-- Use Deployment strategy type replace for workloads using proxmox-csi PVCs; proxmox-csi supports RWO (ReadWriteOnce) only, preventing rolling updates.
-- Manage Proxmox CSI permissions with tofu/bootstrap/proxmox-csi-plugin using Proxmox user kubernetes-csi@pve.
+- Proxmox CSI remains available for existing/staged V1 compatibility; Longhorn is the preferred V1 application storage path where manifests already use longhorn-fast or longhorn-bulk.
+- Longhorn uses the dedicated Talos fast and bulk data paths declared in k8s/infrastructure/storage/longhorn.
+- Do not make a storage class default implicitly; application manifests should select the intended class explicitly.
+- Do not add a new NFS, TrueNAS, or in-cluster object-storage dependency as a prerequisite for V1.
 </storage>
 
 <database>
-- Use at least two CNPG instances for HA.
+- Use one CNPG instance per application for the single-node V1 unless the deployment contract is deliberately changed.
 - Avoid shared databases across applications.
+- Protect PostgreSQL with Barman Cloud WAL archiving and tested recovery procedures.
 </database>
 
 <network>
 - Use Cilium kubeProxyReplacement enabled.
 </network>
 
-<tofu>
-- Run tofu fmt and tofu validate before commit; produce tofu plan output for review.
-- Avoid tofu apply without explicit human approval; avoid --auto-approve, manual state file edits, and targeted apply unless explicitly approved.
-</tofu>
+<external_iac>
+- Terraform/OpenTofu files are forbidden in kube-ops.
+- External infrastructure, Proxmox/Talos lifecycle, Cloudflare account resources, Doppler bootstrap, and Hetzner Object Storage belong to SmadjaPaul/homelab-infra.
+</external_iac>
 
 <website>
 - Run npm run typecheck and npm run lint:all before commit.
