@@ -1,0 +1,16 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata: { name: metabase-postgresql, namespace: metabase }
+spec:
+  instances: 1
+  bootstrap:
+    initdb: { database: metabase, owner: metabase }
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters: { barmanObjectName: metabase-hetzner-store }
+  storage:
+    size: 10Gi
+    storageClass: proxmox-csi
+  affinity:
+    enablePodAntiAffinity: false

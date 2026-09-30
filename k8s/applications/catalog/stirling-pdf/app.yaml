@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: stirling-config, namespace: stirling-pdf }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: proxmox-csi
+  resources:
+    requests: { storage: 2Gi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stirling-pdf
+  namespace: stirling-pdf
+spec:
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app.kubernetes.io/name: stirling-pdf }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: stirling-pdf }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: stirling-pdf
+          image: stirlingtools/stirling-pdf:3.0.0
+          env:
+            - { name: SECURITY_ENABLELOGIN, value: "false" }
+          ports:
+            - { name: http, containerPort: 8080 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 100m, memory: 512Mi }
+            limits: { cpu: "2", memory: 2Gi }
+          volumeMounts:
+            - { name: config, mountPath: /configs }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: config
+          persistentVolumeClaim: { claimName: stirling-config }
+        - name: tmp
+          emptyDir: { sizeLimit: 1Gi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: stirling-pdf, namespace: stirling-pdf }
+spec:
+  selector: { app.kubernetes.io/name: stirling-pdf }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: stirling-pdf, namespace: stirling-pdf }
+spec:
+  parentRefs:
+    - { name: internal, namespace: gateway }
+  hostnames: [pdf.smadja.dev]
+  rules:
+    - backendRefs:
+        - { name: stirling-pdf, port: 80 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: stirling-pdf, namespace: stirling-pdf }
+spec:
+  podSelector: { matchLabels: { app.kubernetes.io/name: stirling-pdf } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: gateway }
+      ports:
+        - { protocol: TCP, port: 8080 }

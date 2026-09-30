@@ -20,6 +20,8 @@ spec:
           - path: k8s/applications/web
           - path: k8s/applications/automation
           - path: k8s/applications/games
+          - path: k8s/applications/business
+          - path: k8s/applications/catalog
           - path: k8s/applications/restore
   template:
     metadata:

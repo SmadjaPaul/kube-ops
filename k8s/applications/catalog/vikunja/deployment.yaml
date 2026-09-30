@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vikunja
+  namespace: vikunja
+  annotations:
+    secret.reloader.stakater.com/reload: "vikunja-runtime,vikunja-postgresql-app"
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: vikunja }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: vikunja }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: vikunja
+          image: vikunja/vikunja:2.6.0
+          env:
+            - { name: VIKUNJA_SERVICE_PUBLICURL, value: "https://tasks.smadja.dev" }
+            - { name: VIKUNJA_DATABASE_TYPE, value: "postgres" }
+            - name: VIKUNJA_DATABASE_HOST
+              valueFrom: { secretKeyRef: { name: vikunja-postgresql-app, key: host } }
+            - name: VIKUNJA_DATABASE_DATABASE
+              valueFrom: { secretKeyRef: { name: vikunja-postgresql-app, key: dbname } }
+            - name: VIKUNJA_DATABASE_USER
+              valueFrom: { secretKeyRef: { name: vikunja-postgresql-app, key: user } }
+            - name: VIKUNJA_DATABASE_PASSWORD
+              valueFrom: { secretKeyRef: { name: vikunja-postgresql-app, key: password } }
+            - { name: VIKUNJA_DATABASE_SSLMODE, value: "disable" }
+            - { name: VIKUNJA_AUTH_OPENID_ENABLED, value: "1" }
+            - { name: VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHENTIK_NAME, value: "Authentik" }
+            - { name: VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHENTIK_AUTHURL, value: "https://auth.smadja.dev/application/o/vikunja/" }
+            - { name: VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHENTIK_CLIENTID, value: "vikunja" }
+            - name: VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHENTIK_CLIENTSECRET
+              valueFrom: { secretKeyRef: { name: vikunja-runtime, key: OIDC_CLIENT_SECRET } }
+          ports:
+            - { name: http, containerPort: 3456 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: "1", memory: 768Mi }

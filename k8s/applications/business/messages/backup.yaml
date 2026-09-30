@@ -1,0 +1,48 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: cnpg-hetzner-credentials
+  namespace: messages
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-cluster
+    kind: ClusterSecretStore
+  target:
+    name: cnpg-hetzner-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef: { key: HETZNER_S3_ACCESS_KEY_ID }
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef: { key: HETZNER_S3_SECRET_ACCESS_KEY }
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: messages-hetzner-store
+  namespace: messages
+spec:
+  retentionPolicy: "14d"
+  configuration:
+    destinationPath: s3://smadja-dev-homelab-backups/cnpg/messages
+    endpointURL: https://fsn1.your-objectstorage.com
+    s3Credentials:
+      accessKeyId: { name: cnpg-hetzner-credentials, key: AWS_ACCESS_KEY_ID }
+      secretAccessKey: { name: cnpg-hetzner-credentials, key: AWS_SECRET_ACCESS_KEY }
+    wal: { compression: gzip, maxParallel: 2 }
+    data: { compression: gzip }
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: messages-postgresql-weekly
+  namespace: messages
+spec:
+  schedule: "0 0 6 * * 0"
+  backupOwnerReference: self
+  cluster: { name: messages-postgresql }
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters: { barmanObjectName: messages-hetzner-store }
