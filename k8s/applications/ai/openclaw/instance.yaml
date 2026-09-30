@@ -23,6 +23,7 @@ spec:
     - secretRef:
         name: app-openclaw-slack-app-token
   gateway:
+    existingSecret: app-openclaw-gateway-token
     controlUiOrigins:
       - https://openclaw.smadja.dev
   storage:
