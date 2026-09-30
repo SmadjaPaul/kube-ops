@@ -82,7 +82,8 @@ entries:
         group_names = [group.name for group in request.user.ak_groups.all()]
 
         if "authentik-admins" in group_names:
-            return {"roles": ["admin"]}
+            # Return both roles: Open WebUI's OAUTH_ALLOWED_ROLES=user is currently permissive for admins, but future-proofs against stricter exact-match checks.
+            return {"roles": ["admin", "user"]}
         if "Open WebUI Users" in group_names:
             return {"roles": ["user"]}
 
