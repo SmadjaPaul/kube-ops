@@ -1,0 +1,35 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: romm-postgresql
+  namespace: romm
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7
+  bootstrap:
+    initdb:
+      database: romm
+      owner: romm
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: romm-hetzner-store
+  storage:
+    size: 10Gi
+    storageClass: longhorn-fast
+  walStorage:
+    size: 5Gi
+    storageClass: longhorn-fast
+    resizeInUseVolumes: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  monitoring:
+    enablePodMonitor: false
+  affinity:
+    enablePodAntiAffinity: false

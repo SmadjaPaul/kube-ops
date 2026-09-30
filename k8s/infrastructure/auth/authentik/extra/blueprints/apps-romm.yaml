@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+version: 1
+metadata:
+  name: Apps - RomM
+entries:
+  - id: romm_verified_email
+    model: authentik_providers_oauth2.scopemapping
+    identifiers:
+      name: "OAuth mapping: RomM verified email"
+    attrs:
+      scope_name: email
+      description: RomM requires email_verified=true for Authentik OIDC
+      expression: |
+        return {
+          "email": request.user.email,
+          "email_verified": True,
+        }
+
+  - id: romm_provider
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: k8s.smadja.dev/games/romm
+    attrs:
+      authorization_flow:
+        !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      signing_key:
+        !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      invalidation_flow:
+        !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      client_type: confidential
+      grant_types:
+        - authorization_code
+      client_id: !Env ROMM_CLIENT_ID
+      client_secret: !Env ROMM_CLIENT_SECRET
+      redirect_uris:
+        - url: https://romm.smadja.dev/api/oauth/openid
+          matching_mode: strict
+      access_code_validity: minutes=1
+      access_token_validity: hours=1
+      refresh_token_validity: days=30
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !KeyOf romm_verified_email
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "groups"]]
+
+  - id: romm_application
+    model: authentik_core.application
+    identifiers:
+      slug: romm
+    attrs:
+      name: RomM
+      group: Games
+      meta_description: ROM manager and browser-based games library
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/romm.png
+      provider: !KeyOf romm_provider
+      policy_engine_mode: any
+
+  - id: romm_family_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf romm_application
+      group: !Find [authentik_core.group, [name, "family"]]
+    attrs:
+      order: 10
+
+  - id: romm_media_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf romm_application
+      group: !Find [authentik_core.group, [name, "media"]]
+    attrs:
+      order: 20
+
+  - id: romm_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf romm_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100

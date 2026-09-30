@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: romm
+  namespace: romm
+  labels:
+    app.kubernetes.io/name: romm
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: romm
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

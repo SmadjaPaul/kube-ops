@@ -7,9 +7,9 @@ resources:
 - tools
 - web
 - automation
+- games
 - business
 - catalog
-
 
 generatorOptions:
   disableNameSuffixHash: true

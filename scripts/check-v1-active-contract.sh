@@ -111,11 +111,11 @@ roots=(
   k8s/applications/tools
   k8s/applications/business
   k8s/applications/catalog
+  k8s/applications/games
 )
 
-# Minecraft remains explicitly post-V1 (see AGENTS.md). Its root intentionally
-# renders no resources until a real LAN TCP/UDP exposure contract is defined;
-# it is therefore not part of the active V1 render set.
+# Minecraft remains post-V1, but the games root is now active because RomM is
+# part of the V1 desired state.
 
 rendered="$(mktemp)"
 trap 'rm -f "$rendered"' EXIT

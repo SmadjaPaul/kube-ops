@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-library
+  namespace: romm
+  labels:
+    app.kubernetes.io/name: romm
+    backup.smadja.dev/velero: "true"
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-bulk
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-assets
+  namespace: romm
+  labels:
+    app.kubernetes.io/name: romm
+    backup.smadja.dev/velero: "true"
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-resources
+  namespace: romm
+  labels:
+    app.kubernetes.io/name: romm
+    backup.smadja.dev/velero: "true"
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-bulk
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: romm-redis-data
+  namespace: romm
+  labels:
+    app.kubernetes.io/name: romm
+    backup.smadja.dev/velero: "true"
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 2Gi
