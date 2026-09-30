@@ -109,6 +109,8 @@ roots=(
   k8s/applications/automation
   k8s/applications/web
   k8s/applications/tools
+  k8s/applications/business
+  k8s/applications/catalog
 )
 
 # Minecraft remains explicitly post-V1 (see AGENTS.md). Its root intentionally
