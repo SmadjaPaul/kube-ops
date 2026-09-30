@@ -51,7 +51,7 @@ ingressController:
   enabled: false
 
 l2announcements:
-  enabled: false
+  enabled: true
 
 externalIPs:
   enabled: false
