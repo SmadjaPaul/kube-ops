@@ -84,12 +84,12 @@ spec:
               value: 'true'
             # Open WebUI v0.9.5 treats an empty database as onboarding. Use its
             # upstream headless bootstrap path so no ClickOps/local signup is
-            # required. The random password is machine-owned and password auth
-            # is disabled below; Paul's later OIDC login merges by email.
+            # required. This bootstrap identity is deliberately not a human
+            # identity: real users bind through the stable OIDC subject below.
             - name: WEBUI_ADMIN_EMAIL
-              value: 'paul@smadja.dev'
+              value: 'openwebui-bootstrap@smadja.invalid'
             - name: WEBUI_ADMIN_NAME
-              value: 'Paul'
+              value: 'Open WebUI Bootstrap'
             - name: WEBUI_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -127,8 +127,10 @@ spec:
               value: '600'
             - name: USER_AGENT
               value: 'OpenWebUI/0.6.15'
+            - name: OAUTH_SUB_CLAIM
+              value: 'sub'
             - name: OAUTH_MERGE_ACCOUNTS_BY_EMAIL
-              value: 'true'
+              value: 'false'
             - name: VECTOR_DB
               value: 'qdrant'
             - name: QDRANT_URI
