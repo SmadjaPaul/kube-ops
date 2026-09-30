@@ -24,6 +24,11 @@ This repository MUST NOT contain Terraform/OpenTofu state or providers. A real i
 - CNPG Barman + Velero/Kopia backups target Hetzner Object Storage;
 - Doppler is the external/bootstrap secret authority; ESO is the runtime delivery path;
 - Authentik is the OIDC authority;
+- Authentik's persistent OIDC subject is the durable user identity; email addresses and usernames are profile attributes, not cross-application identity keys;
+- email-based OAuth account merging is forbidden when the application can bind accounts to the OIDC subject;
+- user-facing durable data is classified as Personal, Shared, Derived, or System before onboarding real users;
+- V1 keeps application-owned data stores; do not introduce a universal personal-data filesystem, OpenFGA, or custom data-control operator before dogfood demonstrates the need;
+- stateful end-user applications must have an understood export, deletion, ownership, and application-level restore path before they become durable stores of real user data;
 - Migadu remains SMTP;
 - GPT Researcher, Pocket-TTS and Whisper remain in V1;
 - vLLM, Frigate, Minecraft, security hardening stack and business stack remain post-V1;
