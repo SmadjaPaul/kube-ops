@@ -34,16 +34,21 @@ export async function authenticateAtAuthentik(page: Page) {
   await expect(continueButton, 'LOGIN_FORM_MISSING').toBeVisible();
   await continueButton.click();
 
-  const passwordInput = page.locator('input[type="password"]').first();
+  const passwordStage = page.locator('ak-stage-password');
+  await expect(passwordStage, 'PASSWORD_FORM_MISSING').toBeVisible();
+
+  // Authentik also creates an unlabeled helper password input for password
+  // managers during identification. Scope to the real password stage so the
+  // flow form receives the credential instead of that compatibility helper.
+  const passwordInput = passwordStage.locator('input[name="password"]');
   await expect(passwordInput, 'PASSWORD_FORM_MISSING').toBeVisible();
   await passwordInput.fill(password);
 
-  const submitButton = page.getByRole('button', { name: /continue|log in|sign in|submit|next/i }).first();
+  const submitButton = passwordStage.locator('button[type="submit"]');
   await expect(submitButton, 'PASSWORD_FORM_MISSING').toBeVisible();
   await submitButton.click();
 
-  await page.waitForLoadState('domcontentloaded');
-  await expect(page.locator('input[type="password"]'), 'PASSWORD_REJECTED').toHaveCount(0);
+  await expect(passwordStage, 'PASSWORD_STAGE_NOT_ADVANCED').toHaveCount(0);
 }
 
 export async function maybeAuthenticateAtAuthentik(page: Page) {
