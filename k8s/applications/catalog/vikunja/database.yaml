@@ -1,0 +1,21 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: vikunja-postgresql
+  namespace: vikunja
+spec:
+  instances: 1
+  bootstrap:
+    initdb:
+      database: vikunja
+      owner: vikunja
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: vikunja-hetzner-store
+  storage:
+    size: 5Gi
+    storageClass: longhorn-fast
+  affinity:
+    enablePodAntiAffinity: false

@@ -25,6 +25,8 @@ spec:
       server: '*'
     - namespace: 'paperclip'
       server: '*'
+    - namespace: 'omnigent'
+      server: '*'
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'

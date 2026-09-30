@@ -1,0 +1,72 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata: { name: metabase-runtime, namespace: metabase }
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: doppler-cluster, kind: ClusterSecretStore }
+  target: { name: metabase-runtime, creationPolicy: Owner }
+  data:
+    - secretKey: MB_ENCRYPTION_SECRET_KEY
+      remoteRef: { key: APP_METABASE_ENCRYPTION_SECRET_KEY }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metabase
+  namespace: metabase
+  annotations:
+    secret.reloader.stakater.com/reload: "metabase-runtime,metabase-postgresql-app"
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: metabase }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: metabase }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: metabase
+          image: metabase/metabase:v0.63.18
+          env:
+            - { name: MB_DB_TYPE, value: "postgres" }
+            - name: MB_DB_HOST
+              valueFrom: { secretKeyRef: { name: metabase-postgresql-app, key: host } }
+            - name: MB_DB_PORT
+              valueFrom: { secretKeyRef: { name: metabase-postgresql-app, key: port } }
+            - name: MB_DB_DBNAME
+              valueFrom: { secretKeyRef: { name: metabase-postgresql-app, key: dbname } }
+            - name: MB_DB_USER
+              valueFrom: { secretKeyRef: { name: metabase-postgresql-app, key: user } }
+            - name: MB_DB_PASS
+              valueFrom: { secretKeyRef: { name: metabase-postgresql-app, key: password } }
+            - name: MB_ENCRYPTION_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: metabase-runtime, key: MB_ENCRYPTION_SECRET_KEY } }
+            - { name: MB_SITE_URL, value: "https://metabase.smadja.dev" }
+          ports: [{ name: http, containerPort: 3000 }]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 250m, memory: 768Mi }
+            limits: { cpu: "2", memory: 2Gi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: metabase, namespace: metabase }
+spec:
+  selector: { app.kubernetes.io/name: metabase }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: metabase, namespace: metabase }
+spec:
+  parentRefs: [{ name: internal, namespace: gateway }]
+  hostnames: [metabase.smadja.dev]
+  rules:
+    - backendRefs: [{ name: metabase, port: 80 }]

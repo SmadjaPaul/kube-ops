@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listmonk
+  namespace: listmonk
+  annotations:
+    secret.reloader.stakater.com/reload: "listmonk-runtime,listmonk-postgresql-app"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: listmonk
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: listmonk
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: listmonk
+          image: listmonk/listmonk:v6.2.0
+          command:
+            - sh
+            - -c
+            - >-
+              ./listmonk --install --idempotent --yes --config '' &&
+              ./listmonk --upgrade --yes --config '' &&
+              exec ./listmonk --config ''
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          envFrom:
+            - secretRef:
+                name: listmonk-runtime
+          env:
+            - name: PUID
+              value: "65534"
+            - name: PGID
+              value: "65534"
+            - name: TZ
+              value: Europe/Paris
+            - name: LISTMONK_app__address
+              value: 0.0.0.0:9000
+            - name: LISTMONK_db__host
+              valueFrom:
+                secretKeyRef:
+                  name: listmonk-postgresql-app
+                  key: host
+            - name: LISTMONK_db__port
+              valueFrom:
+                secretKeyRef:
+                  name: listmonk-postgresql-app
+                  key: port
+            - name: LISTMONK_db__user
+              valueFrom:
+                secretKeyRef:
+                  name: listmonk-postgresql-app
+                  key: user
+            - name: LISTMONK_db__password
+              valueFrom:
+                secretKeyRef:
+                  name: listmonk-postgresql-app
+                  key: password
+            - name: LISTMONK_db__database
+              valueFrom:
+                secretKeyRef:
+                  name: listmonk-postgresql-app
+                  key: dbname
+            - name: LISTMONK_db__ssl_mode
+              value: disable
+            - name: LISTMONK_db__max_open
+              value: "10"
+            - name: LISTMONK_db__max_idle
+              value: "5"
+            - name: LISTMONK_db__max_lifetime
+              value: 300s
+          ports:
+            - name: http
+              containerPort: 9000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: uploads
+              mountPath: /listmonk/uploads
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: listmonk-uploads

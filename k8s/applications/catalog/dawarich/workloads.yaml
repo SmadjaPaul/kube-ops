@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dawarich
+  namespace: dawarich
+  annotations:
+    secret.reloader.stakater.com/reload: "dawarich-runtime"
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app.kubernetes.io/name: dawarich }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: dawarich }
+    spec:
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: freikin/dawarich:1.15.2
+          entrypoint: ["web-entrypoint.sh"]
+          command: ["bin/rails","server","-p","3000","-b","::"]
+          env:
+            - { name: RAILS_ENV, value: "production" }
+            - { name: REDIS_URL, value: "redis://dawarich-redis:6379" }
+            - { name: DATABASE_HOST, value: "dawarich-postgis" }
+            - { name: DATABASE_PORT, value: "5432" }
+            - { name: DATABASE_USERNAME, value: "dawarich" }
+            - { name: DATABASE_NAME, value: "dawarich" }
+            - name: DATABASE_PASSWORD
+              valueFrom: { secretKeyRef: { name: dawarich-runtime, key: POSTGRES_PASSWORD } }
+            - name: SECRET_KEY_BASE
+              valueFrom: { secretKeyRef: { name: dawarich-runtime, key: SECRET_KEY_BASE } }
+            - { name: APPLICATION_HOSTS, value: "dawarich.smadja.dev" }
+            - { name: APPLICATION_PROTOCOL, value: "https" }
+            - { name: TIME_ZONE, value: "Europe/Paris" }
+            - { name: SELF_HOSTED, value: "true" }
+            - { name: STORE_GEODATA, value: "true" }
+            - { name: PUID, value: "1000" }
+            - { name: PGID, value: "1000" }
+            - { name: WEB_CONCURRENCY, value: "1" }
+          ports: [{ name: http, containerPort: 3000 }]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 150m, memory: 512Mi }
+            limits: { cpu: "1", memory: 2Gi }
+          volumeMounts:
+            - { name: storage, mountPath: /var/app/storage }
+            - { name: public, mountPath: /var/app/public }
+      volumes:
+        - name: storage
+          persistentVolumeClaim: { claimName: dawarich-storage }
+        - name: public
+          persistentVolumeClaim: { claimName: dawarich-public }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dawarich-sidekiq
+  namespace: dawarich
+  annotations:
+    secret.reloader.stakater.com/reload: "dawarich-runtime"
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app.kubernetes.io/name: dawarich-sidekiq }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: dawarich-sidekiq }
+    spec:
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: sidekiq
+          image: freikin/dawarich:1.15.2
+          entrypoint: ["sidekiq-entrypoint.sh"]
+          command: ["sidekiq"]
+          env:
+            - { name: RAILS_ENV, value: "production" }
+            - { name: REDIS_URL, value: "redis://dawarich-redis:6379" }
+            - { name: DATABASE_HOST, value: "dawarich-postgis" }
+            - { name: DATABASE_PORT, value: "5432" }
+            - { name: DATABASE_USERNAME, value: "dawarich" }
+            - { name: DATABASE_NAME, value: "dawarich" }
+            - name: DATABASE_PASSWORD
+              valueFrom: { secretKeyRef: { name: dawarich-runtime, key: POSTGRES_PASSWORD } }
+            - name: SECRET_KEY_BASE
+              valueFrom: { secretKeyRef: { name: dawarich-runtime, key: SECRET_KEY_BASE } }
+            - { name: APPLICATION_HOSTS, value: "dawarich.smadja.dev" }
+            - { name: APPLICATION_PROTOCOL, value: "https" }
+            - { name: TIME_ZONE, value: "Europe/Paris" }
+            - { name: SELF_HOSTED, value: "true" }
+            - { name: STORE_GEODATA, value: "true" }
+            - { name: PUID, value: "1000" }
+            - { name: PGID, value: "1000" }
+            - { name: BACKGROUND_PROCESSING_CONCURRENCY, value: "3" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 100m, memory: 384Mi }
+            limits: { cpu: "1", memory: 1536Mi }
+          volumeMounts:
+            - { name: storage, mountPath: /var/app/storage }
+            - { name: public, mountPath: /var/app/public }
+      volumes:
+        - name: storage
+          persistentVolumeClaim: { claimName: dawarich-storage }
+        - name: public
+          persistentVolumeClaim: { claimName: dawarich-public }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: dawarich, namespace: dawarich }
+spec:
+  selector: { app.kubernetes.io/name: dawarich }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: dawarich, namespace: dawarich }
+spec:
+  parentRefs: [{ name: internal, namespace: gateway }]
+  hostnames: [dawarich.smadja.dev]
+  rules:
+    - backendRefs: [{ name: dawarich, port: 80 }]

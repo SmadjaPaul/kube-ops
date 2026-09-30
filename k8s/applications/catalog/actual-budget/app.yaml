@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: actual-data
+  namespace: actual-budget
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-fast
+  resources:
+    requests: { storage: 5Gi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: actual
+  namespace: actual-budget
+spec:
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app.kubernetes.io/name: actual }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: actual }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: actual
+          image: actualbudget/actual-server:26.9.0
+          ports:
+            - { name: http, containerPort: 5006 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 25m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+          livenessProbe:
+            httpGet: { path: /, port: http }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: actual-data }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: actual, namespace: actual-budget }
+spec:
+  selector: { app.kubernetes.io/name: actual }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: actual, namespace: actual-budget }
+spec:
+  parentRefs:
+    - { name: internal, namespace: gateway }
+  hostnames: [budget.smadja.dev]
+  rules:
+    - backendRefs:
+        - { name: actual, port: 80 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: actual, namespace: actual-budget }
+spec:
+  podSelector: { matchLabels: { app.kubernetes.io/name: actual } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: gateway }
+      ports:
+        - { protocol: TCP, port: 5006 }

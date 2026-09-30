@@ -1,0 +1,21 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: chatwoot-postgresql
+  namespace: chatwoot
+spec:
+  instances: 1
+  bootstrap:
+    initdb:
+      database: chatwoot
+      owner: chatwoot
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: chatwoot-hetzner-store
+  storage:
+    size: 10Gi
+    storageClass: longhorn-fast
+  affinity:
+    enablePodAntiAffinity: false
