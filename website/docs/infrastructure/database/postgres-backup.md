@@ -6,6 +6,25 @@ description: Dual backup strategy using CloudNativePG, Barman Cloud, MinIO, and 
 
 # CloudNativePG Backup Strategy
 
+:::danger Superseded — V1 uses Hetzner Object Storage
+This document describes a historical dual MinIO + Backblaze B2 backup architecture that is **not** the V1 design. Do not create MinIO ObjectStores, B2 buckets, Bitwarden secret-store bindings, or schedules targeting either.
+
+The V1 backup contract (see `../../../AGENTS.md`) is:
+
+```text
+CNPG (Barman Cloud plugin) -> Hetzner Object Storage / cnpg/*
+Velero (Kopia)              -> Hetzner Object Storage / velero/*
+```
+
+Canonical endpoint: `https://fsn1.your-objectstorage.com`. Canonical bucket: `smadja-dev-homelab-backups`.
+
+Structural enforcement: `scripts/check-v1-active-contract.sh` fails on `truenas`, `BACKBLAZE_`, `MINIO_` and `minio.` in the rendered desired state and requires the Hetzner fsn1 endpoint whenever `ObjectStore` or `ScheduledBackup` resources are active.
+
+For the live V1 architecture, see [`../infrastructure/controllers/velero-backup.md`](../controllers/velero-backup.md) and the rendered `k8s/infrastructure/database/` roots.
+
+The body of this file is retained as historical reference for anyone who arrives at it through stale links.
+:::
+
 CloudNativePG provides native backup support through the official Barman Cloud Plugin. Our homelab uses a **dual backup
 architecture** with both local MinIO storage for fast recovery and offsite Backblaze B2 for disaster recovery.
 

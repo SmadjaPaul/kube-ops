@@ -32,20 +32,20 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 - Use CiliumNetworkPolicy v2 with default-deny ingress and egress in every application namespace; never use standard NetworkPolicy resources.
 </k8s_rules>
 <k8s_network>
-- Use Gateway API HTTPRoute for external access via external gateway 10.25.150.222.
-- Use internal gateway for internal-only routes.
-- Use Cilium 1.18+ for TCP Gateway listeners.
-- Use Cloudflare DNS A record pointing to 10.25.150.222 for external routes.
+- Use Gateway API HTTPRoute for external access via Gateway/external (Cloudflare Tunnel -> in-cluster cloudflared).
+- Use Gateway/internal for LAN-only routes with a stable Cilium LoadBalancer address.
+- Use Cilium 1.20+ for TCP Gateway listeners.
+- External hostnames resolve through Cloudflare Tunnel; do not hardcode legacy VIP ranges.
 - Avoid NodePort for external services.
 - Avoid wildcard DNS certificates.
 </k8s_network>
 <k8s_backup>
-- Use Velero with Kopia filesystem backups for proxmox-csi volumes.
+- Use Velero with Kopia filesystem backups; targets Hetzner Object Storage (https://fsn1.your-objectstorage.com).
 - Use Velero restore before PV retain recovery; use PV retain recovery when Velero restore fails.
 </k8s_backup>
 <k8s_cnpg>
 - Use ObjectStore CRD with barman-cloud plugin only.
-- Store continuous WAL in MinIO with retentionPolicy 14d and weekly base backups in Backblaze B2 with retentionPolicy 30d.
+- Continuous WAL and base backups target Hetzner Object Storage; do not reintroduce MinIO or Backblaze B2.
 - Set plugin isWALArchiver true.
 - Use ScheduledBackup method plugin with pluginConfiguration name barman-cloud.cloudnative-pg.io.
 </k8s_cnpg>
@@ -64,15 +64,15 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 </k8s_litellm>
 
 <k8s_automation>
-- Keep MQTT internal-only; use Cilium TCP route for MQTT on Cilium 1.18+.
+- Keep MQTT internal-only; use Cilium TCP route for MQTT on Cilium 1.20+.
 - Run Zigbee coordinator on a separate VM; connect Zigbee2MQTT to the coordinator over network only.
 - Use HA_SEED_ON_STARTUP true to overwrite Home Assistant seed files; false to preserve Home Assistant-managed files.
 </k8s_automation>
 
 <k8s_media>
-- Use NFS PV with server truenas.peekoff.com path /mnt/media; mount via subPath for app-specific folders.
-- Avoid Longhorn for new media workloads.
-- Avoid Kubernetes backups for large NFS media libraries.
+- Media PVCs use longhorn-fast or longhorn-bulk on the V1 single-node topology; no NFS, no TrueNAS.
+- Avoid introducing NFS merely to preserve an upstream RWX shape; revisit cross-node storage when the topology does.
+- Velero/Kopia backs up media state to Hetzner Object Storage; do not back up large media libraries as Kubernetes volumes.
 </k8s_media>
 
 <k8s_games>
@@ -97,24 +97,19 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 </controllers>
 
 <storage>
-- Use StorageClass proxmox-csi on every PVC; reclaimPolicy Retain, cacheMode writethrough, filesystem ext4, mount option noatime.
-- Use Deployment strategy type replace for workloads using proxmox-csi PVCs; proxmox-csi supports RWO (ReadWriteOnce) only, preventing rolling updates.
-- Manage Proxmox CSI permissions with tofu/bootstrap/proxmox-csi-plugin using Proxmox user kubernetes-csi@pve.
+- Longhorn is the V1 application storage plane; use storageClassName longhorn-fast or longhorn-bulk. Both are explicit single-replica classes on dedicated Talos UserVolumes.
+- Proxmox CSI is compatibility/staged only; do not make it the default storage class for new V1 workloads.
+- Proxmox CSI permissions and the kubernetes-csi@pve token are owned by homelab-infra; the runtime token reaches Kubernetes via ESO from the cluster/prd Doppler store. kube-ops must not contain a tofu/ tree.
 </storage>
 
 <database>
-- Use at least two CNPG instances for HA.
+- Use one CNPG instance per application for V1; extra replicas provide no physical availability on the single AOOSTAR.
 - Avoid shared databases across applications.
 </database>
 
 <network>
 - Use Cilium kubeProxyReplacement enabled.
 </network>
-
-<tofu>
-- Run tofu fmt and tofu validate before commit; produce tofu plan output for review.
-- Avoid tofu apply without explicit human approval; avoid --auto-approve, manual state file edits, and targeted apply unless explicitly approved.
-</tofu>
 
 <website>
 - Run npm run typecheck and npm run lint:all before commit.
