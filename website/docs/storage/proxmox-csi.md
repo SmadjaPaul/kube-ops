@@ -1,17 +1,22 @@
-# Proxmox CSI Storage
+# Proxmox CSI — compatibility / staged
 
-This guide explains how storage works in the homelab using the Proxmox CSI (Container Storage Interface) plugin for dynamic volume provisioning.
+:::warning V1 storage role
+Proxmox CSI is **compatibility/staged only** on the Smadja V1 platform. The V1 application storage plane is Longhorn with `longhorn-fast` and `longhorn-bulk` (see `../../AGENTS.md` and `../../../k8s/infrastructure/storage/`). Do not make `proxmox-csi` the default storage class for new V1 workloads.
+:::
+
+This guide documents the Proxmox CSI plugin integration that remains available for legacy PVCs and for the post-V1 multi-node topology. It is not a description of the active V1 default storage path.
 
 ## Overview
 
-The homelab uses the [Proxmox CSI Plugin](https://github.com/sergelogvinov/proxmox-csi-plugin) (`csi.proxmox.sinextra.dev`) as the **primary storage provisioner** for new Kubernetes workloads. This provides dynamic volume provisioning directly from Proxmox datastores without requiring additional storage layers.
+The cluster exposes the [Proxmox CSI Plugin](https://github.com/sergelogvinov/proxmox-csi-plugin) (`csi.proxmox.sinextra.dev`) alongside Longhorn for compatibility with existing PVCs and for use as a non-default provisioner. Volumes are created on the Proxmox `tank-vm` ZFS datastore.
 
 **Current Storage Classes:**
-- `proxmox-csi` — Primary storage class (Retain policy, Immediate binding, expandable)
-- `longhorn` — Legacy storage class for existing workloads (being phased out)
-- `longhorn-static` — Legacy static provisioning
+- `longhorn-fast` — V1 latency-sensitive storage (Longhorn, single replica)
+- `longhorn-bulk` — V1 capacity-oriented storage (Longhorn, single replica)
+- `proxmox-csi` — Compatibility/staged provisioner; not the V1 default
+- `longhorn` — Disabled upstream class; not created by the Longhorn Helm values
 
-The Proxmox CSI plugin allows applications to automatically request and receive persistent storage without manual intervention, with volumes created directly on the Proxmox Nvme1 ZFS datastore.
+For day-to-day application PVCs in V1, use `longhorn-fast` or `longhorn-bulk`. Use `proxmox-csi` only for existing PVCs that have not yet been migrated.
 
 ## How Dynamic Provisioning Works
 
@@ -57,11 +62,11 @@ The `bootstrap/volumes` Terraform module exists only for migrating pre-existing 
 
 ## Bootstrap Configuration
 
-The storage bootstrap is managed through OpenTofu in the `tofu/bootstrap.tf` file.
+The Proxmox CSI bootstrap is owned by `homelab-infra`. `kube-ops` must not contain a `tofu/` tree; the runtime token reaches Kubernetes via ESO from the `cluster/prd` Doppler store. The chart values rendered by kube-ops live at [`k8s/infrastructure/storage/proxmox-csi/`](../../../k8s/infrastructure/storage/proxmox-csi/).
 
 ### Proxmox CSI Plugin Setup
 
-The `proxmox-csi-plugin` module in `tofu/bootstrap.tf` automatically configures:
+`homelab-infra` is the sole owner of the Proxmox user, role and API token. It configures:
 
 1. **Proxmox User & Role**: Creates a `kubernetes-csi@pve` user with minimal CSI permissions
 2. **API Token**: Generates a secure API token with `privileges_separation = true`
@@ -176,192 +181,11 @@ volumeBindingMode: Immediate
 allowVolumeExpansion: true
 ```
 
-## Volume Binding Mode Decision
+## Volume Binding Mode
 
-### Why We Use `Immediate` Instead of `WaitForFirstConsumer`
+The `proxmox-csi` StorageClass uses `volumeBindingMode: WaitForFirstConsumer` so the volume is provisioned on the same node that schedules the consuming pod. This matches the value rendered by [`k8s/infrastructure/storage/proxmox-csi/values.yaml`](../../../k8s/infrastructure/storage/proxmox-csi/values.yaml) and is enforced by `scripts/check-v1-active-contract.sh`.
 
-The homelab's `proxmox-csi` StorageClass uses **`volumeBindingMode: Immediate`** binding mode. This section documents why this decision was made and the trade-offs involved.
-
-#### Context: Single-Zone Cluster
-
-This homelab runs a **single-zone Kubernetes cluster** where all worker nodes are in the same physical location (same Proxmox cluster, same datacenter, same network). There are no multiple availability zones, regions, or geographically distributed nodes.
-
-#### The Problem with WaitForFirstConsumer
-
-**What is WaitForFirstConsumer?**
-- PVC creation does NOT immediately provision a PV
-- Volume provisioning is delayed until a pod that uses the PVC is scheduled
-- The volume is then created on the same node/zone where the pod is scheduled
-- **Purpose**: Ensures volume locality in multi-zone clusters (volume created in same zone as pod)
-
-**Why it caused problems in our setup:**
-
-1. **Velero Restore Deadlock (Primary Issue)**
-   - During disaster recovery, Velero restores PVCs and Pods simultaneously
-   - PVCs stay `Pending` (waiting for pod to be scheduled)
-   - Pods stay `Pending` (waiting for PVC to be bound)
-   - **Result**: Chicken-and-egg deadlock - nothing progresses without manual intervention
-   - Manual fix required: annotating each PVC with `volume.kubernetes.io/selected-node=<node>` to break deadlock
-
-2. **Unbalanced Pod Distribution**
-   - After Velero restore with manual node annotations, all pods scheduled on same node
-   - Created single point of failure (57% of pods on one node after migration)
-   - Kubernetes scheduler couldn't rebalance because PVCs were already bound to specific node
-
-3. **No Topology Benefit in Single-Zone**
-   - In single-zone clusters, all nodes can access all storage equally
-   - Topology awareness provides **zero benefit**
-   - WaitForFirstConsumer only adds complexity without any advantage
-
-#### The Solution: Immediate Binding
-
-**What is Immediate?**
-- PV is provisioned **as soon as PVC is created**
-- Volume is created immediately, no waiting for pod scheduling
-- In single-zone: volume created on any available node (same outcome as WaitForFirstConsumer)
-
-**Why we chose Immediate:**
-
-✅ **Fixes Velero Restore Issues**
-- PVCs bind immediately upon creation during restore
-- No chicken-and-egg deadlock
-- Disaster recovery "just works" without manual intervention
-
-✅ **Kubernetes Scheduler Handles Pod Distribution**
-- Scheduler's built-in spreading logic distributes pods across nodes
-- No manual topology constraints needed
-- Pods naturally balance across worker nodes over time
-
-✅ **Simpler Operations**
-- No special handling required for restores
-- No manual node annotations needed
-- Fewer moving parts = fewer failure modes
-
-✅ **Same Outcome in Single-Zone**
-- Volume ends up on same node as pod (shared storage pool)
-- No performance difference
-- No locality benefit lost (there was none to begin with)
-
-#### Technical Analysis: Immediate vs WaitForFirstConsumer
-
-**When WaitForFirstConsumer is Essential:**
-
-**Multi-Zone Topology** (NOT our setup)
-- Nodes in different availability zones (us-east-1a, us-east-1b)
-- Volumes must be created in same zone as pod (cross-zone attachment often impossible)
-- Cloud providers charge for cross-zone traffic ($0.01-0.02/GB)
-- Latency penalty for cross-zone access (5-10ms+ added latency)
-- **This is the ONLY legitimate use case for WaitForFirstConsumer**
-
-**Heterogeneous Storage** (NOT our setup)
-- Different nodes have different storage types (local NVMe vs network SAN)
-- Need to ensure volume created on node with correct backend
-- **We have shared ZFS storage - all nodes access same datastore**
-
-**When Immediate is Correct:**
-
-**Single-Zone Clusters** (our setup)
-- All nodes in same physical location, same storage pool
-- No cross-zone penalties to avoid
-- No topology constraints to enforce
-- **WaitForFirstConsumer provides ZERO benefit, only operational complexity**
-
-**Shared Storage Architecture** (our setup)
-- Proxmox ZFS datastore accessible from all worker nodes
-- Volume location is irrelevant - any node can attach any volume
-- **No performance or cost difference based on volume placement**
-
-#### Resource Usage Analysis
-
-**Claim: "Immediate wastes resources by provisioning unused volumes"**
-
-**Reality Check:**
-1. **ZFS is thin-provisioned by default** - volumes only consume space for actual data written
-   - Creating a 100Gi PVC allocates 0 bytes until data is written
-   - No resource waste from "pre-provisioning"
-2. **PVCs are created on-demand** - we don't create unused PVCs
-   - StatefulSets create PVCs when pods are created
-   - Manual PVCs are only created when needed
-   - **Theoretical problem with no real-world occurrence**
-
-**Measured Impact:** NONE
-- Immediate binding has identical resource usage to WaitForFirstConsumer in practice
-- Both modes result in same number of volumes, same data stored
-- No measurable difference in storage consumption, API calls, or performance
-
-#### What We Actually Gave Up: Nothing
-
-**WaitForFirstConsumer Benefits:**
-- ✅ Topology-aware placement → **Not applicable (single-zone)**
-- ✅ Deferred provisioning → **Not useful (thin-provisioned storage)**
-- ✅ Guaranteed co-location → **Not beneficial (shared storage pool)**
-
-**WaitForFirstConsumer Costs:**
-- ❌ Velero restore failures (chicken-and-egg deadlock)
-- ❌ Manual intervention required for disaster recovery
-- ❌ Unbalanced pod distribution after restores
-- ❌ Increased operational complexity
-- ❌ Harder to troubleshoot PVC binding issues
-
-**Net Result:** WaitForFirstConsumer has ZERO benefits and significant costs in single-zone clusters with shared storage.
-
-#### Decision Matrix
-
-| Cluster Architecture | Correct Binding Mode | Reason |
-|---------------------|---------------------|---------|
-| **Single-zone cluster** | `Immediate` | No topology constraints, no cross-zone penalties, simpler DR |
-| **Multi-zone cluster** | `WaitForFirstConsumer` | Essential for zone-aware placement, avoids cross-zone costs |
-| **Heterogeneous storage** | `WaitForFirstConsumer` | Ensures volume created on node with correct storage backend |
-| **Shared storage pool** | `Immediate` | Volume location irrelevant, all nodes access same storage |
-
-**Our Setup:** Single-zone cluster + shared ZFS storage = **Immediate is objectively correct**
-
-#### Migration Path to Multi-Zone
-
-If expanding to multi-zone architecture:
-
-1. **Change StorageClass to WaitForFirstConsumer**
-   ```yaml
-   volumeBindingMode: WaitForFirstConsumer
-   allowedTopologies:
-   - matchLabelExpressions:
-     - key: topology.kubernetes.io/zone
-       values: [zone-a, zone-b, zone-c]
-   ```
-
-2. **Update Velero backup strategy**
-   - Document manual PVC node annotation procedure for restores
-   - Or accept unbalanced distribution and rely on descheduler for rebalancing
-   - Or use CSI snapshots instead of filesystem backups (if Proxmox CSI supports it)
-
-3. **Test disaster recovery procedure**
-   - Verify restores work with WaitForFirstConsumer deadlock
-   - Document manual intervention steps for production runbooks
-
-#### Implementation Notes
-
-The Proxmox CSI Helm chart **hardcodes** `volumeBindingMode: WaitForFirstConsumer` in the StorageClass template. To override this:
-
-**Modified Chart Template** (`charts/proxmox-csi-plugin/templates/storageclass.yaml`):
-```yaml
-volumeBindingMode: {{ default "WaitForFirstConsumer" $storage.volumeBindingMode }}
-```
-
-**Values Override** (`k8s/infrastructure/storage/proxmox-csi/values.yaml`):
-```yaml
-storageClass:
-  - name: proxmox-csi
-    volumeBindingMode: Immediate  # Override hardcoded value
-    # ... other settings
-```
-
-This allows configuring the binding mode while maintaining chart upgrade compatibility.
-
-#### Related Issues
-
-- **Longhorn to Proxmox CSI Migration**: Velero restore deadlock was discovered during storage migration (see [Migration Guide](../infrastructure/storage/longhorn-to-proxmox-migration.md))
-- **Pod Distribution**: Without topology constraints, Kubernetes scheduler naturally spreads pods across nodes based on resource availability
-- **Future Multi-Zone Support**: If expanding to multi-zone cluster, change to `WaitForFirstConsumer` and add `allowedTopologies` to StorageClass
+Longhorn uses its own StorageClasses (`longhorn-fast`, `longhorn-bulk`); their binding mode is governed by Longhorn itself, not by this chart.
 
 ## Volume Management
 
@@ -406,21 +230,9 @@ Proxmox CSI **only supports ReadWriteOnce (RWO)** access mode. The plugin does n
 **If your application requires RWX:**
 1. **Verify actual need**: Many applications claim RWX but work fine with RWO when pods are scheduled on the same node
 2. **Use RWO with pod scheduling**: Deploy pods using `podAntiAffinity` rules to ensure all pods requiring shared storage run on the same node
-3. **Deploy NFS storage**: For true multi-writer workloads, deploy a separate NFS-based StorageClass (e.g., from a dedicated NAS or cloud NFS service)
+3. **Re-evaluate the topology**: Cross-node shared storage is a post-V1 concern; do not reintroduce NFS or a parallel NAS path on V1.
 
-**Migrating from Longhorn RWX PVCs:**
-
-When migrating workloads from Longhorn (which supported RWX), you must patch PVCs to use RWO:
-
-```bash
-# Find RWX PVCs
-kubectl get pvc -A -o jsonpath='{range .items[?(@.spec.accessModes[0]=="ReadWriteMany")]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}'
-
-# Patch each RWX PVC to RWO
-kubectl patch pvc <pvc-name> -n <namespace> -p '{"spec":{"accessModes":["ReadWriteOnce"]}}'
-```
-
-**Important**: Patch RWX PVCs **before** creating Velero backups for migration. The storage class mapping only handles storage class transformation, not access mode changes.
+**Longhorn is the V1 storage plane** (see `../../AGENTS.md`). Proxmox CSI remains available for existing PVCs only; do not migrate Longhorn PVCs to Proxmox CSI as part of V1 work.
 
 ## Troubleshooting
 
