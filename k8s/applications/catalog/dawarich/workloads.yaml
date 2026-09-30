@@ -15,12 +15,22 @@ spec:
       labels: { app.kubernetes.io/name: dawarich }
     spec:
       securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: web
           image: freikin/dawarich:1.15.2
-          command: ["web-entrypoint.sh"]
-          args: ["bin/rails","server","-p","3000","-b","::"]
+          command: ["sh","-c"]
+          args:
+            - >-
+              set -eu;
+              # The upstream entrypoint chowns /var/app/public recursively and
+              # fails on the ext4 lost+found directory created by Longhorn.
+              # fsGroup already sets the GID, so the app can write as root
+              # inside this PSS baseline namespace without the chown step.
+              mkdir -p /var/app/storage /var/app/public;
+              exec bin/rails server -p 3000 -b '::'
           env:
             - { name: RAILS_ENV, value: "production" }
             - { name: REDIS_URL, value: "redis://dawarich-redis:6379" }
@@ -73,12 +83,18 @@ spec:
       labels: { app.kubernetes.io/name: dawarich-sidekiq }
     spec:
       securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: sidekiq
           image: freikin/dawarich:1.15.2
-          command: ["sidekiq-entrypoint.sh"]
-          args: ["sidekiq"]
+          command: ["sh","-c"]
+          args:
+            - >-
+              set -eu;
+              mkdir -p /var/app/storage /var/app/public;
+              exec sidekiq
           env:
             - { name: RAILS_ENV, value: "production" }
             - { name: REDIS_URL, value: "redis://dawarich-redis:6379" }

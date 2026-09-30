@@ -34,7 +34,7 @@ spec:
             - >-
               set -eu;
               export NTFY_AUTH_FILE=/var/lib/ntfy/auth.db;
-              ntfy serve --no-upgrade >/tmp/ntfy-serve.log 2>&1 &
+              ntfy serve >/tmp/ntfy-serve.log 2>&1 &
               SERVER_PID=$$!;
               for i in $$(seq 1 30); do
                 [ -f /var/lib/ntfy/auth.db ] && break;
