@@ -8,7 +8,7 @@ V1 uses the CloudNativePG Barman Cloud plugin directly against Hetzner Object St
 endpoint: https://fsn1.your-objectstorage.com
 bucket: smadja-dev-homelab-backups
 prefixes:
-  cnpg/authentik
+  cnpg/authentik-v2
   cnpg/immich
   cnpg/litellm
   cnpg/pinepods
