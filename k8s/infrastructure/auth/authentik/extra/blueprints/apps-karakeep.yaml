@@ -29,6 +29,8 @@ entries:
           [slug, "default-provider-invalidation-flow"],
         ]
       client_type: confidential
+      grant_types:
+        - authorization_code
       redirect_uris:
         - url: https://karakeep.smadja.dev/api/auth/callback/custom
           matching_mode: strict
