@@ -6,7 +6,7 @@
 ---
 version: 1
 metadata:
-  name: Apps - Open WebUI
+  name: Apps - Open WebUI v2
 entries:
   - id: openwebui-user-group
     model: authentik_core.group
