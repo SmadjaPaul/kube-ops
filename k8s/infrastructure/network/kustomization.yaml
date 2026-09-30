@@ -5,6 +5,7 @@ resources:
 - project.yaml
 - gateway-api
 - cilium
+- cilium/l2-pool
 - cloudflared
 - gateway
 - coredns
