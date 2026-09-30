@@ -1,0 +1,39 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: external-dns-private-egress
+  namespace: external-dns-private
+  labels:
+    policy-type: cilium-audit-policies
+    network-policy: audit-mode
+spec:
+  description: "Allow external-dns-private controller + webhook sidecar to reach kube-apiserver, kube-dns and the UniFi controller (HTTPS)."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: infrastructure
+      app.kubernetes.io/component: external-dns-private
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "6443"
+              protocol: TCP
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

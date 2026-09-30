@@ -9,4 +9,5 @@ resources:
 - cloudflared
 - gateway
 - coredns
+- externaldns-private
 - policies

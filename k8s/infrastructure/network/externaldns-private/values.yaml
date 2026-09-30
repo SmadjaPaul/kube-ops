@@ -1,0 +1,81 @@
+image:
+  repository: registry.k8s.io/external-dns/external-dns
+  tag: v0.23.0
+  pullPolicy: IfNotPresent
+
+provider:
+  name: webhook
+  webhook:
+    image:
+      repository: ghcr.io/home-operations/external-dns-unifi-webhook
+      tag: 0.10.12
+      pullPolicy: IfNotPresent
+    env:
+      - name: UNIFI_HOST
+        valueFrom:
+          secretKeyRef:
+            name: external-dns-unifi-webhook
+            key: UNIFI_HOST
+      - name: UNIFI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: external-dns-unifi-webhook
+            key: UNIFI_API_KEY
+      - name: UNIFI_SITE
+        valueFrom:
+          secretKeyRef:
+            name: external-dns-unifi-webhook
+            key: UNIFI_SITE
+      - name: UNIFI_VERIFY_SSL
+        valueFrom:
+          secretKeyRef:
+            name: external-dns-unifi-webhook
+            key: UNIFI_VERIFY_SSL
+
+sources:
+  - gateway-httproute
+
+policy: sync
+
+registry: txt
+txtPrefix: externaldns-internal-
+txtOwnerId: smadja-lan
+
+domainFilters:
+  - smadja.dev
+
+gatewayNamespace: gateway
+
+interval: 5m
+triggerLoopOnEvent: true
+
+namespaced: false
+replicaCount: 1
+
+serviceAccount:
+  create: true
+  automountServiceAccountToken: false
+
+rbac:
+  create: true
+  additionalPermissions: []
+
+extraArgs:
+  - --gateway-name=internal
+
+serviceMonitor:
+  enabled: true
+
+podLabels:
+  app.kubernetes.io/part-of: infrastructure
+  app.kubernetes.io/component: external-dns-private
+
+podAnnotations:
+  argocd.argoproj.io/sync-wave: "-15"
+
+deploymentAnnotations:
+  argocd.argoproj.io/sync-wave: "-15"
+
+commonLabels:
+  app.kubernetes.io/part-of: infrastructure
+  app.kubernetes.io/component: external-dns-private
