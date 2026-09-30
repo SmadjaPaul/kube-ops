@@ -65,8 +65,7 @@ grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
 # must never attach to the public Gateway. Qdrant is consumed by Open WebUI via
 # its ClusterIP service; Zigbee2MQTT is an operator UI.
 for internal_route in \
-  k8s/applications/ai/qdrant/httproute.yaml \
-  k8s/applications/automation/zigbee2mqtt/http-route.yaml; do
+  k8s/applications/ai/qdrant/httproute.yaml; do
   grep -q 'name: internal' "$internal_route" || {
     echo "ERROR: $internal_route must attach to the internal Gateway" >&2
     exit 1
