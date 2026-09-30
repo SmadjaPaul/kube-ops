@@ -3,7 +3,7 @@
 ---
 version: 2
 metadata:
-  name: QA - E2E User
+  name: QA - E2E User Reconcile
 entries:
   - id: e2e-user
     model: authentik_core.user
