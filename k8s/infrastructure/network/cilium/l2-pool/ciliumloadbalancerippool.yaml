@@ -4,5 +4,5 @@ metadata:
   name: internal-gateway-pool
   namespace: kube-system
 spec:
-  cidrs:
+  blocks:
     - cidr: 10.0.20.192/28
