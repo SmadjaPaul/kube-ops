@@ -80,6 +80,15 @@ if grep -q 'homelab\.orkestack\.com\|sso\.smadja\.dev' k8s/infrastructure/auth/a
   exit 1
 fi
 
+# User identity must remain stable independently of mutable email addresses.
+# Authentik's hashed user ID aligns with its default SCIM externalId, while
+# Open WebUI resolves OAuth users by the provider subject and never merges by
+# email. The bootstrap admin is intentionally a non-human machine identity.
+grep -q 'sub_mode: hashed_user_id' k8s/infrastructure/auth/authentik/extra/blueprints/apps-openwebui.yaml
+grep -A1 'name: OAUTH_SUB_CLAIM' k8s/applications/ai/openwebui/webui-statefulset.yaml | grep -q "value: 'sub'"
+grep -A1 'name: OAUTH_MERGE_ACCOUNTS_BY_EMAIL' k8s/applications/ai/openwebui/webui-statefulset.yaml | grep -q "value: 'false'"
+grep -A1 'name: WEBUI_ADMIN_EMAIL' k8s/applications/ai/openwebui/webui-statefulset.yaml | grep -q "value: 'openwebui-bootstrap@smadja.invalid'"
+
 roots=(
   k8s/infrastructure/controllers
   k8s/infrastructure/network
@@ -168,6 +177,7 @@ echo "V1_REPOSITORY_BOUNDARY=PASS"
 echo "V1_BOOTSTRAP_CONTRACT=PASS"
 echo "V1_ACTIVE_RENDER=PASS"
 echo "V1_DOPPLER_STORES=PASS"
+echo "V1_IDENTITY_CONTRACT=PASS"
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN"
 printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | sort -u
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_END"
