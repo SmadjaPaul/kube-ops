@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata: { name: dawarich-storage, namespace: dawarich }
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-fast
   resources: { requests: { storage: 20Gi } }
 ---
 apiVersion: v1
@@ -11,5 +11,5 @@ kind: PersistentVolumeClaim
 metadata: { name: dawarich-public, namespace: dawarich }
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-fast
   resources: { requests: { storage: 5Gi } }

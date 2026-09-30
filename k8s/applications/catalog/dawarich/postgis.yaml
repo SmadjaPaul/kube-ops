@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata: { name: dawarich-postgis, namespace: dawarich }
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-fast
   resources:
     requests: { storage: 20Gi }
 ---
