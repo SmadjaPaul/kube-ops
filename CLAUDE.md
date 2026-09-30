@@ -1,89 +1,108 @@
-Homelab GitOps repository for the active Talos/Kubernetes platform.
+Homelab GitOps repository for the current Smadja V1 platform.
 
 <Global_rules>
-- Git is the desired-state authority and Argo CD is the steady-state reconciler.
-- Use runtime tools for evidence, not as a second durable mutation plane.
-- Never log secrets, credentials, API keys, tokens, kubeconfig contents, Talosconfig contents, or connection strings.
+- Git is the Kubernetes desired-state authority; Argo CD is the only steady-state reconciler.
+- Runtime tools provide evidence. Do not create durable configuration with kubectl.
+- Never log secrets, credentials, API keys, tokens, kubeconfigs, talosconfigs, or connection strings.
 - Prefer boring upstream interfaces and the smallest reversible change.
-- Run the repository validation relevant to every changed path before merge.
+- Run the repository validation relevant to every changed Kubernetes path before commit.
 - Use Conventional Commits.
-- Keep user-facing documentation in website/docs.
-- Do not add Terraform/OpenTofu to this repository.
-- Do not use --force, --grace-period=0, insecure TLS bypasses, or destructive storage actions without explicit operator approval.
-- Pin container images to specific versions or digests; do not use floating tags.
+- Keep user-facing documentation under website/docs.
+- Do not create new infrastructure abstractions, operators, DSLs, or controllers without a demonstrated need.
+- Do not perform destructive cluster, storage, PKI, state, or backup mutations without explicit operator authorization.
 </Global_rules>
 
-<repo_paths>
-- /k8s
-- /images
-- /website
-- /scripts
-- /tests
-</repo_paths>
+<repo_boundary>
+- homelab-infra owns Proxmox, Talos machine lifecycle and recovery material, UniFi/LAN, Cloudflare account/tunnel/DNS, Doppler bootstrap, Hetzner Object Storage, N100 and external SMTP.
+- kube-ops owns Kubernetes bootstrap and Kubernetes/Argo desired state after kubeconfig handoff.
+- kube-ops must not contain Terraform/OpenTofu providers or state.
+</repo_boundary>
 
-<platform>
-- Talos 1.13.10 and Kubernetes 1.36.3 run on the single V1 node homeops-01 / VM101.
-- Cilium provides CNI, kube-proxy replacement, network policy, and Gateway API.
-- Argo CD owns steady-state reconciliation.
-- The AOOSTAR has no discrete GPU. GPU-only workloads remain disabled or staged.
-</platform>
+<cluster>
+- Talos 1.13.10.
+- Kubernetes 1.36.3.
+- One schedulable Talos control-plane node for V1.
+- Cilium 1.20.2 with kube-proxy replacement and Gateway API.
+- Argo CD is the canonical GitOps reconciler.
+</cluster>
 
-<secrets>
-- Doppler is the external/bootstrap authority.
-- External Secrets Operator delivers Kubernetes runtime secrets through ClusterSecretStore doppler-cluster.
-- Do not reintroduce Bitwarden bindings.
-- Prefer CNPG-generated application credentials for CNPG application users.
-</secrets>
+<network>
+- Public flow: Cloudflare wildcard DNS/tunnel -> Gateway/external -> HTTPRoute.
+- Local flow: UniFi private DNS -> stable Gateway/internal VIP -> HTTPRoute.
+- User-facing self-hosted applications should normally attach to Gateway/internal so they remain reachable on the LAN during WAN loss.
+- Gateway/external is an explicit additional capability for remote access.
+- Cluster-only backends should use Kubernetes Services directly and should not receive public routes without a demonstrated operator need.
+- Private application DNS is derived from Gateway API desired state and synchronized into UniFi by the Kubernetes-owned private DNS controller.
+- homelab-infra owns the UniFi/LAN capability, not the application hostname inventory.
+- AdGuard is a filtering/cache resolver, not the application DNS authority.
+- Do not use broad static LAN wildcard rewrites for *.smadja.dev.
+- Do not remove an existing external route until its replacement LAN path has been proven.
+- MQTT and Matter are local protocols; expose them only through compatible internal Gateway listeners when required.
+- Avoid NodePort and accidental LoadBalancer exposure.
+</network>
 
 <storage>
-- Longhorn is the V1 application storage layer.
-- Use longhorn-fast for latency-sensitive state and longhorn-bulk for capacity-oriented state.
-- Proxmox CSI is compatibility/staged only; do not make it the default storage class for new workloads.
-- Do not add TrueNAS/NFS dependencies to the active V1 platform.
-- Do not shrink/delete PVCs or change replica/overcommit settings from static reasoning alone.
+- Longhorn 1.12.1 is the V1 application storage plane.
+- Storage classes: longhorn-fast for latency-sensitive state and longhorn-bulk for capacity-oriented state.
+- Both are single-replica V1 classes on dedicated Talos UserVolumes.
+- Proxmox CSI remains compatibility/staged only; do not make it the default storage class for new V1 workloads.
+- No TrueNAS/NFS dependency.
+- Do not shrink/delete/move PVCs or change Longhorn replica/overcommit settings without fresh runtime evidence and explicit authorization.
 </storage>
 
 <backup>
 - Velero with Kopia targets Hetzner Object Storage for Kubernetes/PVC disaster recovery.
-- CNPG uses the Barman Cloud plugin with Hetzner Object Storage for base backups and continuous WAL.
-- Do not use MinIO or Backblaze B2 as active backup targets.
-- Backup success is not restore proof; application-level restore is the acceptance criterion.
+- CloudNativePG with the Barman Cloud plugin targets Hetzner Object Storage for PostgreSQL base backups and continuous WAL archiving.
+- Backup success is not restore success; representative application restores must be tested.
+- Do not reintroduce MinIO or Backblaze B2 as active V1 backup targets.
+- User data portability/export is separate from disaster-recovery backup.
 </backup>
 
-<network>
-- Public subdomains follow Cloudflare wildcard DNS -> Cloudflare Tunnel -> Gateway/external -> HTTPRoute.
-- Gateway/internal is the LAN path.
-- User-facing self-hosted applications should normally attach to Gateway/internal; Gateway/external is an explicit additional capability.
-- Backend-only services should use ClusterIP/service DNS unless a real operator-facing route is required.
-- The post-V1 private DNS target is ExternalDNS sourced from Gateway API, filtered to Gateway/internal, synchronizing records into UniFi.
-- homelab-infra owns UniFi/LAN capability, not Kubernetes application hostnames.
-- AdGuard is filtering/cache, not the application DNS authority.
-- Do not hard-code the upstream reference network 10.25.150.x.
-- Avoid NodePort for application exposure.
-</network>
-
-<home_automation>
-- Home Assistant is allowed to use hostNetwork when required for LAN discovery; do not apply a blanket hostNetwork=false rule to it.
-- MQTT and Matter transport stay LAN/internal.
-- Zigbee2MQTT connects to the network coordinator and MQTT; its admin UI should become LAN-only only after the LAN Gateway/private DNS path is proven.
-- HA-MCP exposure depends on its real consumer. Internal-only is the default unless an external client requires a reviewed remote-auth contract.
-</home_automation>
+<secrets>
+- Doppler is the external/bootstrap secret authority.
+- External Secrets Operator is the Kubernetes delivery path.
+- CNPG application credentials should use CNPG-managed application secrets where appropriate.
+- Do not create service credentials with imperative kubectl if they can be declared through the existing authority path.
+</secrets>
 
 <identity>
 - Authentik is the human identity authority.
-- OIDC sub is the durable identity key; email and username are mutable profile attributes.
-- Do not merge the old PR #89 Open WebUI bootstrap/merge-by-email changes until Paul enrollment and the existing Open WebUI bootstrap account migration are proven at runtime.
-- Synthetic users must remain non-admin unless the test explicitly targets admin behavior.
+- Durable cross-application identity should use the OIDC subject, not email or username.
+- Email and username are mutable profile attributes.
+- Keep the current Open WebUI account migration safe: do not disable email merging or replace the human-shaped bootstrap until the existing Paul/bootstrap state has been inspected and migrated after human enrollment.
+- Do not reopen Argo SSO or Open WebUI OAuth provider settings without new runtime evidence.
 </identity>
 
-<database>
-- CNPG uses one instance per application for the single-node V1.
-- Avoid shared databases across applications.
-- Use the barman-cloud plugin ObjectStore path for backup/WAL.
-</database>
+<automation>
+- Home Assistant is first-class.
+- Home Assistant may use hostNetwork where required for LAN discovery.
+- MQTT, Zigbee2MQTT and Matter are local-first; keep their admin/control surfaces private unless an explicit remote consumer requires otherwise.
+- HA-MCP is internal by default until a real external MCP consumer is defined with an appropriate remote-auth contract.
+</automation>
+
+<ai>
+- Open WebUI, LiteLLM, Qdrant, GPT Researcher, Whisper and Pocket-TTS are supported V1/post-V1 components.
+- Qdrant is a backend service; prefer ClusterIP/service discovery unless an operator UI/API need is demonstrated.
+- The AOOSTAR V1 node has no discrete GPU. Do not add GPU resource requests to V1 workloads unless hardware changes.
+</ai>
 
 <validation>
-- Run npm run check:v1-contract for Kubernetes desired-state changes.
-- Render changed Kustomize roots with Helm enabled when applicable.
-- Treat Argo Synced/Healthy, pod readiness, HTTP probes, and browser/OIDC E2E as separate evidence layers.
+- Run `npm run check:v1-contract` for Kubernetes contract changes.
+- Render changed Kustomize roots with Helm enabled before commit when applicable.
+- Treat live Argo/Kubernetes/UniFi evidence as required before changing assumptions about routes, DNS, storage, backups or identity.
 </validation>
+
+<forbidden_legacy>
+Do not reintroduce active dependencies on:
+- theepicsaxguy/homelab;
+- peekoff.com;
+- 10.25.150.x;
+- Flux;
+- TrueNAS/NFS;
+- MinIO;
+- Backblaze B2;
+- Bitwarden secret stores;
+- legacy LXC201/agent-dev;
+- Windows gaming VM;
+- a tofu/ infrastructure tree inside kube-ops.
+</forbidden_legacy>
