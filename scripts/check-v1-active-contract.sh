@@ -61,6 +61,22 @@ grep -q 'path: /var/mnt/k8s-fast' k8s/infrastructure/storage/longhorn/node-homeo
 grep -q 'path: /var/mnt/k8s-bulk' k8s/infrastructure/storage/longhorn/node-homeops.yaml
 grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
 
+# Backend/admin surfaces that are only consumed from inside the cluster or LAN
+# must never attach to the public Gateway. Qdrant is consumed by Open WebUI via
+# its ClusterIP service; Zigbee2MQTT is an operator UI.
+for internal_route in \
+  k8s/applications/ai/qdrant/httproute.yaml \
+  k8s/applications/automation/zigbee2mqtt/http-route.yaml; do
+  grep -q 'name: internal' "$internal_route" || {
+    echo "ERROR: $internal_route must attach to the internal Gateway" >&2
+    exit 1
+  }
+  if grep -q 'name: external' "$internal_route"; then
+    echo "ERROR: $internal_route must not attach to the external Gateway" >&2
+    exit 1
+  fi
+done
+
 # Authentik V1 stays on the current stable series and uses upstream-native
 # authentication flows rather than carrying a parallel passwordless graph.
 grep -q 'version: 2026.8.3' k8s/infrastructure/auth/authentik/kustomization.yaml
