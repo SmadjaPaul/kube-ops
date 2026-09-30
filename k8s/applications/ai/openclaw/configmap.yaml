@@ -10,7 +10,6 @@ data:
     {
       "logging": {
         "level": "info",
-        "file": "/var/log/openclaw/openclaw.log",
         "consoleLevel": "info",
         "consoleStyle": "pretty",
         "redactSensitive": "tools"
@@ -39,7 +38,6 @@ data:
           "idleMinutes": 60
         },
         "resetTriggers": ["/new", "/reset"],
-        "store": "~/.openclaw/agents/default/sessions/sessions.json",
         "typingIntervalSeconds": 5
       },
       "channels": {
@@ -48,9 +46,9 @@ data:
           "botToken": "${SLACK_BOT_TOKEN}",
           "appToken": "${SLACK_APP_TOKEN}",
           "channels": {
-            "#general": { "allow": true, "requireMention": true }
+            "#general": {"allow": true, "requireMention": true}
           },
-          "dm": { "enabled": true, "allowFrom": ["U123"] },
+          "dm": {"enabled": true, "allowFrom": ["U123"]},
           "slashCommand": {
             "enabled": true,
             "name": "openclaw",
@@ -61,31 +59,16 @@ data:
       },
       "agents": {
         "defaults": {
-          "workspace": "/workspace",
-          "userTimezone": "America/Chicago",
+          "userTimezone": "Europe/Paris",
           "model": {
-            "primary": "litellm/claude-sonnet-4-20250514"
+            "primary": "litellm/anthropic/claude-sonnet-4-6"
           },
           "thinkingDefault": "low",
           "verboseDefault": "off",
-          "elevatedDefault": "on",
+          "elevatedDefault": "off",
           "timeoutSeconds": 600,
           "typingIntervalSeconds": 5,
-          "maxConcurrent": 3,
-          "sandbox": {
-            "mode": "non-main",
-            "perSession": true,
-            "workspaceRoot": "~/.openclaw/sandboxes",
-            "docker": {
-              "image": "openclaw-sandbox:bookworm-slim",
-              "workdir": "/workspace",
-              "readOnlyRoot": true,
-              "tmpfs": ["/tmp", "/var/tmp", "/run"],
-              "network": "none",
-              "user": "1000:1000"
-            },
-            "browser": { "enabled": false }
-          }
+          "maxConcurrent": 2
         },
         "list": [
           {
@@ -95,34 +78,14 @@ data:
               "name": "Samantha",
               "theme": "helpful sloth",
               "emoji": "🦥"
-            },
-            "groupChat": {
-              "mentionPatterns": ["@openclaw", "openclaw"],
-              "historyLimit": 50
             }
           }
         ]
       },
       "tools": {
-        "allow": ["exec", "process", "read", "write", "edit", "apply_patch"],
+        "allow": ["read", "write", "edit", "apply_patch"],
         "deny": ["browser", "canvas"],
-        "exec": {
-          "backgroundMs": 10000,
-          "timeoutSec": 1800,
-          "cleanupMs": 1800000
-        },
-        "elevated": {
-          "enabled": true,
-          "allowFrom": {
-            "whatsapp": ["+15555550123"],
-            "telegram": ["123456789"],
-            "discord": ["steipete"],
-            "slack": ["U123"],
-            "signal": ["+15555550123"],
-            "imessage": ["user@example.com"],
-            "webchat": ["session:demo"]
-          }
-        }
+        "elevated": {"enabled": false}
       },
       "models": {
         "mode": "merge",
@@ -132,25 +95,14 @@ data:
             "baseUrl": "http://litellm.litellm.svc.cluster.local:80/v1",
             "apiKey": "${LITELLM_API_KEY}",
             "models": [
-              { "id": "claude-sonnet-4-20250514", "name": "claude-sonnet-4-20250514" }
+              {"id": "anthropic/claude-sonnet-4-6", "name": "Claude Sonnet 4.6"},
+              {"id": "anthropic/claude-haiku-4-5", "name": "Claude Haiku 4.5"}
             ]
           }
         }
       },
       "gateway": {
         "mode": "local",
-        "port": 18789,
-        "bind": "lan",
-        "trustedProxies": ["10.244.0.0/16"],
-        "controlUi": {
-          "enabled": true,
-          "basePath": "/openclaw",
-          "allowedOrigins": ["https://openclaw.smadja.dev"]
-        },
-        "auth": {
-          "mode": "token",
-          "token": "${OPENCLAW_GATEWAY_TOKEN}",
-          "allowTailscale": true
-        }
+        "port": 18789
       }
     }

@@ -5,50 +5,56 @@ metadata:
   namespace: openclaw
   labels:
     app.kubernetes.io/name: openclaw
+    policy-type: ai-audit
 spec:
+  description: "OpenClaw: operator gateway-proxy ingress, LiteLLM model traffic, DNS and Slack only."
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: openclaw
+      app.kubernetes.io/instance: openclaw
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+        - ingress
+      toPorts:
+        - ports:
+            - port: "18790"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
   egress:
-  - toEndpoints:
-    - matchLabels:
-        k8s:io.kubernetes.pod.namespace: litellm
-        app: litellm
-    toPorts:
-    - ports:
-      - port: "4000"
-  - toEndpoints:
-    - matchLabels:
-        k8s:io.kubernetes.pod.namespace: qdrant
-        app: qdrant
-    toPorts:
-    - ports:
-      - port: "6333"
-  - toEndpoints:
-    - matchLabels:
-        k8s:io.kubernetes.pod.namespace: kube-system
-        k8s:k8s-app: kube-dns
-    toPorts:
-    - ports:
-      - port: "53"
-        protocol: UDP
-      - port: "53"
-        protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: litellm
+            app: litellm
+      toPorts:
+        - ports:
+            - port: "4000"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
       rules:
         dns:
           - matchPattern: "*"
-  - toFQDNs:
-    - matchName: "api.slack.com"
-    - matchName: "slack.com"
-  ingress:
-  - fromEntities:
-    - host
-    - remote-node
-    - ingress
-  - fromEndpoints:
-    - matchLabels:
-        k8s:io.kubernetes.pod.namespace: auth
-        app.kubernetes.io/name: authentik
-    toPorts:
-    - ports:
-      - port: "18789"
+    - toFQDNs:
+        - matchName: api.slack.com
+        - matchName: slack.com
+        - matchPattern: "*.slack.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: paperclip-postgresql-weekly
+  namespace: paperclip
+spec:
+  schedule: "0 45 2 * * 0"
+  backupOwnerReference: self
+  cluster:
+    name: paperclip-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: paperclip-hetzner-store
