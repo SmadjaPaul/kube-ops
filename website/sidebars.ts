@@ -15,7 +15,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Architecture',
-      items: ['architecture', 'local-first-network'],
+      items: ['architecture', 'local-first-network', 'architecture/personal-data-platform'],
     },
     {
       type: 'category',
