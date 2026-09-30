@@ -27,7 +27,7 @@ configMapGenerator:
       - ./blueprints/apps-pinepods.yaml
       - ./blueprints/groups.yaml
       - ./blueprints/flows-invitation-operator.yaml
-      - ./blueprints/qa-e2e-user.yaml
+      - ./blueprints/qa-e2e-user-reconcile.yaml
       - ./blueprints/brands.yaml
       - ./blueprints/authentication.yaml
       - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml
