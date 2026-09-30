@@ -74,6 +74,22 @@ entries:
 
   - model: authentik_providers_oauth2.scopemapping
     identifiers:
+      name: "OAuth mapping: OpenID 'roles' for Open WebUI"
+    attrs:
+      scope_name: roles
+      description: Open WebUI role mapping from Authentik groups
+      expression: |
+        group_names = [group.name for group in request.user.ak_groups.all()]
+
+        if "authentik-admins" in group_names:
+            return {"roles": ["admin"]}
+        if "Open WebUI Users" in group_names:
+            return {"roles": ["user"]}
+
+        return {"roles": []}
+
+  - model: authentik_providers_oauth2.scopemapping
+    identifiers:
       name: "OAuth mapping: OpenID 'username'"
     attrs:
       scope_name: username
