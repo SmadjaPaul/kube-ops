@@ -16,6 +16,6 @@ spec:
         barmanObjectName: chatwoot-hetzner-store
   storage:
     size: 10Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   affinity:
     enablePodAntiAffinity: false

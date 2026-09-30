@@ -8,7 +8,7 @@ already proven in `home-ops`: Omnigent v0.14.0.
 - GitOps: Argo CD;
 - server: `ghcr.io/omnigent-ai/omnigent-server-kubernetes:v0.14.0`, one replica;
 - database: dedicated single-instance CloudNativePG cluster;
-- database and artifact persistence: `proxmox-csi`;
+- database and artifact persistence: `longhorn-fast`;
 - database WAL/base backups: Barman Cloud plugin to Hetzner Object Storage;
 - runtime secret delivery: External Secrets through
   `ClusterSecretStore/doppler-cluster`;

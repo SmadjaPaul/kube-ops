@@ -5,7 +5,7 @@ metadata:
   namespace: omnigent
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: proxmox-csi
+  storageClassName: longhorn-fast
   resources:
     requests:
       storage: 10Gi
@@ -28,6 +28,6 @@ spec:
         barmanObjectName: omnigent-hetzner-store
   storage:
     size: 10Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   affinity:
     enablePodAntiAffinity: false
