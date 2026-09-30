@@ -28,3 +28,4 @@ resources:
   - daily-opencode.yaml
   - daily-pocket-tts.yaml
   - daily-trilium.yaml
+  - daily-romm.yaml
