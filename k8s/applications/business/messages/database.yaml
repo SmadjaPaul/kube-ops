@@ -16,6 +16,6 @@ spec:
         barmanObjectName: messages-hetzner-store
   storage:
     size: 20Gi
-    storageClass: proxmox-csi
+    storageClass: longhorn-fast
   affinity:
     enablePodAntiAffinity: false

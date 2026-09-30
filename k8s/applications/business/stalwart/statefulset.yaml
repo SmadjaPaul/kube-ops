@@ -72,7 +72,7 @@ spec:
         name: config
       spec:
         accessModes: [ReadWriteOnce]
-        storageClassName: proxmox-csi
+        storageClassName: longhorn-fast
         resources:
           requests:
             storage: 2Gi
@@ -80,7 +80,7 @@ spec:
         name: data
       spec:
         accessModes: [ReadWriteOnce]
-        storageClassName: proxmox-csi
+        storageClassName: longhorn-fast
         resources:
           requests:
             storage: 20Gi
