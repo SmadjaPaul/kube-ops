@@ -12,4 +12,5 @@ resources:
 - vllm-embed
 - gpt-researcher
 - openclaw
+- paperclip
 - pocket-tts

@@ -1,0 +1,62 @@
+schema: paperclip/v1
+agents:
+  engineering-manager:
+    adapter: opencode_local
+    adapterConfig:
+      model: litellm/anthropic/claude-opus-4-6
+    budgetMonthlyCents: 3000
+    runtimeConfig:
+      heartbeat:
+        enabled: false
+  researcher:
+    adapter: opencode_local
+    adapterConfig:
+      model: litellm/anthropic/claude-haiku-4-5
+    budgetMonthlyCents: 1500
+    runtimeConfig:
+      heartbeat:
+        enabled: false
+  implementation-engineer:
+    adapter: opencode_local
+    adapterConfig:
+      model: litellm/azure/gpt-5.3-codex
+    budgetMonthlyCents: 3000
+    runtimeConfig:
+      heartbeat:
+        enabled: false
+  reviewer:
+    adapter: opencode_local
+    adapterConfig:
+      model: litellm/anthropic/claude-sonnet-4-6
+    budgetMonthlyCents: 2000
+    runtimeConfig:
+      heartbeat:
+        enabled: false
+  qa-release-engineer:
+    adapter: opencode_local
+    adapterConfig:
+      model: litellm/anthropic/claude-sonnet-4-6
+    budgetMonthlyCents: 2000
+    runtimeConfig:
+      heartbeat:
+        enabled: false
+
+projects:
+  kube-ops:
+    workspaces:
+      main:
+        name: kube-ops
+        sourceType: git_repo
+        repoUrl: https://github.com/SmadjaPaul/kube-ops.git
+        repoRef: main
+        defaultRef: main
+        isPrimary: true
+  homelab-infra:
+    workspaces:
+      main:
+        name: homelab-infra
+        sourceType: git_repo
+        repoUrl: https://github.com/SmadjaPaul/homelab-infra.git
+        repoRef: main
+        defaultRef: main
+        isPrimary: true

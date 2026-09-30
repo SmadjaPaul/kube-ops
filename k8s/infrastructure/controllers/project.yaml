@@ -9,12 +9,17 @@ spec:
   description: Project for core infrastructure controllers
   sourceRepos:
     - 'https://github.com/SmadjaPaul/kube-ops.git'
+    - 'ghcr.io/paperclipinc/charts'
   destinations:
     - namespace: 'argocd'
       server: '*'
     - namespace: 'kube-system'
       server: '*'
     - namespace: 'velero'
+      server: '*'
+    - namespace: 'paperclip-operator-system'
+      server: '*'
+    - namespace: 'openclaw-operator-system'
       server: '*'
   clusterResourceWhitelist:
     - group: '*'

@@ -1,0 +1,50 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: paperclip-postgresql
+  namespace: paperclip
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7
+  bootstrap:
+    initdb:
+      database: paperclip
+      owner: paperclip
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: paperclip-hetzner-store
+  storage:
+    size: 10Gi
+    storageClass: longhorn-fast
+  walStorage:
+    size: 10Gi
+    storageClass: longhorn-fast
+    resizeInUseVolumes: true
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 200m
+    limits:
+      memory: 2Gi
+      cpu: "1"
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "256MB"
+      effective_cache_size: "768MB"
+      maintenance_work_mem: "128MB"
+      checkpoint_completion_target: "0.9"
+      wal_buffers: "16MB"
+      default_statistics_target: "100"
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+      work_mem: "4MB"
+      huge_pages: "off"
+      min_wal_size: "512MB"
+      max_wal_size: "1GB"
+  monitoring:
+    enablePodMonitor: false
+  affinity:
+    enablePodAntiAffinity: false

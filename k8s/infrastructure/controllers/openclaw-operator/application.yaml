@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openclaw-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  project: controllers
+  source:
+    repoURL: ghcr.io/paperclipinc/charts
+    chart: openclaw-operator
+    targetRevision: 0.40.0
+    helm:
+      values: |
+        crds:
+          install: true
+          keep: true
+        watchNamespaces:
+          - openclaw
+        rbac:
+          create: true
+          aggregateToDefaultRoles: false
+        webhook:
+          enabled: false
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            interval: 30s
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openclaw-operator-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

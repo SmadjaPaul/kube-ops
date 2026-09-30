@@ -50,6 +50,17 @@ spec:
         protocol: TCP
   - fromEndpoints:
     - matchLabels:
+        k8s:io.kubernetes.pod.namespace: paperclip
+        app.kubernetes.io/name: paperclip
+        app.kubernetes.io/component: server
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
+      - port: "4000"
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
         k8s:io.kubernetes.pod.namespace: gpt-researcher
     toPorts:
     - ports:

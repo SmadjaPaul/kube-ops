@@ -1,0 +1,82 @@
+apiVersion: paperclip.inc/v1alpha1
+kind: Instance
+metadata:
+  name: paperclip
+  namespace: paperclip
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  image:
+    repository: ghcr.io/paperclipai/paperclip
+    tag: "2026.916.1"
+    pullPolicy: IfNotPresent
+  deployment:
+    mode: authenticated
+    exposure: private
+    publicURL: https://paperclip.smadja.dev
+    allowedHostnames:
+      - paperclip.smadja.dev
+      - paperclip.paperclip.svc
+      - paperclip.paperclip.svc.cluster.local
+  database:
+    mode: external
+    externalURLSecretRef:
+      name: paperclip-postgresql-app
+      key: uri
+  auth:
+    secretRef:
+      name: paperclip-runtime-secrets
+      key: BETTER_AUTH_SECRET
+  secrets:
+    provider: local_encrypted
+    masterKeySecretRef:
+      name: paperclip-runtime-secrets
+      key: PAPERCLIP_SECRETS_MASTER_KEY
+    strictMode: true
+  storage:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: longhorn-fast
+      accessModes:
+        - ReadWriteOnce
+  heartbeat:
+    enabled: false
+  envFrom:
+    - configMapRef:
+        name: paperclip-runtime-config
+    - secretRef:
+        name: paperclip-runtime-secrets
+  security:
+    networkPolicy:
+      enabled: false
+    rbac:
+      create: true
+    seLinuxRelabel: false
+  networking:
+    service:
+      type: ClusterIP
+      port: 3100
+    httpRoute:
+      enabled: true
+      parentRefs:
+        - name: internal
+          namespace: gateway
+          sectionName: https-subdomains
+      hostnames:
+        - paperclip.smadja.dev
+  observability:
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        interval: 30s
+    logging:
+      level: info
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
