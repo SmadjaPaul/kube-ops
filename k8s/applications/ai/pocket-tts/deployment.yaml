@@ -66,11 +66,11 @@ spec:
           value: "/tmp"
         resources:
           requests:
-            memory: "2Gi"
+            memory: "4Gi"
             cpu: "100m"
             ephemeral-storage: "256Mi"
           limits:
-            memory: "4Gi"
+            memory: "8Gi"
             cpu: "2000m"
             ephemeral-storage: "1Gi"
         startupProbe:
