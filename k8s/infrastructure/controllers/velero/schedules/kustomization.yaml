@@ -23,6 +23,7 @@ resources:
   - daily-zigbee2mqtt.yaml
   - daily-perplexica.yaml
   - daily-openclaw.yaml
+  - daily-paperclip.yaml
   - daily-gpt-researcher.yaml
   - daily-opencode.yaml
   - daily-pocket-tts.yaml

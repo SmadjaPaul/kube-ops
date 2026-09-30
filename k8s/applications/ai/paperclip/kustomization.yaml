@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: paperclip
+resources:
+  - namespace.yaml
+  - externalsecret.yaml
+  - runtime-config.yaml
+  - database-s3-credentials.yaml
+  - database-objectstore.yaml
+  - database.yaml
+  - database-scheduled-backup.yaml
+  - instance.yaml
+  - networkpolicy.yaml

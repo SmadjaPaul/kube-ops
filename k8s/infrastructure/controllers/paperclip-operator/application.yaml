@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: paperclip-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  project: controllers
+  source:
+    repoURL: ghcr.io/paperclipinc/charts
+    chart: paperclip-operator
+    targetRevision: 0.19.1
+    helm:
+      values: |
+        crds:
+          install: true
+          keep: true
+        metrics:
+          enabled: true
+          secure: true
+          serviceMonitor:
+            enabled: true
+            interval: 30s
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: paperclip-operator-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
