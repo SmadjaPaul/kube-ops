@@ -15,6 +15,7 @@ entries:
     attrs:
       username: e2e-user
       name: E2E User
+      email: e2e-user@smadja.dev
       is_active: true
       password: !Env E2E_USER_PASSWORD
       groups:
