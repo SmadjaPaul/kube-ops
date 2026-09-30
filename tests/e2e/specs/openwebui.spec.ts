@@ -32,6 +32,12 @@ test('OPENWEBUI_E2E reaches authenticated main UI without model call', async ({ 
 
     const mainUi = page.locator('textarea, [contenteditable="true"], nav').first();
     await expect(mainUi, 'OPENWEBUI_MAIN_UI_VISIBLE').toBeVisible({ timeout: 30_000 });
+
+    const sessionResponse = await page.request.get('/api/v1/auths/');
+    expect(sessionResponse.status(), 'OPENWEBUI_SESSION_HTTP').toBe(200);
+
+    const session = await sessionResponse.json();
+    expect(session?.role, 'OPENWEBUI_E2E_ROLE').toBe('user');
   } catch (error) {
     await attachClassification(testInfo, 'OPENWEBUI_LOGIN_OR_UI_FAILED');
     throw error;

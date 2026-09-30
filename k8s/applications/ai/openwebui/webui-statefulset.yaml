@@ -82,6 +82,23 @@ spec:
               value: 'authentik'
             - name: ENABLE_OAUTH
               value: 'true'
+            # Open WebUI v0.9.5 treats an empty database as onboarding. Use its
+            # upstream headless bootstrap path so no ClickOps/local signup is
+            # required. The random password is machine-owned and password auth
+            # is disabled below; Paul's later OIDC login merges by email.
+            - name: WEBUI_ADMIN_EMAIL
+              value: 'paul@smadja.dev'
+            - name: WEBUI_ADMIN_NAME
+              value: 'Paul'
+            - name: WEBUI_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openwebui-secret
+                  key: WEBUI_ADMIN_PASSWORD
+            - name: ENABLE_PASSWORD_AUTH
+              value: 'false'
+            - name: ENABLE_PASSWORD_CHANGE_FORM
+              value: 'false'
             - name: ENABLE_LOGIN_FORM
               value: 'false'
             - name: ENABLE_SIGNUP
@@ -94,6 +111,16 @@ spec:
               value: 'https://chat.smadja.dev'
             - name: ENABLE_OAUTH_SIGNUP
               value: 'true'
+            - name: OAUTH_SCOPES
+              value: 'openid email profile roles'
+            - name: ENABLE_OAUTH_ROLE_MANAGEMENT
+              value: 'true'
+            - name: OAUTH_ROLES_CLAIM
+              value: 'roles'
+            - name: OAUTH_ALLOWED_ROLES
+              value: 'user'
+            - name: OAUTH_ADMIN_ROLES
+              value: 'admin'
             - name: CORS_ALLOW_ORIGIN
               value: 'https://chat.smadja.dev'
             - name: STARTUP_TIMEOUT
