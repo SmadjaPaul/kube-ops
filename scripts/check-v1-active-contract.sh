@@ -130,6 +130,12 @@ for root in "${roots[@]}"; do
   printf '\n---\n' >>"$rendered"
 done
 
+command -v kubeconform >/dev/null 2>&1 || {
+  echo "ERROR: kubeconform is required" >&2
+  exit 2
+}
+kubeconform -strict -summary -ignore-missing-schemas -kubernetes-version 1.36.0 "$rendered"
+
 # A root may deliberately leave a post-V1 component out of its kustomization
 # while retaining its upstream manifests for later activation. Validate what is
 # actually rendered by an active root rather than treating inactive source

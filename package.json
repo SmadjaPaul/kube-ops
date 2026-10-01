@@ -4,7 +4,9 @@
     "build": "cd website && npm run build",
     "install:all": "npm install && cd website && npm install",
     "check:v1-contract": "bash scripts/check-v1-active-contract.sh",
-    "check:cluster-contract": "bash scripts/check-v1-active-contract.sh"
+    "check:backup-contract": "bash scripts/backup-static-contract.sh",
+    "check": "npm run check:v1-contract && npm run check:backup-contract",
+    "check:cluster-contract": "npm run check:v1-contract"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.0.2",

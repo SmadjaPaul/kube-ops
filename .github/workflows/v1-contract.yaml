@@ -5,6 +5,10 @@ on:
     paths:
       - 'k8s/**'
       - 'scripts/**'
+      - '.agents/**'
+      - '.justfile'
+      - 'docs/agent-harness.md'
+      - 'docs/operations/acceptance-levels.md'
       - 'AGENTS.md'
       - 'README.md'
       - '.github/workflows/v1-contract.yaml'
@@ -40,8 +44,21 @@ jobs:
           sudo install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
           kustomize version
 
-      - name: Validate first-green desired state
-        run: npm run check:v1-contract
+      - name: Install yq
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/yq https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_linux_amd64
+          sudo install -m 0755 /tmp/yq /usr/local/bin/yq
+          yq --version
+
+      - name: Install Kubeconform
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kubeconform.tgz https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tgz -C /tmp
+          sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
+
+      - name: Validate V1 desired state and backup coverage
+        run: npm run check
 
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh
