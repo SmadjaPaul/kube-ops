@@ -1,67 +1,100 @@
-# AGENTS.md — kube-ops operating contract
+# AGENTS.md — kube-ops operating router
+
+Git is the Kubernetes desired-state authority. Argo CD continuously reconciles Git. Runtime tools provide evidence; they are never a second steady-state mutation plane.
 
 ## Authority
 
-Git is the Kubernetes desired-state authority. Argo CD continuously reconciles that state. Runtime tools provide evidence; they are not a second steady-state mutation plane.
+When sources disagree use: accepted repository contracts > this router > desired-state code > runtime as observed evidence. Runtime drift never silently becomes desired state.
 
 Repository boundary:
+- `homelab-infra`: Proxmox/Talos substrate, UniFi/LAN DNS, Cloudflare account/edge, Doppler bootstrap, Hetzner, Migadu and N100.
+- `kube-ops`: Kubernetes/Argo desired state after kubeconfig handoff.
 
-- `homelab-infra`: Proxmox host/network, VM101, Talos machine lifecycle/secrets/bootstrap, UniFi/LAN, Cloudflare account/tunnel/DNS, Doppler bootstrap, Hetzner Object Storage, Migadu, N100 host lifecycle and other external prerequisites.
-- `kube-ops`: Kubernetes bootstrap and all Kubernetes/Argo desired state after the kubeconfig handoff.
+Do not add Terraform/OpenTofu here.
 
-This repository MUST NOT contain Terraform/OpenTofu state or providers. A real infrastructure object has exactly one IaC owner.
+## Read order
 
-## Current platform contract
+For a task read: this file → one relevant skill under `.agents/skills/` → only the application/infrastructure subtree being changed. Use `just inventory` before crawling the repository.
 
-- one schedulable Talos control-plane node: VM101 / 10.0.20.60, created by `homelab-infra`;
-- Talos 1.13.10 / Kubernetes 1.36.3;
-- Cilium with kube-proxy replacement and Gateway API;
-- Argo CD is the only steady-state Kubernetes reconciler;
-- Longhorn is the V1 application storage layer with `longhorn-fast` and `longhorn-bulk`;
-- Proxmox CSI is compatibility/staged only and is not the default storage path;
-- no TrueNAS/NFS dependency for the active V1 platform;
-- CNPG one instance per application for V1;
-- CNPG/Barman and Velero/Kopia backups target Hetzner Object Storage;
-- Doppler is the external/bootstrap secret authority; ESO is the runtime delivery path;
-- Authentik is the OIDC authority;
-- Migadu remains SMTP;
-- the AOOSTAR has no discrete GPU; GPU-only workloads stay disabled/staged unless hardware changes;
-- public exposure is `*.smadja.dev -> Cloudflare Tunnel -> in-cluster cloudflared -> Cilium Gateway/external -> HTTPRoute`.
+## Current platform
 
-## Local-first post-V1 target
+- Talos 1.13.10 / Kubernetes 1.36.3, one schedulable node for V1.
+- Cilium + Gateway API; `Gateway/internal` LAN VIP is `10.0.20.192`.
+- private ExternalDNS derives application names from internal HTTPRoutes and publishes them into UniFi DNS.
+- UniFi DNS is the private application authority; AdGuard is filtering/cache only.
+- Argo CD is the only steady-state Kubernetes reconciler.
+- Longhorn `longhorn-fast` / `longhorn-bulk`.
+- CNPG/Barman and Velero/Kopia -> Hetzner Object Storage.
+- Doppler -> ESO for runtime secrets; never inspect Secret values.
+- Authentik is the identity authority.
+- public access is Cloudflare Tunnel -> Gateway/external.
 
-Self-hosted user-facing applications should remain usable from the LAN during WAN loss.
+## Skill routing
 
-The target path is:
+| Task | Entry skill |
+|---|---|
+| unfamiliar repository | `.agents/skills/repo-navigation` |
+| Argo sync/health | `.agents/skills/argocd-debug` |
+| Kubernetes workload failure | `.agents/skills/kubernetes-debug` |
+| runtime/post-merge proof | `.agents/skills/runtime-observer` |
+| OIDC/Auth | `.agents/skills/oidc-integration` |
+| backup/restore | `.agents/skills/backup-restore` |
+| incident triage | `.agents/skills/sre-triage` |
 
-- `Gateway/internal` with a stable LAN-reachable Cilium LoadBalancer address;
-- private ExternalDNS derives application records from routes attached to `Gateway/internal`;
-- private records are synchronized into UniFi DNS;
-- Cloudflare remains the optional remote path through `Gateway/external`;
-- AdGuard remains filtering/cache, not a second application registry.
+`.agents/` is the single shared agent knowledge tree. Do not create parallel Codex/OpenCode prompt trees.
 
-Do not remove an existing external route until the replacement LAN path is proven.
+## Evidence levels
 
-## Bootstrap exception
+Never collapse these levels:
+1. STATIC — render/schema/policy checks pass.
+2. RECONCILED — Argo reports the desired revision Synced and controllers accepted resources.
+3. RUNTIME — workloads, dependencies, Service/EndpointSlice, Gateway, DNS and TLS work.
+4. USER — a real user can authenticate and complete the intended durable action.
 
-`scripts/bootstrap-cluster.sh` is the supported direct Kubernetes bootstrap path. After Argo is running, normal mutations are Git -> Argo -> Kubernetes.
+A merged PR proves none of levels 2-4 by itself.
 
-Direct `kubectl` is allowed for diagnostics and bounded bootstrap/recovery evidence only. Do not create durable configuration outside Git.
+## Operator command surface
 
-## Forbidden legacy bindings
+Prefer repository commands over improvised shell:
+- `just inventory`
+- `just check`
+- `just runtime-inventory`
+- `just runtime-smoke`
+- `just status-app <argo-app>`
+- `just diagnose-app <argo-app>`
+- `just backup-audit`
+- `just e2e-list`
 
-Active state must not contain:
+## Runtime evidence order
 
-- `theepicsaxguy/homelab` as desired-state source;
-- `peekoff.com`;
-- `10.25.150.x`;
-- TrueNAS/NFS media dependencies;
-- MinIO or Backblaze B2 backup targets;
-- Bitwarden secret-store bindings;
-- a second OpenTofu/Terraform tree in this repository.
+```
+Git desired state
+  -> Argo Application/ApplicationSet
+  -> controller resource status
+  -> Kubernetes workload / Service / EndpointSlice
+  -> Gateway / DNS / TLS
+  -> user journey
+```
+
+For HTTP failures distinguish DNS, TLS, HTTPRoute status, ready EndpointSlices and the application response. Do not debug OAuth while DNS/TLS/backend routing is unproven.
+
+## Safety
+
+Without explicit operator approval:
+- no apply/delete/patch/edit/scale/restart as durable repair;
+- no infrastructure apply/destroy/state mutation;
+- no Secret value reads or credential printing;
+- no TLS bypass with `-k`;
+- no PVC deletion/reinitialization;
+- no new public exposure, privilege escalation, identity-root rotation or irreversible migration;
+- no disabling desired apps merely to make Argo green.
+
+Bounded read-only `kubectl get/describe/logs` is evidence. Durable repair is branch -> checks -> PR -> merge -> Argo -> runtime proof.
 
 ## Validation
 
-Run `npm run check:v1-contract` for Kubernetes desired-state changes and the relevant repository checks for the changed scope.
+Run `just check` for desired-state changes. Stateful workloads are incomplete until backup coverage exists; data that matters is incomplete until restore has been proven at least once.
 
-A live bootstrap, destructive infrastructure action, PKI/secret rotation, storage deletion, or cluster reconstruction requires explicit operator approval.
+## Context discipline
+
+Do not load the whole repository. If a normal task cannot be solved from this router + one skill + one app tree + bounded runtime evidence, improve navigation/scripts instead of creating mega-context documents.
