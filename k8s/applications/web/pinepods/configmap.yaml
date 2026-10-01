@@ -9,3 +9,17 @@ data:
   DEBUG_MODE: "false"
   VALKEY_HOST: pinepods-valkey
   VALKEY_PORT: "6379"
+  HOSTNAME: https://pinepods.smadja.dev
+  OIDC_DISABLE_STANDARD_LOGIN: "false"
+  OIDC_PROVIDER_NAME: Authentik
+  OIDC_AUTHORIZATION_URL: https://auth.smadja.dev/application/o/authorize/
+  OIDC_TOKEN_URL: https://auth.smadja.dev/application/o/token/
+  OIDC_USER_INFO_URL: https://auth.smadja.dev/application/o/userinfo/
+  OIDC_BUTTON_TEXT: Sign in with Authentik
+  OIDC_SCOPE: "openid profile email"
+  OIDC_NAME_CLAIM: name
+  OIDC_EMAIL_CLAIM: email
+  OIDC_USERNAME_CLAIM: preferred_username
+  OIDC_ROLES_CLAIM: groups
+  OIDC_USER_ROLE: family
+  OIDC_ADMIN_ROLE: authentik-admins
