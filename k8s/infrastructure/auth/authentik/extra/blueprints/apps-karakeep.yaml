@@ -51,6 +51,7 @@ entries:
     attrs:
       name: Karakeep
       group: AI
+      meta_launch_url: https://karakeep.smadja.dev
       meta_description: "A self-hostable bookmark-everything app with AI-based automatic tagging."
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/karakeep.png
       provider: !KeyOf karakeep-provider

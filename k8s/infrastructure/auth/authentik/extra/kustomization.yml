@@ -26,6 +26,9 @@ configMapGenerator:
       - ./blueprints/apps-cloudflare.yaml
       - ./blueprints/apps-pinepods.yaml
       - ./blueprints/apps-romm.yaml
+      - ./blueprints/apps-mealie.yaml
+      - ./blueprints/apps-vikunja.yaml
+      - ./blueprints/apps-messages.yaml
       - ./blueprints/groups.yaml
       - ./blueprints/flows-invitation-operator.yaml
       - ./blueprints/qa-e2e-user.yaml

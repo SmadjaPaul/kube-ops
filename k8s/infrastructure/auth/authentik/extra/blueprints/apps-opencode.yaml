@@ -28,7 +28,7 @@ entries:
       external_host: https://opencode.smadja.dev
 
       # Internal service URL - OpenCode service in opencode namespace
-      internal_host: http://opencode-web.opencode.svc.cluster.local:5003
+      internal_host: http://opencode-web-service.opencode.svc.cluster.local:5003
       internal_host_ssl_validation: false
 
       # Pass user info headers to OpenCode - no exclusions

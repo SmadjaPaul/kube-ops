@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+version: 1
+metadata:
+  name: Apps - Messages
+entries:
+  - id: messages_provider
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers: {name: k8s.smadja.dev/business/messages}
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      client_type: confidential
+      grant_types: [authorization_code]
+      client_id: messages
+      client_secret: !Env MESSAGES_CLIENT_SECRET
+      redirect_uris:
+        - {url: https://messages.smadja.dev/oidc/callback/, matching_mode: strict}
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+  - id: messages_application
+    model: authentik_core.application
+    identifiers: {slug: messages}
+    attrs:
+      name: Messages
+      group: Business
+      meta_launch_url: https://messages.smadja.dev
+      provider: !KeyOf messages_provider
+      policy_engine_mode: any
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf messages_application, group: !Find [authentik_core.group, [name, "dev"]]}
+    attrs: {order: 10}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf messages_application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
+    attrs: {order: 100}

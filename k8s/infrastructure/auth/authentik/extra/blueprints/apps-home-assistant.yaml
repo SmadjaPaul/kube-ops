@@ -55,7 +55,7 @@ entries:
       name: Home assistant
       group: Home Automation
       description: Home automation
-      meta_launch_url: https://smadja.dev
+      meta_launch_url: https://hassio.smadja.dev
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/home-assistant.png
       policy_engine_mode: any
       provider: !KeyOf provider-homeassistant
