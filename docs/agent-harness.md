@@ -54,3 +54,15 @@ Kyverno Chainsaw is the preferred disposable-cluster scenario runner when apply/
 - USER: Playwright or documented manual journey
 
 Never promote lower-level evidence to a higher level.
+
+
+## Backup classification
+
+Every persisted application volume must be one of:
+
+- protected by an offsite Velero/Kopia schedule; or
+- explicitly labelled `backup.smadja.dev/strategy=rebuildable`.
+
+The rebuildable label is reserved for caches or reproducible downloaded datasets.
+It is currently appropriate for the Kiwix library cache and vLLM model cache.
+User-generated data must never use this exemption.
