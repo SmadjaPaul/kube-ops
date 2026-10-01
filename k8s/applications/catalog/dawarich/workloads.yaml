@@ -18,19 +18,32 @@ spec:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile: { type: RuntimeDefault }
-      containers:
-        - name: web
-          image: freikin/dawarich:1.15.2
+      initContainers:
+        # Longhorn-backed PVCs contain an ext4 `lost+found` directory owned
+        # by root. The upstream entrypoint chowns recursively and fails with
+        # EPERM on lost+found because capabilities are dropped. Pre-chown
+        # as root with CAP_CHOWN, then the upstream entrypoint skips its
+        # chown because the directory is already owned by 1000:1000.
+        - name: fix-volume-permissions
+          image: busybox:1.37
           command: ["sh","-c"]
           args:
             - >-
-              set -eu;
-              # The upstream entrypoint chowns /var/app/public recursively and
-              # fails on the ext4 lost+found directory created by Longhorn.
-              # fsGroup already sets the GID, so the app can write as root
-              # inside this PSS baseline namespace without the chown step.
-              mkdir -p /var/app/storage /var/app/public;
-              exec bin/rails server -p 3000 -b '::'
+              chown -R 1000:1000 /var/app/public /var/app/storage
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN"]
+          volumeMounts:
+            - { name: public, mountPath: /var/app/public }
+            - { name: storage, mountPath: /var/app/storage }
+      containers:
+        - name: web
+          image: freikin/dawarich:1.15.2
+          command: ["web-entrypoint.sh"]
+          args: ["bundle","exec","rails","server","-p","3000","-b","::"]
           env:
             - { name: RAILS_ENV, value: "production" }
             - { name: REDIS_URL, value: "redis://dawarich-redis:6379" }
@@ -86,15 +99,27 @@ spec:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile: { type: RuntimeDefault }
-      containers:
-        - name: sidekiq
-          image: freikin/dawarich:1.15.2
+      initContainers:
+        - name: fix-volume-permissions
+          image: busybox:1.37
           command: ["sh","-c"]
           args:
             - >-
-              set -eu;
-              mkdir -p /var/app/storage /var/app/public;
-              exec sidekiq
+              chown -R 1000:1000 /var/app/public /var/app/storage
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN"]
+          volumeMounts:
+            - { name: public, mountPath: /var/app/public }
+            - { name: storage, mountPath: /var/app/storage }
+      containers:
+        - name: sidekiq
+          image: freikin/dawarich:1.15.2
+          command: ["sidekiq-entrypoint.sh"]
+          args: []
           env:
             - { name: RAILS_ENV, value: "production" }
             - { name: REDIS_URL, value: "redis://dawarich-redis:6379" }
