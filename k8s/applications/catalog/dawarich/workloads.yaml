@@ -74,7 +74,12 @@ spec:
           ports: [{ name: http, containerPort: 3000 }]
           securityContext:
             allowPrivilegeEscalation: false
-            capabilities: { drop: ["ALL"] }
+            # Add back only the capabilities the upstream image needs to
+            # honor PUID/PGID privilege drop (gosu uses SETUID/SETGID).
+            # drop ALL still satisfies the NSA hardening policy.
+            capabilities:
+              drop: ["ALL"]
+              add: ["SETUID","SETGID"]
           resources:
             requests: { cpu: 150m, memory: 512Mi }
             limits: { cpu: "1", memory: 2Gi }
@@ -166,7 +171,9 @@ spec:
             - { name: BACKGROUND_PROCESSING_CONCURRENCY, value: "3" }
           securityContext:
             allowPrivilegeEscalation: false
-            capabilities: { drop: ["ALL"] }
+            capabilities:
+              drop: ["ALL"]
+              add: ["SETUID","SETGID"]
           resources:
             requests: { cpu: 100m, memory: 384Mi }
             limits: { cpu: "1", memory: 1536Mi }
