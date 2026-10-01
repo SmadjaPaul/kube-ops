@@ -47,6 +47,40 @@ spec:
             - { name: tmp, mountPath: /var/app/tmp }
             - { name: db, mountPath: /var/app/db }
             - { name: log, mountPath: /var/app/log }
+        # On a fresh CNPG cluster the schema is empty. The upstream Rails
+        # boot initializers (feature_flags / Flipper) query
+        # `flipper_features` before migrations finish, so the web pod
+        # exits 0 cleanly and CrashLoops. db:prepare is the upstream
+        # idempotent idiom: create DB if missing, else migrate. Wait for
+        # the CNPG primary, then prepare. Run as root so createdb can
+        # create the database if needed.
+        - name: db-prepare
+          image: freikin/dawarich:1.15.2
+          command: ["sh","-c"]
+          args:
+            - >-
+              until PGPASSWORD=$DATABASE_PASSWORD
+              psql -h "$DATABASE_HOST" -p "$DATABASE_PORT"
+              -U "$DATABASE_USERNAME" -d postgres -c '\q' 2>/dev/null;
+              do >&2 echo "postgres unavailable, retrying..."; sleep 2; done;
+              >&2 echo "postgres reachable, running db:prepare";
+              bundle exec rails db:prepare
+          env:
+            - { name: RAILS_ENV, value: "production" }
+            - { name: DATABASE_HOST, value: "dawarich-postgis" }
+            - { name: DATABASE_PORT, value: "5432" }
+            - { name: DATABASE_USERNAME, value: "dawarich" }
+            - { name: DATABASE_NAME, value: "dawarich" }
+            - name: DATABASE_PASSWORD
+              valueFrom: { secretKeyRef: { name: dawarich-runtime, key: POSTGRES_PASSWORD } }
+            - name: SECRET_KEY_BASE
+              valueFrom: { secretKeyRef: { name: dawarich-runtime, key: SECRET_KEY_BASE } }
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN","FOWNER","DAC_OVERRIDE"]
       containers:
         - name: web
           image: freikin/dawarich:1.15.2
@@ -145,6 +179,36 @@ spec:
             - { name: tmp, mountPath: /var/app/tmp }
             - { name: db, mountPath: /var/app/db }
             - { name: log, mountPath: /var/app/log }
+        # Idempotent db:prepare: creates the DB if missing, otherwise
+        # applies pending migrations. Same as the web init so Sidekiq
+        # doesn't race the web on schema introspection.
+        - name: db-prepare
+          image: freikin/dawarich:1.15.2
+          command: ["sh","-c"]
+          args:
+            - >-
+              until PGPASSWORD=$DATABASE_PASSWORD
+              psql -h "$DATABASE_HOST" -p "$DATABASE_PORT"
+              -U "$DATABASE_USERNAME" -d postgres -c '\q' 2>/dev/null;
+              do >&2 echo "postgres unavailable, retrying..."; sleep 2; done;
+              >&2 echo "postgres reachable, running db:prepare";
+              bundle exec rails db:prepare
+          env:
+            - { name: RAILS_ENV, value: "production" }
+            - { name: DATABASE_HOST, value: "dawarich-postgis" }
+            - { name: DATABASE_PORT, value: "5432" }
+            - { name: DATABASE_USERNAME, value: "dawarich" }
+            - { name: DATABASE_NAME, value: "dawarich" }
+            - name: DATABASE_PASSWORD
+              valueFrom: { secretKeyRef: { name: dawarich-runtime, key: POSTGRES_PASSWORD } }
+            - name: SECRET_KEY_BASE
+              valueFrom: { secretKeyRef: { name: dawarich-runtime, key: SECRET_KEY_BASE } }
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN","FOWNER","DAC_OVERRIDE"]
       containers:
         - name: sidekiq
           image: freikin/dawarich:1.15.2
