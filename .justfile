@@ -19,9 +19,9 @@ context:
 inventory:
     bash scripts/inventory.sh
 
-[doc('Run deterministic clusterless V1 validation')]
+[doc('Run deterministic clusterless V1 + backup validation')]
 check:
-    npm run check:v1-contract
+    npm run check
 
 [doc('Read-only Argo/Gateway/workload runtime inventory')]
 runtime-inventory:

@@ -5,6 +5,79 @@ configs:
     admin.enabled: false
     url: https://argocd.smadja.dev
     kustomize.buildOptions: '--enable-helm'
+    resource.customizations.health.ConfigMap: |
+      hs = {status = "Healthy", message = "Declarative configuration"}
+      if obj.metadata ~= nil and obj.metadata.deletionTimestamp ~= nil then
+        hs.status = "Progressing"
+        hs.message = "ConfigMap is terminating"
+      end
+      return hs
+    resource.customizations.health.Namespace: |
+      hs = {status = "Healthy", message = "Namespace exists"}
+      if obj.metadata ~= nil and obj.metadata.deletionTimestamp ~= nil then
+        hs.status = "Progressing"
+        hs.message = "Namespace is terminating"
+      end
+      return hs
+    resource.customizations.health.argoproj.io_AppProject: |
+      hs = {status = "Healthy", message = "Declarative Argo policy resource"}
+      if obj.metadata ~= nil and obj.metadata.deletionTimestamp ~= nil then
+        hs.status = "Progressing"
+        hs.message = "AppProject is terminating"
+      end
+      return hs
+    resource.customizations.health.external-secrets.io_ExternalSecret: |
+      hs = {status = "Progressing", message = "Waiting for ExternalSecret Ready condition"}
+      if obj.status ~= nil and obj.status.conditions ~= nil then
+        for _, condition in ipairs(obj.status.conditions) do
+          if condition.type == "Ready" and condition.status == "True" then
+            return {status = "Healthy", message = condition.message or "Secret synchronized"}
+          end
+          if condition.type == "Ready" and condition.status == "False" then
+            return {status = "Degraded", message = condition.message or "ExternalSecret not ready"}
+          end
+        end
+      end
+      return hs
+    resource.customizations.health.gateway.networking.k8s.io_HTTPRoute: |
+      hs = {status = "Progressing", message = "Waiting for Gateway controller"}
+      if obj.status == nil or obj.status.parents == nil or #obj.status.parents == 0 then
+        return hs
+      end
+      local accepted = false
+      for _, parent in ipairs(obj.status.parents) do
+        if parent.conditions ~= nil then
+          for _, condition in ipairs(parent.conditions) do
+            if condition.type == "Accepted" then
+              if condition.status == "False" then
+                return {status = "Degraded", message = condition.message or "HTTPRoute rejected"}
+              elseif condition.status == "True" then
+                accepted = true
+              end
+            end
+            if condition.type == "ResolvedRefs" and condition.status == "False" then
+              return {status = "Degraded", message = condition.message or "HTTPRoute backend references unresolved"}
+            end
+          end
+        end
+      end
+      if accepted then
+        return {status = "Healthy", message = "HTTPRoute accepted"}
+      end
+      return hs
+    resource.customizations.health.gateway.networking.k8s.io_Gateway: |
+      hs = {status = "Progressing", message = "Waiting for Gateway Programmed condition"}
+      if obj.status ~= nil and obj.status.conditions ~= nil then
+        for _, condition in ipairs(obj.status.conditions) do
+          if condition.type == "Programmed" and condition.status == "True" then
+            return {status = "Healthy", message = condition.message or "Gateway programmed"}
+          end
+          if condition.type == "Programmed" and condition.status == "False" then
+            return {status = "Degraded", message = condition.message or "Gateway not programmed"}
+          end
+        end
+      end
+      return hs
     dex.config: |
       connectors:
       - config:
