@@ -23,8 +23,12 @@ data:
             fallthrough
         }
 
-        # Forwarding to external DNS servers for non-cluster queries
-        forward . 10.0.20.53 1.1.1.1 {
+        # Forward non-cluster queries to UniFi gateway (10.0.20.1).
+        # UniFi is the sole LAN resolver: it serves private app records
+        # pushed by ExternalDNS-private and forwards the rest to the
+        # Internet. A public secondary resolver would break split-horizon
+        # because clients could bypass UniFi for smadja.dev lookups.
+        forward . 10.0.20.1 {
             policy sequential
         }
 
