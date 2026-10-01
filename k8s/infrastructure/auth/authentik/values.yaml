@@ -35,6 +35,10 @@ global:
 
   # -- envFrom to pass to all deployed Deployments. Does not apply to GeoIP
   # @default -- `[]` (See [values.yaml])
+  # Note: authentik-blueprint-romm is omitted until homelab-infra #83
+  # provisions APP_ROMM_OAUTH_CLIENT_ID/SECRET in Doppler cluster/prd.
+  # Once that apply succeeds, append the envFrom entry below and
+  # force-rollout the worker deployment.
   envFrom:
     - secretRef:
         name: authentik-core-secrets
@@ -48,8 +52,6 @@ global:
         name: authentik-blueprint-vikunja
     - secretRef:
         name: authentik-blueprint-messages
-    - secretRef:
-        name: authentik-blueprint-romm
     - secretRef:
         name: authentik-smtp-credentials
 
@@ -198,7 +200,7 @@ server:
 worker:
   enabled: true
   deploymentAnnotations:
-    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-messages,authentik-blueprint-romm"
+    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-messages"
     configmap.reloader.stakater.com/auto: "true"
   # Force one desired-state rollout so the already-merged blueprint reload
   # wiring is applied to the existing worker pod. Subsequent ConfigMap changes
