@@ -1,0 +1,29 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-paperless
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: paperless
+spec:
+  schedule: "40 4 * * *"
+  template:
+    includedNamespaces:
+      - paperless
+    labelSelector:
+      matchExpressions:
+        - key: cnpg.io/cluster
+          operator: DoesNotExist
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+      - clusters.postgresql.cnpg.io
+      - backups.postgresql.cnpg.io
+      - scheduledbackups.postgresql.cnpg.io
+      - objectstores.barmancloud.cnpg.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h

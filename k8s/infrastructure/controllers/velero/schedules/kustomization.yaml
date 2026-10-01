@@ -29,3 +29,14 @@ resources:
   - daily-pocket-tts.yaml
   - daily-trilium.yaml
   - daily-romm.yaml
+  - daily-actual-budget.yaml
+  - daily-bulwark.yaml
+  - daily-dawarich.yaml
+  - daily-listmonk.yaml
+  - daily-mealie.yaml
+  - daily-ntfy.yaml
+  - daily-paperless.yaml
+  - daily-stalwart.yaml
+  - daily-stirling-pdf.yaml
+  - daily-twenty.yaml
+  - daily-vikunja.yaml
