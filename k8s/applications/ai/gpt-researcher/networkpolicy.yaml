@@ -31,9 +31,6 @@ spec:
         protocol: UDP
       - port: "53"
         protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
   - toFQDNs:
     - matchName: "api.tavily.com"
     - matchName: "api.smith.langchain.com"
@@ -80,9 +77,6 @@ spec:
         protocol: UDP
       - port: "53"
         protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
   ingress:
   - fromEntities:
     - host
@@ -123,9 +117,6 @@ spec:
         protocol: UDP
       - port: "53"
         protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
   ingress:
   - fromEntities:
     - host

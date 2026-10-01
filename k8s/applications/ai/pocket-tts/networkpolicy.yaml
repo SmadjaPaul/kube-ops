@@ -36,9 +36,6 @@ spec:
         protocol: UDP
       - port: "53"
         protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
   - toFQDNs:
     - matchName: "huggingface.co"
     - matchName: "cdn-lfs.huggingface.co"

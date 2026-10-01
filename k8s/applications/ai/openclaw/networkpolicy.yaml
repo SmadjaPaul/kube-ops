@@ -47,9 +47,6 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
     - toFQDNs:
         - matchName: api.slack.com
         - matchName: slack.com

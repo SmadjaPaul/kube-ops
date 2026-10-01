@@ -38,9 +38,6 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
     - toFQDNs:
         - matchName: auth.smadja.dev
         - matchName: hasheous.org
@@ -74,9 +71,6 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
     - toFQDNs:
         - matchName: fsn1.your-objectstorage.com
       toPorts:

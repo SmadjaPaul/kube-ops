@@ -38,9 +38,6 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: litellm
@@ -92,9 +89,6 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-      rules:
-        dns:
-          - matchPattern: "*"
     - toFQDNs:
         - matchName: fsn1.your-objectstorage.com
       toPorts:
