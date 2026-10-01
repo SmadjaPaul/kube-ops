@@ -25,23 +25,66 @@ done
 
 yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
   map(select(type=="object")) as $docs |
-  [$docs[]|select(.kind=="PersistentVolumeClaim")|{namespace:(.metadata.namespace//"default"),name:.metadata.name}] as $pvcs |
-  [$docs[]|select(.kind=="StatefulSet" and ((.spec.volumeClaimTemplates//[])|length>0))|{namespace:(.metadata.namespace//"default"),name:.metadata.name}] as $stateful |
-  ([$docs[]|select(.apiVersion=="velero.io/v1" and .kind=="Schedule")|.spec.template.includedNamespaces[]?] | unique) as $veleroNamespaces |
-  [$docs[]|select(.apiVersion=="postgresql.cnpg.io/v1" and .kind=="Cluster")|{namespace:(.metadata.namespace//"default"),name:.metadata.name,wal:any(.spec.plugins[]?;.isWALArchiver==true)}] as $clusters |
-  [$docs[]|select(.apiVersion=="postgresql.cnpg.io/v1" and .kind=="ScheduledBackup")|{namespace:(.metadata.namespace//"default"),cluster:.spec.cluster.name}] as $backups |
-  [$docs[]|select(.kind=="ObjectStore" and (.apiVersion|startswith("barmancloud.cnpg.io/")))|{namespace:(.metadata.namespace//"default"),name:.metadata.name}] as $stores |
-  (($pvcs+$stateful)|map(.namespace)|unique) as $statefulNamespaces |
+  [$docs[] |
+    select(.kind=="PersistentVolumeClaim") |
+    {
+      namespace:(.metadata.namespace//"default"),
+      name:.metadata.name,
+      rebuildable:(.metadata.labels["backup.smadja.dev/strategy"]=="rebuildable")
+    }
+  ] as $pvcs |
+  [$docs[] |
+    select(.kind=="StatefulSet" and ((.spec.volumeClaimTemplates//[])|length>0)) |
+    {
+      namespace:(.metadata.namespace//"default"),
+      name:.metadata.name,
+      rebuildable:(
+        ([.spec.volumeClaimTemplates[]? | .metadata.labels["backup.smadja.dev/strategy"]=="rebuildable"] | length) > 0
+        and
+        ([.spec.volumeClaimTemplates[]? | select(.metadata.labels["backup.smadja.dev/strategy"]!="rebuildable")] | length) == 0
+      )
+    }
+  ] as $stateful |
+  ([$docs[] |
+    select(.apiVersion=="velero.io/v1" and .kind=="Schedule") |
+    .spec.template.includedNamespaces[]?
+  ] | unique) as $veleroNamespaces |
+  [$docs[] |
+    select(.apiVersion=="postgresql.cnpg.io/v1" and .kind=="Cluster") |
+    {
+      namespace:(.metadata.namespace//"default"),
+      name:.metadata.name,
+      wal:any(.spec.plugins[]?; .isWALArchiver==true)
+    }
+  ] as $clusters |
+  [$docs[] |
+    select(.apiVersion=="postgresql.cnpg.io/v1" and .kind=="ScheduledBackup") |
+    {namespace:(.metadata.namespace//"default"),cluster:.spec.cluster.name}
+  ] as $backups |
+  [$docs[] |
+    select(.kind=="ObjectStore" and (.apiVersion|startswith("barmancloud.cnpg.io/"))) |
+    {namespace:(.metadata.namespace//"default"),name:.metadata.name}
+  ] as $stores |
+  ((([$pvcs[]|select(.rebuildable!=true)]) + ([$stateful[]|select(.rebuildable!=true)])) | map(.namespace) | unique) as $protectedNamespaces |
   {
-    statefulNamespaces:$statefulNamespaces,
+    protectedNamespaces:$protectedNamespaces,
+    rebuildablePVCs:[$pvcs[]|select(.rebuildable==true)],
     veleroNamespaces:$veleroNamespaces,
     cnpg:$clusters,
-    missingVelero:[$statefulNamespaces[] as $n | select(($veleroNamespaces|index($n))==null) | $n],
-    missingCNPG:[$clusters[] as $c | select(
-      ($c.wal|not) or
-      (any($backups[]?; .namespace==$c.namespace and .cluster==$c.name)|not) or
-      (any($stores[]?; .namespace==$c.namespace)|not)
-    ) | $c]
+    missingVelero:[
+      $protectedNamespaces[] as $n |
+      select(($veleroNamespaces|index($n))==null) |
+      $n
+    ],
+    missingCNPG:[
+      $clusters[] as $c |
+      select(
+        ($c.wal|not) or
+        (any($backups[]?; .namespace==$c.namespace and .cluster==$c.name)|not) or
+        (any($stores[]?; .namespace==$c.namespace)|not)
+      ) |
+      $c
+    ]
   } |
   .gapCount=((.missingVelero|length)+(.missingCNPG|length))
 ' >"$tmp/report.json"
