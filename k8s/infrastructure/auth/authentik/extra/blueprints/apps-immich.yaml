@@ -59,6 +59,7 @@ entries:
     attrs:
       name: Photos
       group: Stockage
+      meta_launch_url: https://immich.smadja.dev
       meta_description: Gestion de photos, vidéos et albums
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/immich.png
       provider: !KeyOf immich_provider

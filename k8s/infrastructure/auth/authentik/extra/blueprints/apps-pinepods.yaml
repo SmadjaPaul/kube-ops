@@ -59,6 +59,7 @@ entries:
     attrs:
       name: Pinepods
       group: Web
+      meta_launch_url: https://pinepods.smadja.dev
       meta_description: Podcast Management
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pinepods.png
       provider: !KeyOf pinepods_provider

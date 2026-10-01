@@ -51,6 +51,7 @@ entries:
     attrs:
       name: Bazarr
       group: Media
+      meta_launch_url: https://bazarr.smadja.dev
       description: Subtitles
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bazarr.png
       provider: !KeyOf provider-bazarr
@@ -107,6 +108,7 @@ entries:
     attrs:
       name: Lidarr
       group: Media
+      meta_launch_url: https://lidarr.smadja.dev
       description: Music
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/lidarr.png
       provider: !KeyOf provider-lidarr
@@ -163,6 +165,7 @@ entries:
     attrs:
       name: Prowlarr
       group: Media
+      meta_launch_url: https://prowlarr.smadja.dev
       description: Index management
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/prowlarr.png
       provider: !KeyOf provider-prowlarr
@@ -219,6 +222,7 @@ entries:
     attrs:
       name: Radarr
       group: Media
+      meta_launch_url: https://radarr.smadja.dev
       description: Movies
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/radarr.png
       provider: !KeyOf provider-radarr
@@ -275,6 +279,7 @@ entries:
     attrs:
       name: Sonarr
       group: Media
+      meta_launch_url: https://sonarr.smadja.dev
       description: TV shows
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sonarr.png
       provider: !KeyOf provider-sonarr
@@ -331,6 +336,7 @@ entries:
     attrs:
       name: SABnzbd
       group: Media
+      meta_launch_url: https://sabnzbd.smadja.dev
       description: Usenet management
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sabnzbd.png
       provider: !KeyOf provider-sabnzbd
@@ -389,6 +395,7 @@ entries:
     attrs:
       name: Jellyseerr
       group: Media
+      meta_launch_url: https://jellyseerr.smadja.dev
       meta_description: Requêtes de contenu
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyseerr.png
       provider: !KeyOf provider-jellyseerr
@@ -453,6 +460,7 @@ entries:
     attrs:
       name: Audiobookshelf
       group: Media
+      meta_launch_url: https://audiobookshelf.smadja.dev
       meta_description: Audiobook and podcast management
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/audiobookshelf.png
       provider: !KeyOf provider-audiobookshelf
