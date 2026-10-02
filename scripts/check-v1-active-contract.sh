@@ -77,12 +77,11 @@ for internal_route in \
 done
 
 # LiteLLM is a privileged provider-credential broker. V1 uses the official
-# Helm chart, stable provider-neutral lanes and an in-cluster Von classifier.
+# Helm chart, stable provider-neutral lanes and a bounded Jev classifier.
 litellm_values='k8s/applications/ai/litellm/values.yaml'
 litellm_application='k8s/applications/ai/litellm-helm-application.yaml'
 litellm_kustomization='k8s/applications/ai/litellm/kustomization.yaml'
 litellm_provider_secrets='k8s/applications/ai/litellm/litellm-provider-secrets.yaml'
-von_deployment='k8s/applications/ai/litellm/von-deployment.yaml'
 litellm_network_policy='k8s/infrastructure/network/policies/applications/ai/litellm/allow-litellm-access.yaml'
 
 grep -q 'chart: litellm-helm' "$litellm_application"
@@ -112,23 +111,17 @@ grep -q 'model: dashscope/qwen3.8-max' "$litellm_values"
 grep -q 'model: xiaomi_mimo/mimo-v2.6-flash' "$litellm_values"
 grep -q 'model: xiaomi_mimo/mimo-v2.6-pro' "$litellm_values"
 grep -q 'classifier_type: jev' "$litellm_values"
-grep -q 'model: von-latest' "$litellm_values"
+grep -q 'model: jev-1.13' "$litellm_values"
 grep -q 'classifier_fallback: heuristic' "$litellm_values"
-grep -q 'classifier_context_window_size: 3' "$litellm_values"
-grep -q 'TYPESAFE_API_BASE: "http://von.litellm.svc.cluster.local:8000"' "$litellm_values"
-grep -q 'ghcr.io/wfzyx/von:1.3.7-cpu' "$von_deployment"
-grep -q 'openvino' "$von_deployment"
-grep -q -- '--on-overflow' "$von_deployment"
-grep -q 'APP_VON_API_KEY' k8s/applications/ai/litellm/von-secrets.yaml
+grep -q 'classifier_context_window_size: 0' "$litellm_values"
+grep -q 'TYPESAFE_API_BASE: "https://openrouter.ai/api"' "$litellm_values"
+grep -q 'APP_OPENROUTER_API_KEY' "$litellm_provider_secrets"
 grep -q 'APP_XIAOMI_MIMO_API_KEY' "$litellm_provider_secrets"
 grep -q 'APP_ALIBABA_MODEL_STUDIO_API_KEY' "$litellm_provider_secrets"
 grep -q 'APP_ALIBABA_MODEL_STUDIO_BASE_URL' "$litellm_provider_secrets"
 grep -q 'api.xiaomimimo.com' "$litellm_network_policy"
 grep -q '\*.eu-central-1.maas.aliyuncs.com' "$litellm_network_policy"
-if grep -q 'api.typesafe.ai' "$litellm_network_policy"; then
-  echo "ERROR: LiteLLM must classify through in-cluster Von, not TypeSafe cloud" >&2
-  exit 1
-fi
+grep -q 'openrouter.ai' "$litellm_network_policy"
 for legacy_proxy_resource in deployment.yaml svc.yaml proxy_server_config.yaml; do
   if grep -Fqx -- "- $legacy_proxy_resource" "$litellm_kustomization"; then
     echo "ERROR: raw LiteLLM proxy manifest/config remains under Helm authority: $legacy_proxy_resource" >&2
