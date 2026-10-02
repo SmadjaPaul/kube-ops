@@ -38,8 +38,15 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: TCP
     - toFQDNs:
-        - matchName: auth.smadja.dev
         - matchName: hasheous.org
         - matchPattern: "*.hasheous.org"
         - matchPattern: "*.igdb.com"
