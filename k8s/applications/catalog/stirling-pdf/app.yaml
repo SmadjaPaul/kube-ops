@@ -21,7 +21,33 @@ spec:
       labels: { app.kubernetes.io/name: stirling-pdf }
     spec:
       securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: fix-volume-permissions
+          image: busybox:1.37
+          command: ["sh", "-c"]
+          args:
+            - >-
+              chown -R 1001:1001
+              /configs
+              /logs
+              /customFiles
+              /pipeline
+              /storage
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN"]
+          volumeMounts:
+            - { name: config, mountPath: /configs }
+            - { name: logs, mountPath: /logs }
+            - { name: custom-files, mountPath: /customFiles }
+            - { name: pipeline, mountPath: /pipeline }
+            - { name: storage, mountPath: /storage }
       containers:
         - name: stirling-pdf
           image: stirlingtools/stirling-pdf:3.0.0
@@ -38,10 +64,22 @@ spec:
             limits: { cpu: "2", memory: 2Gi }
           volumeMounts:
             - { name: config, mountPath: /configs }
+            - { name: logs, mountPath: /logs }
+            - { name: custom-files, mountPath: /customFiles }
+            - { name: pipeline, mountPath: /pipeline }
+            - { name: storage, mountPath: /storage }
             - { name: tmp, mountPath: /tmp }
       volumes:
         - name: config
           persistentVolumeClaim: { claimName: stirling-config }
+        - name: logs
+          emptyDir: { sizeLimit: 256Mi }
+        - name: custom-files
+          emptyDir: { sizeLimit: 256Mi }
+        - name: pipeline
+          emptyDir: { sizeLimit: 512Mi }
+        - name: storage
+          emptyDir: { sizeLimit: 1Gi }
         - name: tmp
           emptyDir: { sizeLimit: 1Gi }
 ---
