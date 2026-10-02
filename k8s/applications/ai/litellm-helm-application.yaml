@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: litellm
+  namespace: argocd
+  annotations:
+    # Parent app wave 0 creates namespace/CNPG/Redis/ESO/Von first.
+    # This child then runs the chart's PreSync database migration Job.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: ai
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: litellm
+  sources:
+    - repoURL: ghcr.io/berriai
+      chart: litellm-helm
+      targetRevision: 1.103.2
+      helm:
+        releaseName: litellm
+        valueFiles:
+          - $values/k8s/applications/ai/litellm/values.yaml
+    - repoURL: https://github.com/SmadjaPaul/kube-ops.git
+      targetRevision: main
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
