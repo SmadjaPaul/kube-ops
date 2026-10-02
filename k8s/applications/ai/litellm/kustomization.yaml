@@ -2,27 +2,19 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: litellm
 
-# The patched stable is published on LiteLLM's monolithic PostgreSQL-capable
-# image. The Deployment still enforces runAsNonRoot, UID 1000, dropped
-# capabilities and a read-only root filesystem.
-images:
-- name: ghcr.io/berriai/litellm-non_root
-  newName: ghcr.io/berriai/litellm
-  newTag: v1.103.2
-
-configMapGenerator:
-- name: litellm-config
-  files:
-  - proxy_server_config.yaml
-
+# The LiteLLM proxy itself is deployed by the official litellm-helm child
+# Application. This Kustomization owns the namespace-local dependencies and
+# policy inputs that remain first-class GitOps resources.
 resources:
 - namespace.yaml
 - http-route.yaml
 - litellm-secrets.yaml
 - litellm-provider-secrets.yaml
-- deployment.yaml
+- von-secrets.yaml
+- von-pvc.yaml
+- von-deployment.yaml
+- von-service.yaml
 - redis.yaml
-- svc.yaml
 - database.yaml
 - database-scheduled-backup.yaml
 - database-objectstore.yaml
