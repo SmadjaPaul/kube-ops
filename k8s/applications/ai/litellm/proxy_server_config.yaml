@@ -100,7 +100,7 @@ model_list:
           REASONING: agentic
         classifier_type: jev
         jev_classifier_config:
-          model: jev-1.13
+          model: jev-1.13.0
           timeout_ms: 3000
           circuit_breaker_enabled: true
           circuit_breaker_cooldown_seconds: 30
