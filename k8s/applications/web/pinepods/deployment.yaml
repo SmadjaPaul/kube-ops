@@ -30,6 +30,50 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: prepare-pinepods-runtime
+          image: madeofpendletonwool/pinepods:0.8.2
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              # Take ownership of every path the main pinepods container
+              # needs to write to. The main container runs as 911:911 with
+              # allowPrivilegeEscalation=false and capabilities drop [ALL],
+              # so it cannot chown these paths itself.
+              chown 911:911 /var/log/pinepods /var/log/nginx /var/lib/nginx \
+                              /run /var/run/horust /etc/horust/services
+              # Seed the horust services directory from the image's baked-in
+              # /pinepods/startup/services/. The main container's startup.sh
+              # then re-copies them, but that's an idempotent operation that
+              # only needs the directory to be writable.
+              if [ -d /pinepods/startup/services ]; then
+                cp -n /pinepods/startup/services/*.toml /etc/horust/services/ 2>/dev/null || true
+              fi
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+          volumeMounts:
+            - name: var-log-pinepods
+              mountPath: /var/log/pinepods
+            - name: var-log-nginx
+              mountPath: /var/log/nginx
+            - name: var-lib-nginx
+              mountPath: /var/lib/nginx
+            - name: run
+              mountPath: /run
+            - name: var-run-horust
+              mountPath: /var/run/horust
+            - name: etc-horust-services
+              mountPath: /etc/horust/services
       containers:
         - name: pinepods
           image: madeofpendletonwool/pinepods:0.8.2
