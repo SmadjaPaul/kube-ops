@@ -38,7 +38,6 @@ masterkeySecretKey: LITELLM_MASTER_KEY
 environmentSecrets:
   - litellm-secrets
   - litellm-provider-secrets
-  - von-secrets
 
 db:
   useExisting: true
@@ -82,7 +81,7 @@ envVars:
   GENERIC_USERINFO_ENDPOINT: "https://auth.smadja.dev/application/o/userinfo/"
   GENERIC_SCOPE: "openid profile email groups roles"
   PROXY_LOGOUT_URL: "https://auth.smadja.dev/application/o/litellm/end-session/"
-  TYPESAFE_API_BASE: "http://von.litellm.svc.cluster.local:8000"
+  TYPESAFE_API_BASE: "https://openrouter.ai/api"
 
 logLevel: INFO
 
@@ -197,13 +196,12 @@ proxy_config:
             REASONING: reasoning
           classifier_type: jev
           jev_classifier_config:
-            model: von-latest
+            model: jev-1.13
             timeout_ms: 3000
             circuit_breaker_enabled: true
             circuit_breaker_cooldown_seconds: 30
           classifier_fallback: heuristic
-          classifier_context_window_size: 3
-          classifier_context_budget_chars: 8000
+          classifier_context_window_size: 0
           classifier_context_include_assistant_turns: false
           classification_mode: user_turn
           session_affinity: true
