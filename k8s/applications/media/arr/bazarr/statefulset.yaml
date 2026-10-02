@@ -1,4 +1,3 @@
-
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -8,7 +7,7 @@ metadata:
     app: bazarr
 spec:
   serviceName: bazarr
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: bazarr
@@ -18,73 +17,75 @@ spec:
         app: bazarr
     spec:
       securityContext:
-        runAsUser: 0
-        runAsGroup: 0
-        fsGroup: 0
-      volumes:
-      - name: media
-        persistentVolumeClaim:
-          claimName: media-share
+        runAsNonRoot: true
+        runAsUser: 2501
+        runAsGroup: 2501
+        fsGroup: 2501
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-      - name: bazarr
-        image: ghcr.io/hotio/bazarr:release-v1.5.5
-        securityContext:
-          allowPrivilegeEscalation: true
-          readOnlyRootFilesystem: false
-          capabilities:
-            add:
-              - SETUID
-              - SETGID
-              - SYS_ADMIN
-            drop: []
-        # Using image defaults (Entrypoint) - no custom command/args
-        env:
-        - name: PUID
-          value: "1000"
-        - name: PGID
-          value: "1000"
-        - name: USER
-          value: "bazarr"
-        - name: GROUP
-          value: "bazarr"
-        - name: TZ
-          value: "Europe/Paris"
-        - name: UMASK
-          value: "002"
-        volumeMounts:
+        - name: bazarr
+          image: ghcr.io/home-operations/bazarr:1.6.2@sha256:17dc1cff22e99694ffbfb06555526cb47a66b362b4d6c982f06b557f7caae2bb
+          ports:
+            - name: http
+              containerPort: 6767
+          env:
+            - name: TZ
+              value: Europe/Paris
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 384Mi
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
         - name: media
-          mountPath: /data
-        - name: config
-          mountPath: /config
+          persistentVolumeClaim:
+            claimName: media-share
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: config
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: longhorn-fast
         resources:
           requests:
-            cpu: 50m
-            memory: 192Mi
-          limits:
-            cpu: 1000m
-            memory: 256Mi
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 6767
-          initialDelaySeconds: 60
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        startupProbe:
-          httpGet:
-            path: /
-            port: 6767
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 30
-  volumeClaimTemplates:
-  - metadata:
-      name: config
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      storageClassName: "longhorn-fast"
-      resources:
-        requests:
-          storage: 1Gi
+            storage: 1Gi
