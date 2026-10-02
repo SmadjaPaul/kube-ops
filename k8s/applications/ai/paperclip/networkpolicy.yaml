@@ -6,7 +6,7 @@ metadata:
   labels:
     policy-type: ai-audit
 spec:
-  description: "Paperclip V1: internal Gateway ingress; egress only to CNPG, LiteLLM, DNS and GitHub/npm bootstrap surfaces."
+  description: "Paperclip V1: internal Gateway ingress; egress only to CNPG, LiteLLM, coding-model providers, DNS and GitHub/npm bootstrap surfaces."
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: paperclip
@@ -61,6 +61,8 @@ spec:
         - matchName: objects.githubusercontent.com
         - matchName: codeload.github.com
         - matchName: registry.npmjs.org
+        - matchName: api.minimax.io
+        - matchName: token-plan-ams.xiaomimimo.com
       toPorts:
         - ports:
             - port: "443"
