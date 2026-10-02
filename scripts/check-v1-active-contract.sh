@@ -99,6 +99,15 @@ for model_lane in research fast code reasoning review auto; do
     exit 1
   }
 done
+grep -q 'model: dashscope/qwen3.8-flash' "$litellm_config"
+grep -q 'model: dashscope/qwen3.8-max' "$litellm_config"
+grep -q 'model: xiaomi_mimo/mimo-v2.6-flash' "$litellm_config"
+grep -q 'model: xiaomi_mimo/mimo-v2.6-pro' "$litellm_config"
+grep -q 'classifier_type: jev' "$litellm_config"
+grep -q 'model: jev-1.13.0' "$litellm_config"
+grep -q 'circuit_breaker_enabled: true' "$litellm_config"
+grep -q 'classifier_fallback: heuristic' "$litellm_config"
+grep -q 'classifier_context_window_size: 0' "$litellm_config"
 
 # Authentik V1 stays on the current stable series and uses upstream-native
 # authentication flows rather than carrying a parallel passwordless graph.
