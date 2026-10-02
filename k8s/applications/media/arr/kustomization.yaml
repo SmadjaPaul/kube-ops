@@ -18,9 +18,14 @@ resources:
 - radarr
 - sonarr
 - bazarr
+- lidarr
 
 patches:
   - path: base/patch.yaml
     target:
       kind: StatefulSet
-      labelSelector: app in (prowlarr, radarr, sonarr)
+      labelSelector: app in (prowlarr, radarr, sonarr, lidarr)
+  - path: base/media-patch.yaml
+    target:
+      kind: StatefulSet
+      labelSelector: app in (radarr, sonarr, lidarr)
