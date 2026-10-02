@@ -99,7 +99,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-              add: ["CHOWN"]
+              add: ["CHOWN", "SETGID", "SETUID"]
             seccompProfile:
               type: RuntimeDefault
           volumeMounts:
