@@ -921,7 +921,7 @@ litellm_settings:
 router_settings:
   routing_strategy: usage-based-routing-v2
   enable_pre_call_checks: true
-  optional_pre_call_checks: ["responses_api_deployment_check"]
+  optional_pre_call_checks: ["deployment_affinity", "session_affinity", "prompt_caching", "responses_api_deployment_check"]\n  deployment_affinity_ttl_seconds: 3600
   num_retries: 3
   retry_after: 1
   allowed_fails: 3
