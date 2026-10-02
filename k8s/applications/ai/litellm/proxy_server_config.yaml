@@ -839,17 +839,10 @@ search_tools:
   - model_name: code
     litellm_params:
       model: xiaomi_mimo/mimo-v2.6-pro
-      api_key: "os.environ/openai_api_key_1"
-      api_base: "os.environ/openai_base_url_1"
-    default_litellm_params:
-      reasoning_effort: "medium"
+      allowed_openai_params:
+        - thinking
     model_info:
-      mode: responses
-      max_input_tokens: 272000
-      max_output_tokens: 128000
-      input_cost_per_token: 0.00000125
-      output_cost_per_token: 0.00001
-      input_cost_per_token_cached: 0.00000013
+      mode: chat
 
   - model_name: reasoning
     litellm_params:
