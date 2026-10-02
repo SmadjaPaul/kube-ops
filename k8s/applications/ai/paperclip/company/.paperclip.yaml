@@ -3,7 +3,7 @@ agents:
   engineering-manager:
     adapter: opencode_local
     adapterConfig:
-      model: litellm/anthropic/claude-opus-4-6
+      model: litellm/factory-manager
     budgetMonthlyCents: 3000
     runtimeConfig:
       heartbeat:
@@ -11,7 +11,7 @@ agents:
   researcher:
     adapter: opencode_local
     adapterConfig:
-      model: litellm/anthropic/claude-haiku-4-5
+      model: litellm/factory-research
     budgetMonthlyCents: 1500
     runtimeConfig:
       heartbeat:
@@ -19,7 +19,7 @@ agents:
   implementation-engineer:
     adapter: opencode_local
     adapterConfig:
-      model: litellm/azure/gpt-5.3-codex
+      model: litellm/factory-implement
     budgetMonthlyCents: 3000
     runtimeConfig:
       heartbeat:
@@ -27,7 +27,7 @@ agents:
   reviewer:
     adapter: opencode_local
     adapterConfig:
-      model: litellm/anthropic/claude-sonnet-4-6
+      model: litellm/factory-review
     budgetMonthlyCents: 2000
     runtimeConfig:
       heartbeat:
