@@ -163,6 +163,7 @@ inventory="$(awk '
     v=$0
     sub(/^.*key:[[:space:]]*/, "", v)
     sub(/[[:space:]}].*$/, "", v)
+    gsub(/["'\''"]/, "", v)
     print "KEY " v
     next
   }
