@@ -57,7 +57,7 @@ spec:
             memory: 32Mi
       containers:
       - name: litellm
-        image: ghcr.io/berriai/litellm-non_root:v1.88.0
+        image: ghcr.io/berriai/litellm:v1.103.2
         args:
           - "--config"
           - "/app/proxy_server_config.yaml"
@@ -136,7 +136,9 @@ spec:
         - name: LITELLM_MODE
           value: "PRODUCTION"
         - name: LITELLM_LOG
-          value: "DEBUG"
+          value: "INFO"
+        - name: TYPESAFE_API_BASE
+          value: "https://openrouter.ai/api"
         livenessProbe:
           httpGet:
             path: /health/liveliness
