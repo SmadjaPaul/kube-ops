@@ -6,6 +6,7 @@ metadata:
 spec:
   sourceRepos:
     - 'https://github.com/SmadjaPaul/kube-ops.git'
+    - 'ghcr.io/berriai'
   destinations:
     - namespace: 'karakeep'
       server: '*'
