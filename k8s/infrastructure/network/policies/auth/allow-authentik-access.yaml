@@ -58,6 +58,23 @@ spec:
     - ports:
       - port: "9000"
         protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: romm
+        app.kubernetes.io/name: romm
+    toPorts:
+    - ports:
+      - port: "9000"
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: paperclip
+        app.kubernetes.io/component: server
+        app.kubernetes.io/name: paperclip
+    toPorts:
+    - ports:
+      - port: "9000"
+        protocol: TCP
   egress:
   - toEndpoints:
     - matchLabels:
