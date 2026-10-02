@@ -41,16 +41,11 @@ spec:
               value: redis://twenty-redis:6379
             - name: STORAGE_TYPE
               value: local
-            - name: APP_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: twenty-runtime
-                  key: APP_SECRET
             - name: ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
                   name: twenty-runtime
-                  key: APP_SECRET
+                  key: ENCRYPTION_KEY
           ports:
             - name: http
               containerPort: 3000
@@ -127,16 +122,11 @@ spec:
               value: redis://twenty-redis:6379
             - name: STORAGE_TYPE
               value: local
-            - name: APP_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: twenty-runtime
-                  key: APP_SECRET
             - name: ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
                   name: twenty-runtime
-                  key: APP_SECRET
+                  key: ENCRYPTION_KEY
             - name: DISABLE_DB_MIGRATIONS
               value: "true"
             - name: DISABLE_CRON_JOBS_REGISTRATION
