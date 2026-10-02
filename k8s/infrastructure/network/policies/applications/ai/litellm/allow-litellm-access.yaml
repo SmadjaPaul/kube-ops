@@ -136,20 +136,21 @@ spec:
     - ports:
       - port: "8000"
         protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: litellm
+        app: von
+    toPorts:
+    - ports:
+      - port: "8000"
+        protocol: TCP
   - toFQDNs:
-    - matchName: "api.anthropic.com"
-    - matchName: "api.mistral.ai"
-    - matchName: "api.cerebras.ai"
-    - matchName: "api.tavily.com"
-    - matchName: "api.openai.com"
     - matchName: "api.cloudflare.com"
     - matchName: "gateway.ai.cloudflare.com"
-    - matchPattern: "*.openai.azure.com"
     - matchName: "auth.smadja.dev"
     - matchName: "raw.githubusercontent.com"
     - matchName: "api.xiaomimimo.com"
     - matchPattern: "*.eu-central-1.maas.aliyuncs.com"
-    - matchName: "api.typesafe.ai"
     toPorts:
     - ports:
       - port: "443"
@@ -183,4 +184,45 @@ spec:
       - port: "53"
         protocol: UDP
       - port: "53"
+        protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: von-classifier
+  namespace: litellm
+  labels:
+    policy-type: ai-audit
+spec:
+  endpointSelector:
+    matchLabels:
+      app: von
+  description: "Allow only LiteLLM to call Von; allow model bootstrap from Hugging Face."
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: litellm
+        app: litellm
+    toPorts:
+    - ports:
+      - port: "8000"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kube-system
+        k8s:k8s-app: kube-dns
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  - toFQDNs:
+    - matchName: "huggingface.co"
+    - matchPattern: "*.huggingface.co"
+    - matchPattern: "*.xethub.hf.co"
+    toPorts:
+    - ports:
+      - port: "443"
         protocol: TCP
