@@ -79,6 +79,16 @@ spec:
             secretKeyRef:
               name: app-opencode-secrets
               key: AUTH_SECRET
+        - name: ADMIN_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: app-opencode-secrets
+              key: ADMIN_EMAIL
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-opencode-secrets
+              key: ADMIN_PASSWORD
         - name: AUTH_TRUSTED_ORIGINS
           value: "https://opencode.smadja.dev,http://localhost:5003"
         - name: AUTH_SECURE_COOKIES
