@@ -212,6 +212,12 @@ proxy_config:
           session_affinity: true
           session_affinity_ttl_seconds: 3600
 
+  search_tools:
+    - search_tool_name: tavily-search
+      litellm_params:
+        search_provider: tavily
+        api_key: "os.environ/TAVILY_API_KEY"
+
   litellm_settings:
     callbacks: ["prometheus"]
     prometheus_initialize_budget_metrics: true
