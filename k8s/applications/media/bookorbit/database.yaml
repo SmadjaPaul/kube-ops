@@ -1,0 +1,27 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: bookorbit-postgresql
+  namespace: media
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie
+  bootstrap:
+    initdb:
+      database: bookorbit
+      owner: bookorbit
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        - CREATE EXTENSION IF NOT EXISTS pg_trgm;
+        - CREATE EXTENSION IF NOT EXISTS unaccent;
+        - CREATE EXTENSION IF NOT EXISTS vector;
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: bookorbit-hetzner-store
+  storage:
+    size: 10Gi
+    storageClass: longhorn-fast
+  affinity:
+    enablePodAntiAffinity: false
