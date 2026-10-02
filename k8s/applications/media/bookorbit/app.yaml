@@ -1,0 +1,195 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bookorbit-data
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookorbit
+  namespace: media
+  labels:
+    app.kubernetes.io/name: bookorbit
+  annotations:
+    secret.reloader.stakater.com/reload: "bookorbit-runtime,bookorbit-postgresql-app"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bookorbit
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bookorbit
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2501
+        runAsGroup: 2501
+        fsGroup: 2501
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: bookorbit
+          image: ghcr.io/bookorbit/bookorbit:3.2.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: APP_URL
+              value: https://bookorbit.smadja.dev
+            - name: CLIENT_URL
+              value: https://bookorbit.smadja.dev
+            - name: TZ
+              value: Europe/Paris
+            - name: PUID
+              value: "2501"
+            - name: PGID
+              value: "2501"
+            - name: BOOKORBIT_FIX_PERMISSIONS
+              value: "false"
+            - name: LIBRARY_BROWSE_ROOT
+              value: /books/media/books
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-postgresql-app
+                  key: host
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-postgresql-app
+                  key: port
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-postgresql-app
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-postgresql-app
+                  key: password
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-postgresql-app
+                  key: dbname
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-runtime
+                  key: JWT_SECRET
+            - name: SETUP_BOOTSTRAP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-runtime
+                  key: SETUP_BOOTSTRAP_TOKEN
+            - name: PODCAST_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-runtime
+                  key: PODCAST_ENCRYPTION_KEY
+            - name: BOOK_REQUEST_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-runtime
+                  key: BOOK_REQUEST_ENCRYPTION_KEY
+          ports:
+            - name: http
+              containerPort: 3000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: media
+              mountPath: /books
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: bookorbit-data
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-share
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookorbit
+  namespace: media
+spec:
+  selector:
+    app.kubernetes.io/name: bookorbit
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: bookorbit
+  namespace: media
+spec:
+  parentRefs:
+    - name: external
+      namespace: gateway
+    - name: internal
+      namespace: gateway
+  hostnames:
+    - bookorbit.smadja.dev
+  rules:
+    - backendRefs:
+        - name: bookorbit
+          port: 80
