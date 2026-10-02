@@ -147,6 +147,9 @@ spec:
     - matchPattern: "*.openai.azure.com"
     - matchName: "auth.smadja.dev"
     - matchName: "raw.githubusercontent.com"
+    - matchName: "api.xiaomimimo.com"
+    - matchPattern: "*.eu-central-1.maas.aliyuncs.com"
+    - matchName: "api.typesafe.ai"
     toPorts:
     - ports:
       - port: "443"
