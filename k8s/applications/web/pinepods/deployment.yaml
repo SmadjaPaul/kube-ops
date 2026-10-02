@@ -23,40 +23,25 @@ spec:
       hostPID: false
       hostNetwork: false
       securityContext:
-        runAsUser: 0
-        runAsGroup: 0
-        fsGroup: 0
+        runAsUser: 911
+        runAsGroup: 911
+        fsGroup: 911
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        - name: init-horust
-          image: madeofpendletonwool/pinepods:0.8.2
-          command:
-            - sh
-            - -c
-            - |
-              mkdir -p /etc/horust/services
-              chmod -R 755 /etc/horust
-          securityContext:
-            runAsUser: 0
-            runAsGroup: 0
-            runAsNonRoot: false
-            privileged: true
-          volumeMounts: []
       containers:
         - name: pinepods
           image: madeofpendletonwool/pinepods:0.8.2
           imagePullPolicy: IfNotPresent
           securityContext:
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 911
+            runAsGroup: 911
             readOnlyRootFilesystem: false
             capabilities:
-              add:
-                - SETUID
-                - SETGID
-                - SYS_ADMIN
-              drop: []
+              drop:
+                - ALL
           ports:
             - containerPort: 8040
               name: http
@@ -67,9 +52,9 @@ spec:
                 name: es-pinepods-admin
           env:
             - name: PUID
-              value: "1000"
+              value: "911"
             - name: PGID
-              value: "1000"
+              value: "911"
             - name: TZ
               value: Europe/Stockholm
             - name: DB_HOST
@@ -129,6 +114,18 @@ spec:
               mountPath: /opt/pinepods/certs
             - name: cache
               mountPath: /pinepods/cache
+            - name: var-log-pinepods
+              mountPath: /var/log/pinepods
+            - name: var-log-nginx
+              mountPath: /var/log/nginx
+            - name: var-lib-nginx
+              mountPath: /var/lib/nginx
+            - name: run
+              mountPath: /run
+            - name: var-run-horust
+              mountPath: /var/run/horust
+            - name: etc-horust-services
+              mountPath: /etc/horust/services
       volumes:
         - name: downloads
           persistentVolumeClaim:
@@ -142,3 +139,21 @@ spec:
         - name: cache
           emptyDir:
             sizeLimit: 3Gi
+        - name: var-log-pinepods
+          emptyDir:
+            sizeLimit: 200Mi
+        - name: var-log-nginx
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: var-lib-nginx
+          emptyDir:
+            sizeLimit: 200Mi
+        - name: run
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: var-run-horust
+          emptyDir:
+            sizeLimit: 50Mi
+        - name: etc-horust-services
+          emptyDir:
+            sizeLimit: 50Mi
