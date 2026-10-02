@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+version: 1
+metadata:
+  name: Apps - Stirling PDF
+entries:
+  - id: stirlingpdf_application
+    model: authentik_core.application
+    identifiers: {slug: stirling-pdf}
+    attrs:
+      name: Stirling PDF
+      group: Family
+      meta_launch_url: https://pdf.smadja.dev
+      policy_engine_mode: any
+      # No OAuth2/OIDC provider: upstream image 3.0.0 has only basic
+      # local-user auth (SECURITY_ENABLELOGIN=true). Surface it in the
+      # catalogue as a tile (launch URL), document credentials outside
+      # of V1 Authentik until upstream adds OIDC or we add a Proxy Provider.
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf stirlingpdf_application, group: !Find [authentik_core.group, [name, "family"]]}
+    attrs: {order: 10}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf stirlingpdf_application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
+    attrs: {order: 100}

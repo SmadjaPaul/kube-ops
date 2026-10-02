@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+version: 1
+metadata:
+  name: Apps - SearXNG
+entries:
+  - id: searxng_application
+    model: authentik_core.application
+    identifiers: {slug: searxng}
+    attrs:
+      name: SearXNG
+      group: Family
+      meta_launch_url: https://search.smadja.dev
+      policy_engine_mode: any
+      # SearXNG is intentionally public (meta-search engine). No
+      # OAuth2 provider: surfacing the launch tile from the Authentik
+      # catalogue lets family members reach the UI but every query is
+      # anonymous to the upstream service.
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf searxng_application, group: !Find [authentik_core.group, [name, "family"]]}
+    attrs: {order: 10}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf searxng_application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
+    attrs: {order: 100}
