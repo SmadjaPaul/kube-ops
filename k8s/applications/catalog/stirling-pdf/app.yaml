@@ -53,6 +53,8 @@ spec:
           image: stirlingtools/stirling-pdf:3.0.0
           env:
             - { name: SECURITY_ENABLELOGIN, value: "false" }
+            - { name: PUID, value: "1001" }
+            - { name: PGID, value: "1001" }
           ports:
             - { name: http, containerPort: 8080 }
           securityContext:
