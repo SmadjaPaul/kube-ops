@@ -6,7 +6,7 @@ OpenWebUI continues to use LiteLLM as its OpenAI-compatible gateway. This V1 add
 
 ## Models exposed to OpenWebUI
 
-| Model | Purpose | JEV/OpenRouter sees the request |
+| Model | Purpose | JEV/TypeSafe sees the request |
 | --- | --- | --- |
 | `simple-question` | direct informational answer | no |
 | `research` | broader research/synthesis | no |
@@ -27,7 +27,7 @@ The name `private-research` describes the classifier boundary only. Its completi
 
 The built-in classifier is intentionally used without custom tier instructions. Custom business semantics must not be smuggled into an unsupported configuration.
 
-If JEV/OpenRouter is unavailable, `auto` fails over to `agentic`. Explicit model selections never call JEV.
+If JEV/TypeSafe is unavailable, `auto` fails over to `agentic`. Explicit model selections never call JEV.
 
 ## Privacy
 
@@ -54,8 +54,8 @@ This change stays draft until all of the following are proven:
 3. Existing LiteLLM SSO still works after re-authentication.
 4. Explicit models `simple-question`, `research`, `private-research`, and `agentic` respond.
 5. `auto` routes representative French and English prompts.
-6. OpenRouter/JEV outage falls back to `agentic`.
-7. Explicit `private-research` produces no JEV/OpenRouter request.
+6. TypeSafe/JEV outage falls back to `agentic`.
+7. Explicit `private-research` produces no JEV/TypeSafe request.
 8. Existing OpenWebUI and application clients still work.
 9. No prompt body is added to spend logs.
 
