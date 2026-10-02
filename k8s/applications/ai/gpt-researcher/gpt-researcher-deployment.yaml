@@ -47,7 +47,7 @@ spec:
                   name: app-gpt-researcher-litellm-api-key
                   key: OPENAI_API_KEY
             - name: OPENAI_BASE_URL
-              value: 'http://litellm.litellm.svc.cluster.local'
+              value: 'http://litellm.litellm.svc.cluster.local:4000'
             - name: TAVILY_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -66,11 +66,11 @@ spec:
             - name: EMBEDDING
               value: 'openai:azure/text-embedding-3-small'
             - name: FAST_LLM
-              value: 'openai:azure/gpt-5.1-codex-mini'
+              value: 'openai:research'
             - name: SMART_LLM
-              value: 'openai:azure/gpt-5.4'
+              value: 'openai:reasoning'
             - name: STRATEGIC_LLM
-              value: 'openai:azure/gpt-5.4'
+              value: 'openai:reasoning'
             # Deep Research Configuration - Controls research depth and breadth
             - name: DEEP_RESEARCH_BREADTH
               value: '4'
