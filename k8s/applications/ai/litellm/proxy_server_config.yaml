@@ -1,5 +1,114 @@
 model_list:
 
+  # --- Stable V1 capability aliases ---
+  # Paperclip and OpenWebUI call these names; provider choice stays in LiteLLM.
+  - model_name: factory-manager
+    litellm_params:
+      model: openai/MiniMax-M3
+      api_base: "os.environ/MINIMAX_TOKEN_PLAN_API_BASE"
+      api_key: "os.environ/MINIMAX_TOKEN_PLAN_API_KEY"
+    model_info:
+      mode: chat
+      max_input_tokens: 1000000
+
+  - model_name: factory-research
+    litellm_params:
+      model: openai/MiniMax-M3
+      api_base: "os.environ/MINIMAX_TOKEN_PLAN_API_BASE"
+      api_key: "os.environ/MINIMAX_TOKEN_PLAN_API_KEY"
+    model_info:
+      mode: chat
+      max_input_tokens: 1000000
+
+  - model_name: factory-implement
+    litellm_params:
+      model: openai/MiniMax-M3
+      api_base: "os.environ/MINIMAX_TOKEN_PLAN_API_BASE"
+      api_key: "os.environ/MINIMAX_TOKEN_PLAN_API_KEY"
+    model_info:
+      mode: chat
+      max_input_tokens: 1000000
+
+  # Independent review stays on a different provider family.
+  - model_name: factory-review
+    litellm_params:
+      model: "anthropic/claude-sonnet-4-6"
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+    model_info:
+      mode: messages
+
+  - model_name: factory-qa
+    litellm_params:
+      model: openai/MiniMax-M3
+      api_base: "os.environ/MINIMAX_TOKEN_PLAN_API_BASE"
+      api_key: "os.environ/MINIMAX_TOKEN_PLAN_API_KEY"
+    model_info:
+      mode: chat
+      max_input_tokens: 1000000
+
+  - model_name: simple-question
+    litellm_params:
+      model: openai/gpt-5-nano
+      api_key: "os.environ/openai_api_key_1"
+      api_base: "os.environ/openai_base_url_1"
+    default_litellm_params:
+      reasoning_effort: "low"
+    model_info:
+      mode: responses
+
+  - model_name: research
+    litellm_params:
+      model: openai/gpt-5.4
+      api_key: "os.environ/openai_api_key_1"
+      api_base: "os.environ/openai_base_url_1"
+    default_litellm_params:
+      reasoning_effort: "medium"
+    model_info:
+      mode: responses
+
+  # Explicit privacy choice: this bypasses JEV classification.
+  - model_name: private-research
+    litellm_params:
+      model: openai/gpt-5.4
+      api_key: "os.environ/openai_api_key_1"
+      api_base: "os.environ/openai_base_url_1"
+    default_litellm_params:
+      reasoning_effort: "medium"
+    model_info:
+      mode: responses
+
+  - model_name: agentic
+    litellm_params:
+      model: openai/MiniMax-M3
+      api_base: "os.environ/MINIMAX_TOKEN_PLAN_API_BASE"
+      api_key: "os.environ/MINIMAX_TOKEN_PLAN_API_KEY"
+    model_info:
+      mode: chat
+      max_input_tokens: 1000000
+
+  # Optional add-on: only merge with this stanza after runtime proves the
+  # installed LiteLLM license accepts Auto Router + JEV.
+  - model_name: auto
+    litellm_params:
+      model: auto_router/complexity_router
+      complexity_router_default_model: agentic
+      complexity_router_config:
+        tiers:
+          SIMPLE: simple-question
+          MEDIUM: research
+          COMPLEX: agentic
+          REASONING: agentic
+        classifier_type: jev
+        jev_classifier_config:
+          model: jev-1.13
+          timeout_ms: 3000
+          circuit_breaker_enabled: true
+          circuit_breaker_cooldown_seconds: 30
+        classifier_fallback: default_model
+        classifier_context_window_size: 0
+        classifier_context_include_assistant_turns: false
+
+
   - model_name: qwen3-embedding-0.6b
     litellm_params:
       model: "openai/@cf/qwen/qwen3-embedding-0.6b"
