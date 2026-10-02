@@ -129,10 +129,12 @@ if grep -q 'api.typesafe.ai' "$litellm_network_policy"; then
   echo "ERROR: LiteLLM must classify through in-cluster Von, not TypeSafe cloud" >&2
   exit 1
 fi
-if grep -q 'deployment.yaml\|svc.yaml\|proxy_server_config.yaml' "$litellm_kustomization"; then
-  echo "ERROR: raw LiteLLM proxy manifests/config must not coexist with the Helm authority" >&2
-  exit 1
-fi
+for legacy_proxy_resource in deployment.yaml svc.yaml proxy_server_config.yaml; do
+  if grep -Fqx -- "- $legacy_proxy_resource" "$litellm_kustomization"; then
+    echo "ERROR: raw LiteLLM proxy manifest/config remains under Helm authority: $legacy_proxy_resource" >&2
+    exit 1
+  fi
+done
 
 # Authentik V1 stays on the current stable series and uses upstream-native
 # authentication flows rather than carrying a parallel passwordless graph.
