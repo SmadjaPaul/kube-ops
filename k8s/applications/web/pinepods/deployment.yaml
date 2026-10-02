@@ -23,6 +23,7 @@ spec:
       hostPID: false
       hostNetwork: false
       securityContext:
+        runAsNonRoot: true
         runAsUser: 911
         runAsGroup: 911
         fsGroup: 911
@@ -50,6 +51,7 @@ spec:
                 name: pinepods-config
             - secretRef:
                 name: es-pinepods-admin
+                optional: true
           env:
             - name: PUID
               value: "911"
