@@ -64,7 +64,7 @@ spec:
               value: 'INFO'
             # Environment variables take precedence over config.json for FastAPI requests
             - name: EMBEDDING
-              value: 'openai:azure/text-embedding-3-small'
+              value: 'openai:qwen3-embedding-0.6b'
             - name: FAST_LLM
               value: 'openai:research'
             - name: SMART_LLM
