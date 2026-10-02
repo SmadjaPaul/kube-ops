@@ -21,3 +21,4 @@ resources:
 - database-s3-credentials.yaml
 - backup-smoke-20260929.yaml
 - podmonitor.yaml
+- servicemonitor.yaml
