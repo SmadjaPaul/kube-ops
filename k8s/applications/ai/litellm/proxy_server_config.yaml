@@ -812,10 +812,100 @@ search_tools:
       input_cost_per_token: 0.000001
       output_cost_per_token: 0.000005
 
+
+# Stable workload-facing model groups. Clients should depend on these names,
+# not provider/model identifiers, so provider swaps do not require client changes.
+# `auto` routes by complexity only; coding and independent review remain explicit.
+  - model_name: research
+    litellm_params:
+      model: openai/gpt-5-nano
+      api_key: "os.environ/openai_api_key_1"
+      api_base: "os.environ/openai_base_url_1"
+    default_litellm_params:
+      reasoning_effort: "low"
+    model_info:
+      mode: responses
+      max_input_tokens: 272000
+      max_output_tokens: 128000
+      input_cost_per_token: 0.00000005
+      output_cost_per_token: 0.0000004
+      input_cost_per_token_cached: 0.00000001
+
+  - model_name: fast
+    litellm_params:
+      model: openai/gpt-5-mini
+      api_key: "os.environ/openai_api_key_1"
+      api_base: "os.environ/openai_base_url_1"
+    default_litellm_params:
+      reasoning_effort: "low"
+    model_info:
+      mode: responses
+      max_input_tokens: 272000
+      max_output_tokens: 128000
+      input_cost_per_token: 0.00000025
+      output_cost_per_token: 0.000002
+      input_cost_per_token_cached: 0.00000003
+
+  - model_name: code
+    litellm_params:
+      model: openai/gpt-5.3-codex
+      api_key: "os.environ/openai_api_key_1"
+      api_base: "os.environ/openai_base_url_1"
+    default_litellm_params:
+      reasoning_effort: "medium"
+    model_info:
+      mode: responses
+      max_input_tokens: 272000
+      max_output_tokens: 128000
+      input_cost_per_token: 0.00000125
+      output_cost_per_token: 0.00001
+      input_cost_per_token_cached: 0.00000013
+
+  - model_name: reasoning
+    litellm_params:
+      model: openai/gpt-5.4
+      api_key: "os.environ/openai_api_key_1"
+      api_base: "os.environ/openai_base_url_1"
+    default_litellm_params:
+      reasoning_effort: "medium"
+    model_info:
+      mode: responses
+      max_input_tokens: 272000
+      max_output_tokens: 128000
+      input_cost_per_token: 0.00000125
+      output_cost_per_token: 0.00001
+      input_cost_per_token_cached: 0.00000013
+
+  - model_name: review
+    litellm_params:
+      model: "anthropic/claude-sonnet-4-6"
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+    model_info:
+      mode: messages
+      max_input_tokens: 200000
+      max_output_tokens: 64000
+      input_cost_per_token: 0.000003
+      output_cost_per_token: 0.000015
+
+  - model_name: auto
+    litellm_params:
+      model: auto_router/complexity_router
+      complexity_router_default_model: fast
+      complexity_router_config:
+        tiers:
+          SIMPLE: research
+          MEDIUM: fast
+          COMPLEX: reasoning
+          REASONING: reasoning
+        classifier_type: heuristic
+        classifier_fallback: default_model
+        session_affinity: true
+        session_affinity_ttl_seconds: 3600
+
 litellm_settings:
   callbacks: ["prometheus"]
   prometheus_initialize_budget_metrics: true
-  require_auth_for_metrics_endpoint: false
+  require_auth_for_metrics_endpoint: true
   cache: true
   # cache_params:
   #   type: qdrant-semantic
@@ -836,6 +926,7 @@ litellm_settings:
   turn_off_message_logging: true
   AUTO_REDIRECT_UI_LOGIN_TO_SSO: true
   redact_user_api_key_info: true
+  redact_messages_in_exceptions: true
   enable_json_schema_validation: true
   # set_verbose: true  # Removed: use LITELLM_LOG env var instead
   drop_params: true
@@ -846,7 +937,7 @@ litellm_settings:
 
 router_settings:
   routing_strategy: usage-based-routing-v2
-  enable_pre_call_checks: false
+  enable_pre_call_checks: true
   optional_pre_call_checks: ["responses_api_deployment_check"]
   num_retries: 3
   retry_after: 1
@@ -865,7 +956,7 @@ router_settings:
 general_settings:
   store_model_in_db: true
   proxy_batch_write_at: 60
-  store_prompts_in_spend_logs: true
+  store_prompts_in_spend_logs: false
   enforce_user_param: false
   background_health_checks: false
   health_check_interval: 300
@@ -874,7 +965,7 @@ general_settings:
   # max_response_size_mb: 25  # Removed: enterprise-only option, suppress warning
   database_connection_pool_limit: 50
   database_connection_timeout: 60
-  allow_requests_on_db_unavailable: true
+  allow_requests_on_db_unavailable: false
   user_header_mappings:
     - header_name: X-OpenWebUI-User-Id
       litellm_user_role: internal_user
