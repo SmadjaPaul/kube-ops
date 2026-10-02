@@ -37,7 +37,7 @@ spec:
             - --port
             - "8000"
             - --device
-            - openvino:cpu
+            - openvino
             - --on-overflow
             - refuse
             - --no-chains
