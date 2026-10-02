@@ -61,7 +61,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-              add: ["CHOWN", "SETGID", "SETUID"]
+              add: ["CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID"]
             seccompProfile: { type: RuntimeDefault }
           resources:
             requests: { cpu: 100m, memory: 512Mi }
