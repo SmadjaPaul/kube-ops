@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
 - project.yaml
+- litellm-helm-application.yaml
 - openwebui
 - karakeep
 - litellm
