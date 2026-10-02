@@ -54,14 +54,19 @@ global:
         name: authentik-blueprint-messages
     - secretRef:
         name: authentik-blueprint-paperless
+        optional: true
     - secretRef:
         name: authentik-blueprint-actual
+        optional: true
     - secretRef:
         name: authentik-blueprint-metabase
+        optional: true
     - secretRef:
         name: authentik-blueprint-ntfy
+        optional: true
     - secretRef:
         name: authentik-blueprint-dawarich
+        optional: true
     - secretRef:
         name: authentik-smtp-credentials
 
