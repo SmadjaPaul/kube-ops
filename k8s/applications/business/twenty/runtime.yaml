@@ -12,8 +12,8 @@ spec:
     name: twenty-runtime
     creationPolicy: Owner
   data:
-    - secretKey: APP_SECRET
-      remoteRef: { key: APP_TWENTY_APP_SECRET }
+    - secretKey: ENCRYPTION_KEY
+      remoteRef: { key: APP_TWENTY_ENCRYPTION_KEY }
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
