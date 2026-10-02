@@ -61,9 +61,6 @@ spec:
                 - ALL
               add:
                 - CHOWN
-                - FOWNER
-                - SETUID
-                - SETGID
           volumeMounts:
             - name: var-log-pinepods
               mountPath: /var/log/pinepods
