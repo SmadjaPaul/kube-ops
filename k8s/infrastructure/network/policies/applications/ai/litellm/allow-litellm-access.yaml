@@ -147,6 +147,9 @@ spec:
     - matchPattern: "*.openai.azure.com"
     - matchName: "auth.smadja.dev"
     - matchName: "raw.githubusercontent.com"
+    - matchName: "api.typesafe.ai"
+    - matchName: "api.minimax.io"
+    - matchName: "www.minimax.io"
     toPorts:
     - ports:
       - port: "443"
