@@ -35,10 +35,6 @@ global:
 
   # -- envFrom to pass to all deployed Deployments. Does not apply to GeoIP
   # @default -- `[]` (See [values.yaml])
-  # Note: authentik-blueprint-romm is omitted until homelab-infra #83
-  # provisions APP_ROMM_OAUTH_CLIENT_ID/SECRET in Doppler cluster/prd.
-  # Once that apply succeeds, append the envFrom entry below and
-  # force-rollout the worker deployment.
   envFrom:
     - secretRef:
         name: authentik-core-secrets
@@ -67,6 +63,8 @@ global:
     - secretRef:
         name: authentik-blueprint-dawarich
         optional: true
+    - secretRef:
+        name: authentik-blueprint-romm
     - secretRef:
         name: authentik-smtp-credentials
 
