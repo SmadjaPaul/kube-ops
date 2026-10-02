@@ -35,7 +35,7 @@ agents:
   qa-release-engineer:
     adapter: opencode_local
     adapterConfig:
-      model: litellm/anthropic/claude-sonnet-4-6
+      model: litellm/factory-qa
     budgetMonthlyCents: 2000
     runtimeConfig:
       heartbeat:
