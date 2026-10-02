@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: von-model-cache
   namespace: litellm
+  labels:
+    backup.smadja.dev/strategy: rebuildable
 spec:
   accessModes:
     - ReadWriteOnce
