@@ -29,19 +29,18 @@ Doppler `cluster/prd` is expected to provide:
 
 ESO maps these to the Paperclip runtime Secret.
 
-## Why MiMo bypasses LiteLLM
+## Why the Token Plans are direct OpenCode providers
 
-Xiaomi's Token Plan is explicitly intended for programming tools such as OpenCode and OpenClaw. The same terms prohibit using Token Plan quota as a general custom-application backend or automated-script API.
+Both Xiaomi MiMo Token Plan and MiniMax Token Plan explicitly support AI coding/agent tools. MiMo documents OpenCode/OpenClaw-class integrations and provides a dedicated regional Token Plan API key and base URL. MiniMax likewise supports third-party OpenAI-compatible coding tools with a Token Plan subscription key.
 
-Paperclip therefore launches OpenCode with the MiMo Token Plan configured as an OpenCode provider. Do not copy this credential into the shared LiteLLM gateway.
+Paperclip therefore launches OpenCode with the two Token Plans configured directly as OpenCode providers. This keeps the subscription boundary aligned with the providers' documented coding-tool path and avoids turning LiteLLM into an unnecessary relay for the Software Factory V1.
 
-If the factory later needs MiMo as a general backend, use MiMo PAYG credentials instead.
+MiMo Europe uses the package-specific OpenAI-compatible endpoint:
+`https://token-plan-ams.xiaomimimo.com/v1`.
 
-## MiniMax V1
+MiniMax Token Plan uses its subscription key with the OpenAI-compatible MiniMax endpoint.
 
-The existing MiniMax subscription key is used only through the OpenCode harness in this PR. MiniMax recommends PAYG for production workloads; V1 is a personal homelab software factory, not a production multi-tenant API.
-
-If this workload becomes externally served or SLA-bearing, migrate the factory provider to PAYG without changing Paperclip's role contract.
+Both providers describe Token Plans as developer/coding-agent products rather than production API capacity. If the factory later becomes externally served, multi-tenant, or SLA-bearing, migrate the relevant provider to PAYG without changing Paperclip's role contract.
 
 ## Definition of done
 
