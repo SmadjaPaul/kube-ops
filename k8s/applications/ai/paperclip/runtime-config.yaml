@@ -11,8 +11,8 @@ data:
     {
       "$schema": "https://opencode.ai/config.json",
       "enabled_providers": ["litellm"],
-      "model": "litellm/anthropic/claude-sonnet-4-6",
-      "small_model": "litellm/anthropic/claude-haiku-4-5",
+      "model": "litellm/factory-implement",
+      "small_model": "litellm/factory-research",
       "provider": {
         "litellm": {
           "npm": "@ai-sdk/openai-compatible",
@@ -22,10 +22,11 @@ data:
             "apiKey": "{env:LITELLM_API_KEY}"
           },
           "models": {
-            "anthropic/claude-haiku-4-5": {"name": "Claude Haiku 4.5 via LiteLLM"},
-            "anthropic/claude-sonnet-4-6": {"name": "Claude Sonnet 4.6 via LiteLLM"},
-            "anthropic/claude-opus-4-6": {"name": "Claude Opus 4.6 via LiteLLM"},
-            "azure/gpt-5.3-codex": {"name": "GPT-5.3 Codex via LiteLLM"}
+            "factory-manager": {"name": "Factory Manager via LiteLLM"},
+            "factory-research": {"name": "Factory Research via LiteLLM"},
+            "factory-implement": {"name": "Factory Implement via LiteLLM"},
+            "factory-review": {"name": "Factory Review via LiteLLM"},
+            "factory-qa": {"name": "Factory QA via LiteLLM"}
           }
         }
       }
