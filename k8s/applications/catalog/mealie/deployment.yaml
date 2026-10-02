@@ -38,7 +38,7 @@ spec:
             - { name: OIDC_PROVIDER_NAME, value: "Authentik" }
             - { name: OIDC_AUTO_REDIRECT, value: "true" }
             - { name: OIDC_USER_GROUP, value: "family" }
-            - { name: OIDC_ADMIN_GROUP, value: "admin" }
+            - { name: OIDC_ADMIN_GROUP, value: "authentik-admins" }
             - { name: OIDC_SIGNUP_ENABLED, value: "true" }
             - { name: OIDC_REQUIRES_EMAIL_VERIFICATION, value: "false" }
           ports:
