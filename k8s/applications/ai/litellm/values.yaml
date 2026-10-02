@@ -95,30 +95,27 @@ resources:
     memory: 4Gi
 
 startupProbe:
-  httpGet:
-    path: /health/liveliness
-    port: http
+  path: /health/readiness
   initialDelaySeconds: 5
   periodSeconds: 5
   timeoutSeconds: 5
+  successThreshold: 1
   failureThreshold: 60
 
 readinessProbe:
-  httpGet:
-    path: /health/readiness
-    port: http
+  path: /health/readiness
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 10
+  successThreshold: 1
   failureThreshold: 6
 
 livenessProbe:
-  httpGet:
-    path: /health/liveliness
-    port: http
+  path: /health/liveliness
   initialDelaySeconds: 10
   periodSeconds: 10
   timeoutSeconds: 5
+  successThreshold: 1
   failureThreshold: 3
 
 service:
