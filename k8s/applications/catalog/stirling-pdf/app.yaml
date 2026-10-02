@@ -59,7 +59,9 @@ spec:
             - { name: http, containerPort: 8080 }
           securityContext:
             allowPrivilegeEscalation: false
-            capabilities: { drop: ["ALL"] }
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "SETGID", "SETUID"]
             seccompProfile: { type: RuntimeDefault }
           resources:
             requests: { cpu: 100m, memory: 512Mi }
