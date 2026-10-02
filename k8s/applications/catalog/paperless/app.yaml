@@ -40,6 +40,10 @@ spec:
           image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
           env:
             - { name: PAPERLESS_URL, value: "https://paperless.smadja.dev" }
+            # Kubernetes ServiceLinks otherwise inject PAPERLESS_PORT as a
+            # tcp://... URL, while Paperless parses this variable as an
+            # integer CLI port.
+            - { name: PAPERLESS_PORT, value: "8000" }
             - { name: PAPERLESS_REDIS, value: "redis://paperless-redis:6379" }
             - { name: PAPERLESS_DBENGINE, value: "postgresql" }
             - name: PAPERLESS_DBHOST

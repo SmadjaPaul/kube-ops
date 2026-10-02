@@ -108,15 +108,18 @@ spec:
     - backendRefs:
         - { name: ntfy, port: 80 }
 ---
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
 metadata: { name: ntfy, namespace: ntfy }
 spec:
-  podSelector: { matchLabels: { app.kubernetes.io/name: ntfy } }
-  policyTypes: [Ingress]
+  endpointSelector: { matchLabels: { app.kubernetes.io/name: ntfy } }
   ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels: { kubernetes.io/metadata.name: gateway }
-      ports:
-        - { protocol: TCP, port: 8080 }
+    # Cilium Gateway Envoy runs hostNetwork; its connection to the backend
+    # therefore carries the host identity, not the gateway namespace identity.
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
+    - fromEndpoints:
+        - matchLabels: { k8s:io.kubernetes.pod.namespace: gateway }
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
