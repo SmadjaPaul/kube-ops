@@ -10,22 +10,30 @@ data:
   OPENCODE_CONFIG_CONTENT: |
     {
       "$schema": "https://opencode.ai/config.json",
-      "enabled_providers": ["litellm"],
-      "model": "litellm/anthropic/claude-sonnet-4-6",
-      "small_model": "litellm/anthropic/claude-haiku-4-5",
+      "enabled_providers": ["minimax", "mimo"],
+      "model": "minimax/MiniMax-M3",
+      "small_model": "minimax/MiniMax-M3",
       "provider": {
-        "litellm": {
+        "minimax": {
           "npm": "@ai-sdk/openai-compatible",
-          "name": "Smadja LiteLLM",
+          "name": "MiniMax Token Plan",
           "options": {
-            "baseURL": "http://litellm.litellm.svc.cluster.local:80/v1",
-            "apiKey": "{env:LITELLM_API_KEY}"
+            "baseURL": "https://api.minimax.io/v1",
+            "apiKey": "{env:MINIMAX_TOKEN_PLAN_API_KEY}"
           },
           "models": {
-            "anthropic/claude-haiku-4-5": {"name": "Claude Haiku 4.5 via LiteLLM"},
-            "anthropic/claude-sonnet-4-6": {"name": "Claude Sonnet 4.6 via LiteLLM"},
-            "anthropic/claude-opus-4-6": {"name": "Claude Opus 4.6 via LiteLLM"},
-            "azure/gpt-5.3-codex": {"name": "GPT-5.3 Codex via LiteLLM"}
+            "MiniMax-M3": {"name": "MiniMax M3"}
+          }
+        },
+        "mimo": {
+          "npm": "@ai-sdk/openai-compatible",
+          "name": "Xiaomi MiMo Token Plan",
+          "options": {
+            "baseURL": "https://token-plan-ams.xiaomimimo.com/v1",
+            "apiKey": "{env:MIMO_TOKEN_PLAN_API_KEY}"
+          },
+          "models": {
+            "mimo-v2.6-pro": {"name": "MiMo V2.6 Pro"}
           }
         }
       }
