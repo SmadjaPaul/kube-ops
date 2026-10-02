@@ -136,7 +136,7 @@ spec:
         - name: LITELLM_MODE
           value: "PRODUCTION"
         - name: LITELLM_LOG
-          value: "DEBUG"
+          value: "INFO"
         livenessProbe:
           httpGet:
             path: /health/liveliness
