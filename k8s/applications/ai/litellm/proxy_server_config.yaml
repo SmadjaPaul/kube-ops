@@ -870,10 +870,18 @@ search_tools:
         tiers:
           SIMPLE: research
           MEDIUM: fast
-          COMPLEX: reasoning
+          COMPLEX: code
           REASONING: reasoning
-        classifier_type: heuristic
-        classifier_fallback: default_model
+        classifier_type: jev
+        jev_classifier_config:
+          model: jev-1.13.0
+          timeout_ms: 3000
+          circuit_breaker_enabled: true
+          circuit_breaker_cooldown_seconds: 30
+        classifier_fallback: heuristic
+        classifier_context_window_size: 0
+        classifier_context_include_assistant_turns: false
+        classification_mode: user_turn
         session_affinity: true
         session_affinity_ttl_seconds: 3600
 
