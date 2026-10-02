@@ -1,0 +1,278 @@
+# LiteLLM official Helm chart 1.103.2.
+# Git owns model/routing policy; PostgreSQL stores identities, virtual keys and spend.
+image:
+  repository: ghcr.io/berriai/litellm
+  tag: v1.103.2
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+podLabels:
+  app: litellm
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 3000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+  # The upstream migration/startup path still needs writable image paths.
+  # Keep privileges dropped and revisit readOnlyRootFilesystem after an upstream
+  # chart/image canary proves the migration Job and proxy both support it.
+  readOnlyRootFilesystem: false
+
+masterkeySecretName: litellm-secrets
+masterkeySecretKey: LITELLM_MASTER_KEY
+
+environmentSecrets:
+  - litellm-secrets
+  - litellm-provider-secrets
+  - von-secrets
+
+db:
+  useExisting: true
+  deployStandalone: false
+  endpoint: litellm-postgresql-restored-rw.litellm.svc.cluster.local:5432
+  database: app
+  secret:
+    name: litellm-postgresql-restored-app
+    usernameKey: username
+    passwordKey: password
+
+redis:
+  enabled: false
+
+migrationJob:
+  enabled: true
+  activeDeadlineSeconds: 1800
+  hooks:
+    argocd:
+      enabled: true
+    helm:
+      enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+envVars:
+  SEPARATE_HEALTH_APP: "0"
+  DISABLE_RESPONSES_ID_SECURITY: "false"
+  STORE_PROMPTS_IN_COLD_STORAGE: "false"
+  AUTO_REDIRECT_UI_LOGIN_TO_SSO: "true"
+  LITELLM_MODE: "PRODUCTION"
+  LITELLM_TELEMETRY: "False"
+  PROXY_BASE_URL: "https://litellm.smadja.dev"
+  GENERIC_AUTHORIZATION_ENDPOINT: "https://auth.smadja.dev/application/o/authorize/"
+  GENERIC_TOKEN_ENDPOINT: "https://auth.smadja.dev/application/o/token/"
+  GENERIC_USERINFO_ENDPOINT: "https://auth.smadja.dev/application/o/userinfo/"
+  GENERIC_SCOPE: "openid profile email groups roles"
+  PROXY_LOGOUT_URL: "https://auth.smadja.dev/application/o/litellm/end-session/"
+  TYPESAFE_API_BASE: "http://von.litellm.svc.cluster.local:8000"
+
+logLevel: INFO
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 2Gi
+  limits:
+    cpu: "1"
+    memory: 4Gi
+
+startupProbe:
+  httpGet:
+    path: /health/liveliness
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 60
+
+readinessProbe:
+  httpGet:
+    path: /health/readiness
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 6
+
+livenessProbe:
+  httpGet:
+    path: /health/liveliness
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+service:
+  type: ClusterIP
+  port: 4000
+
+ingress:
+  enabled: false
+
+serviceMonitor:
+  enabled: false
+
+proxy_config:
+  model_list:
+    # Existing low-cost embedding path retained independently of completion routing.
+    - model_name: qwen3-embedding-0.6b
+      litellm_params:
+        model: "openai/@cf/qwen/qwen3-embedding-0.6b"
+        api_base: "os.environ/CLOUDFLARE_WORKERS_API_BASE"
+        api_key: "os.environ/CLOUDFLARE_WORKERS_API_KEY"
+      model_info:
+        mode: embedding
+
+    - model_name: research
+      litellm_params:
+        model: dashscope/qwen3.8-flash
+        api_base: "os.environ/ALIBABA_MODEL_STUDIO_BASE_URL"
+        reasoning_effort: "none"
+      model_info:
+        mode: chat
+        max_input_tokens: 1000000
+        max_output_tokens: 131072
+
+    - model_name: fast
+      litellm_params:
+        model: xiaomi_mimo/mimo-v2.6-flash
+        thinking:
+          type: disabled
+        allowed_openai_params:
+          - thinking
+      model_info:
+        mode: chat
+
+    - model_name: code
+      litellm_params:
+        model: xiaomi_mimo/mimo-v2.6-pro
+        allowed_openai_params:
+          - thinking
+      model_info:
+        mode: chat
+
+    - model_name: reasoning
+      litellm_params:
+        model: xiaomi_mimo/mimo-v2.6-pro
+        allowed_openai_params:
+          - thinking
+      model_info:
+        mode: chat
+
+    - model_name: review
+      litellm_params:
+        model: dashscope/qwen3.8-max
+        api_base: "os.environ/ALIBABA_MODEL_STUDIO_BASE_URL"
+        reasoning_effort: "high"
+      model_info:
+        mode: chat
+        max_input_tokens: 1000000
+        max_output_tokens: 131072
+
+    - model_name: auto
+      litellm_params:
+        model: auto_router/complexity_router
+        complexity_router_default_model: fast
+        complexity_router_config:
+          tiers:
+            SIMPLE: research
+            MEDIUM: fast
+            COMPLEX: code
+            REASONING: reasoning
+          classifier_type: jev
+          jev_classifier_config:
+            model: von-latest
+            timeout_ms: 3000
+            circuit_breaker_enabled: true
+            circuit_breaker_cooldown_seconds: 30
+          classifier_fallback: heuristic
+          classifier_context_window_size: 3
+          classifier_context_budget_chars: 8000
+          classifier_context_include_assistant_turns: false
+          classification_mode: user_turn
+          session_affinity: true
+          session_affinity_ttl_seconds: 3600
+
+  litellm_settings:
+    callbacks: ["prometheus"]
+    prometheus_initialize_budget_metrics: true
+    require_auth_for_metrics_endpoint: true
+    cache: true
+    cache_params:
+      type: redis
+      host: redis.litellm.svc.cluster.local
+      port: "6379"
+      ttl: 600
+      namespace: litellm
+    json_logs: true
+    turn_off_message_logging: true
+    redact_user_api_key_info: true
+    redact_messages_in_exceptions: true
+    enable_json_schema_validation: true
+    drop_params: true
+    extra_spend_tag_headers:
+      - "X-OpenWebUI-User-Id"
+      - "X-OpenWebUI-User-Email"
+      - "X-OpenWebUI-User-Name"
+
+  router_settings:
+    routing_strategy: usage-based-routing-v2
+    enable_pre_call_checks: true
+    optional_pre_call_checks:
+      - deployment_affinity
+      - session_affinity
+      - prompt_caching
+      - responses_api_deployment_check
+    deployment_affinity_ttl_seconds: 3600
+    num_retries: 1
+    retry_after: 1
+    cooldown_time: 30
+    max_fallbacks: 1
+
+  general_settings:
+    master_key: "os.environ/PROXY_MASTER_KEY"
+    store_model_in_db: false
+    proxy_batch_write_at: 60
+    store_prompts_in_spend_logs: false
+    enforce_user_param: false
+    background_health_checks: false
+    database_connection_pool_limit: 50
+    database_connection_timeout: 60
+    allow_requests_on_db_unavailable: false
+    ui_access_mode: admin_only
+    user_header_mappings:
+      - header_name: X-OpenWebUI-User-Id
+        litellm_user_role: internal_user
+      - header_name: X-OpenWebUI-User-Email
+        litellm_user_role: customer
+    generic_oauth:
+      client_id: "os.environ/GENERIC_CLIENT_ID"
+      client_secret: "os.environ/GENERIC_CLIENT_SECRET"
+      redirect_url: "https://litellm.smadja.dev/sso/callback"
+      authorization_url: "https://auth.smadja.dev/application/o/authorize/"
+      token_url: "https://auth.smadja.dev/application/o/token/"
+      user_info_url: "https://auth.smadja.dev/application/o/userinfo/"
+      user_id_field: sub
+      user_email_field: email
+      user_name_field: name
+      user_role_field: roles
+      scope: "openid profile email roles"
