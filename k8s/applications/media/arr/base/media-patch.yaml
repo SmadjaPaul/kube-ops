@@ -4,6 +4,11 @@
     name: media
     mountPath: /data
 - op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value:
+    name: media
+    mountPath: /app/data
+- op: add
   path: /spec/template/spec/volumes/-
   value:
     name: media
