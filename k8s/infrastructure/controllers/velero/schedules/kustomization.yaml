@@ -11,6 +11,8 @@ resources:
   - daily-radarr.yaml
   - daily-sonarr.yaml
   - daily-prowlarr.yaml
+  - daily-lidarr.yaml
+  - daily-bazarr.yaml
   - daily-sabnzbd.yaml
   - daily-audiobookshelf.yaml
   - daily-audiobookrequest.yaml
