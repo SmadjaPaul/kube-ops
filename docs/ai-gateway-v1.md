@@ -80,6 +80,8 @@ Required Doppler key:
 
 Auto Router is an add-on capability. This PR remains draft until the current LiteLLM entitlement is proven to accept it. If not, remove only the `auto` alias; every explicit capability remains valid.
 
+V1 pins TypeSafe to `jev-1.13.0` for repeatability. Move to `jev-latest` only after re-running the routing evaluation because model upgrades can shift tier probabilities.
+
 ## User delegation
 
 `agentic-user-delegated` is not a routing tier.
