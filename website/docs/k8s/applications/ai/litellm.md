@@ -26,7 +26,7 @@ Deployment/Service and owns schema migration without adding a new CRD/controller
 2. this Git repository as the values source.
 
 `k8s/applications/ai/litellm/values.yaml` is the proxy authority. The sibling Kustomization owns only dependencies and
-policy inputs: namespace, CNPG, Redis, ESO Secrets, Gateway API route, monitoring and the local Von classifier.
+policy inputs: namespace, CNPG, Redis, ESO Secrets, Gateway API route and monitoring.
 
 The child Application is placed after those resources with a sync wave. The official chart's Argo PreSync migration Job
 runs the database migration once before the proxy Deployment.
@@ -55,55 +55,49 @@ Clients depend on these names rather than upstream model IDs:
 | `code` | implementation/coding agents | MiMo V2.6 Pro |
 | `reasoning` | difficult cross-system reasoning | MiMo V2.6 Pro |
 | `review` | independent second-family review | Alibaba Qwen3.8 Max, high reasoning |
-| `auto` | choose a complexity/cost lane | local Von classifier -> lanes above |
+| `auto` | choose a complexity/cost lane | Jev 1.13 through OpenRouter -> lanes above |
 
 `qwen3-embedding-0.6b` remains the stable embedding name.
 
 Paperclip, OpenClaw and GPT Researcher use the stable lanes. This lets the backing model change after cost/quality
 measurement without editing every client.
 
-## Local decision router: Von
+## Decision router: Jev with self-hosted alternatives evaluated
 
-The `auto` lane uses LiteLLM's native JEV client against an in-cluster TypeSafe-compatible endpoint:
+The `auto` lane uses LiteLLM's native JEV classifier client against Jev 1.13 through OpenRouter's TypeSafe-compatible
+System One API. OpenRouter is used only for the classification call; MiMo and Alibaba remain the completion providers.
 
 ```text
-LiteLLM
+LiteLLM auto
   |
   | POST /v1/systemone
   v
-von.litellm.svc.cluster.local:8000
+OpenRouter Decisions / Jev 1.13
+  |
+  +-- SIMPLE    -> research
+  +-- MEDIUM    -> fast
+  +-- COMPLEX   -> code
+  +-- REASONING -> reasoning
 ```
 
-Von is pinned to `ghcr.io/wfzyx/von:1.3.7-cpu` and uses its OpenVINO CPU path. The model cache is persisted on an 8 GiB
-`longhorn-fast` PVC so routine restarts do not download the roughly multi-gigabyte model again.
+Only the current user turn is classified; prior conversation turns and assistant output are excluded. The classifier has a
+3-second timeout, circuit breaker and LiteLLM heuristic fallback. Callers can always bypass this extra trust boundary by
+requesting an explicit lane.
 
-The classifier is not a separate router. LiteLLM remains the only routing/control plane.
+The October 2026 self-hosted System One ecosystem was reviewed before choosing this baseline:
 
-Classifier policy:
+- **Von**: 395M, CPU/OpenVINO, excellent deployment ergonomics and TypeSafe wire compatibility, but its model card is
+  explicitly English-only. It remains attractive for an English-only or fine-tuned future deployment.
+- **Laya**: 322M multilingual checkpoint for 100+ languages and native Jev-compatible `laya-serve`. It is the most
+  interesting local candidate for French/English traffic, but current independent routing/decision benchmarks do not yet
+  justify making it the V1 authority.
+- **Kev**: the strongest open Jev-like family reviewed (0.8B/4B/9B/27B), but the useful 4B+ sizes are better matched to a
+  GPU or Apple Silicon host than this cluster's CPU-only AOOSTAR.
+- **vLLM Semantic Router**: has a mature Kubernetes/Helm story but is a separate routing control plane rather than a small
+  Jev-compatible classifier; running it beside LiteLLM would duplicate policy and increase operational complexity.
 
-- SIMPLE -> `research`
-- MEDIUM -> `fast`
-- COMPLEX -> `code`
-- REASONING -> `reasoning`
-- prior classifier context: three user turns, up to 8,000 characters
-- assistant turns excluded
-- JEV-compatible timeout: 3 seconds
-- circuit breaker: enabled
-- failure fallback: LiteLLM local heuristic
-- session affinity: one hour
-
-The local endpoint removes the TypeSafe cloud data path and recurring classifier API cost. It does not make classifier
-quality free: Von is an English-focused small decision model, so real routing accuracy must be measured on representative
-French and English agent traffic. Explicit lanes remain available and must be preferred when the caller already knows the
-task class.
-
-## Von access control
-
-Von has no HTTPRoute. Cilium allows inbound port 8000 only from LiteLLM. It receives a dedicated generated
-`APP_VON_API_KEY` through Doppler/ESO, exposed as both `VON_API_KEY` to Von and `TYPESAFE_API_KEY` to LiteLLM.
-
-Its only external egress is DNS plus the Hugging Face/Xet surfaces required to populate the persistent model cache. The
-LiteLLM policy has no `api.typesafe.ai` egress.
+The model endpoint remains replaceable. A future local classifier only needs to prove lower cost per successful task on a
+representative French/English corpus, then replace the JEV base URL without changing client-facing lanes.
 
 ## Provider credentials
 
@@ -113,12 +107,11 @@ Provider values never belong in Git. Before rollout, Doppler `cluster/prd` must 
 APP_XIAOMI_MIMO_API_KEY
 APP_ALIBABA_MODEL_STUDIO_API_KEY
 APP_ALIBABA_MODEL_STUDIO_BASE_URL
+APP_OPENROUTER_API_KEY
 ```
 
-`APP_VON_API_KEY` is cluster-owned internal material generated by `homelab-infra`, not a human-provisioned provider
-credential.
-
-The Alibaba key and base URL must belong to the same Frankfurt workspace.
+The OpenRouter key is used only as the bearer credential for Jev classification. The Alibaba key and base URL must belong
+to the same Frankfurt workspace.
 
 ESO maps those values into `litellm-provider-secrets`; clients receive only LiteLLM virtual keys.
 
@@ -182,8 +175,8 @@ The optimization target is cost per successful task, not cost per raw token.
 
 ## Rollout gates
 
-Do not merge until the external MiMo and Alibaba credentials exist in Doppler and ESO can materialize the provider
-Secret.
+Do not merge until the external MiMo, Alibaba and OpenRouter credentials exist in Doppler and ESO can materialize the
+provider Secret.
 
 After merge, prove:
 
@@ -191,8 +184,8 @@ After merge, prove:
 2. the chart migration Job completes and proxy readiness is healthy;
 3. Authentik Admin UI login works after the LiteLLM session-format upgrade;
 4. `research`, `fast`, `code`, `reasoning`, `review` and the embedding lane respond;
-5. Von becomes Ready after its first model-cache fill;
-6. `auto` correctly routes a representative English and French task set and falls back locally when Von is unavailable;
+5. `auto` correctly routes a representative English and French task set through Jev and falls back to LiteLLM's local heuristic when the decision endpoint is unavailable;
+6. explicit lanes work with OpenRouter/Jev unavailable, proving the classifier is not a hard dependency;
 7. Paperclip, OpenClaw, Open WebUI, GPT Researcher and Perplexica can reach the Helm Service on port 4000;
 8. spend/Prometheus records contain metadata and cost but not prompt bodies.
 
