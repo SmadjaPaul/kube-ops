@@ -76,38 +76,63 @@ for internal_route in \
   fi
 done
 
-# LiteLLM is a privileged provider-credential broker. Keep its agent-facing
-# routing contract provider-neutral and fail closed when its policy database is
-# unavailable. Prompt bodies and exception messages must not enter spend/error logs.
-litellm_config='k8s/applications/ai/litellm/proxy_server_config.yaml'
+# LiteLLM is a privileged provider-credential broker. V1 uses the official
+# Helm chart, stable provider-neutral lanes and an in-cluster Von classifier.
+litellm_values='k8s/applications/ai/litellm/values.yaml'
+litellm_application='k8s/applications/ai/litellm-helm-application.yaml'
 litellm_kustomization='k8s/applications/ai/litellm/kustomization.yaml'
-litellm_deployment='k8s/applications/ai/litellm/deployment.yaml'
+litellm_provider_secrets='k8s/applications/ai/litellm/litellm-provider-secrets.yaml'
+von_deployment='k8s/applications/ai/litellm/von-deployment.yaml'
+litellm_network_policy='k8s/infrastructure/network/policies/applications/ai/litellm/allow-litellm-access.yaml'
 
-grep -q 'newName: ghcr.io/berriai/litellm$' "$litellm_kustomization"
-grep -q 'newTag: v1.103.2$' "$litellm_kustomization"
-grep -q 'require_auth_for_metrics_endpoint: true' "$litellm_config"
-grep -q 'turn_off_message_logging: true' "$litellm_config"
-grep -q 'redact_user_api_key_info: true' "$litellm_config"
-grep -q 'redact_messages_in_exceptions: true' "$litellm_config"
-grep -q 'store_prompts_in_spend_logs: false' "$litellm_config"
-grep -q 'allow_requests_on_db_unavailable: false' "$litellm_config"
-grep -q 'enable_pre_call_checks: true' "$litellm_config"
-grep -q 'value: "INFO"' "$litellm_deployment"
+grep -q 'chart: litellm-helm' "$litellm_application"
+grep -q 'targetRevision: 1.103.2' "$litellm_application"
+grep -q 'repoURL: ghcr.io/berriai' "$litellm_application"
+grep -q 'tag: v1.103.2' "$litellm_values"
+grep -q 'migrationJob:' "$litellm_values"
+grep -q 'enabled: true' "$litellm_values"
+grep -q 'useExisting: true' "$litellm_values"
+grep -q 'litellm-postgresql-restored-rw.litellm.svc.cluster.local:5432' "$litellm_values"
+grep -q 'require_auth_for_metrics_endpoint: true' "$litellm_values"
+grep -q 'turn_off_message_logging: true' "$litellm_values"
+grep -q 'redact_user_api_key_info: true' "$litellm_values"
+grep -q 'redact_messages_in_exceptions: true' "$litellm_values"
+grep -q 'store_prompts_in_spend_logs: false' "$litellm_values"
+grep -q 'allow_requests_on_db_unavailable: false' "$litellm_values"
+grep -q 'store_model_in_db: false' "$litellm_values"
+grep -q 'enable_pre_call_checks: true' "$litellm_values"
 for model_lane in research fast code reasoning review auto; do
-  grep -q "model_name: $model_lane" "$litellm_config" || {
+  grep -q "model_name: $model_lane" "$litellm_values" || {
     echo "ERROR: LiteLLM is missing stable model lane: $model_lane" >&2
     exit 1
   }
 done
-grep -q 'model: dashscope/qwen3.8-flash' "$litellm_config"
-grep -q 'model: dashscope/qwen3.8-max' "$litellm_config"
-grep -q 'model: xiaomi_mimo/mimo-v2.6-flash' "$litellm_config"
-grep -q 'model: xiaomi_mimo/mimo-v2.6-pro' "$litellm_config"
-grep -q 'classifier_type: jev' "$litellm_config"
-grep -q 'model: jev-1.13.0' "$litellm_config"
-grep -q 'circuit_breaker_enabled: true' "$litellm_config"
-grep -q 'classifier_fallback: heuristic' "$litellm_config"
-grep -q 'classifier_context_window_size: 0' "$litellm_config"
+grep -q 'model: dashscope/qwen3.8-flash' "$litellm_values"
+grep -q 'model: dashscope/qwen3.8-max' "$litellm_values"
+grep -q 'model: xiaomi_mimo/mimo-v2.6-flash' "$litellm_values"
+grep -q 'model: xiaomi_mimo/mimo-v2.6-pro' "$litellm_values"
+grep -q 'classifier_type: jev' "$litellm_values"
+grep -q 'model: von-latest' "$litellm_values"
+grep -q 'classifier_fallback: heuristic' "$litellm_values"
+grep -q 'classifier_context_window_size: 3' "$litellm_values"
+grep -q 'TYPESAFE_API_BASE: "http://von.litellm.svc.cluster.local:8000"' "$litellm_values"
+grep -q 'ghcr.io/wfzyx/von:1.3.7-cpu' "$von_deployment"
+grep -q 'openvino' "$von_deployment"
+grep -q -- '--on-overflow' "$von_deployment"
+grep -q 'APP_VON_API_KEY' k8s/applications/ai/litellm/von-secrets.yaml
+grep -q 'APP_XIAOMI_MIMO_API_KEY' "$litellm_provider_secrets"
+grep -q 'APP_ALIBABA_MODEL_STUDIO_API_KEY' "$litellm_provider_secrets"
+grep -q 'APP_ALIBABA_MODEL_STUDIO_BASE_URL' "$litellm_provider_secrets"
+grep -q 'api.xiaomimimo.com' "$litellm_network_policy"
+grep -q '\*.eu-central-1.maas.aliyuncs.com' "$litellm_network_policy"
+if grep -q 'api.typesafe.ai' "$litellm_network_policy"; then
+  echo "ERROR: LiteLLM must classify through in-cluster Von, not TypeSafe cloud" >&2
+  exit 1
+fi
+if grep -q 'deployment.yaml\|svc.yaml\|proxy_server_config.yaml' "$litellm_kustomization"; then
+  echo "ERROR: raw LiteLLM proxy manifests/config must not coexist with the Helm authority" >&2
+  exit 1
+fi
 
 # Authentik V1 stays on the current stable series and uses upstream-native
 # authentication flows rather than carrying a parallel passwordless graph.
