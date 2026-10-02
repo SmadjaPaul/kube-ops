@@ -25,13 +25,30 @@ The LiteLLM value should be a dedicated virtual key limited to the models needed
 
 Paperclip runs in `authenticated` mode at `https://paperclip.smadja.dev` but its HTTPRoute attaches only to `Gateway/internal`.
 
-Generic OIDC/Authentik support is not upstream in Paperclip stable as of 2026-09-30. V1 therefore uses the native Better Auth board-claim flow. Do not add oauth2-proxy/ForwardAuth or a permanent fork just to mask this gap. When upstream generic OIDC lands, migrate the native auth provider in place.
+Paperclip `2026.1001.0` still uses native Better Auth for human sign-in; the
+generic OIDC work remains tracked by upstream PR #3040. A minimal
+environment-gated generic OIDC implementation exists in the `namhtpyn/paperclip`
+fork, but V1 does not adopt that fork or a full downstream merge. If a
+downstream bridge becomes necessary, it must be a separately reviewed,
+minimal patch with an explicit removal path once upstream ships the feature.
+
+The upgrade candidate from `2026.916.1` to `2026.1001.0` is not applied yet.
+The candidate runs migrations `0280`–`0283`, retires legacy Composio
+connections without an automatic migration, and changes unconfigured execution
+harnesses to full-auto defaults. The Operator `0.19.1` Instance API accepts the
+current image-tag-based CR without an app-version pin, but the upgrade remains
+gated on the runtime secret contract, database migration qualification, and the
+existing Paperclip acceptance tests.
 
 The Paperclip Operator's automatic authenticated-mode `adminUser` bootstrap is intentionally not used because upstream documents a current CEO-promotion/config-mode bug. Claim the instance through the supported board-claim flow.
 
 ## Execution posture
 
-Global scheduled heartbeats are disabled in V1 because Paperclip `2026.916.1` has a current burst-wakeup/PostgreSQL-pool regression. Agents are invoked explicitly/on-demand. Paperclip budgets are useful telemetry but are not the only financial guardrail; model/provider limits remain enforced in LiteLLM/provider accounts.
+Global scheduled heartbeats remain disabled in V1 pending qualification of the
+upgrade path and the existing burst-wakeup/PostgreSQL-pool regression. Agents
+are invoked explicitly/on-demand. Paperclip budgets are useful telemetry but
+are not the only financial guardrail; model/provider limits remain enforced in
+LiteLLM/provider accounts.
 
 Kubernetes sandbox execution is deliberately deferred until the first-party Paperclip Kubernetes plugin and Agent Sandbox API are stable enough for this cluster. V1 tests the Paperclip control plane and local OpenCode adapter first.
 
