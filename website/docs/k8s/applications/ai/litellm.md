@@ -2,166 +2,204 @@
 title: 'LiteLLM Gateway'
 ---
 
-LiteLLM is the V1 model gateway. Clients use one OpenAI-compatible endpoint and stable workload-facing model names;
-provider credentials remain server-side and are delivered through Doppler -> External Secrets Operator.
+LiteLLM is the V1 AI gateway. The proxy is deployed from LiteLLM's official OCI Helm chart; Git owns provider/model
+routing while PostgreSQL owns runtime identities, virtual keys and spend records.
 
-## Target architecture
+## Reference implementations
 
-Two completion providers are authoritative for V1:
+The deployment structure was checked against current public GitOps clusters in October 2026.
 
-- Xiaomi MiMo PAYG is the primary coding/reasoning provider.
-- Alibaba Cloud Model Studio PAYG in Frankfurt is the research and independent-review provider.
+- `joshdurbin/home-pi-infrastructure` is the primary structural reference: Argo CD multi-source Application, official
+  `litellm-helm` 1.103.2, external CloudNativePG, external Redis and authenticated metrics.
+- `wittdennis/gitops-kubernetes` independently uses the official 1.103.2 chart with existing PostgreSQL and Authentik.
+- `derio-net/frank` is useful for older operational lessons and migration failures, but its LiteLLM versions are not a
+  version authority for this cluster.
 
-TypeSafe JEV is a classifier dependency for the `auto` lane, not a completion provider. OpenRouter is deliberately not a
-V1 dependency; it remains an optional future long-tail/emergency route.
+The cluster deliberately does not deploy a community LiteLLM operator. The official chart removes the hand-written proxy
+Deployment/Service and owns schema migration without adding a new CRD/controller lifecycle.
 
-Interactive Alibaba Token Plan / Coding Plan credentials must not be used as LiteLLM backend credentials. Alibaba
-documents those plans for interactive coding tools and excludes automated application backends. Use a Model Studio
-production API key instead.
+## Argo / Helm ownership
 
-## Ownership
+`k8s/applications/ai/litellm-helm-application.yaml` is a child Argo Application with two sources:
 
-Git owns the gateway policy:
+1. `ghcr.io/berriai/litellm-helm:1.103.2`;
+2. this Git repository as the values source.
 
-- `k8s/applications/ai/litellm/proxy_server_config.yaml` owns models, routing and proxy policy.
-- `k8s/applications/ai/litellm/kustomization.yaml` pins the rendered LiteLLM image.
-- `k8s/applications/ai/litellm/litellm-provider-secrets.yaml` maps externally provisioned credentials from Doppler.
-- PostgreSQL stores virtual keys, users and spend records.
-- Redis is ephemeral cache/router state; it is not an authority.
+`k8s/applications/ai/litellm/values.yaml` is the proxy authority. The sibling Kustomization owns only dependencies and
+policy inputs: namespace, CNPG, Redis, ESO Secrets, Gateway API route, monitoring and the local Von classifier.
 
-Provider credentials are operator-provisioned external inputs. They are never generated in `kube-ops` and their values
-must never enter Git, prompts, logs or PR comments.
+The child Application is placed after those resources with a sync wave. The official chart's Argo PreSync migration Job
+runs the database migration once before the proxy Deployment.
+
+## Completion providers
+
+Two production completion providers are authoritative:
+
+- Xiaomi MiMo PAYG: primary coding/reasoning path.
+- Alibaba Cloud Model Studio PAYG in Frankfurt: low-cost research and independent review.
+
+Interactive Xiaomi Token Plan and Alibaba Token/Coding Plan credentials must not be used as automated LiteLLM backend
+credentials. The cluster consumes production API credentials only.
+
+Cloudflare Workers AI remains temporarily for the existing Qwen embedding lane. Tavily remains a search-tool dependency
+for Perplexica; neither is a completion provider.
 
 ## Stable model lanes
 
-Clients depend on these names instead of provider/model identifiers:
+Clients depend on these names rather than upstream model IDs:
 
-| Lane | Purpose | Target |
+| Lane | Purpose | Backing model |
 | --- | --- | --- |
-| `research` | cheap lookup, extraction and bounded research | Alibaba Qwen3.8 Flash, non-thinking |
+| `research` | cheap lookup/extraction/research | Alibaba Qwen3.8 Flash, non-thinking |
 | `fast` | inexpensive general work | MiMo V2.6 Flash, thinking disabled |
-| `code` | implementation and coding-agent work | MiMo V2.6 Pro |
+| `code` | implementation/coding agents | MiMo V2.6 Pro |
 | `reasoning` | difficult cross-system reasoning | MiMo V2.6 Pro |
 | `review` | independent second-family review | Alibaba Qwen3.8 Max, high reasoning |
-| `auto` | choose a cost/complexity tier | TypeSafe JEV -> lanes above |
+| `auto` | choose a complexity/cost lane | local Von classifier -> lanes above |
 
-The lane names are the compatibility contract. Backing models may change after measured cost-per-successful-task evidence
-without changing clients.
+`qwen3-embedding-0.6b` remains the stable embedding name.
 
-## Auto routing and privacy
+Paperclip, OpenClaw and GPT Researcher use the stable lanes. This lets the backing model change after cost/quality
+measurement without editing every client.
 
-`auto` uses LiteLLM's built-in Auto Router with TypeSafe JEV `jev-1.13.0`:
+## Local decision router: Von
+
+The `auto` lane uses LiteLLM's native JEV client against an in-cluster TypeSafe-compatible endpoint:
+
+```text
+LiteLLM
+  |
+  | POST /v1/systemone
+  v
+von.litellm.svc.cluster.local:8000
+```
+
+Von is pinned to `ghcr.io/wfzyx/von:1.3.7-cpu` and uses its OpenVINO CPU path. The model cache is persisted on an 8 GiB
+`longhorn-fast` PVC so routine restarts do not download the roughly multi-gigabyte model again.
+
+The classifier is not a separate router. LiteLLM remains the only routing/control plane.
+
+Classifier policy:
 
 - SIMPLE -> `research`
 - MEDIUM -> `fast`
 - COMPLEX -> `code`
 - REASONING -> `reasoning`
-- JEV timeout: 3 seconds
-- circuit breaker: enabled, 30-second cooldown
-- classifier failure: local heuristic fallback
-- prior-turn classifier context: disabled
-- model/session affinity: one hour
+- prior classifier context: three user turns, up to 8,000 characters
+- assistant turns excluded
+- JEV-compatible timeout: 3 seconds
+- circuit breaker: enabled
+- failure fallback: LiteLLM local heuristic
+- session affinity: one hour
 
-Only calls to `auto` send classification input to TypeSafe. Explicit calls to `research`, `fast`, `code`,
-`reasoning` or `review` bypass JEV. Use an explicit lane when the additional classifier trust boundary is not
-appropriate.
+The local endpoint removes the TypeSafe cloud data path and recurring classifier API cost. It does not make classifier
+quality free: Von is an English-focused small decision model, so real routing accuracy must be measured on representative
+French and English agent traffic. Explicit lanes remain available and must be preferred when the caller already knows the
+task class.
 
-Session and deployment affinity are enabled because coding-agent requests repeatedly reuse large prefixes. This preserves
-provider-side prompt-cache locality and avoids unnecessary model churn during tool loops. Responses API deployment
-affinity remains enabled for `previous_response_id` continuity.
+## Von access control
 
-## Credential contract
+Von has no HTTPRoute. Cilium allows inbound port 8000 only from LiteLLM. It receives a dedicated generated
+`APP_VON_API_KEY` through Doppler/ESO, exposed as both `VON_API_KEY` to Von and `TYPESAFE_API_KEY` to LiteLLM.
 
-Before this target routing can be rolled out, Doppler `cluster/prd` must contain the externally provisioned values that
-ESO maps into the LiteLLM provider Secret:
+Its only external egress is DNS plus the Hugging Face/Xet surfaces required to populate the persistent model cache. The
+LiteLLM policy has no `api.typesafe.ai` egress.
+
+## Provider credentials
+
+Provider values never belong in Git. Before rollout, Doppler `cluster/prd` must contain:
 
 ```text
 APP_XIAOMI_MIMO_API_KEY
 APP_ALIBABA_MODEL_STUDIO_API_KEY
 APP_ALIBABA_MODEL_STUDIO_BASE_URL
-APP_TYPESAFE_API_KEY
 ```
 
-The Alibaba base URL must point at the same Frankfurt workspace in which its API key was created. Do not put any of these
-values in Git.
+`APP_VON_API_KEY` is cluster-owned internal material generated by `homelab-infra`, not a human-provisioned provider
+credential.
 
-The existing providers remain declared during migration so rollback does not depend on recreating historical credentials.
-Remove unused provider declarations only after runtime usage proves they are no longer needed.
+The Alibaba key and base URL must belong to the same Frankfurt workspace.
+
+ESO maps those values into `litellm-provider-secrets`; clients receive only LiteLLM virtual keys.
 
 ## Security posture
 
-LiteLLM is a privileged credential broker. V1 therefore uses fail-closed defaults:
+LiteLLM is a privileged credential broker. The target therefore:
 
-- prompt/response bodies are not written to LiteLLM message logs or spend logs;
-- API-key data and exception messages are redacted;
-- pre-call checks reject invalid/context-incompatible requests before provider spend;
-- database unavailability does not bypass virtual-key policy;
-- the Prometheus endpoint requires authentication;
-- production log level is `INFO`;
-- provider keys exist only in the LiteLLM namespace through ESO.
+- keeps provider credentials server-side;
+- stores neither prompt nor response bodies in message/spend logs;
+- redacts API-key metadata and exception messages;
+- fails closed when the policy database is unavailable;
+- requires authentication on the Prometheus endpoint;
+- uses pre-call validation;
+- keeps model definitions in Git (`store_model_in_db: false`);
+- permits provider egress only to required FQDNs;
+- runs one proxy replica with non-root UID, RuntimeDefault seccomp and all Linux capabilities dropped.
 
-The HTTPRoute currently attaches to both internal and external Gateways. Do not remove the external attachment until the
-internal DNS/TLS/backend path is proven at runtime, per the repository migration safety contract.
+The chart's migration/startup path still needs writable image paths in this release, so `readOnlyRootFilesystem` is not
+enabled on the Helm-managed proxy. This is an explicit upstream compatibility tradeoff, not an implicit security
+regression. Re-enable it only after a chart/image canary proves both migration and steady-state startup work.
+
+The HTTPRoute still attaches to both internal and external Gateways. Do not remove the existing public attachment until
+the LAN-only path is proven at runtime, per the repository migration contract.
 
 ## Identity
 
-The Admin UI uses Authentik OIDC. Runtime consumers use separate LiteLLM virtual keys, for example Open WebUI, an ops
-agent, an infra agent and an operator workstation. Apply model allowlists, budgets and rate limits per identity rather
-than sharing the master key.
+The Admin UI uses Authentik OIDC. Runtime consumers use separate LiteLLM virtual keys with model allowlists, budgets and
+rate limits; they never receive provider credentials.
 
-A later workload-identity phase may replace long-lived in-cluster virtual keys with short-lived Kubernetes ServiceAccount
-JWTs validated at Envoy. Authentik Agent/OBO identities are reserved for the later case where an AI agent acts on behalf
-of a human user in downstream applications; they are not required for model routing.
+A later identity phase may replace in-cluster long-lived virtual keys with projected Kubernetes ServiceAccount JWTs
+validated by Envoy. Authentik Agent/OBO is reserved for the later case where an AI agent acts on behalf of a human user in
+downstream applications.
 
-## Kubernetes packaging
+## Database, cache and migrations
 
-V1 deliberately uses the current Kustomize-managed raw manifests. Raw manifests are an upstream-supported LiteLLM
-deployment path and already fit this repository's Argo ApplicationSet.
+The existing CNPG cluster remains authoritative:
 
-Do not add a community LiteLLM operator for V1. The public operators reviewed in October 2026 are young and add CRDs and
-another reconciler without improving model cost or identity.
+```text
+litellm-postgresql-restored-rw.litellm.svc.cluster.local:5432/app
+```
 
-If packaging is revisited, the supported migration candidate is LiteLLM's official Helm chart. Its main concrete benefit
-for this homelab is the upstream migration Job / schema-update lifecycle plus native ServiceMonitor/PDB/HPA integration.
-That packaging migration is intentionally separate from this provider/routing change.
+CNPG backup/restore remains unchanged. The existing ephemeral Redis Deployment remains the response/router cache.
 
-## Responses API
+The official chart owns the proxy schema migration through its bounded Argo PreSync Job. Proxy pods no longer carry the
+custom `wait-for-postgresql` init container or perform independent schema ownership.
 
-`responses_api_deployment_check` stays enabled so follow-up requests using `previous_response_id` remain on the
-compatible deployment. Response-ID security remains enabled (`DISABLE_RESPONSES_ID_SECURITY=false`).
+## Observability
 
-## Data and observability
+LiteLLM emits Prometheus metrics with authentication enabled. A repository-owned ServiceMonitor scrapes the chart Service
+using `LITELLM_MASTER_KEY` from the existing secret rather than opening an unauthenticated metrics endpoint.
 
-PostgreSQL is backed up through the existing CNPG/Barman path. Redis has no persistence because it only carries cache and
-router state. Cost accounting must record requested lane plus resolved provider/model and JEV classifier spend so routing
-can be evaluated on cost per successful task rather than raw token price.
+Cost evaluation must correlate:
 
-## Upgrade notes
+- requested stable lane;
+- resolved provider/model;
+- classifier decision/fallback;
+- input/output/cache tokens;
+- task validation result.
 
-The V1 desired state pins LiteLLM `v1.103.2`. The move from the old 1.88 line crosses database migrations and the
-1.103.1 session-token change. Admin UI / Lite CLI sessions created on the old version must authenticate again after
-rollout. LiteLLM virtual keys, the master key and stored provider credentials are not intentionally rotated.
+The optimization target is cost per successful task, not cost per raw token.
 
-## Merge and runtime gates
+## Rollout gates
 
-Do not merge the provider-routing target until the four Doppler credential names above exist and ESO can materialize the
-provider Secret.
+Do not merge until the external MiMo and Alibaba credentials exist in Doppler and ESO can materialize the provider
+Secret.
 
-After rollout, prove:
+After merge, prove:
 
-1. Argo reconciles the desired revision and LiteLLM/CNPG are healthy.
-2. Authentik Admin UI login works after re-authentication.
-3. Direct probes succeed through `research`, `fast`, `code`, `reasoning` and `review`.
-4. `auto` classifies representative simple, coding and hard-reasoning tasks; JEV failures fall back to the heuristic.
-5. MiMo multi-turn tool use preserves required reasoning content.
-6. Spend records contain cost/metadata but no prompt bodies.
-7. Measured cost per successful task is captured before changing lane assignments.
+1. parent Argo resources are Healthy before the LiteLLM child Application syncs;
+2. the chart migration Job completes and proxy readiness is healthy;
+3. Authentik Admin UI login works after the LiteLLM session-format upgrade;
+4. `research`, `fast`, `code`, `reasoning`, `review` and the embedding lane respond;
+5. Von becomes Ready after its first model-cache fill;
+6. `auto` correctly routes a representative English and French task set and falls back locally when Von is unavailable;
+7. Paperclip, OpenClaw, Open WebUI, GPT Researcher and Perplexica can reach the Helm Service on port 4000;
+8. spend/Prometheus records contain metadata and cost but not prompt bodies.
 
-Static validation:
+Static repository validation remains:
 
 ```bash
 just check
-kubectl kustomize k8s/applications/ai/litellm
 ```
 
-A successful render does not prove provider reachability, credentials, migrations, routing or user authentication.
+Static validation does not prove OCI chart reachability, provider credentials, runtime migrations or classifier quality.
