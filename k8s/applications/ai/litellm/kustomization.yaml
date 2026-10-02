@@ -2,9 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: litellm
 
-# Pin the rendered workload to the patched monolithic image recommended for
-# PostgreSQL-backed LiteLLM deployments. Keep the base Deployment generic so the
-# version policy remains visible at the Kustomize boundary.
+# The patched stable is published on LiteLLM's monolithic PostgreSQL-capable
+# image. The Deployment still enforces runAsNonRoot, UID 1000, dropped
+# capabilities and a read-only root filesystem.
 images:
 - name: ghcr.io/berriai/litellm-non_root
   newName: ghcr.io/berriai/litellm
