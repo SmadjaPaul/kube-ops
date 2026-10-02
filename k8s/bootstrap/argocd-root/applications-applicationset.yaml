@@ -20,7 +20,8 @@ spec:
           - path: k8s/applications/web
           - path: k8s/applications/automation
           - path: k8s/applications/games
-          - path: k8s/applications/business
+          # Business workloads are explicitly deferred outside the V1 runtime.
+          # Keep their manifests available without generating an Argo Application.
           - path: k8s/applications/catalog
           - path: k8s/applications/restore
   template:
