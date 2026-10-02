@@ -1,0 +1,48 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: bookorbit-runtime
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: bookorbit
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+        - ingress
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: postgresql
+            app.kubernetes.io/instance: bookorbit-postgresql
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: bookorbit-postgresql
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+      app.kubernetes.io/instance: bookorbit-postgresql
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: bookorbit
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
