@@ -854,14 +854,13 @@ search_tools:
 
   - model_name: review
     litellm_params:
-      model: "anthropic/claude-sonnet-4-6"
-      api_key: "os.environ/ANTHROPIC_API_KEY"
+      model: dashscope/qwen3.8-max
+      api_base: "os.environ/ALIBABA_MODEL_STUDIO_BASE_URL"
+      reasoning_effort: "high"
     model_info:
-      mode: messages
-      max_input_tokens: 200000
-      max_output_tokens: 64000
-      input_cost_per_token: 0.000003
-      output_cost_per_token: 0.000015
+      mode: chat
+      max_input_tokens: 1000000
+      max_output_tokens: 131072
 
   - model_name: auto
     litellm_params:
