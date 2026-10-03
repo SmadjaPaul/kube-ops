@@ -80,7 +80,9 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 30
+          # The first start downloads and loads the ~500 MB Pocket-TTS model
+          # before /health can answer. Keep kubelet from restarting that load.
+          failureThreshold: 60
         livenessProbe:
           httpGet:
             path: /health
