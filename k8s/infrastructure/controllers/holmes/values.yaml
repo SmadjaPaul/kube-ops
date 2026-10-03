@@ -3,6 +3,9 @@
 replicas: 0
 
 enableJsonLogsFormat: true
+
+commonLabels:
+  sre.smadja.dev/component: holmes
 enableAccountsCreate: false
 
 additionalEnvVars:
