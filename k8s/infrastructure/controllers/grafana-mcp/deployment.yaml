@@ -31,6 +31,8 @@ spec:
             - :8000
             - --enabled-tools
             - search,datasource,prometheus,loki,alerting,dashboard,navigation,annotations
+            - --disable-write
+            - --usage-stats=disabled
           env:
             - name: GRAFANA_URL
               value: http://kube-prometheus-stack-grafana.monitoring.svc.cluster.local
