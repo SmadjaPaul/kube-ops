@@ -23,7 +23,6 @@ spec:
       hostPID: false
       hostNetwork: false
       securityContext:
-        runAsNonRoot: true
         runAsUser: 911
         runAsGroup: 911
         fsGroup: 911
