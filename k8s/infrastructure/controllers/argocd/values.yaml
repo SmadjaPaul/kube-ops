@@ -3,6 +3,7 @@ configs:
     create: true
     application.resourceTrackingMethod: annotation
     admin.enabled: false
+    accounts.argocd-mcp: apiKey
     url: https://argocd.smadja.dev
     kustomize.buildOptions: '--enable-helm'
     resource.customizations.health.ConfigMap: |
@@ -109,6 +110,7 @@ configs:
       g, admin, role:admin
       g, authentik-admins, role:admin
       g, dev, role:readonly
+      g, argocd-mcp, role:readonly
 
 crds:
   install: true
@@ -140,6 +142,15 @@ dex:
       memory: 32Mi
     limits:
       memory: 128Mi
+  # Dex can remain Ready after a connector initialization failure unless its
+  # health endpoints are wired into kubelet. Keep Argo from routing SSO to a
+  # process that is not listening and let kubelet recover transient failures.
+  livenessProbe:
+    enabled: true
+  readinessProbe:
+    enabled: true
+  startupProbe:
+    enabled: true
 
 redis-ha:
   enabled: false
