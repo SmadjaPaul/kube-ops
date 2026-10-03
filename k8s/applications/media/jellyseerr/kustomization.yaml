@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: media
 
 resources:
+- oidc-external-secret.yaml
 - http-route.yaml
 - statefulset.yaml
 - svc.yaml
