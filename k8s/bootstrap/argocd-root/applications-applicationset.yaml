@@ -20,8 +20,14 @@ spec:
           - path: k8s/applications/web
           - path: k8s/applications/automation
           - path: k8s/applications/games
-          # Business workloads are explicitly deferred outside the V1 runtime.
-          # Keep their manifests available without generating an Argo Application.
+          # Business workloads are activated progressively, one Argo Application
+          # per app so an unhealthy app does not block its peers.
+          - path: k8s/applications/business/listmonk
+          - path: k8s/applications/business/stalwart
+          - path: k8s/applications/business/bulwark
+          - path: k8s/applications/business/twenty
+          - path: k8s/applications/business/chatwoot
+          - path: k8s/applications/business/messages
           - path: k8s/applications/catalog
           - path: k8s/applications/restore
   template:
