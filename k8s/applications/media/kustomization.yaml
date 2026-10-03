@@ -9,6 +9,7 @@ resources:
 - media-share-pvc.yaml
 - media-layout-job.yaml
 - jellyseerr
+- jellyseerr-secrets.yaml
 - sabnzbd
 - whisperasr
 - immich
