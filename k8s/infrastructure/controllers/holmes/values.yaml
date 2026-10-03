@@ -104,6 +104,17 @@ customClusterRoleRules:
   - apiGroups: ["cert-manager.io"]
     resources: ["certificates", "certificaterequests", "issuers", "clusterissuers"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["aquasecurity.github.io"]
+    resources:
+      - vulnerabilityreports
+      - clusterconfigurationauditreports
+      - configurationauditreports
+      - rbacassessmentreports
+      - clusterdevicereports
+      - exposedsecretreports
+      - sbomreports
+      - clustersbomreports
+    verbs: ["get", "list", "watch"]
 
 toolsets:
   kubernetes/core:
