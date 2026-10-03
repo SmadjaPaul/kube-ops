@@ -5,7 +5,7 @@ metadata:
   namespace: media
 spec:
   serviceName: sabnzbd
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: sabnzbd
