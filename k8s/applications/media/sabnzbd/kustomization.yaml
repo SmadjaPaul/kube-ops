@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: media
 
 resources:
+  - externalsecret.yaml
   - http-route.yaml
   - statefulset.yaml
   - svc.yaml
@@ -36,7 +37,7 @@ configMapGenerator:
       - SAB__misc__wait_ext_drive=30
 
       # Server (example)
-      - SAB__servers__newsnewshostingcom__enable=1
+      - SAB__servers__newsnewshostingcom__enable=0
       - SAB__servers__newsnewshostingcom__name=newsnewshostingcom
       - SAB__servers__newsnewshostingcom__displayname=news.newshosting.com
       - SAB__servers__newsnewshostingcom__host=news.newshosting.com
