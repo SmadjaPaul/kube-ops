@@ -18,8 +18,9 @@ spec:
         app: opencode-web
     spec:
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
+        runAsNonRoot: false
+        runAsUser: 0
+        runAsGroup: 0
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
@@ -61,12 +62,15 @@ spec:
       - name: opencode-web
         image: ghcr.io/chriswritescode-dev/opencode-manager:0.13.0
         securityContext:
-          runAsUser: 1000
-          runAsGroup: 1000
-          runAsNonRoot: true
+          # The image entrypoint must start as root so it can chown the
+          # writable PVCs, then drops to its bundled node user via runuser.
+          runAsUser: 0
+          runAsGroup: 0
+          runAsNonRoot: false
           allowPrivilegeEscalation: false
           capabilities:
             drop: ["ALL"]
+            add: ["CHOWN", "SETUID", "SETGID"]
           seccompProfile:
             type: RuntimeDefault
         ports:

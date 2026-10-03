@@ -4,7 +4,7 @@ metadata:
   name: opencode-initcontainer-root
   namespace: opencode
   annotations:
-    description: "Exception for OpenCode initContainer that requires root to install Playwright browsers, Kustomize, and Helm."
+    description: "Exception for OpenCode's upstream entrypoint and initContainers, which require narrowly scoped root capabilities for writable-volume setup and tool installation."
 spec:
   match:
     any:
