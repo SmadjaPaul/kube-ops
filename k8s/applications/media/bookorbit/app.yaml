@@ -61,6 +61,8 @@ spec:
               value: "2501"
             - name: BOOKORBIT_FIX_PERMISSIONS
               value: "false"
+            - name: APP_DATA_PATH
+              value: /appdata
             - name: LIBRARY_BROWSE_ROOT
               value: /data/media/books
             - name: POSTGRES_HOST
@@ -147,7 +149,7 @@ spec:
             failureThreshold: 3
           volumeMounts:
             - name: data
-              mountPath: /data
+              mountPath: /appdata
             - name: media
               mountPath: /data
             - name: tmp
