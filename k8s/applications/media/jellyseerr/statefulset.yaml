@@ -9,7 +9,7 @@ metadata:
 spec:
   # The serviceName must match the name of the headless Service
   serviceName: "jellyseerr"
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: jellyseerr
@@ -35,8 +35,10 @@ spec:
         imagePullPolicy: IfNotPresent
         envFrom:
         - secretRef:
-            # IMPORTANT: Ensure a secret named 'jellyseerr-secrets' exists in the 'media' namespace.
+            # Jellyfin bootstrap is optional; without the secret, Jellyseerr
+            # starts in first-run mode and can be configured through the UI.
             name: jellyseerr-secrets
+            optional: true
         ports:
         - name: http
           containerPort: 5055
