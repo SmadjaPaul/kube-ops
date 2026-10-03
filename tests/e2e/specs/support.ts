@@ -3,6 +3,7 @@ import { expect, Page, TestInfo } from '@playwright/test';
 export const URLs = {
   authentik: process.env.AUTHENTIK_URL ?? 'https://auth.smadja.dev',
   argocd: process.env.ARGOCD_URL ?? 'https://argocd.smadja.dev',
+  jellyfin: process.env.JELLYFIN_URL ?? 'https://jellyfin.smadja.dev',
   openwebui: process.env.OPENWEBUI_URL ?? 'https://chat.smadja.dev',
   homeAssistant: process.env.HOME_ASSISTANT_URL ?? 'https://hassio.smadja.dev',
 };

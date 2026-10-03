@@ -6,6 +6,7 @@ resources:
 - argocd
 - argocd-mcp
 - grafana-mcp
+- holmes
 - cert-manager
 - descheduler
 - external-secrets
