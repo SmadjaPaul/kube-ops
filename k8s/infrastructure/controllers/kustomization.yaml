@@ -13,6 +13,7 @@ resources:
 - reloader
 - keda
 - metrics-server
+- vpa
 - velero
 - node-feature-discovery
 - paperclip-operator
