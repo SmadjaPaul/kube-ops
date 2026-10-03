@@ -8,7 +8,7 @@ metadata:
   labels:
     app: jellyseerr
   annotations:
-    secret.reloader.stakater.com/reload: "seerr-oidc"
+    secret.reloader.stakater.com/reload: "jellyseerr-secrets,seerr-oidc"
 spec:
   serviceName: jellyseerr
   replicas: 1
