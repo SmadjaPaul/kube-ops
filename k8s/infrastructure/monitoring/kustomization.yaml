@@ -6,3 +6,5 @@ resources:
   - hubble
   - prometheus-stack
   - blackbox
+  - loki
+  - alloy
