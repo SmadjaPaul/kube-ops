@@ -5,6 +5,7 @@ resources:
 - project.yaml
 - argocd
 - argocd-mcp
+- holmes
 - cert-manager
 - descheduler
 - external-secrets

@@ -74,7 +74,7 @@ spec:
               mountPath: /plugin
       containers:
         - name: jellyfin
-          image: ghcr.io/jellyfin/jellyfin:10.11.10
+          image: ghcr.io/jellyfin/jellyfin:10.11.11
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
