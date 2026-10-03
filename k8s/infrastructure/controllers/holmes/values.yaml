@@ -23,6 +23,16 @@ additionalEnvVars:
         key: HOLMES_API_KEY
   - name: MCP_TOOL_CALL_TIMEOUT_SEC
     value: "60"
+  - name: ARGOCD_MCP_AUTH_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: holmes-runtime
+        key: ARGOCD_MCP_AUTH_TOKEN
+  - name: GRAFANA_MCP_AUTH_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: holmes-runtime
+        key: GRAFANA_MCP_AUTH_TOKEN
 
 modelList:
   sre-fast:
@@ -38,6 +48,24 @@ modelList:
 
 config:
   model: sre-fast
+
+mcp_servers:
+  argocd:
+    description: "Read-only Argo CD desired/reconciled state, resource trees, events and workload logs"
+    config:
+      url: "http://argocd-mcp.agent-observers.svc.cluster.local:3000/mcp"
+      mode: streamable-http
+      headers:
+        Authorization: "Bearer {{ env.ARGOCD_MCP_AUTH_TOKEN }}"
+    llm_instructions: "Use this before raw Kubernetes inspection to establish desired revision, sync/health state, resource tree, managed resources, events and workload logs. This server is read-only."
+  grafana:
+    description: "Read-only Grafana interface to Prometheus, Loki, alerts and dashboards"
+    config:
+      url: "http://grafana-mcp.agent-observers.svc.cluster.local:8000/mcp"
+      mode: streamable-http
+      headers:
+        Authorization: "Bearer {{ env.GRAFANA_MCP_AUTH_TOKEN }}"
+    llm_instructions: "Use this for alert context, Prometheus metrics, Loki logs and dashboards. Prefer correlated observability evidence over ad-hoc shell inspection."
 
 # Holmes built-in Kubernetes access is read-only. The chart role intentionally
 # has no Secret access, and the write/remediation MCP is not enabled.
