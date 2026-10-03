@@ -1,0 +1,61 @@
+# Lightweight application-focused Trivy Operator profile for the single-node V1.
+# Node/host collectors and cluster compliance are intentionally disabled: Talos
+# substrate evidence belongs to the dedicated Talos read-only path.
+operator:
+  replicas: 1
+  scanJobsConcurrentLimit: 1
+  scanNodeCollectorLimit: 0
+  scanJobTTL: 10m
+  scanJobTimeout: 10m
+  vulnerabilityScannerEnabled: true
+  sbomGenerationEnabled: true
+  configAuditScannerEnabled: true
+  rbacAssessmentScannerEnabled: true
+  infraAssessmentScannerEnabled: false
+  clusterComplianceEnabled: false
+  exposedSecretScannerEnabled: true
+  vulnerabilityScannerScanOnlyCurrentRevisions: true
+  configAuditScannerScanOnlyCurrentRevisions: true
+  accessGlobalSecretsAndServiceAccount: false
+  scannerReportTTL: 24h
+  metricsFindingsEnabled: true
+  metricsVulnIdEnabled: false
+  metricsExposedSecretInfo: false
+  metricsConfigAuditInfo: false
+  metricsRbacAssessmentInfo: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      cpu: 300m
+      memory: 384Mi
+
+# Scan application workloads while leaving control-plane/system namespaces to
+# their native security and observability surfaces.
+targetNamespaces: ""
+excludeNamespaces: "kube-system,argocd,monitoring,kyverno,gatekeeper-system,security-system,agent-observers,cert-manager,external-secrets,longhorn-system,cnpg-system,gateway"
+
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+
+trivy:
+  mode: Standalone
+  slow: true
+  severity: "HIGH,CRITICAL"
+  ignoreUnfixed: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      cpu: 300m
+      memory: 384Mi
+
+# Do not mount Talos host paths.
+nodeCollector:
+  volumeMounts: []
+  volumes: []
