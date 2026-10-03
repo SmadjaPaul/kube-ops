@@ -60,6 +60,8 @@ spec:
           value: "1"
         - name: HF_HOME
           value: "/home/pockettts/.cache"
+        - name: HF_HUB_DISABLE_XET
+          value: "1"
         - name: TRANSFORMERS_CACHE
           value: "/home/pockettts/.cache/huggingface"
         - name: TMPDIR
