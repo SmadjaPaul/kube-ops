@@ -138,6 +138,8 @@ spec:
             - name: config
               mountPath: /config
             - name: media
+              mountPath: /data
+            - name: media
               mountPath: /app/data
             - name: cache
               mountPath: /cache
