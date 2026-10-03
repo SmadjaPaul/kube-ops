@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: decypharr-config
+  namespace: media
+data:
+  config.json: |
+    {
+      "bind_address": "0.0.0.0",
+      "port": "8282",
+      "url_base": "",
+      "app_url": "http://decypharr.media.svc.cluster.local:8282",
+      "log_level": "info",
+      "use_auth": false,
+      "enable_webdav_auth": false,
+      "mount": {
+        "type": "none"
+      },
+      "download_folder": "/data/decypharr-downloads",
+      "default_download_action": "strm",
+      "folder_naming": "filename",
+      "max_active_downloads": 5,
+      "debrids": [],
+      "arrs": [],
+      "queue_cleanup": {
+        "rules": [
+          {"id": "failed_download", "action": "blacklist_research"},
+          {"id": "no_eligible_files", "action": "blacklist_research"},
+          {"id": "file_empty", "action": "blacklist_research"}
+        ]
+      },
+      "repair": {
+        "enabled": false
+      },
+      "usenet": {
+        "providers": [],
+        "max_connections": 15,
+        "processing_max_connections": 15,
+        "read_ahead": "16MB",
+        "conn_idle_timeout": "5m",
+        "processing_timeout": "10m",
+        "availability_sample_percent": 10,
+        "import_availability_sample_percent": 1,
+        "disk_buffer_path": "/cache/usenet",
+        "skip_repair": false
+      }
+    }
