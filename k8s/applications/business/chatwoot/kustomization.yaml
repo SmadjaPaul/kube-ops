@@ -41,15 +41,6 @@ patches:
         path: /metadata/namespace
         value: chatwoot
   - target:
-      group: ""
-      version: v1
-      kind: ServiceAccount
-      name: chatwoot
-    patch: |-
-      - op: add
-        path: /metadata/namespace
-        value: chatwoot
-  - target:
       group: apps
       version: v1
       kind: Deployment
@@ -58,6 +49,23 @@ patches:
       - op: add
         path: /metadata/namespace
         value: chatwoot
+
+  - target:
+      version: v1
+      kind: ServiceAccount
+      name: chatwoot
+    path: namespace-serviceaccount-patch.yaml
+  - target:
+      group: batch
+      version: v1
+      kind: Job
+      name: chatwoot-migrate
+    path: namespace-migrate-job-patch.yaml
+  - target:
+      version: v1
+      kind: Pod
+      name: chatwoot-test-connection
+    path: namespace-test-pod-patch.yaml
   - target:
       group: apps
       version: v1
