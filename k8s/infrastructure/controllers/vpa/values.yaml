@@ -1,0 +1,36 @@
+# Recommendation-only VPA profile.
+# No admission mutation and no updater/eviction path are installed.
+admissionController:
+  enabled: false
+
+updater:
+  enabled: false
+
+recommender:
+  enabled: true
+  replicas: 1
+  podDisruptionBudget:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+crds:
+  enabled: true
+  keep: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
