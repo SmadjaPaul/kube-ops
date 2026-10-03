@@ -15,18 +15,18 @@ configMapGenerator:
       - PGID=2501
 
       # Base paths (entrypoint still creates/validates)
-      - SAB_DOWNLOAD_DIR=/downloads
-      - SAB_INCOMPLETE_DIR=/downloads/incomplete
-      - SAB_COMPLETE_DIR=/app/data/complete
+      - SAB_DOWNLOAD_DIR=/data/usenet
+      - SAB_INCOMPLETE_DIR=/data/usenet/incomplete
+      - SAB_COMPLETE_DIR=/data/usenet/complete
 
       # Explicit folders (prevents UI “reset”)
-      - SAB__folders__download_dir=/downloads/incomplete
-      - SAB__folders__complete_dir=/app/data/complete
+      - SAB__folders__download_dir=/data/usenet/incomplete
+      - SAB__folders__complete_dir=/data/usenet/complete
       - SAB__folders__nzb_backup_dir=/downloads/nzb-backup
 
       # Mirror into [misc] because the UI reads these too
-      - SAB__misc__download_dir=/downloads/incomplete
-      - SAB__misc__complete_dir=/app/data/complete
+      - SAB__misc__download_dir=/data/usenet/incomplete
+      - SAB__misc__complete_dir=/data/usenet/complete
       - SAB__misc__nzb_backup_dir=/downloads/nzb-backup
 
       # SAB misc
