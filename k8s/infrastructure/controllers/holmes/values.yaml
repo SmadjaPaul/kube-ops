@@ -115,6 +115,9 @@ customClusterRoleRules:
       - sbomreports
       - clustersbomreports
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling.k8s.io"]
+    resources: ["verticalpodautoscalers", "verticalpodautoscalercheckpoints"]
+    verbs: ["get", "list", "watch"]
 
 toolsets:
   kubernetes/core:
@@ -184,3 +187,4 @@ mcpAddons:
     enabled: false
   github:
     enabled: false
+
