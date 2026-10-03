@@ -3,6 +3,8 @@ apiVersion: apps/v1
 metadata:
   name: jellyfin
   namespace: media
+  annotations:
+    secret.reloader.stakater.com/reload: "jellyfin-sso"
 spec:
   serviceName: "jellyfin"
   replicas: 1
@@ -23,6 +25,53 @@ spec:
         supplementalGroups: [44, 104]
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: install-community-sso
+          image: python:3.13-alpine3.22@sha256:e81548ac35b07a3bd4805f275107592ef458b1e893c0e04d45aedaa19416cca5
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-c"]
+          args:
+            - |
+              import hashlib
+              import io
+              import pathlib
+              import urllib.request
+              import zipfile
+
+              url = "https://github.com/Flowfin/jellyfin-plugin-sso/releases/download/4.3.2-stable/community-sso-for-jellyfin_4.3.2.0.zip"
+              expected = "4c312ab92b175b1f7242e89906692668896e805cdab15c3d635f665baa02517b"
+              target = pathlib.Path("/plugin")
+              with urllib.request.urlopen(url, timeout=30) as response:
+                  payload = response.read()
+              actual = hashlib.sha256(payload).hexdigest()
+              if actual != expected:
+                  raise SystemExit(f"Community SSO checksum mismatch: {actual}")
+              with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                  for member in archive.namelist():
+                      parts = pathlib.PurePosixPath(member).parts
+                      if pathlib.PurePosixPath(member).is_absolute() or ".." in parts:
+                          raise SystemExit(f"unsafe archive member: {member}")
+                  archive.extractall(target)
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 2501
+            runAsGroup: 2501
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: sso-plugin
+              mountPath: /plugin
       containers:
         - name: jellyfin
           image: ghcr.io/jellyfin/jellyfin:10.11.10
@@ -41,6 +90,47 @@ spec:
           envFrom:
             - configMapRef:
                 name: jellyfin-env
+          env:
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__Enabled
+              value: "true"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__BaseUrlOverride
+              value: "https://jellyfin.smadja.dev"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__OidEndpoint
+              value: "https://auth.smadja.dev/application/o/jellyfin/"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__OidClientId
+              valueFrom:
+                secretKeyRef:
+                  name: jellyfin-sso
+                  key: client_id
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__OidSecret
+              valueFrom:
+                secretKeyRef:
+                  name: jellyfin-sso
+                  key: client_secret
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__NewPath
+              value: "true"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__DefaultUsernameClaim
+              value: "preferred_username"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__RoleClaim
+              value: "groups"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__OidScopes__0
+              value: "groups"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__EnableAuthorization
+              value: "true"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__Roles__0
+              value: "media"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__Roles__1
+              value: "Jellyfin Users"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__Roles__2
+              value: "authentik-admins"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__AdminRoles__0
+              value: "Jellyfin Admins"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__AdminRoles__1
+              value: "authentik-admins"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__EnableAllFolders
+              value: "true"
+            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__AllowPrivateNetworkAddresses
+              value: "true"
           ports:
             - name: http
               containerPort: 8096
@@ -53,6 +143,8 @@ spec:
               mountPath: /cache
             - name: tmp
               mountPath: /tmp
+            - name: sso-plugin
+              mountPath: "/config/plugins/Community SSO"
           livenessProbe:
             httpGet:
               path: /
@@ -76,6 +168,9 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 1Gi
+        - name: sso-plugin
+          emptyDir:
+            sizeLimit: 16Mi
   volumeClaimTemplates:
   - metadata:
       name: config
