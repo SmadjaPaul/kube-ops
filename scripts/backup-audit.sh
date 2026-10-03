@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 for cmd in kubectl jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
+source "$(dirname "$0")/lib/kube-preflight.sh"
+require_kube_access
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
