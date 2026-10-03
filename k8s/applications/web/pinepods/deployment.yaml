@@ -31,24 +31,12 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: prepare-pinepods-runtime
-          image: madeofpendletonwool/pinepods:0.8.2
+          image: madeofpendletonwool/pinepods:0.9.0
           command:
             - sh
             - -c
             - |
               set -e
-              # The pinepods:0.8.2 image's Dockerfile declares the
-              # `pinepods` user/group at build time but the resulting
-              # /etc/passwd does not include it (likely a BusyBox
-              # adduser quirk on the tag the operator pinned). The
-              # main container's startup.sh then runs usermod/groupmod
-              # against a non-existent user and Horust fails to spawn
-              # the children with 'User 911 not found'. Re-create the
-              # user/group here from the init container.
-              if ! getent passwd 911 >/dev/null; then
-                addgroup -g 911 pinepods
-                adduser -D -H -u 911 -G pinepods -h /pinepods pinepods
-              fi
               # Take ownership of every path the main pinepods container
               # needs to write to. The main container runs as 911:911 with
               # allowPrivilegeEscalation=false and capabilities drop [ALL],
@@ -87,7 +75,7 @@ spec:
               mountPath: /etc/horust/services
       containers:
         - name: pinepods
-          image: madeofpendletonwool/pinepods:0.8.2
+          image: madeofpendletonwool/pinepods:0.9.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
