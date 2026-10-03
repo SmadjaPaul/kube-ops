@@ -62,7 +62,7 @@ spec:
             - name: BOOKORBIT_FIX_PERMISSIONS
               value: "false"
             - name: LIBRARY_BROWSE_ROOT
-              value: /books/media/books
+              value: /data/media/books
             - name: POSTGRES_HOST
               valueFrom:
                 secretKeyRef:
@@ -149,7 +149,7 @@ spec:
             - name: data
               mountPath: /data
             - name: media
-              mountPath: /books
+              mountPath: /data
             - name: tmp
               mountPath: /tmp
       volumes:
