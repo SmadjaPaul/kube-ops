@@ -7,6 +7,7 @@ resources:
 - jellyfin
 - arr
 - media-share-pvc.yaml
+- media-layout-job.yaml
 - jellyseerr
 - sabnzbd
 - whisperasr
