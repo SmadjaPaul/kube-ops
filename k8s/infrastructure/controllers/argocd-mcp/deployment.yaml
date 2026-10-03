@@ -24,8 +24,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mcp
-          image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.8.0
-          args: ["node","dist/index.js","http","--stateless"]
+          image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.9.0
+          args: ["http","--stateless","--bind-address","0.0.0.0","--allowed-host-header","argocd-mcp","--allowed-host-header","argocd-mcp.agent-observers.svc.cluster.local"]
           env:
             - name: ARGOCD_BASE_URL
               value: http://argocd-server.argocd.svc.cluster.local
@@ -36,6 +36,11 @@ spec:
                   key: ARGOCD_API_TOKEN
             - name: MCP_READ_ONLY
               value: "true"
+            - name: MCP_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: argocd-mcp
+                  key: MCP_AUTH_TOKEN
           ports:
             - name: http
               containerPort: 3000
