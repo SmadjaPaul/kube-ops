@@ -29,6 +29,8 @@ entries:
         ]
 
       client_type: confidential
+      grant_types:
+        - authorization_code
       redirect_uris:
         - url: https://jellyfin.smadja.dev/sso/OID/redirect/authentik
           matching_mode: strict
