@@ -76,6 +76,8 @@ spec:
               mountPath: /audiobooks
             - name: podcasts
               mountPath: /podcasts
+            - name: media
+              mountPath: /data
             - name: tmp
               mountPath: /tmp
           resources:
@@ -102,6 +104,9 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 3
       volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-share
         - name: tmp
           emptyDir:
             sizeLimit: 1Gi
