@@ -51,6 +51,7 @@ entries:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "groups"]]
 
   - id: jellyfin_application
     model: authentik_core.application
@@ -64,6 +65,15 @@ entries:
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyfin.png
       provider: !KeyOf jellyfin_oauth2_provider
       policy_engine_mode: any
+
+  # Canonical media group access
+  - id: jellyfin_media_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf jellyfin_application
+      group: !Find [authentik_core.group, [name, "media"]]
+    attrs:
+      order: 0
 
   # Allow access to users group
   - id: jellyfin_users_policy_binding
