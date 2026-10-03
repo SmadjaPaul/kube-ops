@@ -5,6 +5,8 @@ namespace: media
 
 resources:
 - oidc-external-secret.yaml
+- bootstrap-external-secret.yaml
+- bootstrap-job.yaml
 - http-route.yaml
 - statefulset.yaml
 - svc.yaml
