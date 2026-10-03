@@ -1,0 +1,147 @@
+# Holmes is staged at zero replicas until the API auth secret is delivered.
+# Activation is a separate Git change after homelab-infra applies HOLMES_API_KEY.
+replicas: 0
+
+enableJsonLogsFormat: true
+
+commonLabels:
+  sre.smadja.dev/component: holmes
+enableAccountsCreate: false
+
+additionalEnvVars:
+  - name: OPENAI_API_BASE
+    value: http://litellm.litellm.svc.cluster.local/v1
+  - name: OPENAI_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: holmes-runtime
+        key: OPENAI_API_KEY
+  - name: HOLMES_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: holmes-runtime
+        key: HOLMES_API_KEY
+  - name: MCP_TOOL_CALL_TIMEOUT_SEC
+    value: "60"
+
+modelList:
+  sre-fast:
+    model: openai/azure/gpt-5-mini
+    api_base: "{{ env.OPENAI_API_BASE }}"
+    api_key: "{{ env.OPENAI_API_KEY }}"
+    reasoning_effort: low
+  sre-deep:
+    model: openai/azure/gpt-5.4
+    api_base: "{{ env.OPENAI_API_BASE }}"
+    api_key: "{{ env.OPENAI_API_KEY }}"
+    reasoning_effort: medium
+
+config:
+  model: sre-fast
+
+# Holmes built-in Kubernetes access is read-only. The chart role intentionally
+# has no Secret access, and the write/remediation MCP is not enabled.
+k8sRBAC: false
+namespaceScopedRBAC: false
+
+crdPermissions:
+  argo: true
+  flux: false
+  kafka: false
+  keda: true
+  crossplane: false
+  istio: false
+  gatewayApi: true
+  velero: true
+  externalSecrets: true
+
+customClusterRoleRules:
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["cilium.io"]
+    resources:
+      - ciliumendpoints
+      - ciliumnetworkpolicies
+      - ciliumclusterwidenetworkpolicies
+      - ciliumloadbalancerippools
+      - ciliuml2announcementpolicies
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: ["clusters", "backups", "scheduledbackups", "poolers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["longhorn.io"]
+    resources: ["volumes", "replicas", "engines", "nodes", "settings"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificates", "certificaterequests", "issuers", "clusterissuers"]
+    verbs: ["get", "list", "watch"]
+
+toolsets:
+  kubernetes/core:
+    enabled: true
+  kubernetes/logs:
+    enabled: true
+  prometheus/metrics:
+    enabled: true
+    subtype: prometheus
+    config:
+      prometheus_url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+      discover_metrics_from_last_hours: 2
+      query_timeout_seconds_default: 20
+      query_timeout_seconds_hard_max: 60
+      rules_cache_duration_seconds: 300
+      verify_ssl: true
+      tool_calls_return_data: true
+  grafana/loki:
+    enabled: true
+    config:
+      api_url: http://loki-gateway.monitoring.svc.cluster.local
+      verify_ssl: true
+  internet:
+    enabled: true
+  skills:
+    enabled: true
+  connectivity_check:
+    enabled: true
+  robusta:
+    enabled: false
+  bash:
+    enabled: false
+  helm/core:
+    enabled: false
+  argocd/core:
+    enabled: false
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1536Mi
+
+operator:
+  enabled: false
+
+# Explicitly keep every write-capable MCP addon disabled.
+mcpAddons:
+  kubernetesRemediation:
+    enabled: false
+  kubernetes:
+    enabled: false
+  github:
+    enabled: false
