@@ -26,16 +26,6 @@ spec:
         resources:
           requests:
             storage: 1Gi
-    - metadata:
-        name: incomplete-downloads
-        annotations:
-          velero.io/exclude-from-backup: "true"
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        storageClassName: longhorn-bulk
-        resources:
-          requests:
-            storage: 100Gi
   template:
     metadata:
       labels:
@@ -69,20 +59,18 @@ spec:
             - name: PGID
               value: "2501"
             - name: SAB_DOWNLOAD_DIR
-              value: "/downloads"
+              value: "/data/usenet"
             - name: SAB_INCOMPLETE_DIR
-              value: "/downloads/incomplete"
+              value: "/data/usenet/incomplete"
             - name: SAB_COMPLETE_DIR
-              value: "/app/data/complete"
+              value: "/data/usenet/complete"
             - name: TZ
               value: "Europe/Paris"
           volumeMounts:
             - name: config
               mountPath: /config
-            - name: incomplete-downloads
-              mountPath: /downloads/incomplete
             - name: media-share
-              mountPath: /app/data
+              mountPath: /data
             - name: nzb-backup
               mountPath: /downloads/nzb-backup
             - name: tmp
