@@ -5,6 +5,7 @@ resources:
 - project.yaml
 - argocd
 - argocd-mcp
+- grafana-mcp
 - cert-manager
 - descheduler
 - external-secrets
