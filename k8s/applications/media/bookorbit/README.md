@@ -20,11 +20,13 @@ bootstrap. OIDC is configured only after the first administrator is created and
 a real Authentik flow is verified; do not set `DISABLE_LOCAL_AUTH=true` before
 that proof.
 
-The library picker is bounded to `/books`, matching the upstream BookOrbit
-container contract. The shared `media-share` PVC is mounted there using the
-`media/books` subPath, so the physical data still lives in the canonical
-`/data/media/books` tree used by the rest of the media stack. BookOrbit's own
-persistent application data remains on its dedicated PVC at `/data`.
+BookOrbit keeps its own application state on the dedicated PVC at `/appdata`
+via `APP_DATA_PATH`. The full shared `media-share` PVC is mounted at `/data`,
+the same path used by the download clients and the rest of the media stack.
+The library picker is bounded to `/data/media/books`.
 
-BookOrbit should own the books subtree, while Audiobookshelf remains the primary
-audiobook playback service.
+Keeping the whole shared claim at the same `/data` mount preserves the
+possibility of identity path mappings and hardlinks for BookOrbit request
+imports instead of silently copying across filesystems. BookOrbit should own
+the books subtree, while Audiobookshelf remains the primary audiobook playback
+service.
