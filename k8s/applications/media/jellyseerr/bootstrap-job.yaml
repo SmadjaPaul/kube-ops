@@ -155,25 +155,26 @@ spec:
                   headers=jellyfin_headers,
                   expected=(204,),
               )
-              http(
-                  plain,
-                  "POST",
-                  f"{JELLYFIN}/Users/Password?{urllib.parse.urlencode({'userId': user_id})}",
-                  {
-                      "CurrentPw": "",
-                      "NewPw": bootstrap_password,
-                      "ResetPassword": False,
-                  },
-                  headers=jellyfin_headers,
-                  expected=(204,),
-              )
-
-              cookie_jar = http.cookiejar.CookieJar()
-              seerr_session = urllib.request.build_opener(
-                  urllib.request.HTTPCookieProcessor(cookie_jar)
-              )
 
               try:
+                  http(
+                      plain,
+                      "POST",
+                      f"{JELLYFIN}/Users/Password?{urllib.parse.urlencode({'userId': user_id})}",
+                      {
+                          "CurrentPw": "",
+                          "NewPw": bootstrap_password,
+                          "ResetPassword": False,
+                      },
+                      headers=jellyfin_headers,
+                      expected=(204,),
+                  )
+
+                  cookie_jar = http.cookiejar.CookieJar()
+                  seerr_session = urllib.request.build_opener(
+                      urllib.request.HTTPCookieProcessor(cookie_jar)
+                  )
+
                   http(
                       seerr_session,
                       "POST",
