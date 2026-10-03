@@ -4,6 +4,7 @@ resources:
   - namespaces.yaml
   - gatekeeper
   - kyverno
+  - trivy-operator
   - falco
   - policies
   - monitoring.yaml
