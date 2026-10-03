@@ -39,6 +39,7 @@ spec:
   - toFQDNs:
     - matchName: "huggingface.co"
     - matchName: "cdn-lfs.huggingface.co"
+    - matchName: "cas-server.xethub.hf.co"
     - matchName: "raw.githubusercontent.com"
   ingress:
   - fromEntities:
