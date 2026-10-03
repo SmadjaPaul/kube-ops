@@ -96,10 +96,6 @@ spec:
                 name: es-pinepods-admin
                 optional: true
           env:
-            - name: PUID
-              value: "911"
-            - name: PGID
-              value: "911"
             - name: TZ
               value: Europe/Stockholm
             - name: DB_HOST
