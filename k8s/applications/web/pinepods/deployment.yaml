@@ -50,9 +50,10 @@ spec:
               # needs to write to. The main container runs as 911:911 with
               # allowPrivilegeEscalation=false and capabilities drop [ALL],
               # so it cannot chown these paths itself.
-              mkdir -p /opt/pinepods/local-media
+              mkdir -p /opt/pinepods/local-media /var/lib/nginx/logs
               chown 911:911 /opt/pinepods/local-media \
                               /var/log/pinepods /var/log/nginx /var/lib/nginx \
+                              /var/lib/nginx/logs \
                               /run /var/run/horust /etc/horust/services
               # Seed the horust services directory from the image's baked-in
               # /pinepods/startup/services/. The main container's startup.sh
