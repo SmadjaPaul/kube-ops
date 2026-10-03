@@ -39,8 +39,6 @@ spec:
         protocol: TCP
       - port: "8989"
         protocol: TCP
-      - port: "8686"
-        protocol: TCP
   - fromEndpoints:
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: media
