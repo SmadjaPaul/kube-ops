@@ -20,7 +20,7 @@ bootstrap. OIDC is configured only after the first administrator is created and
 a real Authentik flow is verified; do not set `DISABLE_LOCAL_AUTH=true` before
 that proof.
 
-The library picker is bounded to `/books/media/books`. The full shared media
-PVC is mounted at `/books` only to preserve the single-filesystem media layout;
+The library picker is bounded to `/data/media/books`. The full shared media
+PVC is mounted at `/data` only to preserve the single-filesystem media layout;
 BookOrbit should own the books subtree, while Audiobookshelf remains the primary
 audiobook playback service.
