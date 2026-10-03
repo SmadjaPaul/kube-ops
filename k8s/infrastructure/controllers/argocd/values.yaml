@@ -3,6 +3,7 @@ configs:
     create: true
     application.resourceTrackingMethod: annotation
     admin.enabled: false
+    accounts.argocd-mcp: apiKey
     url: https://argocd.smadja.dev
     kustomize.buildOptions: '--enable-helm'
     resource.customizations.health.ConfigMap: |
@@ -109,6 +110,7 @@ configs:
       g, admin, role:admin
       g, authentik-admins, role:admin
       g, dev, role:readonly
+      g, argocd-mcp, role:readonly
 
 crds:
   install: true
