@@ -140,6 +140,15 @@ dex:
       memory: 32Mi
     limits:
       memory: 128Mi
+  # Dex can remain Ready after a connector initialization failure unless its
+  # health endpoints are wired into kubelet. Keep Argo from routing SSO to a
+  # process that is not listening and let kubelet recover transient failures.
+  livenessProbe:
+    enabled: true
+  readinessProbe:
+    enabled: true
+  startupProbe:
+    enabled: true
 
 redis-ha:
   enabled: false
