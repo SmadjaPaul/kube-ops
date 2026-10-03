@@ -2,12 +2,14 @@
 set -euo pipefail
 app=${1:?usage: diagnose-app.sh APP}
 for cmd in kubectl jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
+source "$(dirname "$0")/lib/kube-preflight.sh"
+require_kube_access
 source "$(dirname "$0")/lib/argo-app.sh"
 resolved="$(resolve_argo_app "$app")"
 obj="$(kubectl -n argocd get application.argoproj.io "$resolved" -o json)"
 
 echo "=== ARGO ==="
-jq '{name:.metadata.name,sync:.status.sync.status,health:.status.health.status,conditions:(.status.conditions//[])}' <<<"$obj"
+jq '{name:.metadata.name,sync:.status.sync.status,health:.status.health.status,targetRevision:.spec.source.targetRevision,operationRevision:.status.operationState.operation.sync.revision,operationPhase:.status.operationState.phase,operationMessage:.status.operationState.message,conditions:(.status.conditions//[])}' <<<"$obj"
 
 mapfile -t namespaces < <(jq -r '.status.resources[]?.namespace // empty' <<<"$obj" | sort -u)
 for ns in "${namespaces[@]}"; do

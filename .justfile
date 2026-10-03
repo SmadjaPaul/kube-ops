@@ -22,6 +22,7 @@ inventory:
 [doc('Run deterministic clusterless V1 + backup validation')]
 check:
     npm run check
+    bash tests/harness/kube-preflight-test.sh
 
 [doc('Read-only Argo/Gateway/workload runtime inventory')]
 runtime-inventory:

@@ -2,11 +2,21 @@
 set -euo pipefail
 
 for cmd in kubectl jq curl dig; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
+source "$(dirname "$0")/lib/kube-preflight.sh"
+require_kube_access
 
 DNS_SERVER="${DNS_SERVER:-10.0.20.1}"
 INTERNAL_VIP="${INTERNAL_VIP:-10.0.20.192}"
-ARTIFACT_DIR="${ARTIFACT_DIR:-.artifacts/runtime-smoke}"
-mkdir -p "$ARTIFACT_DIR"
+keep_artifacts=no
+if [[ -n "${ARTIFACT_DIR:-}" ]]; then
+  artifact_dir="$ARTIFACT_DIR"
+  keep_artifacts=yes
+else
+  artifact_dir="$(mktemp -d "${TMPDIR:-/tmp}/kube-ops-runtime-smoke.XXXXXX")"
+  trap 'rm -rf "$artifact_dir"' EXIT
+fi
+mkdir -p "$artifact_dir"
+ARTIFACT_DIR="$artifact_dir"
 report="$ARTIFACT_DIR/results.jsonl"
 : >"$report"
 
@@ -69,4 +79,5 @@ done < <(jq -c '.items[]' <<<"$routes")
 echo "RUNTIME_SMOKE_TESTED=$tested"
 echo "RUNTIME_SMOKE_FAILURES=$failures"
 echo "RUNTIME_SMOKE_ARTIFACT=$report"
+echo "RUNTIME_SMOKE_ARTIFACT_PERSISTED=$keep_artifacts"
 (( failures == 0 ))

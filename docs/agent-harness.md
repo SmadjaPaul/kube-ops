@@ -36,7 +36,23 @@ metadata:
 
 HTTP 404 is a failure by default because it frequently signals a Gateway hostname mismatch. Apps whose root intentionally returns 404 should declare a better probe path.
 
-Results are JSONL under `.artifacts/runtime-smoke/`.
+When `ARTIFACT_DIR` is set, results are JSONL in that directory. Without it,
+the report is temporary and removed when the smoke command exits.
+
+## Kubernetes access preflight
+
+Every live-runtime recipe requires an operator-provided `KUBECONFIG`. The
+recipe fails closed with `KUBE_ACCESS=BLOCKED` when the file, context, or API
+is unavailable; it never falls back to the client default or
+`localhost:8080`. The infrastructure repository owns the canonical temporary
+kubeconfig broker (`just kube-access-check` and `just kubectl ...`). Export its
+temporary `KUBECONFIG` when invoking these kube-ops runtime scripts; kube-ops
+does not duplicate the Doppler broker.
+
+By default, runtime smoke artifacts are created in a temporary directory and
+removed at exit. Set `ARTIFACT_DIR` explicitly when a persisted report is
+needed. Argo evidence includes both the desired target revision and any active
+operation revision so a stale or blocked operation is visible.
 
 ## Continuous monitoring
 

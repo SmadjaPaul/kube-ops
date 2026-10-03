@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 for cmd in kubectl jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
+source "$(dirname "$0")/lib/kube-preflight.sh"
+require_kube_access
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -21,7 +23,16 @@ jq -n   --slurpfile apps "$tmp/apps.json"   --slurpfile gateways "$tmp/gateways.
     outOfSync: ([$apps[0].items[]|select(.status.sync.status=="OutOfSync")]|length),
     healthy: ([$apps[0].items[]|select(.status.health.status=="Healthy")]|length),
     degraded: ([$apps[0].items[]|select(.status.health.status=="Degraded")]|length),
-    missing: ([$apps[0].items[]|select(.status.health.status=="Missing")]|length)
+    missing: ([$apps[0].items[]|select(.status.health.status=="Missing")]|length),
+    applications: [$apps[0].items[] | {
+      name:.metadata.name,
+      sync:(.status.sync.status // null),
+      health:(.status.health.status // null),
+      targetRevision:(.spec.source.targetRevision // null),
+      operationRevision:(.status.operationState.operation.sync.revision // null),
+      operationPhase:(.status.operationState.phase // null),
+      operationMessage:(.status.operationState.message // null)
+    }]
   },
   gateways: {
     total: ($gateways[0].items|length),
