@@ -3,7 +3,7 @@
 This package is intentionally not referenced by the media root.
 
 It follows the low-privilege pattern demonstrated by the MySweetPea reference:
-Decypharr v2.5 is configured with `mount.type=none` and `default_download_action=strm`.
+Decypharr v2.5 (official GHCR image, pinned by digest) is configured with `mount.type=none` and `default_download_action=strm`.
 That avoids FUSE, `SYS_ADMIN`, privileged pods and host mounts. The media-share
 PVC is mounted only so STRM/library artifacts can share the existing media tree.
 
