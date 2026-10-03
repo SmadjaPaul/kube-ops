@@ -106,15 +106,11 @@ controller:
   hostPID: false
 
 rbac:
-  create: true
-  rules:
-    - apiGroups: [""]
-      resources: ["pods", "pods/log", "namespaces", "events"]
-      verbs: ["get", "list", "watch"]
-  clusterRules: []
+  create: false
 
 serviceAccount:
   create: true
+  name: alloy
   automountServiceAccountToken: true
 
 serviceMonitor:
