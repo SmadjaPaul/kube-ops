@@ -83,6 +83,8 @@ spec:
               mountPath: /var/run/horust
             - name: etc-horust-services
               mountPath: /etc/horust/services
+            - name: local-media
+              mountPath: /opt/pinepods/local-media
       containers:
         - name: pinepods
           image: madeofpendletonwool/pinepods:0.9.0
@@ -177,6 +179,8 @@ spec:
               mountPath: /var/run/horust
             - name: etc-horust-services
               mountPath: /etc/horust/services
+            - name: local-media
+              mountPath: /opt/pinepods/local-media
       volumes:
         - name: downloads
           persistentVolumeClaim:
@@ -208,3 +212,6 @@ spec:
         - name: etc-horust-services
           emptyDir:
             sizeLimit: 50Mi
+        - name: local-media
+          emptyDir:
+            sizeLimit: 2Gi
