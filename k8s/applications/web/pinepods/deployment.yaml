@@ -37,11 +37,21 @@ spec:
             - -c
             - |
               set -e
+              # PinePods 0.9.0 still ships without the numeric runtime
+              # account that Horust uses for its child services. Recreate
+              # the account in the init container so the non-root main
+              # container can start Horust as 911:911.
+              if ! getent passwd 911 >/dev/null 2>&1; then
+                addgroup -g 911 pinepods
+                adduser -D -H -u 911 -G pinepods -h /pinepods pinepods
+              fi
               # Take ownership of every path the main pinepods container
               # needs to write to. The main container runs as 911:911 with
               # allowPrivilegeEscalation=false and capabilities drop [ALL],
               # so it cannot chown these paths itself.
-              chown 911:911 /var/log/pinepods /var/log/nginx /var/lib/nginx \
+              mkdir -p /opt/pinepods/local-media
+              chown 911:911 /opt/pinepods/local-media \
+                              /var/log/pinepods /var/log/nginx /var/lib/nginx \
                               /run /var/run/horust /etc/horust/services
               # Seed the horust services directory from the image's baked-in
               # /pinepods/startup/services/. The main container's startup.sh
