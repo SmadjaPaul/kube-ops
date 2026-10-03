@@ -9,6 +9,7 @@ configMapGenerator:
 namespace: media
 
 resources:
+- external-secret.yaml
 - svc.yaml
 - http-route.yaml
 - statefulset.yaml
