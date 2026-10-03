@@ -373,6 +373,12 @@ entries:
 
       client_type: confidential
       redirect_uris:
+        # Seerr new OIDC implementation. Legacy Jellyseerr callback is retained
+        # temporarily so rollback does not require an Authentik change.
+        - url: https://seerr.smadja.dev/login
+          matching_mode: strict
+        - url: https://seerr.smadja.dev/profile/settings/linked-accounts
+          matching_mode: strict
         - url: https://jellyseerr.smadja.dev/login?provider=authentik&callback=true
           matching_mode: strict
       client_id: !Env JELLYSEERR_CLIENT_ID
@@ -393,11 +399,11 @@ entries:
     identifiers:
       slug: jellyseerr
     attrs:
-      name: Jellyseerr
+      name: Seerr
       group: Media
-      meta_launch_url: https://jellyseerr.smadja.dev
+      meta_launch_url: https://seerr.smadja.dev
       meta_description: Requêtes de contenu
-      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyseerr.png
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/seerr.png
       provider: !KeyOf provider-jellyseerr
       policy_engine_mode: any
 
