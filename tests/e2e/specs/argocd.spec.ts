@@ -13,7 +13,7 @@ test('ARGO_SSO_E2E readonly user can list apps but has no admin UI', async ({ br
   try {
     await page.goto(URLs.argocd, { waitUntil: 'domcontentloaded' });
 
-    const sso = page.getByRole('button', { name: /log in via authentik|authentik|sso/i }).first();
+    const sso = page.getByRole('link', { name: /log in via authentik|authentik|sso/i }).first();
     if (await sso.isVisible().catch(() => false)) await sso.click();
 
     await page.waitForLoadState('domcontentloaded');
