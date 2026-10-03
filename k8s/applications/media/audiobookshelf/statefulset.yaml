@@ -67,25 +67,6 @@ spec:
           ports:
             - name: http
               containerPort: 80
-          env:
-            - name: OIDC_ENABLED
-              value: "true"
-            - name: OIDC_ISSUER_URL
-              value: "https://auth.smadja.dev/application/o/audiobookshelf/"
-            - name: OIDC_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: audiobookshelf-oidc
-                  key: client_id
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: audiobookshelf-oidc
-                  key: client_secret
-            - name: OIDC_AUTO_LAUNCH
-              value: "true"
-            - name: OIDC_AUTO_REGISTER
-              value: "true"
           volumeMounts:
             - name: config
               mountPath: /config
