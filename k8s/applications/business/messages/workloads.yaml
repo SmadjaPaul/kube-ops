@@ -28,6 +28,8 @@ spec:
             - secretRef:
                 name: messages-runtime
           env:
+            - name: WORKER_CONCURRENCY
+              value: "2"
             - name: DB_HOST
               valueFrom:
                 secretKeyRef: { name: messages-postgresql-app, key: host }
