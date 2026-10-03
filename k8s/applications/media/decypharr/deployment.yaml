@@ -44,7 +44,7 @@ spec:
               readOnly: true
       containers:
         - name: decypharr
-          image: cy01/blackhole:v2.5
+          image: ghcr.io/sirrobot01/decypharr:v2.5@sha256:a65c62a18843ca3dfa73cdee5eecccd3732d98f3ff845ae8338a1caf7060dd1a
           env:
             - name: TZ
               value: Europe/Paris
