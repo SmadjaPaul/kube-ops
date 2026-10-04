@@ -4,6 +4,7 @@ namespace: vertical-pod-autoscaler
 
 resources:
   - namespace.yaml
+  - recommendations.yaml
 
 helmCharts:
   - name: vertical-pod-autoscaler
