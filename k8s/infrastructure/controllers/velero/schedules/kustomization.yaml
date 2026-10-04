@@ -5,6 +5,7 @@ resources:
   # One offsite tier only: daily Kopia backups, 14-day TTL.
   # CNPG database volumes are protected independently through Barman/WAL archiving.
   - daily-home-assistant.yaml
+  - daily-monitoring.yaml
   - daily-immich.yaml
   - daily-babybuddy.yaml
   - daily-jellyfin.yaml
