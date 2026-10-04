@@ -36,6 +36,7 @@ spec:
               import hashlib
               import io
               import pathlib
+              import xml.etree.ElementTree as ET
               import urllib.request
               import zipfile
               from xml.sax.saxutils import escape
@@ -57,6 +58,7 @@ spec:
 
               config_path = pathlib.Path("/config/plugins/configurations/Jellyfin.Plugin.OIDC.xml")
               client_id_path = pathlib.Path("/run/jellyfin-oidc/client_id")
+              server_base_url = "https://jellyfin.smadja.dev"
               if not config_path.exists():
                   client_id = escape(client_id_path.read_text().strip())
                   config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -119,8 +121,17 @@ spec:
                 <ManageUserPolicy>true</ManageUserPolicy>
                 <EnableLibraryAccessManagement>true</EnableLibraryAccessManagement>
                 <ManageLoginButtonBranding>true</ManageLoginButtonBranding>
-                <ServerBaseUrl>https://jellyfin.smadja.dev</ServerBaseUrl>
+                <ServerBaseUrl>{server_base_url}</ServerBaseUrl>
               </PluginConfiguration>\n''')
+              else:
+                  tree = ET.parse(config_path)
+                  root = tree.getroot()
+                  server_base = root.find("ServerBaseUrl")
+                  if server_base is None:
+                      server_base = ET.SubElement(root, "ServerBaseUrl")
+                  if server_base.text != server_base_url:
+                      server_base.text = server_base_url
+                      tree.write(config_path, encoding="utf-8", xml_declaration=True)
           securityContext:
             runAsNonRoot: true
             runAsUser: 2501
