@@ -45,36 +45,6 @@ spec:
   envFrom:
     - secretRef:
         name: app-openclaw-litellm-api-key
-  initContainers:
-    - name: migrate-persistent-state
-      image: ghcr.io/openclaw/openclaw:2026.9.6
-      imagePullPolicy: IfNotPresent
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-            - ALL
-        readOnlyRootFilesystem: true
-        runAsNonRoot: true
-      command: ["sh", "-c"]
-      args: ["exec openclaw doctor --fix"]
-      env:
-        - name: HOME
-          value: /home/openclaw
-      volumeMounts:
-        - name: data
-          mountPath: /home/openclaw/.openclaw
-        - name: data
-          mountPath: /home/openclaw/.local
-          subPath: .local
-        - name: data
-          mountPath: /home/openclaw/.cache
-          subPath: .cache
-        - name: data
-          mountPath: /home/openclaw/.config
-          subPath: .config
-        - name: tmp
-          mountPath: /tmp
   gateway:
     existingSecret: app-openclaw-gateway-token
     controlUiOrigins:
