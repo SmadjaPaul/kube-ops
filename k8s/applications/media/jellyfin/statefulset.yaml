@@ -8,7 +8,7 @@ metadata:
 spec:
   serviceName: "jellyfin"
   replicas: 1
-  podManagementPolicy: Parallel
+  podManagementPolicy: OrderedReady
   selector:
     matchLabels:
       app: jellyfin
