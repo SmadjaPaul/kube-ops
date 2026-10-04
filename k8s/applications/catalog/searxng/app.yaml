@@ -56,7 +56,7 @@ spec:
   hostnames: [search.smadja.dev]
   rules:
     - backendRefs:
-        - { name: searxng, port: 80 }
+        - { name: keda-add-ons-http-interceptor-proxy, namespace: keda, port: 8080 }
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
