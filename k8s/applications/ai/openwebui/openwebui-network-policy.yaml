@@ -37,6 +37,17 @@ spec:
               protocol: TCP
     - toEndpoints:
         - matchLabels:
+            app.kubernetes.io/name: openclaw
+            app.kubernetes.io/instance: openclaw
+            k8s:io.kubernetes.pod.namespace: openclaw
+      toPorts:
+        - ports:
+            - port: "18789"
+              protocol: TCP
+            - port: "18790"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
             app: openwebui-pipelines
             k8s:io.kubernetes.pod.namespace: open-webui
       toPorts:

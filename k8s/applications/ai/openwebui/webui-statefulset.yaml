@@ -149,6 +149,20 @@ spec:
                 secretKeyRef:
                   name: app-openwebui-litellm-api-key
                   key: OPENAI_API_KEY
+            - name: OPENAI_API_BASE_URLS
+              value: 'http://litellm.litellm.svc.cluster.local:80/v1;http://openclaw.openclaw.svc.cluster.local:18789/v1'
+            - name: OPENAI_API_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: openwebui-ai-backend-keys
+                  key: OPENAI_API_KEYS
+            - name: RAG_OPENAI_API_BASE_URL
+              value: 'http://litellm.litellm.svc.cluster.local:80/v1'
+            - name: RAG_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-openwebui-litellm-api-key
+                  key: OPENAI_API_KEY
             - name: RAG_EMBEDDING_ENGINE
               value: 'openai'
             - name: RAG_EMBEDDING_MODEL

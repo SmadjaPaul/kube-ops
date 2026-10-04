@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: openclaw
     policy-type: ai-audit
 spec:
-  description: "OpenClaw: operator gateway-proxy ingress, LiteLLM model traffic and DNS only."
+  description: "OpenClaw: trusted UI ingress, LiteLLM/DNS traffic and bounded GitHub HTTPS egress."
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: openclaw
@@ -17,6 +17,14 @@ spec:
         - host
         - remote-node
         - ingress
+      toPorts:
+        - ports:
+            - port: "18790"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: open-webui
+            app: open-webui
       toPorts:
         - ports:
             - port: "18790"
@@ -36,6 +44,13 @@ spec:
       toPorts:
         - ports:
             - port: "4000"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: github.com
+        - matchName: api.github.com
+      toPorts:
+        - ports:
+            - port: "443"
               protocol: TCP
     - toEndpoints:
         - matchLabels:

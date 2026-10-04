@@ -8,6 +8,12 @@ model_list:
     model_info:
       mode: embedding
 
+  - model_name: minimax/MiniMax-M3
+    litellm_params:
+      model: minimax/MiniMax-M3
+      api_base: "os.environ/MINIMAX_API_BASE"
+      api_key: "os.environ/MINIMAX_API_KEY"
+
   - model_name: minimax/MiniMax-M2.7
     litellm_params:
       model: minimax/MiniMax-M2.7
