@@ -7,3 +7,4 @@ resources:
   - configmap.yaml
   - instance.yaml
   - networkpolicy.yaml
+  - pvc-owner-repair-job.yaml
