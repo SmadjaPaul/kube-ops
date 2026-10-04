@@ -26,7 +26,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-        - name: install-community-sso
+        - name: install-oidc
           image: python:3.13-alpine3.22@sha256:e81548ac35b07a3bd4805f275107592ef458b1e893c0e04d45aedaa19416cca5
           imagePullPolicy: IfNotPresent
           command: ["python", "-c"]
@@ -37,21 +37,89 @@ spec:
               import pathlib
               import urllib.request
               import zipfile
+              from xml.sax.saxutils import escape
 
-              url = "https://github.com/Flowfin/jellyfin-plugin-sso/releases/download/4.3.2-stable/community-sso-for-jellyfin_4.3.2.0.zip"
-              expected = "4c312ab92b175b1f7242e89906692668896e805cdab15c3d635f665baa02517b"
+              url = "https://github.com/aussierk/jellyfin-plugin-oidc/releases/download/v1.0.7.0/oidc-rbac.zip"
+              expected = "84265ab9d374f9cfd53028fc78b6b27941f9f27e5c7fb61aeba9aa33016fe8bc"
               target = pathlib.Path("/plugin")
               with urllib.request.urlopen(url, timeout=30) as response:
                   payload = response.read()
               actual = hashlib.sha256(payload).hexdigest()
               if actual != expected:
-                  raise SystemExit(f"Community SSO checksum mismatch: {actual}")
+                  raise SystemExit(f"OIDC plugin checksum mismatch: {actual}")
               with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                   for member in archive.namelist():
                       parts = pathlib.PurePosixPath(member).parts
                       if pathlib.PurePosixPath(member).is_absolute() or ".." in parts:
                           raise SystemExit(f"unsafe archive member: {member}")
                   archive.extractall(target)
+
+              config_path = pathlib.Path("/config/plugins/configurations/Jellyfin.Plugin.OIDC.xml")
+              client_id_path = pathlib.Path("/run/jellyfin-oidc/client_id")
+              if not config_path.exists():
+                  client_id = escape(client_id_path.read_text().strip())
+                  config_path.parent.mkdir(parents=True, exist_ok=True)
+                  config_path.write_text(f'''<?xml version="1.0" encoding="utf-8"?>
+              <PluginConfiguration>
+                <Providers>
+                  <OidcProviderConfig>
+                    <ProviderId>authentik</ProviderId>
+                    <DisplayName>Authentik</DisplayName>
+                    <Authority>https://auth.smadja.dev/application/o/jellyfin/</Authority>
+                    <ClientId>{client_id}</ClientId>
+                    <ClientSecretFile>/run/jellyfin-oidc/client_secret</ClientSecretFile>
+                    <Scopes>openid profile email</Scopes>
+                    <RoleClaim>groups</RoleClaim>
+                    <UsernameClaim>preferred_username</UsernameClaim>
+                    <DisplayNameClaim>name</DisplayNameClaim>
+                    <Enabled>true</Enabled>
+                  </OidcProviderConfig>
+                </Providers>
+                <RoleMappings>
+                  <RoleMapping>
+                    <RoleName>media</RoleName>
+                    <EnableAllLibraries>true</EnableAllLibraries>
+                    <EnableMediaPlayback>true</EnableMediaPlayback>
+                    <EnableRemoteAccess>true</EnableRemoteAccess>
+                    <EnableTranscoding>true</EnableTranscoding>
+                  </RoleMapping>
+                  <RoleMapping>
+                    <RoleName>Jellyfin Users</RoleName>
+                    <EnableAllLibraries>true</EnableAllLibraries>
+                    <EnableMediaPlayback>true</EnableMediaPlayback>
+                    <EnableRemoteAccess>true</EnableRemoteAccess>
+                    <EnableTranscoding>true</EnableTranscoding>
+                  </RoleMapping>
+                  <RoleMapping>
+                    <RoleName>authentik-admins</RoleName>
+                    <IsAdmin>true</IsAdmin>
+                    <EnableAllLibraries>true</EnableAllLibraries>
+                    <EnableMediaPlayback>true</EnableMediaPlayback>
+                    <EnableRemoteAccess>true</EnableRemoteAccess>
+                    <EnableTranscoding>true</EnableTranscoding>
+                    <EnableContentDeletion>true</EnableContentDeletion>
+                    <EnableCollectionManagement>true</EnableCollectionManagement>
+                    <EnableSubtitleManagement>true</EnableSubtitleManagement>
+                  </RoleMapping>
+                  <RoleMapping>
+                    <RoleName>Jellyfin Admins</RoleName>
+                    <IsAdmin>true</IsAdmin>
+                    <EnableAllLibraries>true</EnableAllLibraries>
+                    <EnableMediaPlayback>true</EnableMediaPlayback>
+                    <EnableRemoteAccess>true</EnableRemoteAccess>
+                    <EnableTranscoding>true</EnableTranscoding>
+                    <EnableContentDeletion>true</EnableContentDeletion>
+                    <EnableCollectionManagement>true</EnableCollectionManagement>
+                    <EnableSubtitleManagement>true</EnableSubtitleManagement>
+                  </RoleMapping>
+                </RoleMappings>
+                <AutoCreateUsers>true</AutoCreateUsers>
+                <DefaultRoleName>media</DefaultRoleName>
+                <ManageUserPolicy>true</ManageUserPolicy>
+                <EnableLibraryAccessManagement>true</EnableLibraryAccessManagement>
+                <ManageLoginButtonBranding>true</ManageLoginButtonBranding>
+                <ServerBaseUrl>https://jellyfin.smadja.dev</ServerBaseUrl>
+              </PluginConfiguration>\n''')
           securityContext:
             runAsNonRoot: true
             runAsUser: 2501
@@ -72,6 +140,11 @@ spec:
           volumeMounts:
             - name: sso-plugin
               mountPath: /plugin
+            - name: config
+              mountPath: /config
+            - name: jellyfin-oidc-secret
+              mountPath: /run/jellyfin-oidc
+              readOnly: true
       containers:
         - name: jellyfin
           image: ghcr.io/jellyfin/jellyfin:10.11.11
@@ -90,47 +163,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: jellyfin-env
-          env:
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__Enabled
-              value: "true"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__BaseUrlOverride
-              value: "https://jellyfin.smadja.dev"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__OidEndpoint
-              value: "https://auth.smadja.dev/application/o/jellyfin/"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__OidClientId
-              valueFrom:
-                secretKeyRef:
-                  name: jellyfin-sso
-                  key: client_id
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__OidSecret
-              valueFrom:
-                secretKeyRef:
-                  name: jellyfin-sso
-                  key: client_secret
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__NewPath
-              value: "true"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__DefaultUsernameClaim
-              value: "preferred_username"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__RoleClaim
-              value: "groups"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__OidScopes__0
-              value: "groups"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__EnableAuthorization
-              value: "true"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__Roles__0
-              value: "media"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__Roles__1
-              value: "Jellyfin Users"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__Roles__2
-              value: "authentik-admins"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__AdminRoles__0
-              value: "Jellyfin Admins"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__AdminRoles__1
-              value: "authentik-admins"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__EnableAllFolders
-              value: "true"
-            - name: JELLYFIN_SSO_CONFIG__OidConfigs__authentik__AllowPrivateNetworkAddresses
-              value: "true"
           ports:
             - name: http
               containerPort: 8096
@@ -146,7 +178,10 @@ spec:
             - name: tmp
               mountPath: /tmp
             - name: sso-plugin
-              mountPath: "/config/plugins/Community SSO"
+              mountPath: "/config/plugins/SSO-OIDC-Authentication_1.0.7.0"
+            - name: jellyfin-oidc-secret
+              mountPath: /run/jellyfin-oidc
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /
@@ -173,6 +208,9 @@ spec:
         - name: sso-plugin
           emptyDir:
             sizeLimit: 16Mi
+        - name: jellyfin-oidc-secret
+          secret:
+            secretName: jellyfin-sso
   volumeClaimTemplates:
   - metadata:
       name: config
