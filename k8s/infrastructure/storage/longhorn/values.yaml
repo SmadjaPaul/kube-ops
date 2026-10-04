@@ -35,9 +35,9 @@ defaultSettings:
   v2DataEngine: false
   defaultReplicaCount: '{"v1":"1","v2":"1"}'
   # The single fast disk already carries existing 1-replica volumes whose
-  # scheduled capacity is above physical usage. Keep Longhorn able to attach
-  # and recover those volumes without changing their replica count.
-  storageOverProvisioningPercentage: 150
+  # scheduled capacity is above physical usage. 175% provides bounded virtual
+  # headroom for the current 80GiB faulted set without changing replica count.
+  storageOverProvisioningPercentage: 175
   storageMinimalAvailablePercentage: 10
   defaultDataLocality: best-effort
   createDefaultDiskLabeledNodes: true
