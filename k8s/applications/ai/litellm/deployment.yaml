@@ -87,6 +87,9 @@ spec:
         - secretRef:
             name: litellm-provider-secrets
             optional: true
+        - secretRef:
+            name: litellm-minimax-provider-secrets
+            optional: true
         env:
         - name: PGUSER
           valueFrom:
