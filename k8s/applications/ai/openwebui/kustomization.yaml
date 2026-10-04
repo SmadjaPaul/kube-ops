@@ -8,5 +8,6 @@ resources:
 - http-route.yaml
 - openwebui-secrets-external.yaml
 - litellm-api-key.yaml
+- openwebui-ai-backend-keys.yaml
 - openwebui-qdrant-api-key.yaml
 - openwebui-network-policy.yaml
