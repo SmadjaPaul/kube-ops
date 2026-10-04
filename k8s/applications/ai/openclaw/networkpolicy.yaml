@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: openclaw
     policy-type: ai-audit
 spec:
-  description: "OpenClaw: operator gateway-proxy ingress, LiteLLM model traffic, DNS and Slack only."
+  description: "OpenClaw: operator gateway-proxy ingress, LiteLLM model traffic and DNS only."
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: openclaw
@@ -46,12 +46,4 @@ spec:
             - port: "53"
               protocol: UDP
             - port: "53"
-              protocol: TCP
-    - toFQDNs:
-        - matchName: api.slack.com
-        - matchName: slack.com
-        - matchPattern: "*.slack.com"
-      toPorts:
-        - ports:
-            - port: "443"
               protocol: TCP

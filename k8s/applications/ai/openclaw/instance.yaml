@@ -18,10 +18,6 @@ spec:
   envFrom:
     - secretRef:
         name: app-openclaw-litellm-api-key
-    - secretRef:
-        name: app-openclaw-slack-bot-token
-    - secretRef:
-        name: app-openclaw-slack-app-token
   gateway:
     existingSecret: app-openclaw-gateway-token
     controlUiOrigins:
