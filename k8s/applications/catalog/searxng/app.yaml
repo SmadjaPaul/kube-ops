@@ -73,3 +73,11 @@ spec:
         - matchLabels: { k8s:io.kubernetes.pod.namespace: gateway }
       toPorts:
         - ports: [{ protocol: TCP, port: "8080" }]
+    # KEDA HTTP interceptor becomes the reverse proxy for scale-to-zero traffic.
+    # Allow only interceptor pods from the keda namespace to reach SearXNG.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: keda
+            k8s:app.kubernetes.io/name: keda-add-ons-http-interceptor
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
