@@ -78,6 +78,7 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: keda
-            k8s:app.kubernetes.io/name: keda-add-ons-http-interceptor
+            k8s:app.kubernetes.io/name: http-add-on
+            k8s:app.kubernetes.io/component: interceptor
       toPorts:
         - ports: [{ protocol: TCP, port: "8080" }]
