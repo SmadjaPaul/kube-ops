@@ -25,7 +25,8 @@ data:
             "anthropic/claude-haiku-4-5": {"name": "Claude Haiku 4.5 via LiteLLM"},
             "anthropic/claude-sonnet-4-6": {"name": "Claude Sonnet 4.6 via LiteLLM"},
             "anthropic/claude-opus-4-6": {"name": "Claude Opus 4.6 via LiteLLM"},
-            "azure/gpt-5.3-codex": {"name": "GPT-5.3 Codex via LiteLLM"}
+            "azure/gpt-5.3-codex": {"name": "GPT-5.3 Codex via LiteLLM"},
+            "minimax/MiniMax-M2.7": {"name": "MiniMax M2.7 via LiteLLM"}
           }
         }
       }
