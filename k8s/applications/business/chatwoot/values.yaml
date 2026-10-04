@@ -4,7 +4,8 @@ image:
   pullPolicy: IfNotPresent
 
 web:
-  replicaCount: 1
+  # V1 dormant: retain the chart resources for a reversible reactivation.
+  replicaCount: 0
   hpa:
     enabled: false
   resources:
@@ -16,7 +17,8 @@ web:
       memory: 1536Mi
 
 worker:
-  replicaCount: 1
+  # V1 dormant: no background processing while Chatwoot is inactive.
+  replicaCount: 0
   hpa:
     enabled: false
   resources:

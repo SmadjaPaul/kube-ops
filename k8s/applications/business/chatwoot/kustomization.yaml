@@ -87,3 +87,17 @@ patches:
       - op: add
         path: /metadata/namespace
         value: chatwoot
+
+  # The upstream chart always renders a migration Job. A dormant app must not
+  # launch a hook against a deliberately hibernated database/Redis pair.
+  - target:
+      group: batch
+      version: v1
+      kind: Job
+      name: chatwoot-migrate
+    patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: chatwoot-migrate
