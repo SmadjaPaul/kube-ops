@@ -42,19 +42,7 @@ data:
       },
       "channels": {
         "slack": {
-          "enabled": true,
-          "botToken": "${SLACK_BOT_TOKEN}",
-          "appToken": "${SLACK_APP_TOKEN}",
-          "channels": {
-            "#general": {"allow": true, "requireMention": true}
-          },
-          "dm": {"enabled": true, "allowFrom": ["U123"]},
-          "slashCommand": {
-            "enabled": true,
-            "name": "openclaw",
-            "sessionPrefix": "slack:slash",
-            "ephemeral": true
-          }
+          "enabled": false
         }
       },
       "agents": {
