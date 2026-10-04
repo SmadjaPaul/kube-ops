@@ -7,3 +7,4 @@ resources:
   - deployment.yaml
   - service-route.yaml
   - networkpolicy.yaml
+  - cilium-network-policy.yaml
