@@ -5,9 +5,9 @@ metadata:
   namespace: monitoring
 spec:
   targetRef:
-    apiVersion: apps/v1
-    kind: StatefulSet
-    name: prometheus-kube-prometheus-stack-prometheus
+    apiVersion: monitoring.coreos.com/v1
+    kind: Prometheus
+    name: kube-prometheus-stack-prometheus
   updatePolicy:
     updateMode: "Off"
 ---
@@ -57,8 +57,8 @@ metadata:
   namespace: paperclip
 spec:
   targetRef:
-    apiVersion: apps/v1
-    kind: StatefulSet
+    apiVersion: paperclip.inc/v1alpha1
+    kind: Instance
     name: paperclip
   updatePolicy:
     updateMode: "Off"
