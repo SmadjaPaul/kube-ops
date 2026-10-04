@@ -45,6 +45,13 @@ data:
           "enabled": false
         }
       },
+      "plugins": {
+        "entries": {
+          "whatsapp": {
+            "enabled": false
+          }
+        }
+      },
       "agents": {
         "defaults": {
           "userTimezone": "Europe/Paris",
