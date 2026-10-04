@@ -11,13 +11,13 @@ model_list:
   - model_name: minimax/MiniMax-M3
     litellm_params:
       model: minimax/MiniMax-M3
-      api_base: "os.environ/MINIMAX_API_BASE"
+      api_base: "https://api.minimax.io/v1"
       api_key: "os.environ/MINIMAX_API_KEY"
 
   - model_name: minimax/MiniMax-M2.7
     litellm_params:
       model: minimax/MiniMax-M2.7
-      api_base: "os.environ/MINIMAX_API_BASE"
+      api_base: "https://api.minimax.io/v1"
       api_key: "os.environ/MINIMAX_API_KEY"
 
   # - model_name: cloudflare/@cf/meta/llama-2-7b-chat-fp16
