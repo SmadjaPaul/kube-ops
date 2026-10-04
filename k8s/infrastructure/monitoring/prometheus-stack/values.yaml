@@ -35,7 +35,7 @@ grafana:
 
   resources:
     requests:
-      cpu: 200m
+      cpu: 150m
       memory: 256Mi
     limits:
       cpu: 500m
@@ -71,7 +71,7 @@ prometheus:
             prometheus: k8s
     resources:
       requests:
-        cpu: 300m
+        cpu: 100m
         memory: 512Mi
       limits:
         cpu: 1000m
