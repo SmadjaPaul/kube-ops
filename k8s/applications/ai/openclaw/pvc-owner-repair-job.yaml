@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: openclaw-data-owner-repair
+  namespace: openclaw
+  labels:
+    app.kubernetes.io/name: openclaw
+    app.kubernetes.io/component: maintenance
+  annotations:
+    maintenance.smadja.dev/risk-class: R2
+    maintenance.smadja.dev/purpose: "One-time upstream-recommended PVC root ownership repair"
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openclaw
+        app.kubernetes.io/component: maintenance
+    spec:
+      restartPolicy: Never
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: repair-owner
+          image: busybox:1.37.0
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              before="$(stat -c '%u:%g' /data)"
+              echo "openclaw-data root owner before: ${before}"
+              if [ "${before}" != "1000:1000" ]; then
+                chown 1000:1000 /data
+              fi
+              after="$(stat -c '%u:%g' /data)"
+              echo "openclaw-data root owner after: ${after}"
+              test "${after}" = "1000:1000"
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: openclaw-data
