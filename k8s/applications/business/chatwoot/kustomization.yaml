@@ -23,6 +23,18 @@ helmCharts:
 # JSON patches to inject the namespace on the rendered resources.
 patches:
   - target:
+      group: batch
+      version: v1
+      kind: Job
+      name: chatwoot-migrate
+    patch: |-
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1hook
+        value: Sync
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1hook-delete-policy
+        value: BeforeHookCreation
+  - target:
       group: ""
       version: v1
       kind: Service

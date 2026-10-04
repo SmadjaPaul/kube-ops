@@ -26,7 +26,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-        - name: install-community-sso
+        - name: install-oidc
           image: python:3.13-alpine3.22@sha256:e81548ac35b07a3bd4805f275107592ef458b1e893c0e04d45aedaa19416cca5
           imagePullPolicy: IfNotPresent
           command: ["python", "-c"]
@@ -38,14 +38,14 @@ spec:
               import urllib.request
               import zipfile
 
-              url = "https://github.com/Flowfin/jellyfin-plugin-sso/releases/download/4.3.2-stable/community-sso-for-jellyfin_4.3.2.0.zip"
-              expected = "4c312ab92b175b1f7242e89906692668896e805cdab15c3d635f665baa02517b"
+              url = "https://github.com/aussierk/jellyfin-plugin-oidc/releases/download/v1.0.7.0/oidc-rbac.zip"
+              expected = "84265ab9d374f9cfd53028fc78b6b27941f9f27e5c7fb61aeba9aa33016fe8bc"
               target = pathlib.Path("/plugin")
               with urllib.request.urlopen(url, timeout=30) as response:
                   payload = response.read()
               actual = hashlib.sha256(payload).hexdigest()
               if actual != expected:
-                  raise SystemExit(f"Community SSO checksum mismatch: {actual}")
+                  raise SystemExit(f"OIDC plugin checksum mismatch: {actual}")
               with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                   for member in archive.namelist():
                       parts = pathlib.PurePosixPath(member).parts
@@ -146,7 +146,7 @@ spec:
             - name: tmp
               mountPath: /tmp
             - name: sso-plugin
-              mountPath: "/config/plugins/Community SSO"
+              mountPath: "/config/plugins/SSO-OIDC-Authentication_1.0.7.0"
           livenessProbe:
             httpGet:
               path: /
