@@ -15,6 +15,33 @@ spec:
       name: openclaw-config
       key: openclaw.json
     mergeMode: overwrite
+  workspace:
+    initialDirectories:
+      - repos
+    initialFiles:
+      AGENTS.md: |-
+        # Smadja Homelab Agent Contract
+
+        You run inside the OpenClaw Kubernetes pod. This pod plus its persistent workspace PVC is your workstation. Do not require SSH, Docker socket access, or host filesystem access.
+
+        Canonical repositories:
+        - SmadjaPaul/kube-ops: Kubernetes desired state reconciled by Argo CD.
+        - SmadjaPaul/homelab-infra: Proxmox, Talos, UniFi, Cloudflare, Doppler bootstrap and external infrastructure.
+
+        Operating rules:
+        - Git is desired state; runtime Kubernetes is evidence.
+        - Never use kubectl apply, patch, edit, scale, or delete for durable changes.
+        - Prefer read-only runtime inspection, then implement the fix in Git.
+        - Work on a branch, run repository checks, push, and open a PR. Never push directly to main.
+        - R0 read-only investigation is autonomous.
+        - R1 reversible GitOps changes may proceed when checks are green.
+        - R2 destructive, data-bearing, Talos-disruptive, PVC, firewall, credential or irreversible changes require Paul approval.
+        - Never print or commit secrets.
+        - Keep PRs small and causal.
+
+        Workspace convention:
+        - Clone repositories under ./repos/.
+        - Preserve the persistent workspace between pod restarts.
   envFrom:
     - secretRef:
         name: app-openclaw-litellm-api-key
@@ -71,15 +98,14 @@ spec:
       enabled: false
     rbac:
       createServiceAccount: true
+  selfConfigure:
+    enabled: false
   networking:
     service:
       type: ClusterIP
     httpRoute:
       enabled: true
       parentRefs:
-        - name: external
-          namespace: gateway
-          sectionName: https-subdomains
         - name: internal
           namespace: gateway
           sectionName: https-subdomains
