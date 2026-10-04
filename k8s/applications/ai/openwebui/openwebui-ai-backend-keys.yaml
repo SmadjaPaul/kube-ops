@@ -1,0 +1,24 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: openwebui-ai-backend-keys
+  namespace: open-webui
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-cluster
+    kind: ClusterSecretStore
+  target:
+    name: openwebui-ai-backend-keys
+    creationPolicy: Owner
+    template:
+      engineVersion: v2
+      data:
+        OPENAI_API_KEYS: "{{ .litellmKey }};{{ .openclawToken }}"
+  data:
+    - secretKey: litellmKey
+      remoteRef:
+        key: APP_LITELLM_MASTER_KEY
+    - secretKey: openclawToken
+      remoteRef:
+        key: APP_MOLTBOT_GATEWAY_TOKEN
