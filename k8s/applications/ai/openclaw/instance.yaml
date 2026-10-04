@@ -6,7 +6,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  suspended: true
+  suspended: false
   image:
     repository: ghcr.io/openclaw/openclaw
     tag: "2026.9.6"
