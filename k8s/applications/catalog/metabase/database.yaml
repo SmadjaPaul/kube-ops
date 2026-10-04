@@ -1,6 +1,11 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
-metadata: { name: metabase-postgresql, namespace: metabase }
+metadata:
+  name: metabase-postgresql
+  namespace: metabase
+  annotations:
+    # CNPG-supported reversible hibernation; generated DB pods are removed, PVC stays.
+    cnpg.io/hibernation: "on"
 spec:
   instances: 1
   bootstrap:

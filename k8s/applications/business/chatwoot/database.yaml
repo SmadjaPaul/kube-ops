@@ -3,6 +3,9 @@ kind: Cluster
 metadata:
   name: chatwoot-postgresql
   namespace: chatwoot
+  annotations:
+    # CNPG-supported reversible hibernation; generated DB pods are removed, PVC stays.
+    cnpg.io/hibernation: "on"
 spec:
   instances: 1
   bootstrap:

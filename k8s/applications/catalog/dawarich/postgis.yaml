@@ -12,7 +12,8 @@ kind: StatefulSet
 metadata: { name: dawarich-postgis, namespace: dawarich }
 spec:
   serviceName: dawarich-postgis
-  replicas: 1
+  # V1 dormant: retain the StatefulSet and PVC; stop database compute reversibly.
+  replicas: 0
   selector:
     matchLabels: { app.kubernetes.io/name: dawarich-postgis }
   template:
