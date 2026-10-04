@@ -8,6 +8,12 @@ model_list:
     model_info:
       mode: embedding
 
+  - model_name: minimax/MiniMax-M2.7
+    litellm_params:
+      model: minimax/MiniMax-M2.7
+      api_base: "os.environ/MINIMAX_API_BASE"
+      api_key: "os.environ/MINIMAX_API_KEY"
+
   # - model_name: cloudflare/@cf/meta/llama-2-7b-chat-fp16
   #   litellm_params:
   #     model: "cloudflare/@cf/meta/llama-2-7b-chat-fp16"
