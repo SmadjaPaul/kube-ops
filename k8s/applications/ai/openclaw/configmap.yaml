@@ -20,7 +20,10 @@ data:
         "ackReaction": "👀",
         "ackReactionScope": "group-mentions",
         "groupChat": {
-          "mentionPatterns": ["@openclaw", "openclaw"],
+          "mentionPatterns": [
+            "@openclaw",
+            "openclaw"
+          ],
           "historyLimit": 50
         },
         "queue": {
@@ -37,7 +40,10 @@ data:
           "atHour": 4,
           "idleMinutes": 60
         },
-        "resetTriggers": ["/new", "/reset"],
+        "resetTriggers": [
+          "/new",
+          "/reset"
+        ],
         "typingIntervalSeconds": 5
       },
       "channels": {
@@ -56,14 +62,24 @@ data:
         "defaults": {
           "userTimezone": "Europe/Paris",
           "model": {
-            "primary": "litellm/anthropic/claude-sonnet-4-6"
+            "primary": "litellm/minimax/MiniMax-M3",
+            "fallbacks": [
+              "litellm/minimax/MiniMax-M2.7"
+            ]
           },
           "thinkingDefault": "low",
           "verboseDefault": "off",
           "elevatedDefault": "off",
           "timeoutSeconds": 600,
           "typingIntervalSeconds": 5,
-          "maxConcurrent": 2
+          "maxConcurrent": 2,
+          "utilityModel": "litellm/minimax/MiniMax-M2.7",
+          "modelPolicy": {
+            "allow": [
+              "litellm/minimax/MiniMax-M3",
+              "litellm/minimax/MiniMax-M2.7"
+            ]
+          }
         },
         "list": [
           {
@@ -78,9 +94,31 @@ data:
         ]
       },
       "tools": {
-        "allow": ["read", "write", "edit", "apply_patch"],
-        "deny": ["browser", "canvas"],
-        "elevated": {"enabled": false}
+        "allow": [
+          "read",
+          "write",
+          "edit",
+          "apply_patch",
+          "memory_search",
+          "memory_get",
+          "exec",
+          "process"
+        ],
+        "deny": [
+          "browser",
+          "canvas"
+        ],
+        "elevated": {
+          "enabled": false
+        },
+        "exec": {
+          "host": "gateway",
+          "mode": "allowlist",
+          "strictInlineEval": true
+        },
+        "sessions": {
+          "visibility": "agent"
+        }
       },
       "models": {
         "mode": "merge",
@@ -90,14 +128,38 @@ data:
             "baseUrl": "http://litellm.litellm.svc.cluster.local:80/v1",
             "apiKey": "${LITELLM_API_KEY}",
             "models": [
-              {"id": "anthropic/claude-sonnet-4-6", "name": "Claude Sonnet 4.6"},
-              {"id": "anthropic/claude-haiku-4-5", "name": "Claude Haiku 4.5"}
+              {
+                "id": "minimax/MiniMax-M3",
+                "name": "MiniMax M3"
+              },
+              {
+                "id": "minimax/MiniMax-M2.7",
+                "name": "MiniMax M2.7"
+              }
             ]
           }
         }
       },
       "gateway": {
         "mode": "local",
-        "port": 18789
+        "port": 18789,
+        "http": {
+          "endpoints": {
+            "chatCompletions": {
+              "enabled": true
+            }
+          }
+        }
+      },
+      "memory": {
+        "search": {
+          "provider": "openai-compatible",
+          "model": "qwen3-embedding-0.6b",
+          "remote": {
+            "baseUrl": "http://litellm.litellm.svc.cluster.local:80/v1/",
+            "apiKey": "${LITELLM_API_KEY}"
+          },
+          "rememberAcrossConversations": true
+        }
       }
     }
