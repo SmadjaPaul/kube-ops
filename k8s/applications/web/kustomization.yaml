@@ -3,9 +3,11 @@ kind: Kustomization
 
 resources:
   - project.yaml
-  - babybuddy
   - kiwix
   - pinepods
   # V1: business mail stack intentionally disabled; retain manifests for V2.
   # - jmap-webmail
   - trilium
+
+# Intentionally disabled from the V1 active catalog:
+# - babybuddy: removed from the current household scope.
