@@ -86,9 +86,9 @@ data:
             "id": "default",
             "default": true,
             "identity": {
-              "name": "Samantha",
-              "theme": "helpful sloth",
-              "emoji": "🦥"
+              "name": "Talos",
+              "theme": "GitOps guardian / assistant",
+              "emoji": "🛡️"
             }
           }
         ]
