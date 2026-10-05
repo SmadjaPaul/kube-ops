@@ -171,6 +171,11 @@ spec:
               value: '10'
             - name: ENABLE_FORWARD_USER_INFO_HEADERS
               value: 'true'
+            # Open WebUI v0.9.5 persists OPENAI_API_* in ConfigVars. Reset
+            # that configuration once so the Git-managed backend list becomes
+            # effective; this flag is removed immediately after convergence.
+            - name: RESET_CONFIG_ON_START
+              value: 'true'
           tty: true
           livenessProbe:
             httpGet:
