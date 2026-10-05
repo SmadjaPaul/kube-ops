@@ -28,14 +28,14 @@ configMapGenerator:
       - ./blueprints/apps-romm.yaml
       - ./blueprints/apps-mealie.yaml
       - ./blueprints/apps-vikunja.yaml
-      - ./blueprints/apps-messages.yaml
       - ./blueprints/apps-paperless.yaml
-      - ./blueprints/apps-actual.yaml
-      - ./blueprints/apps-metabase.yaml
       - ./blueprints/apps-ntfy.yaml
-      - ./blueprints/apps-dawarich.yaml
       - ./blueprints/apps-stirling-pdf.yaml
       - ./blueprints/apps-searxng.yaml
+      # Retired app blueprints (Actual Budget, Dawarich, Metabase, Messages)
+      # intentionally remain in Git history but are no longer loaded into the
+      # active Authentik blueprint ConfigMap. Their ExternalSecrets are left
+      # untouched here to avoid credential deletion/rotation in an R1 change.
       - ./blueprints/groups.yaml
       - ./blueprints/flows-invitation-operator.yaml
       - ./blueprints/qa-e2e-user.yaml
