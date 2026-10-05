@@ -9,14 +9,14 @@ INSTALLATION_ID="${INSTALLATION_ID:-161984586}"
 EXPECTED_REPOS_JSON='${EXPECTED_REPOS_JSON:-["SmadjaPaul/homelab-infra","SmadjaPaul/kube-ops"]}'
 
 installations="$(
-  gh api --paginate --slurp '/user/installations?per_page=100'
+  gh api '/user/installations?per_page=100'
 )"
 
 installation="$(
   jq -c --argjson id "$INSTALLATION_ID" '
-    [.[].installations[] | select(.id == $id)][0] // empty
+    [.installations[] | select(.id == $id)][0] // empty
   ' <<<"$installations"
-)"
+)
 
 if [[ -z "$installation" ]]; then
   echo "GITHUB_APP_INSTALLATION=FAIL"
@@ -26,14 +26,14 @@ if [[ -z "$installation" ]]; then
 fi
 
 repos="$(
-  gh api --paginate --slurp "/user/installations/$INSTALLATION_ID/repositories?per_page=100"
+  gh api "/user/installations/$INSTALLATION_ID/repositories?per_page=100"
 )"
 
 repo_names="$(
   jq -c '
-    [.[].repositories[].full_name] | unique | sort
+    [.repositories[].full_name] | unique | sort
   ' <<<"$repos"
-)"
+)
 
 app_slug="$(jq -r '.app_slug // "UNKNOWN"' <<<"$installation")"
 app_id="$(jq -r '.app_id // "UNKNOWN"' <<<"$installation")"
