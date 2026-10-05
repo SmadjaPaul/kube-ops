@@ -80,7 +80,8 @@ Every persisted application volume must be one of:
 - explicitly labelled `backup.smadja.dev/strategy=rebuildable`.
 
 The rebuildable label is reserved for caches or reproducible downloaded datasets.
-It is currently appropriate for the Kiwix library cache and vLLM model cache.
+It is currently appropriate for the vLLM model cache and other reproducible
+downloaded datasets.
 User-generated data must never use this exemption.
 
 ## Multi-agent capability model
@@ -103,4 +104,3 @@ The Implementation Engineer may write a feature branch and open a pull request,
 but it never self-merges. R1 release can still be autonomous when a separate
 release authority sees independent review, QA and required CI gates pass. R2
 always remains human-only.
-
