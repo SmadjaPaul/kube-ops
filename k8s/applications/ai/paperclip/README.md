@@ -1,15 +1,30 @@
 # Paperclip V1
 
-Paperclip is the V1 control plane for the software factory. This deployment intentionally reuses the homelab's existing platform primitives:
+Paperclip is the control plane for the software factory. The Kubernetes deployment intentionally reuses the homelab's existing platform primitives:
 
 - Argo CD for desired-state delivery.
 - Paperclip Operator `0.19.1`.
-- CloudNativePG PostgreSQL 17.7 on `longhorn-fast`.
-- Barman/WAL + weekly base backups to Hetzner Object Storage.
+- CloudNativePG PostgreSQL on `longhorn-fast`.
+- Barman/WAL + scheduled base backups to Hetzner Object Storage.
 - ESO/Doppler for bootstrap/runtime secrets.
 - LiteLLM as the single model gateway.
 - Cilium + Gateway API + private ExternalDNS/UniFi for local-first access.
 - Velero/Kopia for the Paperclip data PVC.
+
+## Deployment contract
+
+The Paperclip server deployment is operator-native, not a hand-built Deployment. The canonical workload is `paperclip.inc/v1alpha1 Instance/paperclip`; the operator owns the generated workload, Service, RBAC and lifecycle resources.
+
+The installed operator API already exposes the first-party Kubernetes execution surface through:
+
+- `spec.plugins`;
+- `spec.adapters.execution`;
+- per-tenant `ResourceQuota` / `LimitRange`;
+- Cilium-aware sandbox egress policy.
+
+Do not replace the operator with bespoke Deployment/Job plumbing.
+
+Git desired state currently pins the Paperclip server image in `instance.yaml`. CLI/company tooling may be newer than the live server; do not infer a runtime upgrade from the CLI version. Server upgrades remain separately qualified because they can include database migrations and adapter/default changes.
 
 ## Required Doppler keys
 
@@ -19,39 +34,46 @@ In `cluster/prd`:
 - `APP_PAPERCLIP_SECRETS_MASTER_KEY`
 - `APP_PAPERCLIP_LITELLM_API_KEY`
 
-The LiteLLM value should be a dedicated virtual key limited to the models needed by Paperclip. Do not use the LiteLLM master key.
+The LiteLLM value must be a dedicated virtual key limited to the models needed by Paperclip. Do not use the LiteLLM master key.
 
 ## Authentication
 
-Paperclip runs in `authenticated` mode at `https://paperclip.smadja.dev` but its HTTPRoute attaches only to `Gateway/internal`.
+Paperclip runs in `authenticated` mode at `https://paperclip.smadja.dev` and its HTTPRoute attaches only to `Gateway/internal`.
 
-Paperclip `2026.1001.0` still uses native Better Auth for human sign-in; the
-generic OIDC work remains tracked by upstream PR #3040. A minimal
-environment-gated generic OIDC implementation exists in the `namhtpyn/paperclip`
-fork, but V1 does not adopt that fork or a full downstream merge. If a
-downstream bridge becomes necessary, it must be a separately reviewed,
-minimal patch with an explicit removal path once upstream ships the feature.
-
-The upgrade candidate from `2026.916.1` to `2026.1001.0` is not applied yet.
-The candidate runs migrations `0280`–`0283`, retires legacy Composio
-connections without an automatic migration, and changes unconfigured execution
-harnesses to full-auto defaults. The Operator `0.19.1` Instance API accepts the
-current image-tag-based CR without an app-version pin, but the upgrade remains
-gated on the runtime secret contract, database migration qualification, and the
-existing Paperclip acceptance tests.
-
-The Paperclip Operator's automatic authenticated-mode `adminUser` bootstrap is intentionally not used because upstream documents a current CEO-promotion/config-mode bug. Claim the instance through the supported board-claim flow.
+The automatic authenticated-mode `adminUser` bootstrap is intentionally not used. Claim the instance through the supported board-claim flow.
 
 ## Execution posture
 
-Global scheduled heartbeats remain disabled in V1 pending qualification of the
-upgrade path and the existing burst-wakeup/PostgreSQL-pool regression. Agents
-are invoked explicitly/on-demand. Paperclip budgets are useful telemetry but
-are not the only financial guardrail; model/provider limits remain enforced in
-LiteLLM/provider accounts.
+There are two distinct concerns:
 
-Kubernetes sandbox execution is deliberately deferred until the first-party Paperclip Kubernetes plugin and Agent Sandbox API are stable enough for this cluster. V1 tests the Paperclip control plane and local OpenCode adapter first.
+1. **Paperclip server placement** — already Kubernetes-native through the Paperclip Operator.
+2. **Agent execution placement** — currently bootstrap-local through `opencode_local`, with the first-party Kubernetes sandbox provider as the target production boundary.
 
-## Company
+`opencode_local` is acceptable for the first harmless DOC smoke because it proves Company -> issue DAG -> delegation -> review -> PR without changing the runtime boundary at the same time. It is not the final security boundary for autonomous production work.
 
-`company/` is the portable Agent Companies definition. Import it only after the Paperclip instance is healthy and claimed. Git remains the canonical copy of the company package.
+The target is the upstream `@paperclipai/plugin-kubernetes` execution path backed by Kubernetes sandboxes, with role/capability restrictions enforced by pod, network, credential and RBAC boundaries rather than prompts alone.
+
+A non-live candidate overlay and qualification runbook live under:
+
+`poc/kubernetes-execution/`
+
+That overlay is deliberately not referenced by the production `kustomization.yaml` and must not be enabled as part of an unrelated Paperclip change.
+
+Qualification order:
+
+1. complete Company/backlog bootstrap;
+2. run the harmless DOC smoke with the existing local adapter;
+3. run one disposable Kubernetes-sandbox POC with no production credential;
+4. prove namespace/pod cleanup, egress restriction, resource quotas and callback/model path;
+5. migrate roles progressively;
+6. only then treat Kubernetes sandbox execution as the production factory runtime.
+
+Known upstream sandbox/runtime-image defects must be treated as upstream blockers, not patched inside running Paperclip containers.
+
+## Company and backlog
+
+`company/` is the portable Company definition. Git remains canonical for Company intent.
+
+`company/projects/kube-ops/backlog-seed.yaml` is the canonical backlog inventory. Paperclip does not natively import that seed format, so `scripts/paperclip/import-backlog-seed.mjs` is the bounded one-shot adapter from the Git seed to the official Paperclip issues API. It defaults to dry-run, uses stable managed-description markers for identity, and must not create or update live issues without a separately approved R2 apply.
+
+Paperclip stores runtime work state; it does not replace Git as desired state.
