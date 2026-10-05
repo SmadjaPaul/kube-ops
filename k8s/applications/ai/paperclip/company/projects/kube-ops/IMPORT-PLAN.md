@@ -15,8 +15,8 @@ or changes heartbeats.
 1. A human confirms the Paperclip instance and target company/project.
 2. The canonical seed and adapter are reviewed independently.
 3. The adapter lists the existing company projects and issues read-only.
-4. `backlog-seed.yaml` passes static validation and its `externalId` set is
-   unique.
+4. `backlog-seed.yaml` passes static validation, its `externalId` set is
+   unique, and its `backlogIssues` remain non-executable.
 
 ## Import sequence
 
@@ -69,3 +69,10 @@ managed description marker; they are never silently discarded.
 - No company import in this R1 change.
 - No challenge approval or board-token creation.
 - No credentials, secrets, Kubernetes mutation or product-intent inference.
+
+## Seed v2 deferred work
+
+Seed v2 contains `LLM-010`, a `backlog`/`EXECUTE` record for removing the
+remaining Perplexica LiteLLM master-key consumer. Its canonical priority is
+`P1`; any Paperclip adapter must map that explicitly to its supported priority
+vocabulary. Credential provisioning and execution remain R2/human-only.
