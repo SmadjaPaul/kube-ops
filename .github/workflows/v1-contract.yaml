@@ -63,6 +63,11 @@ jobs:
       - name: Validate Paperclip backlog importer
         run: node --test scripts/paperclip/import-backlog-seed.test.mjs
 
+      - name: Validate Paperclip credential preflight
+        run: |
+          node --test scripts/paperclip/github-credential-preflight.test.mjs
+          bash -n scripts/paperclip/runtime-preflight.sh
+
       - name: Render Paperclip production and sandbox candidate
         run: |
           kustomize build k8s/applications/ai/paperclip >/tmp/paperclip-production.yaml
