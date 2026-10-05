@@ -1,0 +1,192 @@
+schema: paperclip/backlog-seed/v1
+seedVersion: 1
+project:
+  name: kube-ops
+  slug: kube-ops
+  repository: SmadjaPaul/kube-ops
+  defaultRef: main
+  externalIdNamespace: smadja/kube-ops
+policy:
+  importMode: preview_then_create
+  collisionStrategy: fail
+  updateStrategy: no_replace
+  preserveExisting: true
+  createCredentials: false
+  importLiveBacklog: false
+  requireHumanApproval: true
+  maxInitialTodoIssues: 10
+  stableIdentity: externalId
+issueTypes:
+  - EPIC
+  - EXECUTE
+  - DISCOVER
+  - DECIDE
+  - HUMAN
+statusVocabulary:
+  epic: backlog
+  initialTodo: todo
+  noIssueIsInProgress: true
+  noIssueIsDone: true
+epics:
+  - externalId: KOPS-E01
+    type: EPIC
+    title: Factory governance and approval boundaries
+    status: backlog
+    intent: Establish explicit human gates for R1 delivery and R2 operations.
+  - externalId: KOPS-E02
+    type: EPIC
+    title: Repository contracts and navigation
+    status: backlog
+    intent: Keep ownership, instructions and repository boundaries discoverable.
+  - externalId: KOPS-E03
+    type: EPIC
+    title: Static validation and policy checks
+    status: backlog
+    intent: Make declarative validation reproducible before runtime work.
+  - externalId: KOPS-E04
+    type: EPIC
+    title: Argo delivery and reconciliation evidence
+    status: backlog
+    intent: Separate desired state, reconciliation and runtime evidence.
+  - externalId: KOPS-E05
+    type: EPIC
+    title: Workload reliability and lifecycle
+    status: backlog
+    intent: Track bounded reliability work without prescribing product behavior.
+  - externalId: KOPS-E06
+    type: EPIC
+    title: Network and Gateway correctness
+    status: backlog
+    intent: Maintain local-first routing, TLS and least-privilege connectivity.
+  - externalId: KOPS-E07
+    type: EPIC
+    title: Identity and access integration
+    status: backlog
+    intent: Qualify authentication and authorization changes through evidence.
+  - externalId: KOPS-E08
+    type: EPIC
+    title: Secret and configuration delivery
+    status: backlog
+    intent: Keep secret values outside Git while proving delivery contracts.
+  - externalId: KOPS-E09
+    type: EPIC
+    title: Stateful storage and persistence
+    status: backlog
+    intent: Make stateful changes explicit, reversible and observable.
+  - externalId: KOPS-E10
+    type: EPIC
+    title: Backup and restore assurance
+    status: backlog
+    intent: Prove coverage and isolated restoration for data that matters.
+  - externalId: KOPS-E11
+    type: EPIC
+    title: Observability and runtime evidence
+    status: backlog
+    intent: Preserve a compact evidence trail for post-merge acceptance.
+  - externalId: KOPS-E12
+    type: EPIC
+    title: Developer workflow and automation
+    status: backlog
+    intent: Improve safe, repeatable operator and contributor workflows.
+  - externalId: KOPS-E13
+    type: EPIC
+    title: OpenClaw runtime operations
+    status: backlog
+    intent: Track OpenClaw work only after explicit scope and ownership exist.
+  - externalId: KOPS-E14
+    type: EPIC
+    title: Paperclip control-plane operations
+    status: backlog
+    intent: Qualify Paperclip itself without importing or mutating live state here.
+  - externalId: KOPS-E15
+    type: EPIC
+    title: OpenWebUI integration and acceptance
+    status: backlog
+    intent: Track user-facing integration evidence without inventing product intent.
+  - externalId: KOPS-E16
+    type: EPIC
+    title: Vikunja automation integration
+    status: backlog
+    intent: Keep automation scope and user isolation explicit before execution.
+  - externalId: KOPS-E17
+    type: EPIC
+    title: User-facing acceptance and release
+    status: backlog
+    intent: Close the gap between reconciled infrastructure and usable outcomes.
+initialTodoIssues:
+  - externalId: KOPS-I001
+    type: EXECUTE
+    title: Ensure scheduled OpenClaw backup includes openclaw-data
+    status: todo
+    parentExternalId: KOPS-E10
+    source: preserved-existing-backup-follow-up-seed
+    description: >-
+      Make a normal scheduled OpenClaw backup contain completed volume data for
+      the legacy openclaw/openclaw-data PVC, then prove an isolated restore
+      from that scheduled backup without mutating the legacy PVC.
+    nonGoals:
+      - Delete, replace, scale or restore over the legacy PVC.
+      - Expose the restore publicly or inject production credentials.
+  - externalId: KOPS-I002
+    type: DISCOVER
+    title: Document Paperclip company import compatibility
+    status: todo
+    parentExternalId: KOPS-E14
+    description: Confirm the supported import format and version assumptions
+      for the canonical company package without performing an import.
+  - externalId: KOPS-I003
+    type: EXECUTE
+    title: Add static validation for the backlog seed
+    status: todo
+    parentExternalId: KOPS-E03
+    description: Add a bounded check for unique external IDs, allowed types,
+      epic references and the ten-issue initial todo limit.
+  - externalId: KOPS-I004
+    type: DISCOVER
+    title: Audit Argo ownership boundaries for factory changes
+    status: todo
+    parentExternalId: KOPS-E04
+    description: Record which evidence belongs to Git, Argo and runtime without
+      turning runtime drift into desired state.
+  - externalId: KOPS-I005
+    type: DECIDE
+    title: Choose the R1 evidence retention policy
+    status: todo
+    parentExternalId: KOPS-E11
+    description: Human decision on the minimum evidence retained with factory
+      pull requests and release records.
+  - externalId: KOPS-I006
+    type: HUMAN
+    title: Approve the first harmless delegated documentation task
+    status: todo
+    parentExternalId: KOPS-E01
+    description: Human-only gate before any Paperclip agent delegation or test
+      task is created.
+  - externalId: KOPS-I007
+    type: EXECUTE
+    title: Create a runtime evidence report template
+    status: todo
+    parentExternalId: KOPS-E11
+    description: Provide a small template that distinguishes static,
+      reconciled, runtime and user evidence.
+  - externalId: KOPS-I008
+    type: DISCOVER
+    title: Map rollback evidence for stateful changes
+    status: todo
+    parentExternalId: KOPS-E09
+    description: Identify the evidence required before declaring a stateful R1
+      change rollback-ready.
+  - externalId: KOPS-I009
+    type: EXECUTE
+    title: Harden the local-first regression checklist
+    status: todo
+    parentExternalId: KOPS-E06
+    description: Keep private DNS, TLS and Gateway regression checks explicit
+      and reproducible.
+  - externalId: KOPS-I010
+    type: HUMAN
+    title: Review the Paperclip approval and import gate
+    status: todo
+    parentExternalId: KOPS-E01
+    description: Human review of challenge state, preview output and collision
+      handling before any live import is considered.
