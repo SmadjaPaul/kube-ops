@@ -311,6 +311,65 @@ async function apiRequest(apiBase, apiKey, method, route, body) {
   return payload;
 }
 
+async function readIssueDetails(options, transport, issue) {
+  const id = issueId(issue);
+  if (!id) fail("Cannot hydrate Paperclip issue without an id");
+
+  if (transport === "rest") {
+    return apiRequest(
+      options.apiBase,
+      process.env.PAPERCLIP_API_KEY,
+      "GET",
+      `/api/issues/${id}`,
+    );
+  }
+
+  const common = [
+    "--api-base",
+    options.apiBase,
+    "--company-id",
+    options.companyId,
+    "--json",
+  ];
+  return runCliJson(["issue", "get", id, ...common]);
+}
+
+async function hydrateUnmarkedTargetProjectIssues(
+  seed,
+  remote,
+  readIssue = async (issue) =>
+    readIssueDetails(
+      {
+        apiBase: API_BASE_DEFAULT,
+        companyId: COMPANY_ID_DEFAULT,
+      },
+      remote.transport,
+      issue,
+    ),
+) {
+  const targetProject = remote.projects.find(
+    (project) => projectSlug(project) === seed.project.slug,
+  );
+  if (!targetProject) return remote;
+
+  const hydratedIssues = await Promise.all(
+    remote.issues.map(async (issue) => {
+      if (issueProjectId(issue) !== targetProject.id) return issue;
+      if (markerFromDescription(issue.description)) return issue;
+
+      const detail = await readIssue(issue);
+      if (!detail || issueId(detail) !== issueId(issue)) {
+        fail(
+          `Paperclip issue hydration returned the wrong object for ${issueId(issue)}`,
+        );
+      }
+      return { ...issue, ...detail };
+    }),
+  );
+
+  return { ...remote, issues: hydratedIssues };
+}
+
 async function readRemote(options) {
   if (process.env.PAPERCLIP_API_KEY) {
     const [projects, issues, labels] = await Promise.all([
@@ -563,6 +622,7 @@ export {
   cliCreateArgs,
   collisionCandidateSummary,
   descriptionWithoutManagedMarker,
+  hydrateUnmarkedTargetProjectIssues,
   markerFor,
   markerFromDescription,
   managedDescription,
@@ -578,7 +638,12 @@ async function main() {
   }
   const seed = loadYaml(options.seed);
   const records = validateSeed(seed);
-  const remote = await readRemote(options);
+  const listedRemote = await readRemote(options);
+  const remote = await hydrateUnmarkedTargetProjectIssues(
+    seed,
+    listedRemote,
+    (issue) => readIssueDetails(options, listedRemote.transport, issue),
+  );
   const plan = buildPlan(seed, records, remote);
   if (options.apply) await applyPlan(seed, plan, options);
   const result = {
