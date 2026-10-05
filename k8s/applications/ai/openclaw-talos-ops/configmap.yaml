@@ -28,7 +28,7 @@ data:
         "queue": {"mode": "collect", "debounceMs": 1000, "cap": 20, "drop": "summarize"}
       },
       "session": {
-        "scope": "per-channel-peer",
+        "scope": "per-sender",
         "reset": {"mode": "daily", "atHour": 4, "idleMinutes": 60},
         "resetTriggers": ["/new", "/reset"],
         "typingIntervalSeconds": 5
