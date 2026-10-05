@@ -15,7 +15,7 @@ Canonical GitOps repository for the Smadja Kubernetes cluster.
 - Gateway API `v1.6.1`;
 - Cilium `1.20.2` with kube-proxy replacement;
 - Argo CD as the steady-state reconciler;
-- Proxmox CSI chart `0.5.12` / plugin `v0.20.0`;
+- Longhorn is the V1 application storage plane through `longhorn-fast` and `longhorn-bulk`; Proxmox CSI is compatibility/staged only;
 - cert-manager + External Secrets/Doppler;
 - CloudNativePG;
 - Authentik;
