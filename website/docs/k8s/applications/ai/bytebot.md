@@ -2,6 +2,10 @@
 title: 'Bytebot Deployment'
 ---
 
+:::warning Historical / inactive
+Bytebot is not part of the active Smadja V1 catalog. The content below describes an inherited/reference deployment and includes obsolete assumptions such as Bitwarden-based secret delivery. Do not use it as current operating guidance.
+:::
+
 Bytebot runs three Pods: the desktop VNC session, the API agent, and the Next.js UI. A Postgres StatefulSet stores agent data and a LiteLLM proxy fans out to Anthropic, OpenAI, and Gemini.
 
 ## Secrets
