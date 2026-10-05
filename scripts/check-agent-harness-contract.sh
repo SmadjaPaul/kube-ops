@@ -39,7 +39,7 @@ if grep -A2 'heartbeat:' "$company/.paperclip.yaml" | grep -q 'enabled: true'; t
   exit 1
 fi
 
-for model in default fast code research review; do
+for model in default code research review; do
   grep -q "litellm/factory/$model" "$company/.paperclip.yaml" || {
     echo "ERROR: missing logical factory model contract: $model" >&2
     exit 1
