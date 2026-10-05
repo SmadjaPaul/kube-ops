@@ -7,10 +7,12 @@ resources:
 - karakeep
 - litellm
 - opencode
-- perplexica
 - qdrant
-- vllm-embed
 - gpt-researcher
 - openclaw
 - paperclip
-- pocket-tts
+
+# Intentionally disabled from the V1 active catalog:
+# - perplexica: redundant with OpenWebUI + GPT Researcher.
+# - vllm-embed: logical factory/embedding is provided through LiteLLM.
+# - pocket-tts: local CPU TTS is too expensive on the current single-node host.
