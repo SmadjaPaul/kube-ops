@@ -8,6 +8,7 @@ resources:
   - stirling-pdf
   - renovate
   - paperless
+  - sure
 
 # Intentionally disabled from the V1 active catalog:
 # - actual-budget: superseded by Sure evaluation.
