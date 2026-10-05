@@ -15,4 +15,4 @@ spec:
     - secretKey: SECRET_KEY_BASE
       remoteRef: { key: APP_SURE_SECRET_KEY_BASE }
     - secretKey: OIDC_CLIENT_SECRET
-      remoteRef: { key: APP_SURE_OIDC_CLIENT_SECRET }
+      remoteRef: { key: APP_SURE_OAUTH_CLIENT_SECRET }
