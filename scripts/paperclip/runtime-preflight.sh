@@ -23,16 +23,10 @@ secret_has_key() {
     jq -e --arg key "$key" '.data | has($key)' >/dev/null
 }
 
-secret_key_hash() {
+secret_key_encoded() {
   local ns="$1" name="$2" key="$3"
-  local encoded
-  encoded="$(kubectl get secret -n "$ns" "$name" -o json | jq -r --arg key "$key" '.data[$key] // empty')"
-  [[ -n "$encoded" ]] || return 1
-  if command -v sha256sum >/dev/null; then
-    printf '%s' "$encoded" | base64 --decode | sha256sum | awk '{print $1}'
-  else
-    printf '%s' "$encoded" | base64 --decode | shasum -a 256 | awk '{print $1}'
-  fi
+  kubectl get secret -n "$ns" "$name" -o json |
+    jq -r --arg key "$key" '.data[$key] // empty'
 }
 
 eso_json="$(kubectl get externalsecret.external-secrets.io -n "$PAPERCLIP_NS" paperclip-runtime-secrets -o json)"
@@ -50,11 +44,11 @@ fi
 
 key_differs_from_master=unknown
 if [[ "$paperclip_key_present" == true && "$master_key_present" == true ]]; then
-  paperclip_hash="$(secret_key_hash "$PAPERCLIP_NS" paperclip-runtime-secrets LITELLM_API_KEY)"
-  master_hash="$(secret_key_hash "$LITELLM_NS" litellm-secrets LITELLM_MASTER_KEY)"
-  if [[ "$paperclip_hash" == "$master_hash" ]]; then
+  paperclip_key_encoded="$(secret_key_encoded "$PAPERCLIP_NS" paperclip-runtime-secrets LITELLM_API_KEY)"
+  master_key_encoded="$(secret_key_encoded "$LITELLM_NS" litellm-secrets LITELLM_MASTER_KEY)"
+  if [[ -n "$paperclip_key_encoded" && "$paperclip_key_encoded" == "$master_key_encoded" ]]; then
     key_differs_from_master=false
-  else
+  elif [[ -n "$paperclip_key_encoded" && -n "$master_key_encoded" ]]; then
     key_differs_from_master=true
   fi
 fi
