@@ -45,7 +45,7 @@ BookOrbit's browser redirect URI is:
 Activation order remains:
 
 1. bootstrap the first local administrator;
-2. provision `APP_BOOKORBIT_OIDC_CLIENT_SECRET` in Doppler;
+2. provision `APP_BOOKORBIT_OAUTH_CLIENT_SECRET` in Doppler;
 3. expose it to Authentik as `BOOKORBIT_CLIENT_SECRET`;
 4. load the staged Authentik blueprint;
 5. configure the Authentik issuer/client in BookOrbit's admin OIDC settings;
