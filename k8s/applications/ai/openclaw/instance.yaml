@@ -13,7 +13,7 @@ spec:
     pullPolicy: IfNotPresent
   config:
     configMapRef:
-      name: openclaw-config
+      name: openclaw-config-source
       key: openclaw.json
     mergeMode: overwrite
   workspace:
