@@ -14,11 +14,11 @@ spec:
     template:
       engineVersion: v2
       data:
-        OPENAI_API_KEYS: "{{ .litellmKey }};{{ .openclawToken }}"
+        OPENAI_API_KEYS: "{{ .litellmKey }};{{ .talosPersonalGatewayToken }}"
   data:
     - secretKey: litellmKey
       remoteRef:
         key: APP_LITELLM_MASTER_KEY
-    - secretKey: openclawToken
+    - secretKey: talosPersonalGatewayToken
       remoteRef:
-        key: APP_MOLTBOT_GATEWAY_TOKEN
+        key: APP_OPENCLAW_TALOS_PERSONAL_GATEWAY_TOKEN

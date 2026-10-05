@@ -33,7 +33,7 @@ data:
         }
       },
       "session": {
-        "scope": "per-channel-peer",
+        "scope": "per-sender",
         "reset": {
           "mode": "daily",
           "atHour": 4,
