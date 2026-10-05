@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: kiwix-data
   namespace: kiwix
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   labels:
     backup.smadja.dev/strategy: rebuildable
 spec:
