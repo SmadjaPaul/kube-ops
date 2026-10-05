@@ -17,7 +17,7 @@ The V1 intentionally has no scheduled heartbeats. Work is started explicitly/on-
 
 ## V1 boundaries
 
-- No self-merge.
+- No self-merge. R1 can still be merged by a separate release authority after independent review, QA and required CI gates pass.
 - No direct Kubernetes mutation as the normal delivery path.
 - No Paperclip Kubernetes sandbox yet.
 - No generic OIDC patch/fork; Paperclip remains internal-only until upstream generic OIDC lands.
