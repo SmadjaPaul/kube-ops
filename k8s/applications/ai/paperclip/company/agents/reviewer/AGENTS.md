@@ -1,8 +1,11 @@
 ---
 name: Reviewer
+kind: agent
+role: reviewer
 title: Independent Reviewer
 reportsTo: engineering-manager
 skills:
+  - factory-boundaries
   - independent-review
   - verification-before-handoff
 ---

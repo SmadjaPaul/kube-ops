@@ -1,8 +1,11 @@
 ---
 name: Implementation Engineer
+kind: agent
+role: engineer
 title: Senior Implementation Engineer
 reportsTo: engineering-manager
 skills:
+  - factory-boundaries
   - dag-delivery
   - verification-before-handoff
 ---

@@ -1,8 +1,11 @@
 ---
 name: QA & Release Engineer
+kind: agent
+role: qa
 title: QA and Release Engineer
 reportsTo: engineering-manager
 skills:
+  - factory-boundaries
   - acceptance-and-release
   - verification-before-handoff
 ---

@@ -484,6 +484,56 @@ model_list:
       mode: chat
       max_input_tokens: 131072
 
+  # Stable capability contracts. Consumers must use these names; only this
+  # gateway config maps them to provider/model deployments.
+  - model_name: factory/default
+    litellm_params:
+      model: minimax/MiniMax-M3
+      api_base: "https://api.minimax.io/v1"
+      api_key: "os.environ/MINIMAX_API_KEY"
+    model_info:
+      mode: chat
+
+  - model_name: factory/fast
+    litellm_params:
+      model: minimax/MiniMax-M2.7
+      api_base: "https://api.minimax.io/v1"
+      api_key: "os.environ/MINIMAX_API_KEY"
+    model_info:
+      mode: chat
+
+  - model_name: factory/code
+    litellm_params:
+      model: minimax/MiniMax-M3
+      api_base: "https://api.minimax.io/v1"
+      api_key: "os.environ/MINIMAX_API_KEY"
+    model_info:
+      mode: chat
+
+  - model_name: factory/research
+    litellm_params:
+      model: minimax/MiniMax-M3
+      api_base: "https://api.minimax.io/v1"
+      api_key: "os.environ/MINIMAX_API_KEY"
+    model_info:
+      mode: chat
+
+  - model_name: factory/review
+    litellm_params:
+      model: minimax/MiniMax-M3
+      api_base: "https://api.minimax.io/v1"
+      api_key: "os.environ/MINIMAX_API_KEY"
+    model_info:
+      mode: chat
+
+  - model_name: factory/embedding
+    litellm_params:
+      model: "openai/@cf/qwen/qwen3-embedding-0.6b"
+      api_base: "os.environ/CLOUDFLARE_WORKERS_API_BASE"
+      api_key: "os.environ/CLOUDFLARE_WORKERS_API_KEY"
+    model_info:
+      mode: embedding
+
 # LiteLLM Search API tools
 search_tools:
   - search_tool_name: tavily-search
@@ -858,6 +908,11 @@ litellm_settings:
 
 router_settings:
   routing_strategy: usage-based-routing-v2
+  fallbacks:
+    - factory/default: [minimax/MiniMax-M2.7]
+    - factory/code: [minimax/MiniMax-M2.7]
+    - factory/research: [minimax/MiniMax-M2.7]
+    - factory/review: [minimax/MiniMax-M2.7]
   enable_pre_call_checks: false
   optional_pre_call_checks: ["responses_api_deployment_check"]
   num_retries: 3

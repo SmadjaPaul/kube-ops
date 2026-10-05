@@ -1,8 +1,11 @@
 ---
 name: Engineering Manager
+kind: agent
+role: manager
 title: Engineering Manager
 reportsTo: null
 skills:
+  - factory-boundaries
   - software-factory-planning
   - dag-delivery
 ---
