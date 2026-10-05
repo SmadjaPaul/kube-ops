@@ -139,3 +139,32 @@ test("CLI-authenticated fallback fails closed for updates, blockers and labels",
     /cannot preserve labels/,
   );
 });
+
+
+test("same-title unmarked collision reports marker-only repairability", async () => {
+  const epic = seed.epics[0];
+  const expectedDescription = managedDescription(seed, epic);
+  const markerStart = expectedDescription.indexOf("<!-- paperclip-seed:v1");
+  const unmarkedDescription = expectedDescription.slice(0, markerStart).trimEnd();
+  const plan = await createPlan({
+    seed,
+    remote: {
+      projects: [{ id: "project-1", urlKey: "kube-ops" }],
+      issues: [{
+        id: "issue-unmarked",
+        identifier: "KUBE-99",
+        projectId: "project-1",
+        title: epic.title,
+        description: unmarkedDescription,
+        status: "backlog",
+        priority: "medium",
+      }],
+    },
+  });
+  assert.equal(plan.counts.CONFLICT, 1);
+  const conflict = plan.plan.find((item) => item.externalId === "KOPS-E01");
+  assert.equal(conflict?.candidates?.[0]?.managedMarkerPresent, false);
+  assert.equal(conflict?.candidates?.[0]?.structuralMatch, true);
+  assert.equal(conflict?.candidates?.[0]?.descriptionMatchExceptMarker, true);
+  assert.equal(conflict?.candidates?.[0]?.markerOnlyRepairCandidate, true);
+});
