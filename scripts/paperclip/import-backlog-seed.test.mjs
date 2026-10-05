@@ -4,6 +4,7 @@ import {
   assertCliCreateOnlyPlanSupported,
   cliCreateArgs,
   createPlan,
+  hydrateUnmarkedTargetProjectIssues,
   managedDescription,
   markerFor,
   markerFromDescription,
@@ -163,6 +164,91 @@ test("same-title unmarked collision reports marker-only repairability", async ()
   });
   assert.equal(plan.counts.CONFLICT, 1);
   const conflict = plan.plan.find((item) => item.externalId === "KOPS-E01");
+  assert.equal(conflict?.candidates?.[0]?.managedMarkerPresent, false);
+  assert.equal(conflict?.candidates?.[0]?.structuralMatch, true);
+  assert.equal(conflict?.candidates?.[0]?.descriptionMatchExceptMarker, true);
+  assert.equal(conflict?.candidates?.[0]?.markerOnlyRepairCandidate, true);
+});
+
+
+test("hydrates an unmarked list row before stable-marker qualification", async () => {
+  const epic = seed.epics[0];
+  const fullDescription = managedDescription(seed, epic);
+  const markerStart = fullDescription.indexOf("<!-- paperclip-seed:v1");
+  const listDescription = fullDescription.slice(0, markerStart).trimEnd();
+  const listedIssue = {
+    id: "issue-truncated",
+    identifier: "SMA-26",
+    projectId: "project-1",
+    title: epic.title,
+    description: listDescription,
+    status: "backlog",
+    priority: "medium",
+  };
+  let reads = 0;
+  const remote = await hydrateUnmarkedTargetProjectIssues(
+    seed,
+    {
+      projects: [{ id: "project-1", urlKey: "kube-ops" }],
+      issues: [listedIssue],
+      labels: [],
+      transport: "official-cli",
+    },
+    async (issue) => {
+      reads += 1;
+      assert.equal(issue.id, "issue-truncated");
+      return { ...listedIssue, description: fullDescription };
+    },
+  );
+
+  assert.equal(reads, 1);
+  assert.deepEqual(markerFromDescription(remote.issues[0].description), {
+    namespace: "smadja/kube-ops",
+    externalId: "KOPS-E01",
+    type: "EPIC",
+  });
+
+  const plan = await createPlan({ seed, remote });
+  const governance = plan.plan.find((item) => item.externalId === "KOPS-E01");
+  assert.equal(governance?.action, "UNCHANGED");
+  assert.equal(
+    plan.conflicts.some((item) => item.externalId === "KOPS-E01"),
+    false,
+  );
+});
+
+test("full issue hydration preserves a genuine unmarked collision", async () => {
+  const epic = seed.epics[0];
+  const fullDescription = managedDescription(seed, epic);
+  const markerStart = fullDescription.indexOf("<!-- paperclip-seed:v1");
+  const unmarkedDescription = fullDescription.slice(0, markerStart).trimEnd();
+  const listedIssue = {
+    id: "issue-really-unmarked",
+    identifier: "SMA-27",
+    projectId: "project-1",
+    title: epic.title,
+    description: unmarkedDescription.slice(0, 12),
+    status: "backlog",
+    priority: "medium",
+  };
+
+  const remote = await hydrateUnmarkedTargetProjectIssues(
+    seed,
+    {
+      projects: [{ id: "project-1", urlKey: "kube-ops" }],
+      issues: [listedIssue],
+      labels: [],
+      transport: "official-cli",
+    },
+    async () => ({
+      ...listedIssue,
+      description: unmarkedDescription,
+    }),
+  );
+
+  const plan = await createPlan({ seed, remote });
+  const conflict = plan.plan.find((item) => item.externalId === "KOPS-E01");
+  assert.equal(conflict?.action, "CONFLICT");
   assert.equal(conflict?.candidates?.[0]?.managedMarkerPresent, false);
   assert.equal(conflict?.candidates?.[0]?.structuralMatch, true);
   assert.equal(conflict?.candidates?.[0]?.descriptionMatchExceptMarker, true);
