@@ -1,5 +1,5 @@
-schema: paperclip/backlog-seed/v1
-seedVersion: 1
+schema: paperclip/backlog-seed/v2
+seedVersion: 2
 project:
   name: kube-ops
   slug: kube-ops
@@ -190,3 +190,27 @@ initialTodoIssues:
     parentExternalId: KOPS-E01
     description: Human review of challenge state, preview output and collision
       handling before any live import is considered.
+backlogIssues:
+  - externalId: LLM-010
+    type: EXECUTE
+    priority: P1
+    title: "Remove remaining LiteLLM master-key consumer: Perplexica"
+    status: backlog
+    parentExternalId: KOPS-E08
+    source: observed-perplexica-master-key-consumer
+    description: >-
+      Replace Perplexica's APP_LITELLM_MASTER_KEY consumer with a dedicated,
+      least-privilege LiteLLM virtual key. Credential provisioning remains a
+      separately approved R2 action.
+    acceptanceCriteria:
+      - Perplexica consumes only the dedicated/scoped LiteLLM virtual key.
+      - No non-LiteLLM workload references APP_LITELLM_MASTER_KEY.
+      - ESO reports Ready for the replacement secret.
+      - A positive logical model request succeeds.
+      - An unauthorized direct physical-model request is rejected.
+      - Rollback to the previous mapping is documented and reversible.
+      - The master key remains restricted to LiteLLM administration/self-use.
+    nonGoals:
+      - Create or rotate credentials in R1.
+      - Modify Doppler directly.
+      - Execute R2 or run smoke tests.

@@ -14,7 +14,8 @@ Argo CD or Kubernetes.
 - `RECONCILIATION-REPORT.md` records what was checked without reading or
   changing the live Paperclip backlog.
 
-The seed contains 17 planning epics and 10 initial `todo` issues. The issue
+The seed contains 17 planning epics, 10 initial `todo` issues and one deferred
+`backlog` issue (`LLM-010`). The issue
 types are intentionally explicit: `EPIC`, `EXECUTE`, `DISCOVER`, `DECIDE` and
 `HUMAN`. The epics are planning containers, not product commitments inferred
 from Kubernetes resources. Product intent remains a human decision.
