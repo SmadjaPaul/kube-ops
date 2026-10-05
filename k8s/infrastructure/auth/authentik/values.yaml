@@ -47,21 +47,10 @@ global:
     - secretRef:
         name: authentik-blueprint-vikunja
     - secretRef:
-        name: authentik-blueprint-messages
-    - secretRef:
         name: authentik-blueprint-paperless
         optional: true
     - secretRef:
-        name: authentik-blueprint-actual
-        optional: true
-    - secretRef:
-        name: authentik-blueprint-metabase
-        optional: true
-    - secretRef:
         name: authentik-blueprint-ntfy
-        optional: true
-    - secretRef:
-        name: authentik-blueprint-dawarich
         optional: true
     - secretRef:
         name: authentik-blueprint-romm
@@ -213,7 +202,7 @@ server:
 worker:
   enabled: true
   deploymentAnnotations:
-    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-messages,authentik-blueprint-paperless,authentik-blueprint-actual,authentik-blueprint-metabase,authentik-blueprint-ntfy,authentik-blueprint-dawarich"
+    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-paperless,authentik-blueprint-ntfy,authentik-blueprint-romm"
     configmap.reloader.stakater.com/auto: "true"
   # Force one desired-state rollout so the already-merged blueprint reload
   # wiring is applied to the existing worker pod. Subsequent ConfigMap changes
