@@ -31,6 +31,7 @@ configMapGenerator:
       - ./blueprints/apps-paperless.yaml
       - ./blueprints/apps-ntfy.yaml
       - ./blueprints/apps-stirling-pdf.yaml
+      - ./blueprints/apps-sure.yaml
       - ./blueprints/apps-searxng.yaml
       # Retired app blueprints (Actual Budget, Dawarich, Metabase, Messages)
       # intentionally remain in Git history but are no longer loaded into the
