@@ -71,6 +71,15 @@ spec:
       volumeMounts:
         - name: data
           mountPath: /home/openclaw/.openclaw
+        - name: data
+          mountPath: /home/openclaw/.local
+          subPath: .local
+        - name: data
+          mountPath: /home/openclaw/.cache
+          subPath: .cache
+        - name: data
+          mountPath: /home/openclaw/.config
+          subPath: .config
         - name: tmp
           mountPath: /tmp
   gateway:
