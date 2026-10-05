@@ -63,6 +63,7 @@ spec:
       args:
         - >-
           set -eu;
+          openclaw doctor --fix;
           openclaw approvals allowlist add --agent default /usr/bin/git;
           openclaw approvals allowlist add --agent default /usr/local/bin/kubectl
       env:
