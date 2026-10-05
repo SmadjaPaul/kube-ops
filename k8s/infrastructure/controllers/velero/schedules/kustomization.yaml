@@ -33,6 +33,7 @@ resources:
   - daily-mealie.yaml
   - daily-ntfy.yaml
   - daily-paperless.yaml
+  - daily-sure.yaml
   - daily-stirling-pdf.yaml
   - daily-twenty.yaml
   - daily-vikunja.yaml
