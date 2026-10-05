@@ -54,3 +54,14 @@ Activation order remains:
 
 The staged blueprint does not by itself configure BookOrbit's internal OIDC
 provider record; that is intentionally deferred until bootstrap has succeeded.
+
+
+## Network gate
+
+The staged Cilium policy allows only DNS, the BookOrbit PostgreSQL cluster, and
+`auth.smadja.dev:443` for OIDC discovery/token exchange.
+
+Metadata providers, indexers and download-client egress are intentionally not
+opened yet. Qualify the exact runtime destinations first, then add bounded
+service/FQDN rules before enabling those features. Do not solve this by granting
+unrestricted Internet egress to BookOrbit.
