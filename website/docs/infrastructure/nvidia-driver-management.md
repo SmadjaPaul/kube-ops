@@ -8,6 +8,10 @@ This document explains the process of managing NVIDIA drivers within the Talos K
 
 ## Overview of NVIDIA Driver Management in Talos
 
+:::warning Deferred / no active GPU in V1
+The current single-node V1 has no GPU worker and does not run the NVIDIA GPU stack. This page is retained for future expansion/reference only. Do not treat the described NFD/NVIDIA components as part of the active cluster without first re-qualifying the hardware and Talos image contract.
+:::
+
 - **Kernel Version Dependency:** NVIDIA kernel modules (`nvidia.ko`, `nvidia_uvm`, `nvidia_drm`, `nvidia_modeset`) are tightly coupled with the Linux kernel version they were compiled against.
 - **Talos Kernel Channels:** Talos offers "production" and "LTS" kernel channels. It's crucial to use NVIDIA extensions built for the *currently running* Talos kernel version (e.g., Linux 6.8 for Talos 1.10.3 production kernel).
 - **Extension Tags:** NVIDIA extensions are distributed with specific tags (e.g., `siderolabs/nonfree-kmod-nvidia-production:535.247.01-v1.10.3`) that indicate compatibility with a particular Talos version and kernel channel.
