@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  assertCliCreateOnlyPlanSupported,
+  cliCreateArgs,
   createPlan,
   managedDescription,
   markerFor,
@@ -78,4 +80,51 @@ test("unmarked same-project title is not silently duplicated", async () => {
     remote: { projects: [{ id: "project-1", urlKey: "kube-ops" }], issues: [{ id: "issue-1", projectId: "project-1", title: "Governance", description: "legacy", status: "backlog" }] },
   });
   assert.equal(plan.counts.CONFLICT, 1);
+});
+
+
+test("CLI-authenticated fallback is create-only and never assigns work", async () => {
+  const plan = await createPlan({
+    seed,
+    remote: { projects: [{ id: "project-1", urlKey: "kube-ops" }], issues: [] },
+  });
+  assert.doesNotThrow(() => assertCliCreateOnlyPlanSupported(plan));
+  const args = cliCreateArgs(
+    { apiBase: "https://paperclip.example.test", companyId: "company-1" },
+    { ...plan.plan[1].payload, parentId: "issue-parent" },
+  );
+  assert.ok(args.includes("--parent-id"));
+  assert.ok(args.includes("issue-parent"));
+  assert.ok(!args.includes("--assignee-agent-id"));
+  assert.ok(!args.includes("--api-key"));
+});
+
+test("CLI-authenticated fallback fails closed for updates, blockers and labels", async () => {
+  const base = await createPlan({
+    seed,
+    remote: { projects: [{ id: "project-1", urlKey: "kube-ops" }], issues: [] },
+  });
+  assert.throws(
+    () => assertCliCreateOnlyPlanSupported({
+      ...base,
+      counts: { ...base.counts, CREATE: base.counts.CREATE - 1, UPDATE: 1 },
+    }),
+    /CREATE-only/,
+  );
+  assert.throws(
+    () => assertCliCreateOnlyPlanSupported({
+      ...base,
+      plan: [{ ...base.plan[0], blockedByExternalIds: ["KOPS-E01"] }],
+      counts: { CREATE: 1, UPDATE: 0, UNCHANGED: 0, CONFLICT: 0 },
+    }),
+    /cannot preserve blockers/,
+  );
+  assert.throws(
+    () => assertCliCreateOnlyPlanSupported({
+      ...base,
+      plan: [{ ...base.plan[0], payload: { ...base.plan[0].payload, labelIds: ["label-1"] } }],
+      counts: { CREATE: 1, UPDATE: 0, UNCHANGED: 0, CONFLICT: 0 },
+    }),
+    /cannot preserve labels/,
+  );
 });
