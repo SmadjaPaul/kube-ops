@@ -2,6 +2,10 @@
 title: 'HeadlessX Deployment Notes'
 ---
 
+:::warning Historical / inactive
+HeadlessX is not part of the active Smadja V1 catalog. This page is retained only as inherited/reference material and contains stale hostnames and secret-management assumptions. Do not deploy or troubleshoot V1 from this guide.
+:::
+
 This service runs the modular HeadlessX browserless API behind the internal gateway. The manifests live in
 `k8s/applications/web/headlessx` and stay aligned with the original docker-compose configuration.
 
