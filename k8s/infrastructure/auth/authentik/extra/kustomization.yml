@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - secrets.yml
   - smtp-externalsecret.yaml
+  - talos-bluegreen-externalsecret.yaml
 
 generatorOptions:
   disableNameSuffixHash: false
@@ -45,5 +46,6 @@ configMapGenerator:
       - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml
       - ./blueprints/oauth-scopes.yaml
       - ./blueprints/outposts.yaml    # Human users enroll through short-lived Authentik invitations; no human
-    # password or invitation token is stored in Git/Doppler. notifications.yaml
-    # stays excluded until its optional Slack webhook exists.
+      # password or invitation token is stored in Git/Doppler. notifications.yaml
+      # stays excluded until its optional Slack webhook exists.
+      - ./blueprints/apps-talos-bluegreen.yaml
