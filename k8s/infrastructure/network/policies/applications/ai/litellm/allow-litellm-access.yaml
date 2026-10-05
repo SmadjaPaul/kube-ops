@@ -144,6 +144,7 @@ spec:
     - matchName: "api.openai.com"
     - matchName: "api.cloudflare.com"
     - matchName: "gateway.ai.cloudflare.com"
+    - matchName: "api.minimax.io"
     - matchPattern: "*.openai.azure.com"
     - matchName: "auth.smadja.dev"
     - matchName: "raw.githubusercontent.com"
