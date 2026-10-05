@@ -8,6 +8,9 @@ Argo CD or Kubernetes.
 ## Contents
 
 - `backlog-seed.yaml` is the canonical declarative payload.
+- `scripts/paperclip/import-backlog-seed.mjs` is the dry-run-first adapter for
+  Paperclip's supported issue API; `paperclipai company import` does not parse
+  this custom seed schema.
 - `BACKLOG.md` is the human-readable index and preserves the existing
   OpenClaw backup follow-up seed.
 - `IMPORT-PLAN.md` describes the preview, collision and human-approval gates.
