@@ -22,7 +22,7 @@ There is no local MinIO/TrueNAS tier and no Backblaze B2 tier.
 
 ## Why Kopia instead of CSI snapshots
 
-Proxmox CSI is used for Kubernetes block storage, but V1 does not grant broad Proxmox snapshot privileges merely for backup. Velero filesystem backup remains storage-class agnostic and streams filesystem data to S3 through Kopia.
+Longhorn is the V1 Kubernetes application storage plane. Velero filesystem backup remains storage-class agnostic and streams filesystem data to S3 through Kopia, while CNPG databases use Barman/WAL archiving. Proxmox CSI is compatibility/staged only and is not the normal V1 application storage path.
 
 This keeps the desired state close to upstream while avoiding:
 
