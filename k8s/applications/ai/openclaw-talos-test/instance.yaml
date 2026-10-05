@@ -40,7 +40,7 @@ spec:
   storage:
     persistence:
       enabled: true
-      storageClass: longhorn-fast
+      storageClass: longhorn-bulk
       size: 10Gi
       accessModes: [ReadWriteOnce]
   resources:
