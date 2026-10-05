@@ -334,19 +334,10 @@ async function readIssueDetails(options, transport, issue) {
   return runCliJson(["issue", "get", id, ...common]);
 }
 
-async function hydrateUnmarkedTargetProjectIssues(
-  seed,
-  remote,
-  readIssue = async (issue) =>
-    readIssueDetails(
-      {
-        apiBase: API_BASE_DEFAULT,
-        companyId: COMPANY_ID_DEFAULT,
-      },
-      remote.transport,
-      issue,
-    ),
-) {
+async function hydrateUnmarkedTargetProjectIssues(seed, remote, readIssue) {
+  if (typeof readIssue !== "function") {
+    fail("Full Paperclip issue reader is required for collision hydration");
+  }
   const targetProject = remote.projects.find(
     (project) => projectSlug(project) === seed.project.slug,
   );
