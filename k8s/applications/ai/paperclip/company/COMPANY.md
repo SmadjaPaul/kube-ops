@@ -21,7 +21,7 @@ A deliberately small engineering company inspired by Paperclip's **Superpowers D
 2. **Researcher** handles focused external/repository research without changing production state.
 3. **Implementation Engineer** works only on unblocked implementation leaves, using isolated branches/worktrees and producing tests plus evidence.
 4. **Reviewer** performs an independent spec/code/security review and sends actionable changes back to implementation when needed.
-5. **QA & Release Engineer** runs final acceptance checks, creates or updates the pull request, and reports runtime evidence. It does not self-merge in V1.
+5. **QA & Release Engineer** runs final acceptance checks, creates or updates the pull request, and reports runtime evidence. It does not self-merge. A separate release authority may merge an R1 change only after independent review, QA and required CI gates pass.
 
 ## Authority
 
