@@ -7,7 +7,7 @@ Activation gates:
 
 1. Provision Doppler keys without printing values:
    - `APP_SURE_SECRET_KEY_BASE`
-   - `APP_SURE_OIDC_CLIENT_SECRET`
+   - `APP_SURE_OAUTH_CLIENT_SECRET`
 2. Add an Authentik OIDC client:
    - client id: `sure`
    - issuer: `https://auth.smadja.dev/application/o/sure/`
