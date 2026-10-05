@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   assertCliCreateOnlyPlanSupported,
   cliCreateArgs,
+  cliIssueGetArgs,
   createPlan,
   hydrateUnmarkedTargetProjectIssues,
   managedDescription,
@@ -253,4 +254,27 @@ test("full issue hydration preserves a genuine unmarked collision", async () => 
   assert.equal(conflict?.candidates?.[0]?.structuralMatch, true);
   assert.equal(conflict?.candidates?.[0]?.descriptionMatchExceptMarker, true);
   assert.equal(conflict?.candidates?.[0]?.markerOnlyRepairCandidate, true);
+});
+
+
+test("CLI issue get hydration does not pass unsupported company-id", () => {
+  const args = cliIssueGetArgs(
+    {
+      apiBase: "https://paperclip.example.test",
+      companyId: "company-should-not-be-forwarded",
+    },
+    {
+      id: "82f68a3e-21e6-448b-ad99-8c8115a44c2e",
+      identifier: "SMA-26",
+    },
+  );
+  assert.deepEqual(args, [
+    "issue",
+    "get",
+    "82f68a3e-21e6-448b-ad99-8c8115a44c2e",
+    "--api-base",
+    "https://paperclip.example.test",
+    "--json",
+  ]);
+  assert.equal(args.includes("--company-id"), false);
 });
