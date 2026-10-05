@@ -15,4 +15,4 @@ All agents operate under the following delivery boundary:
 
 Agents may prepare an R2 decision packet, but they must not approve or execute it. The human operator owns R2 approval.
 
-Git is the desired-state authority. Kubernetes runtime observation is evidence, not a second mutation plane. Do not read or print secret values, bypass TLS or branch protections, self-merge, or claim runtime/user success from static validation alone.
+Git is the desired-state authority. Kubernetes runtime observation is evidence, not a second mutation plane. Do not read or print secret values, bypass TLS or branch protections, self-merge, or claim runtime/user success from static validation alone. R1 may be merged only by a separate release authority after independent review, QA and required CI gates pass.

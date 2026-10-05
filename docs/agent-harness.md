@@ -82,3 +82,25 @@ Every persisted application volume must be one of:
 The rebuildable label is reserved for caches or reproducible downloaded datasets.
 It is currently appropriate for the Kiwix library cache and vLLM model cache.
 User-generated data must never use this exemption.
+
+## Multi-agent capability model
+
+The repository keeps shared operational knowledge in `.agents/skills/*`.
+Paperclip role files define delegation and authority, not a second copy of
+Kubernetes/GitOps runbooks. The canonical role matrix is
+`k8s/applications/ai/paperclip/company/CAPABILITIES.md`.
+
+A prompt is not a security boundary. The target enforcement layers are:
+
+- GitHub App permissions for branch/PR write access;
+- Kubernetes RBAC for read-only runtime evidence;
+- LiteLLM virtual keys for logical-model/budget access;
+- network policy for reachable services;
+- Paperclip connector/tool policies only after the installed Paperclip version
+  has been qualified to support them.
+
+The Implementation Engineer may write a feature branch and open a pull request,
+but it never self-merges. R1 release can still be autonomous when a separate
+release authority sees independent review, QA and required CI gates pass. R2
+always remains human-only.
+
