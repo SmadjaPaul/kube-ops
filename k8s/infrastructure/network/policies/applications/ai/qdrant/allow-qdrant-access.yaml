@@ -37,6 +37,12 @@ spec:
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: openclaw
     - matchLabels:
+        k8s:io.kubernetes.pod.namespace: openclaw-talos-personal
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: openclaw-talos-ops
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: openclaw-talos-test
+    - matchLabels:
         k8s:io.kubernetes.pod.namespace: karakeep
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: litellm

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openclaw-talos-ops
+  labels:
+    app.kubernetes.io/name: openclaw
+    app.kubernetes.io/instance: talos-ops
+    app.kubernetes.io/part-of: ai
+    openclaw.rocks/trust-domain: talos-ops
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

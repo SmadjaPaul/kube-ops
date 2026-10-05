@@ -10,6 +10,9 @@ resources:
 - qdrant
 - gpt-researcher
 - openclaw
+- openclaw-talos-personal
+- openclaw-talos-ops
+- openclaw-talos-test
 - paperclip
 
 # Intentionally disabled from the V1 active catalog:

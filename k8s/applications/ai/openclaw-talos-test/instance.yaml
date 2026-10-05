@@ -1,0 +1,116 @@
+apiVersion: openclaw.rocks/v1alpha1
+kind: OpenClawInstance
+metadata:
+  name: talos-test
+  namespace: openclaw-talos-test
+  labels:
+    app.kubernetes.io/name: openclaw
+    app.kubernetes.io/instance: talos-test
+    openclaw.rocks/trust-domain: talos-test
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  suspended: false
+  image:
+    repository: ghcr.io/smadjapaul/openclaw-ops
+    tag: "2026.9.6"
+    pullPolicy: IfNotPresent
+  config:
+    configMapRef:
+      name: talos-test-config-source
+      key: openclaw.json
+    mergeMode: overwrite
+  workspace:
+    initialDirectories:
+      - repos
+    initialFiles:
+      AGENTS.md: |-
+        # Talos Test Cell
+
+        This is a disposable isolated test-user cell with its own PVC and memory.
+        Do not use Kubernetes, GitHub, factory credentials, or another OpenClaw cell.
+        Never print or commit secrets. Durable changes belong in Git and require explicit approval when R2.
+  envFrom:
+    - secretRef:
+        name: app-openclaw-talos-test-litellm-api-key
+  initContainers:
+    - name: configure-test-cell
+      image: ghcr.io/smadjapaul/openclaw-ops:2026.9.6
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      command: ["sh", "-c"]
+      args: ["set -eu; openclaw doctor --fix"]
+      env:
+        - name: HOME
+          value: /home/openclaw
+      volumeMounts:
+        - name: data
+          mountPath: /home/openclaw/.openclaw
+        - name: data
+          mountPath: /home/openclaw/.local
+          subPath: .local
+        - name: data
+          mountPath: /home/openclaw/.cache
+          subPath: .cache
+        - name: data
+          mountPath: /home/openclaw/.config
+          subPath: .config
+        - name: tmp
+          mountPath: /tmp
+  gateway:
+    existingSecret: app-openclaw-talos-test-gateway-token
+    controlUiOrigins:
+      - https://talos-test-next.smadja.dev
+  storage:
+    persistence:
+      enabled: true
+      storageClass: longhorn-fast
+      size: 10Gi
+      accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  security:
+    networkPolicy:
+      enabled: false
+    rbac:
+      createServiceAccount: false
+      serviceAccountName: talos-test
+  selfConfigure:
+    enabled: false
+  networking:
+    service:
+      type: ClusterIP
+    httpRoute:
+      enabled: true
+      parentRefs:
+        - name: internal
+          namespace: gateway
+          sectionName: https-subdomains
+      hostnames:
+        - talos-test-next.smadja.dev
+      port: 18789
+  probes:
+    diskReadiness:
+      enabled: true
+      minFree: 128Mi
+  observability:
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        interval: 30s
+    logging:
+      level: info
+      format: json
