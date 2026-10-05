@@ -46,17 +46,28 @@ test("empty Paperclip state produces a non-empty create-only plan", async () => 
   assert.deepEqual(plan.counts, { CREATE: 3, UPDATE: 0, UNCHANGED: 0, CONFLICT: 0 });
 });
 
+test("normalizes omitted seed priority to Paperclip's medium default", async () => {
+  const plan = await createPlan({
+    seed,
+    remote: { projects: [{ id: "project-1", urlKey: "kube-ops" }], issues: [] },
+  });
+  const governance = plan.plan.find((item) => item.externalId === "KOPS-E01");
+  const perplexica = plan.plan.find((item) => item.externalId === "LLM-010");
+  assert.equal(governance?.payload.priority, "medium");
+  assert.equal(perplexica?.payload.priority, "high");
+});
+
 test("matching marker is unchanged and changed content is update", async () => {
   const epic = seed.epics[0];
   const description = managedDescription(seed, epic);
   const unchanged = await createPlan({
     seed,
-    remote: { projects: [{ id: "project-1", urlKey: "kube-ops" }], issues: [{ id: "issue-1", projectId: "project-1", title: epic.title, description, status: "backlog" }] },
+    remote: { projects: [{ id: "project-1", urlKey: "kube-ops" }], issues: [{ id: "issue-1", projectId: "project-1", title: epic.title, description, status: "backlog", priority: "medium" }] },
   });
   assert.equal(unchanged.counts.UNCHANGED, 1);
   const changed = await createPlan({
     seed,
-    remote: { projects: [{ id: "project-1", urlKey: "kube-ops" }], issues: [{ id: "issue-1", projectId: "project-1", title: "old", description, status: "backlog" }] },
+    remote: { projects: [{ id: "project-1", urlKey: "kube-ops" }], issues: [{ id: "issue-1", projectId: "project-1", title: "old", description, status: "backlog", priority: "medium" }] },
   });
   assert.equal(changed.counts.UPDATE, 1);
 });
