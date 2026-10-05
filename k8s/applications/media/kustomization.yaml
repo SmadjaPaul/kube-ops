@@ -11,7 +11,9 @@ resources:
 - jellyseerr
 - jellyseerr-secrets.yaml
 - sabnzbd
-- whisperasr
 - immich
 - audiobookshelf
 - audiobookrequest
+
+# Intentionally disabled from V1:
+# - whisperasr: local CPU transcription is too expensive on the current single-node host.
