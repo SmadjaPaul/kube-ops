@@ -92,6 +92,38 @@ fi
 
 IFS=$'\t' read -r paperclip_pod paperclip_container <<<"$pod_row"
 
+LITELLM_DIAGNOSTIC_PY="${LITELLM_DIAGNOSTIC_PY:-$(dirname "$0")/litellm-vkey-diagnostic.py}"
+[[ -f "$LITELLM_DIAGNOSTIC_PY" ]] || {
+  echo "ERROR: LiteLLM vkey diagnostic helper missing: $LITELLM_DIAGNOSTIC_PY" >&2
+  exit 4
+}
+
+litellm_pod_row="$(
+  kubectl get pods -n "$LITELLM_NS" -l app=litellm -o json |
+    jq -r '
+      [
+        .items[]
+        | select(.status.phase == "Running")
+        | . as $pod
+        | $pod.spec.containers[]
+        | [$pod.metadata.name, .name]
+      ][0] // empty
+      | @tsv
+    '
+)"
+
+if [[ -z "$litellm_pod_row" ]]; then
+  echo "ERROR: no running LiteLLM container found" >&2
+  exit 4
+fi
+
+IFS=$'\t' read -r litellm_pod litellm_container <<<"$litellm_pod_row"
+
+vkey_diagnostic="$(
+  printf '%s' "$paperclip_key_encoded" |
+    kubectl exec -i -n "$LITELLM_NS" "$litellm_pod" -c "$litellm_container" --       python -c "$(cat "$LITELLM_DIAGNOSTIC_PY")"
+)"
+
 env_probe="$(
   kubectl exec -n "$PAPERCLIP_NS" "$paperclip_pod" -c "$paperclip_container" -- node -e '
     const fs = require("node:fs");
@@ -115,6 +147,17 @@ pod_master_present="$(jq -r '.litellmMasterKeyPresent' <<<"$env_probe")"
 pod_git_present="$(jq -r '.gitPresent' <<<"$env_probe")"
 pod_gh_present="$(jq -r '.ghPresent' <<<"$env_probe")"
 pod_opencode_present="$(jq -r '.opencodePresent' <<<"$env_probe")"
+
+vkey_key_info_http="$(jq -r '.keyInfoHttp // "N/A"' <<<"$vkey_diagnostic")"
+vkey_allowed_models="$(jq -c '.keyModels // []' <<<"$vkey_diagnostic")"
+vkey_scope_exact="$(jq -r '.keyModelsExactExpected // false' <<<"$vkey_diagnostic")"
+vkey_alias_present="$(jq -r '.keyAliasPresent // false' <<<"$vkey_diagnostic")"
+vkey_team_present="$(jq -r '.teamIdPresent // false' <<<"$vkey_diagnostic")"
+vkey_user_present="$(jq -r '.userIdPresent // false' <<<"$vkey_diagnostic")"
+master_models_http="$(jq -r '.masterModelsHttp // "N/A"' <<<"$vkey_diagnostic")"
+master_expected_models="$(jq -r '.masterExpectedModelsPresent // false' <<<"$vkey_diagnostic")"
+master_completion_http="$(jq -r '.masterCompletionHttp // "N/A"' <<<"$vkey_diagnostic")"
+master_completion_pass="$(jq -r '.masterCompletionPass // false' <<<"$vkey_diagnostic")"
 
 models_probe="$(
   kubectl exec -n "$PAPERCLIP_NS" "$paperclip_pod" -c "$paperclip_container" --     env LITELLM_BASE_URL="$LITELLM_BASE_URL" node -e '
@@ -217,6 +260,16 @@ printf 'PAPERCLIP_LITELLM_MASTER_ENV_PRESENT=%s\n' "$(yesno "$pod_master_present
 printf 'PAPERCLIP_GIT_BIN_PRESENT=%s\n' "$(yesno "$pod_git_present")"
 printf 'PAPERCLIP_GH_BIN_PRESENT=%s\n' "$(yesno "$pod_gh_present")"
 printf 'PAPERCLIP_OPENCODE_BIN_PRESENT=%s\n' "$(yesno "$pod_opencode_present")"
+printf 'PAPERCLIP_VKEY_KEY_INFO_HTTP=%s\n' "$vkey_key_info_http"
+printf 'PAPERCLIP_VKEY_ALLOWED_MODELS=%s\n' "$vkey_allowed_models"
+printf 'PAPERCLIP_VKEY_SCOPE_EXACT=%s\n' "$(yesno "$vkey_scope_exact")"
+printf 'PAPERCLIP_VKEY_ALIAS_PRESENT=%s\n' "$(yesno "$vkey_alias_present")"
+printf 'PAPERCLIP_VKEY_TEAM_PRESENT=%s\n' "$(yesno "$vkey_team_present")"
+printf 'PAPERCLIP_VKEY_USER_PRESENT=%s\n' "$(yesno "$vkey_user_present")"
+printf 'LITELLM_MASTER_MODELS_HTTP=%s\n' "$master_models_http"
+printf 'LITELLM_MASTER_EXPECTED_MODELS_PRESENT=%s\n' "$(yesno "$master_expected_models")"
+printf 'LITELLM_MASTER_FACTORY_DEFAULT_HTTP=%s\n' "$master_completion_http"
+printf 'LITELLM_MASTER_FACTORY_DEFAULT_REQUEST=%s\n' "$([[ "$master_completion_pass" == true ]] && echo PASS || echo FAIL)"
 printf 'PAPERCLIP_VKEY_MODELS_HTTP=%s\n' "$models_http"
 printf 'PAPERCLIP_VKEY_VISIBLE_MODEL_COUNT=%s\n' "$models_visible_count"
 printf 'PAPERCLIP_VKEY_EXPECTED_MODELS_PRESENT=%s\n' "$(yesno "$models_expected")"
@@ -234,6 +287,11 @@ runtime_ready=PASS
 [[ "$pod_git_present" == true ]] || runtime_ready=FAIL
 [[ "$pod_gh_present" == true ]] || runtime_ready=FAIL
 [[ "$pod_opencode_present" == true ]] || runtime_ready=FAIL
+[[ "$vkey_key_info_http" == 200 ]] || runtime_ready=FAIL
+[[ "$vkey_scope_exact" == true ]] || runtime_ready=FAIL
+[[ "$master_models_http" == 200 ]] || runtime_ready=FAIL
+[[ "$master_expected_models" == true ]] || runtime_ready=FAIL
+[[ "$master_completion_pass" == true ]] || runtime_ready=FAIL
 [[ "$models_http" == 200 ]] || runtime_ready=FAIL
 [[ "$models_expected" == true ]] || runtime_ready=FAIL
 if [[ "$RUN_MODEL_REQUEST" == "yes" && "$model_request" != PASS ]]; then
