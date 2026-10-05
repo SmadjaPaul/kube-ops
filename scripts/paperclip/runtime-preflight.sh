@@ -94,14 +94,27 @@ IFS=$'\t' read -r paperclip_pod paperclip_container <<<"$pod_row"
 
 env_probe="$(
   kubectl exec -n "$PAPERCLIP_NS" "$paperclip_pod" -c "$paperclip_container" -- node -e '
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const dirs = String(process.env.PATH || "")
+      .split(":")
+      .filter(Boolean);
+    const present = (name) =>
+      dirs.some((dir) => fs.existsSync(path.join(dir, name)));
     process.stdout.write(JSON.stringify({
       litellmApiKeyPresent: Boolean(process.env.LITELLM_API_KEY),
-      litellmMasterKeyPresent: Boolean(process.env.LITELLM_MASTER_KEY)
+      litellmMasterKeyPresent: Boolean(process.env.LITELLM_MASTER_KEY),
+      gitPresent: present("git"),
+      ghPresent: present("gh"),
+      opencodePresent: present("opencode")
     }))
   '
 )"
 pod_vkey_present="$(jq -r '.litellmApiKeyPresent' <<<"$env_probe")"
 pod_master_present="$(jq -r '.litellmMasterKeyPresent' <<<"$env_probe")"
+pod_git_present="$(jq -r '.gitPresent' <<<"$env_probe")"
+pod_gh_present="$(jq -r '.ghPresent' <<<"$env_probe")"
+pod_opencode_present="$(jq -r '.opencodePresent' <<<"$env_probe")"
 
 models_probe="$(
   kubectl exec -n "$PAPERCLIP_NS" "$paperclip_pod" -c "$paperclip_container" --     env LITELLM_BASE_URL="$LITELLM_BASE_URL" node -e '
@@ -201,6 +214,9 @@ printf 'PAPERCLIP_LITELLM_BASE_URL_OK=%s\n' "$(yesno "$base_url_ok")"
 printf 'PAPERCLIP_POD=%s\n' "$paperclip_pod"
 printf 'PAPERCLIP_LITELLM_ENV_PRESENT=%s\n' "$(yesno "$pod_vkey_present")"
 printf 'PAPERCLIP_LITELLM_MASTER_ENV_PRESENT=%s\n' "$(yesno "$pod_master_present")"
+printf 'PAPERCLIP_GIT_BIN_PRESENT=%s\n' "$(yesno "$pod_git_present")"
+printf 'PAPERCLIP_GH_BIN_PRESENT=%s\n' "$(yesno "$pod_gh_present")"
+printf 'PAPERCLIP_OPENCODE_BIN_PRESENT=%s\n' "$(yesno "$pod_opencode_present")"
 printf 'PAPERCLIP_VKEY_MODELS_HTTP=%s\n' "$models_http"
 printf 'PAPERCLIP_VKEY_VISIBLE_MODEL_COUNT=%s\n' "$models_visible_count"
 printf 'PAPERCLIP_VKEY_EXPECTED_MODELS_PRESENT=%s\n' "$(yesno "$models_expected")"
@@ -215,6 +231,9 @@ runtime_ready=PASS
 [[ "$base_url_ok" == true ]] || runtime_ready=FAIL
 [[ "$pod_vkey_present" == true ]] || runtime_ready=FAIL
 [[ "$pod_master_present" == false ]] || runtime_ready=FAIL
+[[ "$pod_git_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_gh_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_opencode_present" == true ]] || runtime_ready=FAIL
 [[ "$models_http" == 200 ]] || runtime_ready=FAIL
 [[ "$models_expected" == true ]] || runtime_ready=FAIL
 if [[ "$RUN_MODEL_REQUEST" == "yes" && "$model_request" != PASS ]]; then
