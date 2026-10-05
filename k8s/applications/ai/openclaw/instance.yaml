@@ -8,7 +8,7 @@ metadata:
 spec:
   suspended: false
   image:
-    repository: ghcr.io/openclaw/openclaw
+    repository: ghcr.io/smadjapaul/openclaw-ops
     tag: "2026.9.6"
     pullPolicy: IfNotPresent
   config:
@@ -46,6 +46,33 @@ spec:
   envFrom:
     - secretRef:
         name: app-openclaw-litellm-api-key
+  initContainers:
+    - name: configure-exec-allowlist
+      image: ghcr.io/smadjapaul/openclaw-ops:2026.9.6
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      command: ["sh", "-c"]
+      args:
+        - >-
+          set -eu;
+          openclaw approvals allowlist add --agent default /usr/bin/git;
+          openclaw approvals allowlist add --agent default /usr/local/bin/kubectl
+      env:
+        - name: HOME
+          value: /home/openclaw
+      volumeMounts:
+        - name: data
+          mountPath: /home/openclaw/.openclaw
+        - name: tmp
+          mountPath: /tmp
   gateway:
     existingSecret: app-openclaw-gateway-token
     controlUiOrigins:
@@ -68,7 +95,8 @@ spec:
     networkPolicy:
       enabled: false
     rbac:
-      createServiceAccount: true
+      createServiceAccount: false
+      serviceAccountName: talos-ops
   selfConfigure:
     enabled: false
   networking:
