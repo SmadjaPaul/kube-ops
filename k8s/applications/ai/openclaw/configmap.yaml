@@ -154,7 +154,7 @@ data:
       "memory": {
         "search": {
           "provider": "openai-compatible",
-          "model": "qwen3-embedding-0.6b",
+          "model": "factory/embedding",
           "remote": {
             "baseUrl": "http://litellm.litellm.svc.cluster.local:80/v1/",
             "apiKey": "${LITELLM_API_KEY}"
