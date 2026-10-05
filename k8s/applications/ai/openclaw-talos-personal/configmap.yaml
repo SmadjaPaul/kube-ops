@@ -13,7 +13,7 @@ data:
       "logging": {
         "level": "info",
         "consoleLevel": "info",
-        "consoleStyle": "pretty",
+        "consoleStyle": "pretty"
       },
       "messages": {
         "responsePrefix": ">",
@@ -36,7 +36,7 @@ data:
           "atHour": 4,
           "idleMinutes": 60
         },
-        "resetTriggers": ["/new", "/reset"],
+        "resetTriggers": ["/new", "/reset"]
       },
       "channels": {
         "slack": {"enabled": false}
