@@ -1,5 +1,9 @@
 # GPU support in Kubernetes
 
+:::warning Deferred / no active GPU in V1
+The current single-node V1 has no GPU worker and does not run the NVIDIA GPU stack. This page is retained for future expansion/reference only. Do not treat the described NFD/NVIDIA components as part of the active cluster without first re-qualifying the hardware and Talos image contract.
+:::
+
 This document outlines how GPU support is enabled in the Kubernetes cluster, covering Node Feature Discovery (NFD) and the NVIDIA GPU Operator.
 
 ## Node Feature Discovery (NFD)
