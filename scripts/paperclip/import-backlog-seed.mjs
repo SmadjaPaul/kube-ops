@@ -379,6 +379,43 @@ function comparablePayload(payload) {
   };
 }
 
+function descriptionWithoutManagedMarker(description) {
+  const value = String(description || "");
+  const start = value.indexOf(MARKER_START);
+  return (start >= 0 ? value.slice(0, start) : value).trimEnd();
+}
+
+function collisionCandidateSummary(issue, desiredPayload) {
+  const actual = comparableIssue(issue);
+  const expected = comparablePayload(desiredPayload);
+  const actualWithoutDescription = { ...actual };
+  const expectedWithoutDescription = { ...expected };
+  delete actualWithoutDescription.description;
+  delete expectedWithoutDescription.description;
+  const structuralMatch = sameJson(actualWithoutDescription, expectedWithoutDescription);
+  const descriptionMatchExceptMarker =
+    descriptionWithoutManagedMarker(actual.description) ===
+    descriptionWithoutManagedMarker(expected.description);
+  return {
+    issueId: issueId(issue),
+    identifier: issue.identifier || null,
+    status: issue.status,
+    priority: issue.priority || null,
+    parentId: issue.parentId || null,
+    assigned: isAssigned(issue),
+    protectedStatus: PROTECTED_STATUSES.has(issue.status),
+    managedMarkerPresent: Boolean(markerFromDescription(issue.description)),
+    structuralMatch,
+    descriptionMatchExceptMarker,
+    markerOnlyRepairCandidate:
+      structuralMatch &&
+      descriptionMatchExceptMarker &&
+      !isAssigned(issue) &&
+      !PROTECTED_STATUSES.has(issue.status) &&
+      !markerFromDescription(issue.description),
+  };
+}
+
 function sameJson(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
@@ -429,8 +466,17 @@ function buildPlan(seed, records, remote) {
       plan.push(item); conflicts.push(item); continue;
     }
     const existing = matches[0]?.issue;
-    if (!existing && (titleMap.get(record.title) || []).length > 0) {
-      const item = { externalId: record.externalId, action: "CONFLICT", reason: "same-project title exists without stable marker" };
+    const sameTitleMatches = titleMap.get(record.title) || [];
+    if (!existing && sameTitleMatches.length > 0) {
+      const parentId = record.parentExternalId ? issueId(existingById.get(record.parentExternalId)) : null;
+      const blockerIds = blockedByExternalIds(record).map((id) => issueId(existingById.get(id))).filter(Boolean);
+      const desired = desiredRecord(seed, record, projectId, parentId, blockerIds, []);
+      const item = {
+        externalId: record.externalId,
+        action: "CONFLICT",
+        reason: "same-project title exists without stable marker",
+        candidates: sameTitleMatches.map((issue) => collisionCandidateSummary(issue, desired)),
+      };
       plan.push(item); conflicts.push(item); continue;
     }
     const labelIds = resolveLabelIds(record);
@@ -515,6 +561,8 @@ export async function createPlan({ seed, remote }) {
 export {
   assertCliCreateOnlyPlanSupported,
   cliCreateArgs,
+  collisionCandidateSummary,
+  descriptionWithoutManagedMarker,
   markerFor,
   markerFromDescription,
   managedDescription,
