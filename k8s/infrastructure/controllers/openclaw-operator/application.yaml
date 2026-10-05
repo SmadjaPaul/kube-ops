@@ -18,6 +18,9 @@ spec:
           keep: true
         watchNamespaces:
           - openclaw
+          - openclaw-talos-personal
+          - openclaw-talos-ops
+          - openclaw-talos-test
         rbac:
           create: true
           aggregateToDefaultRoles: false

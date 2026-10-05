@@ -11,6 +11,9 @@ spec:
   template:
     includedNamespaces:
       - openclaw
+      - openclaw-talos-personal
+      - openclaw-talos-ops
+      - openclaw-talos-test
     orLabelSelectors:
       - matchLabels:
           app.kubernetes.io/name: openclaw
