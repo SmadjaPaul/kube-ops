@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const COMPANY_ID_DEFAULT = "0c4afe5a-c044-4b3d-86a2-14a64a063d18";
 const API_BASE_DEFAULT = "https://paperclip.smadja.dev";
@@ -287,7 +288,10 @@ export {
   repoNamesFromGrant,
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
+) {
   main().catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
