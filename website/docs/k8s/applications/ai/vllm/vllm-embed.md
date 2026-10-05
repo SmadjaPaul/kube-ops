@@ -2,6 +2,10 @@
 title: 'vLLM CPU Embedding Server'
 ---
 
+:::warning Superseded for V1
+This document is a historical optimization note. The active V1 no longer runs the local CPU vLLM embedding workload. Consumers use the logical `factory/embedding` contract through LiteLLM, and the physical provider can change without consumer configuration changes. Do not re-enable vLLM from this page without a new capacity decision.
+:::
+
 We run an OpenAI-compatible embedding server to power our RAG (Retrieval-Augmented Generation) pipelines. This service sits behind **LiteLLM**, which routes traffic between our local models and external providers.
 
 While we use GPUs for generation (LLMs), we run embeddings on **CPU**. Why? Because the `Qwen/Qwen3-Embedding-0.6B` model is small enough that wasting a GPU on it feels like overkill, and we have plenty of spare CPU cycles in our cluster.
