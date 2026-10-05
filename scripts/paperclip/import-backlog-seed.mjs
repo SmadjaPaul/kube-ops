@@ -45,7 +45,8 @@ function usage() {
   return `Usage: import-backlog-seed.mjs [options]
 
 Default mode is read-only dry-run. Apply requires both --apply and
---confirm-apply plus PAPERCLIP_API_KEY.
+--confirm-apply. CREATE-only plans without blockers/labels can reuse the
+authenticated Paperclip CLI session; broader mutations require PAPERCLIP_API_KEY.
 
 Options:
   --seed <path>       Canonical backlog-seed.yaml
@@ -229,6 +230,66 @@ function runCliJson(args) {
   }
 }
 
+function cliCreateArgs(options, payload) {
+  const args = [
+    "issue", "create",
+    "--api-base", options.apiBase,
+    "--company-id", options.companyId,
+    "--title", payload.title,
+    "--description", payload.description,
+    "--status", payload.status,
+    "--project-id", payload.projectId,
+    "--json",
+  ];
+  if (payload.priority) args.push("--priority", payload.priority);
+  if (payload.parentId) args.push("--parent-id", payload.parentId);
+  return args;
+}
+
+function assertCliCreateOnlyPlanSupported(plan) {
+  if (plan.conflicts.length) fail("Refusing to apply a plan containing CONFLICT records");
+  if (plan.counts.UPDATE !== 0) {
+    fail("CLI-authenticated apply only supports CREATE-only plans; PAPERCLIP_API_KEY is required for UPDATE");
+  }
+  for (const item of plan.plan.filter((candidate) => candidate.action === "CREATE")) {
+    if (item.blockedByExternalIds?.length) {
+      fail(`CLI-authenticated apply cannot preserve blockers for ${item.externalId}; PAPERCLIP_API_KEY is required`);
+    }
+    if (item.payload?.labelIds?.length) {
+      fail(`CLI-authenticated apply cannot preserve labels for ${item.externalId}; PAPERCLIP_API_KEY is required`);
+    }
+  }
+}
+
+async function applyCreateOnlyPlanViaCli(plan, options) {
+  assertCliCreateOnlyPlanSupported(plan);
+  const resolvedIds = new Map(
+    plan.plan
+      .filter((item) => item.existingIssueId)
+      .map((item) => [item.externalId, item.existingIssueId]),
+  );
+  let remaining = plan.plan.filter((item) => item.action === "CREATE");
+  while (remaining.length) {
+    const ready = remaining.filter((item) => !item.parentExternalId || resolvedIds.has(item.parentExternalId));
+    if (!ready.length) fail("Unable to resolve parent order without inventing hierarchy");
+    for (const item of ready) {
+      const parentId = item.parentExternalId ? resolvedIds.get(item.parentExternalId) : null;
+      const payload = { ...item.payload, ...(parentId ? { parentId } : {}) };
+      const response = runCliJson(cliCreateArgs(options, payload));
+      const createdId = issueId(response);
+      if (!createdId) fail(`Paperclip CLI create did not return an issue id for ${item.externalId}`);
+      resolvedIds.set(item.externalId, createdId);
+    }
+    remaining = remaining.filter((item) => !ready.includes(item));
+  }
+  return {
+    applied: true,
+    created: plan.counts.CREATE,
+    updated: 0,
+    transport: "official-cli",
+  };
+}
+
 async function apiRequest(apiBase, apiKey, method, route, body) {
   const response = await fetch(`${apiBase.replace(/\/$/, "")}${route}`, {
     method,
@@ -409,9 +470,11 @@ function buildPlan(seed, records, remote) {
 }
 
 async function applyPlan(seed, plan, options) {
-  if (!process.env.PAPERCLIP_API_KEY) fail("--apply requires PAPERCLIP_API_KEY; dry-run remains CLI-session compatible");
   if (!options.confirmApply) fail("--apply requires --confirm-apply");
   if (plan.conflicts.length) fail("Refusing to apply a plan containing CONFLICT records");
+  if (!process.env.PAPERCLIP_API_KEY) {
+    return applyCreateOnlyPlanViaCli(plan, options);
+  }
   const resolvedIds = new Map(
     plan.plan
       .filter((item) => item.existingIssueId)
@@ -449,7 +512,15 @@ export async function createPlan({ seed, remote }) {
   return buildPlan(seed, records, remote);
 }
 
-export { markerFor, markerFromDescription, managedDescription, validateSeed, recordsFromSeed };
+export {
+  assertCliCreateOnlyPlanSupported,
+  cliCreateArgs,
+  markerFor,
+  markerFromDescription,
+  managedDescription,
+  validateSeed,
+  recordsFromSeed,
+};
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
