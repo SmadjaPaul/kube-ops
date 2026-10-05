@@ -64,13 +64,13 @@ spec:
               value: 'INFO'
             # Environment variables take precedence over config.json for FastAPI requests
             - name: EMBEDDING
-              value: 'openai:azure/text-embedding-3-small'
+              value: 'openai:factory/embedding'
             - name: FAST_LLM
-              value: 'openai:azure/gpt-5.1-codex-mini'
+              value: 'openai:factory/fast'
             - name: SMART_LLM
-              value: 'openai:azure/gpt-5.4'
+              value: 'openai:factory/research'
             - name: STRATEGIC_LLM
-              value: 'openai:azure/gpt-5.4'
+              value: 'openai:factory/research'
             # Deep Research Configuration - Controls research depth and breadth
             - name: DEEP_RESEARCH_BREADTH
               value: '4'

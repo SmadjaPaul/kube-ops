@@ -62,9 +62,9 @@ data:
         "defaults": {
           "userTimezone": "Europe/Paris",
           "model": {
-            "primary": "litellm/minimax/MiniMax-M3",
+            "primary": "litellm/factory/code",
             "fallbacks": [
-              "litellm/minimax/MiniMax-M2.7"
+              "litellm/factory/fast"
             ]
           },
           "thinkingDefault": "low",
@@ -73,11 +73,11 @@ data:
           "timeoutSeconds": 600,
           "typingIntervalSeconds": 5,
           "maxConcurrent": 2,
-          "utilityModel": "litellm/minimax/MiniMax-M2.7",
+          "utilityModel": "litellm/factory/fast",
           "modelPolicy": {
             "allow": [
-              "litellm/minimax/MiniMax-M3",
-              "litellm/minimax/MiniMax-M2.7"
+              "litellm/factory/code",
+              "litellm/factory/fast"
             ]
           }
         },
@@ -129,12 +129,12 @@ data:
             "apiKey": "${LITELLM_API_KEY}",
             "models": [
               {
-                "id": "minimax/MiniMax-M3",
-                "name": "MiniMax M3"
+                "id": "factory/code",
+                "name": "Factory code"
               },
               {
-                "id": "minimax/MiniMax-M2.7",
-                "name": "MiniMax M2.7"
+                "id": "factory/fast",
+                "name": "Factory fast"
               }
             ]
           }

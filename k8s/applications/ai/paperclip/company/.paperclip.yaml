@@ -1,48 +1,63 @@
 schema: paperclip/v1
+schemaVersion: 7
+company:
+  requireBoardApprovalForNewAgents: true
 agents:
   engineering-manager:
-    adapter: opencode_local
-    adapterConfig:
-      model: litellm/minimax/MiniMax-M2.7
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/factory/default
     budgetMonthlyCents: 3000
-    runtimeConfig:
+    runtime:
       heartbeat:
         enabled: false
   researcher:
-    adapter: opencode_local
-    adapterConfig:
-      model: litellm/minimax/MiniMax-M2.7
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/factory/research
     budgetMonthlyCents: 1500
-    runtimeConfig:
+    runtime:
       heartbeat:
         enabled: false
   implementation-engineer:
-    adapter: opencode_local
-    adapterConfig:
-      model: litellm/minimax/MiniMax-M2.7
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/factory/code
     budgetMonthlyCents: 3000
-    runtimeConfig:
+    runtime:
       heartbeat:
         enabled: false
   reviewer:
-    adapter: opencode_local
-    adapterConfig:
-      model: litellm/minimax/MiniMax-M2.7
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/factory/review
     budgetMonthlyCents: 2000
-    runtimeConfig:
+    runtime:
       heartbeat:
         enabled: false
   qa-release-engineer:
-    adapter: opencode_local
-    adapterConfig:
-      model: litellm/minimax/MiniMax-M2.7
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/factory/review
     budgetMonthlyCents: 2000
-    runtimeConfig:
+    runtime:
       heartbeat:
         enabled: false
 
 projects:
   kube-ops:
+    executionWorkspacePolicy:
+      enabled: true
+      defaultMode: isolated_workspace
+      allowIssueOverride: false
+      workspaceStrategy:
+        type: git_worktree
+        baseRef: main
     workspaces:
       main:
         name: kube-ops
@@ -52,6 +67,13 @@ projects:
         defaultRef: main
         isPrimary: true
   homelab-infra:
+    executionWorkspacePolicy:
+      enabled: true
+      defaultMode: isolated_workspace
+      allowIssueOverride: false
+      workspaceStrategy:
+        type: git_worktree
+        baseRef: main
     workspaces:
       main:
         name: homelab-infra

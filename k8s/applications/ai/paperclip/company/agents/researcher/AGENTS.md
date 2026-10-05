@@ -1,8 +1,11 @@
 ---
 name: Researcher
+kind: agent
+role: researcher
 title: Technical Researcher
 reportsTo: engineering-manager
 skills:
+  - factory-boundaries
   - evidence-first-research
 ---
 
