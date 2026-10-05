@@ -345,7 +345,7 @@ function desiredRecord(seed, record, projectId, parentId = null, blockerIds = []
     title: record.title,
     description: managedDescription(seed, record),
     status: record.status,
-    ...(record.priority ? { priority: paperclipPriority(record.priority) } : {}),
+    priority: record.priority ? paperclipPriority(record.priority) : "medium",
     ...(parentId ? { parentId } : {}),
     ...(blockerIds.length ? { blockedByIssueIds: blockerIds } : {}),
     ...(labelIds.length ? { labelIds } : {}),
