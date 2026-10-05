@@ -311,6 +311,19 @@ async function apiRequest(apiBase, apiKey, method, route, body) {
   return payload;
 }
 
+function cliIssueGetArgs(options, issue) {
+  const id = issueId(issue);
+  if (!id) fail("Cannot hydrate Paperclip issue without an id");
+  return [
+    "issue",
+    "get",
+    id,
+    "--api-base",
+    options.apiBase,
+    "--json",
+  ];
+}
+
 async function readIssueDetails(options, transport, issue) {
   const id = issueId(issue);
   if (!id) fail("Cannot hydrate Paperclip issue without an id");
@@ -324,14 +337,7 @@ async function readIssueDetails(options, transport, issue) {
     );
   }
 
-  const common = [
-    "--api-base",
-    options.apiBase,
-    "--company-id",
-    options.companyId,
-    "--json",
-  ];
-  return runCliJson(["issue", "get", id, ...common]);
+  return runCliJson(cliIssueGetArgs(options, issue));
 }
 
 async function hydrateUnmarkedTargetProjectIssues(seed, remote, readIssue) {
@@ -611,6 +617,7 @@ export async function createPlan({ seed, remote }) {
 export {
   assertCliCreateOnlyPlanSupported,
   cliCreateArgs,
+  cliIssueGetArgs,
   collisionCandidateSummary,
   descriptionWithoutManagedMarker,
   hydrateUnmarkedTargetProjectIssues,
