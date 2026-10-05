@@ -34,12 +34,9 @@ done
 grep -q 'defaultMode: isolated_workspace' "$company/.paperclip.yaml"
 grep -q 'type: git_worktree' "$company/.paperclip.yaml"
 
-if grep -q 'heartbeat:[[:space:]]*$' "$company/.paperclip.yaml"; then
-  enabled_count="$(grep -c 'enabled: true' "$company/.paperclip.yaml" || true)"
-  if [[ "$enabled_count" -ne 0 ]]; then
-    echo "ERROR: Paperclip V1 heartbeats must remain disabled until smoke qualification" >&2
-    exit 1
-  fi
+if grep -A2 'heartbeat:' "$company/.paperclip.yaml" | grep -q 'enabled: true'; then
+  echo "ERROR: Paperclip V1 heartbeats must remain disabled until smoke qualification" >&2
+  exit 1
 fi
 
 for model in default fast code research review; do
