@@ -33,37 +33,6 @@ spec:
   envFrom:
     - secretRef:
         name: app-openclaw-talos-test-litellm-api-key
-  initContainers:
-    - name: configure-test-cell
-      image: ghcr.io/smadjapaul/openclaw-ops:2026.9.6
-      imagePullPolicy: IfNotPresent
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop: [ALL]
-        readOnlyRootFilesystem: true
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-      command: ["sh", "-c"]
-      args: ["set -eu; openclaw doctor --fix"]
-      env:
-        - name: HOME
-          value: /home/openclaw
-      volumeMounts:
-        - name: data
-          mountPath: /home/openclaw/.openclaw
-        - name: data
-          mountPath: /home/openclaw/.local
-          subPath: .local
-        - name: data
-          mountPath: /home/openclaw/.cache
-          subPath: .cache
-        - name: data
-          mountPath: /home/openclaw/.config
-          subPath: .config
-        - name: tmp
-          mountPath: /tmp
   gateway:
     existingSecret: app-openclaw-talos-test-gateway-token
     controlUiOrigins:

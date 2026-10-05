@@ -51,7 +51,6 @@ spec:
       args:
         - >-
           set -eu;
-          openclaw doctor --fix;
           openclaw approvals allowlist add --agent talos-ops /usr/local/bin/kubectl
       env:
         - name: HOME
