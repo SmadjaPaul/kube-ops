@@ -26,7 +26,7 @@ spec:
         - name: web
           image: ghcr.io/we-promise/sure:v0.7.5-hotfix.2
           imagePullPolicy: IfNotPresent
-          env: &sure-env
+          env:
             - { name: SELF_HOSTED, value: "true" }
             - { name: APP_DOMAIN, value: "sure.smadja.dev" }
             - { name: ONBOARDING_STATE, value: "open" }
@@ -109,7 +109,32 @@ spec:
             - |
               until curl -fsS http://sure:80/up >/dev/null; do sleep 5; done
               exec bundle exec sidekiq -C config/sidekiq.yml
-          env: *sure-env
+          env:
+            - { name: SELF_HOSTED, value: "true" }
+            - { name: APP_DOMAIN, value: "sure.smadja.dev" }
+            - { name: ONBOARDING_STATE, value: "open" }
+            - { name: AUTH_LOCAL_LOGIN_ENABLED, value: "false" }
+            - { name: AUTH_LOCAL_ADMIN_OVERRIDE_ENABLED, value: "false" }
+            - { name: AUTH_JIT_MODE, value: "create_and_link" }
+            - { name: OIDC_BUTTON_LABEL, value: "Authentik" }
+            - { name: OIDC_CLIENT_ID, value: "sure" }
+            - { name: OIDC_ISSUER, value: "https://auth.smadja.dev/application/o/sure/" }
+            - { name: OIDC_REDIRECT_URI, value: "https://sure.smadja.dev/auth/openid_connect/callback" }
+            - { name: REDIS_URL, value: "redis://sure-redis:6379/1" }
+            - name: SECRET_KEY_BASE
+              valueFrom: { secretKeyRef: { name: sure-runtime, key: SECRET_KEY_BASE } }
+            - name: OIDC_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: sure-runtime, key: OIDC_CLIENT_SECRET } }
+            - name: DB_HOST
+              valueFrom: { secretKeyRef: { name: sure-postgresql-app, key: host } }
+            - name: DB_PORT
+              valueFrom: { secretKeyRef: { name: sure-postgresql-app, key: port } }
+            - name: POSTGRES_DB
+              valueFrom: { secretKeyRef: { name: sure-postgresql-app, key: dbname } }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: sure-postgresql-app, key: user } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: sure-postgresql-app, key: password } }
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: { drop: ["ALL"] }
