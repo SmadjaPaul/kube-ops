@@ -14,10 +14,8 @@ data:
         "level": "info",
         "consoleLevel": "info",
         "consoleStyle": "pretty",
-        "redactSensitive": "tools"
       },
       "messages": {
-        "messagePrefix": "[talos-ops]",
         "responsePrefix": ">",
         "ackReaction": "👀",
         "ackReactionScope": "group-mentions",
@@ -25,13 +23,12 @@ data:
           "mentionPatterns": ["@talos-ops", "talos-ops"],
           "historyLimit": 50
         },
-        "queue": {"mode": "collect", "debounceMs": 1000, "cap": 20, "drop": "summarize"}
+        "queue": {"mode": "collect", "cap": 20, "drop": "summarize"}
       },
       "session": {
         "scope": "per-sender",
         "reset": {"mode": "daily", "atHour": 4, "idleMinutes": 60},
         "resetTriggers": ["/new", "/reset"],
-        "typingIntervalSeconds": 5
       },
       "channels": {"slack": {"enabled": false}},
       "plugins": {"entries": {"whatsapp": {"enabled": false}}},
@@ -48,7 +45,7 @@ data:
           "utilityModel": "litellm/factory/fast",
           "modelPolicy": {"allow": ["litellm/factory/code", "litellm/factory/fast"]}
         },
-        "list": [{"id": "talos-ops", "default": true, "identity": {"name": "Talos Ops", "theme": "Read-only GitOps observer", "emoji": "🔭"}}]
+        "entries": {"talos-ops": {"default": true, "identity": {"name": "Talos Ops", "theme": "Read-only GitOps observer", "emoji": "🔭"}}}
       },
       "tools": {
         "allow": ["read", "memory_search", "memory_get", "exec", "process"],

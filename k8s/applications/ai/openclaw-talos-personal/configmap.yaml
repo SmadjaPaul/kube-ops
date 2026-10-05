@@ -14,10 +14,8 @@ data:
         "level": "info",
         "consoleLevel": "info",
         "consoleStyle": "pretty",
-        "redactSensitive": "tools"
       },
       "messages": {
-        "messagePrefix": "[talos-personal]",
         "responsePrefix": ">",
         "ackReaction": "👀",
         "ackReactionScope": "group-mentions",
@@ -27,7 +25,6 @@ data:
         },
         "queue": {
           "mode": "collect",
-          "debounceMs": 1000,
           "cap": 20,
           "drop": "summarize"
         }
@@ -40,7 +37,6 @@ data:
           "idleMinutes": 60
         },
         "resetTriggers": ["/new", "/reset"],
-        "typingIntervalSeconds": 5
       },
       "channels": {
         "slack": {"enabled": false}
@@ -68,9 +64,8 @@ data:
             "allow": ["litellm/factory/code", "litellm/factory/fast"]
           }
         },
-        "list": [
-          {
-            "id": "talos-personal",
+        "entries": {
+          "talos-personal": {
             "default": true,
             "identity": {
               "name": "Talos Personal",
@@ -78,7 +73,7 @@ data:
               "emoji": "🛡️"
             }
           }
-        ]
+        }
       },
       "tools": {
         "allow": ["read", "write", "edit", "apply_patch", "memory_search", "memory_get"],
