@@ -1,5 +1,5 @@
 schema: paperclip/backlog-seed/v2
-seedVersion: 2
+seedVersion: 3
 project:
   name: kube-ops
   slug: kube-ops
@@ -127,20 +127,6 @@ initialTodoIssues:
     nonGoals:
       - Delete, replace, scale or restore over the legacy PVC.
       - Expose the restore publicly or inject production credentials.
-  - externalId: KOPS-I002
-    type: DISCOVER
-    title: Document Paperclip company import compatibility
-    status: todo
-    parentExternalId: KOPS-E14
-    description: Confirm the supported import format and version assumptions
-      for the canonical company package without performing an import.
-  - externalId: KOPS-I003
-    type: EXECUTE
-    title: Add static validation for the backlog seed
-    status: todo
-    parentExternalId: KOPS-E03
-    description: Add a bounded check for unique external IDs, allowed types,
-      epic references and the ten-issue initial todo limit.
   - externalId: KOPS-I004
     type: DISCOVER
     title: Audit Argo ownership boundaries for factory changes
@@ -191,6 +177,32 @@ initialTodoIssues:
     description: Human review of challenge state, preview output and collision
       handling before any live import is considered.
 backlogIssues:
+  - externalId: KOPS-I011
+    type: DISCOVER
+    priority: P1
+    title: Qualify first-party Paperclip Kubernetes sandbox execution
+    status: backlog
+    parentExternalId: KOPS-E14
+    source: upstream-kubernetes-sandbox-qualification
+    description: >-
+      Qualify the Paperclip Operator's native spec.plugins and
+      spec.adapters.execution path with one disposable agent before migrating
+      production factory roles away from opencode_local.
+    acceptanceCriteria:
+      - The candidate uses the upstream @paperclipai/plugin-kubernetes path and no custom Job controller.
+      - One disposable run creates the expected isolated Kubernetes workload.
+      - No production credential is mounted into the disposable sandbox.
+      - The coding sandbox has no Kubernetes write authority.
+      - Required Paperclip/LiteLLM/GitHub connectivity is explicit and unrelated egress is denied.
+      - ResourceQuota and LimitRange bounds are present and observed.
+      - Workspace lifecycle and deterministic cleanup are proven.
+      - Existing Paperclip control-plane health and Company state do not regress.
+      - Upstream runtime-image or plugin defects are recorded as blockers instead of patched live.
+    nonGoals:
+      - Migrate all five Company agents in the first test.
+      - Patch plugin files or runtime images inside a running Paperclip pod.
+      - Add another sandbox platform or custom controller.
+
   - externalId: LLM-010
     type: EXECUTE
     priority: P1

@@ -60,5 +60,14 @@ jobs:
       - name: Validate V1 desired state and backup coverage
         run: npm run check
 
+      - name: Validate Paperclip backlog importer
+        run: node --test scripts/paperclip/import-backlog-seed.test.mjs
+
+      - name: Render Paperclip production and sandbox candidate
+        run: |
+          kustomize build k8s/applications/ai/paperclip >/tmp/paperclip-production.yaml
+          ! grep -qE 'plugin-kubernetes|mode: kubernetes|backend: sandbox-cr' /tmp/paperclip-production.yaml
+          kustomize build k8s/applications/ai/paperclip/poc/kubernetes-execution >/tmp/paperclip-sandbox-candidate.yaml
+
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh

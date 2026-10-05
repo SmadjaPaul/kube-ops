@@ -1,17 +1,18 @@
 # Agentic platform V1 — runtime acceptance runbook
 
-This runbook is intentionally operational and evidence-driven. The goal is not to prove the design is perfect; it is to make the first naive implementation real, observe what breaks, and fix only demonstrated failures.
+This runbook is evidence-driven and current-state oriented. Durable changes go
+through Git -> Argo CD -> Kubernetes. Runtime state is evidence, not desired state.
 
 ## Guardrails
 
-- Work only from PR #110 and its branch.
-- Do not merge until the acceptance matrix below passes or every remaining failure is documented.
-- Do not recreate the cluster.
-- Do not bypass TLS with `-k`.
-- Do not put secret values in Git, logs, comments, or reports.
-- Do not mutate Kubernetes imperatively except for reversible diagnostics or an explicitly documented temporary probe.
-- Durable fixes go through Git -> Argo CD -> Kubernetes.
-- Preserve the local-first baseline: `auth.smadja.dev`, `chat.smadja.dev`, and `hassio.smadja.dev` must continue to resolve privately to `10.0.20.192`.
+- Refresh `main`, the active PR head and live Argo state before acting.
+- Do not bypass TLS.
+- Do not print secret values.
+- Do not repair Kubernetes imperatively.
+- Preserve the local-first baseline.
+- R2 remains explicit and transaction-scoped.
+- Do not combine Paperclip backlog import, first DOC smoke and Kubernetes
+  sandbox migration in one change.
 
 ## Phase 0 — preflight
 
@@ -22,72 +23,59 @@ TEST_HEAD_SHA=
 ARGO_BASELINE=
 NODE_READY=
 LOCAL_FIRST_BASELINE=
+PAPERCLIP_INSTANCE_VERSION=
+PAPERCLIP_OPERATOR_VERSION=
 ```
 
-Verify required Doppler keys exist without reading their values:
-
-- `APP_PAPERCLIP_BETTER_AUTH_SECRET`
-- `APP_PAPERCLIP_SECRETS_MASTER_KEY`
-- `APP_PAPERCLIP_LITELLM_API_KEY`
-- existing OpenClaw keys already used by the cluster
-
-If a required Paperclip key is missing, stop only that workstream and report the exact key name. Do not invent placeholder secrets.
+Verify required Paperclip ExternalSecrets are Ready without reading values.
 
 ## Phase 1 — static/render validation
 
-From the PR branch:
-
-- run the repository's canonical validation command(s);
-- render the affected Kustomize trees;
-- verify both operator Applications render;
-- verify `Instance` and `OpenClawInstance` resources are present;
-- verify no plaintext `kind: Secret` was introduced for application credentials;
-- verify no new public Paperclip route exists.
+- run repository validation;
+- render the production Paperclip Kustomization;
+- verify the `Instance` is present;
+- verify no plaintext application credential was introduced;
+- verify no unintended public route;
+- if testing the non-live sandbox candidate, render
+  `poc/kubernetes-execution` independently and prove it is not referenced by
+  the production Kustomization.
 
 Record:
 
 ```
 STATIC_VALIDATION=
 PAPERCLIP_RENDER=
-OPENCLAW_RENDER=
+SANDBOX_CANDIDATE_RENDER=
 SECRET_SCAN=
 PUBLIC_EXPOSURE_CHECK=
 ```
 
-## Phase 2 — operator reconciliation
-
-After the branch is intentionally deployed through Argo:
+## Phase 2 — Paperclip control plane
 
 Verify:
 
-- `paperclip-operator` Application Healthy/Synced;
-- `openclaw-operator` Application Healthy/Synced;
-- CRDs Established;
-- operator pods Ready;
-- no CrashLoopBackOff;
-- no webhook/CRD admission errors.
+- Paperclip Operator Healthy/Synced;
+- `Instance/paperclip` Ready;
+- Service endpoints healthy;
+- HTTPRoute Accepted/Programmed on `Gateway/internal`;
+- private DNS resolves to the internal VIP;
+- normal TLS succeeds;
+- authenticated UI/API works.
 
 Record:
 
 ```
 PAPERCLIP_OPERATOR=
-OPENCLAW_OPERATOR=
-PAPERCLIP_CRD=
-OPENCLAW_CRD=
+PAPERCLIP_INSTANCE=
+PAPERCLIP_ROUTE=
+PAPERCLIP_PRIVATE_DNS=
+PAPERCLIP_TLS=
 ```
 
-## Phase 3 — Paperclip dependencies
+## Phase 3 — persistence and backup
 
-Verify:
-
-- ExternalSecret is `SecretSynced=True`;
-- CNPG cluster `paperclip-postgresql` is Ready;
-- app secret `paperclip-postgresql-app` exists;
-- ObjectStore is accepted;
-- WAL archiving reaches Hetzner successfully;
-- one manual/base backup can complete successfully.
-
-Do not print DATABASE_URL or S3 credentials.
+Verify ESO, CNPG, WAL/base backup coverage and Paperclip PVC backup coverage.
+Do not treat backup existence as restore proof.
 
 Record:
 
@@ -96,95 +84,69 @@ PAPERCLIP_ESO=
 PAPERCLIP_CNPG=
 PAPERCLIP_WAL=
 PAPERCLIP_BASE_BACKUP=
+PAPERCLIP_PVC_BACKUP=
 ```
 
-## Phase 4 — Paperclip runtime
+## Phase 4 — model path
 
-Verify:
-
-- Paperclip `Instance` reaches Ready;
-- Service has healthy endpoints;
-- operator-created HTTPRoute is Accepted and Programmed on `Gateway/internal`;
-- LAN DNS resolves `paperclip.smadja.dev` to `10.0.20.192`;
-- public resolver does not resolve it to the internal VIP;
-- normal TLS succeeds without bypass;
-- UI/login endpoint responds.
-
-Then perform the supported first-admin board-claim flow with the human only if interactive login is required.
-
-Record:
+Perform one minimal model request and prove:
 
 ```
-PAPERCLIP_INSTANCE=
-PAPERCLIP_ROUTE=
-PAPERCLIP_PRIVATE_DNS=
-PAPERCLIP_TLS=
-PAPERCLIP_BOARD_CLAIM=
+Paperclip/OpenCode -> litellm.litellm.svc -> logical factory model
 ```
 
-## Phase 5 — model path
-
-From Paperclip/OpenCode, perform one minimal model request through LiteLLM.
-
-Prove from runtime evidence that the request path is:
-
-```
-Paperclip/OpenCode -> litellm.litellm.svc -> configured upstream model
-```
-
-The agent must not contain provider master credentials.
+No workload may require the LiteLLM master key.
 
 Record:
 
 ```
 PAPERCLIP_LITELLM=
-MODEL_USED=
-DIRECT_PROVIDER_SECRET_PRESENT=no
+LOGICAL_MODEL=
+MASTER_KEY_CONSUMER_PRESENT=
 ```
 
-## Phase 6 — company import
+## Phase 5 — Company and backlog bootstrap
 
-Import `k8s/applications/ai/paperclip/company` with Paperclip's supported company import flow.
+Company import is a distinct operation from backlog import.
 
-Verify these five roles exist:
+For Company:
 
-- Engineering Manager
-- Researcher
-- Implementation Engineer
-- Reviewer
-- QA & Release Engineer
+- exactly 1 Company;
+- 5 agents;
+- 2 projects;
+- 7 skills;
+- all `CAN_APPROVE_R2=false`;
+- heartbeats disabled;
+- workspaces `git_worktree`, baseRef `main`.
 
-Verify the two Git projects exist:
+For backlog:
 
-- `SmadjaPaul/kube-ops`
-- `SmadjaPaul/homelab-infra`
-
-Keep all V1 heartbeats disabled.
+- use `scripts/paperclip/import-backlog-seed.mjs`;
+- dry-run first;
+- stop on conflict or ambiguous identity;
+- live apply requires a separate bounded R2;
+- no assignment or agent execution as an import side effect.
 
 Record:
 
 ```
-COMPANY_IMPORT=
-AGENTS_5_OF_5=
-PROJECTS_2_OF_2=
-HEARTBEATS_DISABLED=
+COMPANY_READY=
+BACKLOG_DRY_RUN=
+BACKLOG_CREATE=
+BACKLOG_UPDATE=
+BACKLOG_CONFLICT=
+BACKLOG_APPLIED=
+AGENTS_STARTED_BY_IMPORT=no
 ```
 
-## Phase 7 — first real delegated task
+## Phase 6 — first DOC smoke
 
-Create one harmless task whose output is a tiny documentation-only PR.
+Use the existing `opencode_local` path for this first smoke. The purpose is to
+prove orchestration before changing execution infrastructure.
 
-The Engineering Manager must:
-
-1. create at least two child tasks;
-2. make dependencies explicit;
-3. delegate research and implementation to different agents;
-4. route the result through Reviewer;
-5. route final verification through QA & Release;
-6. open a PR;
-7. not merge it.
-
-Preferred task: improve one existing README with a clearly factual, non-production change.
+Create one harmless documentation-only task. The Manager must create a
+dependency-aware graph with at least two children and route work through
+Researcher -> Implementation -> Reviewer -> QA. Open a PR and do not merge it.
 
 Record:
 
@@ -197,91 +159,63 @@ TEST_PR_URL=
 SELF_MERGE=no
 ```
 
-## Phase 8 — OpenClaw operator migration
+## Phase 7 — Kubernetes sandbox POC
 
-Verify:
+Only after Phase 6 passes, qualify the first-party Kubernetes execution path.
+Use the non-live candidate under `poc/kubernetes-execution` as the starting
+point; refresh all upstream versions before activation.
 
-- `OpenClawInstance/openclaw` Ready;
-- the existing Doppler-backed gateway token is reused;
-- operator-created Service, HTTPRoute and ServiceMonitor exist;
-- `openclaw.smadja.dev` works through the expected Gateway path;
-- LiteLLM call succeeds;
-- Slack smoke test succeeds if Slack is currently configured;
-- workspace persistence survives one pod restart;
-- old StatefulSet-owned PVCs were not automatically deleted.
+The first POC must use one disposable agent/run and no production credential.
 
-Record:
+Prove:
 
-```
-OPENCLAW_INSTANCE=
-OPENCLAW_GATEWAY_TOKEN_REUSED=
-OPENCLAW_HTTP=
-OPENCLAW_LITELLM=
-OPENCLAW_SLACK=
-OPENCLAW_PERSISTENCE=
-LEGACY_PVCS_PRESERVED=
-```
+- upstream `@paperclipai/plugin-kubernetes` is installed;
+- sandbox backend starts successfully;
+- per-run/per-tenant workload isolation exists;
+- quota and limit range are present;
+- Cilium egress policy matches the intended allow list;
+- Paperclip callback and LiteLLM path work if explicitly enabled for the POC;
+- unrelated private/internet egress is denied;
+- sandbox has no Kubernetes write authority;
+- no secret values are logged;
+- cleanup is deterministic;
+- existing Paperclip control plane remains healthy.
 
-## Phase 9 — regression
-
-Re-run the already-proven local-first probes:
-
-- `auth.smadja.dev` -> `10.0.20.192`, TLS normal;
-- `chat.smadja.dev` -> `10.0.20.192`, TLS normal;
-- `hassio.smadja.dev` -> `10.0.20.192`, TLS normal.
-
-Verify no new unintended public route was added for Paperclip.
+Do not patch plugin files inside a running container. If a published runtime
+image/plugin defect blocks the POC, capture it as an upstream blocker.
 
 Record:
 
 ```
-AUTHENTIK_LOCAL=
-OPENWEBUI_LOCAL=
-HOME_ASSISTANT_LOCAL=
-PAPERCLIP_PUBLIC_BYPASS=
-LOCAL_FIRST_REGRESSION=
+K8S_SANDBOX_PLUGIN=
+K8S_SANDBOX_BACKEND=
+K8S_SANDBOX_ISOLATION=
+K8S_SANDBOX_QUOTA=
+K8S_SANDBOX_EGRESS=
+K8S_SANDBOX_K8S_WRITE_DENIED=
+K8S_SANDBOX_CLEANUP=
+K8S_SANDBOX_UPSTREAM_BLOCKER=
 ```
 
-## Fix loop
+## Phase 8 — role migration
 
-For every failure:
+Migrate roles only after the POC passes. Do not move all five agents at once.
 
-1. capture the smallest useful runtime evidence;
-2. identify whether the failure is desired-state, operator behavior, secret delivery, networking, storage, application config, or upstream bug;
-3. make the smallest durable Git fix on the PR branch;
-4. let Argo reconcile;
-5. rerun only the failed phase plus the final regression phase;
-6. append the evidence to the PR.
+Suggested order:
 
-Do not introduce kagent, Honcho, a new vector database, Argo Workflows, a new sandbox platform, or a new auth proxy while fixing this V1 unless a demonstrated blocker cannot be solved with the existing stack.
+1. Researcher;
+2. Reviewer;
+3. QA & Release;
+4. Implementation Engineer;
+5. Engineering Manager.
 
-## Completion matrix
+For every role, prove its actual credentials, network access and Kubernetes
+permissions match `company/CAPABILITIES.md`.
 
-The PR is ready for human review when:
+## Final regression
 
-```
-STATIC_VALIDATION=PASS
-PAPERCLIP_OPERATOR=PASS
-OPENCLAW_OPERATOR=PASS
-PAPERCLIP_CNPG=PASS
-PAPERCLIP_WAL=PASS
-PAPERCLIP_INSTANCE=PASS
-PAPERCLIP_PRIVATE_DNS=PASS
-PAPERCLIP_TLS=PASS
-PAPERCLIP_LITELLM=PASS
-COMPANY_IMPORT=PASS
-DAG_CREATED=PASS
-INDEPENDENT_REVIEW=PASS
-QA=PASS
-SELF_MERGE=no
-OPENCLAW_INSTANCE=PASS
-OPENCLAW_LITELLM=PASS
-OPENCLAW_PERSISTENCE=PASS
-AUTHENTIK_LOCAL=PASS
-OPENWEBUI_LOCAL=PASS
-HOME_ASSISTANT_LOCAL=PASS
-LOCAL_FIRST_REGRESSION=PASS
-BLOCKERS=none
-```
+Re-run private DNS/TLS/Gateway checks for Authentik, OpenWebUI, Home Assistant
+and Paperclip. Verify no unintended public route.
 
-If a field cannot pass because of an upstream defect, report the upstream issue/link, exact observed failure, workaround options, and keep the PR draft.
+A failure is fixed with the smallest causal Git change, followed by Argo
+reconciliation and re-test of the failed phase plus final regression.
