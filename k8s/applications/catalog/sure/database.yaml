@@ -1,0 +1,21 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: sure-postgresql
+  namespace: sure
+spec:
+  instances: 1
+  bootstrap:
+    initdb:
+      database: sure
+      owner: sure
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: sure-hetzner-store
+  storage:
+    size: 10Gi
+    storageClass: longhorn-fast
+  affinity:
+    enablePodAntiAffinity: false
