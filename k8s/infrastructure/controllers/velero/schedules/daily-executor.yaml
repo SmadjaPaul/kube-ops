@@ -1,0 +1,21 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-executor
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: executor
+spec:
+  schedule: "0 3 * * *"
+  template:
+    includedNamespaces:
+      - executor
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h

@@ -70,6 +70,15 @@ spec:
         - ports:
             - port: "9000"
               protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: executor
+            app.kubernetes.io/name: executor
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+            - port: "4400"
+              protocol: TCP
     - toFQDNs:
         - matchName: github.com
         - matchName: api.github.com
