@@ -42,6 +42,25 @@ Paperclip runs in `authenticated` mode at `https://paperclip.smadja.dev` and its
 
 The automatic authenticated-mode `adminUser` bootstrap is intentionally not used. Claim the instance through the supported board-claim flow.
 
+## Managed GitHub connection
+
+Paperclip `2026.916.1` already contains the upstream managed GitHub identity path; no server upgrade is required just to expose it.
+
+On a self-hosted instance, the upstream `managed` GitHub method is intentionally hidden from the advertised gallery until the instance is enrolled with the Paperclip Cloud Connector and the broker advertises the `github.code` profile. Seeing only `mcp-key` before enrollment does **not** mean that a PAT is required.
+
+The canonical V1 path is:
+
+1. keep the advanced PAT method unused;
+2. allow Paperclip server egress only to the production broker `my.paperclip.app:443` and the hosted GitHub MCP endpoint `api.githubcopilot.com:443` in addition to the existing GitHub API surfaces;
+3. complete the upstream self-host enrollment as an instance administrator;
+4. authorize the upstream GitHub App with selected repository access;
+5. install that managed connection for the Implementation Engineer (or Company when explicitly intended);
+6. prove clone/fetch, branch/push and PR creation in the separately approved DOC smoke.
+
+Self-host enrollment generates the upstream signing/sealing identity in Paperclip's persistent instance data under its owner-only secrets directory. Do not copy that identity into Doppler or replace it with a custom Kubernetes Secret unless upstream changes its storage contract. Paperclip Cloud owns the fixed OAuth callback and webhook inbox; provider credentials are sealed to the enrolled instance and persisted in Paperclip's existing encrypted secret store.
+
+Enrollment, GitHub authorization and managed-connection installation are credential/access mutations and remain explicit R2 gates. The harmless DOC smoke is a separate R2 gate.
+
 ## Execution posture
 
 There are two distinct concerns:

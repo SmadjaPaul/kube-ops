@@ -67,6 +67,7 @@ jobs:
         run: |
           node --test scripts/paperclip/github-credential-preflight.test.mjs
           node --test scripts/paperclip/managed-github-preflight.test.mjs
+          node --test scripts/paperclip/cloud-connector-preflight.test.mjs
           python3 -m py_compile scripts/paperclip/litellm-vkey-diagnostic.py
           bash -n scripts/paperclip/runtime-preflight.sh
 
