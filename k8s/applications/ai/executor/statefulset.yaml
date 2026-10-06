@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: executor
+  namespace: executor
+  labels:
+    app.kubernetes.io/name: executor
+    app.kubernetes.io/component: server
+spec:
+  serviceName: executor
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: executor
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: executor
+        app.kubernetes.io/component: server
+        backup.smadja.dev/velero: "true"
+    spec:
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: executor
+          image: ghcr.io/usefulsoftwareco/executor-selfhost:2.0.0-beta.9
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 4400
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "4400"
+            - name: BETTER_AUTH_URL
+              value: https://executor.smadja.dev
+            - name: EXECUTOR_ENVIRONMENT
+              value: self-host
+            - name: DO_NOT_TRACK
+              value: "1"
+            - name: EXECUTOR_APPS_ALLOW_PRIVATE_FETCH
+              value: "false"
+            - name: EXECUTOR_APP_WORKERS
+              value: "2"
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: motel-data
+              mountPath: /app/motel-data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+      volumes:
+        - name: motel-data
+          emptyDir:
+            sizeLimit: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: executor
+          backup.smadja.dev/velero: "true"
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: longhorn-fast
+        resources:
+          requests:
+            storage: 10Gi

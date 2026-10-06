@@ -20,6 +20,7 @@ resources:
   - daily-openwebui.yaml
   - daily-qdrant.yaml
   - daily-karakeep.yaml
+  - daily-executor.yaml
   - daily-pinepods.yaml
   - daily-mqtt.yaml
   - daily-zigbee2mqtt.yaml
