@@ -97,7 +97,7 @@ spec:
       spec:
         accessModes:
           - ReadWriteOnce
-        storageClassName: longhorn-fast
+        storageClassName: longhorn-bulk
         resources:
           requests:
             storage: 10Gi
