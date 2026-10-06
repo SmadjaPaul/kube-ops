@@ -7,8 +7,9 @@ metadata:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   image:
-    repository: ghcr.io/paperclipai/paperclip
-    tag: "2026.1001.0"
+    repository: ghcr.io/smadjapaul/paperclip
+    tag: "sha-0230372"
+    digest: "sha256:a42a93a5430a4829ca97852af8cfb637b861dd86abe70cf80b03e50a1ab0dbe7"
     pullPolicy: IfNotPresent
   deployment:
     mode: authenticated
