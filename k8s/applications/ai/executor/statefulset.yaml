@@ -69,6 +69,8 @@ spec:
               mountPath: /app/data
             - name: motel-data
               mountPath: /app/motel-data
+            - name: tmp
+              mountPath: /tmp
           readinessProbe:
             httpGet:
               path: /health
@@ -96,6 +98,9 @@ spec:
         - name: motel-data
           emptyDir:
             sizeLimit: 1Gi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 512Mi
   volumeClaimTemplates:
     - metadata:
         name: data
