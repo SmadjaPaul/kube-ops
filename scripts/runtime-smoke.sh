@@ -13,7 +13,11 @@ if [[ -n "${ARTIFACT_DIR:-}" ]]; then
   keep_artifacts=yes
 else
   artifact_dir="$(mktemp -d "${TMPDIR:-/tmp}/kube-ops-runtime-smoke.XXXXXX")"
-  trap 'rm -rf "$artifact_dir"' EXIT
+fi
+if [[ "$keep_artifacts" == no ]]; then
+  trap 'rm -rf "$artifact_dir"; kube_access_cleanup' EXIT
+else
+  trap 'kube_access_cleanup' EXIT
 fi
 mkdir -p "$artifact_dir"
 ARTIFACT_DIR="$artifact_dir"
