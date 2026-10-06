@@ -27,6 +27,14 @@ spec:
         - ports:
             - port: "3100"
               protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: paperclip
+            paperclip.ai/bootstrap-job: paperclip-bootstrap
+      toPorts:
+        - ports:
+            - port: "3100"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
