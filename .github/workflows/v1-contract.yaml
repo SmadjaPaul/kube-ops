@@ -75,6 +75,22 @@ jobs:
         run: |
           kustomize build k8s/applications/ai/paperclip >/tmp/paperclip-production.yaml
           ! grep -qE 'plugin-kubernetes|mode: kubernetes|backend: sandbox-cr' /tmp/paperclip-production.yaml
+
+          yq -e '
+            select(.apiVersion == "paperclip.inc/v1alpha1" and .kind == "Instance" and .metadata.name == "paperclip")
+            | .spec.auth.adminUser.email == "paperclip-admin@smadja.dev"
+              and .spec.auth.adminUser.passwordSecretRef.name == "paperclip-admin-bootstrap"
+              and .spec.auth.adminUser.passwordSecretRef.key == "password"
+              and (.spec.auth.disableSignUp // false) == false
+          ' /tmp/paperclip-production.yaml >/dev/null
+
+          yq -e '
+            select(.apiVersion == "external-secrets.io/v1" and .kind == "ExternalSecret" and .metadata.name == "paperclip-admin-bootstrap")
+            | .spec.target.name == "paperclip-admin-bootstrap"
+              and .spec.data[0].secretKey == "password"
+              and .spec.data[0].remoteRef.key == "APP_PAPERCLIP_ADMIN_PASSWORD"
+          ' /tmp/paperclip-production.yaml >/dev/null
+
           kustomize build k8s/applications/ai/paperclip/poc/kubernetes-execution >/tmp/paperclip-sandbox-candidate.yaml
 
       - name: Validate bootstrap shell
