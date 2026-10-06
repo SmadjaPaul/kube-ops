@@ -3,7 +3,6 @@ import React, { JSX } from 'react';
 import Layout from '@theme/Layout';
 import { HeroSection } from '../components/Homepage/HeroSection';
 import { TechStack } from '../components/Homepage/TechStack';
-import { ProjectStats } from '../components/Homepage/ProjectStats';
 import { FeatureGrid } from '../components/Homepage/FeatureGrid';
 import { QuickStart } from '../components/Homepage/QuickStart';
 import { CTASection } from '../components/Homepage/CTASection';
@@ -17,7 +16,6 @@ export default function Home(): JSX.Element {
     >
       <HeroSection />
       <TechStack />
-      <ProjectStats />
       <FeatureGrid />
       <QuickStart />
       <CTASection />

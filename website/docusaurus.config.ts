@@ -2,21 +2,16 @@ import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
-// This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
-
 const config: Config = {
   title: 'Homelab',
-  tagline: 'My kubernetes homelab',
+  tagline: 'Smadja Kubernetes homelab',
   favicon: 'img/favicon.ico',
 
-  // Set the production url of your site here
-  url: 'https://homelab.orkestack.com', // Or your real site URL
+  url: 'https://homelab.orkestack.com',
   baseUrl: '/',
 
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'theepicsaxguy', // Usually your GitHub org/user name.
-  projectName: 'homelab', // Usually your repo name.
+  organizationName: 'SmadjaPaul',
+  projectName: 'kube-ops',
 
   onBrokenLinks: 'throw',
   markdown: {
@@ -25,9 +20,6 @@ const config: Config = {
     },
   },
 
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -39,7 +31,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: 'sidebars.ts',
-          editUrl: 'https://github.com/theepicsaxguy/homelab/edit/main/website/',
+          editUrl: 'https://github.com/SmadjaPaul/kube-ops/edit/main/website/',
           exclude: ['styles/**'],
         },
         theme: {
@@ -67,14 +59,13 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
     colorMode: {
       defaultMode: 'dark',
       disableSwitch: false,
       respectPrefersColorScheme: false,
     },
     metadata: [
-      { name: 'keywords', content: 'kubernetes, homelab' },
+      { name: 'keywords', content: 'kubernetes, homelab, gitops' },
       { name: 'twitter:card', content: 'summary_large_image' },
     ],
     image: 'img/logo.png',
@@ -92,13 +83,8 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          href: 'https://github.com/theepicsaxguy/homelab',
+          href: 'https://github.com/SmadjaPaul/kube-ops',
           label: 'GitHub',
-          position: 'right',
-        },
-        {
-          href: 'https://goingdark.social/',
-          label: 'Mastodon',
           position: 'right',
         },
       ],
@@ -116,20 +102,16 @@ const config: Config = {
           ],
         },
         {
-          title: 'More',
+          title: 'Source',
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/theepicsaxguy/homelab',
-            },
-            {
-              label: 'Mastodon',
-              href: 'https://goingdark.social/',
+              href: 'https://github.com/SmadjaPaul/kube-ops',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} theepicsaxguy. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} SmadjaPaul. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
