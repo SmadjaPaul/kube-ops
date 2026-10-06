@@ -36,24 +36,18 @@ export function HeroSection(): JSX.Element {
             <span id="typed"></span>
           </div>
           <div className={styles.ctaButtons}>
-            <Link
-              href="/docs/intro"
-              className={styles.primaryButton}
-            >
+            <Link href="/docs/intro" className={styles.primaryButton}>
               Explore the Docs →
             </Link>
             <Link
-              to="https://github.com/theepicsaxguy/homelab"
+              to="https://github.com/SmadjaPaul/kube-ops"
               className={styles.secondaryButton}
             >
               View on GitHub
             </Link>
           </div>
-          {/* Add stats section */}
         </div>
-        <div className={styles.codePreview}>
-          {/* Add code preview section */}
-        </div>
+        <div className={styles.codePreview} />
       </div>
     </section>
   );
