@@ -157,7 +157,7 @@ prometheusRule:
       expr: |
         probe_success{target="paperclip-internal-health"} == 0
         and on() (kube_statefulset_status_replicas_ready{namespace="paperclip", statefulset="paperclip"} >= 1)
-        and on() (kube_statefulset_status_replicas_ready{namespace="paperclip", statefulset="paperclip-postgresql"} < 1)
+        and on() (min(kube_pod_status_ready{namespace="paperclip", pod=~"paperclip-postgresql-.*", condition="true"}) < 1)
       for: 2m
       labels:
         severity: critical
