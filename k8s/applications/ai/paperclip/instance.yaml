@@ -8,7 +8,7 @@ metadata:
 spec:
   image:
     repository: ghcr.io/paperclipai/paperclip
-    tag: "2026.916.1"
+    tag: "2026.1001.0"
     pullPolicy: IfNotPresent
   deployment:
     mode: authenticated
