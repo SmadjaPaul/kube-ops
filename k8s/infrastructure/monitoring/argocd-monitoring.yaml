@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-application-controller-metrics
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-application-controller
+    app.kubernetes.io/component: application-controller
+    monitoring.kube-ops.dev/target: argocd-application-controller
+spec:
+  selector:
+    app.kubernetes.io/name: argocd-application-controller
+    app.kubernetes.io/instance: argocd
+  ports:
+    - name: metrics
+      port: 8082
+      protocol: TCP
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-application-controller
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: argocd-application-controller
+    app.kubernetes.io/part-of: argocd
+spec:
+  namespaceSelector:
+    matchNames:
+      - argocd
+  selector:
+    matchLabels:
+      monitoring.kube-ops.dev/target: argocd-application-controller
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: argocd-orphan-monitoring
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: argocd
+spec:
+  groups:
+    - name: argocd.orphan-resources
+      rules:
+        - alert: ArgoCDOrphanedResourcesPresent
+          expr: argocd_app_orphaned_resources_count > 0
+          for: 15m
+          labels:
+            severity: warning
+            root_cause_layer: argocd_ownership
+          annotations:
+            summary: "Argo CD reports orphaned resources"
+            description: "Application {{ $labels.name }} in project {{ $labels.project }} reports {{ $value | printf \"%.0f\" }} orphaned resources. Classify ownership before deleting anything."
+        - alert: ArgoCDOrphanedResourcesGrowing
+          expr: delta(argocd_app_orphaned_resources_count[30m]) > 0
+          for: 15m
+          labels:
+            severity: warning
+            root_cause_layer: argocd_ownership
+          annotations:
+            summary: "Argo CD orphaned-resource count is growing"
+            description: "Application {{ $labels.name }} in project {{ $labels.project }} has a higher orphan count than 30 minutes ago. Investigate sync, ownership and controller-created children before cleanup."
