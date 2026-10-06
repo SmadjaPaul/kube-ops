@@ -14,6 +14,7 @@ context:
     @echo "External substrate: SmadjaPaul/homelab-infra"
     @echo "Path: Git -> Argo CD -> Kubernetes -> Gateway API"
     @echo "Private app DNS: HTTPRoute -> ExternalDNS -> UniFi"
+    @echo "Runtime kube access: auto-bootstrap from Doppler infrastructure/prd; never ask for a manual KUBECONFIG"
 
 [doc('Print compact active desired-state roots and routes')]
 inventory:
@@ -23,6 +24,10 @@ inventory:
 check:
     npm run check
     bash tests/harness/kube-preflight-test.sh
+
+[doc('Validate canonical operator Kubernetes access; auto-bootstrap from Doppler, never from ~/.kube')]
+kube-access-check:
+    bash -c 'source scripts/lib/kube-preflight.sh; require_kube_access'
 
 [doc('Read-only Argo/Gateway/workload runtime inventory')]
 runtime-inventory:

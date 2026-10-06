@@ -53,10 +53,33 @@ Never collapse these levels:
 
 A merged PR proves none of levels 2-4 by itself.
 
+## Operator Kubernetes access
+
+Runtime commands MUST NOT ask the user to provide a `KUBECONFIG` and MUST NOT
+fall back to `~/.kube/config`. The canonical operator kubeconfig is distributed
+by `homelab-infra` into Doppler `infrastructure/prd` as
+`KUBERNETES_OPERATOR_KUBECONFIG` plus
+`KUBERNETES_OPERATOR_KUBECONFIG_SHA256`.
+
+`scripts/lib/kube-preflight.sh` auto-materializes that canonical copy into a
+mode-0600 temporary file, verifies its fingerprint, verifies TLS/client auth
+against the live API, exports it only for the current process, and removes it on
+exit. Ambient/ad-hoc kubeconfigs are ignored by default so a stale local context
+cannot silently win.
+
+If runtime access fails:
+1. run `just kube-access-check`;
+2. if Doppler is unauthenticated, authenticate Doppler and retry;
+3. if the canonical copy is missing, mismatched, or cannot authenticate, recover
+   it from `homelab-infra` with `just kube-access-sync` there;
+4. never ask Paul to paste/export a kubeconfig, never write `~/.kube/config`,
+   and never use `--insecure-skip-tls-verify`.
+
 ## Operator command surface
 
 Prefer repository commands over improvised shell:
 - `just inventory`
+- `just kube-access-check`
 - `just check`
 - `just runtime-inventory`
 - `just runtime-smoke`

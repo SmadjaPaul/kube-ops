@@ -5,7 +5,7 @@ source "$(dirname "$0")/lib/kube-preflight.sh"
 require_kube_access
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+trap 'rm -rf "$tmp"; kube_access_cleanup' EXIT
 
 kubectl get applications.argoproj.io -n argocd -o json >"$tmp/apps.json"
 kubectl get gateways.gateway.networking.k8s.io -A -o json >"$tmp/gateways.json"
