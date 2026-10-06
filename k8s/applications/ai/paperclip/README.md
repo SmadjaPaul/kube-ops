@@ -42,6 +42,22 @@ Paperclip runs in `authenticated` mode at `https://paperclip.smadja.dev` and its
 
 The automatic authenticated-mode `adminUser` bootstrap is intentionally not used. Claim the instance through the supported board-claim flow.
 
+## Human admin bootstrap
+
+The production instance runs in `authenticated` mode and must have a real Better Auth board user before browser-only flows such as the Paperclip Cloud Connector callback can succeed.
+
+The initial account is bootstrapped by the upstream operator through `spec.auth.adminUser`:
+
+- login: `paperclip-admin@smadja.dev`;
+- password source: ExternalSecret `paperclip-admin-bootstrap`, key `password`;
+- Doppler source key: `APP_PAPERCLIP_ADMIN_PASSWORD`;
+- the bootstrap secret is deliberately separate from `paperclip-runtime-secrets`, so a missing bootstrap credential cannot disturb `BETTER_AUTH_SECRET` or LiteLLM runtime credentials;
+- the upstream bootstrap Job is idempotent and promotes the account to the initial instance admin/CEO.
+
+Do **not** set `spec.auth.disableSignUp: true` before the first bootstrap completes: the upstream bootstrap Job begins with the regular email sign-up endpoint. After `status.bootstrap` is `ready` and browser login is proven, close self-service sign-up in a separate hardening change.
+
+The bootstrap password is a one-time human credential and must never be committed to Git.
+
 ## Managed GitHub connection
 
 Paperclip `2026.916.1` already contains the upstream managed GitHub identity path; no server upgrade is required just to expose it.
