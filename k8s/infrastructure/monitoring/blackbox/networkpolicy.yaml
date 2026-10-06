@@ -24,3 +24,12 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: paperclip
+            app.kubernetes.io/name: paperclip
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+            - port: "3100"
+              protocol: TCP
