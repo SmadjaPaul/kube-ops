@@ -63,6 +63,21 @@ serviceMonitor:
         release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
+    - name: paperclip-ui
+      url: https://paperclip.smadja.dev
+      module: http_ui
+      labels:
+        release: kube-prometheus-stack
+        qa_level: l2
+        paperclip_monitor: "true"
+        v1_user_ready: "true"
+    - name: paperclip-internal-health
+      url: http://paperclip.paperclip.svc.cluster.local:3100/api/health
+      module: http_ui
+      labels:
+        release: kube-prometheus-stack
+        qa_level: l2
+        paperclip_monitor: "true"
     - name: home-assistant-ui
       url: https://hassio.smadja.dev
       module: http_ui
@@ -104,3 +119,80 @@ prometheusRule:
       annotations:
         summary: "V1 user-ready synthetic probe is failing"
         description: "Blackbox target {{ $labels.instance }} has failed for 10 minutes."
+    - alert: PaperclipPublicHttpProbeFailed
+      expr: probe_success{target="paperclip-ui"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        service: paperclip
+        root_cause_layer: public_http
+      annotations:
+        summary: "Paperclip public HTTP endpoint is failing"
+        description: "The Paperclip public probe has failed continuously for 5 minutes; correlate with pod readiness, internal health and Argo."
+    - alert: PaperclipPublicOnlyFailure
+      expr: |
+        probe_success{target="paperclip-ui"} == 0
+        and on() (max(probe_success{target="paperclip-internal-health"}) == 1)
+      for: 5m
+      labels:
+        severity: critical
+        service: paperclip
+        root_cause_layer: gateway_or_public_network
+      annotations:
+        summary: "Paperclip public endpoint failed while internal health is passing"
+        description: "Paperclip is healthy inside the cluster but unavailable through the public hostname; investigate Gateway, DNS or TLS."
+    - alert: PaperclipInternalHealthFailing
+      expr: |
+        probe_success{target="paperclip-internal-health"} == 0
+        and on() (kube_statefulset_status_replicas_ready{namespace="paperclip", statefulset="paperclip"} >= 1)
+      for: 2m
+      labels:
+        severity: critical
+        service: paperclip
+        root_cause_layer: application_or_dependency
+      annotations:
+        summary: "Paperclip internal HTTP health is failing"
+        description: "Paperclip has a ready workload but its internal HTTP health probe has failed for 2 minutes; inspect application and database dependency signals."
+    - alert: PaperclipDatabaseDependencyFailure
+      expr: |
+        probe_success{target="paperclip-internal-health"} == 0
+        and on() (kube_statefulset_status_replicas_ready{namespace="paperclip", statefulset="paperclip"} >= 1)
+        and on() (kube_statefulset_status_replicas_ready{namespace="paperclip", statefulset="paperclip-postgresql"} < 1)
+      for: 2m
+      labels:
+        severity: critical
+        service: paperclip
+        root_cause_layer: database
+      annotations:
+        summary: "Paperclip database dependency is not ready"
+        description: "Paperclip internal health is failing while the Paperclip PostgreSQL StatefulSet is not ready."
+    - alert: PaperclipPodNotReady
+      expr: kube_statefulset_status_replicas_ready{namespace="paperclip", statefulset="paperclip"} < 1
+      for: 2m
+      labels:
+        severity: critical
+        service: paperclip
+        root_cause_layer: pod_readiness_or_rollout
+      annotations:
+        summary: "Paperclip pod is not Ready"
+        description: "Paperclip has had no Ready StatefulSet replica for 2 minutes; correlate restart count, image pull and Argo health."
+    - alert: PaperclipCrashLoop
+      expr: kube_pod_container_status_waiting_reason{namespace="paperclip", pod=~"paperclip-[0-9]+", container="paperclip", reason="CrashLoopBackOff"} > 0
+      for: 5m
+      labels:
+        severity: critical
+        service: paperclip
+        root_cause_layer: application_crash
+      annotations:
+        summary: "Paperclip is in CrashLoopBackOff"
+        description: "The Paperclip container has remained in CrashLoopBackOff for 5 minutes."
+    - alert: PaperclipRestartsIncreasing
+      expr: increase(kube_pod_container_status_restarts_total{namespace="paperclip", pod=~"paperclip-[0-9]+", container="paperclip"}[10m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+        service: paperclip
+        root_cause_layer: repeated_restarts
+      annotations:
+        summary: "Paperclip container restarts are increasing"
+        description: "Paperclip has recorded a container restart in the last 10 minutes; inspect termination reason and pod events."
