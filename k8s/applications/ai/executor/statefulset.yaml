@@ -26,7 +26,6 @@ spec:
       enableServiceLinks: false
       terminationGracePeriodSeconds: 30
       securityContext:
-        runAsNonRoot: true
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
@@ -35,10 +34,19 @@ spec:
           image: ghcr.io/usefulsoftwareco/executor-selfhost:2.0.0-beta.9
           imagePullPolicy: IfNotPresent
           securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+              add:
+                - CHOWN
+                - FOWNER
+                - SETUID
+                - SETGID
           ports:
             - name: http
               containerPort: 4400

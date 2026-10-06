@@ -1,0 +1,22 @@
+apiVersion: kyverno.io/v2
+kind: PolicyException
+metadata:
+  name: executor-beta9-root-entrypoint
+  namespace: executor
+  annotations:
+    description: "Beta.9 prepares mounted data as root before dropping to the executor user via gosu; keep the exception limited to this StatefulSet."
+spec:
+  match:
+    any:
+      - resources:
+          kinds:
+            - StatefulSet
+          namespaces:
+            - executor
+          names:
+            - executor
+  exceptions:
+    - policyName: nsa-hardening-all-namespaces
+      ruleNames:
+        - require-non-root-containers
+        - autogen-require-non-root-containers
