@@ -14,7 +14,7 @@ _kube_access_sha256_stream() {
 
 _kube_access_digest() {
   local file="$1"
-  KUBECONFIG="$file" command kubectl config view --raw --minify -o json |
+  KUBECONFIG="$file" kubectl config view --raw --minify -o json |
     _kube_access_sha256_stream
 }
 
