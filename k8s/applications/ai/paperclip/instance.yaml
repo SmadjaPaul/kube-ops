@@ -27,6 +27,12 @@ spec:
     secretRef:
       name: paperclip-runtime-secrets
       key: BETTER_AUTH_SECRET
+    adminUser:
+      email: paperclip-admin@smadja.dev
+      name: Paperclip Admin
+      passwordSecretRef:
+        name: paperclip-admin-bootstrap
+        key: password
   secrets:
     provider: local_encrypted
     masterKeySecretRef:
