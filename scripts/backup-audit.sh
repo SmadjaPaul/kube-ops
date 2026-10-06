@@ -5,7 +5,7 @@ source "$(dirname "$0")/lib/kube-preflight.sh"
 require_kube_access
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+trap 'rm -rf "$tmp"; kube_access_cleanup' EXIT
 kubectl get pvc -A -o json >"$tmp/pvc.json"
 kubectl get schedules.velero.io -n velero -o json >"$tmp/schedules.json" 2>/dev/null || printf '{"items":[]}' >"$tmp/schedules.json"
 kubectl get clusters.postgresql.cnpg.io -A -o json >"$tmp/cnpg.json" 2>/dev/null || printf '{"items":[]}' >"$tmp/cnpg.json"
