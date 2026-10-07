@@ -9,5 +9,9 @@ resources:
   - mysql.yaml
   - redis.yaml
   - deployment.yaml
+  - mcp-config.yaml
+  - mcp-externalsecret.yaml
+  - mcp.yaml
+  - mcp-networkpolicy.yaml
   - service-route.yaml
   - networkpolicy.yaml
