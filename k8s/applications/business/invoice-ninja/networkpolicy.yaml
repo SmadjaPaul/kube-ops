@@ -25,6 +25,9 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: invoice-ninja
             app.kubernetes.io/name: invoice-ninja
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: invoice-ninja
+            app.kubernetes.io/name: invoice-ninja-backup
       toPorts:
         - ports: [{ protocol: TCP, port: "3306" }]
 ---
