@@ -31,8 +31,16 @@ for role in "${roles[@]}"; do
   }
 done
 
-grep -q 'defaultMode: isolated_workspace' "$company/.paperclip.yaml"
-grep -q 'type: git_worktree' "$company/.paperclip.yaml"
+# Existing-company safe import rejects executionWorkspacePolicy inside the
+# portability package. Preserve the isolation invariant in the explicit,
+# reviewed post-import project update instead.
+if grep -q 'executionWorkspacePolicy:' "$company/.paperclip.yaml"; then
+  echo "ERROR: Paperclip safe-import package must not embed executionWorkspacePolicy" >&2
+  exit 1
+fi
+grep -q -- '--execution-workspace-policy-json' "$company/README.md"
+grep -q '"defaultMode":"isolated_workspace"' "$company/README.md"
+grep -q '"type":"git_worktree"' "$company/README.md"
 
 if grep -A2 'heartbeat:' "$company/.paperclip.yaml" | grep -q 'enabled: true'; then
   echo "ERROR: Paperclip V1 heartbeats must remain disabled until smoke qualification" >&2
