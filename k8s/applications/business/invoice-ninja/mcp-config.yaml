@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: invoice-ninja-mcp-config
+  namespace: invoice-ninja
+data:
+  instanz.yaml: |
+    instanz:
+      name: Studio Lechaplais
+      hinweise: >-
+        Studio Lechaplais. Prefer drafts and reversible changes. Never send,
+        mark paid, cancel or otherwise mutate an invoice unless the operator
+        explicitly enables the corresponding invoice capability.
+    rollen: {}
+    angebot:
+      verkaufsbedingungen: []
+      gueltig_standard_tage: 30
+      gueltig_min_tage: 1
+      gueltig_max_tage: 365
+      angebotsnr_im_projektnamen: ""
+    produkt:
+      neue_steuerkategorie: "2"
+    rechnungen:
+      schreiben: false
+      status: false
+      versenden: false
+      stornieren: false

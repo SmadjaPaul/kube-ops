@@ -1,0 +1,52 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: invoice-ninja-app, namespace: invoice-ninja }
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: invoice-ninja }
+  ingress:
+    # Cilium Gateway Envoy can reach backends with host/ingress identity.
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
+    - fromEndpoints:
+        - matchLabels: { k8s:io.kubernetes.pod.namespace: gateway }
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: invoice-ninja
+            app.kubernetes.io/name: invoice-ninja-mcp
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: invoice-ninja-mysql, namespace: invoice-ninja }
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: invoice-ninja-mysql }
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: invoice-ninja
+            app.kubernetes.io/name: invoice-ninja
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: invoice-ninja
+            app.kubernetes.io/name: invoice-ninja-backup
+      toPorts:
+        - ports: [{ protocol: TCP, port: "3306" }]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: invoice-ninja-redis, namespace: invoice-ninja }
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: invoice-ninja-redis }
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: invoice-ninja
+            app.kubernetes.io/name: invoice-ninja
+      toPorts:
+        - ports: [{ protocol: TCP, port: "6379" }]

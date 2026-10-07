@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: cloudflare-lechaplais-issuer
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: paul@smadja.dev
+    privateKeySecretRef:
+      name: cloudflare-lechaplais-issuer-account-key
+    solvers:
+      - selector:
+          dnsZones:
+            - lechaplais.com
+        dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-lechaplais-api-token
+              key: cloudflare-api-token

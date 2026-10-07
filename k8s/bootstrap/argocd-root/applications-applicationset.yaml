@@ -20,10 +20,12 @@ spec:
           - path: k8s/applications/web
           - path: k8s/applications/automation
           - path: k8s/applications/games
-          # Business workloads are activated progressively, one Argo Application
-          # per app so an unhealthy app does not block its peers.
-          - path: k8s/applications/business/listmonk
-          - path: k8s/applications/business/twenty
+          # Listmonk/Twenty are retired from runtime but retained as data-only
+          # roots under the same generated Application names. This lets Argo
+          # prune workloads without deleting their PVC/CNPG/backup resources.
+          - path: k8s/applications/business/retained/listmonk
+          - path: k8s/applications/business/retained/twenty
+          - path: k8s/applications/business/invoice-ninja
           - path: k8s/applications/catalog
           - path: k8s/applications/platform
           - path: k8s/applications/restore

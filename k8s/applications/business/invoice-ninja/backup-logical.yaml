@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invoice-ninja-mysql-logical-backup
+  namespace: invoice-ninja
+spec:
+  schedule: "15 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: invoice-ninja-backup
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: Never
+          securityContext:
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: mysqldump
+              image: mysql:8.4.11
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  umask 077
+                  tmp=/backup/mysql-latest.sql.tmp
+                  target=/backup/mysql-latest.sql
+                  rm -f "$tmp"
+                  mysqldump \
+                    --host=invoice-ninja-mysql \
+                    --port=3306 \
+                    --user=ninja \
+                    --single-transaction \
+                    --quick \
+                    --skip-lock-tables \
+                    --routines \
+                    --events \
+                    --triggers \
+                    ninja > "$tmp"
+                  test -s "$tmp"
+                  mv "$tmp" "$target"
+              env:
+                - name: MYSQL_PWD
+                  valueFrom:
+                    secretKeyRef:
+                      name: invoice-ninja-mysql
+                      key: MYSQL_PASSWORD
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: [ALL] }
+                seccompProfile: { type: RuntimeDefault }
+              resources:
+                requests: { cpu: 25m, memory: 64Mi }
+                limits: { cpu: 300m, memory: 256Mi }
+              volumeMounts:
+                - name: storage
+                  mountPath: /backup
+                  subPath: logical-backups
+          volumes:
+            - name: storage
+              persistentVolumeClaim:
+                claimName: invoice-ninja-storage

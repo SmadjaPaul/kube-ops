@@ -3,7 +3,9 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - cert-manager-secrets-external.yaml
+  - cert-manager-lechaplais-secrets-external.yaml
   - cloudflare-issuer.yaml
+  - cloudflare-lechaplais-issuer.yaml
   - internal-ca-issuer.yaml
 
 helmCharts:

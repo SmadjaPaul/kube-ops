@@ -61,6 +61,26 @@ grep -q 'path: /var/mnt/k8s-fast' k8s/infrastructure/storage/longhorn/node-homeo
 grep -q 'path: /var/mnt/k8s-bulk' k8s/infrastructure/storage/longhorn/node-homeops.yaml
 grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
 
+# Studio Lechaplais back-office uses the shared Cilium Gateways on a second
+# DNS zone. The route hostname, TLS listeners and certificate must move
+# together; otherwise Gateway API will reject the HTTPRoute at runtime.
+grep -q 'gestion.lechaplais.com' k8s/infrastructure/network/gateway/cert-lechaplais-management.yaml
+for gateway in \
+  k8s/infrastructure/network/gateway/gw-external.yaml \
+  k8s/infrastructure/network/gateway/gw-internal.yaml; do
+  grep -q 'hostname: gestion.lechaplais.com' "$gateway" || {
+    echo "ERROR: $gateway is missing the Studio Lechaplais management listener" >&2
+    exit 1
+  }
+  grep -q 'name: cert-lechaplais-management' "$gateway" || {
+    echo "ERROR: $gateway is missing the Studio Lechaplais TLS certificate reference" >&2
+    exit 1
+  }
+done
+grep -q 'gestion.lechaplais.com' k8s/applications/business/invoice-ninja/service-route.yaml
+grep -q 'name: external' k8s/applications/business/invoice-ninja/service-route.yaml
+grep -q 'name: internal' k8s/applications/business/invoice-ninja/service-route.yaml
+
 # Backend/admin surfaces that are only consumed from inside the cluster or LAN
 # must never attach to the public Gateway. Qdrant is consumed by Open WebUI via
 # its ClusterIP service; Zigbee2MQTT is an operator UI.

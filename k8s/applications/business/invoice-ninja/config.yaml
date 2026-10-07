@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: invoice-ninja-env
+  namespace: invoice-ninja
+data:
+  APP_URL: https://gestion.lechaplais.com
+  APP_ENV: production
+  APP_DEBUG: "false"
+  REQUIRE_HTTPS: "true"
+  PHANTOMJS_PDF_GENERATION: "false"
+  PDF_GENERATOR: snappdf
+  TRUSTED_PROXIES: "*"
+  CACHE_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: redis
+  REDIS_HOST: invoice-ninja-redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: "null"
+  FILESYSTEM_DISK: debian_docker
+  DB_HOST: invoice-ninja-mysql
+  DB_PORT: "3306"
+  DB_DATABASE: ninja
+  DB_USERNAME: ninja
+  DB_CONNECTION: mysql
+  IN_USER_EMAIL: maureen@lechaplais.com
+  # SMTP is deliberately deferred until lechaplais.com is visible to the
+  # Migadu API. Log mail keeps Invoice Ninja bootable without an external SMTP
+  # dependency; a later reviewed PR can switch this back to smtp.
+  MAIL_MAILER: log
+  MAIL_FROM_ADDRESS: maureen@lechaplais.com
+  MAIL_FROM_NAME: Studio Lechaplais
+  OIDC_WELL_KNOWN: https://auth.smadja.dev/application/o/invoice-ninja/.well-known/openid-configuration
+  OIDC_CLIENT_ID: invoice-ninja
+  OIDC_SCOPES: "openid profile email"
+  OIDC_PROVIDER_LABEL: Studio SSO
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: invoice-ninja-nginx
+  namespace: invoice-ninja
+data:
+  default.conf: |
+    server {
+      listen 8080 default_server;
+      server_name _;
+      root /var/www/html/public;
+      client_max_body_size 25M;
+      server_tokens off;
+      index index.php;
+      charset utf-8;
+      add_header X-Frame-Options "SAMEORIGIN";
+      add_header X-Content-Type-Options "nosniff";
+      location / { try_files $uri $uri/ /index.php?$query_string; }
+      location = /favicon.ico { access_log off; log_not_found off; }
+      location = /robots.txt  { access_log off; log_not_found off; }
+      error_page 404 /index.php;
+      location ~ \.php$ {
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+      }
+      location ~ /\.(?!well-known).* { deny all; }
+    }

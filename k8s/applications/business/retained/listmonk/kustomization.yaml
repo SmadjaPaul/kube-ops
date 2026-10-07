@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Retention-only state after Listmonk retirement. Keep the namespace, uploads
+# PVC, CNPG cluster and Barman/WAL objects; do not recreate the application.
+resources:
+  - namespace.yaml
+  - database.yaml
+  - backup.yaml
+  - storage.yaml
+  - rollback-secrets.yaml

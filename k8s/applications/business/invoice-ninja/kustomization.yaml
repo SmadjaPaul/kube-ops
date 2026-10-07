@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - externalsecret.yaml
+  - config.yaml
+  - storage.yaml
+  - backup-logical.yaml
+  - mysql.yaml
+  - redis.yaml
+  - deployment.yaml
+  - mcp-config.yaml
+  - mcp-externalsecret.yaml
+  - mcp.yaml
+  - mcp-networkpolicy.yaml
+  - service-route.yaml
+  - networkpolicy.yaml
