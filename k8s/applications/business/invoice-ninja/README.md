@@ -23,5 +23,11 @@ checkout availability depend on this namespace.
 The upstream Debian image performs root-owned first-boot filesystem preparation;
 the namespace therefore uses Pod Security Baseline rather than a custom image.
 
-Before real customer data, run a restore drill that validates MySQL application
-consistency in addition to volume recovery.
+A daily `mysqldump --single-transaction` runs at 04:15 UTC into the existing
+`invoice-ninja-storage` PVC. Velero runs at 04:35 UTC and therefore captures both
+the application storage and the latest logical SQL dump without introducing a
+second backup destination or long-lived backup credential.
+
+Before real customer data, run a restore drill that proves both paths: restore
+the namespace/PVCs with Velero, then validate that `logical-backups/mysql-latest.sql`
+can rebuild the Invoice Ninja database into an empty MySQL instance.
