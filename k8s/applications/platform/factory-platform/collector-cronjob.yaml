@@ -1,0 +1,68 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-platform-github-collector
+  namespace: factory-platform
+  labels:
+    app.kubernetes.io/name: factory-platform
+    app.kubernetes.io/component: github-collector
+spec:
+  schedule: "0,30 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: factory-platform
+            app.kubernetes.io/component: github-collector
+            app.kubernetes.io/part-of: platform
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          imagePullSecrets:
+            - name: factory-platform-ghcr
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: collect-github
+              image: ghcr.io/smadjapaul/factory-platform@sha256:ed5a440109e7d470e3d17cfe6da2a89091901c1479bb818ef5310b614c0d8439
+              imagePullPolicy: IfNotPresent
+              args: ["collect-github"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-platform-postgresql-app
+                      key: uri
+                - name: FACTORY_TENANT_ID
+                  value: smadja-internal
+                - name: FACTORY_GITHUB_REPOS
+                  value: SmadjaPaul/kube-ops
+                - name: FACTORY_GITHUB_MAX_PAGES
+                  value: "2"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000
+                capabilities:
+                  drop: ["ALL"]
+                seccompProfile:
+                  type: RuntimeDefault
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 96Mi
+                limits:
+                  cpu: 500m
+                  memory: 384Mi
