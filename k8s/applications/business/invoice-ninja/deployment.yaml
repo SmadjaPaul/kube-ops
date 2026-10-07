@@ -15,6 +15,23 @@ spec:
     spec:
       securityContext:
         seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: wait-dependencies
+          image: busybox:1.37.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until nc -z invoice-ninja-mysql 3306; do echo "waiting for mysql"; sleep 2; done
+              until nc -z invoice-ninja-redis 6379; do echo "waiting for redis"; sleep 2; done
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+            seccompProfile: { type: RuntimeDefault }
       containers:
         - name: app
           image: invoiceninja/invoiceninja-debian:5.13.43
@@ -42,7 +59,7 @@ spec:
             - { name: public, mountPath: /var/www/html/public }
             - { name: storage, mountPath: /var/www/html/storage }
         - name: nginx
-          image: nginx:1.30.5-alpine
+          image: nginxinc/nginx-unprivileged:1.29.4-alpine@sha256:a6c4f61f456b85b8fdf7ec7ab28cc3e299440e6fb4a9dea520e5fd8fd440025e
           ports: [{ name: http, containerPort: 8080 }]
           securityContext:
             runAsNonRoot: true
