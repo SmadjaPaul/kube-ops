@@ -24,11 +24,10 @@ data:
   DB_USERNAME: ninja
   DB_CONNECTION: mysql
   IN_USER_EMAIL: maureen@lechaplais.com
-  MAIL_MAILER: smtp
-  MAIL_HOST: smtp.migadu.com
-  MAIL_PORT: "587"
-  MAIL_USERNAME: maureen@lechaplais.com
-  MAIL_ENCRYPTION: tls
+  # SMTP is deliberately deferred until lechaplais.com is visible to the
+  # Migadu API. Log mail keeps Invoice Ninja bootable without an external SMTP
+  # dependency; a later reviewed PR can switch this back to smtp.
+  MAIL_MAILER: log
   MAIL_FROM_ADDRESS: maureen@lechaplais.com
   MAIL_FROM_NAME: Studio Lechaplais
   OIDC_WELL_KNOWN: https://auth.smadja.dev/application/o/invoice-ninja/.well-known/openid-configuration
