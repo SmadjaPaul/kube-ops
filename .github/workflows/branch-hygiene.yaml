@@ -1,0 +1,112 @@
+name: Branch hygiene
+
+on:
+  pull_request:
+    types: [closed]
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/branch-hygiene.yaml
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: branch-hygiene
+  cancel-in-progress: false
+
+jobs:
+  delete-merged-pr-branch:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref != github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Delete merged branch if it has not moved
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          encoded_ref="$(jq -rn --arg value "$BRANCH" '$value | @uri')"
+
+          current_sha="$(
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_ref"               --jq '.object.sha' 2>/dev/null || true
+          )"
+
+          if [[ -z "$current_sha" ]]; then
+            echo "BRANCH_ALREADY_GONE=$BRANCH"
+            exit 0
+          fi
+
+          if [[ "$current_sha" != "$EXPECTED_SHA" ]]; then
+            echo "BRANCH_MOVED_AFTER_MERGE=$BRANCH"
+            echo "Deletion skipped."
+            exit 0
+          fi
+
+          gh api             --method DELETE             "repos/$GITHUB_REPOSITORY/git/refs/heads/$encoded_ref"
+
+          echo "DELETED_MERGED_BRANCH=$BRANCH"
+
+  cleanup-existing-merged-branches:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Delete only branches still pointing at a merged PR head
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          deleted=0
+          preserved=0
+          already_gone=0
+
+          while IFS=$'\t' read -r branch merged_sha; do
+            [[ -n "$branch" ]] || continue
+            [[ "$branch" != "${{ github.event.repository.default_branch }}" ]] || continue
+
+            encoded_ref="$(jq -rn --arg value "$branch" '$value | @uri')"
+
+            current_sha="$(
+              gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_ref"                 --jq '.object.sha' 2>/dev/null || true
+            )"
+
+            if [[ -z "$current_sha" ]]; then
+              already_gone=$((already_gone + 1))
+              continue
+            fi
+
+            if [[ "$current_sha" != "$merged_sha" ]]; then
+              echo "PRESERVE_MOVED_OR_REUSED_BRANCH=$branch"
+              preserved=$((preserved + 1))
+              continue
+            fi
+
+            gh api               --method DELETE               "repos/$GITHUB_REPOSITORY/git/refs/heads/$encoded_ref"
+
+            echo "DELETED_MERGED_BRANCH=$branch"
+            deleted=$((deleted + 1))
+          done < <(
+            gh api --paginate               "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" |
+              jq -r --arg repo "$GITHUB_REPOSITORY" '
+                .[]
+                | select(.merged_at != null)
+                | select(.head.repo.full_name == $repo)
+                | [.head.ref, .head.sha]
+                | @tsv
+              ' |
+              sort -u
+          )
+
+          echo "DELETED_COUNT=$deleted"
+          echo "PRESERVED_MOVED_OR_REUSED_COUNT=$preserved"
+          echo "ALREADY_GONE_COUNT=$already_gone"
