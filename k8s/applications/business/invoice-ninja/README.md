@@ -15,7 +15,7 @@ Authority:
 - Stripe: payment.
 - SuperPDP: French PA/e-invoice/e-reporting transport.
 - PostHog: analytics/marketing/automated messages.
-- Migadu: human mailbox and low-volume Invoice Ninja SMTP.
+- Migadu: human mailbox and low-volume Invoice Ninja SMTP, currently deferred.
 - Internal MCP: pinned MIT `DSS-AI/invoice-ninja-mcp`, reachable only from
   OpenClaw/Paperclip namespaces through `invoice-ninja-mcp:8539/mcp`.
 
@@ -39,3 +39,15 @@ second backup destination or long-lived backup credential.
 Before real customer data, run a restore drill that proves both paths: restore
 the namespace/PVCs with Velero, then validate that `logical-backups/mysql-latest.sql`
 can rebuild the Invoice Ninja database into an empty MySQL instance.
+
+
+## Mail bootstrap
+
+Invoice Ninja intentionally starts with `MAIL_MAILER=log`. The Migadu domain is
+not currently visible through the Migadu API, so SMTP is not a deployment
+prerequisite and `APP_INVOICE_NINJA_MAIL_PASSWORD` is not part of the runtime
+ExternalSecret.
+
+When `lechaplais.com` becomes API-visible and the Terraform mailbox root has
+applied successfully, enable SMTP in a separate reviewed PR. Do not make
+Invoice Ninja availability depend on that external bootstrap.
