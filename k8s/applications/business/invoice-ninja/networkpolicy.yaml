@@ -13,6 +13,12 @@ spec:
         - matchLabels: { k8s:io.kubernetes.pod.namespace: gateway }
       toPorts:
         - ports: [{ protocol: TCP, port: "8080" }]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: invoice-ninja
+            app.kubernetes.io/name: invoice-ninja-mcp
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
