@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: factory-platform
+
+resources:
+  - namespace.yaml
+  - registry-externalsecret.yaml
+  - database-s3-credentials.yaml
+  - database-objectstore.yaml
+  - database.yaml
+  - database-scheduled-backup.yaml
+  - deployment.yaml
+  - service.yaml
+  - servicemonitor.yaml
+  - collector-cronjob.yaml
+  - dbt-cronjob.yaml
+  - networkpolicy.yaml

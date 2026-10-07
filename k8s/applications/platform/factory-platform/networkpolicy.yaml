@@ -1,0 +1,82 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-platform
+  namespace: factory-platform
+  labels:
+    policy-type: platform-audit
+spec:
+  description: "Factory Platform V0: internal-only API; egress limited to DNS, CNPG and GitHub API."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: factory-platform
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: factory-platform
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: factory-platform
+            cnpg.io/cluster: factory-platform-postgresql
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: api.github.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-platform-postgresql-backup
+  namespace: factory-platform
+  labels:
+    policy-type: platform-audit
+spec:
+  description: "Allow Factory Platform CNPG WAL/base backups to Hetzner Object Storage."
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: factory-platform-postgresql
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: fsn1.your-objectstorage.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

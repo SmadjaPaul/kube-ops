@@ -10,6 +10,7 @@ resources:
 - games
 - business
 - catalog
+- platform
 
 generatorOptions:
   disableNameSuffixHash: true
