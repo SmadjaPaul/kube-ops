@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-lechaplais-management
+  namespace: gateway
+spec:
+  dnsNames:
+    - gestion.lechaplais.com
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: cloudflare-issuer
+  secretName: cert-lechaplais-management
+  usages:
+    - digital signature
+    - key encipherment
