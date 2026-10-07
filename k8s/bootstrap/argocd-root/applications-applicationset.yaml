@@ -20,10 +20,11 @@ spec:
           - path: k8s/applications/web
           - path: k8s/applications/automation
           - path: k8s/applications/games
-          # Business workloads are activated progressively, one Argo Application
-          # per app so an unhealthy app does not block its peers.
+          # Studio Lechaplais business back office stays isolated from the
+          # application category root so Argo can prune retired peers cleanly.
           - path: k8s/applications/business/invoice-ninja
           - path: k8s/applications/catalog
+          - path: k8s/applications/platform
           - path: k8s/applications/restore
   template:
     metadata:
