@@ -9,7 +9,7 @@ spec:
   image:
     repository: ghcr.io/smadjapaul/paperclip
     tag: "sha-1ed7289"
-    digest: "sha256:07e01c8be9c1ed550536eaac4385c68b0f5a94f70fcd6c7f8ceb78722833bda6"
+    digest: "sha256:46053f1358edd48801306add84f2960fb9e8f240b061cc339d2ae1d5cf3b2b5d"
     pullPolicy: IfNotPresent
   deployment:
     mode: authenticated
