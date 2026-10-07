@@ -215,7 +215,7 @@ worker:
   # wiring is applied to the existing worker pod. Subsequent ConfigMap changes
   # are handled by the Reloader annotation above.
   podAnnotations:
-    authentik.smadja.dev/blueprint-reconcile: "1"
+    authentik.smadja.dev/blueprint-reconcile: "2"
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
