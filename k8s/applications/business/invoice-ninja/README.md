@@ -16,9 +16,17 @@ Authority:
 - SuperPDP: French PA/e-invoice/e-reporting transport.
 - PostHog: analytics/marketing/automated messages.
 - Migadu: human mailbox and low-volume Invoice Ninja SMTP.
+- Internal MCP: pinned MIT `DSS-AI/invoice-ninja-mcp`, reachable only from
+  OpenClaw/Paperclip namespaces through `invoice-ninja-mcp:8539/mcp`.
 
 The public Stripe webhook commits to D1 before any projection here. Never make
 checkout availability depend on this namespace.
+
+The MCP has no public HTTPRoute. It uses a dedicated Invoice Ninja API token plus
+separate OpenClaw/Paperclip bearer tokens. Its instance policy starts with all
+invoice creation/status/send/cancel capabilities disabled; agents can still read
+business state and prepare bounded CRM/quote/project changes. Enabling invoice
+mutations is a separate reviewed decision.
 
 The upstream Debian image performs root-owned first-boot filesystem preparation;
 the namespace therefore uses Pod Security Baseline rather than a custom image.
