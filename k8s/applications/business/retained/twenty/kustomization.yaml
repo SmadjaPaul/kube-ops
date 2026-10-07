@@ -8,3 +8,4 @@ resources:
   - database.yaml
   - backup.yaml
   - storage.yaml
+  - rollback-secrets.yaml
