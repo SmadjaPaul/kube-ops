@@ -49,6 +49,8 @@ while execution and approval boundaries are being qualified.
 
 The existing Paperclip Company is the target. Do not replace it.
 
+Paperclip safe import deliberately rejects project `executionWorkspacePolicy`. The portable package therefore carries repository workspaces but no runtime execution policy. Apply the reviewed isolated-worktree policy explicitly after the safe import succeeds.
+
 Use the supported safe import with `collision=skip` so only the three new Factory
 Platform agents and the `factory-platform` project are created. Existing
 `kube-ops`, `homelab-infra`, agents and other runtime objects must remain untouched.
@@ -111,8 +113,12 @@ test -n "$GOAL_ID" && test "$GOAL_ID" != "null"
 npx --yes paperclipai project update factory-platform \
   --api-base https://paperclip.smadja.dev \
   --company-id "$PAPERCLIP_COMPANY_ID" \
-  --goal-ids "$GOAL_ID"
+  --goal-ids "$GOAL_ID" \
+  --execution-workspace-policy-json '{"enabled":true,"defaultMode":"isolated_workspace","allowIssueOverride":false,"workspaceStrategy":{"type":"git_worktree","baseRef":"main"}}' \
+  --json
 ```
+
+This post-import policy update is intentionally separate from Company portability. Existing `kube-ops` and `homelab-infra` projects are skipped and keep their current runtime policies unchanged.
 
 Do not enable scheduled heartbeats as part of this bootstrap. First close the
 Factory Platform V0 observability/backup gates, then start bounded explicit work
