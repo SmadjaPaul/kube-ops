@@ -5,6 +5,7 @@ resources:
   - externalsecret.yaml
   - config.yaml
   - storage.yaml
+  - backup-logical.yaml
   - mysql.yaml
   - redis.yaml
   - deployment.yaml
