@@ -3,6 +3,8 @@ kind: ExternalSecret
 metadata:
   name: cnpg-hetzner-credentials
   namespace: twenty
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   refreshInterval: 1h
   secretStoreRef:
@@ -22,6 +24,8 @@ kind: ObjectStore
 metadata:
   name: twenty-hetzner-store
   namespace: twenty
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   retentionPolicy: "14d"
   configuration:
@@ -38,6 +42,8 @@ kind: ScheduledBackup
 metadata:
   name: twenty-postgresql-weekly
   namespace: twenty
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   schedule: "0 0 5 * * 0"
   backupOwnerReference: self

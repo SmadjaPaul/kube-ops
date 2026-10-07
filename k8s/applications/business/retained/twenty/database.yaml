@@ -1,19 +1,21 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: listmonk-postgresql
-  namespace: listmonk
+  name: twenty-postgresql
+  namespace: twenty
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   instances: 1
   bootstrap:
     initdb:
-      database: listmonk
-      owner: listmonk
+      database: twenty
+      owner: twenty
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: listmonk-hetzner-store
+        barmanObjectName: twenty-hetzner-store
   storage:
     size: 10Gi
     storageClass: longhorn-fast

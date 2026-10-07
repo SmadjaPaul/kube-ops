@@ -30,8 +30,6 @@ resources:
   - daily-opencode.yaml
   - daily-trilium.yaml
   - daily-romm.yaml
-  - daily-listmonk.yaml
-  - daily-twenty.yaml
   - daily-invoice-ninja.yaml
   - daily-mealie.yaml
   - daily-ntfy.yaml

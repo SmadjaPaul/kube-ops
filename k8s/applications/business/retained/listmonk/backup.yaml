@@ -3,6 +3,8 @@ kind: ExternalSecret
 metadata:
   name: cnpg-hetzner-credentials
   namespace: listmonk
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   refreshInterval: 1h
   secretStoreRef:
@@ -22,6 +24,8 @@ kind: ObjectStore
 metadata:
   name: listmonk-hetzner-store
   namespace: listmonk
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   retentionPolicy: "14d"
   configuration:
@@ -45,6 +49,8 @@ kind: ScheduledBackup
 metadata:
   name: listmonk-postgresql-weekly
   namespace: listmonk
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   schedule: "0 30 4 * * 0"
   backupOwnerReference: self

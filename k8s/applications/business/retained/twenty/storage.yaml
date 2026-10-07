@@ -1,8 +1,10 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: listmonk-uploads
-  namespace: listmonk
+  name: twenty-storage
+  namespace: twenty
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-fast

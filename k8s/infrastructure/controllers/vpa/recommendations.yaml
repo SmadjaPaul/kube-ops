@@ -179,16 +179,3 @@ spec:
     name: bulwark
   updatePolicy:
     updateMode: "Off"
----
-apiVersion: autoscaling.k8s.io/v1
-kind: VerticalPodAutoscaler
-metadata:
-  name: twenty-server
-  namespace: twenty
-spec:
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: twenty-server
-  updatePolicy:
-    updateMode: "Off"

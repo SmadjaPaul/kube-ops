@@ -12,5 +12,10 @@ Retired here: Listmonk, Twenty, Chatwoot, La Suite Messages, Stalwart and
 Bulwark. Marketing/events belong to PostHog; human mail belongs to Migadu;
 French e-invoice/e-reporting transport belongs to the external PA.
 
+Listmonk and Twenty retain data-only Argo roots under `retained/`. Their
+workloads, routes and runtime policies are removed, while their existing
+PVCs, CNPG clusters and off-site backup objects remain protected. Purging that
+data requires a separate explicit decision.
+
 Invoice Ninja follows the upstream topology: Debian app + nginx, MySQL and
 Redis. Do not replace its MySQL database with CNPG/PostgreSQL.
