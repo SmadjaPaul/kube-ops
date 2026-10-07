@@ -34,7 +34,7 @@ spec:
             seccompProfile: { type: RuntimeDefault }
       containers:
         - name: app
-          image: invoiceninja/invoiceninja-debian:5.13.43
+          image: invoiceninja/invoiceninja-debian:5.13.43@sha256:c052414958dce9bb186f3da83c8066c84d419092e7a55025b5a7c201eff75387
           envFrom:
             - configMapRef: { name: invoice-ninja-env }
             - secretRef: { name: invoice-ninja-runtime }
