@@ -9,7 +9,7 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: cloudflare-issuer
+    name: cloudflare-lechaplais-issuer
   secretName: cert-lechaplais-management
   usages:
     - digital signature
