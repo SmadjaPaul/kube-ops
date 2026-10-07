@@ -35,9 +35,9 @@ jobs:
           set -euo pipefail
 
           encoded_ref="$(jq -rn --arg value "$BRANCH" '$value | @uri')"
-
           current_sha="$(
-            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_ref"               --jq '.object.sha' 2>/dev/null || true
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_ref" \
+              --jq '.object.sha' 2>/dev/null || true
           )"
 
           if [[ -z "$current_sha" ]]; then
@@ -51,17 +51,20 @@ jobs:
             exit 0
           fi
 
-          gh api             --method DELETE             "repos/$GITHUB_REPOSITORY/git/refs/heads/$encoded_ref"
+          gh api \
+            --method DELETE \
+            "repos/$GITHUB_REPOSITORY/git/refs/heads/$encoded_ref"
 
           echo "DELETED_MERGED_BRANCH=$BRANCH"
 
-  cleanup-existing-merged-branches:
+  cleanup-existing-branches:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
     steps:
-      - name: Delete only branches still pointing at a merged PR head
+      - name: Delete historical branches still pointing at a merged PR head
         shell: bash
         run: |
           set -euo pipefail
@@ -72,12 +75,12 @@ jobs:
 
           while IFS=$'\t' read -r branch merged_sha; do
             [[ -n "$branch" ]] || continue
-            [[ "$branch" != "${{ github.event.repository.default_branch }}" ]] || continue
+            [[ "$branch" != "$DEFAULT_BRANCH" ]] || continue
 
             encoded_ref="$(jq -rn --arg value "$branch" '$value | @uri')"
-
             current_sha="$(
-              gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_ref"                 --jq '.object.sha' 2>/dev/null || true
+              gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$encoded_ref" \
+                --jq '.object.sha' 2>/dev/null || true
             )"
 
             if [[ -z "$current_sha" ]]; then
@@ -86,17 +89,19 @@ jobs:
             fi
 
             if [[ "$current_sha" != "$merged_sha" ]]; then
-              echo "PRESERVE_MOVED_OR_REUSED_BRANCH=$branch"
               preserved=$((preserved + 1))
               continue
             fi
 
-            gh api               --method DELETE               "repos/$GITHUB_REPOSITORY/git/refs/heads/$encoded_ref"
+            gh api \
+              --method DELETE \
+              "repos/$GITHUB_REPOSITORY/git/refs/heads/$encoded_ref"
 
             echo "DELETED_MERGED_BRANCH=$branch"
             deleted=$((deleted + 1))
           done < <(
-            gh api --paginate               "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" |
+            gh api --paginate \
+              "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" |
               jq -r --arg repo "$GITHUB_REPOSITORY" '
                 .[]
                 | select(.merged_at != null)
@@ -107,9 +112,9 @@ jobs:
               sort -u
           )
 
-          echo "DELETED_COUNT=$deleted"
-          echo "PRESERVED_MOVED_OR_REUSED_COUNT=$preserved"
-          echo "ALREADY_GONE_COUNT=$already_gone"
+          echo "MERGED_DELETED_COUNT=$deleted"
+          echo "MERGED_PRESERVED_MOVED_OR_REUSED_COUNT=$preserved"
+          echo "MERGED_ALREADY_GONE_COUNT=$already_gone"
 
       - name: Checkout repository for ancestry cleanup
         uses: actions/checkout@v7
@@ -128,21 +133,29 @@ jobs:
 
           while IFS= read -r branch; do
             [[ -n "$branch" ]] || continue
-            [[ "$branch" != "${{ github.event.repository.default_branch }}" ]] || continue
+            [[ "$branch" != "HEAD" ]] || continue
+            [[ "$branch" != "$DEFAULT_BRANCH" ]] || continue
 
-            if [[ "$(git rev-list --count "origin/${{ github.event.repository.default_branch }}..origin/$branch")" != "0" ]]; then
+            unique_commits="$(
+              git rev-list --count "origin/$DEFAULT_BRANCH..origin/$branch"
+            )"
+
+            if [[ "$unique_commits" != "0" ]]; then
               preserved=$((preserved + 1))
               continue
             fi
 
             encoded_ref="$(jq -rn --arg value "$branch" '$value | @uri')"
-            gh api               --method DELETE               "repos/$GITHUB_REPOSITORY/git/refs/heads/$encoded_ref"
+            gh api \
+              --method DELETE \
+              "repos/$GITHUB_REPOSITORY/git/refs/heads/$encoded_ref"
 
             echo "DELETED_CONTAINED_BRANCH=$branch"
             deleted=$((deleted + 1))
           done < <(
-            git for-each-ref               --format='%(refname:strip=3)'               refs/remotes/origin |
-              grep -v '^HEAD |
+            git for-each-ref \
+              --format='%(refname:strip=3)' \
+              refs/remotes/origin |
               sort -u
           )
 
