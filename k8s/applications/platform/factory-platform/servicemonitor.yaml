@@ -4,6 +4,7 @@ metadata:
   name: factory-platform
   namespace: factory-platform
   labels:
+    release: kube-prometheus-stack
     app.kubernetes.io/name: factory-platform
     app.kubernetes.io/component: api
 spec:
