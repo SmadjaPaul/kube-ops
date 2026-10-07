@@ -1,6 +1,13 @@
 # Invoice Ninja — Studio Lechaplais
 
-Pinned upstream: Invoice Ninja 5.13.43 Debian image, MySQL 8.4 and Redis.
+Pinned upstream: Invoice Ninja 5.13.43 Debian image, MySQL 8.4, Redis and the
+upstream nginx-unprivileged runtime pattern.
+
+Invoice Ninja now ships an official Helm chart. This Kustomize wrapper stays
+intentionally thin because the current upstream chart does not expose the
+generic OIDC environment or the repository's ESO/Gateway API integration
+without post-render patches. Re-evaluate the chart when those extension points
+are upstream.
 
 Authority:
 - Invoice Ninja: clients, quotes, projects/timesheets, invoices and portal.
