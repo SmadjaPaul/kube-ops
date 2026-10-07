@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invoice-ninja-mcp
+  namespace: invoice-ninja
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app.kubernetes.io/name: invoice-ninja-mcp }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: invoice-ninja-mcp
+        app.kubernetes.io/component: agent-api
+      annotations:
+        secret.reloader.stakater.com/reload: invoice-ninja-mcp
+        configmap.reloader.stakater.com/reload: invoice-ninja-mcp-config
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: mcp
+          image: ghcr.io/smadjapaul/invoice-ninja-mcp:f822b554c52676a7e75953c65e2578d9c9fa89dc
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: INVOICE_NINJA_URL, value: "http://invoice-ninja" }
+            - { name: INSTANZ_KONFIG, value: "/app/instanz.yaml" }
+            - { name: TZ, value: "Europe/Paris" }
+            - { name: PYTHONDONTWRITEBYTECODE, value: "1" }
+          envFrom:
+            - secretRef: { name: invoice-ninja-mcp }
+          ports:
+            - { name: mcp, containerPort: 8539, protocol: TCP }
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+            seccompProfile: { type: RuntimeDefault }
+          resources:
+            requests: { cpu: 25m, memory: 96Mi }
+            limits: { cpu: 300m, memory: 256Mi }
+          readinessProbe:
+            tcpSocket: { port: mcp }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: mcp }
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          volumeMounts:
+            - name: config
+              mountPath: /app/instanz.yaml
+              subPath: instanz.yaml
+              readOnly: true
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap: { name: invoice-ninja-mcp-config }
+        - name: data
+          emptyDir: { sizeLimit: 64Mi }
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: invoice-ninja-mcp
+  namespace: invoice-ninja
+spec:
+  selector: { app.kubernetes.io/name: invoice-ninja-mcp }
+  ports:
+    - { name: mcp, port: 8539, targetPort: mcp }
