@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: invoice-ninja-public, namespace: invoice-ninja }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-bulk
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: invoice-ninja-storage, namespace: invoice-ninja }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-bulk
+  resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: invoice-ninja-redis, namespace: invoice-ninja }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-bulk
+  resources: { requests: { storage: 1Gi } }

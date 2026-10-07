@@ -1,12 +1,16 @@
-# Business stack (deferred)
+# Business stack
 
-This directory is retained as a future-work manifest set and is not part of the
-active V1 desired state. The Argo ApplicationSet intentionally does not generate
-an application for this directory.
+The active business surface is deliberately narrow: **Invoice Ninja** is the
+Studio Lechaplais operational back office for clients, quotes, projects,
+timesheets and invoices.
 
-Deferred workloads: Listmonk, Stalwart, Bulwark, Twenty, Chatwoot and La Suite
-Messages.
+The public `lechaplais.com` checkout remains Cloudflare/Stripe/D1/R2 owned and
+must not synchronously depend on this cluster. Paid e-shop orders are projected
+into Invoice Ninja asynchronously/best-effort and can be replayed.
 
-Do not deploy these manifests or treat their absence from the cluster as a
-runtime defect until a separate activation decision establishes their platform
-contracts, secrets, ingress and backup coverage.
+Retired here: Listmonk, Twenty, Chatwoot, La Suite Messages, Stalwart and
+Bulwark. Marketing/events belong to PostHog; human mail belongs to Migadu;
+French e-invoice/e-reporting transport belongs to the external PA.
+
+Invoice Ninja follows the upstream topology: Debian app + nginx, MySQL and
+Redis. Do not replace its MySQL database with CNPG/PostgreSQL.
