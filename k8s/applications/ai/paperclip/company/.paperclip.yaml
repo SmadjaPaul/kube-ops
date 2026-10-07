@@ -48,6 +48,33 @@ agents:
     runtime:
       heartbeat:
         enabled: false
+  factory-platform-lead:
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/factory/default
+    budgetMonthlyCents: 2500
+    runtime:
+      heartbeat:
+        enabled: false
+  data-platform-engineer:
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/factory/code
+    budgetMonthlyCents: 3000
+    runtime:
+      heartbeat:
+        enabled: false
+  harness-engineer:
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/factory/code
+    budgetMonthlyCents: 2500
+    runtime:
+      heartbeat:
+        enabled: false
 
 projects:
   kube-ops:
@@ -79,6 +106,23 @@ projects:
         name: homelab-infra
         sourceType: git_repo
         repoUrl: https://github.com/SmadjaPaul/homelab-infra.git
+        repoRef: main
+        defaultRef: main
+        isPrimary: true
+
+  factory-platform:
+    executionWorkspacePolicy:
+      enabled: true
+      defaultMode: isolated_workspace
+      allowIssueOverride: false
+      workspaceStrategy:
+        type: git_worktree
+        baseRef: main
+    workspaces:
+      main:
+        name: factory-platform
+        sourceType: git_repo
+        repoUrl: https://github.com/SmadjaPaul/factory-platform.git
         repoRef: main
         defaultRef: main
         isPrimary: true

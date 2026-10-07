@@ -7,7 +7,8 @@ Reference patterns deliberately combined here:
 - Paperclip `Superpowers Dev Shop`: small role graph and disciplined plan/build/review/release loop.
 - Paperclip `GStack`: QA/release emphasis.
 - `Teck-Lab/Teck.Agents`: blocker DAGs, isolated worktrees and parallel-safe leaf execution.
-- Compound Engineering: Plan -> Work -> Review -> Compound discipline, reduced to a five-agent V1.
+- Compound Engineering: Plan -> Work -> Review -> Compound discipline.
+- Harness / Loop Engineering: measured inner, outer and meta loops that turn recurring evidence into durable improvements.
 
 ## Import
 
@@ -20,6 +21,14 @@ The canonical issue inventory is separate:
 `projects/kube-ops/backlog-seed.yaml`. It is reconciled through the repository
 adapter in `scripts/paperclip/import-backlog-seed.mjs`; Paperclip's Company
 import does not natively import that backlog format.
+
+The Company now contains two collaborating units:
+
+- **Engineering** — delivery of product and infrastructure changes.
+- **Data Platform & Factory Engineering** — owns `factory-platform`, Factory Intelligence,
+  and evidence-driven improvement of the factory harness.
+
+Reviewer and QA & Release remain shared independent gates across both units.
 
 The V1 intentionally has no scheduled heartbeats. Work is started explicitly
 while execution and approval boundaries are being qualified.

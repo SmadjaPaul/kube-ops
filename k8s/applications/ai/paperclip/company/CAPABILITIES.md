@@ -11,6 +11,9 @@ network policy and Kubernetes RBAC must enforce the same matrix.
 | Implementation Engineer | branch/worktree only | branch + PR | read-only | on-demand | limited diagnostics | no self-merge |
 | Reviewer | no | review/read only | read-only if evidence requires it | optional | limited | no |
 | QA & Release Engineer | no by default | PR/read + release evidence | read-only | no | yes | external R1 gate only |
+| Factory Platform Lead | no | no | metadata/read only if required | yes | no | no |
+| Data Platform Engineer | branch/worktree only | branch + PR | read-only | on-demand | limited diagnostics | no self-merge |
+| Harness Engineer | branch/worktree only | branch + PR | read-only | on-demand | limited diagnostics | no self-merge |
 
 Global invariants:
 
@@ -21,6 +24,8 @@ Global invariants:
 - R1 may be merged only after independent review, QA and required CI gates pass.
 - R2 always requires the human operator.
 - Logical model names are capabilities; consumers must not name physical providers.
+- Factory improvement agents may propose or implement bounded changes but may not self-merge or self-deploy their own control plane.
+- Commercial product dependencies require an explicit license/commercial-use check before adoption.
 - Coding sandboxes should not receive a Kubernetes ServiceAccount token by default.
 - Runtime egress should be allow-listed rather than ambient.
 
