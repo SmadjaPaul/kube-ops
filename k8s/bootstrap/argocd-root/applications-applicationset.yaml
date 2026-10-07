@@ -20,8 +20,10 @@ spec:
           - path: k8s/applications/web
           - path: k8s/applications/automation
           - path: k8s/applications/games
-          # Studio Lechaplais business back office stays isolated from the
-          # application category root so Argo can prune retired peers cleanly.
+          # Stage Invoice Ninja alongside the two currently active business apps.
+          # Retire Listmonk/Twenty only after Invoice Ninja is qualified live.
+          - path: k8s/applications/business/listmonk
+          - path: k8s/applications/business/twenty
           - path: k8s/applications/business/invoice-ninja
           - path: k8s/applications/catalog
           - path: k8s/applications/platform
