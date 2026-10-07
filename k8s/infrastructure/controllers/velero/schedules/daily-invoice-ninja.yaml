@@ -1,0 +1,19 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-invoice-ninja
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: invoice-ninja
+spec:
+  schedule: "35 4 * * *"
+  template:
+    includedNamespaces: [invoice-ninja]
+    includedResources: ['*']
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h

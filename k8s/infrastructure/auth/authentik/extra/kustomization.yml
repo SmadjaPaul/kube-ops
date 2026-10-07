@@ -34,7 +34,8 @@ configMapGenerator:
       - ./blueprints/apps-stirling-pdf.yaml
       - ./blueprints/apps-sure.yaml
       - ./blueprints/apps-searxng.yaml
-      # Retired app blueprints (Actual Budget, Dawarich, Metabase, Messages)
+      - ./blueprints/apps-invoice-ninja.yaml
+      # Retired app blueprints (Actual Budget, Dawarich, Metabase)
       # intentionally remain in Git history but are no longer loaded into the
       # active Authentik blueprint ConfigMap. Their ExternalSecrets are left
       # untouched here to avoid credential deletion/rotation in an R1 change.
