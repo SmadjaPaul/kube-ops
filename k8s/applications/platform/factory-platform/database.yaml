@@ -1,0 +1,35 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: factory-platform-postgresql
+  namespace: factory-platform
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7
+  bootstrap:
+    initdb:
+      database: factory
+      owner: factory
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: factory-platform-hetzner-store
+  storage:
+    size: 20Gi
+    storageClass: longhorn-bulk
+  walStorage:
+    size: 5Gi
+    storageClass: longhorn-bulk
+    resizeInUseVolumes: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  monitoring:
+    enablePodMonitor: false
+  affinity:
+    enablePodAntiAffinity: false
