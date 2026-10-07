@@ -38,6 +38,7 @@ spec:
             - { name: OIDC_ISSUER, value: "https://auth.smadja.dev/application/o/sure/" }
             - { name: OIDC_REDIRECT_URI, value: "https://sure.smadja.dev/auth/openid_connect/callback" }
             - { name: REDIS_URL, value: "redis://sure-redis:6379/1" }
+            - { name: TMPDIR, value: "/rails/storage" }
             - name: SECRET_KEY_BASE
               valueFrom: { secretKeyRef: { name: sure-runtime, key: SECRET_KEY_BASE } }
             - name: OIDC_CLIENT_SECRET
@@ -121,6 +122,7 @@ spec:
             - { name: OIDC_ISSUER, value: "https://auth.smadja.dev/application/o/sure/" }
             - { name: OIDC_REDIRECT_URI, value: "https://sure.smadja.dev/auth/openid_connect/callback" }
             - { name: REDIS_URL, value: "redis://sure-redis:6379/1" }
+            - { name: TMPDIR, value: "/rails/storage" }
             - name: SECRET_KEY_BASE
               valueFrom: { secretKeyRef: { name: sure-runtime, key: SECRET_KEY_BASE } }
             - name: OIDC_CLIENT_SECRET
