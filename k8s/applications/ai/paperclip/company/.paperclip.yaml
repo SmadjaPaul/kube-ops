@@ -76,15 +76,11 @@ agents:
       heartbeat:
         enabled: false
 
+# Safe import into an existing Company intentionally omits executionWorkspacePolicy.
+# Paperclip rejects runtime execution policy inside the safe-import package.
+# Apply the reviewed policy explicitly with project update after import.
 projects:
   kube-ops:
-    executionWorkspacePolicy:
-      enabled: true
-      defaultMode: isolated_workspace
-      allowIssueOverride: false
-      workspaceStrategy:
-        type: git_worktree
-        baseRef: main
     workspaces:
       main:
         name: kube-ops
@@ -94,13 +90,6 @@ projects:
         defaultRef: main
         isPrimary: true
   homelab-infra:
-    executionWorkspacePolicy:
-      enabled: true
-      defaultMode: isolated_workspace
-      allowIssueOverride: false
-      workspaceStrategy:
-        type: git_worktree
-        baseRef: main
     workspaces:
       main:
         name: homelab-infra
@@ -109,15 +98,7 @@ projects:
         repoRef: main
         defaultRef: main
         isPrimary: true
-
   factory-platform:
-    executionWorkspacePolicy:
-      enabled: true
-      defaultMode: isolated_workspace
-      allowIssueOverride: false
-      workspaceStrategy:
-        type: git_worktree
-        baseRef: main
     workspaces:
       main:
         name: factory-platform
