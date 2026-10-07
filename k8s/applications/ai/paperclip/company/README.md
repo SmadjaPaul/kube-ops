@@ -43,3 +43,77 @@ while execution and approval boundaries are being qualified.
 - The production Paperclip Kustomization does not currently activate the sandbox candidate.
 - No generic auth fork is introduced merely to make the factory work.
 - Model access routes through the existing in-cluster LiteLLM capability aliases.
+
+
+## Factory Platform bootstrap
+
+The existing Paperclip Company is the target. Do not replace it.
+
+Use the supported safe import with `collision=skip` so only the three new Factory
+Platform agents and the `factory-platform` project are created. Existing
+`kube-ops`, `homelab-infra`, agents and other runtime objects must remain untouched.
+
+Preview first:
+
+```bash
+npx --yes paperclipai company import \
+  k8s/applications/ai/paperclip/company \
+  --api-base https://paperclip.smadja.dev \
+  --target existing \
+  --company-id "$PAPERCLIP_COMPANY_ID" \
+  --include agents,projects \
+  --agents factory-platform-lead,data-platform-engineer,harness-engineer \
+  --collision skip \
+  --dry-run \
+  --json
+```
+
+The preview gate is:
+
+- create: Factory Platform Lead;
+- create: Data Platform Engineer;
+- create: Harness Engineer;
+- create: factory-platform project;
+- skip: existing Company objects;
+- delete/replace: zero.
+
+Only after that bounded preview passes:
+
+```bash
+npx --yes paperclipai company import \
+  k8s/applications/ai/paperclip/company \
+  --api-base https://paperclip.smadja.dev \
+  --target existing \
+  --company-id "$PAPERCLIP_COMPANY_ID" \
+  --include agents,projects \
+  --agents factory-platform-lead,data-platform-engineer,harness-engineer \
+  --collision skip \
+  --yes \
+  --json
+```
+
+The strategic purpose is a native Paperclip Goal, not Company-import state:
+
+```bash
+GOAL_ID="$(
+  npx --yes paperclipai goal create \
+    --api-base https://paperclip.smadja.dev \
+    --company-id "$PAPERCLIP_COMPANY_ID" \
+    --title "Build a self-improving software factory and validate the Data Platform" \
+    --description "Use Factory Intelligence to measurably improve autonomy, automation, quality, cost and lead time while evolving factory-platform as the first commercial vertical of the Smadja Data Platform." \
+    --level team \
+    --json |
+  jq -r '.id'
+)"
+
+test -n "$GOAL_ID" && test "$GOAL_ID" != "null"
+
+npx --yes paperclipai project update factory-platform \
+  --api-base https://paperclip.smadja.dev \
+  --company-id "$PAPERCLIP_COMPANY_ID" \
+  --goal-ids "$GOAL_ID"
+```
+
+Do not enable scheduled heartbeats as part of this bootstrap. First close the
+Factory Platform V0 observability/backup gates, then start bounded explicit work
+so the first Paperclip-native telemetry becomes useful V0.2 evidence.
