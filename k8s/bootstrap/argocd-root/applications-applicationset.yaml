@@ -25,6 +25,7 @@ spec:
           - path: k8s/applications/business/listmonk
           - path: k8s/applications/business/twenty
           - path: k8s/applications/catalog
+          - path: k8s/applications/platform
           - path: k8s/applications/restore
   template:
     metadata:
