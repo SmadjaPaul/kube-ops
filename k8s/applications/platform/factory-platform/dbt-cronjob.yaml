@@ -35,7 +35,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: dbt
-              image: ghcr.io/smadjapaul/factory-platform@sha256:ed5a440109e7d470e3d17cfe6da2a89091901c1479bb818ef5310b614c0d8439
+              image: ghcr.io/smadjapaul/factory-platform@sha256:ea5f37f9a9c3e8d7c3a04b47ef1f83c8146fdeb365baebbb514246ee044cf81a
               imagePullPolicy: IfNotPresent
               args: ["dbt-build"]
               env:
