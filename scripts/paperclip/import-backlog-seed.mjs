@@ -484,6 +484,9 @@ function buildPlan(seed, records, remote) {
   const projectsBySlug = new Map(remote.projects.map((project) => [projectSlug(project), project]));
   const targetProject = projectsBySlug.get(seed.project.slug);
   if (!targetProject) fail(`Target project does not exist: ${seed.project.slug}`);
+  if (typeof targetProject.id !== "string" || targetProject.id.trim() === "") {
+    fail(`Target project has no usable id: ${seed.project.slug}`);
+  }
   const projectId = targetProject.id;
 
   const identityMap = new Map();

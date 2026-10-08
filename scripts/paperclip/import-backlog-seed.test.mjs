@@ -48,6 +48,13 @@ test("empty Paperclip state produces a non-empty create-only plan", async () => 
   assert.deepEqual(plan.counts, { CREATE: 3, UPDATE: 0, UNCHANGED: 0, CONFLICT: 0 });
 });
 
+test("NEW_TASK_PROJECT_MAPPING_TEST rejects a repo task mapping with a null project id", async () => {
+  await assert.rejects(
+    () => createPlan({ seed, remote: { projects: [{ id: null, urlKey: "kube-ops" }], issues: [] } }),
+    /Target project has no usable id: kube-ops/,
+  );
+});
+
 test("normalizes omitted seed priority to Paperclip's medium default", async () => {
   const plan = await createPlan({
     seed,
