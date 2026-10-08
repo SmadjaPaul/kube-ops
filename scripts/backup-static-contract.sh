@@ -14,6 +14,8 @@ roots=(
   k8s/applications/web
   k8s/applications/tools
   k8s/applications/business
+  k8s/applications/business/retained/listmonk
+  k8s/applications/business/retained/twenty
   k8s/applications/catalog
   k8s/applications/games
   k8s/infrastructure/controllers
