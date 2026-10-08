@@ -19,6 +19,19 @@ Before any activation:
 - use one disposable agent/run;
 - do not inject production credentials.
 
-The current candidate uses `sandbox-cr`, Cilium allow-list egress and bounded
-per-tenant quotas. It is not a claim that the current upstream sandbox/runtime
-image set is production-ready.
+The candidate uses `sandbox-cr`, Cilium allow-list egress, bounded container
+resources, cascade cleanup when a sandbox lease is released, a 15-minute
+completed-Job cleanup TTL for the stable fallback, and a one-hour activity
+deadline. The supplied OpenCode runtime is pinned by immutable digest through
+the declarative `adapters[].runtimeImage` registry entry.
+
+The candidate deliberately has no `imagePullSecrets`, no forwarded `envKeys`,
+and no production Secret reference. The plugin-generated tenant ServiceAccount
+does not automount a token, and its namespaced Role is limited to reading pod
+logs. The Paperclip server still needs its separately qualified in-cluster
+control-plane access to create and clean up sandbox resources; the coding
+workload has no Kubernetes write authority.
+
+`imageAllowList` contains only the supplied immutable digest. The candidate
+uses the adapter registry as the authoritative runtime source and is not a
+claim that the live Company or Paperclip environment has been migrated.
