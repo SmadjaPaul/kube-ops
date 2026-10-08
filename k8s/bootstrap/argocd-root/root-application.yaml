@@ -14,7 +14,6 @@ spec:
     repoURL: https://github.com/SmadjaPaul/kube-ops.git
     targetRevision: main
     path: k8s/bootstrap/argocd-root
-    kustomize: {}
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
