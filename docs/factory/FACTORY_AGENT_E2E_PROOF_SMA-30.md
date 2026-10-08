@@ -12,12 +12,12 @@ performs **no Kubernetes write**, and is **unrelated to kagent**.
 | Run id | `2fb8464c-34ef-4d16-95f6-0d2eb77040da` |
 | Agent | `a8f202c8-5e61-4df9-afa1-8b0f62ab4e74` — Senior Implementation Engineer (`opencode_local` / `litellm/factory/code`) |
 | Repository | `SmadjaPaul/kube-ops` (`https://github.com/SmadjaPaul/kube-ops.git`) |
-| Timestamp (UTC, ISO 8601) | `2026-10-08T10:19:01Z` |
-| Tests | bounded static checks: `just check`, `git diff --check` (see "Static checks" below) |
-| PR reference | _pending — will be filled after `gh pr create` observes the URL on the second commit_ |
+| Timestamp (UTC, ISO 8601) | first commit `2026-10-08T10:19:01Z`; PR opened at `2026-10-08T10:28:51Z`; this follow-up at the time of the second commit |
+| Tests | bounded static checks: `git diff --check`, required-field grep, fence-balance check, secret-pattern scan; `just check` not available in this Linux runtime (no `just`/`kustomize`/`yq`/`ruby`) — accepted by the board as the bounded static validation for this documentation-only change (see "Static checks" below) |
+| PR reference | [`SmadjaPaul/kube-ops#365`](https://github.com/SmadjaPaul/kube-ops/pull/365) — opened on this branch `codex/f1-d2-proof` against `main`; no merge, no auto-merge |
 
-The PR reference field is intentionally left as a placeholder in the first
-commit and is updated by a follow-up commit once the open PR URL is observed.
+The first commit recorded the placeholder; the PR URL was observed and is
+filled in by the second commit.
 
 ## Repository and branch evidence
 
@@ -81,14 +81,20 @@ No command in this section prints a Secret value or a credential.
 
 | Command | Purpose | Observed result |
 | --- | --- | --- |
-| `git diff --check` (against the staged/unstaged change) | Detect whitespace errors and conflict markers in the diff. | _(filled in after run)_ |
-| `just check` (which runs `npm run check` then `tests/harness/kube-preflight-test.sh`) | Deterministic clusterless V1 + backup + agent-harness contract validation. | _(filled in after run)_ |
+| `git diff --check` (against the staged/unstaged change) | Detect whitespace errors and conflict markers in the diff. | **PASS** — exit 0, no whitespace errors, no conflict markers. |
+| `git diff --check` (against the cached change) | Repeat the check after staging. | **PASS** — exit 0. |
+| Required-field grep (`Task id`, `Run id`, `Agent`, `Repository`, `Acceptance criteria`, `Timestamp`, `Tests`, `PR reference`) | Verify the eight contract-required field labels are present in the file. | **PASS** — all 8 labels present. |
+| Required-assertion grep (`documentation-only`, `non-destructive`, `no secrets`, `no Kubernetes write`, `unrelated to kagent`) | Verify the five required assertions are stated in the file. | **PASS** — all 5 assertions present. |
+| Markdown fence-balance check (`awk` over `` ``` `` markers) | Confirm no unclosed code fences. | **PASS** — fence balance: balanced. |
+| Secret-pattern scan (`BEGIN ... PRIVATE KEY`, `ghp_…`, `xoxb-…`, `AKIA…`) | Confirm no common credential patterns leaked into the diff. | **PASS** — no secret patterns found. |
+| `just check` (which runs `npm run check` then `tests/harness/kube-preflight-test.sh`) | Deterministic clusterless V1 + backup + agent-harness contract validation. | **NOT_AVAILABLE** — the Linux runtime container has no `just`, `kustomize`, `yq`, or `ruby`; `npm run check` is also broken by a paperclip-runner `NODE_OPTIONS=--import ./server/dist/instrumentation.js` injection that references a missing `server/dist/instrumentation.js`. The board accepted the bounded Markdown-appropriate checks above as the static validation for this documentation-only change (no YAML, kustomize, or helm change is in this PR). |
 
-`just check` is bounded to schema/render/contract checks and does not require
-cluster access. The kube-preflight test script is exercised in a sandboxed
-mode that fails fast when Doppler is unauthenticated; that failure is
-expected for a documentation-only PR and is recorded as `not_applicable`
-below if observed.
+`just check` would have run schema/render/contract checks (it does not require
+cluster access). The `tests/harness/kube-preflight-test.sh` step would have
+called `scripts/lib/kube-preflight.sh` against Doppler `infrastructure/prd`,
+which the agent does not have access to. Neither step is relevant to a
+Markdown-only documentation PR, and the board explicitly accepted the
+alternative checks above as the bounded static validation for this run.
 
 ## Files in this PR
 
@@ -102,14 +108,17 @@ docs/factory/FACTORY_AGENT_E2E_PROOF_SMA-30.md   (added in commit 1, updated in 
 
 | Field | Observed value |
 | --- | --- |
-| PR URL | _(filled in after `gh pr create`)_ |
-| PR number | _(filled in after `gh pr create`)_ |
-| PR head SHA | _(filled in after the second push)_ |
+| PR URL | `https://github.com/SmadjaPaul/kube-ops/pull/365` |
+| PR number | `365` |
+| PR head SHA | recorded below; the PR head on `https://github.com/SmadjaPaul/kube-ops/pull/365/commits` is the SHA of the second (and final) commit on `codex/f1-d2-proof` |
 | PR base | `main` @ `f3b3a3545d13151b917129f89f4eef8c42609d43` |
+| PR opened | `2026-10-08T10:28:51Z` via the Paperclip GitHub broker |
+| Auto-merge | **NOT_ENABLED** — per contract |
+| Merged | **NO** — per contract; the PR is open and reviewable |
 
 ## CI observation
 
-Recorded once the broker has opened the PR and the run has polled GitHub
+Recorded after the broker has opened the PR and the run has polled GitHub
 for the CI status of the head commit.
 
 | Check / status | Observed value | Evidence status |
@@ -121,7 +130,8 @@ for the CI status of the head commit.
 
 A terminal verdict of `success` is recorded as `OBSERVED` only when the
 combined status or every required check-run is reported as green by the
-GitHub APIs.
+GitHub APIs. The agent does not declare PASS without actually observed
+green evidence; a `pending` or empty result is recorded as `NOT_TERMINAL`.
 
 ## Relation to F1 D3 telemetry
 
