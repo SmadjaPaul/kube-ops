@@ -5,7 +5,7 @@ isolated namespace and must not be run against `invoice-ninja` in place.
 
 ## Coverage contract
 
-- Kubernetes objects and the three application PVCs are covered by the Velero
+- Kubernetes objects and the four application PVCs are covered by the Velero
   schedule `velero-daily-invoice-ninja` at `04:35 UTC`.
 - MySQL is additionally dumped by
   `invoice-ninja-mysql-logical-backup` at `04:15 UTC` into
@@ -26,6 +26,7 @@ kubectl create namespace "$DRILL_NS"
 velero restore create "invoice-ninja-restore-$(date -u +%Y%m%d%H%M%S)" \
   --from-backup "$BACKUP_NAME" \
   --namespace-mappings "invoice-ninja:$DRILL_NS" \
+  --exclude-resources "secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
   --wait
 
 kubectl -n "$DRILL_NS" wait --for=condition=available deployment/invoice-ninja --timeout=10m
@@ -33,9 +34,11 @@ kubectl -n "$DRILL_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=
 kubectl -n "$DRILL_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=invoice-ninja-redis --timeout=10m
 ```
 
-The restored HTTPRoute must not be attached to either Gateway during the
-drill. Validate the restored objects, PVCs, and pod readiness locally; do not
-publish a second DNS record or expose the drill namespace.
+Secrets and ExternalSecrets are excluded deliberately: use drill-only,
+Secret-backed credentials if the restored application needs to start. The
+HTTPRoute is excluded deliberately so it cannot attach to either Gateway.
+Validate the restored objects, PVCs, and pod readiness locally; do not publish
+a second DNS record or expose the drill namespace.
 
 ## Logical SQL validation
 
@@ -76,8 +79,8 @@ Ninja; never commit or print that value:
 ```bash
 read -r -s APP_INVOICE_NINJA_API_TOKEN
 printf '\\n'
-doppler secrets set \
-  "APP_INVOICE_NINJA_API_TOKEN=$APP_INVOICE_NINJA_API_TOKEN" \
+printf '%s' "$APP_INVOICE_NINJA_API_TOKEN" | doppler secrets set \
+  APP_INVOICE_NINJA_API_TOKEN \
   --project infrastructure --config prd
 unset APP_INVOICE_NINJA_API_TOKEN
 ```
