@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: fct_delivery_task
+    description: One row per logical delivery task after event roll-up.
+    columns:
+      - name: task_id
+        tests: [not_null, unique]
+      - name: accepted_task_flag
+        tests:
+          - accepted_values:
+              values: [0, 1]
+      - name: end_to_end_cycle_time_seconds
+        description: Null for incomplete or invalid intent-to-acceptance intervals.
+
+  - name: mart_delivery_task
+    description: Canonical one-row-per-task delivery economics and diagnostics mart.
+    columns:
+      - name: task_id
+        tests: [not_null, unique]
+      - name: accepted_task_flag
+        tests:
+          - accepted_values:
+              values: [0, 1]
+      - name: first_pass_success_flag
+        tests:
+          - accepted_values:
+              values: [0, 1]
+
+  - name: mart_delivery_task_metrics
+    description: Cohort-wide throughput, percentile, quality, cost, and innovation metrics.
+    columns:
+      - name: accepted_task_throughput
+        tests: [not_null]
+
+  - name: mart_test_run_quality
+    description: Cohort-wide test-run coverage, identity completeness, provenance, and classification quality.
+    columns:
+      - name: test_run_count
+        tests: [not_null]
+      - name: identity_completeness_rate
+        description: Share of canonical test runs carrying repository and commit identity.
+      - name: unknown_classification_count
+        tests: [not_null]

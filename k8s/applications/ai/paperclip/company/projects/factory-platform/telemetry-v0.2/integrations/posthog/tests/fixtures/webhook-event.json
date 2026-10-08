@@ -1,0 +1,12 @@
+{
+  "uuid": "11111111-1111-4111-8111-111111111111",
+  "event": "factory_task_completed",
+  "distinct_id": "fixture-user",
+  "timestamp": "2026-10-08T10:00:00+02:00",
+  "properties": {
+    "task_id": "task-42",
+    "status": "completed",
+    "api_key": "fixture-token-must-not-survive",
+    "nested": {"password": "fixture-password"}
+  }
+}

@@ -1,0 +1,16 @@
+name: factory_platform_marts_v02
+version: 0.2.0
+config-version: 2
+
+profile: factory_platform
+
+model-paths: [models]
+test-paths: [tests]
+
+models:
+  factory_platform_marts_v02:
+    +materialized: view
+    facts:
+      +schema: factory_facts
+    marts:
+      +schema: factory_marts

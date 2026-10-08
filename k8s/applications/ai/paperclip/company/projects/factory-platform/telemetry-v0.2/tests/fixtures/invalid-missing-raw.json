@@ -1,0 +1,14 @@
+{
+  "contract": "factory.telemetry",
+  "spec_version": "0.2",
+  "event_id": "00000000-0000-4000-8000-000000000099",
+  "event_type": "task.created",
+  "tenant_id": "internal",
+  "entity": {"type": "task", "id": "invalid"},
+  "dedupe": {"key": "invalid:task", "strategy": "natural_key", "scope": "tenant"},
+  "occurred_at": "2026-10-08T08:00:00Z",
+  "observed_at": "2026-10-08T08:00:01Z",
+  "producer": {"name": "fixture", "version": "0.2.0", "environment": "test"},
+  "provenance": {"source_system": "fixture", "source_kind": "derived", "collector_id": "fixture"},
+  "data": {"task_id": "invalid", "status": "created", "title": "Invalid fixture", "task_kind": "feature"}
+}

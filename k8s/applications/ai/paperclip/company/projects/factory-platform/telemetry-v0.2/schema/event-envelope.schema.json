@@ -1,0 +1,772 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://factory-platform.invalid/contracts/telemetry/event-envelope-v0.2.schema.json",
+  "title": "Factory Platform Telemetry Event v0.2",
+  "description": "Versioned, tenant-scoped, append-only telemetry envelope. Payloads are intentionally event-shaped; raw source material is referenced by digest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "spec_version",
+    "event_id",
+    "event_type",
+    "tenant_id",
+    "entity",
+    "dedupe",
+    "occurred_at",
+    "observed_at",
+    "producer",
+    "provenance",
+    "raw",
+    "data"
+  ],
+  "properties": {
+    "contract": {
+      "const": "factory.telemetry"
+    },
+    "spec_version": {
+      "const": "0.2"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "task.created",
+        "task.completed",
+        "agent_run.started",
+        "agent_run.completed",
+        "model.invoked",
+        "tool_call.completed",
+        "subagent_call.completed",
+        "human_intervention.requested",
+        "human_intervention.resolved",
+        "pr.opened",
+        "review.submitted",
+        "ci.completed",
+        "merge.completed",
+        "argo_sync.completed",
+        "runtime_acceptance.completed",
+        "incident.opened",
+        "recovery.completed",
+        "rework.detected",
+        "cost.recorded",
+        "test_run.completed",
+        "billing.client.changed",
+        "billing.quote.changed",
+        "billing.invoice.changed",
+        "billing.payment.changed"
+      ]
+    },
+    "tenant_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "entity": {
+      "$ref": "#/$defs/entity"
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "causation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "dedupe": {
+      "$ref": "#/$defs/dedupe"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "$ref": "#/$defs/producer"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "raw": {
+      "$ref": "#/$defs/raw"
+    },
+    "data": {
+      "type": "object"
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced, non-canonical additions. Consumers must ignore namespaces they do not understand.",
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "oneOf": [
+        {
+          "properties": {
+            "event_type": { "const": "task.created" },
+            "data": { "$ref": "#/$defs/taskCreated" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "task.completed" },
+            "data": { "$ref": "#/$defs/taskCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "agent_run.started" },
+            "data": { "$ref": "#/$defs/agentRunStarted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "agent_run.completed" },
+            "data": { "$ref": "#/$defs/agentRunCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "model.invoked" },
+            "data": { "$ref": "#/$defs/modelInvoked" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "tool_call.completed" },
+            "data": { "$ref": "#/$defs/toolCallCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "subagent_call.completed" },
+            "data": { "$ref": "#/$defs/subagentCallCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "human_intervention.requested" },
+            "data": { "$ref": "#/$defs/humanInterventionRequested" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "human_intervention.resolved" },
+            "data": { "$ref": "#/$defs/humanInterventionResolved" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "pr.opened" },
+            "data": { "$ref": "#/$defs/prOpened" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "review.submitted" },
+            "data": { "$ref": "#/$defs/reviewSubmitted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "ci.completed" },
+            "data": { "$ref": "#/$defs/ciCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "merge.completed" },
+            "data": { "$ref": "#/$defs/mergeCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "argo_sync.completed" },
+            "data": { "$ref": "#/$defs/argoSyncCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "runtime_acceptance.completed" },
+            "data": { "$ref": "#/$defs/runtimeAcceptanceCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "incident.opened" },
+            "data": { "$ref": "#/$defs/incidentOpened" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "recovery.completed" },
+            "data": { "$ref": "#/$defs/recoveryCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "rework.detected" },
+            "data": { "$ref": "#/$defs/reworkDetected" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "cost.recorded" },
+            "data": { "$ref": "#/$defs/costRecorded" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "test_run.completed" },
+            "data": { "$ref": "#/$defs/testRunCompleted" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "billing.client.changed" },
+            "data": { "$ref": "#/$defs/billingEntityChanged" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "billing.quote.changed" },
+            "data": { "$ref": "#/$defs/billingEntityChanged" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "billing.invoice.changed" },
+            "data": { "$ref": "#/$defs/billingEntityChanged" }
+          }
+        },
+        {
+          "properties": {
+            "event_type": { "const": "billing.payment.changed" },
+            "data": { "$ref": "#/$defs/billingEntityChanged" }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "task",
+            "agent_run",
+            "model_invocation",
+            "tool_call",
+            "subagent_call",
+            "human_intervention",
+            "pull_request",
+            "review",
+            "ci_check",
+            "merge",
+            "argo_application",
+            "runtime_acceptance",
+            "incident",
+            "recovery",
+            "rework",
+            "cost",
+            "test_run"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "dedupe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "strategy", "scope"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "strategy": {
+          "type": "string",
+          "enum": ["source_event_id", "content_hash", "natural_key"]
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["tenant", "source", "global"]
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "environment"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "environment": {
+          "type": "string",
+          "enum": ["development", "staging", "production", "test"]
+        },
+        "instance_id": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_system", "source_kind", "collector_id"],
+      "properties": {
+        "source_system": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_kind": {
+          "type": "string",
+          "enum": ["api", "webhook", "database", "git", "controller", "operator", "derived"]
+        },
+        "source_event_id": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "source_revision": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "collector_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "trace_id": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    },
+    "raw": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["immutable", "content_sha256", "media_type", "byte_length", "storage_ref", "redaction", "captured_at"],
+      "properties": {
+        "immutable": {
+          "const": true
+        },
+        "content_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "media_type": {
+          "type": "string",
+          "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "storage_ref": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9+.-]*://.+$",
+          "maxLength": 2048
+        },
+        "redaction": {
+          "type": "string",
+          "enum": ["none", "partial", "full"]
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "attributes": {
+      "type": "object",
+      "description": "Source-specific fields that are not part of the canonical query model.",
+      "additionalProperties": true
+    },
+    "refs": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "id"],
+        "properties": {
+          "kind": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "id": { "type": "string", "minLength": 1, "maxLength": 512 },
+          "url": { "type": "string", "format": "uri", "maxLength": 2048 }
+        }
+      }
+    },
+    "payloadBase": {
+      "type": "object",
+      "properties": {
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "taskCreated": {
+      "allOf": [
+        { "$ref": "#/$defs/payloadBase" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["task_id", "status", "title", "task_kind"],
+          "properties": {
+            "task_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+            "status": { "const": "created" },
+            "title": { "type": "string", "minLength": 1, "maxLength": 512 },
+            "task_kind": { "type": "string", "enum": ["feature", "bug", "maintenance", "investigation", "incident"] },
+            "source_ref": { "type": "string", "maxLength": 1024 },
+            "attributes": { "$ref": "#/$defs/attributes" },
+            "refs": { "$ref": "#/$defs/refs" }
+          }
+        }
+      ]
+    },
+    "taskCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "status"],
+      "properties": {
+        "task_id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["completed", "failed", "cancelled"] },
+        "outcome": { "type": "string", "maxLength": 2048 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "agentRunStarted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "task_id", "agent_id", "status"],
+      "properties": {
+        "run_id": { "type": "string", "minLength": 1 },
+        "task_id": { "type": "string", "minLength": 1 },
+        "agent_id": { "type": "string", "minLength": 1 },
+        "status": { "const": "running" },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "agentRunCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "task_id", "agent_id", "status"],
+      "properties": {
+        "run_id": { "type": "string", "minLength": 1 },
+        "task_id": { "type": "string", "minLength": 1 },
+        "agent_id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["completed", "failed", "cancelled"] },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "modelInvoked": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["invocation_id", "run_id", "provider", "model", "operation", "status"],
+      "properties": {
+        "invocation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "provider": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "operation": { "type": "string", "enum": ["completion", "embedding", "rerank", "moderation", "other"] },
+        "status": { "type": "string", "enum": ["succeeded", "failed"] },
+        "input_tokens": { "type": "integer", "minimum": 0 },
+        "output_tokens": { "type": "integer", "minimum": 0 },
+        "latency_ms": { "type": "integer", "minimum": 0 },
+        "finish_reason": { "type": "string", "maxLength": 128 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "toolCallCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool_call_id", "run_id", "tool_name", "status", "attempt"],
+      "properties": {
+        "tool_call_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "tool_name": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["succeeded", "failed", "timed_out", "blocked"] },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "input_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "output_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "subagentCallCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call_id", "parent_run_id", "child_run_id", "agent_id", "status"],
+      "properties": {
+        "call_id": { "type": "string", "minLength": 1 },
+        "parent_run_id": { "type": "string", "minLength": 1 },
+        "child_run_id": { "type": "string", "minLength": 1 },
+        "agent_id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["succeeded", "failed", "cancelled"] },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "humanInterventionRequested": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intervention_id", "task_id", "reason", "status"],
+      "properties": {
+        "intervention_id": { "type": "string", "minLength": 1 },
+        "task_id": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "status": { "const": "requested" },
+        "requested_by": { "type": "string", "maxLength": 256 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "humanInterventionResolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intervention_id", "status", "actor_type"],
+      "properties": {
+        "intervention_id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["resolved", "rejected", "expired"] },
+        "actor_type": { "type": "string", "enum": ["human", "policy", "system"] },
+        "actor_id": { "type": "string", "maxLength": 256 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "prOpened": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pr_id", "repository", "number", "url", "head_sha", "base_ref"],
+      "properties": {
+        "pr_id": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string", "minLength": 1 },
+        "number": { "type": "integer", "minimum": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "head_sha": { "type": "string", "minLength": 7, "maxLength": 128 },
+        "base_ref": { "type": "string", "minLength": 1 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "reviewSubmitted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_id", "pr_id", "verdict", "reviewer_type", "commit_sha"],
+      "properties": {
+        "review_id": { "type": "string", "minLength": 1 },
+        "pr_id": { "type": "string", "minLength": 1 },
+        "verdict": { "type": "string", "enum": ["approved", "changes_requested", "commented"] },
+        "reviewer_type": { "type": "string", "enum": ["human", "agent", "automated"] },
+        "reviewer_id": { "type": "string", "maxLength": 256 },
+        "commit_sha": { "type": "string", "minLength": 7, "maxLength": 128 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "ciCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "repository", "workflow", "status", "commit_sha"],
+      "properties": {
+        "check_id": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string", "minLength": 1 },
+        "workflow": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["passed", "failed", "cancelled", "skipped"] },
+        "commit_sha": { "type": "string", "minLength": 7, "maxLength": 128 },
+        "run_url": { "type": "string", "format": "uri" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "mergeCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pr_id", "merge_commit_sha", "method", "merged_by"],
+      "properties": {
+        "pr_id": { "type": "string", "minLength": 1 },
+        "merge_commit_sha": { "type": "string", "minLength": 7, "maxLength": 128 },
+        "method": { "type": "string", "enum": ["merge", "squash", "rebase"] },
+        "merged_by": { "type": "string", "minLength": 1 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "argoSyncCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application", "desired_revision", "sync_status", "health_status", "operation_id"],
+      "properties": {
+        "application": { "type": "string", "minLength": 1 },
+        "desired_revision": { "type": "string", "minLength": 1 },
+        "sync_status": { "type": "string", "enum": ["synced", "out_of_sync", "unknown", "failed"] },
+        "health_status": { "type": "string", "enum": ["healthy", "progressing", "degraded", "missing", "unknown"] },
+        "operation_id": { "type": "string", "minLength": 1 },
+        "started_at": { "type": "string", "format": "date-time" },
+        "finished_at": { "type": "string", "format": "date-time" },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "runtimeAcceptanceCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acceptance_id", "target", "evidence_level", "result", "evidence_refs"],
+      "properties": {
+        "acceptance_id": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "minLength": 1 },
+        "evidence_level": { "type": "string", "enum": ["static", "reconciled", "runtime", "user"] },
+        "result": { "type": "string", "enum": ["passed", "failed", "inconclusive"] },
+        "evidence_refs": { "$ref": "#/$defs/refs" },
+        "attributes": { "$ref": "#/$defs/attributes" }
+      }
+    },
+    "incidentOpened": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["incident_id", "severity", "summary", "status"],
+      "properties": {
+        "incident_id": { "type": "string", "minLength": 1 },
+        "severity": { "type": "string", "enum": ["sev1", "sev2", "sev3", "sev4"] },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "status": { "const": "open" },
+        "detected_by": { "type": "string", "maxLength": 256 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "recoveryCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recovery_id", "incident_id", "action", "result"],
+      "properties": {
+        "recovery_id": { "type": "string", "minLength": 1 },
+        "incident_id": { "type": "string", "minLength": 1 },
+        "action": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "result": { "type": "string", "enum": ["succeeded", "failed", "partial"] },
+        "evidence_refs": { "$ref": "#/$defs/refs" },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "reworkDetected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rework_id", "task_id", "reason", "source_event_ids"],
+      "properties": {
+        "rework_id": { "type": "string", "minLength": 1 },
+        "task_id": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "source_event_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "type": "string", "format": "uuid" }
+        },
+        "estimated_minutes": { "type": "number", "minimum": 0 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "costRecorded": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cost_id", "currency", "amount", "basis"],
+      "properties": {
+        "cost_id": { "type": "string", "minLength": 1 },
+        "task_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "maxLength": 256 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "amount": { "type": "number", "minimum": 0 },
+        "basis": { "type": "string", "enum": ["provider_reported", "token_estimate", "compute_estimate", "human_time_estimate"] },
+        "input_tokens": { "type": "integer", "minimum": 0 },
+        "output_tokens": { "type": "integer", "minimum": 0 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "testRunCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["test_run_id", "task_id", "run_id", "attempt", "repository", "commit_sha", "execution_source", "status", "classification"],
+      "properties": {
+        "test_run_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "task_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "run_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "repository": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "commit_sha": { "type": "string", "minLength": 7, "maxLength": 128 },
+        "pr_number": { "type": "integer", "minimum": 1 },
+        "pr_url": { "type": "string", "format": "uri", "maxLength": 2048 },
+        "execution_source": { "type": "string", "enum": ["local", "github_actions"] },
+        "workflow": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "workflow_run_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "job_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "status": { "type": "string", "enum": ["passed", "failed", "cancelled", "skipped", "unknown"] },
+        "classification": { "type": "string", "enum": ["functional", "infrastructure", "flake", "policy", "unknown", "unclassified"] },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "test_count": { "type": "integer", "minimum": 0 },
+        "failure_count": { "type": "integer", "minimum": 0 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    },
+    "billingEntityChanged": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "action"],
+      "properties": {
+        "source_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "source_event_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "action": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "status": { "type": ["string", "number"] },
+        "amount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 16 },
+        "currency_id": { "type": ["string", "number"] },
+        "client_id": { "type": "string", "maxLength": 512 },
+        "invoice_id": { "type": "string", "maxLength": 512 },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "refs": { "$ref": "#/$defs/refs" }
+      }
+    }
+  }
+}

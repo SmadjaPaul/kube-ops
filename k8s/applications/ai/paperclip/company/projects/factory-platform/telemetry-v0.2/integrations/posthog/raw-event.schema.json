@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://factory-platform.invalid/contracts/telemetry/posthog-raw-event-v1.schema.json",
+  "title": "PostHog raw.events row v1",
+  "description": "A dependency-free, append-only raw.events row produced from a PostHog destination webhook.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "source",
+    "event_type",
+    "aggregate_type",
+    "aggregate_id",
+    "dedupe_key",
+    "occurred_at",
+    "observed_at",
+    "payload"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "source": { "const": "posthog" },
+    "event_type": { "const": "posthog.event_captured" },
+    "aggregate_type": { "const": "posthog_event" },
+    "aggregate_id": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "dedupe_key": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "source_id",
+        "source_event_id",
+        "event_name",
+        "properties",
+        "idempotency",
+        "provenance",
+        "raw"
+      ],
+      "properties": {
+        "tenant_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$" },
+        "source_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "source_event_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "event_name": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "distinct_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "properties": { "type": "object" },
+        "idempotency": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "strategy", "scope"],
+          "properties": {
+            "key": { "type": "string", "minLength": 1, "maxLength": 1024 },
+            "strategy": { "enum": ["source_event_id", "content_hash"] },
+            "scope": { "const": "source" }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_system", "source_kind", "collector_id", "source_id", "source_event_id"],
+          "properties": {
+            "source_system": { "const": "posthog" },
+            "source_kind": { "const": "webhook" },
+            "collector_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+            "source_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "source_event_id": { "type": "string", "minLength": 1, "maxLength": 512 }
+          }
+        },
+        "raw": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["immutable", "content_sha256", "media_type", "byte_length", "storage_ref", "redaction", "captured_at"],
+          "properties": {
+            "immutable": { "const": true },
+            "content_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "media_type": { "const": "application/json" },
+            "byte_length": { "type": "integer", "minimum": 0 },
+            "storage_ref": { "type": "string", "pattern": "^[a-z][a-z0-9+.-]*://.+$", "maxLength": 2048 },
+            "redaction": { "enum": ["none", "partial"] },
+            "captured_at": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    }
+  }
+}
