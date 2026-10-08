@@ -31,6 +31,6 @@ printf '%s\n' unknown >"$tmp/unclassified.data"
 git -C "$tmp" add unclassified.data
 output="$(AFFECTED_REPO_ROOT="$tmp" "$tmp/scripts/affected-tests.sh" --select "$base")"
 [[ "$output" == *'AFFECTED_CRITICAL=yes'* ]] || { echo "$output"; exit 1; }
-[[ "$output" == *'render:k8s/applications/restore'* ]] || { echo "$output"; exit 1; }
+[[ "$output" == *'render:k8s/applications/platform'* ]] || { echo "$output"; exit 1; }
 
 printf '%s\n' 'AFFECTED_TEST_SELECTOR=PASS'
