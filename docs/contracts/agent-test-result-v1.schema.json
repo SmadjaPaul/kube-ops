@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kube-ops.smadja.dev/contracts/agent-test-result-v1.schema.json",
+  "title": "Coding-agent test result v1",
+  "description": "A durable, transport-neutral record of checks attempted by a coding agent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "resultId", "producedAt", "actor", "repository", "tests", "summary", "transmission"],
+  "properties": {
+    "schemaVersion": { "const": "agent-test-result/v1" },
+    "resultId": { "type": "string", "minLength": 1 },
+    "producedAt": { "type": "string", "format": "date-time" },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name"],
+      "properties": {
+        "kind": { "enum": ["agent", "human", "ci", "harness"] },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "revision"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "branch": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/test" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "total", "executed", "notExecuted"],
+      "properties": {
+        "outcome": { "enum": ["passed", "failed", "incomplete"] },
+        "total": { "type": "integer", "minimum": 1 },
+        "executed": { "type": "integer", "minimum": 0 },
+        "notExecuted": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "unavailable": { "type": "integer", "minimum": 0 },
+        "notApplicable": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "transmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "eventType", "schema", "idempotencyKey", "payload"],
+      "properties": {
+        "target": { "const": "factory-platform" },
+        "eventType": { "const": "agent.test.result" },
+        "schema": { "const": "agent-test-result/v1" },
+        "idempotencyKey": { "type": "string", "minLength": 1 },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["resultId", "repository", "revision", "tests", "summary"],
+          "properties": {
+            "resultId": { "type": "string", "minLength": 1 },
+            "repository": { "type": "string", "minLength": 1 },
+            "revision": { "type": "string", "minLength": 1 },
+            "tests": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/test" } },
+            "summary": { "type": "object" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "execution", "classification", "reason", "risk", "expectedCi"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "execution": { "enum": ["executed", "not-executed"] },
+        "classification": { "enum": ["passed", "failed", "skipped", "unavailable", "not-applicable"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "risk": { "enum": ["none", "low", "medium", "high", "unknown"] },
+        "expectedCi": { "enum": ["required", "expected", "optional", "not-expected", "unknown"] },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["command", "ci", "manual", "none"] },
+            "reference": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  }
+}

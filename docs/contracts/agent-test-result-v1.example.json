@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "run-2026-10-08T12:00:00Z-abc123",
+  "producedAt": "2026-10-08T12:00:00Z",
+  "actor": { "kind": "agent", "name": "harness-engineer" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "abc123",
+    "branch": "codex/agent-test-contract"
+  },
+  "tests": [
+    {
+      "id": "agent-test-result-contract",
+      "name": "agent test result contract",
+      "command": "node --test tests/harness/agent-test-result-contract.test.mjs",
+      "execution": "executed",
+      "classification": "passed",
+      "reason": "Contract test completed successfully.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "CI:v1-contract" }
+    },
+    {
+      "id": "live-runtime-smoke",
+      "name": "live runtime smoke",
+      "command": "just runtime-smoke",
+      "execution": "not-executed",
+      "classification": "unavailable",
+      "reason": "Live runtime evidence was outside this static contract change.",
+      "risk": "medium",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 2,
+    "executed": 1,
+    "notExecuted": 1,
+    "passed": 1,
+    "unavailable": 1
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@abc123:agent-test-result-contract",
+    "payload": {
+      "resultId": "run-2026-10-08T12:00:00Z-abc123",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "abc123",
+      "tests": [
+        {
+          "id": "agent-test-result-contract",
+          "name": "agent test result contract",
+          "execution": "executed",
+          "classification": "passed",
+          "reason": "Contract test completed successfully.",
+          "risk": "none",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 2, "executed": 1, "notExecuted": 1 }
+    }
+  }
+}

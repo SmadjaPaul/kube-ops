@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+contract='docs/contracts/agent-test-result-v1.schema.json'
+example='docs/contracts/agent-test-result-v1.example.json'
+[[ -f "$contract" && -f "$example" ]] || {
+  echo "ERROR: missing versioned agent test result contract" >&2
+  exit 1
+}
+node --test tests/harness/agent-test-result-contract.test.mjs
+
 company="k8s/applications/ai/paperclip/company"
 paperclip="k8s/applications/ai/paperclip"
 paperclip_instance="k8s/applications/ai/paperclip/instance.yaml"
@@ -121,3 +129,4 @@ echo "PAPERCLIP_WORKSPACE_ISOLATION=PASS"
 echo "AI_CONSUMER_MODEL_ABSTRACTION=PASS"
 echo "PAPERCLIP_AGENT_NODE_OPTIONS=PASS"
 echo "PAPERCLIP_AGENT_IMAGE_QUALIFICATION=HUMAN_GATE"
+echo "AGENT_TEST_RESULT_CONTRACT=PASS"
