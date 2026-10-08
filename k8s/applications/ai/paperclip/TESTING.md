@@ -117,7 +117,23 @@ For Company:
 - 7 skills;
 - all `CAN_APPROVE_R2=false`;
 - heartbeats disabled;
-- workspaces `git_worktree`, baseRef `main`.
+- workspaces `git_worktree`, baseRef `main`, branchTemplate
+  `{{issue.identifier}}-{{slug}}`.
+
+For SMA-31, the workspace lifecycle is qualified only when the evidence is
+observed in the same run, in this order:
+
+1. Paperclip creates or attaches the execution workspace before model
+   invocation.
+2. `currentExecutionWorkspace` is non-null and reports
+   `mode=isolated_workspace` with `workspaceStrategy.type=git_worktree`.
+3. The agent cwd is the resolved task worktree, not the project primary
+   checkout, and `git branch --show-current` is the task-specific branch
+   derived from `{{issue.identifier}}-{{slug}}`.
+4. The resolved worktree is based on `main`.
+
+Missing or inferred fields are `NOT_OBSERVED`, never `PASS`. The qualification
+must not read Secret values or mutate Kubernetes or the Paperclip database.
 
 For backlog:
 

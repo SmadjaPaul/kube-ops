@@ -136,11 +136,17 @@ npx --yes paperclipai project update factory-platform \
   --api-base https://paperclip.smadja.dev \
   --company-id "$PAPERCLIP_COMPANY_ID" \
   --goal-ids "$GOAL_ID" \
-  --execution-workspace-policy-json '{"enabled":true,"defaultMode":"isolated_workspace","allowIssueOverride":false,"workspaceStrategy":{"type":"git_worktree","baseRef":"main"}}' \
+  --execution-workspace-policy-json '{"enabled":true,"defaultMode":"isolated_workspace","allowIssueOverride":false,"workspaceStrategy":{"type":"git_worktree","baseRef":"main","branchTemplate":"{{issue.identifier}}-{{slug}}"}}' \
   --json
 ```
 
 This post-import policy update is intentionally separate from Company portability. Existing `kube-ops` and `homelab-infra` projects are skipped and keep their current runtime policies unchanged.
+
+The branch template is intentionally issue-scoped. Paperclip must realize the
+execution workspace before invoking the agent, then pass that worktree as the
+agent cwd; an agent must not discover or select the repository itself. The
+SMA-31 qualification gate records the resolved workspace, cwd, branch and
+base-ref evidence before accepting the run.
 
 Do not enable scheduled heartbeats as part of this bootstrap. First close the
 Factory Platform V0 observability/backup gates, then start bounded explicit work
