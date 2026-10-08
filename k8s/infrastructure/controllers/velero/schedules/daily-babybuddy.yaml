@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - babybuddy
-    orLabelSelectors:
-      - matchLabels:
-          app: babybuddy
+    labelSelector:
+      matchLabels:
+        app: babybuddy
     includedResources:
       - '*'
     excludedResources:

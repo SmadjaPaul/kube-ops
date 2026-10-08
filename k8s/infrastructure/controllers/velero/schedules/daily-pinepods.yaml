@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - pinepods
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/name: pinepods
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: pinepods
     includedResources:
       - '*'
     excludedResources:

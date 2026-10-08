@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - qdrant
-    orLabelSelectors:
-      - matchLabels:
-          app: qdrant
+    labelSelector:
+      matchLabels:
+        app: qdrant
     includedResources:
       - '*'
     excludedResources:

@@ -14,9 +14,9 @@ spec:
       - openclaw-talos-personal
       - openclaw-talos-ops
       - openclaw-talos-test
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/name: openclaw
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: openclaw
     includedResources:
       - '*'
     excludedResources:

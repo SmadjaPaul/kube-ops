@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - home-assistant
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/name: home-assistant
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: home-assistant
     includedResources:
       - '*'
     excludedResources:

@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - open-webui
-    orLabelSelectors:
-      - matchLabels:
-          app: open-webui
+    labelSelector:
+      matchLabels:
+        app: open-webui
     includedResources:
       - '*'
     excludedResources:

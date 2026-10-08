@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - perplexica
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/name: perplexica
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: perplexica
     includedResources:
       - '*'
     excludedResources:

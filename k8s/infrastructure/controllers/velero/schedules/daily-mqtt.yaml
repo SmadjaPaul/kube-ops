@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - mqtt
-    orLabelSelectors:
-      - matchLabels:
-          app: mosquitto
+    labelSelector:
+      matchLabels:
+        app: mosquitto
     includedResources:
       - '*'
     excludedResources:

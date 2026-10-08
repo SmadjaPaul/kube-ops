@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - media
-    orLabelSelectors:
-      - matchLabels:
-          app: audiobookrequest
+    labelSelector:
+      matchLabels:
+        app: audiobookrequest
     includedResources:
       - '*'
     excludedResources:

@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - media
-    orLabelSelectors:
-      - matchLabels:
-          app: lidarr
+    labelSelector:
+      matchLabels:
+        app: lidarr
     includedResources:
       - '*'
     excludedResources:

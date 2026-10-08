@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - opencode
-    orLabelSelectors:
-      - matchLabels:
-          app: opencode-web
+    labelSelector:
+      matchLabels:
+        app: opencode-web
     includedResources:
       - '*'
     excludedResources:

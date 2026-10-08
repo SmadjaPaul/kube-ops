@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - immich
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/instance: immich
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/instance: immich
     includedResources:
       - '*'
     excludedResources:

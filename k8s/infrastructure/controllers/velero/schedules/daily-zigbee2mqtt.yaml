@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - zigbee2mqtt
-    orLabelSelectors:
-      - matchLabels:
-          app: zigbee2mqtt
+    labelSelector:
+      matchLabels:
+        app: zigbee2mqtt
     includedResources:
       - '*'
     excludedResources:

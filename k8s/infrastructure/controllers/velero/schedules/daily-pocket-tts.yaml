@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - pocket-tts
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/name: pocket-tts
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: pocket-tts
     includedResources:
       - '*'
     excludedResources:

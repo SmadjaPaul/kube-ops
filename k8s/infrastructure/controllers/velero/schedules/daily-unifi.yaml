@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - unifi
-    orLabelSelectors:
-      - matchLabels:
-          app: unifi-controller
+    labelSelector:
+      matchLabels:
+        app: unifi-controller
     includedResources:
       - '*'
     excludedResources:

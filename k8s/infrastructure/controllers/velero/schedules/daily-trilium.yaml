@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - trilium
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/name: trilium
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: trilium
     includedResources:
       - '*'
     excludedResources:

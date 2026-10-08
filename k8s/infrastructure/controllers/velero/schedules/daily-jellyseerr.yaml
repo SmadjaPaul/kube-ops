@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - media
-    orLabelSelectors:
-      - matchLabels:
-          app: jellyseerr
+    labelSelector:
+      matchLabels:
+        app: jellyseerr
     includedResources:
       - '*'
     excludedResources:

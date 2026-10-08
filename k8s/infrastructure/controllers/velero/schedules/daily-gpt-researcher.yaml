@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - gpt-researcher
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/name: gpt-researcher
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: gpt-researcher
     includedResources:
       - '*'
     excludedResources:

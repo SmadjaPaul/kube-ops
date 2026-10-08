@@ -11,10 +11,10 @@ spec:
   template:
     includedNamespaces:
       - paperclip
-    orLabelSelectors:
-      - matchLabels:
-          app.kubernetes.io/name: paperclip
-          app.kubernetes.io/component: server
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: paperclip
+        app.kubernetes.io/component: server
     includedResources:
       - '*'
     excludedResources:
