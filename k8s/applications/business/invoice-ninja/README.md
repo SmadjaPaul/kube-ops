@@ -36,9 +36,10 @@ A daily `mysqldump --single-transaction` runs at 04:15 UTC into the existing
 the application storage and the latest logical SQL dump without introducing a
 second backup destination or long-lived backup credential.
 
-Before real customer data, run a restore drill that proves both paths: restore
-the namespace/PVCs with Velero, then validate that `logical-backups/mysql-latest.sql`
-can rebuild the Invoice Ninja database into an empty MySQL instance.
+Before real customer data, run the isolated restore drill in
+[`RESTORE.md`](RESTORE.md). It proves both paths: restore the namespace/PVCs
+with Velero, then validate that `logical-backups/mysql-latest.sql` can rebuild
+the Invoice Ninja database into an empty MySQL instance.
 
 
 ## Mail bootstrap

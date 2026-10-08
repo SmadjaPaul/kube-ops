@@ -43,6 +43,7 @@ txtOwnerId: smadja-lan
 
 domainFilters:
   - smadja.dev
+  - lechaplais.com
 
 gatewayNamespace: gateway
 

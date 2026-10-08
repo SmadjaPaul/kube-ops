@@ -19,6 +19,10 @@ spec:
         spec:
           restartPolicy: Never
           securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
             seccompProfile: { type: RuntimeDefault }
           containers:
             - name: mysqldump
@@ -28,8 +32,10 @@ spec:
                 - -ec
                 - |
                   umask 077
-                  tmp=/backup/mysql-latest.sql.tmp
-                  target=/backup/mysql-latest.sql
+                  backup_dir=/backup/logical-backups
+                  tmp="$backup_dir/mysql-latest.sql.tmp"
+                  target="$backup_dir/mysql-latest.sql"
+                  mkdir -p "$backup_dir"
                   rm -f "$tmp"
                   mysqldump \
                     --host=invoice-ninja-mysql \
@@ -51,7 +57,11 @@ spec:
                       name: invoice-ninja-mysql
                       key: MYSQL_PASSWORD
               securityContext:
+                runAsNonRoot: true
+                runAsUser: 999
+                runAsGroup: 999
                 allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
                 capabilities: { drop: [ALL] }
                 seccompProfile: { type: RuntimeDefault }
               resources:
@@ -60,8 +70,11 @@ spec:
               volumeMounts:
                 - name: storage
                   mountPath: /backup
-                  subPath: logical-backups
+                - name: tmp
+                  mountPath: /tmp
           volumes:
             - name: storage
               persistentVolumeClaim:
                 claimName: invoice-ninja-storage
+            - name: tmp
+              emptyDir: { sizeLimit: 256Mi }
