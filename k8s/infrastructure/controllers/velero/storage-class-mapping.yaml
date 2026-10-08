@@ -8,3 +8,5 @@ metadata:
     velero.io/change-storage-class: RestoreItemAction
 data:
   longhorn: proxmox-csi
+  longhorn-fast: proxmox-csi
+  longhorn-bulk: proxmox-csi
