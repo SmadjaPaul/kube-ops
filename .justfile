@@ -20,6 +20,11 @@ context:
 inventory:
     bash scripts/inventory.sh
 
+[doc('Run fast, deterministic harness and shell syntax checks before commit')]
+check-fast:
+    bash -n scripts/check-agent-harness-contract.sh scripts/check-v1-active-contract.sh scripts/backup-static-contract.sh
+    npm run check:agent-harness
+
 [doc('Run deterministic clusterless V1 + backup validation')]
 check:
     npm run check
