@@ -4,6 +4,20 @@ This file defines the intended least-privilege boundary for each Paperclip role.
 Prompts are not a security boundary. Runtime credentials, connectors, shell access,
 network policy and Kubernetes RBAC must enforce the same matrix.
 
+The broader organization-level desired state lives in
+`desired-state/company.yaml`. It is the canonical Git contract for the
+mandatory Portfolio Lead, Principal Architect, Agents Orchestrator, Staff
+Engineer, QA & Release, Factory/Data Lead, Data Platform Engineer and Agent
+Experience Engineer roles. Existing Paperclip agent contracts are reused via
+`bootstrapAgentRef`; a null reference models a role without provisioning it.
+
+Before adding a capability, component or service, record a capability lookup
+and classify the proposal as `REUSE`, `EXTEND`, `COMPOSE`, `ADAPTER`,
+`NEW_COMPONENT`, `NEW_SERVICE` or `BU_CANDIDATE`. New interfaces, dependencies,
+services, migrations or security/execution boundaries also require an accepted
+ADR. `defaultHeartbeat: OFF` and `CAN_APPROVE_R2=false` are invariants of the
+desired state, not prompt-only preferences.
+
 | Role | Git write | GitHub write | Kubernetes | Research tools | Runtime/browser | Merge authority |
 |---|---|---|---|---|---|---|
 | Engineering Manager | no | no | metadata/read only if required | optional | no | no |

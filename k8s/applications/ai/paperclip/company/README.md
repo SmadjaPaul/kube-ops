@@ -33,6 +33,28 @@ Reviewer and QA & Release remain shared independent gates across both units.
 The V1 intentionally has no scheduled heartbeats. Work is started explicitly
 while execution and approval boundaries are being qualified.
 
+## Company desired state
+
+`desired-state/company.yaml` is the versioned governance contract for the
+organization, mandatory roles, capability registry, decision rights, routing,
+policies and accepted architecture decisions. It is reference-only: it does
+not provision agents, start work or mutate Paperclip runtime state.
+
+The manifest makes `DEFAULT_HEARTBEAT=OFF` explicit and requires a capability
+lookup before every addition. Capability decisions are classified as `REUSE`,
+`EXTEND`, `COMPOSE`, `ADAPTER`, `NEW_COMPONENT`, `NEW_SERVICE` or
+`BU_CANDIDATE`; structural changes also require an accepted ADR. Validate it
+with:
+
+```bash
+ruby k8s/applications/ai/paperclip/company/desired-state/validate-desired-state.rb
+```
+
+The architecture and rollback boundary is documented in
+`desired-state/ARCHITECTURE-ROLLBACK.md`. The existing `.paperclip.yaml`
+remains the safe-import package and is intentionally not expanded by this
+governance model.
+
 ## V1 boundaries
 
 - No self-merge. R1 can be merged only after independent review, QA and required CI gates.

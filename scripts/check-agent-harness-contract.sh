@@ -54,6 +54,8 @@ for model in default code research review; do
   }
 done
 
+ruby "$company/desired-state/validate-desired-state.rb"
+
 # Consumer configs must use logical model contracts. Physical provider mappings
 # belong in LiteLLM, not in Paperclip/OpenClaw/OpenWebUI/GPT Researcher.
 consumer_files=(
