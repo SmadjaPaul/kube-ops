@@ -53,6 +53,22 @@ Never collapse these levels:
 
 A merged PR proves none of levels 2-4 by itself.
 
+## Coding-agent test results
+
+Every coding-agent handoff must carry a machine-readable test result, even when
+some checks were not run. Use the versioned contract in
+`docs/contracts/agent-test-result-v1.schema.json` and include one record per
+planned check. Each record must distinguish `executed` from `not-executed`, use
+the classification `passed`, `failed`, `skipped`, `unavailable`, or
+`not-applicable`, and state its reason, risk, and expected CI treatment.
+
+Hooks may generate or transport this record, but they are advisory only. The
+agent instructions and handoff remain responsible for producing the result and
+for calling out missing, unavailable, or out-of-scope checks. Never turn a
+missing hook artifact into an implied pass. The `transmission` projection is
+the transport shape for the separate `factory-platform` evidence consumer; it
+does not authorize telemetry/runtime changes in this repository.
+
 ## Operator Kubernetes access
 
 Runtime commands MUST NOT ask the user to provide a `KUBECONFIG` and MUST NOT
