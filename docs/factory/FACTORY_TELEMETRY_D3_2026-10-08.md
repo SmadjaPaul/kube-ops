@@ -75,6 +75,20 @@ the external `SmadjaPaul/factory-platform` repository must be a separate PR
 after a successful chain supplies a real fixture; it must not be mixed with
 this kube-ops proof report.
 
+## D3 delivery and CI observation
+
+| Delivery stage | Observed value | Evidence status |
+| --- | --- | --- |
+| Worktree branch | `codex/f1-d3-telemetry` | OBSERVED |
+| Proof commit | `a75ebf488cb10f19d20c1a5128ed47eb2bd579b6` | OBSERVED |
+| Pull request | [kube-ops#358](https://github.com/SmadjaPaul/kube-ops/pull/358) | OBSERVED; OPEN/CLEAN |
+| CI observation at `2026-10-08T09:49:02Z` | check-runs `0`, commit statuses `0`, combined status `pending` | NOT_TERMINAL |
+
+The PR was opened without merge or auto-merge. `gh run list` for
+`codex/f1-d3-telemetry` returned no workflow run, and the GitHub check-runs
+and statuses APIs returned no entries. CI is therefore not a PASS and has no
+terminal conclusion at this observation point.
+
 ## Verdict
 
 ```text
