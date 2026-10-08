@@ -1,0 +1,58 @@
+name: Factory acceptance contract
+
+on:
+  pull_request:
+    paths:
+      - 'docs/factory/**'
+      - '.github/workflows/factory-acceptance.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/factory/**'
+      - '.github/workflows/factory-acceptance.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-sma31-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Validate SMA-31 acceptance contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          contract='docs/factory/SMA-31_ACCEPTANCE.md'
+          test -f "$contract"
+
+          expected_prompt='Use exclusively the execution workspace supplied by Paperclip. Fail closed if repository, branch or workspace invariants are wrong.'
+          test "$(grep -Fxc "$expected_prompt" "$contract")" -eq 1
+
+          for measure in \
+            workspace_prepare_ms \
+            model_start_to_first_repo_command_ms \
+            repo_discovery_tool_calls \
+            branch_reused \
+            workspace_reused; do
+            grep -Fqx "### \`$measure\`" "$contract"
+          done
+
+          grep -Fqx 'Status: `PREPARED_NOT_EXECUTED`' "$contract"
+          grep -Fq 'only after all H1-H3 fixes are merged' "$contract"
+          grep -Fq 'the orchestrator has explicitly validated' "$contract"
+          grep -Fqx 'SMA31_ACCEPTANCE=NOT_OBSERVED' "$contract"
+          grep -Fqx 'SMA31_EXECUTION=BLOCKED_PENDING_H1_H3_AND_ORCHESTRATOR_VALIDATION' "$contract"
+
+          if grep -Eq '(/Users/|/home/|/Volumes/|[A-Za-z]:\\)' "$contract"; then
+            echo 'ERROR: physical workstation path found in SMA-31 contract' >&2
+            exit 1
+          fi
+
+          if grep -Eiq '(gh[pousr]_[A-Za-z0-9]|xox[baprs]-|sk-[A-Za-z0-9]|BEGIN (RSA|OPENSSH|EC|PGP) PRIVATE KEY)' "$contract"; then
+            echo 'ERROR: credential material found in SMA-31 contract' >&2
+            exit 1
+          fi
