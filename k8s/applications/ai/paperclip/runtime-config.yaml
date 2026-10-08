@@ -7,6 +7,7 @@ data:
   DO_NOT_TRACK: "1"
   PAPERCLIP_TELEMETRY_DISABLED: "1"
   PAPERCLIP_MANAGED_RUNTIME_HTTPS: "off"
+  PAPERCLIP_GITHUB_BROKER_URL: "http://paperclip:3100"
   OPENCODE_CONFIG_CONTENT: |
     {
       "$schema": "https://opencode.ai/config.json",

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 company="k8s/applications/ai/paperclip/company"
+paperclip="k8s/applications/ai/paperclip"
 roles=(
   engineering-manager
   researcher
@@ -53,6 +54,31 @@ for model in default code research review; do
     exit 1
   }
 done
+
+# GitHub broker traffic must stay inside the Paperclip namespace. The broker
+# is the existing ClusterIP service, not a public endpoint or a run override.
+grep -Fxq '  PAPERCLIP_GITHUB_BROKER_URL: "http://paperclip:3100"' \
+  "$paperclip/runtime-config.yaml" || {
+  echo "ERROR: Paperclip agents must use the in-cluster GitHub broker URL" >&2
+  exit 1
+}
+grep -q '    exposure: private' "$paperclip/instance.yaml" || {
+  echo "ERROR: Paperclip must remain privately exposed" >&2
+  exit 1
+}
+grep -q '      type: ClusterIP' "$paperclip/instance.yaml" || {
+  echo "ERROR: Paperclip broker service must remain ClusterIP" >&2
+  exit 1
+}
+if grep -R -n 'my\.paperclip\.app' "$paperclip"; then
+  echo "ERROR: Paperclip broker must not use a public endpoint" >&2
+  exit 1
+fi
+if grep -n 'PAPERCLIP_GITHUB_BROKER_URL:' "$paperclip/runtime-config.yaml" |
+  grep -vF 'PAPERCLIP_GITHUB_BROKER_URL: "http://paperclip:3100"'; then
+  echo "ERROR: Paperclip broker URL must be the in-cluster service" >&2
+  exit 1
+fi
 
 ruby "$company/desired-state/validate-desired-state.rb"
 
