@@ -5,6 +5,9 @@ alloy:
   mounts:
     varlog: false
     dockercontainers: false
+    extra:
+      - name: alloy-storage
+        mountPath: /tmp/alloy
   resources:
     requests:
       cpu: 50m
@@ -104,6 +107,10 @@ controller:
   replicas: 1
   hostNetwork: false
   hostPID: false
+  volumes:
+    extra:
+      - name: alloy-storage
+        emptyDir: {}
 
 rbac:
   create: false
