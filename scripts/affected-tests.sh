@@ -36,24 +36,38 @@ add_all() { local root; for root in "${all_roots[@]}"; do add_root "$root"; done
 
 critical=no
 for file in "${changed_files[@]:-}"; do
-  case "$file" in
-    k8s/*|scripts/*|tests/*|.justfile|package.json|.github/workflows/*|.agents/*|AGENTS.md|README.md) critical=yes;;
-  esac
+  classified=no
   case "$file" in
     k8s/infrastructure/*|k8s/bootstrap/*|scripts/*|tests/*|.justfile|package.json|.github/workflows/*|.agents/*|AGENTS.md|README.md)
+      classified=yes
+      critical=yes
       add_all;;
     k8s/applications/*)
+      classified=yes
+      critical=yes
+      matched=no
       for root in "${AFFECTED_APPLICATION_ROOTS[@]}"; do
-        case "$file" in "$root"/*|"$root") add_root "$root";; esac
+        case "$file" in
+          "$root"/*|"$root") add_root "$root"; matched=yes;;
+        esac
       done
       # A shared application Kustomize base selects all generated roots below it.
       if [[ "$file" == k8s/applications/*/kustomization.y*ml ]]; then
         prefix="${file%/*}"
         for root in "${AFFECTED_APPLICATION_ROOTS[@]}"; do
-          case "$root/" in "$prefix"/*) add_root "$root";; esac
+          case "$root/" in
+            "$prefix"/*) add_root "$root"; matched=yes;;
+          esac
         done
-      fi;;
+      fi
+      # An application path outside the active root list is safer as a
+      # repository-wide change than as an empty validation set.
+      [[ "$matched" == yes ]] || add_all;;
   esac
+  if [[ "$classified" == no ]]; then
+    critical=yes
+    add_all
+  fi
 done
 
 if ((${#changed_files[@]} == 0)); then
@@ -61,6 +75,10 @@ if ((${#changed_files[@]} == 0)); then
   exit 0
 fi
 if [[ "$critical" == yes && ${#selected[@]} -eq 0 ]]; then add_all; fi
+if [[ "$critical" == yes && ${#selected[@]} -eq 0 ]]; then
+  echo "AFFECTED_TESTS=BLOCKED reason=zero_critical_tests" >&2
+  exit 2
+fi
 echo "AFFECTED_BASE=$base_ref"
 echo "AFFECTED_FILES=${#changed_files[@]}"
 echo "AFFECTED_CRITICAL=$critical"
