@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://factory-platform.smadja.dev/schemas/test-run-event/v1",
+  "title": "Factory canonical test-run event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "event_type", "schema", "tenant_id", "source", "idempotency_key", "occurred_at", "observed_at", "provenance", "data"],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "event_type": {"const": "factory.test_run.completed"},
+    "schema": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {"id": {"const": "factory.test_run"}, "version": {"const": 1}}
+    },
+    "tenant_id": {"type": "string", "minLength": 1},
+    "source": {"enum": ["local", "github", "elementary"]},
+    "idempotency_key": {"type": "string", "minLength": 1},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["adapter", "source_event_id", "collector_version"],
+      "properties": {
+        "adapter": {"enum": ["local", "github", "elementary"]},
+        "source_event_id": {"type": "string", "minLength": 1},
+        "collector_version": {"type": "string", "minLength": 1},
+        "workflow_run_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "data": {
+      "type": "object", "additionalProperties": false,
+      "required": ["task_id", "run_id", "attempt", "repository", "sha", "pr", "work_item_id", "agent_run_id", "outcome", "tests"],
+      "properties": {
+        "task_id": {"type": "string", "minLength": 1},
+        "run_id": {"type": "string", "minLength": 1},
+        "attempt": {"type": "integer", "minimum": 1},
+        "repository": {"type": "string", "minLength": 1},
+        "sha": {"type": "string", "minLength": 1},
+        "pr": {"type": "string", "minLength": 1},
+        "work_item_id": {"type": "string", "minLength": 1},
+        "agent_run_id": {"type": "string", "minLength": 1},
+        "outcome": {"enum": ["passed", "failed", "cancelled", "unknown"]},
+        "tests": {"type": "array", "items": {"$ref": "#/$defs/test"}}
+      }
+    }
+  },
+  "$defs": {
+    "test": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "classification"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "classification": {"enum": ["PASSED", "FAILED", "SKIPPED", "UNAVAILABLE", "NOT_APPLICABLE", "UNCLASSIFIED"]}
+      }
+    }
+  }
+}
