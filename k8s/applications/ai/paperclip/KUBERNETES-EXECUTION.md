@@ -87,14 +87,17 @@ boundary, not by a missing Kubernetes field:
 - Production currently uses `opencode_local`; the Kubernetes execution file is
   a non-live candidate and must not be activated by this change.
 
-The smallest supported next step is a separately owned, immutable agent image
-that passes the required tool probe. A human owner must provide its source,
-published digest, architecture support and probe evidence. Only then may a
-separate activation change set the supported image field for the chosen
-execution surface (or update the upstream plugin contract if the Kubernetes
-backend remains the target). Do not install tools into a live Paperclip pod,
-retag an unqualified external image, or claim qualification from the server
-image alone.
+The smallest existing image primitive is
+`spec.adapters.cloudSandbox.defaultImage`, but it applies only if the supported
+`cloudSandbox` execution surface is deliberately selected. It cannot qualify
+the current `execution.kubernetes` candidate because that surface has no image
+field. A separately owned, immutable agent image must first pass the required
+tool probe; a human owner must provide its source, published digest,
+architecture support and probe evidence. Only then may a separate activation
+change set `cloudSandbox.defaultImage`, or the upstream plugin contract must
+add an image primitive if the Kubernetes backend remains the target. Do not
+install tools into a live Paperclip pod, retag an unqualified external image,
+or claim qualification from the server image alone.
 
 Gate identifier: `HUMAN_GATE=H3_AGENT_IMAGE_EXTERNAL_OWNER`.
 
