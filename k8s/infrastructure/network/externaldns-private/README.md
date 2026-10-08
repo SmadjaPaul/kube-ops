@@ -2,7 +2,7 @@
 
 Private ExternalDNS controller that watches `Gateway/internal` `HTTPRoute`
 resources and synchronises A records into the **UniFi** local DNS for the
-`*.smadja.dev` domain.
+`*.smadja.dev` and `*.lechaplais.com` domains.
 
 This controller is part of the **local-first** contract: applications attached
 to `Gateway/internal` must resolve on the LAN even when the WAN (and Cloudflare
@@ -28,8 +28,11 @@ and a `CiliumLoadBalancerIPPool` are configured (Workstream D — separate PR).
 
 ## Records managed
 
-Every hostname declared on a HTTPRoute attached to `Gateway/internal` ends up
-as an A record in UniFi pointing at the LAN LoadBalancer VIP.
+Every hostname declared on a HTTPRoute attached to `Gateway/internal` and
+covered by the configured domain filters ends up as an A record in UniFi
+pointing at the LAN LoadBalancer VIP. The `lechaplais.com` filter is required
+for management applications such as Invoice Ninja at
+`gestion.lechaplais.com`.
 
 | Currently observed attached routes | 30 (out of 32) |
 | ---------------------------------- | -------------- |
@@ -116,8 +119,8 @@ expected behaviour.
 
 - AdGuard stays the LAN DNS cache/filter only. Application records are not
   AdGuard rewrites (see `homelab-infra` INV-DNS-02).
-- Terraform in `homelab-infra` must not re-add the static `*.smadja.dev`
-  records this controller manages (it owns only `adguard.smadja.dev` and
+- Terraform in `homelab-infra` must not re-add the static application records
+  this controller manages (it owns only `adguard.smadja.dev` and
   `forgejo.smadja.dev` → `10.0.20.53`).
 - Secrets only flow through Doppler → ESO. No Helm value, no inline `Secret`,
   no `kind: Secret` in this directory carries the API key.
