@@ -41,6 +41,8 @@ fi
 grep -q -- '--execution-workspace-policy-json' "$company/README.md"
 grep -q '"defaultMode":"isolated_workspace"' "$company/README.md"
 grep -q '"type":"git_worktree"' "$company/README.md"
+grep -q '"baseRef":"main"' "$company/README.md"
+grep -q '"branchTemplate":"{{issue.identifier}}-{{slug}}"' "$company/README.md"
 
 if grep -A2 'heartbeat:' "$company/.paperclip.yaml" | grep -q 'enabled: true'; then
   echo "ERROR: Paperclip V1 heartbeats must remain disabled until smoke qualification" >&2
