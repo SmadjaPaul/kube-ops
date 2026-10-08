@@ -54,6 +54,13 @@ spec:
         name: paperclip-runtime-config
     - secretRef:
         name: paperclip-runtime-secrets
+  # The operator's metrics default injects server-relative instrumentation
+  # through NODE_OPTIONS. Agent child processes inherit that environment but
+  # run outside /app, so the relative import is invalid for them. Keep the
+  # operator's metrics resources while clearing only the unsafe preload.
+  env:
+    - name: NODE_OPTIONS
+      value: ""
   security:
     networkPolicy:
       enabled: false
