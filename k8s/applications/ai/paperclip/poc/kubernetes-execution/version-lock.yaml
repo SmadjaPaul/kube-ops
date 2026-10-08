@@ -1,0 +1,31 @@
+# Review artifact only. This file is not a Kubernetes object and is not
+# referenced by the production or candidate Kustomization.
+qualificationDate: "2026-10-08"
+paperclip:
+  package: "@paperclipai/plugin-kubernetes"
+  npmVersion: "2026.1005.0"
+  npmDistIntegrity: "sha512-JXlPosXgqYxt6B2/J1tQtDnbVK/OiE+tsX0j8V3UgepD8MndIgBE5OP+qkE/xoyHn3PYFb12ZdLr9iprNHgLUg=="
+  npmDistSha1: "b46e0a920c055634ffb9ea787bf52e41eeabdf3f"
+  manifestId: "paperclip.kubernetes-sandbox-provider"
+  manifestVersion: "0.1.0-alpha.1"
+  sandboxApiExpected: "agents.x-k8s.io/v1alpha1"
+  defaultRuntimeImages:
+    codex_local: "ghcr.io/paperclipai/agent-runtime-codex:v1"
+agentSandbox:
+  repository: "https://github.com/kubernetes-sigs/agent-sandbox"
+  versionsChecked:
+    - version: "v0.5.6"
+      manifest: "sandbox.yaml"
+      sha256: "f1127ab655a07de5f65991339fc8cd5200f471652f61d7ceeaa8e7c6cc252581"
+      servedSandboxApi: "agents.x-k8s.io/v1beta1"
+    - version: "v1.0.5"
+      manifest: "sandbox.yaml"
+      sha256: "e89fd95c0aa57609fa24be4112bd52ce67fe8939ecf6f3c17edf2f1e8f1eb860"
+      servedSandboxApi: "agents.x-k8s.io/v1beta1"
+compatibility:
+  sandboxCr: blocked
+  job: availableWithoutAgentSandboxController
+  reason: >-
+    The plugin build expects agents.x-k8s.io/v1alpha1 while the checked
+    published Agent Sandbox manifests serve v1beta1. Do not activate sandbox-cr
+    until a compatible pair is pinned and rendered together.

@@ -6,13 +6,15 @@ metadata:
 spec:
   plugins:
     - name: "@paperclipai/plugin-kubernetes"
-      # Candidate pin only. Refresh against the live Paperclip server before use.
-      version: "2026.916.1"
+      # Stable npm pin qualified on 2026-10-08. This is not an activation.
+      version: "2026.1005.0"
   adapters:
     execution:
       mode: kubernetes
       kubernetes:
-        backend: sandbox-cr
+        # Stable fallback. sandbox-cr is excluded until the plugin moves from
+        # agents.x-k8s.io/v1alpha1 to the currently released v1beta1 API.
+        backend: job
         egressMode: cilium
         egressPolicy: allowlist
         egressAllowFQDNs:
