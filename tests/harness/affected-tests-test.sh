@@ -33,4 +33,19 @@ output="$(AFFECTED_REPO_ROOT="$tmp" "$tmp/scripts/affected-tests.sh" --select "$
 [[ "$output" == *'AFFECTED_CRITICAL=yes'* ]] || { echo "$output"; exit 1; }
 [[ "$output" == *'render:k8s/applications/platform'* ]] || { echo "$output"; exit 1; }
 
+printf '%s\n' common >"$tmp/k8s/applications/kustomization.yaml"
+git -C "$tmp" add k8s/applications/kustomization.yaml
+output="$(AFFECTED_REPO_ROOT="$tmp" "$tmp/scripts/affected-tests.sh" --select "$base")"
+[[ "$output" == *'render:k8s/applications/ai'* ]] || { echo "$output"; exit 1; }
+[[ "$output" == *'render:k8s/applications/business/invoice-ninja'* ]] || { echo "$output"; exit 1; }
+
+cp "$tmp/scripts/affected-tests.conf" "$tmp/scripts/affected-tests.conf.orig"
+: >"$tmp/scripts/affected-tests.conf"
+output="$(AFFECTED_REPO_ROOT="$tmp" "$tmp/scripts/affected-tests.sh" --select "$base" 2>&1)" && {
+  echo "expected zero-critical-tests guard to block" >&2
+  echo "$output" >&2
+  exit 1
+}
+[[ "$output" == *'AFFECTED_TESTS=BLOCKED reason=zero_critical_tests'* ]] || { echo "$output"; exit 1; }
+
 printf '%s\n' 'AFFECTED_TEST_SELECTOR=PASS'

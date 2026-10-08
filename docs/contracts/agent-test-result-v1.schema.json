@@ -78,12 +78,13 @@
     "test": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "execution", "classification", "reason", "risk", "expectedCi"],
+      "required": ["id", "name", "execution", "status", "classification", "reason", "risk", "expectedCi"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
         "command": { "type": "string", "minLength": 1 },
         "execution": { "enum": ["executed", "not-executed"] },
+        "status": { "enum": ["NOT_EXECUTED", "BLOCKED", "FAILED", "NOT_APPLICABLE", "PASSED"] },
         "classification": { "enum": ["passed", "failed", "skipped", "unavailable", "not-applicable"] },
         "reason": { "type": "string", "minLength": 1 },
         "risk": { "enum": ["none", "low", "medium", "high", "unknown"] },

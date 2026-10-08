@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="${AFFECTED_REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$repo_root"
+started_at="$(date +%s)"
 # shellcheck source=affected-tests.conf
 source scripts/affected-tests.conf
 
@@ -71,7 +72,7 @@ for file in "${changed_files[@]:-}"; do
 done
 
 if ((${#changed_files[@]} == 0)); then
-  echo "AFFECTED_TESTS=EMPTY reason=no_diff base=$base_ref"
+  echo "AFFECTED_TESTS=EMPTY reason=no_diff base=$base_ref duration_seconds=$(( $(date +%s) - started_at ))"
   exit 0
 fi
 if [[ "$critical" == yes && ${#selected[@]} -eq 0 ]]; then add_all; fi
@@ -88,7 +89,7 @@ while IFS= read -r root; do echo "render:$root"; done < <(printf '%s\n' "${selec
 echo "AFFECTED_TESTS_END"
 
 if ((${#selected[@]} == 0)); then
-  echo "AFFECTED_TESTS=EMPTY reason=non_kubernetes_diff"
+  echo "AFFECTED_TESTS=EMPTY reason=non_kubernetes_diff duration_seconds=$(( $(date +%s) - started_at ))"
   exit 0
 fi
 if [[ "$mode" == select ]]; then
@@ -97,7 +98,7 @@ if [[ "$mode" == select ]]; then
 fi
 for command in kustomize kubeconform; do
   command -v "$command" >/dev/null 2>&1 || {
-    echo "AFFECTED_TESTS=BLOCKED reason=missing_validator validator=$command" >&2
+    echo "AFFECTED_TESTS=BLOCKED reason=missing_validator validator=$command duration_seconds=$(( $(date +%s) - started_at ))" >&2
     exit 2
   }
 done
@@ -105,7 +106,7 @@ tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/kube-ops-affected.XXXXXX")"
 trap 'rm -rf "$tmp_dir"' EXIT
 while IFS= read -r root; do
   [[ -f "$root/kustomization.yaml" || -f "$root/kustomization.yml" ]] || {
-    echo "AFFECTED_TESTS=BLOCKED reason=missing_kustomization root=$root" >&2
+    echo "AFFECTED_TESTS=BLOCKED reason=missing_kustomization root=$root duration_seconds=$(( $(date +%s) - started_at ))" >&2
     exit 2
   }
   output="$tmp_dir/${root//\//_}.yaml"
@@ -118,4 +119,4 @@ if command -v kyverno >/dev/null 2>&1 && [[ -f k8s/infrastructure/security/polic
 else
   echo "AFFECTED_KYVERNO=NOT_RUN reason=kyverno_cli_unavailable_or_no_active_policy_tests"
 fi
-echo "AFFECTED_TESTS=PASS count=${#selected[@]}"
+echo "AFFECTED_TESTS=PASS count=${#selected[@]} duration_seconds=$(( $(date +%s) - started_at ))"

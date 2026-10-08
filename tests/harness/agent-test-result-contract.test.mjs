@@ -16,11 +16,18 @@ function validateResult(result) {
   for (const item of result.tests) {
     assert.ok(item.id && item.name && item.reason);
     assert.ok(["executed", "not-executed"].includes(item.execution));
+    assert.ok(["NOT_EXECUTED", "BLOCKED", "FAILED", "NOT_APPLICABLE", "PASSED"].includes(item.status));
     assert.ok(["passed", "failed", "skipped", "unavailable", "not-applicable"].includes(item.classification));
     assert.ok(["none", "low", "medium", "high", "unknown"].includes(item.risk));
     assert.ok(["required", "expected", "optional", "not-expected", "unknown"].includes(item.expectedCi));
-    if (item.execution === "executed") assert.ok(["passed", "failed"].includes(item.classification));
-    if (item.execution === "not-executed") assert.ok(["skipped", "unavailable", "not-applicable"].includes(item.classification));
+    if (item.execution === "executed") {
+      assert.ok(["passed", "failed"].includes(item.classification));
+      assert.ok(["PASSED", "FAILED"].includes(item.status));
+    }
+    if (item.execution === "not-executed") {
+      assert.ok(["skipped", "unavailable", "not-applicable"].includes(item.classification));
+      assert.ok(["NOT_EXECUTED", "BLOCKED", "NOT_APPLICABLE"].includes(item.status));
+    }
   }
   const summary = result.summary;
   assert.equal(summary.total, result.tests.length);
@@ -38,6 +45,7 @@ test("schema is versioned and declares the required result vocabulary", () => {
   assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
   assert.equal(schema.properties.schemaVersion.const, "agent-test-result/v1");
   assert.deepEqual(schema.$defs.test.properties.execution.enum, ["executed", "not-executed"]);
+  assert.deepEqual(schema.$defs.test.properties.status.enum, ["NOT_EXECUTED", "BLOCKED", "FAILED", "NOT_APPLICABLE", "PASSED"]);
   assert.deepEqual(schema.$defs.test.properties.classification.enum, ["passed", "failed", "skipped", "unavailable", "not-applicable"]);
   assert.ok(schema.properties.transmission.properties.payload);
 });
