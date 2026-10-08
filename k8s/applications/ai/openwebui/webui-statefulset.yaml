@@ -150,7 +150,7 @@ spec:
                   name: app-openwebui-litellm-api-key
                   key: OPENAI_API_KEY
             - name: OPENAI_API_BASE_URLS
-              value: 'http://litellm.litellm.svc.cluster.local:80/v1;http://talos-personal.openclaw-talos-personal.svc.cluster.local:18789/v1'
+              value: 'http://litellm.litellm.svc.cluster.local:80/v1;http://openclaw.openclaw.svc.cluster.local:18789/v1;http://talos-personal.openclaw-talos-personal.svc.cluster.local:18789/v1'
             - name: OPENAI_API_KEYS
               valueFrom:
                 secretKeyRef:
