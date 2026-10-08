@@ -12,10 +12,24 @@ spec:
     execution:
       mode: kubernetes
       kubernetes:
+        inCluster: true
         backend: sandbox-cr
+        adapterType: opencode_local
+        namespacePrefix: paperclip-exec-
+        imageRegistry: ghcr.io/smadjapaul
+        imageAllowList:
+          - ghcr.io/smadjapaul/agent-runtime-opencode@sha256:4867139b5f0a557801656615898075afb0a821d89d359ab03c83aba245fd605f
+        adapters:
+          - adapterType: opencode_local
+            enabled: true
+            runtimeImage: ghcr.io/smadjapaul/agent-runtime-opencode@sha256:4867139b5f0a557801656615898075afb0a821d89d359ab03c83aba245fd605f
+            # No production API or GitHub credentials are forwarded to the agent pod.
+            envKeys: []
+            allowFqdns: []
+            probeCommand: ["opencode", "--version"]
+        imagePullSecrets: []
         egressMode: cilium
-        egressPolicy: allowlist
-        egressAllowFQDNs:
+        egressAllowFqdns:
           - paperclip.paperclip.svc.cluster.local
           - litellm.litellm.svc.cluster.local
           - github.com
@@ -24,17 +38,13 @@ spec:
           - objects.githubusercontent.com
           - codeload.github.com
           - registry.npmjs.org
-        namespacePrefix: paperclip-exec-
-        perTenantQuota:
-          pods: "4"
-          requestsCpu: "2"
-          requestsMemory: "4Gi"
-          limitsCpu: "4"
-          limitsMemory: "8Gi"
-        perTenantLimitRange:
-          defaultCpu: "500m"
-          defaultMemory: "1Gi"
-          defaultRequestCpu: "100m"
-          defaultRequestMemory: "256Mi"
-          maxCpu: "2"
-          maxMemory: "4Gi"
+        defaultResources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: "2"
+            memory: 4Gi
+        serviceAccountAnnotations: {}
+        jobTtlSecondsAfterFinished: 900
+        podActivityDeadlineSec: 3600
