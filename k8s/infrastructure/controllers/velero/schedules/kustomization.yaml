@@ -26,6 +26,8 @@ resources:
   - daily-zigbee2mqtt.yaml
   - daily-openclaw.yaml
   - daily-paperclip.yaml
+  - daily-listmonk.yaml
+  - daily-twenty.yaml
   - daily-gpt-researcher.yaml
   - daily-opencode.yaml
   - daily-trilium.yaml
