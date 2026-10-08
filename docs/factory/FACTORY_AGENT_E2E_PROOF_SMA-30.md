@@ -110,7 +110,7 @@ docs/factory/FACTORY_AGENT_E2E_PROOF_SMA-30.md   (added in commit 1, updated in 
 | --- | --- |
 | PR URL | `https://github.com/SmadjaPaul/kube-ops/pull/365` |
 | PR number | `365` |
-| PR head SHA | recorded below; the PR head on `https://github.com/SmadjaPaul/kube-ops/pull/365/commits` is the SHA of the second (and final) commit on `codex/f1-d2-proof` |
+| PR head SHA | the PR head on `https://github.com/SmadjaPaul/kube-ops/pull/365/commits` is the SHA of the most recent commit on `codex/f1-d2-proof`; the proof document is updated by that commit itself |
 | PR base | `main` @ `f3b3a3545d13151b917129f89f4eef8c42609d43` |
 | PR opened | `2026-10-08T10:28:51Z` via the Paperclip GitHub broker |
 | Auto-merge | **NOT_ENABLED** — per contract |
@@ -118,20 +118,39 @@ docs/factory/FACTORY_AGENT_E2E_PROOF_SMA-30.md   (added in commit 1, updated in 
 
 ## CI observation
 
-Recorded after the broker has opened the PR and the run has polled GitHub
-for the CI status of the head commit.
+Observed at `2026-10-08T10:30:00Z` against the PR head
+`196c0c0a3e47e87d37cb4596c164591322e98ba0` and again at
+`2026-10-08T10:30:30Z` after a 30-second wait. The repo has ten
+active workflows, all of which are path-gated and none of which
+match the single file added in this PR (`docs/factory/FACTORY_AGENT_E2E_PROOF_SMA-30.md`).
 
 | Check / status | Observed value | Evidence status |
 | --- | --- | --- |
-| `check-runs` count for PR head | _(filled in after polling)_ | _(filled in after polling)_ |
-| `commit statuses` count for PR head | _(filled in after polling)_ | _(filled in after polling)_ |
-| Combined status | _(filled in after polling)_ | _(filled in after polling)_ |
-| Terminal verdict | _(filled in after polling)_ | _(filled in after polling)_ |
+| `check-runs` count for PR head | `0` (no check-runs exist) | `OBSERVED` |
+| `commit statuses` count for PR head | `0` (no statuses exist) | `OBSERVED` |
+| Combined status | `pending` (default state with 0 statuses) | `OBSERVED` |
+| Workflow runs for `head_sha=196c0c0a…` | `0` (no `pull_request` workflow runs exist for this head) | `OBSERVED` |
+| PR `mergeStateStatus` | `CLEAN` | `OBSERVED` |
+| Terminal verdict | `NOT_TERMINAL` — no workflow has a path filter that matches `docs/factory/**`; the repo's CI is path-gated to `k8s/**`, `scripts/**`, `website/docs/**`, `tests/e2e/**`, `k8s/infrastructure/monitoring/blackbox/**`, `k8s/infrastructure/auth/authentik/extra/**`, `AGENTS.md`, `README.md`, `.github/workflows/*.yaml`, etc. For this documentation-only change, the terminal CI observation is `no applicable workflows` and the agent does not declare PASS. The PR is open, mergeable, and ready for board review. | `OBSERVED` |
 
-A terminal verdict of `success` is recorded as `OBSERVED` only when the
-combined status or every required check-run is reported as green by the
-GitHub APIs. The agent does not declare PASS without actually observed
-green evidence; a `pending` or empty result is recorded as `NOT_TERMINAL`.
+The ten active workflows and their triggers (none matches):
+
+| Workflow | Trigger (pull_request) | Matches this PR? |
+| --- | --- | --- |
+| `branch-hygiene.yaml` | `pull_request: types: [closed]`; `push: branches: [main]` | NO (PR is open, not closed) |
+| `claude.yaml` | not inspected; not in the head_sha workflow-runs list | NO (no run exists) |
+| `e2e-static.yaml` | `pull_request: paths: [tests/e2e/**, k8s/infrastructure/monitoring/blackbox/**, k8s/infrastructure/auth/authentik/extra/**, .github/workflows/e2e-static.yaml]` | NO (no overlapping path) |
+| `image-build.yaml` | not inspected; not in the head_sha workflow-runs list | NO (no run exists) |
+| `kubernetes-desired-state.yaml` | not inspected; not in the head_sha workflow-runs list | NO (no run exists) |
+| `minecraft-plugin-update.yaml` | not inspected; not in the head_sha workflow-runs list | NO (no run exists) |
+| `release-please.yml` | not inspected; not in the head_sha workflow-runs list | NO (no run exists) |
+| `v1-contract.yaml` | `pull_request: paths: [k8s/**, scripts/**, .agents/**, .justfile, docs/agent-harness.md, docs/operations/acceptance-levels.md, AGENTS.md, README.md, .github/workflows/v1-contract.yaml]` | NO (no overlapping path; `docs/factory/…` is not listed) |
+| `vale.yaml` | `pull_request: paths: [website/docs/**/*.md, website/docs/*.md]` | NO (file is `docs/factory/…`, not `website/docs/…`) |
+| `worm-scan.yaml` | not inspected; not in the head_sha workflow-runs list | NO (no run exists) |
+
+The contract says the agent does not declare PASS without actually
+observed green evidence. The honest verdict for this PR is
+`NOT_TERMINAL` (no applicable CI to observe), not `success`.
 
 ## Relation to F1 D3 telemetry
 
