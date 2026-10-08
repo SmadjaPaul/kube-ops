@@ -69,6 +69,38 @@ Allowed R1 work:
 R2 is required only when the action crosses an existing sensitive boundary
 (credentials, destructive cleanup, irreversible/disruptive state mutation).
 
+## H3 HUMAN_GATE — agent image ownership
+
+The requested agent image qualification is blocked at the Git ownership
+boundary, not by a missing Kubernetes field:
+
+- `kube-ops` contains no Dockerfile or build context for
+  `ghcr.io/smadjapaul/paperclip` or an agent runtime image. Its image workflow
+  only builds directories under `images/`.
+- The live Paperclip server image is pinned by digest in `instance.yaml`; the
+  observed image has `git`, `gh`, `node`, `npm` and `jq`, but lacks `just`,
+  `kustomize`, `yq` and `ruby`.
+- The installed Operator CRD exposes `spec.adapters.cloudSandbox.defaultImage`
+  (defaulting to the external `ghcr.io/paperclipinc/agent-multi:latest`) only
+  for the older `cloudSandbox` surface. The first-party
+  `spec.adapters.execution.kubernetes` surface has no agent-image field.
+- Production currently uses `opencode_local`; the Kubernetes execution file is
+  a non-live candidate and must not be activated by this change.
+
+The smallest existing image primitive is
+`spec.adapters.cloudSandbox.defaultImage`, but it applies only if the supported
+`cloudSandbox` execution surface is deliberately selected. It cannot qualify
+the current `execution.kubernetes` candidate because that surface has no image
+field. A separately owned, immutable agent image must first pass the required
+tool probe; a human owner must provide its source, published digest,
+architecture support and probe evidence. Only then may a separate activation
+change set `cloudSandbox.defaultImage`, or the upstream plugin contract must
+add an image primitive if the Kubernetes backend remains the target. Do not
+install tools into a live Paperclip pod, retag an unqualified external image,
+or claim qualification from the server image alone.
+
+Gate identifier: `HUMAN_GATE=H3_AGENT_IMAGE_EXTERNAL_OWNER`.
+
 ## POC acceptance
 
 Before activation, refresh the Paperclip server version, operator version,

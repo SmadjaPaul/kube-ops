@@ -131,21 +131,41 @@ env_probe="$(
     const dirs = String(process.env.PATH || "")
       .split(":")
       .filter(Boolean);
-    const present = (name) =>
-      dirs.some((dir) => fs.existsSync(path.join(dir, name)));
+      const present = (name) =>
+        dirs.some((dir) => fs.existsSync(path.join(dir, name)));
+    const toolNames = [
+      "git",
+      "gh",
+      "just",
+      "kustomize",
+      "yq",
+      "ruby",
+      "node",
+      "npm",
+      "jq",
+      "opencode",
+    ];
+    const tools = Object.fromEntries(
+      toolNames.map((name) => [`${name}Present`, present(name)]),
+    );
     process.stdout.write(JSON.stringify({
       litellmApiKeyPresent: Boolean(process.env.LITELLM_API_KEY),
       litellmMasterKeyPresent: Boolean(process.env.LITELLM_MASTER_KEY),
-      gitPresent: present("git"),
-      ghPresent: present("gh"),
-      opencodePresent: present("opencode")
-    }))
+      ...tools,
+    }));
   '
 )"
 pod_vkey_present="$(jq -r '.litellmApiKeyPresent' <<<"$env_probe")"
 pod_master_present="$(jq -r '.litellmMasterKeyPresent' <<<"$env_probe")"
 pod_git_present="$(jq -r '.gitPresent' <<<"$env_probe")"
 pod_gh_present="$(jq -r '.ghPresent' <<<"$env_probe")"
+pod_just_present="$(jq -r '.justPresent' <<<"$env_probe")"
+pod_kustomize_present="$(jq -r '.kustomizePresent' <<<"$env_probe")"
+pod_yq_present="$(jq -r '.yqPresent' <<<"$env_probe")"
+pod_ruby_present="$(jq -r '.rubyPresent' <<<"$env_probe")"
+pod_node_present="$(jq -r '.nodePresent' <<<"$env_probe")"
+pod_npm_present="$(jq -r '.npmPresent' <<<"$env_probe")"
+pod_jq_present="$(jq -r '.jqPresent' <<<"$env_probe")"
 pod_opencode_present="$(jq -r '.opencodePresent' <<<"$env_probe")"
 
 vkey_key_info_http="$(jq -r '.keyInfoHttp // "N/A"' <<<"$vkey_diagnostic")"
@@ -259,6 +279,13 @@ printf 'PAPERCLIP_LITELLM_ENV_PRESENT=%s\n' "$(yesno "$pod_vkey_present")"
 printf 'PAPERCLIP_LITELLM_MASTER_ENV_PRESENT=%s\n' "$(yesno "$pod_master_present")"
 printf 'PAPERCLIP_GIT_BIN_PRESENT=%s\n' "$(yesno "$pod_git_present")"
 printf 'PAPERCLIP_GH_BIN_PRESENT=%s\n' "$(yesno "$pod_gh_present")"
+printf 'PAPERCLIP_JUST_BIN_PRESENT=%s\n' "$(yesno "$pod_just_present")"
+printf 'PAPERCLIP_KUSTOMIZE_BIN_PRESENT=%s\n' "$(yesno "$pod_kustomize_present")"
+printf 'PAPERCLIP_YQ_BIN_PRESENT=%s\n' "$(yesno "$pod_yq_present")"
+printf 'PAPERCLIP_RUBY_BIN_PRESENT=%s\n' "$(yesno "$pod_ruby_present")"
+printf 'PAPERCLIP_NODE_BIN_PRESENT=%s\n' "$(yesno "$pod_node_present")"
+printf 'PAPERCLIP_NPM_BIN_PRESENT=%s\n' "$(yesno "$pod_npm_present")"
+printf 'PAPERCLIP_JQ_BIN_PRESENT=%s\n' "$(yesno "$pod_jq_present")"
 printf 'PAPERCLIP_OPENCODE_BIN_PRESENT=%s\n' "$(yesno "$pod_opencode_present")"
 printf 'PAPERCLIP_VKEY_KEY_INFO_HTTP=%s\n' "$vkey_key_info_http"
 printf 'PAPERCLIP_VKEY_ALLOWED_MODELS=%s\n' "$vkey_allowed_models"
@@ -286,6 +313,13 @@ runtime_ready=PASS
 [[ "$pod_master_present" == false ]] || runtime_ready=FAIL
 [[ "$pod_git_present" == true ]] || runtime_ready=FAIL
 [[ "$pod_gh_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_just_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_kustomize_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_yq_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_ruby_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_node_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_npm_present" == true ]] || runtime_ready=FAIL
+[[ "$pod_jq_present" == true ]] || runtime_ready=FAIL
 [[ "$pod_opencode_present" == true ]] || runtime_ready=FAIL
 [[ "$vkey_key_info_http" == 200 ]] || runtime_ready=FAIL
 [[ "$vkey_scope_exact" == true ]] || runtime_ready=FAIL

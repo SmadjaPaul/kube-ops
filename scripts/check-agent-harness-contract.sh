@@ -3,6 +3,8 @@ set -euo pipefail
 
 company="k8s/applications/ai/paperclip/company"
 paperclip="k8s/applications/ai/paperclip"
+paperclip_instance="k8s/applications/ai/paperclip/instance.yaml"
+execution_contract="k8s/applications/ai/paperclip/KUBERNETES-EXECUTION.md"
 roles=(
   engineering-manager
   researcher
@@ -15,6 +17,21 @@ roles=(
   echo "ERROR: missing Paperclip capability contract" >&2
   exit 1
 }
+
+grep -q 'HUMAN_GATE=H3_AGENT_IMAGE_EXTERNAL_OWNER' "$execution_contract" || {
+  echo "ERROR: missing explicit H3 agent image ownership gate" >&2
+  exit 1
+}
+
+node_options="$(yq -r '.spec.env[]? | select(.name == "NODE_OPTIONS") | .value // ""' "$paperclip_instance")"
+if [[ -n "$node_options" ]]; then
+  echo "ERROR: Paperclip agent runtime must not inherit NODE_OPTIONS: $node_options" >&2
+  exit 1
+fi
+if [[ "$node_options" == *instrumentation.js* ]]; then
+  echo "ERROR: invalid Paperclip instrumentation preload remains in agent runtime contract" >&2
+  exit 1
+fi
 
 for role in "${roles[@]}"; do
   file="$company/agents/$role/AGENTS.md"
@@ -102,3 +119,5 @@ fi
 echo "PAPERCLIP_ROLE_CAPABILITIES=PASS"
 echo "PAPERCLIP_WORKSPACE_ISOLATION=PASS"
 echo "AI_CONSUMER_MODEL_ABSTRACTION=PASS"
+echo "PAPERCLIP_AGENT_NODE_OPTIONS=PASS"
+echo "PAPERCLIP_AGENT_IMAGE_QUALIFICATION=HUMAN_GATE"
