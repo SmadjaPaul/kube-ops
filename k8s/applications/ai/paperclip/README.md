@@ -67,7 +67,7 @@ On a self-hosted instance, the upstream `managed` GitHub method is intentionally
 The canonical V1 path is:
 
 1. keep the advanced PAT method unused;
-2. allow Paperclip server egress only to the production broker `my.paperclip.app:443` and the hosted GitHub MCP endpoint `api.githubcopilot.com:443` in addition to the existing GitHub API surfaces;
+2. keep agent broker traffic in-cluster through `PAPERCLIP_GITHUB_BROKER_URL=http://paperclip:3100`; Paperclip may reach the hosted GitHub MCP endpoint `api.githubcopilot.com:443` in addition to the existing GitHub API surfaces, but the broker itself has no public route, listener, or DNS name;
 3. complete the upstream self-host enrollment as an instance administrator;
 4. authorize the upstream GitHub App with selected repository access;
 5. install that managed connection for the Implementation Engineer (or Company when explicitly intended);
