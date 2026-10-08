@@ -1,0 +1,326 @@
+schema: company/desired-state/v1
+schemaVersion: 1
+kind: CompanyDesiredState
+metadata:
+  name: smadja-software-factory
+  version: 1.0.0
+  source: git
+spec:
+  runtime:
+    # This package describes intent. It is not a request to provision agents.
+    provisioningMode: reference_only
+    defaultHeartbeat: "OFF"
+    environmentDefaults:
+      DEFAULT_HEARTBEAT: "OFF"
+    paperclipImport: existing_safe_import
+    runtimeMutation: forbidden
+
+  organization:
+    mission: >-
+      Turn engineering intent into small, reviewed, evidence-backed changes
+      while building Factory Intelligence as a reusable data-platform vertical.
+    units:
+      - id: portfolio-governance
+        name: Portfolio Governance
+        leadRole: portfolio-lead
+        roles:
+          - portfolio-lead
+          - principal-architect
+          - agents-orchestrator
+      - id: product-delivery
+        name: Product Delivery
+        leadRole: agents-orchestrator
+        roles:
+          - staff-engineer
+          - qa-release
+      - id: factory-intelligence
+        name: Factory Intelligence
+        leadRole: factory-data-lead
+        roles:
+          - factory-data-lead
+          - data-platform-engineer
+      - id: agent-experience
+        name: Agent Experience
+        leadRole: agent-experience-engineer
+        roles:
+          - agent-experience-engineer
+
+  roles:
+    # These are the mandatory decision roles. bootstrapAgentRef points at an
+    # existing safe-import contract when one exists; null never means "create".
+    - id: portfolio-lead
+      title: Portfolio Lead
+      kind: leadership
+      reportsTo: null
+      bootstrapAgentRef: null
+      capabilities: [portfolio-governance, capability-lookup]
+      decisionRights: [portfolio-scope]
+      canApproveR2: false
+      heartbeat: "OFF"
+    - id: principal-architect
+      title: Principal Architect
+      kind: architecture
+      reportsTo: portfolio-lead
+      bootstrapAgentRef: null
+      capabilities: [architecture-decisioning, capability-lookup]
+      decisionRights: [architecture-structure]
+      canApproveR2: false
+      heartbeat: "OFF"
+    - id: agents-orchestrator
+      title: Agents Orchestrator
+      kind: orchestration
+      reportsTo: portfolio-lead
+      bootstrapAgentRef: engineering-manager
+      capabilities: [work-orchestration, capability-lookup, evidence-routing]
+      decisionRights: [work-routing]
+      canApproveR2: false
+      heartbeat: "OFF"
+    - id: staff-engineer
+      title: Staff Engineer
+      kind: engineering
+      reportsTo: agents-orchestrator
+      bootstrapAgentRef: implementation-engineer
+      capabilities: [gitops-delivery, implementation, verification]
+      decisionRights: [implementation-change]
+      canApproveR2: false
+      heartbeat: "OFF"
+    - id: qa-release
+      title: QA & Release
+      kind: quality
+      reportsTo: agents-orchestrator
+      bootstrapAgentRef: qa-release-engineer
+      capabilities: [acceptance, release-evidence, runtime-observation]
+      decisionRights: [release-acceptance]
+      canApproveR2: false
+      heartbeat: "OFF"
+    - id: factory-data-lead
+      title: Factory/Data Lead
+      kind: product-leadership
+      reportsTo: portfolio-lead
+      bootstrapAgentRef: factory-platform-lead
+      capabilities: [factory-intelligence, data-product-governance, capability-lookup]
+      decisionRights: [factory-roadmap]
+      canApproveR2: false
+      heartbeat: "OFF"
+    - id: data-platform-engineer
+      title: Data Platform Engineer
+      kind: engineering
+      reportsTo: factory-data-lead
+      bootstrapAgentRef: data-platform-engineer
+      capabilities: [data-contracts, incremental-processing, gitops-delivery]
+      decisionRights: [data-contracts]
+      canApproveR2: false
+      heartbeat: "OFF"
+    - id: agent-experience-engineer
+      title: Agent Experience Engineer
+      kind: engineering
+      reportsTo: agents-orchestrator
+      bootstrapAgentRef: harness-engineer
+      capabilities: [agent-experience, harness-engineering, verification]
+      decisionRights: [agent-experience]
+      canApproveR2: false
+      heartbeat: "OFF"
+
+  capabilities:
+    decisionVocabulary:
+      - REUSE
+      - EXTEND
+      - COMPOSE
+      - ADAPTER
+      - NEW_COMPONENT
+      - NEW_SERVICE
+      - BU_CANDIDATE
+    lookup:
+      requiredBeforeAddition: true
+      requiredRecord: capability-evaluation
+      requiredFields:
+        - candidate
+        - decision
+        - matchingExistingCapabilities
+        - ownerRole
+        - evidence
+        - adrRefWhenStructural
+      noMatchDefault: NEW_COMPONENT
+      structuralDecisions:
+        - NEW_COMPONENT
+        - NEW_SERVICE
+        - BU_CANDIDATE
+    registry:
+      - id: work-orchestration
+        name: Dependency-aware work orchestration
+        ownerRole: agents-orchestrator
+        decision: REUSE
+        status: existing
+        evidence: COMPANY.md
+      - id: gitops-delivery
+        name: Git to Argo delivery and runtime evidence
+        ownerRole: staff-engineer
+        decision: EXTEND
+        status: existing
+        evidence: ../README.md
+      - id: factory-intelligence
+        name: Factory outcome measurement and improvement loops
+        ownerRole: factory-data-lead
+        decision: COMPOSE
+        status: existing
+        evidence: ../teams/data-platform-factory-engineering/TEAM.md
+      - id: agent-execution-boundary
+        name: Isolated agent execution boundary
+        ownerRole: principal-architect
+        decision: ADAPTER
+        status: qualifying
+        evidence: ../KUBERNETES-EXECUTION.md
+      - id: capability-lookup
+        name: Capability registry and pre-addition evaluation
+        ownerRole: principal-architect
+        decision: NEW_COMPONENT
+        status: desired
+        evidence: desired-state/ARCHITECTURE-ROLLBACK.md
+      - id: tenant-data-contracts
+        name: Tenant-aware canonical data contracts
+        ownerRole: data-platform-engineer
+        decision: NEW_SERVICE
+        status: candidate
+        evidence: ../teams/data-platform-factory-engineering/TEAM.md
+      - id: commercial-factory-vertical
+        name: Commercially reusable Factory Intelligence vertical
+        ownerRole: factory-data-lead
+        decision: BU_CANDIDATE
+        status: candidate
+        evidence: ../projects/factory-platform/PROJECT.md
+
+  decisionRights:
+    - id: portfolio-scope
+      ownerRole: portfolio-lead
+      scope: priorities, investment boundaries and business-unit goals
+      requiresHumanApproval: true
+      requiresCapabilityLookup: true
+      requiresAdr: false
+    - id: architecture-structure
+      ownerRole: principal-architect
+      scope: structural boundaries, interfaces, dependencies and migrations
+      requiresHumanApproval: false
+      requiresCapabilityLookup: true
+      requiresAdr: true
+    - id: work-routing
+      ownerRole: agents-orchestrator
+      scope: task decomposition, dependency graph and role assignment
+      requiresHumanApproval: false
+      requiresCapabilityLookup: true
+      requiresAdr: false
+    - id: implementation-change
+      ownerRole: staff-engineer
+      scope: bounded Git implementation in an isolated branch or worktree
+      requiresHumanApproval: false
+      requiresCapabilityLookup: true
+      requiresAdr: false
+    - id: release-acceptance
+      ownerRole: qa-release
+      scope: independent review, QA, release evidence and PR readiness
+      requiresHumanApproval: false
+      requiresCapabilityLookup: true
+      requiresAdr: false
+    - id: factory-roadmap
+      ownerRole: factory-data-lead
+      scope: Factory Intelligence roadmap and improvement-loop priorities
+      requiresHumanApproval: true
+      requiresCapabilityLookup: true
+      requiresAdr: true
+    - id: data-contracts
+      ownerRole: data-platform-engineer
+      scope: versioned tenant, source, event, entity and metric contracts
+      requiresHumanApproval: false
+      requiresCapabilityLookup: true
+      requiresAdr: true
+    - id: agent-experience
+      ownerRole: agent-experience-engineer
+      scope: skills, harnesses, feedback loops and agent-facing ergonomics
+      requiresHumanApproval: false
+      requiresCapabilityLookup: true
+      requiresAdr: true
+
+  routing:
+    default:
+      entryRole: agents-orchestrator
+      terminalRole: qa-release
+      defaultHeartbeat: "OFF"
+      requiredEvidence: [task-contract, review, qa]
+    routes:
+      - id: portfolio-intent
+        when: business-priority-or-goal
+        sequence: [portfolio-lead, principal-architect, agents-orchestrator]
+        decisionRight: portfolio-scope
+        requiredCapabilityLookup: true
+        requiredAdr: false
+      - id: structural-change
+        when: new-interface-dependency-service-or-migration
+        sequence: [principal-architect, agents-orchestrator, staff-engineer, qa-release]
+        decisionRight: architecture-structure
+        requiredCapabilityLookup: true
+        requiredAdr: true
+      - id: bounded-engineering
+        when: existing-capability-or-local-change
+        sequence: [agents-orchestrator, staff-engineer, qa-release]
+        decisionRight: implementation-change
+        requiredCapabilityLookup: true
+        requiredAdr: false
+      - id: factory-data
+        when: factory-intelligence-or-data-platform-change
+        sequence: [factory-data-lead, data-platform-engineer, qa-release]
+        decisionRight: data-contracts
+        requiredCapabilityLookup: true
+        requiredAdr: true
+      - id: agent-experience
+        when: agent-harness-skill-or-feedback-loop-change
+        sequence: [agents-orchestrator, agent-experience-engineer, qa-release]
+        decisionRight: agent-experience
+        requiredCapabilityLookup: true
+        requiredAdr: true
+
+  policies:
+    - id: heartbeat-off-by-default
+      rule: defaultHeartbeat == OFF and every role heartbeat == OFF
+      enforcement: desired_state_and_review
+    - id: capability-lookup-before-addition
+      rule: any new capability, component or service requires capability-evaluation first
+      enforcement: deny_without_record
+    - id: adr-for-structural-change
+      rule: structural changes require an accepted ADR before implementation
+      enforcement: deny_without_adr
+    - id: no-agent-r2-approval
+      rule: every role has canApproveR2 == false
+      enforcement: human_gate
+    - id: gitops-only-delivery
+      rule: durable Kubernetes changes flow through Git, PR, Argo and runtime evidence
+      enforcement: repository_contract
+    - id: no-secret-values
+      rule: agents may not read or print Kubernetes Secret values
+      enforcement: runtime_and_review
+    - id: no-self-merge
+      rule: implementation roles cannot merge their own changes
+      enforcement: review_and_branch_protection
+    - id: reference-only-provisioning
+      rule: this manifest never provisions or starts agents
+      enforcement: import_boundary
+
+  architectureDecisions:
+    - id: ADR-001
+      title: Keep Company governance in a Git-native desired-state manifest
+      status: accepted
+      decision: Separate durable organization policy from Paperclip runtime work state.
+      rollback: Revert this manifest and its references; existing Paperclip import files remain unchanged.
+    - id: ADR-002
+      title: Model mandatory roles without mass agent provisioning
+      status: accepted
+      decision: Bind roles to existing contracts where possible and leave missing bindings null.
+      rollback: Remove or change a role binding in Git; do not delete live agents as rollback.
+    - id: ADR-003
+      title: Require capability lookup before additions
+      status: accepted
+      decision: Classify every addition as REUSE, EXTEND, COMPOSE, ADAPTER, NEW_COMPONENT, NEW_SERVICE or BU_CANDIDATE.
+      rollback: Revert the proposed capability record and its dependent change together.
+    - id: ADR-004
+      title: Require ADRs for structural changes
+      status: accepted
+      decision: New interfaces, dependencies, services, migrations and boundary changes require an accepted ADR.
+      rollback: Follow the ADR rollback plan and revert the smallest causal Git change.

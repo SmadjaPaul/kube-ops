@@ -1,0 +1,16 @@
+schema: company/desired-state/capability-evaluation/v1
+version: 1
+candidate: bounded-agent-workspace
+requestedByRole: agents-orchestrator
+decision: ADAPTER
+matchingExistingCapabilities:
+  - agent-execution-boundary
+evidence:
+  - ../KUBERNETES-EXECUTION.md
+  - ../CAPABILITIES.md
+ownerRole: principal-architect
+structural: true
+adrRef: ADR-004
+outcome: >-
+  Qualify the existing first-party Kubernetes sandbox adapter before proposing
+  a new execution service. No Paperclip agent is started by this record.
