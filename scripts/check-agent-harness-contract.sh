@@ -4,6 +4,7 @@ set -euo pipefail
 company="k8s/applications/ai/paperclip/company"
 paperclip="k8s/applications/ai/paperclip"
 paperclip_instance="k8s/applications/ai/paperclip/instance.yaml"
+execution_contract="k8s/applications/ai/paperclip/KUBERNETES-EXECUTION.md"
 roles=(
   engineering-manager
   researcher
@@ -14,6 +15,11 @@ roles=(
 
 [[ -f "$company/CAPABILITIES.md" ]] || {
   echo "ERROR: missing Paperclip capability contract" >&2
+  exit 1
+}
+
+grep -q 'HUMAN_GATE=H3_AGENT_IMAGE_EXTERNAL_OWNER' "$execution_contract" || {
+  echo "ERROR: missing explicit H3 agent image ownership gate" >&2
   exit 1
 }
 
@@ -114,3 +120,4 @@ echo "PAPERCLIP_ROLE_CAPABILITIES=PASS"
 echo "PAPERCLIP_WORKSPACE_ISOLATION=PASS"
 echo "AI_CONSUMER_MODEL_ABSTRACTION=PASS"
 echo "PAPERCLIP_AGENT_NODE_OPTIONS=PASS"
+echo "PAPERCLIP_AGENT_IMAGE_QUALIFICATION=HUMAN_GATE"
