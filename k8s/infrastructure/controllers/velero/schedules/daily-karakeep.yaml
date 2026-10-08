@@ -11,6 +11,13 @@ spec:
   template:
     includedNamespaces:
       - karakeep
+    labelSelector:
+      matchExpressions:
+        - key: app
+          operator: In
+          values:
+            - karakeep-web
+            - meilisearch
     includedResources:
       - '*'
     excludedResources:

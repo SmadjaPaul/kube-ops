@@ -11,9 +11,9 @@ spec:
   template:
     includedNamespaces:
       - media
-    orLabelSelectors:
-      - matchLabels:
-          app: jellyfin
+    labelSelector:
+      matchLabels:
+        app: jellyfin
     includedResources:
       - '*'
     excludedResources:
