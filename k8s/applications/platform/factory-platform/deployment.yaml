@@ -33,7 +33,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: ghcr.io/smadjapaul/factory-platform@sha256:ea5f37f9a9c3e8d7c3a04b47ef1f83c8146fdeb365baebbb514246ee044cf81a
+          image: ghcr.io/smadjapaul/factory-platform@sha256:0dce4f6f8a237cf92c13c77ac001acdca232a8d2d2c332ea551886288be15d92
           imagePullPolicy: IfNotPresent
           command: ["alembic"]
           args: ["upgrade", "head"]
@@ -61,7 +61,7 @@ spec:
               memory: 256Mi
       containers:
         - name: api
-          image: ghcr.io/smadjapaul/factory-platform@sha256:ea5f37f9a9c3e8d7c3a04b47ef1f83c8146fdeb365baebbb514246ee044cf81a
+          image: ghcr.io/smadjapaul/factory-platform@sha256:0dce4f6f8a237cf92c13c77ac001acdca232a8d2d2c332ea551886288be15d92
           imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL
@@ -72,11 +72,23 @@ spec:
             - name: FACTORY_TENANT_ID
               value: smadja-internal
             - name: FACTORY_GITHUB_REPOS
-              value: SmadjaPaul/kube-ops
+              value: SmadjaPaul/kube-ops,SmadjaPaul/factory-platform,SmadjaPaul/homelab-infra,SmadjaPaul/website,SmadjaPaul/paperclip
             - name: FACTORY_GITHUB_PULL_MAX_PAGES
               value: "4"
             - name: FACTORY_GITHUB_WORKFLOW_MAX_PAGES
               value: "2"
+            - name: FACTORY_GITHUB_APP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: factory-platform-runtime
+                  key: github-app-token
+                  optional: true
+            - name: FACTORY_INGEST_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: factory-platform-runtime
+                  key: ingest-api-key
+                  optional: true
           ports:
             - name: http
               containerPort: 8080
