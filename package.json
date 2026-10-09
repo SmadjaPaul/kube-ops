@@ -5,7 +5,8 @@
     "install:all": "npm install && cd website && npm install",
     "check:v1-contract": "bash scripts/check-v1-active-contract.sh",
     "check:backup-contract": "bash scripts/backup-static-contract.sh",
-    "check": "npm run check:v1-contract && npm run check:backup-contract && npm run check:agent-harness",
+    "check:gatekeeper-contract": "bash tests/harness/gatekeeper-audit-values-test.sh",
+    "check": "npm run check:v1-contract && npm run check:backup-contract && npm run check:gatekeeper-contract && npm run check:agent-harness",
     "check:cluster-contract": "npm run check:v1-contract",
     "check:agent-harness": "bash scripts/check-agent-harness-contract.sh"
   },
