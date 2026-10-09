@@ -31,6 +31,13 @@ spec:
       command: null
       environmentNames: [PATH]
       layers: 6
+    selection:
+      providerDefault: "ghcr.io/paperclipai/agent-runtime-opencode:v1"
+      allowListConfigField: imageAllowList
+      immutableOverrideReference: ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d
+      acquisitionOverrideObserved: false
+      acquisitionCodePath: "onEnvironmentAcquireLease -> resolveImage({ imageOverride: null }, ...)"
+      status: blocked-override-not-plumbed
   provenance:
     buildProvenance: observed-in-upstream-workflow
     keylessSignature: observed-in-ghcr-cosign-signature
@@ -160,6 +167,8 @@ spec:
       detail: agent-sandbox-v1.0.5-is-not-selected-because-it-removes-v1alpha1-required-by-plugin-0.1.0
     - id: H3_AGENT_IMAGE_EXTERNAL_OWNER
       detail: upstream-image-is-now-identifiable-but-human-ownership-and-activation-approval-are-not-observed
+    - id: IMMUTABLE_IMAGE_OVERRIDE_NOT_PROVEN
+      detail: plugin-schema-exposes-imageAllowList-but-current-acquire-path-passes-imageOverride-null-and-resolves-provider-default-v1-tag
     - id: PAPERCLIP_RUNTIME_PROBE
       detail: live-Instance-has-no-plugin-and-no-kubernetes-execution-adapter
     - id: PAPERCLIP_SERVER_RBAC_NOT_GRANTED

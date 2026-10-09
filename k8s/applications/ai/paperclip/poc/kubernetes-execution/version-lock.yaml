@@ -24,6 +24,11 @@ paperclip:
     sourceCommit: "38d8f371722b315d2fb3bbaa512518742e33ce2f"
     workflowIdentity: "https://github.com/paperclipai/paperclip/.github/workflows/agent-runtime-images.yml@refs/heads/master"
     architecture: linux/amd64
+    imageSelection:
+      providerDefault: "ghcr.io/paperclipai/agent-runtime-opencode:v1"
+      configAllowListField: imageAllowList
+      acquirePathOverrideInput: null
+      immutableDigestReachability: blocked-not-proven
 agentSandbox:
   repository: "https://github.com/kubernetes-sigs/agent-sandbox"
   selectedVersion: v0.5.6

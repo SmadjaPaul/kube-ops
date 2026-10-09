@@ -25,7 +25,10 @@ Before any activation:
   into this CRD candidate;
 - resolve an immutable runtime image through a supported image-override path;
   the provider default for `opencode_local` is tag-based and this candidate
-  does not claim that tag as an immutable qualification;
+  does not claim that tag as an immutable qualification. The current upstream
+  acquire path passes `imageOverride: null`, so `imageAllowList` alone does not
+  prove that the digest reaches the pod; this requires an upstream-supported
+  integration fix or an explicitly approved provider release;
 - render against the installed Paperclip Operator CRD;
 - confirm heartbeats remain disabled;
 - ensure no normal Company work is running;
