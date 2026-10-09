@@ -20,18 +20,24 @@ Before any activation:
 - do not inject production credentials.
 
 The candidate uses `sandbox-cr`, Cilium allow-list egress, bounded container
-resources, cascade cleanup when a sandbox lease is released, a 15-minute
-completed-Job cleanup TTL for the stable fallback, and a one-hour activity
-deadline. The supplied OpenCode runtime is pinned by immutable digest through
-the declarative `adapters[].runtimeImage` registry entry.
+resources and a one-hour activity deadline. The plugin package and upstream
+runtime image are pinned in `version-lock.yaml` and the complete H3 record is
+in `docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml`.
 
-The candidate deliberately has no `imagePullSecrets`, no forwarded `envKeys`,
-and no production Secret reference. The plugin-generated tenant ServiceAccount
-does not automount a token, and its namespaced Role is limited to reading pod
-logs. The Paperclip server still needs its separately qualified in-cluster
-control-plane access to create and clean up sandbox resources; the coding
-workload has no Kubernetes write authority.
+The image record identifies the upstream owner, immutable platform-specific
+digest, source commit, keyless signature identity, non-root execution identity,
+probes, resources, egress policy, secret deny-list and rollback. The image
+probe and disposable runtime probes remain unexecuted until the human H3 gate
+is approved.
 
-`imageAllowList` contains only the supplied immutable digest. The candidate
-uses the adapter registry as the authoritative runtime source and is not a
-claim that the live Company or Paperclip environment has been migrated.
+The candidate deliberately has no `imagePullSecrets` or production Secret
+reference. The image selection belongs to the Paperclip environment/plugin
+configuration, not to the Operator `Instance` CRD; placing plugin-only fields
+such as `adapters[]` in the CRD would be rejected by the installed Operator.
+The plugin-generated tenant ServiceAccount does not automount a token, and its
+namespaced Role is limited to reading pod logs. The Paperclip server still
+needs separately qualified in-cluster control-plane access to create and clean
+up sandbox resources; the coding workload has no Kubernetes write authority.
+
+This remains a review/render candidate. It is not evidence that the live
+Company or Paperclip environment has been migrated.
