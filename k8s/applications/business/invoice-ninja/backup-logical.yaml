@@ -65,7 +65,6 @@ spec:
                     --port=3306 \
                     --user=ninja \
                     --protocol=tcp \
-                    --connect-timeout=5 \
                     --single-transaction \
                     --quick \
                     --skip-lock-tables \

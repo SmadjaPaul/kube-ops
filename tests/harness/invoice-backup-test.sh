@@ -17,6 +17,12 @@ for expected in '--no-tablespaces' 'mysqladmin ping' 'test -w' '.mysql-latest.sq
   }
 done
 
+dump_command="$(awk '/^[[:space:]]*mysqldump / {capture=1} capture {print} capture && /ninja >/ {exit}' <<<"$backup_command")"
+[[ "$dump_command" != *'--connect-timeout'* ]] || {
+  echo 'ASSERTION_FAILED mysqldump has unsupported --connect-timeout option' >&2
+  exit 1
+}
+
 mkdir -p "$tmp/bin"
 cat >"$tmp/bin/mysqladmin" <<'SH'
 #!/usr/bin/env sh
