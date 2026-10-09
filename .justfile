@@ -25,6 +25,7 @@ check:
     npm run check
     bash tests/harness/kube-preflight-test.sh
     bash tests/harness/affected-tests-test.sh
+    bash tests/harness/trilium-probe-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-fast:
