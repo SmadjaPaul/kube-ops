@@ -27,6 +27,7 @@ check:
     bash tests/harness/affected-tests-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/invoice-backup-test.sh
+    bash tests/harness/runtime-inventory-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-fast:
