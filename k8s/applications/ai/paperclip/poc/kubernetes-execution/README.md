@@ -8,10 +8,15 @@ sandbox POC. Rendering it is R0/R1. Adding it to the production reconciliation
 graph is a separate change and must follow the qualification gates in
 `../../KUBERNETES-EXECUTION.md`.
 
+The static compatibility candidate pins Agent Sandbox `v0.5.6`, whose release
+manifest serves the plugin-required `agents.x-k8s.io/v1alpha1` API and stores
+the resource as `v1beta1`. Agent Sandbox `v1.0.5` is deliberately not selected:
+it removes `v1alpha1`. This is a compatibility finding, not a live H3 pass.
+
 Before any activation:
 
 - refresh the Paperclip server/operator/plugin pins;
-- confirm the agent-sandbox CRD/controller version and API compatibility;
+- verify the pinned Agent Sandbox release asset and controller image digest;
 - verify the selected runtime image actually exists and contains the adapter;
 - verify the Operator-to-provider bridge: the installed Instance CRD uses its
   own `egressAllowFQDNs`, quota and LimitRange fields, while the upstream

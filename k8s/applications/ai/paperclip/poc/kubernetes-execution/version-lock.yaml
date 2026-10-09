@@ -21,14 +21,28 @@ paperclip:
     architecture: linux/amd64
 agentSandbox:
   repository: "https://github.com/kubernetes-sigs/agent-sandbox"
+  selectedVersion: v0.5.6
+  selectedReleaseAsset: "sandbox-with-extensions.yaml"
+  selectedReleaseAssetSha256: "sha256:1696dbb6faded503149b3994badb599df5dcf24d5985466881784f442dd9c3e5"
+  controllerImage:
+    reference: "registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:a502cfdbcf550e77509cc56097978458a1ac3d5b59972f21b7ce0e0a84a5c12e"
+    architecture: linux/amd64
   checkedVersions:
     - version: v0.5.6
-      servedSandboxApi: agents.x-k8s.io/v1beta1
+      servedSandboxApis:
+        - agents.x-k8s.io/v1alpha1
+        - agents.x-k8s.io/v1beta1
+      storageSandboxApi: agents.x-k8s.io/v1beta1
     - version: v1.0.5
-      servedSandboxApi: agents.x-k8s.io/v1beta1
+      servedSandboxApis:
+        - agents.x-k8s.io/v1beta1
+      storageSandboxApi: agents.x-k8s.io/v1beta1
 compatibility:
-  sandboxCr: blocked
+  sandboxCr: candidate-compatible-with-v0.5.6
   job: available-without-agent-sandbox-controller-but-insufficient-for-SMA-31-workspace-proof
   reason: >-
-    The published plugin expects v1alpha1 while checked Agent Sandbox releases
-    serve v1beta1. Job mode lacks multi-command exec and native workspace sync.
+    The Paperclip plugin expects v1alpha1. Agent Sandbox v0.5.6 still serves
+    v1alpha1 (while storing v1beta1); v1.0.5 is not a compatible selection
+    because it removed v1alpha1. Job mode lacks multi-command exec and native
+    workspace sync. Live controller installation and end-to-end qualification
+    remain blocked and are not implied by this static compatibility result.
