@@ -45,9 +45,32 @@ spec:
     allowPrivilegeEscalation: false
     capabilitiesDrop: [ALL]
     seccompProfile: RuntimeDefault
-    # The upstream agent pod uses a token for the Paperclip callback. The
-    # exact projected-token permissions remain a disposable-POC probe.
-    serviceAccountToken: true
+    # The upstream sandbox-cr builder explicitly disables the pod token. The
+    # callback/bootstrap material is brokered through the per-run Secret; the
+    # coding workload must not receive Kubernetes API credentials.
+    serviceAccountToken: false
+  permissions:
+    paperclipServer:
+      identity: "system:serviceaccount:paperclip:paperclip"
+      required:
+        - "core/namespaces: get,create"
+        - "core/serviceaccounts: get,create"
+        - "rbac.authorization.k8s.io/roles: get,create"
+        - "rbac.authorization.k8s.io/rolebindings: get,create"
+        - "core/resourcequotas: get,create"
+        - "core/limitranges: get,create"
+        - "networking.k8s.io/networkpolicies: get,create"
+        - "cilium.io/ciliumnetworkpolicies: get,create"
+        - "core/pods: get,list"
+        - "core/pods/log: get"
+        - "core/pods/exec: create"
+        - "core/secrets: create,delete"
+        - "agents.x-k8s.io/sandboxes: get,create,delete"
+      liveCanIObservation: all-listed-checks-returned-no
+      status: blocked-not-granted
+    agentPod:
+      kubernetesApi: denied-by-design
+      serviceAccountToken: false
   probes:
     imageExistence: passed
     manifestArchitecture: passed
@@ -124,6 +147,8 @@ spec:
       detail: upstream-image-is-now-identifiable-but-human-ownership-and-activation-approval-are-not-observed
     - id: PAPERCLIP_RUNTIME_PROBE
       detail: live-Instance-has-no-plugin-and-no-kubernetes-execution-adapter
+    - id: PAPERCLIP_SERVER_RBAC_NOT_GRANTED
+      detail: live-paperclip-serviceaccount-denies-all-required-provisioning-and-exec-verbs
     - id: IMAGE_CLI_PROBE_UNAVAILABLE
       detail: local non-networked opencode-version probe could not start because the Docker daemon is unavailable
     - id: ORCHESTRATOR_APPROVAL

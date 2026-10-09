@@ -25,6 +25,8 @@ grep -F 'perTenantLimitRange:' "$candidate" >/dev/null
 ! grep -E '^        (inCluster|adapterType|podActivityDeadlineSec|jobTtlSecondsAfterFinished):' "$candidate" >/dev/null
 ! grep -F 'poc/kubernetes-execution' "$production" >/dev/null
 ! grep -F 'instance-candidate.yaml' "$production" >/dev/null
+grep -F 'serviceAccountToken: false' docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml >/dev/null
+grep -F 'PAPERCLIP_SERVER_RBAC_NOT_GRANTED' docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml >/dev/null
 
 kustomize build k8s/applications/ai/paperclip/poc/kubernetes-execution >/dev/null
 
