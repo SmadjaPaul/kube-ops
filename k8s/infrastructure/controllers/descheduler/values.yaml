@@ -1,3 +1,11 @@
+# Single-node Talos V1 has no alternate placement target for descheduling.
+# The upstream descheduler chart v0.36.0 defaults to a CronJob every two minutes.
+# Suspend its schedule without pruning the chart, policy, RBAC or historic Jobs.
+# IMPORTANT: upstream chart values are top-level; the legacy descheduler: block
+# below is currently ignored by that chart and is retained here for a separate
+# clean-up / multi-node reconsideration, not as effective overrides.
+suspend: true
+
 descheduler:
   image:
     repository: registry.k8s.io/descheduler/descheduler
