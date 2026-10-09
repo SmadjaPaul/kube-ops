@@ -3,6 +3,13 @@
 
 replicas: 1
 
+# Audit controller flags are chart-level values in Gatekeeper 3.22.2.
+# Keeping them at the chart root makes the intended cache-backed audit
+# behavior effective instead of silently falling back to chart defaults.
+auditInterval: 60
+constraintViolationsLimit: 20
+auditFromCache: true
+
 # Controller manager resources
 controllerManager:
   resources:
@@ -18,13 +25,10 @@ audit:
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 1000m
-      memory: 512Mi
-  auditInterval: 60s
-  constraintViolationLimit: 20
-  auditFromCache: true
+      memory: 1Gi
 
 # Webhook configuration
 webhookTimeoutSeconds: 3
