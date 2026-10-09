@@ -17,3 +17,6 @@ data:
         patches:
           - operation: remove
             path: "/spec/volumeName"
+          - operation: replace
+            path: "/spec/storageClassName"
+            value: proxmox-csi

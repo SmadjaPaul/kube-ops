@@ -23,33 +23,56 @@ DRILL_NS=invoice-ninja-restore-YYYYMMDD
 BACKUP_NAME=velero-daily-invoice-ninja-YYYYMMDDHHMMSS
 RESTORE_NAME=invoice-ninja-restore-$(date -u +%Y%m%d%H%M%S)
 
-kubectl create namespace "$DRILL_NS"
-
 # Gate: the backup must contain file-system volume data for all four
 # non-rebuildable Invoice Ninja PVCs. `Completed` alone is insufficient.
 velero backup describe "$BACKUP_NAME" --details
-kubectl -n velero get podvolumebackups \
-  -l "velero.io/backup-name=$BACKUP_NAME"
-# Stop if the details show `Pod Volume Backups: <none included>` or if any
-# protected PVC is absent from the backup's volume coverage.
+PVB_JSON="$(kubectl -n velero get podvolumebackups \
+  -l "velero.io/backup-name=$BACKUP_NAME" \
+  -o json)"
+jq -e '
+  (.items | length == 4) and
+  (all(.items[]; .status.phase == "Completed")) and
+  ([.items[].spec.volume] | sort == ["data", "data", "public", "storage"])
+' <<<"$PVB_JSON"
+# Stop if the details show `Pod Volume Backups: <none included>`, if a PVB is
+# not Completed, or if any protected pod volume is absent from the backup.
+
+kubectl create namespace "$DRILL_NS"
 
 velero restore create "$RESTORE_NAME" \
   --from-backup "$BACKUP_NAME" \
   --namespace-mappings "invoice-ninja:$DRILL_NS" \
-  --restore-volumes=false \
+  --include-cluster-resources=false \
+  --restore-volumes=true \
   --resource-modifier-configmap restore-pvc-isolation \
-  --exclude-resources "secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
+  --exclude-resources "persistentvolumes,secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
   --wait
 
 # The modifier removes the source PVCs' stale volumeName before restore. The
 # namespace in the modifier is the source namespace, not $DRILL_NS. This is
 # required because volumeName is immutable on a PVC and otherwise points at a
-# production PV. restore-volumes=false prevents the restore from recreating
-# cluster-scoped PV objects by name; the mapped StorageClass provisions fresh
-# target PVs for the restored PVCs.
+# production PV. PersistentVolumes are excluded and the modifier changes the
+# StorageClass to proxmox-csi, so the target PVCs must be dynamically bound to
+# fresh target PVs. `--restore-volumes=true` is required: with FSB/Kopia it
+# enables the PVR path that restores the bytes into those fresh PVCs.
 
-kubectl -n velero get podvolumerestores \
-  -l "velero.io/restore-name=$RESTORE_NAME"
+PVR_JSON="$(kubectl -n velero get podvolumerestores \
+  -l "velero.io/restore-name=$RESTORE_NAME" \
+  -o json)"
+jq -e '
+  (.items | length == 4) and
+  (all(.items[]; .status.phase == "Completed")) and
+  ([.items[].spec.volume] | sort == ["data", "data", "public", "storage"])
+' <<<"$PVR_JSON"
+
+kubectl -n "$DRILL_NS" get pvc -o json > "$DRILL_NS-pvcs.json"
+jq -e --arg storage_class proxmox-csi \
+  'all(.items[]; .spec.storageClassName == $storage_class and (.spec.volumeName // "") != "")' \
+  "$DRILL_NS-pvcs.json"
+while read -r pv_name; do
+  claim_namespace="$(kubectl get pv "$pv_name" -o jsonpath='{.spec.claimRef.namespace}')"
+  test "$claim_namespace" = "$DRILL_NS"
+done < <(jq -r '.items[].spec.volumeName' "$DRILL_NS-pvcs.json")
 
 kubectl -n "$DRILL_NS" wait --for=condition=available deployment/invoice-ninja --timeout=10m
 kubectl -n "$DRILL_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=invoice-ninja-mysql --timeout=10m

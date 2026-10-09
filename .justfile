@@ -32,6 +32,7 @@ check:
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-fast:
     bash -n scripts/check-agent-harness-contract.sh scripts/check-v1-active-contract.sh scripts/backup-static-contract.sh
+    bash tests/harness/invoice-restore-isolation-test.sh
     npm run check:agent-harness
     bash scripts/affected-tests.sh
 
