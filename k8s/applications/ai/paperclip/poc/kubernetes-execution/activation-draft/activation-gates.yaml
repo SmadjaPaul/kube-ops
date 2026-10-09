@@ -1,0 +1,46 @@
+# Review artifact, intentionally not a Kubernetes object and not referenced by
+# any Argo Application. It is the merge checklist for the activation overlay.
+apiVersion: factory.smadja.dev/v1
+kind: PaperclipSandboxActivationDraft
+metadata:
+  name: paperclip-agent-sandbox-v1beta1
+spec:
+  status: blocked-human-gate
+  selectedOption: A
+  paperclip:
+    prerequisiteRepository: SmadjaPaul/paperclip
+    prerequisitePullRequest: 11
+    prerequisiteHead: f0f0ebcdcaea140e7d12ec5f5ac5661399589eb5
+    currentlyDeployedImage: ghcr.io/smadjapaul/paperclip@sha256:aa46b347c8e9e6375bce384373d5cf410ad34775ac82963ce1e68c7442b34e90
+    currentlyDeployedSourceCommit: 64ae540df892e3a13d20d49b88de162c92ba0518
+    requiredImageDigest: human-required-after-paperclip-11-release
+    pluginPackage: '@paperclipai/plugin-kubernetes'
+    pluginVersion: 0.1.0
+    providerManifestVersion: 0.1.0-alpha.1
+  agentSandbox:
+    release: v1.0.5
+    sandboxApi: agents.x-k8s.io/v1beta1
+    controllerImage: registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:dd92effc491e593aea41e19169683a09e1d1193d43f25204ba9fe1fbbc53ff8f
+    releaseAssetSha256: b150cb058c577c59c42b060ff7f22e31b5311ca80430db98129f1280a0e85970
+  agentImage:
+    reference: ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d
+    architecture: linux/amd64
+  runtimePath:
+    adapterRegistryField: PAPERCLIP_ADAPTERS[].runtimeImage
+    providerSelection: onEnvironmentAcquireLease -> resolveImage -> buildSandboxCrManifest
+    podCommand: [/usr/bin/tini, --, /bin/sh, -c, sleep infinity]
+    workspace: /workspace
+  controlPlaneRbac:
+    namespaceCreate: [get, create]
+    tenantResources: [serviceaccounts, roles, rolebindings, resourcequotas, limitranges, networkpolicies, ciliumnetworkpolicies]
+    workloadObservation: [pods/get, pods/list, pods/log/get, pods/exec/create]
+    leaseResources: [secrets/create, secrets/delete, sandboxes/get, sandboxes/create, sandboxes/delete]
+  gates:
+    paperclip11Merged: false
+    replacementImagePublishedAndPinned: false
+    pluginDistPresentAndLoadable: false
+    operatorSchemaRendered: false
+    h3HumanApproval: false
+    orchestratorApproval: false
+    disposableRuntimeProof: false
+  rollback: revert_activation_pr_and_reconcile
