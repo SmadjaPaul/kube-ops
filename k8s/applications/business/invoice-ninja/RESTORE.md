@@ -36,25 +36,34 @@ jq -e '
 ' <<<"$PVB_JSON"
 # Stop if the details show `Pod Volume Backups: <none included>`, if a PVB is
 # not Completed, or if any protected pod volume is absent from the backup.
+# The detailed Resource List must also be reviewed before continuing. For this
+# drill, the only cluster-scoped entries permitted by the restore command are
+# the four PersistentVolumes required by FSB and the Namespace/CRD entries
+# explicitly excluded below. Stop if the backup contains any other
+# cluster-scoped resource or any PV outside the four protected PVCs.
 
 kubectl create namespace "$DRILL_NS"
 
 velero restore create "$RESTORE_NAME" \
   --from-backup "$BACKUP_NAME" \
   --namespace-mappings "invoice-ninja:$DRILL_NS" \
-  --include-cluster-resources=false \
+  --include-cluster-resources=true \
   --restore-volumes=true \
   --resource-modifier-configmap restore-pvc-isolation \
-  --exclude-resources "persistentvolumes,secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
+  --exclude-resources "customresourcedefinitions.apiextensions.k8s.io,namespaces,secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
   --wait
 
 # The modifier removes the source PVCs' stale volumeName before restore. The
 # namespace in the modifier is the source namespace, not $DRILL_NS. This is
 # required because volumeName is immutable on a PVC and otherwise points at a
-# production PV. PersistentVolumes are excluded and the modifier changes the
-# StorageClass to proxmox-csi, so the target PVCs must be dynamically bound to
-# fresh target PVs. `--restore-volumes=true` is required: with FSB/Kopia it
-# enables the PVR path that restores the bytes into those fresh PVCs.
+# production PV. Velero v1.18 requires both persistentvolumes and
+# persistentvolumeclaims to be included before it creates PodVolumeRestore
+# objects for File System Backup. The PV objects in this backup are FSB
+# metadata: Velero dynamically provisions fresh target PVs from the modified
+# PVCs instead of creating the source PV objects. CRDs and Namespaces are
+# excluded explicitly so enabling cluster-scoped selection only admits the
+# PV metadata needed by the PVR path. `--restore-volumes=true` is required for
+# FSB/Kopia volume restoration.
 
 PVR_JSON="$(kubectl -n velero get podvolumerestores \
   -l "velero.io/restore-name=$RESTORE_NAME" \
