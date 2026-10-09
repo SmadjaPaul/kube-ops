@@ -1,3 +1,13 @@
+# Edge/single-node budget: apiserver exposes ~68k series and accounts for
+# ~2,274 accepted samples/s at the observed 30s scrape cadence (Phase 2).
+# Scrape every 60s to lower ingestion and API metrics serialization load while
+# retaining every metric, label and the chart's default histogram relabelings.
+# This is a reversible A/B candidate: validate alert windows and query fidelity
+# before merging; it does NOT reduce TSDB series cardinality by itself.
+kubeApiServer:
+  serviceMonitor:
+    interval: 60s
+
 grafana:
   # OIDC Configuration for Authentik
   persistence: {}
