@@ -1,40 +1,7 @@
-# Single-node Talos V1 has no alternate placement target for descheduling.
-# The upstream descheduler chart v0.36.0 defaults to a CronJob every two minutes.
-# Suspend its schedule without pruning the chart, policy, RBAC or historic Jobs.
-# IMPORTANT: upstream chart values are top-level; the legacy descheduler: block
-# below is currently ignored by that chart and is retained here for a separate
-# clean-up / multi-node reconsideration, not as effective overrides.
+# The v0.36.0 upstream chart expects root-level keys (not a descheduler: map).
+# This single-node Talos cluster has nowhere else to relocate evicted pods.
+# Preserve the CronJob and all chart resources but stop unnecessary 2-minute
+# descheduling cycles. Reconsider only if the cluster becomes multi-node.
+# Rollback: set suspend to false through GitOps.
+kind: CronJob
 suspend: true
-
-descheduler:
-  image:
-    repository: registry.k8s.io/descheduler/descheduler
-    tag: v0.36.0
-  command:
-    - /usr/local/bin/descheduler
-  args:
-    - --policy-config-file=/policy-dir/policy.yaml
-    - --v=3
-  kubernetesClusterDomain: "cluster.local"
-  leaderElection:
-    enabled: true
-    renewDeadline: 2s
-    retryPeriod: 1s
-    leaseDuration: 3s
-  podAnnotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "10258"
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 256Mi
-  nodeSelector:
-    node-role.kubernetes.io/control-plane: ""
-  priorityClassName: system-cluster-critical
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 65534
-    fsGroup: 65534
