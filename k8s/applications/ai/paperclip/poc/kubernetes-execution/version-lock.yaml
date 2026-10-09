@@ -4,7 +4,8 @@ qualificationDate: "2026-10-09"
 paperclip:
   pluginPackage: "@paperclipai/plugin-kubernetes"
   npmVersion: "0.1.0"
-  npmDistIntegrity: NOT_OBSERVED
+  npmDistIntegrity: "sha512-kcjyuF/kOs+n7oYAVaUujRdVznDDA/bdDozsj5U1IVIG40TrJfGwiQEMi/Yk+jrplkYEkvD0bfbSZDdPHRxGpA=="
+  npmDistShasum: "ef73de11726dfd0acd727142fcf44c0bc83fd08c"
   manifestId: "paperclip.kubernetes-sandbox-provider"
   manifestVersion: "0.1.0-alpha.1"
   sandboxApiExpected: "agents.x-k8s.io/v1alpha1"
