@@ -13,14 +13,18 @@ Before merging this deployment, Doppler `cluster/prd` must provide:
   `read:packages` only, used exclusively to pull the private GHCR image
 - existing `HETZNER_S3_ACCESS_KEY_ID`
 - existing `HETZNER_S3_SECRET_ACCESS_KEY`
-- `APP_FACTORY_PLATFORM_GITHUB_APP_TOKEN` — a GitHub App installation token
-  with read-only access to pull requests, reviews and Actions for the five
-  explicitly configured repositories
+- `APP_FACTORY_PLATFORM_GITHUB_APP_ID` — the non-secret GitHub App ID
+- `APP_FACTORY_PLATFORM_GITHUB_APP_INSTALLATION_ID` — the installation ID for
+  the five explicitly configured repositories
+- `APP_FACTORY_PLATFORM_GITHUB_APP_PRIVATE_KEY` — the GitHub App private key,
+  used only to mint short-lived installation tokens at runtime
 - `APP_FACTORY_PLATFORM_INGEST_API_KEY` — a randomly generated secret for
   explicitly authorized internal event writers; when absent, writes fail
   closed with HTTP 503
 
-The GitHub username is the non-secret constant `SmadjaPaul`. The GHCR token is
+The GitHub username is the non-secret constant `SmadjaPaul`. The collector
+never stores an installation token; it signs a short-lived App assertion and
+renews the installation token before expiry. The GHCR token is
 materialized by External Secrets as a `kubernetes.io/dockerconfigjson`
 imagePullSecret. No credential is committed to Git.
 
