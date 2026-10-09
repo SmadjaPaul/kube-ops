@@ -6,6 +6,7 @@ resources:
   - namespace.yaml
   - externalsecret.yaml
   - storage-class-mapping.yaml
+  - restore-pvc-isolation.yaml
   - schedules/
   - repository-config.yaml
   - auto-cleanup-jobs-policy.yaml
