@@ -52,8 +52,8 @@ spec:
     imageExistence: passed
     manifestArchitecture: passed
     sourceAndSignatureMetadata: passed
-    cliProbe: not-executed
-    cliProbeReason: no disposable sandbox has been authorized
+    cliProbe: unavailable
+    cliProbeReason: local Docker daemon unavailable; no disposable sandbox has been authorized
     callbackProbe: not-executed
     modelProbe: not-executed
   resources:
@@ -124,5 +124,7 @@ spec:
       detail: upstream-image-is-now-identifiable-but-human-ownership-and-activation-approval-are-not-observed
     - id: PAPERCLIP_RUNTIME_PROBE
       detail: live-Instance-has-no-plugin-and-no-kubernetes-execution-adapter
+    - id: IMAGE_CLI_PROBE_UNAVAILABLE
+      detail: local non-networked opencode-version probe could not start because the Docker daemon is unavailable
     - id: ORCHESTRATOR_APPROVAL
       detail: SMA-31-requires-explicit-orchestrator-approval-after-H1-H2-H3
