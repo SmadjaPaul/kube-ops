@@ -21,7 +21,7 @@ backup whose phase is `InProgress`, `PartiallyFailed`, or `Failed`.
 ```bash
 DRILL_NS=invoice-ninja-restore-YYYYMMDD
 BACKUP_NAME=velero-daily-invoice-ninja-YYYYMMDDHHMMSS
-RESTORE_NAME=invoice-ninja-restore-$(date -u +%Y%m%d%H%M%S)
+RESTORE_NAME="invoice-ninja-restore-$(date -u +%Y%m%d%H%M%S)"
 
 # Gate: the backup must contain file-system volume data for all four
 # non-rebuildable Invoice Ninja PVCs. `Completed` alone is insufficient.
@@ -38,7 +38,6 @@ jq -e '
 # not Completed, or if any protected pod volume is absent from the backup.
 
 kubectl create namespace "$DRILL_NS"
-
 velero restore create "$RESTORE_NAME" \
   --from-backup "$BACKUP_NAME" \
   --namespace-mappings "invoice-ninja:$DRILL_NS" \
@@ -56,11 +55,16 @@ velero restore create "$RESTORE_NAME" \
 # fresh target PVs. `--restore-volumes=true` is required: with FSB/Kopia it
 # enables the PVR path that restores the bytes into those fresh PVCs.
 
+# `Completed` only means that Kubernetes objects were restored.  It is not
+# proof that Velero's filesystem data movers restored the PVC contents.  Stop
+# here if any PVC is still unbound, if no PVR was created for this namespace,
+# or if a PVR did not complete.  Do not continue to SQL validation in that
+# case: the resulting PVC may be an empty dynamically provisioned volume.
 PVR_JSON="$(kubectl -n velero get podvolumerestores \
   -l "velero.io/restore-name=$RESTORE_NAME" \
   -o json)"
-jq -e '
-  (.items | length == 4) and
+jq -e --arg ns "$DRILL_NS" '
+  ([.items[] | select(.spec.pod.namespace == $ns)] | length == 4) and
   (all(.items[]; .status.phase == "Completed")) and
   ([.items[].spec.volume] | sort == ["data", "data", "public", "storage"])
 ' <<<"$PVR_JSON"
@@ -73,6 +77,18 @@ while read -r pv_name; do
   claim_namespace="$(kubectl get pv "$pv_name" -o jsonpath='{.spec.claimRef.namespace}')"
   test "$claim_namespace" = "$DRILL_NS"
 done < <(jq -r '.items[].spec.volumeName' "$DRILL_NS-pvcs.json")
+
+# The restore helper is injected into filesystem-restored pods.  Its readiness
+# is the final non-invasive proof that the `.velero` completion marker exists
+# on every restored application volume.
+kubectl get pods -n "$DRILL_NS" -o json |
+  jq -e '
+    (.items | length) > 0 and all(.items[];
+      all(.status.initContainerStatuses[]?;
+        .name != "restore-wait" or .ready == true
+      )
+    )
+  ' >/dev/null
 
 kubectl -n "$DRILL_NS" wait --for=condition=available deployment/invoice-ninja --timeout=10m
 kubectl -n "$DRILL_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=invoice-ninja-mysql --timeout=10m
