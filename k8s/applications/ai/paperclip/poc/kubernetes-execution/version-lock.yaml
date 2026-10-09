@@ -21,6 +21,7 @@ paperclip:
     imageConfigEntrypoint: null
     imageConfigWorkingDirectory: null
     signatureManifestDigest: "sha256:ea7a3235f4940c3fe43b8c54e4da011c5fd164722ed147fe1cbfe729c26438cb"
+    githubSlsaAttestation: "not-found (GitHub API 404; OCI bundle empty)"
     sourceCommit: "38d8f371722b315d2fb3bbaa512518742e33ce2f"
     workflowIdentity: "https://github.com/paperclipai/paperclip/.github/workflows/agent-runtime-images.yml@refs/heads/master"
     architecture: linux/amd64

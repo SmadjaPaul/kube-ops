@@ -51,6 +51,14 @@ spec:
     signedSubjectCommit: 38d8f371722b315d2fb3bbaa512518742e33ce2f
     localCosignVerification: not-executed
     localCosignReason: cosign is not installed in the operator workstation
+    githubSlsaAttestation:
+      verification: not-found
+      checkedWith: gh-attestation-verify
+      repository: paperclipai/paperclip
+      signerWorkflow: paperclipai/paperclip/.github/workflows/agent-runtime-images.yml
+      githubApiResult: http-404
+      ociBundleResult: no-attestations-found
+      note: absence-of-slsa-attestation-is-not-treated-as-signature-failure
   runtime:
     adapterType: opencode_local
     requiredCommand: opencode
