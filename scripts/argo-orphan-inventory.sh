@@ -39,10 +39,19 @@ collect_orphans() {
   local application=$1 project=$2
   argocd app resources "$application" --core --orphaned --output tree=detailed 2>/dev/null |
     awk -v app="$application" -v project="$project" '
+      NR == 1 {
+        kind_start=index($0,"KIND")
+        namespace_start=index($0,"NAMESPACE")
+        name_tail=substr($0,namespace_start+length("NAMESPACE"))
+        name_start=namespace_start+length("NAMESPACE")+match(name_tail,/NAME[[:space:]]+/)-1
+        orphaned_start=index($0,"ORPHANED")
+        next
+      }
       NR > 1 {
-        group=substr($0,1,27); kind=substr($0,28,33)
-        namespace=substr($0,61,41); name=substr($0,102,85)
-        orphaned=substr($0,187,10)
+        group=substr($0,1,kind_start-1); kind=substr($0,kind_start,namespace_start-kind_start)
+        namespace=substr($0,namespace_start,name_start-namespace_start)
+        name=substr($0,name_start,orphaned_start-name_start)
+        orphaned=substr($0,orphaned_start,10)
         gsub(/^ +| +$/,"",group); gsub(/^ +| +$/,"",kind)
         gsub(/^ +| +$/,"",namespace); gsub(/^ +| +$/,"",name)
         gsub(/^ +| +$/,"",orphaned)
