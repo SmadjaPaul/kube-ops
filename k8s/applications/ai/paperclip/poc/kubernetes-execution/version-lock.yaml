@@ -1,0 +1,33 @@
+# Review artifact only. Not a Kubernetes object and not referenced by the
+# candidate Kustomization.
+qualificationDate: "2026-10-09"
+paperclip:
+  pluginPackage: "@paperclipai/plugin-kubernetes"
+  npmVersion: "2026.1005.0"
+  npmDistIntegrity: "sha512-JXlPosXgqYxt6B2/J1tQtDnbVK/OiE+tsX0j8V3UgepD8MndIgBE5OP+qkE/xoyHn3PYFb12ZdLr9iprNHgLUg=="
+  manifestId: "paperclip.kubernetes-sandbox-provider"
+  manifestVersion: "0.1.0-alpha.1"
+  sandboxApiExpected: "agents.x-k8s.io/v1alpha1"
+  runtimeImage:
+    adapterType: opencode_local
+    repository: "ghcr.io/paperclipai/agent-runtime-opencode"
+    observedTag: "git-38d8f371722b315d2fb3bbaa512518742e33ce2f"
+    indexDigest: "sha256:06b207047eb2efcede3f5c85d493fbe976ad653a7fafe41cf6df76dd02e12ae6"
+    amd64ManifestDigest: "sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d"
+    signatureManifestDigest: "sha256:ea7a3235f4940c3fe43b8c54e4da011c5fd164722ed147fe1cbfe729c26438cb"
+    sourceCommit: "38d8f371722b315d2fb3bbaa512518742e33ce2f"
+    workflowIdentity: "https://github.com/paperclipai/paperclip/.github/workflows/agent-runtime-images.yml@refs/heads/master"
+    architecture: linux/amd64
+agentSandbox:
+  repository: "https://github.com/kubernetes-sigs/agent-sandbox"
+  checkedVersions:
+    - version: v0.5.6
+      servedSandboxApi: agents.x-k8s.io/v1beta1
+    - version: v1.0.5
+      servedSandboxApi: agents.x-k8s.io/v1beta1
+compatibility:
+  sandboxCr: blocked
+  job: available-without-agent-sandbox-controller-but-insufficient-for-SMA-31-workspace-proof
+  reason: >-
+    The published plugin expects v1alpha1 while checked Agent Sandbox releases
+    serve v1beta1. Job mode lacks multi-command exec and native workspace sync.

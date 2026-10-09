@@ -1,0 +1,211 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "h3-agent-image-qualification-2026-10-09-a6bece8",
+  "producedAt": "2026-10-09T14:13:40Z",
+  "actor": { "kind": "agent", "name": "codex-h3-qualification" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "a6bece8c7c6984990ef95b17bb406e4c73673a68",
+    "branch": "h3-agent-image-qualification"
+  },
+  "tests": [
+    {
+      "id": "yaml-parse",
+      "name": "H3 manifest and candidate YAML parse",
+      "command": "ruby -e require yaml",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The H3 manifest, version lock and candidate parse successfully.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local 2026-10-09" }
+    },
+    {
+      "id": "candidate-render",
+      "name": "Non-live Kubernetes candidate render",
+      "command": "kustomize build k8s/applications/ai/paperclip/poc/kubernetes-execution",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The candidate renders and remains detached from production Kustomization.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local 2026-10-09" }
+    },
+    {
+      "id": "candidate-server-dry-run",
+      "name": "Operator CRD server-side dry-run",
+      "command": "kubectl apply --server-side --dry-run=server -k k8s/applications/ai/paperclip/poc/kubernetes-execution",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Installed Paperclip Operator schema accepts the corrected candidate; no object was persisted.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "canonical operator kubeconfig; local 2026-10-09" }
+    },
+    {
+      "id": "repository-check",
+      "name": "Repository static contract checks",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "V1, backup, agent-harness and affected-test checks passed.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "just check; local 2026-10-09" }
+    },
+    {
+      "id": "registry-image-metadata",
+      "name": "Upstream image existence, digest and architecture metadata",
+      "command": "GHCR manifest inspection for agent-runtime-opencode git-38d8f371722b315d2fb3bbaa512518742e33ce2f",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The immutable amd64 manifest, index digest and keyless signature metadata were observed.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "manual", "reference": "GHCR and upstream source inspection; 2026-10-09" }
+    },
+    {
+      "id": "local-cosign-verification",
+      "name": "Local cosign signature verification",
+      "command": "cosign verify ghcr.io/paperclipai/agent-runtime-opencode@sha256:06b207047eb2efcede3f5c85d493fbe976ad653a7fafe41cf6df76dd02e12ae6",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "cosign is not installed on the operator workstation; registry signature metadata is recorded without claiming local verification.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "sandbox-runtime-probes",
+      "name": "Disposable agent CLI, callback, network and cleanup probes",
+      "command": "one disposable Paperclip sandbox run",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No Kubernetes sandbox is active; H3 and orchestrator approval are required before any paid run.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "ci-head",
+      "name": "PR CI on exact H3 qualification head",
+      "command": "GitHub Actions checks for the H3 qualification PR",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The PR has not been opened yet; CI must be observed after push.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 8,
+    "executed": 5,
+    "notExecuted": 3,
+    "passed": 5,
+    "unavailable": 3
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@a6bece8c7c6984990ef95b17bb406e4c73673a68:h3-agent-image-qualification",
+    "payload": {
+      "resultId": "h3-agent-image-qualification-2026-10-09-a6bece8",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "a6bece8c7c6984990ef95b17bb406e4c73673a68",
+      "tests": [
+        {
+          "id": "yaml-parse",
+          "name": "H3 manifest and candidate YAML parse",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The H3 manifest, version lock and candidate parse successfully.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "candidate-render",
+          "name": "Non-live Kubernetes candidate render",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The candidate renders and remains detached from production Kustomization.",
+          "risk": "medium",
+          "expectedCi": "required"
+        },
+        {
+          "id": "candidate-server-dry-run",
+          "name": "Operator CRD server-side dry-run",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Installed Paperclip Operator schema accepts the corrected candidate; no object was persisted.",
+          "risk": "medium",
+          "expectedCi": "required"
+        },
+        {
+          "id": "repository-check",
+          "name": "Repository static contract checks",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "V1, backup, agent-harness and affected-test checks passed.",
+          "risk": "medium",
+          "expectedCi": "required"
+        },
+        {
+          "id": "registry-image-metadata",
+          "name": "Upstream image existence, digest and architecture metadata",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The immutable amd64 manifest, index digest and keyless signature metadata were observed.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "local-cosign-verification",
+          "name": "Local cosign signature verification",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "unavailable",
+          "reason": "cosign is not installed on the operator workstation.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "sandbox-runtime-probes",
+          "name": "Disposable agent CLI, callback, network and cleanup probes",
+          "execution": "not-executed",
+          "status": "BLOCKED",
+          "classification": "unavailable",
+          "reason": "No Kubernetes sandbox is active; H3 and orchestrator approval are required.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "ci-head",
+          "name": "PR CI on exact H3 qualification head",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "unavailable",
+          "reason": "The PR has not been opened yet.",
+          "risk": "medium",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 8, "executed": 5, "notExecuted": 3 }
+    }
+  }
+}
