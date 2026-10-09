@@ -13,7 +13,7 @@ paperclip:
     adapterType: opencode_local
     repository: "ghcr.io/paperclipai/agent-runtime-opencode"
     observedTag: "git-38d8f371722b315d2fb3bbaa512518742e33ce2f"
-    selectionStatus: "candidate-override-not-provider-default"
+    selectionStatus: "candidate-adapter-registry-override-static-proven"
     indexDigest: "sha256:06b207047eb2efcede3f5c85d493fbe976ad653a7fafe41cf6df76dd02e12ae6"
     amd64ManifestDigest: "sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d"
     ociConfigDigest: "sha256:73dac4db0c58188fd71756e8e6696c2d3ec5bf4b1100c67b1a8c49dc8b47872c"
@@ -28,7 +28,9 @@ paperclip:
       providerDefault: "ghcr.io/paperclipai/agent-runtime-opencode:v1"
       configAllowListField: imageAllowList
       acquirePathOverrideInput: null
-      immutableDigestReachability: blocked-not-proven
+      environmentOverrideField: PAPERCLIP_ADAPTERS[].runtimeImage
+      environmentOverrideSource: deployed-commit-64ae540d
+      immutableDigestReachability: static-code-proven-runtime-not-observed
 agentSandbox:
   repository: "https://github.com/kubernetes-sigs/agent-sandbox"
   selectedVersion: v0.5.6

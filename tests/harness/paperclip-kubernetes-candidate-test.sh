@@ -21,13 +21,15 @@ grep -F 'egressPolicy: allowlist' "$candidate" >/dev/null
 grep -F 'egressAllowFQDNs:' "$candidate" >/dev/null
 grep -F 'perTenantQuota:' "$candidate" >/dev/null
 grep -F 'perTenantLimitRange:' "$candidate" >/dev/null
+grep -F 'PAPERCLIP_ADAPTERS' "$candidate" >/dev/null
+grep -F 'ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d' "$candidate" >/dev/null
 ! grep -F 'egressAllowFqdns:' "$candidate" >/dev/null
 ! grep -E '^        (inCluster|adapterType|podActivityDeadlineSec|jobTtlSecondsAfterFinished):' "$candidate" >/dev/null
 ! grep -F 'poc/kubernetes-execution' "$production" >/dev/null
 ! grep -F 'instance-candidate.yaml' "$production" >/dev/null
 grep -F 'serviceAccountToken: false' docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml >/dev/null
 grep -F 'PAPERCLIP_SERVER_RBAC_NOT_GRANTED' docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml >/dev/null
-grep -F 'IMMUTABLE_IMAGE_OVERRIDE_NOT_PROVEN' docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml >/dev/null
+grep -F 'IMMUTABLE_IMAGE_RUNTIME_NOT_OBSERVED' docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml >/dev/null
 
 kustomize build k8s/applications/ai/paperclip/poc/kubernetes-execution >/dev/null
 

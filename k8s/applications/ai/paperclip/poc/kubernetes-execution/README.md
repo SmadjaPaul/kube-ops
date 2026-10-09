@@ -23,12 +23,13 @@ Before any activation:
   provider environment schema uses `inCluster`, `adapterType` and
   `egressAllowFqdns`; these provider-side fields must not be copied directly
   into this CRD candidate;
-- resolve an immutable runtime image through a supported image-override path;
-  the provider default for `opencode_local` is tag-based and this candidate
-  does not claim that tag as an immutable qualification. The current upstream
-  acquire path passes `imageOverride: null`, so `imageAllowList` alone does not
-  prove that the digest reaches the pod; this requires an upstream-supported
-  integration fix or an explicitly approved provider release;
+- resolve an immutable runtime image through the supported environment adapter
+  registry: `PAPERCLIP_ADAPTERS` carries the exact `runtimeImage` digest into
+  the Kubernetes environment configuration. The provider default for
+  `opencode_local` remains tag-based, and `imageAllowList` alone is not an
+  override because the acquire path passes `imageOverride: null`; the digest
+  path is therefore static-code proven here but still requires a live
+  disposable-pod observation;
 - render against the installed Paperclip Operator CRD;
 - confirm heartbeats remain disabled;
 - ensure no normal Company work is running;

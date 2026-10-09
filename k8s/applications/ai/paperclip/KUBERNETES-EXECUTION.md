@@ -111,12 +111,14 @@ configuration only after the operator/plugin compatibility path is verified.
   but has no multi-command exec, so it cannot qualify the adapter-install and
   workspace lifecycle required by SMA-31. These fields are provider-side
   inputs, not valid fields on the installed `Instance` CRD.
-- The upstream provider resolves `opencode_local` to a runtime image tag and
-  exposes only registry rewriting plus an allow-list for a task image
-  override. The current provider config has no direct immutable-digest field.
-  Therefore the candidate cannot claim the required digest pin until the
-  supported override path and its ownership/provenance are independently
-  verified.
+- The upstream provider's built-in `opencode_local` default remains a runtime
+  image tag and the current acquire path passes `imageOverride: null`; the
+  `imageAllowList` is therefore not itself an override. The deployed server
+  bootstrap does, however, accept `PAPERCLIP_ADAPTERS[].runtimeImage` and
+  carries that registry into the Kubernetes environment config. The candidate
+  pins the upstream digest through this supported environment path. Static
+  code reachability is proven; the digest still requires a disposable runtime
+  observation and human H3 approval.
 
 Upstream references (reviewed 2026-10-09):
 
@@ -124,16 +126,15 @@ Upstream references (reviewed 2026-10-09):
 - [Provider manifest schema](https://github.com/paperclipai/paperclip/blob/master/packages/plugins/sandbox-providers/kubernetes/src/manifest.ts)
 - [Runtime image resolution](https://github.com/paperclipai/paperclip/blob/master/packages/plugins/sandbox-providers/kubernetes/src/image-allowlist.ts)
 
-The smallest existing image primitive is
-`spec.adapters.cloudSandbox.defaultImage`, but it applies only if the supported
-`cloudSandbox` execution surface is deliberately selected. It cannot qualify
-the current `execution.kubernetes` candidate because that surface has no image
-field. The upstream candidate now supplies source, published digest and
-architecture evidence, but human acceptance and a disposable runtime probe
-are still required. The image pin belongs to the Paperclip environment/plugin
-configuration and must be applied only in a separate activation change. Do not
-install tools into a live Paperclip pod, retag an unqualified external image,
-or claim qualification from the server image alone.
+The older `spec.adapters.cloudSandbox.defaultImage` field still applies only if
+the `cloudSandbox` execution surface is deliberately selected; it does not
+qualify `execution.kubernetes`. The upstream candidate supplies source,
+published digest and architecture evidence, while human acceptance and a
+disposable runtime probe remain required. The image pin belongs to the
+Paperclip environment/plugin configuration and must be applied only in a
+separate activation change. Do not install tools into a live Paperclip pod,
+retag an unqualified external image, or claim qualification from the server
+image alone.
 
 Gate identifier: `HUMAN_GATE=H3_AGENT_IMAGE_EXTERNAL_OWNER`.
 
