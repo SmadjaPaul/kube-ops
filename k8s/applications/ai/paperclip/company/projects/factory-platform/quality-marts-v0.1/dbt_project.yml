@@ -1,9 +1,0 @@
-name: factory_quality_stream_d
-version: 0.1.0
-config-version: 2
-profile: factory_platform
-model-paths: [models]
-test-paths: [tests]
-models:
-  factory_quality_stream_d:
-    +schema: factory_quality
