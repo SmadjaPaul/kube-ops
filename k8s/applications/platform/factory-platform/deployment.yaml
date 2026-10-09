@@ -33,7 +33,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: ghcr.io/smadjapaul/factory-platform@sha256:3bff4173e928e655571bc5751b69a63b83b2c79ff090458e79c6adfcf1b045b4
+          image: ghcr.io/smadjapaul/factory-platform@sha256:b25c9ef1d3ddbe739d25d414b5f93b4bd0ccb77dcc34c9f243241c8f5ec68440
           imagePullPolicy: IfNotPresent
           command: ["alembic"]
           args: ["upgrade", "head"]
@@ -61,7 +61,7 @@ spec:
               memory: 256Mi
       containers:
         - name: api
-          image: ghcr.io/smadjapaul/factory-platform@sha256:3bff4173e928e655571bc5751b69a63b83b2c79ff090458e79c6adfcf1b045b4
+          image: ghcr.io/smadjapaul/factory-platform@sha256:b25c9ef1d3ddbe739d25d414b5f93b4bd0ccb77dcc34c9f243241c8f5ec68440
           imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL
@@ -77,18 +77,11 @@ spec:
               value: "4"
             - name: FACTORY_GITHUB_WORKFLOW_MAX_PAGES
               value: "2"
-            - name: FACTORY_GITHUB_APP_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: factory-platform-runtime
-                  key: github-app-token
-                  optional: true
             - name: FACTORY_INGEST_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: factory-platform-runtime
                   key: ingest-api-key
-                  optional: true
           ports:
             - name: http
               containerPort: 8080
