@@ -45,7 +45,16 @@ jq -n   --slurpfile apps "$tmp/apps.json"   --slurpfile gateways "$tmp/gateways.
   },
   workloads: {
     pods: ($pods[0].items|length),
-    notReady: ([$pods[0].items[]|select((.status.phase!="Succeeded" and .status.phase!="Running") or any(.status.containerStatuses[]?; .ready != true))]|length)
+    notReady: ([$pods[0].items[] | select(
+      .status.phase == "Pending" or
+      (.status.phase == "Running" and (
+        ((.status.containerStatuses // []) | length) == 0 or
+        any(.status.containerStatuses[]?; .ready != true)
+      ))
+    )] | length),
+    pending: ([$pods[0].items[] | select(.status.phase == "Pending")]|length),
+    failed: ([$pods[0].items[] | select(.status.phase == "Failed")]|length),
+    succeeded: ([$pods[0].items[] | select(.status.phase == "Succeeded")]|length)
   },
   storage: {
     pvcs: ($pvcs[0].items|length),
