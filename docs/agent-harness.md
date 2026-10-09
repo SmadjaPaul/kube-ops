@@ -2,6 +2,22 @@
 
 The harness makes repository navigation and runtime evidence deterministic enough that a fresh agent does not need chat history.
 
+## Per-run test result contract
+
+Coding agents must report planned checks as JSON using
+[`agent-test-result-v1.schema.json`](contracts/agent-test-result-v1.schema.json).
+The checked-in [example](contracts/agent-test-result-v1.example.json) shows the
+minimum handoff shape. A result is incomplete unless every planned check is
+classified as `passed`, `failed`, `skipped`, `unavailable`, or
+`not-applicable`, with explicit `execution`, `reason`, `risk`, and
+`expectedCi` values. `not-executed` is not a pass and must not be inferred from
+the absence of a hook artifact.
+
+The `transmission` object is a stable, append-only projection for the separate
+`factory-platform` consumer: `agent.test.result` plus the schema version,
+idempotency key, and a credential-free payload. This repository defines the
+shape only; it does not send telemetry or change the factory-platform runtime.
+
 ## Layers
 
 ```

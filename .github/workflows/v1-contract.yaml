@@ -8,6 +8,8 @@ on:
       - '.agents/**'
       - '.justfile'
       - 'docs/agent-harness.md'
+      - 'docs/contracts/**'
+      - 'tests/harness/**'
       - 'docs/operations/acceptance-levels.md'
       - 'AGENTS.md'
       - 'README.md'
@@ -17,6 +19,8 @@ on:
     paths:
       - 'k8s/**'
       - 'scripts/**'
+      - 'docs/contracts/**'
+      - 'tests/harness/**'
       - 'AGENTS.md'
       - 'README.md'
       - '.github/workflows/v1-contract.yaml'
