@@ -11,6 +11,10 @@ spec:
   sourceRepos:
     - https://github.com/SmadjaPaul/kube-ops.git
   destinations:
+    # Applications use an empty destination namespace because their rendered
+    # manifests carry explicit namespaces; this is not a wildcard namespace.
+    - namespace: ''
+      server: https://kubernetes.default.svc
     # Scope infrastructure orphan monitoring to namespaces rendered by the
     # infrastructure roots. Restore drills and unrelated tenant namespaces
     # are intentionally outside this project boundary.
