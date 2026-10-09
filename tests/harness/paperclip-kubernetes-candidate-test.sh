@@ -23,6 +23,16 @@ grep -F 'perTenantQuota:' "$candidate" >/dev/null
 grep -F 'perTenantLimitRange:' "$candidate" >/dev/null
 grep -F 'PAPERCLIP_ADAPTERS' "$candidate" >/dev/null
 grep -F 'ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d' "$candidate" >/dev/null
+adapter_registry_json="$(yq -r '.spec.env[] | select(.name == "PAPERCLIP_ADAPTERS") | .value' "$candidate")"
+jq -e '
+  length == 1 and
+  .[0].adapterType == "opencode_local" and
+  .[0].enabled == true and
+  .[0].runtimeImage == "ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d" and
+  .[0].envKeys == [] and
+  .[0].probeCommand == ["opencode", "--version"] and
+  (["paperclip.paperclip.svc.cluster.local", "litellm.litellm.svc.cluster.local", "github.com", "api.github.com"] - .[0].allowFqdns | length) == 0
+' <<<"$adapter_registry_json" >/dev/null
 ! grep -F 'egressAllowFqdns:' "$candidate" >/dev/null
 ! grep -E '^        (inCluster|adapterType|podActivityDeadlineSec|jobTtlSecondsAfterFinished):' "$candidate" >/dev/null
 ! grep -F 'poc/kubernetes-execution' "$production" >/dev/null
