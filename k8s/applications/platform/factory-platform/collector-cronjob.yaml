@@ -47,11 +47,23 @@ spec:
                 - name: FACTORY_TENANT_ID
                   value: smadja-internal
                 - name: FACTORY_GITHUB_REPOS
-                  value: SmadjaPaul/kube-ops
+                  value: SmadjaPaul/kube-ops,SmadjaPaul/factory-platform,SmadjaPaul/homelab-infra,SmadjaPaul/website,SmadjaPaul/paperclip
                 - name: FACTORY_GITHUB_PULL_MAX_PAGES
                   value: "4"
                 - name: FACTORY_GITHUB_WORKFLOW_MAX_PAGES
                   value: "2"
+                - name: FACTORY_GITHUB_REVIEW_LOOKBACK_HOURS
+                  value: "72"
+                - name: FACTORY_GITHUB_REVIEW_MAX_PAGES
+                  value: "2"
+                - name: FACTORY_GITHUB_WATERMARK_OVERLAP_HOURS
+                  value: "1"
+                - name: FACTORY_GITHUB_APP_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-platform-runtime
+                      key: github-app-token
+                      optional: true
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true

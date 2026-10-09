@@ -5,6 +5,7 @@ namespace: factory-platform
 resources:
   - namespace.yaml
   - registry-externalsecret.yaml
+  - runtime-externalsecret.yaml
   - database-s3-credentials.yaml
   - database-objectstore.yaml
   - database.yaml
