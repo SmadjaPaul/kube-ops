@@ -33,17 +33,43 @@ spec:
                 - |
                   umask 077
                   backup_dir=/backup/logical-backups
-                  tmp="$backup_dir/mysql-latest.sql.tmp"
                   target="$backup_dir/mysql-latest.sql"
+                  tmp="$backup_dir/.mysql-latest.sql.tmp.$$"
+
+                  cleanup() {
+                    rm -f "$tmp" 2>/dev/null || true
+                  }
+                  trap cleanup EXIT
+
                   mkdir -p "$backup_dir"
-                  rm -f "$tmp"
+                  test -w "$backup_dir"
+
+                  ready=no
+                  for attempt in $(seq 1 12); do
+                    if mysqladmin ping \
+                      --host=invoice-ninja-mysql \
+                      --port=3306 \
+                      --user=ninja \
+                      --protocol=tcp \
+                      --connect-timeout=5 \
+                      --silent >/dev/null 2>&1; then
+                      ready=yes
+                      break
+                    fi
+                    sleep 5
+                  done
+                  test "$ready" = yes
+
                   mysqldump \
                     --host=invoice-ninja-mysql \
                     --port=3306 \
                     --user=ninja \
+                    --protocol=tcp \
+                    --connect-timeout=5 \
                     --single-transaction \
                     --quick \
                     --skip-lock-tables \
+                    --no-tablespaces \
                     --routines \
                     --events \
                     --triggers \
