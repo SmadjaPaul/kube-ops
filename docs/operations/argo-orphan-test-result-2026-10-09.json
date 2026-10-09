@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "argo-orphan-cleanup-2026-10-09-ba8bc66b",
+  "producedAt": "2026-10-09T18:45:00Z",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "ba8bc66b",
+    "branch": "codex/argo-orphan-cleanup"
+  },
+  "tests": [
+    {
+      "id": "argo-orphan-static-contract",
+      "name": "Argo orphan static contract",
+      "command": "bash tests/harness/argo-orphan-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Explicit AppProject destinations, targeted operator exceptions, and CronJob retention rules passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "ARGO_ORPHAN_STATIC_CONTRACT=PASS" }
+    },
+    {
+      "id": "repository-check",
+      "name": "repository deterministic checks",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "V1, backup, agent harness, affected tests, and repository harness checks passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "RUNTIME_INVENTORY_PHASE_TEST=PASS" }
+    },
+    {
+      "id": "argo-orphan-inventory",
+      "name": "metadata-only live orphan inventory",
+      "command": "scripts/argo-orphan-inventory.sh --output /tmp/argo-orphan-baseline-fast.json",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Read-only inventory completed; Secret data was absent and object races were marked unresolved.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": { "kind": "command", "reference": "uniqueObjects=964; unresolvedObjects=3" }
+    },
+    {
+      "id": "argo-orphan-comparison",
+      "name": "baseline comparison",
+      "command": "scripts/argo-orphan-inventory.sh --compare docs/operations/argo-orphan-baseline-2026-10-09.json --output /tmp/argo-orphan-compared-20261009.json",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "UID-based new/disappeared comparison completed without attributing deletion cause without audit evidence.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": { "kind": "command", "reference": "newObjectCount=104; disappearedObjectCount=92" }
+    },
+    {
+      "id": "runtime-inventory",
+      "name": "live runtime inventory",
+      "command": "just runtime-inventory",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Canonical kube access and bounded Argo/Gateway/workload inventory completed; degraded application health remains separately reported.",
+      "risk": "medium",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "command", "reference": "22 Applications; 2 programmed Gateways; 44 accepted HTTPRoutes" }
+    },
+    {
+      "id": "runtime-smoke",
+      "name": "internal HTTPRoute smoke",
+      "command": "just runtime-smoke",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All discovered internal routes were probed successfully.",
+      "risk": "medium",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "command", "reference": "RUNTIME_SMOKE_TESTED=43; RUNTIME_SMOKE_FAILURES=0" }
+    },
+    {
+      "id": "backup-audit",
+      "name": "live backup retention audit",
+      "command": "just backup-audit",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The audit reports 17 uncovered PVC rows in active restore-drill namespaces; no deletion was authorized.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "BACKUP_AUDIT_GAPS=17" }
+    },
+    {
+      "id": "github-ci",
+      "name": "GitHub CI and review",
+      "command": "GitHub pull request checks",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "CI and review require the pull request to be created; they are not implied by local checks.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "argo-reconciliation",
+      "name": "post-merge Argo reconciliation",
+      "command": "just status-app root",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The desired-state change has not been merged or reconciled; no live apply was performed.",
+      "risk": "high",
+      "expectedCi": "expected",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 9,
+    "executed": 7,
+    "notExecuted": 2,
+    "passed": 6,
+    "failed": 1,
+    "unavailable": 1
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@ba8bc66b:argo-orphan-cleanup",
+    "payload": {
+      "resultId": "argo-orphan-cleanup-2026-10-09-ba8bc66b",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "ba8bc66b",
+      "tests": [
+        {
+          "id": "argo-orphan-static-contract",
+          "name": "Argo orphan static contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Explicit AppProject destinations and targeted operator exceptions passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 9, "executed": 7, "notExecuted": 2 }
+    }
+  }
+}

@@ -52,21 +52,26 @@ spec:
   groups:
     - name: argocd.orphan-resources
       rules:
+        - record: kube_ops:argocd_orphaned_resources_unique
+          # One project warning is emitted per Application. The project-level
+          # max is the de-duplicated Argo signal; the object-level inventory
+          # remains the authority for UID/GVK classification.
+          expr: max by (project) (argocd_app_orphaned_resources_count)
         - alert: ArgoCDOrphanedResourcesPresent
-          expr: argocd_app_orphaned_resources_count > 0
+          expr: kube_ops:argocd_orphaned_resources_unique > 0
           for: 15m
           labels:
             severity: warning
             root_cause_layer: argocd_ownership
           annotations:
             summary: "Argo CD reports orphaned resources"
-            description: "Application {{ $labels.name }} in project {{ $labels.project }} reports {{ $value | printf \"%.0f\" }} orphaned resources. Classify ownership before deleting anything."
+            description: "Project {{ $labels.project }} reports {{ $value | printf \"%.0f\" }} de-duplicated orphaned resources. Classify ownership before deleting anything."
         - alert: ArgoCDOrphanedResourcesGrowing
-          expr: delta(argocd_app_orphaned_resources_count[30m]) > 0
+          expr: delta(kube_ops:argocd_orphaned_resources_unique[30m]) > 0
           for: 15m
           labels:
             severity: warning
             root_cause_layer: argocd_ownership
           annotations:
             summary: "Argo CD orphaned-resource count is growing"
-            description: "Application {{ $labels.name }} in project {{ $labels.project }} has a higher orphan count than 30 minutes ago. Investigate sync, ownership and controller-created children before cleanup."
+            description: "Project {{ $labels.project }} has a higher de-duplicated orphan count than 30 minutes ago. Investigate sync, ownership and controller-created children before cleanup."

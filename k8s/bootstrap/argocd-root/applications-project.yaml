@@ -11,7 +11,74 @@ spec:
   sourceRepos:
     - https://github.com/SmadjaPaul/kube-ops.git
   destinations:
-    - namespace: '*'
+    # Keep orphan monitoring limited to namespaces rendered by the application
+    # roots. Restore drills and cluster-owned namespaces are not application
+    # project scope and must not amplify every Application warning.
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: executor
+      server: https://kubernetes.default.svc
+    - namespace: factory-platform
+      server: https://kubernetes.default.svc
+    - namespace: gpt-researcher
+      server: https://kubernetes.default.svc
+    - namespace: home-assistant
+      server: https://kubernetes.default.svc
+    - namespace: immich
+      server: https://kubernetes.default.svc
+    - namespace: invoice-ninja
+      server: https://kubernetes.default.svc
+    - namespace: it-tools
+      server: https://kubernetes.default.svc
+    - namespace: karakeep
+      server: https://kubernetes.default.svc
+    - namespace: listmonk
+      server: https://kubernetes.default.svc
+    - namespace: litellm
+      server: https://kubernetes.default.svc
+    - namespace: mealie
+      server: https://kubernetes.default.svc
+    - namespace: media
+      server: https://kubernetes.default.svc
+    - namespace: mqtt
+      server: https://kubernetes.default.svc
+    - namespace: ntfy
+      server: https://kubernetes.default.svc
+    - namespace: open-webui
+      server: https://kubernetes.default.svc
+    - namespace: openclaw
+      server: https://kubernetes.default.svc
+    - namespace: openclaw-talos-ops
+      server: https://kubernetes.default.svc
+    - namespace: openclaw-talos-personal
+      server: https://kubernetes.default.svc
+    - namespace: openclaw-talos-test
+      server: https://kubernetes.default.svc
+    - namespace: opencode
+      server: https://kubernetes.default.svc
+    - namespace: paperclip
+      server: https://kubernetes.default.svc
+    - namespace: paperless
+      server: https://kubernetes.default.svc
+    - namespace: pinepods
+      server: https://kubernetes.default.svc
+    - namespace: qdrant
+      server: https://kubernetes.default.svc
+    - namespace: renovate
+      server: https://kubernetes.default.svc
+    - namespace: romm
+      server: https://kubernetes.default.svc
+    - namespace: searxng
+      server: https://kubernetes.default.svc
+    - namespace: stirling-pdf
+      server: https://kubernetes.default.svc
+    - namespace: sure
+      server: https://kubernetes.default.svc
+    - namespace: trilium
+      server: https://kubernetes.default.svc
+    - namespace: twenty
+      server: https://kubernetes.default.svc
+    - namespace: vikunja
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ''
@@ -25,3 +92,28 @@ spec:
       kind: '*'
   orphanedResources:
     warn: true
+    # These are deterministic children of active operators. Keep the
+    # exception list name-scoped; workloads and unknown objects remain visible.
+    ignore:
+      - kind: ConfigMap
+        name: cnpg-default-monitoring
+      - kind: ConfigMap
+        name: reloader-meta-info
+      - group: aquasecurity.github.io
+        kind: ConfigAuditReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: ExposedSecretReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: RbacAssessmentReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: SbomReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: VulnerabilityReport
+        name: '*'
+      - group: autoscaling.k8s.io
+        kind: VerticalPodAutoscalerCheckpoint
+        name: '*'
