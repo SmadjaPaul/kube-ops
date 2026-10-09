@@ -75,10 +75,14 @@ pod_row="$(
     jq -r '
       [
         .items[]
-        | select(.status.phase == "Running")
+        | select(
+            .status.phase == "Running"
+            and .metadata.labels["app.kubernetes.io/name"] == "paperclip"
+            and .metadata.labels["app.kubernetes.io/component"] == "server"
+          )
         | . as $pod
         | $pod.spec.containers[]
-        | select(.image | startswith("ghcr.io/paperclipai/paperclip"))
+        | select(.name == "paperclip" or .name == "app" or .name == "server")
         | [$pod.metadata.name, .name]
       ][0] // empty
       | @tsv

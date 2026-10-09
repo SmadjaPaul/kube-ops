@@ -1,0 +1,124 @@
+# Review artifact only. This is not a Kubernetes object and is not referenced
+# by Argo or the Paperclip production Kustomization.
+apiVersion: factory.smadja.dev/v1
+kind: AgentImageQualification
+metadata:
+  name: paperclip-opencode-upstream-amd64
+  qualificationDate: "2026-10-09"
+  status: blocked-human-gate
+spec:
+  purpose: disposable-paperclip-sandbox-poc
+  owner:
+    organization: paperclipai
+    repository: https://github.com/paperclipai/paperclip
+    sourceCommit: 38d8f371722b315d2fb3bbaa512518742e33ce2f
+    buildWorkflow: .github/workflows/agent-runtime-images.yml
+    buildWorkflowRef: refs/heads/master
+  image:
+    registry: ghcr.io
+    repository: paperclipai/agent-runtime-opencode
+    observedTag: git-38d8f371722b315d2fb3bbaa512518742e33ce2f
+    reference: ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d
+    manifestListReference: ghcr.io/paperclipai/agent-runtime-opencode@sha256:06b207047eb2efcede3f5c85d493fbe976ad653a7fafe41cf6df76dd02e12ae6
+    architecture: amd64
+    operatingSystem: linux
+    ownerBoundary: upstream-published
+  provenance:
+    buildProvenance: observed-in-upstream-workflow
+    keylessSignature: observed-in-ghcr-cosign-signature
+    signatureReference: ghcr.io/paperclipai/agent-runtime-opencode@sha256:ea7a3235f4940c3fe43b8c54e4da011c5fd164722ed147fe1cbfe729c26438cb
+    certificateIssuer: https://token.actions.githubusercontent.com
+    certificateIdentity: https://github.com/paperclipai/paperclip/.github/workflows/agent-runtime-images.yml@refs/heads/master
+    signedSubjectCommit: 38d8f371722b315d2fb3bbaa512518742e33ce2f
+    localCosignVerification: not-executed
+    localCosignReason: cosign is not installed in the operator workstation
+  runtime:
+    adapterType: opencode_local
+    requiredCommand: opencode
+    requiredProbe: [opencode, --version]
+    imageBuildProbe: [command, -v, opencode]
+    entrypoint: [/usr/bin/tini, --, /usr/local/bin/paperclip-agent-shim]
+    user: "1000:1000"
+    workingDirectory: /workspace
+    expectedTools: [node, git, tar, tini, rg, opencode, paperclip-agent-shim]
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilitiesDrop: [ALL]
+    seccompProfile: RuntimeDefault
+    serviceAccountToken: false
+  probes:
+    imageExistence: passed
+    manifestArchitecture: passed
+    sourceAndSignatureMetadata: passed
+    cliProbe: not-executed
+    cliProbeReason: no disposable sandbox has been authorized
+    callbackProbe: not-executed
+    modelProbe: not-executed
+  resources:
+    podRequests:
+      cpu: 100m
+      memory: 256Mi
+    podLimits:
+      cpu: "2"
+      memory: 4Gi
+    tenantQuota:
+      pods: "4"
+      requestsCpu: "2"
+      requestsMemory: 4Gi
+      limitsCpu: "4"
+      limitsMemory: 8Gi
+    tenantLimitRange:
+      defaultCpu: 500m
+      defaultMemory: 1Gi
+      defaultRequestCpu: 100m
+      defaultRequestMemory: 256Mi
+      maxCpu: "2"
+      maxMemory: 4Gi
+    activeDeadlineSeconds: 3600
+    completedJobTtlSeconds: 900
+    retryPolicy:
+      jobBackoffLimit: 0
+      llmRetryBudget: not-observed
+  network:
+    mode: cilium
+    default: deny
+    allowFqdns:
+      - paperclip.paperclip.svc.cluster.local
+      - litellm.litellm.svc.cluster.local
+      - github.com
+      - api.github.com
+      - raw.githubusercontent.com
+      - objects.githubusercontent.com
+      - codeload.github.com
+      - registry.npmjs.org
+    kubernetesApi: denied-by-design
+    privateNetworkAccess: denied-by-design
+  secrets:
+    mode: brokered-and-ephemeral
+    allowed:
+      - Paperclip-generated per-run callback/bootstrap Secret
+      - synthetic test credential explicitly approved for the disposable POC
+    adapterEnvKeys: []
+    forbidden:
+      - KUBECONFIG
+      - Kubernetes ServiceAccount token
+      - Paperclip runtime Secret
+      - Doppler Secret
+      - GitHub PAT or long-lived GitHub token
+      - production provider API key
+    secretValuesRead: false
+  rollback:
+    activation: revert-the-separate-activation-PR-and-let-Argo-converge
+    runtime: release-the-single-lease-and-confirm-Job-or-Sandbox-cascade-cleanup
+    image: restore-the-previous-immutable-image-reference
+    dataImpact: none
+    prohibited: delete-Paperclip-PVC-or-mutate-production-secrets
+  blockers:
+    - id: AGENT_SANDBOX_API_MISMATCH
+      detail: plugin-2026.1005.0-emits-agents.x-k8s.io/v1alpha1-while-published-agent-sandbox-v1.0.5-serves-v1beta1
+    - id: H3_AGENT_IMAGE_EXTERNAL_OWNER
+      detail: upstream-image-is-now-identifiable-but-human-ownership-and-activation-approval-are-not-observed
+    - id: PAPERCLIP_RUNTIME_PROBE
+      detail: live-Instance-has-no-plugin-and-no-kubernetes-execution-adapter
+    - id: ORCHESTRATOR_APPROVAL
+      detail: SMA-31-requires-explicit-orchestrator-approval-after-H1-H2-H3

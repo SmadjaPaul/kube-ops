@@ -11,7 +11,94 @@ spec:
   sourceRepos:
     - https://github.com/SmadjaPaul/kube-ops.git
   destinations:
-    - namespace: '*'
+    # Applications use an empty destination namespace because their rendered
+    # manifests carry explicit namespaces; this is not a wildcard namespace.
+    - namespace: ''
+      server: https://kubernetes.default.svc
+    # Scope infrastructure orphan monitoring to namespaces rendered by the
+    # infrastructure roots. Restore drills and unrelated tenant namespaces
+    # are intentionally outside this project boundary.
+    - namespace: agent-observers
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: auth
+      server: https://kubernetes.default.svc
+    - namespace: cert-manager
+      server: https://kubernetes.default.svc
+    - namespace: cilium-secrets
+      server: https://kubernetes.default.svc
+    - namespace: cloudflared
+      server: https://kubernetes.default.svc
+    - namespace: cnpg-system
+      server: https://kubernetes.default.svc
+    - namespace: csi-proxmox
+      server: https://kubernetes.default.svc
+    - namespace: external-dns-private
+      server: https://kubernetes.default.svc
+    - namespace: external-secrets
+      server: https://kubernetes.default.svc
+    - namespace: falco
+      server: https://kubernetes.default.svc
+    - namespace: gatekeeper-system
+      server: https://kubernetes.default.svc
+    - namespace: gateway
+      server: https://kubernetes.default.svc
+    - namespace: gpt-researcher
+      server: https://kubernetes.default.svc
+    - namespace: home-assistant
+      server: https://kubernetes.default.svc
+    - namespace: immich
+      server: https://kubernetes.default.svc
+    - namespace: it-tools
+      server: https://kubernetes.default.svc
+    - namespace: karakeep
+      server: https://kubernetes.default.svc
+    - namespace: keda
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+    - namespace: kubechecks
+      server: https://kubernetes.default.svc
+    - namespace: kyverno
+      server: https://kubernetes.default.svc
+    - namespace: litellm
+      server: https://kubernetes.default.svc
+    - namespace: longhorn-system
+      server: https://kubernetes.default.svc
+    - namespace: media
+      server: https://kubernetes.default.svc
+    - namespace: metrics-server
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: mqtt
+      server: https://kubernetes.default.svc
+    - namespace: node-feature-discovery
+      server: https://kubernetes.default.svc
+    - namespace: open-webui
+      server: https://kubernetes.default.svc
+    - namespace: opencode
+      server: https://kubernetes.default.svc
+    - namespace: paperclip
+      server: https://kubernetes.default.svc
+    - namespace: paperclip-operator-system
+      server: https://kubernetes.default.svc
+    - namespace: paperless
+      server: https://kubernetes.default.svc
+    - namespace: pinepods
+      server: https://kubernetes.default.svc
+    - namespace: qdrant
+      server: https://kubernetes.default.svc
+    - namespace: reloader
+      server: https://kubernetes.default.svc
+    - namespace: security-system
+      server: https://kubernetes.default.svc
+    - namespace: trivy-system
+      server: https://kubernetes.default.svc
+    - namespace: velero
+      server: https://kubernetes.default.svc
+    - namespace: vertical-pod-autoscaler
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: '*'
@@ -21,3 +108,67 @@ spec:
       kind: '*'
   orphanedResources:
     warn: true
+    # Operator-owned state is retained and audited separately from Git-owned
+    # resources. These exceptions are limited to known operator API kinds.
+    ignore:
+      - kind: ConfigMap
+        name: cnpg-default-monitoring
+      - kind: ConfigMap
+        name: reloader-meta-info
+      - group: aquasecurity.github.io
+        kind: ConfigAuditReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: ExposedSecretReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: RbacAssessmentReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: SbomReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: VulnerabilityReport
+        name: '*'
+      - group: autoscaling.k8s.io
+        kind: VerticalPodAutoscalerCheckpoint
+        name: '*'
+      - group: batch
+        kind: Job
+        name: '*-kopia-maintain-job-*'
+      - group: longhorn.io
+        kind: BackupTarget
+        name: '*'
+      - group: longhorn.io
+        kind: Engine
+        name: '*'
+      - group: longhorn.io
+        kind: EngineImage
+        name: '*'
+      - group: longhorn.io
+        kind: Replica
+        name: '*'
+      - group: longhorn.io
+        kind: Setting
+        name: '*'
+      - group: longhorn.io
+        kind: Volume
+        name: '*'
+      - group: longhorn.io
+        kind: VolumeAttachment
+        name: '*'
+      - group: velero.io
+        kind: Backup
+        name: '*'
+      - group: velero.io
+        kind: BackupRepository
+        name: '*'
+      - group: velero.io
+        kind: PodVolumeBackup
+        name: '*'
+      - group: velero.io
+        kind: PodVolumeRestore
+        name: '*'
+      - group: velero.io
+        kind: Restore
+        name: '*'

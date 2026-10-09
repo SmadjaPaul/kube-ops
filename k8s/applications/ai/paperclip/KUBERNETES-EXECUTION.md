@@ -69,14 +69,20 @@ Allowed R1 work:
 R2 is required only when the action crosses an existing sensitive boundary
 (credentials, destructive cleanup, irreversible/disruptive state mutation).
 
-## H3 HUMAN_GATE — agent image ownership
+## H3 HUMAN_GATE — agent image ownership and activation
 
-The requested agent image qualification is blocked at the Git ownership
-boundary, not by a missing Kubernetes field:
+The previously proposed `ghcr.io/smadjapaul/agent-runtime-opencode` image is
+not used. A maintained upstream candidate is now identified, but H3 remains
+blocked because identification is not runtime qualification or activation:
 
-- `kube-ops` contains no Dockerfile or build context for
-  `ghcr.io/smadjapaul/paperclip` or an agent runtime image. Its image workflow
-  only builds directories under `images/`.
+- upstream publishes `ghcr.io/paperclipai/agent-runtime-opencode` from the
+  Paperclip repository's agent-runtime workflow;
+- the candidate is pinned to the platform-specific `linux/amd64` digest and
+  the manifest-list digest, with the observed keyless Sigstore identity and
+  source commit recorded in `docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml`;
+- the upstream Dockerfile build probe requires `command -v opencode`, and the
+  runtime probe is `opencode --version`; neither has run in a disposable
+  sandbox here;
 - The live Paperclip server image is pinned by digest in `instance.yaml`; the
   observed image has `git`, `gh`, `node`, `npm` and `jq`, but lacks `just`,
   `kustomize`, `yq` and `ruby`.
@@ -91,11 +97,10 @@ The smallest existing image primitive is
 `spec.adapters.cloudSandbox.defaultImage`, but it applies only if the supported
 `cloudSandbox` execution surface is deliberately selected. It cannot qualify
 the current `execution.kubernetes` candidate because that surface has no image
-field. A separately owned, immutable agent image must first pass the required
-tool probe; a human owner must provide its source, published digest,
-architecture support and probe evidence. Only then may a separate activation
-change set `cloudSandbox.defaultImage`, or the upstream plugin contract must
-add an image primitive if the Kubernetes backend remains the target. Do not
+field. The upstream candidate now supplies source, published digest and
+architecture evidence, but human acceptance and a disposable runtime probe
+are still required. The image pin belongs to the Paperclip environment/plugin
+configuration and must be applied only in a separate activation change. Do not
 install tools into a live Paperclip pod, retag an unqualified external image,
 or claim qualification from the server image alone.
 

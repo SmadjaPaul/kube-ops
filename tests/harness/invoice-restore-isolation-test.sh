@@ -36,5 +36,8 @@ grep -F -- '- invoice-ninja' <<<"$modifier_rules" >/dev/null
 grep -F 'path: "/spec/volumeName"' <<<"$modifier_rules" >/dev/null
 grep -F 'path: "/spec/storageClassName"' <<<"$modifier_rules" >/dev/null
 grep -F 'value: proxmox-csi' <<<"$modifier_rules" >/dev/null
+grep -F 'groupResource: "*.*"' <<<"$modifier_rules" >/dev/null
+grep -F 'argocd.argoproj.io/tracking-id' <<<"$modifier_rules" >/dev/null
+grep -F '"argocd.argoproj.io/tracking-id": null' <<<"$modifier_rules" >/dev/null
 
 printf '%s\n' 'INVOICE_RESTORE_ISOLATION_CONTRACT_TEST=PASS'
