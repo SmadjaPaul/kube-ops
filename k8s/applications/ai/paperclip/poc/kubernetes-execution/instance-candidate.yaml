@@ -6,8 +6,10 @@ metadata:
 spec:
   plugins:
     - name: "@paperclipai/plugin-kubernetes"
-      # Candidate pin only. Refresh against the live Paperclip server before use.
-      version: "2026.1005.0"
+      # Published package version observed in the upstream plugin manifest.
+      # Keep this candidate non-live until the server/plugin compatibility
+      # matrix and the agent-sandbox controller version are refreshed together.
+      version: "0.1.0"
   adapters:
     execution:
       mode: kubernetes
@@ -15,6 +17,10 @@ spec:
         backend: sandbox-cr
         namespacePrefix: paperclip-exec-
         egressMode: cilium
+        # This is the Paperclip Operator bridge schema. It maps to the
+        # provider's environment configuration; it is intentionally not the
+        # provider's direct egressAllowFqdns spelling.
+        egressPolicy: allowlist
         egressAllowFQDNs:
           - paperclip.paperclip.svc.cluster.local
           - litellm.litellm.svc.cluster.local
@@ -37,3 +43,7 @@ spec:
           defaultRequestMemory: 256Mi
           maxCpu: "2"
           maxMemory: 4Gi
+        # The upstream provider currently resolves opencode_local to a v1 tag.
+        # The operator bridge has no direct digest field. Do not activate this
+        # candidate until the operator-to-provider translation and an immutable
+        # image reference are independently verified.

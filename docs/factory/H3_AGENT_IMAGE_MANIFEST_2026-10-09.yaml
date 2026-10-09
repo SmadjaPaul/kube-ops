@@ -45,7 +45,9 @@ spec:
     allowPrivilegeEscalation: false
     capabilitiesDrop: [ALL]
     seccompProfile: RuntimeDefault
-    serviceAccountToken: false
+    # The upstream agent pod uses a token for the Paperclip callback. The
+    # exact projected-token permissions remain a disposable-POC probe.
+    serviceAccountToken: true
   probes:
     imageExistence: passed
     manifestArchitecture: passed
@@ -115,7 +117,7 @@ spec:
     prohibited: delete-Paperclip-PVC-or-mutate-production-secrets
   blockers:
     - id: AGENT_SANDBOX_API_MISMATCH
-      detail: plugin-2026.1005.0-emits-agents.x-k8s.io/v1alpha1-while-published-agent-sandbox-v1.0.5-serves-v1beta1
+      detail: plugin-0.1.0-expects-agents.x-k8s.io/v1alpha1-while-published-agent-sandbox-v1.0.5-serves-v1beta1
     - id: H3_AGENT_IMAGE_EXTERNAL_OWNER
       detail: upstream-image-is-now-identifiable-but-human-ownership-and-activation-approval-are-not-observed
     - id: PAPERCLIP_RUNTIME_PROBE

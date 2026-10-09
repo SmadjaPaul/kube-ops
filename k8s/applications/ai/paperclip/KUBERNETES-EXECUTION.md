@@ -93,6 +93,37 @@ blocked because identification is not runtime qualification or activation:
 - Production currently uses `opencode_local`; the Kubernetes execution file is
   a non-live candidate and must not be activated by this change.
 
+The current upstream provider contract adds two additional blockers that the
+non-live candidate must keep explicit. The installed Paperclip Operator does
+not embed that provider environment schema verbatim: its `Instance` CRD is an
+operator bridge. In particular, the candidate uses the CRD's
+`egressAllowFQDNs`, quota and LimitRange fields; the provider receives its
+separately translated `inCluster`, `adapterType` and `egressAllowFqdns`
+configuration only after the operator/plugin compatibility path is verified.
+
+- `@paperclipai/plugin-kubernetes` is published as `v0.1.0`; the previous
+  candidate pin `2026.1005.0` was not an upstream package version and is
+  removed from the refreshed candidate.
+- The provider config requires `inCluster: true` or a kubeconfig reference,
+  selects the runtime through `adapterType`, and spells the egress key
+  `egressAllowFqdns`. Its `sandbox-cr` backend is alpha and requires the
+  `sandboxes.agents.x-k8s.io/v1alpha1` controller. The `job` fallback is stable
+  but has no multi-command exec, so it cannot qualify the adapter-install and
+  workspace lifecycle required by SMA-31. These fields are provider-side
+  inputs, not valid fields on the installed `Instance` CRD.
+- The upstream provider resolves `opencode_local` to a runtime image tag and
+  exposes only registry rewriting plus an allow-list for a task image
+  override. The current provider config has no direct immutable-digest field.
+  Therefore the candidate cannot claim the required digest pin until the
+  supported override path and its ownership/provenance are independently
+  verified.
+
+Upstream references (reviewed 2026-10-09):
+
+- [Kubernetes provider README](https://github.com/paperclipai/paperclip/blob/master/packages/plugins/sandbox-providers/kubernetes/README.md)
+- [Provider manifest schema](https://github.com/paperclipai/paperclip/blob/master/packages/plugins/sandbox-providers/kubernetes/src/manifest.ts)
+- [Runtime image resolution](https://github.com/paperclipai/paperclip/blob/master/packages/plugins/sandbox-providers/kubernetes/src/image-allowlist.ts)
+
 The smallest existing image primitive is
 `spec.adapters.cloudSandbox.defaultImage`, but it applies only if the supported
 `cloudSandbox` execution surface is deliberately selected. It cannot qualify
