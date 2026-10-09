@@ -1,6 +1,0 @@
-[
-  {"source": "local", "payload": {"source_event_id": "local-1", "task_id": "task-1", "run_id": "run-1", "attempt": 1, "repository": "SmadjaPaul/kube-ops", "sha": "abc123", "pr": "373", "work_item_id": "SMA-1", "agent_run_id": "agent-1", "outcome": "passed", "tests": [{"name": "unit", "classification": "passed"}]}},
-  {"source": "github", "payload": {"workflow_run_id": "gh-2", "task_id": "task-2", "run_id": "run-2", "attempt": 2, "repo": "SmadjaPaul/kube-ops", "head_sha": "def456", "pull_request": "374", "work_item": "SMA-2", "agent_run_id": "agent-2", "conclusion": "failure", "tests": [{"name": "integration", "status": "failed"}]}},
-  {"source": "elementary", "payload": {"invocation_id": "elem-3", "task_id": "task-3", "attempt": 1, "project": "SmadjaPaul/kube-ops", "tests": [{"name": "model.unique", "status": "warn"}]}},
-  {"source": "local", "payload": {"source_event_id": "local-unknown", "task_id": "task-4", "run_id": "run-4", "attempt": 1, "outcome": "unknown", "tests": [{"name": "not-reported"}]}}
-]
