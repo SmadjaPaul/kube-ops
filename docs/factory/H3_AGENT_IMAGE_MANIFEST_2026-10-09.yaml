@@ -23,6 +23,14 @@ spec:
     architecture: amd64
     operatingSystem: linux
     ownerBoundary: upstream-published
+    ociConfigDigest: sha256:73dac4db0c58188fd71756e8e6696c2d3ec5bf4b1100c67b1a8c49dc8b47872c
+    ociConfigObserved:
+      user: null
+      workingDirectory: null
+      entrypoint: null
+      command: null
+      environmentNames: [PATH]
+      layers: 6
   provenance:
     buildProvenance: observed-in-upstream-workflow
     keylessSignature: observed-in-ghcr-cosign-signature
@@ -37,10 +45,17 @@ spec:
     requiredCommand: opencode
     requiredProbe: [opencode, --version]
     imageBuildProbe: [command, -v, opencode]
-    entrypoint: [/usr/bin/tini, --, /usr/local/bin/paperclip-agent-shim]
-    user: "1000:1000"
-    workingDirectory: /workspace
-    expectedTools: [node, git, tar, tini, rg, opencode, paperclip-agent-shim]
+    # The image config is empty; these are pod-spec properties supplied by the
+    # upstream sandbox-cr builder, followed by an exec into the running pod.
+    entrypoint:
+      source: upstream-sandbox-cr-pod-builder
+      value: [/usr/bin/tini, --, /bin/sh, -c, sleep infinity]
+      adapterExec: [opencode, --version]
+    imageConfigUser: null
+    podSpecUser: "1000:1000"
+    imageConfigWorkingDirectory: null
+    podMountWorkingDirectory: /workspace
+    expectedTools: [node, git, tar, tini, rg, opencode]
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
     capabilitiesDrop: [ALL]
