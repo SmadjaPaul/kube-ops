@@ -1,6 +1,6 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "paperclip-sandbox-activation-a24b1fc7",
+  "resultId": "paperclip-sandbox-activation-eccf9cc3",
   "producedAt": "2026-10-09T21:11:00Z",
   "actor": {
     "kind": "agent",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "a24b1fc7bb32bc1e933f9e4b3ac3f81d7d530b07",
+    "revision": "eccf9cc39a74557afc424026e2a10df628f8ca2b",
     "branch": "codex/paperclip-sandbox-activation-draft-stacked"
   },
   "tests": [
@@ -69,7 +69,7 @@
       "expectedCi": "required",
       "evidence": {
         "kind": "ci",
-        "reference": "https://github.com/SmadjaPaul/kube-ops/actions/runs/37991723686"
+        "reference": "https://github.com/SmadjaPaul/kube-ops/actions/runs/37991959968"
       }
     },
     {
@@ -127,11 +127,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops:a24b1fc7bb32bc1e933f9e4b3ac3f81d7d530b07:paperclip-sandbox-activation",
+    "idempotencyKey": "SmadjaPaul/kube-ops:eccf9cc39a74557afc424026e2a10df628f8ca2b:paperclip-sandbox-activation",
     "payload": {
-      "resultId": "paperclip-sandbox-activation-a24b1fc7",
+      "resultId": "paperclip-sandbox-activation-eccf9cc3",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "a24b1fc7bb32bc1e933f9e4b3ac3f81d7d530b07",
+      "revision": "eccf9cc39a74557afc424026e2a10df628f8ca2b",
       "tests": [
         {
           "id": "ci-exact-head",
