@@ -21,13 +21,26 @@ backup whose phase is `InProgress`, `PartiallyFailed`, or `Failed`.
 ```bash
 DRILL_NS=invoice-ninja-restore-YYYYMMDD
 BACKUP_NAME=velero-daily-invoice-ninja-YYYYMMDDHHMMSS
+RESTORE_NAME=invoice-ninja-restore-$(date -u +%Y%m%d%H%M%S)
 
 kubectl create namespace "$DRILL_NS"
-velero restore create "invoice-ninja-restore-$(date -u +%Y%m%d%H%M%S)" \
+velero restore create "$RESTORE_NAME" \
   --from-backup "$BACKUP_NAME" \
   --namespace-mappings "invoice-ninja:$DRILL_NS" \
+  --restore-volumes=false \
+  --resource-modifier-configmap restore-pvc-isolation \
   --exclude-resources "secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
   --wait
+
+# The modifier removes the source PVCs' stale volumeName before restore. The
+# namespace in the modifier is the source namespace, not $DRILL_NS. This is
+# required because volumeName is immutable on a PVC and otherwise points at a
+# production PV. restore-volumes=false prevents the restore from recreating
+# cluster-scoped PV objects by name; the mapped StorageClass provisions fresh
+# target PVs for the restored PVCs.
+
+kubectl -n velero get podvolumerestores \
+  -l "velero.io/restore-name=$RESTORE_NAME"
 
 kubectl -n "$DRILL_NS" wait --for=condition=available deployment/invoice-ninja --timeout=10m
 kubectl -n "$DRILL_NS" wait --for=condition=ready pod -l app.kubernetes.io/name=invoice-ninja-mysql --timeout=10m

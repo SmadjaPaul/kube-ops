@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restore-pvc-isolation
+  namespace: velero
+  labels:
+    velero.io/restore-resource-modifier: invoice-ninja
+data:
+  resource-modifier.yaml: |
+    version: v1
+    resourceModifierRules:
+      - conditions:
+          groupResource: persistentvolumeclaims
+          resourceNameRegex: ".*"
+          namespaces:
+            - invoice-ninja
+        patches:
+          - operation: remove
+            path: "/spec/volumeName"
