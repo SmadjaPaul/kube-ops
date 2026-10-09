@@ -1,14 +1,14 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "paperclip-sandbox-activation-eccf9cc3",
-  "producedAt": "2026-10-09T21:11:00Z",
+  "resultId": "paperclip-sandbox-activation-91d955fc",
+  "producedAt": "2026-10-09T21:15:00Z",
   "actor": {
     "kind": "agent",
     "name": "codex"
   },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "eccf9cc39a74557afc424026e2a10df628f8ca2b",
+    "revision": "91d955fc21980981c9f43e75061329c098fe7882",
     "branch": "codex/paperclip-sandbox-activation-draft-stacked"
   },
   "tests": [
@@ -60,7 +60,7 @@
     {
       "id": "ci-exact-head",
       "name": "GitHub V1 Contract CI on exact HEAD",
-      "command": "GitHub Actions run 37991723686",
+      "command": "GitHub Actions run 37992066843",
       "execution": "executed",
       "status": "FAILED",
       "classification": "failed",
@@ -69,7 +69,7 @@
       "expectedCi": "required",
       "evidence": {
         "kind": "ci",
-        "reference": "https://github.com/SmadjaPaul/kube-ops/actions/runs/37991959968"
+        "reference": "https://github.com/SmadjaPaul/kube-ops/actions/runs/37992066843"
       }
     },
     {
@@ -127,11 +127,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops:eccf9cc39a74557afc424026e2a10df628f8ca2b:paperclip-sandbox-activation",
+    "idempotencyKey": "SmadjaPaul/kube-ops:91d955fc21980981c9f43e75061329c098fe7882:paperclip-sandbox-activation",
     "payload": {
-      "resultId": "paperclip-sandbox-activation-eccf9cc3",
+      "resultId": "paperclip-sandbox-activation-91d955fc",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "eccf9cc39a74557afc424026e2a10df628f8ca2b",
+      "revision": "91d955fc21980981c9f43e75061329c098fe7882",
       "tests": [
         {
           "id": "ci-exact-head",
