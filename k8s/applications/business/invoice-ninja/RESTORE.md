@@ -24,6 +24,15 @@ BACKUP_NAME=velero-daily-invoice-ninja-YYYYMMDDHHMMSS
 RESTORE_NAME=invoice-ninja-restore-$(date -u +%Y%m%d%H%M%S)
 
 kubectl create namespace "$DRILL_NS"
+
+# Gate: the backup must contain file-system volume data for all four
+# non-rebuildable Invoice Ninja PVCs. `Completed` alone is insufficient.
+velero backup describe "$BACKUP_NAME" --details
+kubectl -n velero get podvolumebackups \
+  -l "velero.io/backup-name=$BACKUP_NAME"
+# Stop if the details show `Pod Volume Backups: <none included>` or if any
+# protected PVC is absent from the backup's volume coverage.
+
 velero restore create "$RESTORE_NAME" \
   --from-backup "$BACKUP_NAME" \
   --namespace-mappings "invoice-ninja:$DRILL_NS" \
