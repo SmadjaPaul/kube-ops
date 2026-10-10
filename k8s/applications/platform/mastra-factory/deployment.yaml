@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mastra-factory
+  namespace: mastra-factory
+  labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
+spec:
+  replicas: 0 # Activation is explicitly gated; NOT an E2E success.
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: mastra-factory}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: mastra-factory}
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: mastra-factory-ghcr
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: factory
+          image: ghcr.io/smadjapaul/mastra-factory:sha-UNPUBLISHED-REPLACE-ME
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 4111
+          env:
+            - {name: NODE_ENV, value: production}
+            - {name: PORT, value: "4111"}
+            - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: {name: mastra-factory-postgresql-app, key: uri}
+          envFrom:
+            - secretRef: {name: mastra-factory-runtime}
+          readinessProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket: {port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+            seccompProfile: {type: RuntimeDefault}
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: cache, mountPath: /home/node/.cache}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 512Mi}
+        - name: cache
+          emptyDir: {sizeLimit: 512Mi}

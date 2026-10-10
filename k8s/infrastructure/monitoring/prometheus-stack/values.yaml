@@ -14,19 +14,26 @@ kubeApiServer:
   serviceMonitor:
     interval: 60s
 
+# Trial: slower scrape for Grafana's own /metrics only (not UI or dashboards).
+# Expect fewer monitoring samples; verify grafana alert inputs before merge.
 grafana:
+  serviceMonitor:
+    interval: 60s
   # OIDC Configuration for Authentik
   persistence: {}
   grafana.ini:
+    server:
+      domain: grafana.smadja.dev
+      root_url: https://grafana.smadja.dev/
     auth.generic_oauth:
       enabled: true
       name: Authentik
       client_id: $__env{GRAFANA_OAUTH_CLIENT_ID}
       client_secret: $__env{GRAFANA_OAUTH_CLIENT_SECRET}
       scopes: openid profile email
-      auth_url: https://auth.smadja.dev/application/o/grafana/authorize/
-      token_url: https://auth.smadja.dev/application/o/grafana/token/
-      api_url: https://auth.smadja.dev/application/o/grafana/userinfo/
+      auth_url: https://auth.smadja.dev/application/o/authorize/
+      token_url: https://auth.smadja.dev/application/o/token/
+      api_url: https://auth.smadja.dev/application/o/userinfo/
       login_attribute_path: preferred_username
       groups_attribute_path: groups
       name_attribute_path: name
@@ -57,6 +64,16 @@ grafana:
       cpu: 500m
       memory: 512Mi
 
+# Trial: kube-state-metrics' state is event-updated; Prometheus need not scrape
+# 21k object-state samples every 30s on a single-node homelab.
+# Change only the metrics endpoint; retain all metric families and labels.
+# Test short-window readiness/phase alerts before merge, then measure at 45s.
+kube-state-metrics:
+  prometheus:
+    monitor:
+      http:
+        interval: 45s
+
 kubeStateMetrics:
   resources:
     requests:
@@ -65,6 +82,10 @@ kubeStateMetrics:
     limits:
       cpu: 200m
       memory: 256Mi
+
+kubelet:
+  serviceMonitor:
+    cAdvisorInterval: 15s
 
 prometheusOperator:
   resources:
