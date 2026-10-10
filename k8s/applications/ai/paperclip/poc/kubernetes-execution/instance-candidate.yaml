@@ -6,8 +6,17 @@ metadata:
 spec:
   plugins:
     - name: "@paperclipai/plugin-kubernetes"
-      # Candidate pin only. Refresh against the live Paperclip server before use.
-      version: "2026.1005.0"
+      # Published package version observed in the upstream plugin manifest.
+      # Keep this candidate non-live until the server/plugin compatibility
+      # matrix and the agent-sandbox controller version are refreshed together.
+      version: "0.1.0"
+  env:
+    # Non-secret, immutable adapter registry consumed by the deployed Paperclip
+    # bootstrap. This is the supported environment-level image selection path;
+    # it is not a Kubernetes pod override and is intentionally non-live.
+    - name: PAPERCLIP_ADAPTERS
+      value: >-
+        [{"adapterType":"opencode_local","enabled":true,"runtimeImage":"ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d","envKeys":[],"allowFqdns":["paperclip.paperclip.svc.cluster.local","litellm.litellm.svc.cluster.local","github.com","api.github.com","raw.githubusercontent.com","objects.githubusercontent.com","codeload.github.com","registry.npmjs.org"],"probeCommand":["opencode","--version"]}]
   adapters:
     execution:
       mode: kubernetes
@@ -15,6 +24,10 @@ spec:
         backend: sandbox-cr
         namespacePrefix: paperclip-exec-
         egressMode: cilium
+        # This is the Paperclip Operator bridge schema. It maps to the
+        # provider's environment configuration; it is intentionally not the
+        # provider's direct egressAllowFqdns spelling.
+        egressPolicy: allowlist
         egressAllowFQDNs:
           - paperclip.paperclip.svc.cluster.local
           - litellm.litellm.svc.cluster.local
@@ -37,3 +50,7 @@ spec:
           defaultRequestMemory: 256Mi
           maxCpu: "2"
           maxMemory: 4Gi
+        # The operator bridge has no direct digest field. The immutable image is
+        # supplied through PAPERCLIP_ADAPTERS above, which the deployed
+        # Paperclip bootstrap translates into the provider adapter registry.
+        # Do not activate this candidate until that path is runtime-verified.

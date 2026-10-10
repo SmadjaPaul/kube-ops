@@ -93,16 +93,48 @@ blocked because identification is not runtime qualification or activation:
 - Production currently uses `opencode_local`; the Kubernetes execution file is
   a non-live candidate and must not be activated by this change.
 
-The smallest existing image primitive is
-`spec.adapters.cloudSandbox.defaultImage`, but it applies only if the supported
-`cloudSandbox` execution surface is deliberately selected. It cannot qualify
-the current `execution.kubernetes` candidate because that surface has no image
-field. The upstream candidate now supplies source, published digest and
-architecture evidence, but human acceptance and a disposable runtime probe
-are still required. The image pin belongs to the Paperclip environment/plugin
-configuration and must be applied only in a separate activation change. Do not
-install tools into a live Paperclip pod, retag an unqualified external image,
-or claim qualification from the server image alone.
+The current upstream provider contract adds two additional blockers that the
+non-live candidate must keep explicit. The installed Paperclip Operator does
+not embed that provider environment schema verbatim: its `Instance` CRD is an
+operator bridge. In particular, the candidate uses the CRD's
+`egressAllowFQDNs`, quota and LimitRange fields; the provider receives its
+separately translated `inCluster`, `adapterType` and `egressAllowFqdns`
+configuration only after the operator/plugin compatibility path is verified.
+
+- `@paperclipai/plugin-kubernetes` is published as `v0.1.0`; the previous
+  candidate pin `2026.1005.0` was not an upstream package version and is
+  removed from the refreshed candidate.
+- The provider config requires `inCluster: true` or a kubeconfig reference,
+  selects the runtime through `adapterType`, and spells the egress key
+  `egressAllowFqdns`. Its `sandbox-cr` backend targets the single
+  `agents.x-k8s.io/v1beta1` API selected for this cluster. The `job` fallback is
+  stable but has no multi-command exec, so it cannot qualify the adapter-install
+  and workspace lifecycle required by SMA-31. These fields are provider-side
+  inputs, not valid fields on the installed `Instance` CRD.
+- The upstream provider's built-in `opencode_local` default remains a runtime
+  image tag and the current acquire path passes `imageOverride: null`; the
+  `imageAllowList` is therefore not itself an override. The deployed server
+  bootstrap does, however, accept `PAPERCLIP_ADAPTERS[].runtimeImage` and
+  carries that registry into the Kubernetes environment config. The candidate
+  pins the upstream digest through this supported environment path. Static
+  code reachability is proven; the digest still requires a disposable runtime
+  observation and human H3 approval.
+
+Upstream references (reviewed 2026-10-09):
+
+- [Kubernetes provider README](https://github.com/paperclipai/paperclip/blob/master/packages/plugins/sandbox-providers/kubernetes/README.md)
+- [Provider manifest schema](https://github.com/paperclipai/paperclip/blob/master/packages/plugins/sandbox-providers/kubernetes/src/manifest.ts)
+- [Runtime image resolution](https://github.com/paperclipai/paperclip/blob/master/packages/plugins/sandbox-providers/kubernetes/src/image-allowlist.ts)
+
+The older `spec.adapters.cloudSandbox.defaultImage` field still applies only if
+the `cloudSandbox` execution surface is deliberately selected; it does not
+qualify `execution.kubernetes`. The upstream candidate supplies source,
+published digest and architecture evidence, while human acceptance and a
+disposable runtime probe remain required. The image pin belongs to the
+Paperclip environment/plugin configuration and must be applied only in a
+separate activation change. Do not install tools into a live Paperclip pod,
+retag an unqualified external image, or claim qualification from the server
+image alone.
 
 Gate identifier: `HUMAN_GATE=H3_AGENT_IMAGE_EXTERNAL_OWNER`.
 

@@ -2,32 +2,63 @@
 # candidate Kustomization.
 qualificationDate: "2026-10-09"
 paperclip:
+  prerequisiteRepository: "SmadjaPaul/paperclip"
+  prerequisitePullRequest: 11
+  prerequisiteHead: "15f1c38525715fb8f8070cfa63df1dda3b8bafd4"
   pluginPackage: "@paperclipai/plugin-kubernetes"
-  npmVersion: "2026.1005.0"
-  npmDistIntegrity: "sha512-JXlPosXgqYxt6B2/J1tQtDnbVK/OiE+tsX0j8V3UgepD8MndIgBE5OP+qkE/xoyHn3PYFb12ZdLr9iprNHgLUg=="
+  npmVersion: "0.1.0"
+  npmDistIntegrity: "sha512-kcjyuF/kOs+n7oYAVaUujRdVznDDA/bdDozsj5U1IVIG40TrJfGwiQEMi/Yk+jrplkYEkvD0bfbSZDdPHRxGpA=="
+  npmDistShasum: "ef73de11726dfd0acd727142fcf44c0bc83fd08c"
   manifestId: "paperclip.kubernetes-sandbox-provider"
   manifestVersion: "0.1.0-alpha.1"
-  sandboxApiExpected: "agents.x-k8s.io/v1alpha1"
+  sandboxApiExpected: "agents.x-k8s.io/v1beta1"
   runtimeImage:
     adapterType: opencode_local
     repository: "ghcr.io/paperclipai/agent-runtime-opencode"
     observedTag: "git-38d8f371722b315d2fb3bbaa512518742e33ce2f"
+    selectionStatus: "candidate-adapter-registry-override-static-proven"
     indexDigest: "sha256:06b207047eb2efcede3f5c85d493fbe976ad653a7fafe41cf6df76dd02e12ae6"
     amd64ManifestDigest: "sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d"
+    ociConfigDigest: "sha256:73dac4db0c58188fd71756e8e6696c2d3ec5bf4b1100c67b1a8c49dc8b47872c"
+    imageConfigUser: null
+    imageConfigEntrypoint: null
+    imageConfigWorkingDirectory: null
     signatureManifestDigest: "sha256:ea7a3235f4940c3fe43b8c54e4da011c5fd164722ed147fe1cbfe729c26438cb"
+    githubSlsaAttestation: "not-found (GitHub API 404; OCI bundle empty)"
     sourceCommit: "38d8f371722b315d2fb3bbaa512518742e33ce2f"
     workflowIdentity: "https://github.com/paperclipai/paperclip/.github/workflows/agent-runtime-images.yml@refs/heads/master"
     architecture: linux/amd64
+    imageSelection:
+      providerDefault: "ghcr.io/paperclipai/agent-runtime-opencode:v1"
+      configAllowListField: imageAllowList
+      acquirePathOverrideInput: null
+      environmentOverrideField: PAPERCLIP_ADAPTERS[].runtimeImage
+      environmentOverrideSource: deployed-commit-64ae540d
+      immutableDigestReachability: static-code-proven-runtime-not-observed
 agentSandbox:
   repository: "https://github.com/kubernetes-sigs/agent-sandbox"
+  selectedVersion: v1.0.5
+  selectedReleaseAsset: "sandbox-with-extensions.yaml"
+  selectedReleaseAssetSha256: "sha256:b150cb058c577c59c42b060ff7f22e31b5311ca80430db98129f1280a0e85970"
+  controllerImage:
+    reference: "registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:dd92effc491e593aea41e19169683a09e1d1193d43f25204ba9fe1fbbc53ff8f"
+    architecture: linux/amd64
   checkedVersions:
     - version: v0.5.6
-      servedSandboxApi: agents.x-k8s.io/v1beta1
+      servedSandboxApis:
+        - agents.x-k8s.io/v1alpha1
+        - agents.x-k8s.io/v1beta1
+      storageSandboxApi: agents.x-k8s.io/v1beta1
     - version: v1.0.5
-      servedSandboxApi: agents.x-k8s.io/v1beta1
+      servedSandboxApis:
+        - agents.x-k8s.io/v1beta1
+      storageSandboxApi: agents.x-k8s.io/v1beta1
 compatibility:
-  sandboxCr: blocked
+  sandboxCr: candidate-compatible-with-v1.0.5
   job: available-without-agent-sandbox-controller-but-insufficient-for-SMA-31-workspace-proof
   reason: >-
-    The published plugin expects v1alpha1 while checked Agent Sandbox releases
-    serve v1beta1. Job mode lacks multi-command exec and native workspace sync.
+    Paperclip#11 targets the single v1beta1 API served by Agent Sandbox v1.0.5.
+    The older v0.5.6 release is not selected because it would require a
+    separate alpha provider contract. Job mode lacks multi-command exec and
+    native workspace sync. Live controller installation and end-to-end
+    qualification remain blocked and are not implied by this static result.
