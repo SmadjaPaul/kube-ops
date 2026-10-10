@@ -8,10 +8,11 @@ sandbox POC. Rendering it is R0/R1. Adding it to the production reconciliation
 graph is a separate change and must follow the qualification gates in
 `../../KUBERNETES-EXECUTION.md`.
 
-The static compatibility candidate pins Agent Sandbox `v0.5.6`, whose release
-manifest serves the plugin-required `agents.x-k8s.io/v1alpha1` API and stores
-the resource as `v1beta1`. Agent Sandbox `v1.0.5` is deliberately not selected:
-it removes `v1alpha1`. This is a compatibility finding, not a live H3 pass.
+The static compatibility candidate pins Agent Sandbox `v1.0.5`, whose release
+manifest serves `agents.x-k8s.io/v1beta1`. Paperclip#11 discovers the served
+API and prefers v1beta1 while retaining v1alpha1 fallback for older
+controllers; v0.5.6 is therefore only the compatibility fallback. This is a
+static compatibility finding, not a live H3 pass.
 
 Before any activation:
 

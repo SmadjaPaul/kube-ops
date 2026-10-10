@@ -174,9 +174,7 @@ spec:
     prohibited: delete-Paperclip-PVC-or-mutate-production-secrets
   blockers:
     - id: AGENT_SANDBOX_CONTROLLER_NOT_LIVE
-      detail: candidate-pins-agent-sandbox-v0.5.6-which-serves-v1alpha1-but-no-controller-or-CRD-is-installed-live
-    - id: AGENT_SANDBOX_LATEST_INCOMPATIBLE
-      detail: agent-sandbox-v1.0.5-is-not-selected-because-it-removes-v1alpha1-required-by-plugin-0.1.0
+      detail: candidate-pins-agent-sandbox-v1.0.5-v1beta1-but-no-controller-or-CRD-is-installed-live
     - id: H3_AGENT_IMAGE_EXTERNAL_OWNER
       detail: upstream-image-is-now-identifiable-but-human-ownership-and-activation-approval-are-not-observed
     - id: IMMUTABLE_IMAGE_RUNTIME_NOT_OBSERVED

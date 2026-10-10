@@ -2,13 +2,16 @@
 # candidate Kustomization.
 qualificationDate: "2026-10-09"
 paperclip:
+  prerequisiteRepository: "SmadjaPaul/paperclip"
+  prerequisitePullRequest: 11
+  prerequisiteHead: "cebdf2e490ce4f132516d57175cdd685c249b116"
   pluginPackage: "@paperclipai/plugin-kubernetes"
   npmVersion: "0.1.0"
   npmDistIntegrity: "sha512-kcjyuF/kOs+n7oYAVaUujRdVznDDA/bdDozsj5U1IVIG40TrJfGwiQEMi/Yk+jrplkYEkvD0bfbSZDdPHRxGpA=="
   npmDistShasum: "ef73de11726dfd0acd727142fcf44c0bc83fd08c"
   manifestId: "paperclip.kubernetes-sandbox-provider"
   manifestVersion: "0.1.0-alpha.1"
-  sandboxApiExpected: "agents.x-k8s.io/v1alpha1"
+  sandboxApiExpected: "agents.x-k8s.io/v1beta1 (preferred; v1alpha1 fallback by discovery)"
   runtimeImage:
     adapterType: opencode_local
     repository: "ghcr.io/paperclipai/agent-runtime-opencode"
@@ -34,11 +37,11 @@ paperclip:
       immutableDigestReachability: static-code-proven-runtime-not-observed
 agentSandbox:
   repository: "https://github.com/kubernetes-sigs/agent-sandbox"
-  selectedVersion: v0.5.6
+  selectedVersion: v1.0.5
   selectedReleaseAsset: "sandbox-with-extensions.yaml"
-  selectedReleaseAssetSha256: "sha256:1696dbb6faded503149b3994badb599df5dcf24d5985466881784f442dd9c3e5"
+  selectedReleaseAssetSha256: "sha256:b150cb058c577c59c42b060ff7f22e31b5311ca80430db98129f1280a0e85970"
   controllerImage:
-    reference: "registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:a502cfdbcf550e77509cc56097978458a1ac3d5b59972f21b7ce0e0a84a5c12e"
+    reference: "registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:dd92effc491e593aea41e19169683a09e1d1193d43f25204ba9fe1fbbc53ff8f"
     architecture: linux/amd64
   checkedVersions:
     - version: v0.5.6
@@ -51,11 +54,12 @@ agentSandbox:
         - agents.x-k8s.io/v1beta1
       storageSandboxApi: agents.x-k8s.io/v1beta1
 compatibility:
-  sandboxCr: candidate-compatible-with-v0.5.6
+  sandboxCr: candidate-compatible-with-v1.0.5
   job: available-without-agent-sandbox-controller-but-insufficient-for-SMA-31-workspace-proof
   reason: >-
-    The Paperclip plugin expects v1alpha1. Agent Sandbox v0.5.6 still serves
-    v1alpha1 (while storing v1beta1); v1.0.5 is not a compatible selection
-    because it removed v1alpha1. Job mode lacks multi-command exec and native
-    workspace sync. Live controller installation and end-to-end qualification
-    remain blocked and are not implied by this static compatibility result.
+    Paperclip#11 discovers the served Sandbox API and prefers v1beta1, with a
+    v1alpha1 fallback for older controllers. Agent Sandbox v1.0.5 therefore
+    satisfies the selected contract; v0.5.6 remains a compatibility fallback
+    only. Job mode lacks multi-command exec and native workspace sync. Live
+    controller installation and end-to-end qualification remain blocked and
+    are not implied by this static compatibility result.

@@ -106,11 +106,12 @@ configuration only after the operator/plugin compatibility path is verified.
   removed from the refreshed candidate.
 - The provider config requires `inCluster: true` or a kubeconfig reference,
   selects the runtime through `adapterType`, and spells the egress key
-  `egressAllowFqdns`. Its `sandbox-cr` backend is alpha and requires the
-  `sandboxes.agents.x-k8s.io/v1alpha1` controller. The `job` fallback is stable
-  but has no multi-command exec, so it cannot qualify the adapter-install and
-  workspace lifecycle required by SMA-31. These fields are provider-side
-  inputs, not valid fields on the installed `Instance` CRD.
+  `egressAllowFqdns`. Its `sandbox-cr` backend discovers the served
+  `agents.x-k8s.io` API, prefers v1beta1, and falls back to v1alpha1 for older
+  controllers. The `job` fallback is stable but has no multi-command exec, so
+  it cannot qualify the adapter-install and workspace lifecycle required by
+  SMA-31. These fields are provider-side inputs, not valid fields on the
+  installed `Instance` CRD.
 - The upstream provider's built-in `opencode_local` default remains a runtime
   image tag and the current acquire path passes `imageOverride: null`; the
   `imageAllowList` is therefore not itself an override. The deployed server
