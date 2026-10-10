@@ -68,6 +68,8 @@ spec:
     githubAppScopedAgentPrRunObserved: false
     paperclipControlPlaneKubeApiReachabilityObserved: false
     paperclipSandboxCallbackIngressObserved: false
+    paperclipSandboxCallbackEgressSelectorObserved: false
+    existingTenantNetworkPolicyDriftAudited: false
   evidenceScope:
     kindCi: isolated disposable cluster; no homelab access
     imageCi: image bundling proven locally; push=false
