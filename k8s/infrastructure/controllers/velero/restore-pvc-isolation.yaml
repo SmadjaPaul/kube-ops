@@ -33,6 +33,6 @@ data:
                 "metadata": {
                   "annotations": {
                     "argocd.argoproj.io/tracking-id": null
-                  }
                 }
               }
+            }
