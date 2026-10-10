@@ -14,6 +14,10 @@ data:
           resourceNameRegex: ".*"
           namespaces:
             - invoice-ninja
+            # The synthetic tier qualification uses one source namespace for
+            # both Longhorn classes. The modifier only removes the source PV
+            # identity; it deliberately preserves storageClassName.
+            - longhorn-tier-dr-source
         patches:
           - operation: remove
             path: "/spec/volumeName"
