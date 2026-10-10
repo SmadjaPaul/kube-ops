@@ -19,7 +19,7 @@ data:
       ],
       "timezone": "browser",
       "schemaVersion": 39,
-      "version": 1,
+      "version": 2,
       "refresh": "30s",
       "time": {
         "from": "now-2h",
@@ -39,7 +39,7 @@ data:
           },
           "options": {
             "mode": "markdown",
-            "content": "**Talos VM101 guest-only metrics.** Disk `sd*`/`vd*` here are **virtual disks in the guest**, NOT physical HDD temperatures or Proxmox host disk IO. No Proxmox-host SMART/Tctl exporter is configured; do **not** infer fan causality from these charts. Zoom to the first 15 minutes after boot and correlate with host read-only thermal capture."
+            "content": "**Talos VM101 guest-only metrics.** Disk `sd*`/`vd*` here are **virtual disks in the guest**, NOT physical HDD temperatures or Proxmox host disk IO. No Proxmox-host SMART/Tctl exporter is configured; do **not** infer fan causality from these charts. Zoom to the first 15 minutes after boot and correlate with host read-only thermal capture. The 'Prometheus cost' panels at the bottom use existing telemetry only; changing scrape frequency reduces samples, not immediately TSDB series cardinality or power."
           }
         },
         {
@@ -444,6 +444,174 @@ data:
           "fieldConfig": {
             "defaults": {
               "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 18,
+          "title": "Prometheus: accepted samples/s by job",
+          "type": "timeseries",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 43
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "topk(15, sum by (job) (sum_over_time(scrape_samples_post_metric_relabeling[15m])) / 900)",
+              "legendFormat": "{{job}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 19,
+          "title": "Prometheus: current TSDB head series",
+          "type": "timeseries",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 43
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "prometheus_tsdb_head_series",
+              "legendFormat": "head series"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 20,
+          "title": "Prometheus: CPU cores",
+          "type": "timeseries",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 51
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"monitoring\",container=\"prometheus\"}[5m]))",
+              "legendFormat": "CPU cores"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 21,
+          "title": "Prometheus: container working-set memory",
+          "type": "timeseries",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 51
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"monitoring\",container=\"prometheus\"})",
+              "legendFormat": "working set"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
               "min": 0
             },
             "overrides": []
