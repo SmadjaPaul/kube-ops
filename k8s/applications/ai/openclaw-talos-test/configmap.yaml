@@ -20,22 +20,51 @@ data:
         "ackReaction": "👀",
         "ackReactionScope": "group-mentions",
         "groupChat": {
-          "mentionPatterns": ["@talos-test", "talos-test"],
+          "mentionPatterns": [
+            "@talos-test",
+            "talos-test"
+          ],
           "historyLimit": 50
         },
-        "queue": {"mode": "collect", "cap": 20, "drop": "summarize"}
+        "queue": {
+          "mode": "collect",
+          "cap": 20,
+          "drop": "summarize"
+        }
       },
       "session": {
         "scope": "per-sender",
-        "reset": {"mode": "daily", "atHour": 4, "idleMinutes": 60},
-        "resetTriggers": ["/new", "/reset"]
+        "reset": {
+          "mode": "daily",
+          "atHour": 4,
+          "idleMinutes": 60
+        },
+        "resetTriggers": [
+          "/new",
+          "/reset"
+        ]
       },
-      "channels": {"slack": {"enabled": false}},
-      "plugins": {"entries": {"whatsapp": {"enabled": false}}},
+      "channels": {
+        "slack": {
+          "enabled": false
+        }
+      },
+      "plugins": {
+        "entries": {
+          "whatsapp": {
+            "enabled": false
+          }
+        }
+      },
       "agents": {
         "defaults": {
           "userTimezone": "Europe/Paris",
-          "model": {"primary": "litellm/factory/code", "fallbacks": ["litellm/factory/fast"]},
+          "model": {
+            "primary": "litellm/factory/code",
+            "fallbacks": [
+              "litellm/factory/fast"
+            ]
+          },
           "thinkingDefault": "low",
           "verboseDefault": "off",
           "elevatedDefault": "off",
@@ -43,15 +72,79 @@ data:
           "typingIntervalSeconds": 5,
           "maxConcurrent": 2,
           "utilityModel": "litellm/factory/fast",
-          "modelPolicy": {"allow": ["litellm/factory/code", "litellm/factory/fast"]}
+          "modelPolicy": {
+            "allow": [
+              "litellm/factory/code",
+              "litellm/factory/fast"
+            ]
+          },
+          "subagents": {
+            "allowAgents": [
+              "talos-test"
+            ],
+            "model": "litellm/factory/fast",
+            "maxConcurrent": 2,
+            "maxChildrenPerAgent": 2,
+            "runTimeoutSeconds": 180,
+            "archiveAfterMinutes": 30
+          }
         },
-        "entries": {"talos-test": {"default": true, "identity": {"name": "Talos Test", "theme": "Isolated test-user assistant", "emoji": "🧪"}}}
+        "entries": {
+          "talos-test": {
+            "default": true,
+            "identity": {
+              "name": "Talos Test",
+              "theme": "Isolated test-user assistant",
+              "emoji": "🧪"
+            }
+          }
+        }
       },
       "tools": {
-        "allow": ["read", "write", "edit", "apply_patch", "memory_search", "memory_get"],
-        "deny": ["browser", "canvas", "exec", "process"],
-        "elevated": {"enabled": false},
-        "sessions": {"visibility": "agent"}
+        "allow": [
+          "read",
+          "memory_search",
+          "memory_get",
+          "sessions_spawn",
+          "sessions_yield",
+          "sessions_list",
+          "sessions_history",
+          "subagents"
+        ],
+        "deny": [
+          "browser",
+          "canvas",
+          "exec",
+          "process",
+          "write",
+          "edit",
+          "apply_patch",
+          "message",
+          "gateway"
+        ],
+        "elevated": {
+          "enabled": false
+        },
+        "sessions": {
+          "visibility": "agent"
+        },
+        "subagents": {
+          "tools": {
+            "deny": [
+              "exec",
+              "process",
+              "write",
+              "edit",
+              "apply_patch",
+              "sessions_spawn",
+              "subagents",
+              "gateway",
+              "message",
+              "cron",
+              "nodes"
+            ]
+          }
+        }
       },
       "models": {
         "mode": "merge",
@@ -60,16 +153,38 @@ data:
             "api": "openai-completions",
             "baseUrl": "http://litellm.litellm.svc.cluster.local:80/v1",
             "apiKey": "${LITELLM_API_KEY}",
-            "models": [{"id": "factory/code", "name": "Factory code"}, {"id": "factory/fast", "name": "Factory fast"}]
+            "models": [
+              {
+                "id": "factory/code",
+                "name": "Factory code"
+              },
+              {
+                "id": "factory/fast",
+                "name": "Factory fast"
+              }
+            ]
           }
         }
       },
-      "gateway": {"mode": "local", "port": 18789, "http": {"endpoints": {"chatCompletions": {"enabled": true}}}},
+      "gateway": {
+        "mode": "local",
+        "port": 18789,
+        "http": {
+          "endpoints": {
+            "chatCompletions": {
+              "enabled": true
+            }
+          }
+        }
+      },
       "memory": {
         "search": {
           "provider": "openai-compatible",
           "model": "factory/embedding",
-          "remote": {"baseUrl": "http://litellm.litellm.svc.cluster.local:80/v1/", "apiKey": "${LITELLM_API_KEY}"},
+          "remote": {
+            "baseUrl": "http://litellm.litellm.svc.cluster.local:80/v1/",
+            "apiKey": "${LITELLM_API_KEY}"
+          },
           "rememberAcrossConversations": true
         }
       }
