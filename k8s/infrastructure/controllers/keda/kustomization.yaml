@@ -4,6 +4,7 @@ resources:
   - namespace.yaml
   - pocket-tts-referencegrant.yaml
   - searxng-referencegrant.yaml
+  - it-tools-referencegrant.yaml
 helmCharts:
   - name: keda
     repo: https://kedacore.github.io/charts
