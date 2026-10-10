@@ -147,16 +147,16 @@ and does nothing until H3's publication approval.
 
 ### Pre-activation network/identity blockers
 
-- Current `paperclip/networkpolicy.yaml` does not explicitly allow Paperclip
-  control-plane egress to the Kubernetes API, nor tenant-Sandbox callback
-  ingress to the Paperclip server. Verify the exact Cilium identities and
-  restricted ports offline before any change to the active graph.
-- `PAPERCLIP_ADAPTERS` in the non-live `instance-candidate.yaml` has
-  `envKeys: []`. Upstream `buildAdapterEnv()` copies only declared envKeys
-  from the server process. The existing ESO key
-  `APP_PAPERCLIP_LITELLM_API_KEY` is only a server-side mapping; its status
-  as a scoped virtual key, permitted models/budget, and injection into the
-  per-run Secret are **NOT PROVEN**. Never forward a LiteLLM master key.
+- Paperclip PR #16 adds the exact Operator server-label callback selector and
+  a tenant-namespace-label ingress rule on TCP 3100. Its Kind+Cilium runtime
+  proof is pending; the active graph remains unchanged until that PR is
+  reviewed and merged.
+- The non-live candidate now declares the internal LiteLLM Service on TCP 80
+  (Service port, targetPort 4000) and carries `OPENCODE_CONFIG_CONTENT` as a
+  non-secret adapter default. `LITELLM_API_KEY` is referenced only by name;
+  its status as a scoped virtual key, permitted models/budget, and injection
+  into the per-run Secret are **NOT PROVEN**. Never forward a LiteLLM master
+  key.
 - Explicitly require `get` and `create` on `pods/exec`; #14 proved that
   direct kubectl exec can pass with create alone while the plugin WebSocket GET
   handshake fails with 403.
@@ -171,13 +171,13 @@ blocked, `orchestratorApproval=false`, SMA-31 unexecuted and #400
 ### Existing-tenant label and callback preflight
 
 `packages/plugins/sandbox-providers/kubernetes/src/cilium-network-policy.ts`
-uses `app: paperclip-server` to select callback port 3100, while the
-active `kube-ops/paperclip/networkpolicy.yaml` selects the server through
+now defaults to the exact labels emitted by Operator v0.19.1:
 `app.kubernetes.io/name: paperclip` and
-`app.kubernetes.io/component: server`. Both selectors might coexist
-on the deployed Pod, but no live label evidence has been collected.
-Do **not** assume a match; require a read-only Pod-label inspection and
-a bounded callback reachability probe before enabling tenant traffic.
+`app.kubernetes.io/component: server`. The kube-ops policy additionally
+selects only Pods in namespaces labeled
+`paperclip.io/managed-by=paperclip-k8s-plugin` with
+`paperclip.io/role=agent`, on TCP 3100. PR #16's disposable Kind+Cilium
+probe must still be observed before enabling tenant traffic in the homelab.
 
 `tenant-orchestrator.ts` uses first-write-wins provisioning for tenant
 namespaces, quota, LimitRange and policies. For every pre-existing tenant,

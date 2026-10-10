@@ -3,9 +3,13 @@
 qualificationDate: "2026-10-11"
 paperclip:
   prerequisiteRepository: "SmadjaPaul/paperclip"
-  prerequisitePullRequest: 14
-  prerequisiteHead: "3534bd8264802ada420c8277d4b4740349ec76e6"
-  prerequisiteMergeCommit: "90e47758119910f8c7ecda1de55fd2b378ca1a28"
+  prerequisitePullRequest: 15
+  prerequisiteHead: "fdd83bcf3e23cc5633bbb7a1260bd05d601de76d"
+  prerequisiteMergeCommit: "be721124bfd9dc8566d77b0e04a3c38dcc0db283"
+  prerequisiteCiRun: 38092991455
+  networkFixPullRequest: 16
+  networkFixHead: "34a5622ae22b40c5cab496eb5b81336ccc2526df"
+  networkFixCiStatus: "pending"
   kindWorkflowRun: 38089528661
   imageWorkflowRun: 38090000606
   pluginPackage: "@paperclipai/plugin-kubernetes"
@@ -18,7 +22,7 @@ paperclip:
   selectedBundle:
     source: "Paperclip image local bundle"
     autoInstallKey: "kubernetes"
-    sourceCommit: "90e47758119910f8c7ecda1de55fd2b378ca1a28"
+    sourceCommit: "be721124bfd9dc8566d77b0e04a3c38dcc0db283"
     catalogPath: "/app/packages/plugins/sandbox-providers/kubernetes"
   manifestId: "paperclip.kubernetes-sandbox-provider"
   manifestVersion: "0.1.0-alpha.1"
@@ -44,7 +48,7 @@ paperclip:
       configAllowListField: imageAllowList
       acquirePathOverrideInput: null
       environmentOverrideField: PAPERCLIP_ADAPTERS[].runtimeImage
-      environmentOverrideSource: deployed-commit-64ae540d
+      environmentOverrideSource: candidate-paperclip-master-be721124
       immutableDigestReachability: observed-in-disposable-kind-not-live-operator
 agentSandbox:
   repository: "https://github.com/kubernetes-sigs/agent-sandbox"

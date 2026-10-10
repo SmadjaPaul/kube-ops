@@ -11,12 +11,24 @@ spec:
   # auto-install key: "kubernetes"). Keeping the npm reference here would be
   # misleading and could select the incompatible upstream alpha package.
   env:
+    # Future activation reference only. ESO must provide a dedicated scoped
+    # LiteLLM virtual key under this name; the master key is never permitted.
+    - name: LITELLM_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: paperclip-agent-litellm
+          key: LITELLM_API_KEY
+          optional: false
+    - name: PAPERCLIP_K8S_INTERNAL_SERVICES
+      value: '[{"name":"litellm","namespace":"litellm","port":80}]'
+    - name: PAPERCLIP_K8S_SERVER_ENDPOINT_LABELS
+      value: '{"app.kubernetes.io/name":"paperclip","app.kubernetes.io/component":"server"}'
     # Non-secret, immutable adapter registry consumed by the deployed Paperclip
     # bootstrap. This is the supported environment-level image selection path;
     # it is not a Kubernetes pod override and is intentionally non-live.
     - name: PAPERCLIP_ADAPTERS
       value: >-
-        [{"adapterType":"opencode_local","enabled":true,"runtimeImage":"ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d","envKeys":[],"allowFqdns":["paperclip.paperclip.svc.cluster.local","litellm.litellm.svc.cluster.local","github.com","api.github.com","raw.githubusercontent.com","objects.githubusercontent.com","codeload.github.com","registry.npmjs.org"],"probeCommand":["opencode","--version"]}]
+        [{"adapterType":"opencode_local","enabled":true,"runtimeImage":"ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d","envKeys":["LITELLM_API_KEY"],"allowFqdns":["github.com","api.github.com","raw.githubusercontent.com","objects.githubusercontent.com","codeload.github.com","registry.npmjs.org"],"probeCommand":["opencode","--version"],"defaultEnv":{"OPENCODE_CONFIG_CONTENT":"{\"$schema\":\"https://opencode.ai/config.json\",\"enabled_providers\":[\"litellm\"],\"model\":\"litellm/factory/default\",\"small_model\":\"litellm/factory/fast\",\"provider\":{\"litellm\":{\"npm\":\"@ai-sdk/openai-compatible\",\"name\":\"Smadja LiteLLM\",\"options\":{\"baseURL\":\"http://litellm.litellm.svc.cluster.local:80/v1\",\"apiKey\":\"{env:LITELLM_API_KEY}\"}}}}"}}]
   adapters:
     execution:
       mode: kubernetes
@@ -29,8 +41,6 @@ spec:
         # provider's direct egressAllowFqdns spelling.
         egressPolicy: allowlist
         egressAllowFQDNs:
-          - paperclip.paperclip.svc.cluster.local
-          - litellm.litellm.svc.cluster.local
           - github.com
           - api.github.com
           - raw.githubusercontent.com
