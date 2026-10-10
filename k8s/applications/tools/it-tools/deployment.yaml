@@ -4,7 +4,7 @@ metadata:
   name: it-tools
   namespace: it-tools
 spec:
-  replicas: 1
+  # Replica count is controlled by the KEDA ScaledObject; do not pin it in GitOps.
   selector:
     matchLabels:
       app: it-tools
