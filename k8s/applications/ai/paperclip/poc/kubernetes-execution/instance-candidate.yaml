@@ -4,12 +4,12 @@ metadata:
   name: paperclip
   namespace: paperclip
 spec:
-  plugins:
-    - name: "@paperclipai/plugin-kubernetes"
-      # Published package version observed in the upstream plugin manifest.
-      # Keep this candidate non-live until the server/plugin compatibility
-      # matrix and the agent-sandbox controller version are refreshed together.
-      version: "0.1.0"
+  # Do not declare spec.plugins here. Operator v0.19.1 exposes that field in
+  # the CRD but does not consume it when rendering the StatefulSet and does
+  # not install npm packages from it. The Kubernetes provider is selected by
+  # Paperclip's bundled local-plugin path in the image (self-hosted
+  # auto-install key: "kubernetes"). Keeping the npm reference here would be
+  # misleading and could select the incompatible upstream alpha package.
   env:
     # Non-secret, immutable adapter registry consumed by the deployed Paperclip
     # bootstrap. This is the supported environment-level image selection path;

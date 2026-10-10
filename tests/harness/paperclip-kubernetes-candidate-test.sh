@@ -7,7 +7,8 @@ production="k8s/applications/ai/paperclip/kustomization.yaml"
 
 test -f "$candidate"
 test -f "$lock"
-grep -F 'version: "0.1.0"' "$candidate" >/dev/null
+! grep -F 'name: "@paperclipai/plugin-kubernetes"' "$candidate" >/dev/null
+grep -F 'bundled local-plugin path' "$candidate" >/dev/null
 grep -F 'npmVersion: "0.1.0"' "$lock" >/dev/null
 grep -F 'npmDistIntegrity: "sha512-' "$lock" >/dev/null
 ! grep -F 'npmDistIntegrity: NOT_OBSERVED' "$lock" >/dev/null

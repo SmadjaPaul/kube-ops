@@ -17,9 +17,12 @@ spec:
     currentlyDeployedImage: ghcr.io/smadjapaul/paperclip@sha256:aa46b347c8e9e6375bce384373d5cf410ad34775ac82963ce1e68c7442b34e90
     currentlyDeployedSourceCommit: 64ae540df892e3a13d20d49b88de162c92ba0518
     requiredImageDigest: pending-published-image-with-kubernetes-plugin
-    pluginPackage: '@paperclipai/plugin-kubernetes'
-    pluginVersion: 0.1.0
-    providerManifestVersion: 0.1.0-alpha.1
+    pluginSource: bundled-local-image
+    pluginAutoInstallKey: kubernetes
+    operatorReviewTag: v0.19.1
+    operatorReviewCommit: 30d762c59185f5b67aec3a2f8bd1ce27b44a5a2e
+    operatorSpecPluginsConsumed: false
+    providerManifestVersion: v1beta1-contract-from-paperclip-14
   agentSandbox:
     release: v1.0.5
     sandboxApi: agents.x-k8s.io/v1beta1

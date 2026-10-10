@@ -10,7 +10,7 @@ The selected target is option A:
 
 ```text
 Paperclip source containing merged SmadjaPaul/paperclip#11 and #14
-  -> @paperclipai/plugin-kubernetes 0.1.0 (v1beta1 provider fix)
+  -> bundled local Kubernetes provider (v1beta1 provider fix)
   -> Agent Sandbox v1.0.5
   -> agents.x-k8s.io/v1beta1 Sandbox
   -> ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d
@@ -23,6 +23,19 @@ owner-reference metadata. The current deployed Paperclip image cannot satisfy
 this chain: it is pinned to `sha256:aa46b347...` from commit `64ae540d`, before
 Paperclip#11, and the standard production Docker target does not build the
 Kubernetes plugin distribution.
+
+## Operator plugin installation boundary
+
+The `stubbi/paperclip-operator` `v0.19.1` source is pinned for this review at
+commit `30d762c59185f5b67aec3a2f8bd1ce27b44a5a2e`. Its CRD documents
+`spec.plugins`, but the controller's rendered StatefulSet path has no
+`spec.Plugins` consumer and performs no npm/pnpm installation from that field.
+Consequently the candidate intentionally omits `spec.plugins`: the selected
+provider must come from Paperclip's image bundle and its
+`SELF_HOSTED_AUTO_INSTALL_KEYS=["kubernetes"]` path. This avoids a second,
+unverifiable npm installer and prevents selecting the upstream package that
+still documents the alpha contract. The operator field remains available for
+other operator features, but it is not evidence that this provider is present.
 
 ## Immutable inputs
 
