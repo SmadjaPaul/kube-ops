@@ -50,9 +50,10 @@ velero restore create "$RESTORE_NAME" \
 # The modifier removes the source PVCs' stale volumeName before restore. The
 # namespace in the modifier is the source namespace, not $DRILL_NS. This is
 # required because volumeName is immutable on a PVC and otherwise points at a
-# production PV. PersistentVolumes are excluded and the modifier changes the
-# StorageClass to proxmox-csi, so the target PVCs must be dynamically bound to
-# fresh target PVs. `--restore-volumes=true` is required: with FSB/Kopia it
+# production PV. PersistentVolumes are excluded and the modifier preserves
+# the source StorageClass: new PVCs must be dynamically provisioned on the
+# SAME Longhorn fast/bulk tier. Never map the restore to legacy proxmox-csi.
+# `--restore-volumes=true` is required: with FSB/Kopia it
 # enables the PVR path that restores the bytes into those fresh PVCs.
 
 # `Completed` only means that Kubernetes objects were restored.  It is not
@@ -69,10 +70,22 @@ jq -e --arg ns "$DRILL_NS" '
   ([.items[].spec.volume] | sort == ["data", "data", "public", "storage"])
 ' <<<"$PVR_JSON"
 
+kubectl -n invoice-ninja get pvc -o json > "$DRILL_NS-source-pvcs.json"
 kubectl -n "$DRILL_NS" get pvc -o json > "$DRILL_NS-pvcs.json"
-jq -e --arg storage_class proxmox-csi \
-  'all(.items[]; .spec.storageClassName == $storage_class and (.spec.volumeName // "") != "")' \
-  "$DRILL_NS-pvcs.json"
+# Compare source vs restored PVC by name. For old backups also inspect
+# recorded source class in the backup: STOP if current source has changed.
+jq -e --slurpfile source "$DRILL_NS-source-pvcs.json" '
+  all(.items[];
+    . as $restored |
+    (.spec.volumeName // "") != "" and
+    (.spec.storageClassName | IN("longhorn-fast", "longhorn-bulk")) and
+    (.spec.storageClassName == (
+      [$source[0].items[] |
+        select(.metadata.name == $restored.metadata.name) |
+        .spec.storageClassName] | first
+    ))
+  )
+' "$DRILL_NS-pvcs.json"
 while read -r pv_name; do
   claim_namespace="$(kubectl get pv "$pv_name" -o jsonpath='{.spec.claimRef.namespace}')"
   test "$claim_namespace" = "$DRILL_NS"

@@ -5,7 +5,6 @@ namespace: velero
 resources:
   - namespace.yaml
   - externalsecret.yaml
-  - storage-class-mapping.yaml
   - restore-pvc-isolation.yaml
   - schedules/
   - repository-config.yaml
