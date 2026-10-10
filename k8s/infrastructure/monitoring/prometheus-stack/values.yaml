@@ -60,6 +60,16 @@ grafana:
       cpu: 500m
       memory: 512Mi
 
+# Trial: kube-state-metrics' state is event-updated; Prometheus need not scrape
+# 21k object-state samples every 30s on a single-node homelab.
+# Change only the metrics endpoint; retain all metric families and labels.
+# Test short-window readiness/phase alerts before merge, then measure at 45s.
+kube-state-metrics:
+  prometheus:
+    monitor:
+      http:
+        interval: 45s
+
 kubeStateMetrics:
   resources:
     requests:
