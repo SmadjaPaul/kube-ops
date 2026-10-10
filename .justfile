@@ -29,6 +29,7 @@ check:
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/invoice-backup-test.sh
     bash tests/harness/runtime-inventory-test.sh
+    bash tests/harness/longhorn-tier-restore-runbook-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:
@@ -36,6 +37,7 @@ check-affected:
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/invoice-restore-isolation-test.sh
     bash tests/harness/velero-storage-tier-test.sh
+    bash tests/harness/longhorn-tier-restore-runbook-test.sh
     npm run check:agent-harness
     bash scripts/affected-tests.sh
 
