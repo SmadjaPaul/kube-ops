@@ -1,0 +1,34 @@
+name: OpenClaw delegation safety contract
+
+on:
+  pull_request:
+    paths:
+      - "k8s/applications/ai/openclaw/**"
+      - "k8s/applications/ai/openclaw-talos-ops/**"
+      - "k8s/applications/ai/openclaw-talos-personal/**"
+      - "k8s/applications/ai/openclaw-talos-test/**"
+      - "k8s/applications/ai/litellm/proxy_server_config.yaml"
+      - "tests/harness/openclaw-delegation-contract.test.mjs"
+      - ".github/workflows/openclaw-delegation-contract.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "k8s/applications/ai/openclaw/**"
+      - "k8s/applications/ai/openclaw-talos-ops/**"
+      - "k8s/applications/ai/openclaw-talos-personal/**"
+      - "k8s/applications/ai/openclaw-talos-test/**"
+      - "k8s/applications/ai/litellm/proxy_server_config.yaml"
+      - "tests/harness/openclaw-delegation-contract.test.mjs"
+      - ".github/workflows/openclaw-delegation-contract.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  static-delegation-boundaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate OpenClaw cell JSON, model names and delegation security bounds
+        run: node --test tests/harness/openclaw-delegation-contract.test.mjs
