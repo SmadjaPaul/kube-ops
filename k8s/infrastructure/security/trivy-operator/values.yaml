@@ -36,7 +36,11 @@ operator:
 targetNamespaces: ""
 excludeNamespaces: "kube-system,argocd,monitoring,kyverno,gatekeeper-system,security-system,agent-observers,cert-manager,external-secrets,longhorn-system,cnpg-system,gateway"
 
+# Candidate: Prometheus samples Trivy's report gauges every 60s rather than
+# the cluster 30s default; operator scans, report TTL and CRDs are untouched.
+# Validate security-alert freshness and keep the existing report metrics.
 serviceMonitor:
+  interval: 60s
   enabled: true
   namespace: monitoring
   labels:
