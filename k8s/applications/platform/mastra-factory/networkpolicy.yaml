@@ -1,0 +1,45 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: mastra-factory
+  namespace: mastra-factory
+  labels: {policy-type: platform-audit}
+spec:
+  description: "Staged only; internal ingress and bounded backend API access."
+  endpointSelector:
+    matchLabels: {app.kubernetes.io/name: mastra-factory}
+  ingress:
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports:
+            - {port: "4111", protocol: TCP}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory
+            cnpg.io/cluster: mastra-factory-postgresql
+      toPorts:
+        - ports:
+            - {port: "5432", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: litellm
+            app: litellm
+      toPorts:
+        - ports:
+            - {port: "80", protocol: TCP}
+            - {port: "4000", protocol: TCP}
+    - toFQDNs:
+        - {matchName: api.github.com}
+        - {matchName: github.com}
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
