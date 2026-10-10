@@ -60,7 +60,7 @@ data:
           },
           "options": {
             "mode": "markdown",
-            "content": "**Source:** one Grafana Alloy Kubernetes API log reader, Loki monolithic backed by `longhorn-bulk` (HDD). This dashboard measures ingestion/stream volume; it does **not** prove that Loki prevents disk standby. No filters or data-dropping are introduced. Use a short time range before investigating top senders."
+            "content": "**Source:** one Grafana Alloy Kubernetes API log reader, Loki monolithic backed by `longhorn-bulk` (HDD). This dashboard measures ingestion/stream volume; it does **not** prove that Loki prevents disk standby. No filters or data-dropping are introduced. Use a short time range before investigating top senders.\n\n**Related dashboards:** [HomeOps Overview](/d/homeops-operations) · [Loki Operational](/d/operational) · [Boot, CPU & Guest I/O](/d/homeops-edge-boot-io)."
           }
         },
         {
