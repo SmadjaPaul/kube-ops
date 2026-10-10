@@ -27,7 +27,7 @@ Kubernetes plugin distribution.
 ## Immutable inputs
 
 - Paperclip provider fix: `SmadjaPaul/paperclip#11`, corrected HEAD
-  `865a9a9a295279745f5a981ce8215093b52d4060`; it is open and unmerged.
+  `8feb337652d905c5253b96bf3304571e802863a4`; it is open and unmerged.
 - Agent Sandbox release asset:
   `https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.5/sandbox-with-extensions.yaml`
   SHA-256 `b150cb058c577c59c42b060ff7f22e31b5311ca80430db98129f1280a0e85970`.
