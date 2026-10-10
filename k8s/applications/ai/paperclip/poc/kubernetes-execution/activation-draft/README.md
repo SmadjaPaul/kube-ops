@@ -26,8 +26,8 @@ Kubernetes plugin distribution.
 
 ## Immutable inputs
 
-- Paperclip provider fix: `SmadjaPaul/paperclip#11`, HEAD
-  `66010eec8556b8b4fed4a322f7e8ac8f7799c705`; it is open and unmerged.
+- Paperclip provider fix: `SmadjaPaul/paperclip#11`, corrected HEAD
+  `865a9a9a295279745f5a981ce8215093b52d4060`; it is open and unmerged.
 - Agent Sandbox release asset:
   `https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.5/sandbox-with-extensions.yaml`
   SHA-256 `b150cb058c577c59c42b060ff7f22e31b5311ca80430db98129f1280a0e85970`.
@@ -59,7 +59,8 @@ H3 can be marked passed. No digest or tag may be substituted during review.
    RoleBinding get/create; ResourceQuota and LimitRange get/create;
    NetworkPolicy and CiliumNetworkPolicy get/create; Pod get/list; Pod logs
    get; Pod exec create; per-run Secret create/delete; and Sandbox
-   get/create/delete. Namespace creation is the only cluster-scoped write.
+   get/create/delete. Namespace creation is the only cluster-scoped write;
+   namespace deletion is never part of run cleanup.
 6. Verify the agent pod has `automountServiceAccountToken: false`, runs as
    UID/GID 1000, drops all capabilities, uses RuntimeDefault seccomp and has
    only the reviewed Cilium FQDN allow-list.
@@ -67,12 +68,29 @@ H3 can be marked passed. No digest or tag may be substituted during review.
    Observe image digest, callback, bounded execution, cleanup and telemetry
    outcome. Do not migrate Company agents.
 
+## Persistent tenant namespaces and cleanup
+
+The tenant namespace is persistent per Company and is created or reused by the
+tenant provisioning path. It is not an ephemeral per-run resource. Terminating
+a run must delete only the run-scoped Sandbox, its pod, its per-run Secret and
+any temporary run policy. The namespace, its quota, LimitRange and baseline
+egress policy remain. Deliberate tenant teardown is a separate, explicitly
+approved operation with an ownership check.
+
+Before activation, run a read-only drift check for every existing tenant
+namespace known to the Paperclip Company registry. Compare the desired
+ResourceQuota, LimitRange and CiliumNetworkPolicy fingerprints with the
+candidate contract; a missing or changed object is a blocker, not an
+auto-repair. The check must cover existing namespaces, not only a freshly
+provisioned tenant.
+
 ## Rollback
 
 Before any workload exists, rollback is a Git revert of this activation PR and
 Argo convergence. During the disposable run, release the single lease and
-confirm the Sandbox, pod, Secret and tenant namespace are cleaned up. If the
-image or provider fails, restore the previous Paperclip image digest and leave
+confirm the Sandbox, pod, Secret and temporary run policies are cleaned up
+while the tenant namespace remains. If the image or provider fails, restore
+the previous Paperclip image digest and leave
 the production `opencode_local` path unchanged. Do not delete Paperclip PVCs,
 mutate production Secrets or use a live pod as a repair surface.
 

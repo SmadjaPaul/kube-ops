@@ -10,7 +10,7 @@ spec:
   paperclip:
     prerequisiteRepository: SmadjaPaul/paperclip
     prerequisitePullRequest: 11
-    prerequisiteHead: 66010eec8556b8b4fed4a322f7e8ac8f7799c705
+    prerequisiteHead: 865a9a9a295279745f5a981ce8215093b52d4060
     currentlyDeployedImage: ghcr.io/smadjapaul/paperclip@sha256:aa46b347c8e9e6375bce384373d5cf410ad34775ac82963ce1e68c7442b34e90
     currentlyDeployedSourceCommit: 64ae540df892e3a13d20d49b88de162c92ba0518
     requiredImageDigest: human-required-after-paperclip-11-release
@@ -30,6 +30,28 @@ spec:
     providerSelection: onEnvironmentAcquireLease -> resolveImage -> buildSandboxCrManifest
     podCommand: [/usr/bin/tini, --, /bin/sh, -c, sleep infinity]
     workspace: /workspace
+  tenantLifecycle:
+    namespaceScope: persistent-per-company
+    runCleanup:
+      - sandbox
+      - pod
+      - per-run-secret
+      - temporary-run-policies
+    preserved:
+      - namespace
+      - resourcequota
+      - limitrange
+      - baseline-cilium-networkpolicy
+    namespaceDeleteDuringRunCleanup: false
+  driftVerification:
+    scope: every-existing-tenant-namespace
+    mode: read-only
+    resources:
+      - resourcequota
+      - limitrange
+      - ciliumnetworkpolicy
+    mismatchResult: blocker
+    autoRepair: false
   controlPlaneRbac:
     namespaceCreate: [get, create]
     tenantResources: [serviceaccounts, roles, rolebindings, resourcequotas, limitranges, networkpolicies, ciliumnetworkpolicies]
