@@ -9,7 +9,7 @@ be applied or merged until every gate below has an observed result.
 The selected target is option A:
 
 ```text
-Paperclip image built after SmadjaPaul/paperclip#11
+Paperclip source containing merged SmadjaPaul/paperclip#11 and #14
   -> @paperclipai/plugin-kubernetes 0.1.0 (v1beta1 provider fix)
   -> Agent Sandbox v1.0.5
   -> agents.x-k8s.io/v1beta1 Sandbox
@@ -42,8 +42,7 @@ H3 can be marked passed. No digest or tag may be substituted during review.
 
 ## Gates before merge
 
-1. Paperclip#11 is merged after independent review and its replacement
-   Paperclip image is published. Record the exact image index and amd64
+1. Paperclip#11 and #14 are merged. Its replacement Paperclip image is not yet published and must pass H3 authorization before publication. Record the exact image index and amd64
    manifest digests; do not use the currently deployed image.
 2. The plugin is loadable from that exact image. Prove the bundled `dist/`
    entrypoints and manifest version, then observe Paperclip reporting the
@@ -59,7 +58,7 @@ H3 can be marked passed. No digest or tag may be substituted during review.
    permissions: namespace get/create; tenant ServiceAccount, Role and
    RoleBinding get/create; ResourceQuota and LimitRange get/create;
    NetworkPolicy and CiliumNetworkPolicy get/create; Pod get/list; Pod logs
-   get; Pod exec create; per-run Secret create/delete; and Sandbox
+   get; Pod exec get/create (the WebSocket handshake uses GET); per-run Secret create/delete; and Sandbox
    get/create/delete. Namespace creation is the only cluster-scoped write;
    namespace deletion is never part of run cleanup.
 6. Verify the agent pod has `automountServiceAccountToken: false`, runs as
@@ -101,3 +100,57 @@ The selected plugin build targets `agents.x-k8s.io/v1beta1` directly.
 Agent Sandbox v0.5.6 is not selected because it would require a separate
 alpha provider contract. Option B is therefore rejected for this activation;
 it is not an implicit fallback and must not be enabled by this PR.
+
+## Evidence update — merged PR #14 (2026-10-10)
+
+Paperclip #11 was merged at `c0ee3d95a9f83041bab8f52abf9bf1becbcf3ebf`.
+Paperclip [#14](https://github.com/SmadjaPaul/paperclip/pull/14)
+was merged at `90e47758119910f8c7ecda1de55fd2b378ca1a28`,
+from HEAD `3534bd8264802ada420c8277d4b4740349ec76e6`.
+
+- [Kind CI 38089528661](https://github.com/SmadjaPaul/paperclip/actions/runs/38089528661)
+  passed 222 tests in a disposable Kind cluster: v1beta1 Ready generation,
+  multi-exec, WebSocket transport, workspace sync, token/network isolation,
+  deletion during wait and cleanup with tenant namespace retained.
+- [Image CI 38090000606](https://github.com/SmadjaPaul/paperclip/actions/runs/38090000606)
+  built the amd64 `cloud` candidate with the Kubernetes plugin and verified
+  the bundled manifest/worker/SDK. `push=false`, no image published.
+- These tests do NOT prove an actual Paperclip server heartbeat,
+  `opencode_local` LLM call, scoped LiteLLM virtual key, GitHub PR creation,
+  Operator bridge deployment, or homelab E2E.
+
+### Release blocker: the official fork publication route is not qualified
+
+`SmadjaPaul/paperclip/.github/workflows/fork-ghcr-publish.yml` currently
+builds `target: production` without the Kubernetes plugin bundle.
+PR #14 qualified `target: cloud` with
+`CLOUD_BUNDLED_PLUGINS=kubernetes` and
+`CLOUD_BUNDLED_SERVER_DEPS=@sentry/node`.
+DO NOT use the production release workflow unmodified to satisfy this gate.
+Prepare a reviewed manual publish path which pins the merged source SHA,
+uses the tested bundle target, verifies the plugin in the **pushed** image,
+records the immutable image index / amd64 digest, provenance, attestations,
+and does nothing until H3's publication approval.
+
+### Pre-activation network/identity blockers
+
+- Current `paperclip/networkpolicy.yaml` does not explicitly allow Paperclip
+  control-plane egress to the Kubernetes API, nor tenant-Sandbox callback
+  ingress to the Paperclip server. Verify the exact Cilium identities and
+  restricted ports offline before any change to the active graph.
+- `PAPERCLIP_ADAPTERS` in the non-live `instance-candidate.yaml` has
+  `envKeys: []`. Upstream `buildAdapterEnv()` copies only declared envKeys
+  from the server process. The existing ESO key
+  `APP_PAPERCLIP_LITELLM_API_KEY` is only a server-side mapping; its status
+  as a scoped virtual key, permitted models/budget, and injection into the
+  per-run Secret are **NOT PROVEN**. Never forward a LiteLLM master key.
+- Explicitly require `get` and `create` on `pods/exec`; #14 proved that
+  direct kubectl exec can pass with create alone while the plugin WebSocket GET
+  handshake fails with 403.
+- Render the exact Operator Instance CRD and observe plugin startup on the
+  candidate **before** any deployment. The source candidate and the active
+  Operator bridge are different contracts; Kind did not exercise the bridge.
+
+Keep `H3_AGENT_IMAGE_EXTERNAL_OWNER=false`, image-publication approval
+blocked, `orchestratorApproval=false`, SMA-31 unexecuted and #400
+**draft/outside Argo's active resource graph**.
