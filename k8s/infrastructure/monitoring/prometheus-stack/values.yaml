@@ -117,8 +117,54 @@ prometheus:
     enabled: false
     minAvailable: 1
 
+# GATED: do not merge before APP_ALERTMANAGER_NTFY_PUBLISHER_TOKEN exists in
+# Doppler, ExternalSecret is Ready, and an isolated ntfy firing/resolved E2E
+# has passed. Only critical alerts route to ntfy; the 43 existing warnings
+# continue to the null receiver. No credentials are embedded in Git.
 alertmanager:
   alertmanagerSpec:
+    secrets:
+      - alertmanager-ntfy-publisher
+  config:
+    global:
+      resolve_timeout: 5m
+    # Preserve KPS default inhibition so severity escalations don't duplicate.
+    inhibit_rules:
+      - source_matchers: ['severity = critical']
+        target_matchers: ['severity =~ warning|info']
+        equal: [namespace, alertname]
+      - source_matchers: ['severity = warning']
+        target_matchers: ['severity = info']
+        equal: [namespace, alertname]
+      - source_matchers: ['alertname = InfoInhibitor']
+        target_matchers: ['severity = info']
+        equal: [namespace]
+      - target_matchers: ['alertname = InfoInhibitor']
+    route:
+      group_by: [namespace]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'null'
+      routes:
+        - receiver: 'null'
+          matchers: ['alertname = Watchdog']
+        - receiver: ntfy-critical
+          matchers: ['severity = critical']
+          group_by: [namespace, alertname]
+    receivers:
+      - name: 'null'
+      - name: ntfy-critical
+        webhook_configs:
+          - url: http://ntfy.ntfy.svc.cluster.local/homeops-critical?template=alertmanager
+            send_resolved: true
+            max_alerts: 10
+            http_config:
+              authorization:
+                type: Bearer
+                credentials_file: /etc/alertmanager/secrets/alertmanager-ntfy-publisher/token
+    templates:
+      - /etc/alertmanager/config/*.tmpl
     replicas: 1
     topologySpreadConstraints:
       - maxSkew: 1
