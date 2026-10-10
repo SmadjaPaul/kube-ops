@@ -69,6 +69,10 @@ kubeStateMetrics:
       cpu: 200m
       memory: 256Mi
 
+kubelet:
+  serviceMonitor:
+    cAdvisorInterval: 15s
+
 prometheusOperator:
   resources:
     requests:
