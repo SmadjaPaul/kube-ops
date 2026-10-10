@@ -154,3 +154,20 @@ and does nothing until H3's publication approval.
 Keep `H3_AGENT_IMAGE_EXTERNAL_OWNER=false`, image-publication approval
 blocked, `orchestratorApproval=false`, SMA-31 unexecuted and #400
 **draft/outside Argo's active resource graph**.
+
+### Existing-tenant label and callback preflight
+
+`packages/plugins/sandbox-providers/kubernetes/src/cilium-network-policy.ts`
+uses `app: paperclip-server` to select callback port 3100, while the
+active `kube-ops/paperclip/networkpolicy.yaml` selects the server through
+`app.kubernetes.io/name: paperclip` and
+`app.kubernetes.io/component: server`. Both selectors might coexist
+on the deployed Pod, but no live label evidence has been collected.
+Do **not** assume a match; require a read-only Pod-label inspection and
+a bounded callback reachability probe before enabling tenant traffic.
+
+`tenant-orchestrator.ts` uses first-write-wins provisioning for tenant
+namespaces, quota, LimitRange and policies. For every pre-existing tenant,
+compare namespace ownership labels and object fingerprints against the
+current desired policy. A missing/mismatched object is an activation
+blocker, never a reason to silently mutate an existing namespace.
