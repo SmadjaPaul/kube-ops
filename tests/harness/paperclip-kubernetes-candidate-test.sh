@@ -13,6 +13,7 @@ grep -F 'npmDistIntegrity: "sha512-' "$lock" >/dev/null
 ! grep -F 'npmDistIntegrity: NOT_OBSERVED' "$lock" >/dev/null
 grep -F 'selectedVersion: v1.0.5' "$lock" >/dev/null
 grep -F 'agents.x-k8s.io/v1beta1' "$lock" >/dev/null
+! grep -F 'sandboxApiExpected: "agents.x-k8s.io/v1alpha1"' "$lock" >/dev/null
 grep -F 'selectedReleaseAssetSha256:' "$lock" >/dev/null
 grep -F 'candidate-compatible-with-v1.0.5' "$lock" >/dev/null
 grep -F 'backend: sandbox-cr' "$candidate" >/dev/null

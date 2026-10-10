@@ -9,10 +9,10 @@ graph is a separate change and must follow the qualification gates in
 `../../KUBERNETES-EXECUTION.md`.
 
 The static compatibility candidate pins Agent Sandbox `v1.0.5`, whose release
-manifest serves `agents.x-k8s.io/v1beta1`. Paperclip#11 discovers the served
-API and prefers v1beta1 while retaining v1alpha1 fallback for older
-controllers; v0.5.6 is therefore only the compatibility fallback. This is a
-static compatibility finding, not a live H3 pass.
+manifest serves the single selected API `agents.x-k8s.io/v1beta1`. Paperclip#11
+uses that contract directly; v0.5.6 is not selected because it would require a
+separate alpha provider contract. This is a static compatibility finding, not a
+live H3 pass.
 
 Before any activation:
 

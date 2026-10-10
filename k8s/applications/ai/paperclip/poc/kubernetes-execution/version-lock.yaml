@@ -11,7 +11,7 @@ paperclip:
   npmDistShasum: "ef73de11726dfd0acd727142fcf44c0bc83fd08c"
   manifestId: "paperclip.kubernetes-sandbox-provider"
   manifestVersion: "0.1.0-alpha.1"
-  sandboxApiExpected: "agents.x-k8s.io/v1beta1 (preferred; v1alpha1 fallback by discovery)"
+  sandboxApiExpected: "agents.x-k8s.io/v1beta1"
   runtimeImage:
     adapterType: opencode_local
     repository: "ghcr.io/paperclipai/agent-runtime-opencode"
@@ -57,9 +57,8 @@ compatibility:
   sandboxCr: candidate-compatible-with-v1.0.5
   job: available-without-agent-sandbox-controller-but-insufficient-for-SMA-31-workspace-proof
   reason: >-
-    Paperclip#11 discovers the served Sandbox API and prefers v1beta1, with a
-    v1alpha1 fallback for older controllers. Agent Sandbox v1.0.5 therefore
-    satisfies the selected contract; v0.5.6 remains a compatibility fallback
-    only. Job mode lacks multi-command exec and native workspace sync. Live
-    controller installation and end-to-end qualification remain blocked and
-    are not implied by this static compatibility result.
+    Paperclip#11 targets the single v1beta1 API served by Agent Sandbox v1.0.5.
+    The older v0.5.6 release is not selected because it would require a
+    separate alpha provider contract. Job mode lacks multi-command exec and
+    native workspace sync. Live controller installation and end-to-end
+    qualification remain blocked and are not implied by this static result.
