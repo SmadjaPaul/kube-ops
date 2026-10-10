@@ -1,3 +1,9 @@
+# Talos disables kube-proxy; Cilium implements kubeProxyReplacement=true.
+# Do not create dead kube-proxy targets or alert KubeProxyDown for a component
+# intentionally absent from this cluster. Network/Cilium alerts remain active.
+kubeProxy:
+  enabled: false
+
 # Edge/single-node budget: apiserver exposes ~68k series and accounts for
 # ~2,274 accepted samples/s at the observed 30s scrape cadence (Phase 2).
 # Scrape every 60s to lower ingestion and API metrics serialization load while
