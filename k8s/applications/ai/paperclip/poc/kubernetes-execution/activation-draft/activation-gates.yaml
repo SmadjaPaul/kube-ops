@@ -31,7 +31,7 @@ spec:
   runtimePath:
     adapterRegistryField: PAPERCLIP_ADAPTERS[].runtimeImage
     providerSelection: onEnvironmentAcquireLease -> resolveImage -> buildSandboxCrManifest
-    podCommand: [/usr/bin/tini, --, /bin/sh, -c, sleep infinity]
+    podCommand: [/usr/bin/tini, --, /bin/sh, -c, "git config --global --add safe.directory /workspace || true; exec sleep infinity"]
     workspace: /workspace
   tenantLifecycle:
     namespaceScope: persistent-per-company
