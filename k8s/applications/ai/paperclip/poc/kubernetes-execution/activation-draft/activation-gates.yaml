@@ -10,7 +10,7 @@ spec:
   paperclip:
     prerequisiteRepository: SmadjaPaul/paperclip
     prerequisitePullRequest: 11
-    prerequisiteHead: f0f0ebcdcaea140e7d12ec5f5ac5661399589eb5
+    prerequisiteHead: 66010eec8556b8b4fed4a322f7e8ac8f7799c705
     currentlyDeployedImage: ghcr.io/smadjapaul/paperclip@sha256:aa46b347c8e9e6375bce384373d5cf410ad34775ac82963ce1e68c7442b34e90
     currentlyDeployedSourceCommit: 64ae540df892e3a13d20d49b88de162c92ba0518
     requiredImageDigest: human-required-after-paperclip-11-release

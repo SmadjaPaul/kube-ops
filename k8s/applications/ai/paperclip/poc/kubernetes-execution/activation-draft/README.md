@@ -27,7 +27,7 @@ Kubernetes plugin distribution.
 ## Immutable inputs
 
 - Paperclip provider fix: `SmadjaPaul/paperclip#11`, HEAD
-  `f0f0ebcdcaea140e7d12ec5f5ac5661399589eb5`; it is open and unmerged.
+  `66010eec8556b8b4fed4a322f7e8ac8f7799c705`; it is open and unmerged.
 - Agent Sandbox release asset:
   `https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.5/sandbox-with-extensions.yaml`
   SHA-256 `b150cb058c577c59c42b060ff7f22e31b5311ca80430db98129f1280a0e85970`.
@@ -78,10 +78,7 @@ mutate production Secrets or use a live pod as a repair surface.
 
 ## Why option B is not selected
 
-The upstream plugin v0.1.0 currently emits `agents.x-k8s.io/v1alpha1`.
-Agent Sandbox v0.5.6 serves that API (deprecated) and stores `v1beta1`, so B
-is a static compatibility fallback. It is not the target because it freezes
-the installation on a deprecated API/controller, adds a second migration to
-v1beta1, and preserves the alpha provider contract. B is permitted only as a
-separately approved temporary fallback if Paperclip#11 or its image release is
-blocked by a concrete upstream failure; it must not be enabled by this PR.
+The selected plugin build targets `agents.x-k8s.io/v1beta1` directly.
+Agent Sandbox v0.5.6 is not selected because it would require a separate
+alpha provider contract. Option B is therefore rejected for this activation;
+it is not an implicit fallback and must not be enabled by this PR.
