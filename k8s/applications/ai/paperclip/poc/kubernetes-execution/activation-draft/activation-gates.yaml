@@ -14,7 +14,7 @@ spec:
     prerequisiteMergeCommit: be721124bfd9dc8566d77b0e04a3c38dcc0db283
     prerequisiteCiRun: 38092991455
     networkFixPullRequest: 16
-    networkFixHead: 34a5622ae22b40c5cab496eb5b81336ccc2526df
+    networkFixHead: 73c654e6eaabb07ef7594c6e53ccc70cb8318376
     networkFixCiStatus: pending
     kindCiRun: 38089528661
     imageCiRun: 38090000606
