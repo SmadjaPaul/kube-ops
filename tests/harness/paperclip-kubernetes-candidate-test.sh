@@ -12,6 +12,9 @@ grep -F 'bundled local-plugin path' "$candidate" >/dev/null
 grep -F 'npmVersion: "0.1.0"' "$lock" >/dev/null
 grep -F 'npmDistIntegrity: "sha512-' "$lock" >/dev/null
 ! grep -F 'npmDistIntegrity: NOT_OBSERVED' "$lock" >/dev/null
+grep -F 'npmSelectionStatus: "not-selected-operator-does-not-install-spec.plugins"' "$lock" >/dev/null
+grep -F 'source: "Paperclip image local bundle"' "$lock" >/dev/null
+grep -F 'autoInstallKey: "kubernetes"' "$lock" >/dev/null
 grep -F 'selectedVersion: v1.0.5' "$lock" >/dev/null
 grep -F 'agents.x-k8s.io/v1beta1' "$lock" >/dev/null
 ! grep -F 'sandboxApiExpected: "agents.x-k8s.io/v1alpha1"' "$lock" >/dev/null

@@ -9,9 +9,17 @@ paperclip:
   kindWorkflowRun: 38089528661
   imageWorkflowRun: 38090000606
   pluginPackage: "@paperclipai/plugin-kubernetes"
+  # Registry metadata is retained only as a negative comparison. Operator
+  # v0.19.1 does not install spec.plugins, so this package is not selected.
   npmVersion: "0.1.0"
   npmDistIntegrity: "sha512-kcjyuF/kOs+n7oYAVaUujRdVznDDA/bdDozsj5U1IVIG40TrJfGwiQEMi/Yk+jrplkYEkvD0bfbSZDdPHRxGpA=="
   npmDistShasum: "ef73de11726dfd0acd727142fcf44c0bc83fd08c"
+  npmSelectionStatus: "not-selected-operator-does-not-install-spec.plugins"
+  selectedBundle:
+    source: "Paperclip image local bundle"
+    autoInstallKey: "kubernetes"
+    sourceCommit: "90e47758119910f8c7ecda1de55fd2b378ca1a28"
+    catalogPath: "/app/packages/plugins/sandbox-providers/kubernetes"
   manifestId: "paperclip.kubernetes-sandbox-provider"
   manifestVersion: "0.1.0-alpha.1"
   sandboxApiExpected: "agents.x-k8s.io/v1beta1"
