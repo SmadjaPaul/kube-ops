@@ -1,14 +1,14 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "paperclip-sandbox-activation-91d955fc",
-  "producedAt": "2026-10-09T21:15:00Z",
+  "resultId": "paperclip-sandbox-activation-01be5dc0",
+  "producedAt": "2026-10-11T00:00:00Z",
   "actor": {
     "kind": "agent",
     "name": "codex"
   },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "91d955fc21980981c9f43e75061329c098fe7882",
+    "revision": "01be5dc04f74c0586e0d4d843d816241da1793fe",
     "branch": "codex/paperclip-sandbox-activation-draft-stacked"
   },
   "tests": [
@@ -60,16 +60,16 @@
     {
       "id": "ci-exact-head",
       "name": "GitHub V1 Contract CI on exact HEAD",
-      "command": "GitHub Actions run 37992066843",
+      "command": "GitHub Actions run 38092949400",
       "execution": "executed",
-      "status": "FAILED",
-      "classification": "failed",
-      "reason": "CI failed before the Paperclip render because Docker Hub returned HTTP 429 while pulling Bitnami Redis 28.0.5; this is external validation failure, not a pass.",
-      "risk": "medium",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "GitHub validation on the exact merged PR head passed the repository contracts and Paperclip activation-draft checks.",
+      "risk": "low",
       "expectedCi": "required",
       "evidence": {
         "kind": "ci",
-        "reference": "https://github.com/SmadjaPaul/kube-ops/actions/runs/37992066843"
+        "reference": "https://github.com/SmadjaPaul/kube-ops/actions/runs/38092949400"
       }
     },
     {
@@ -78,7 +78,7 @@
       "execution": "not-executed",
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
-      "reason": "No independent reviewer result is recorded for this exact draft commit.",
+      "reason": "No independent reviewer result is recorded for this exact draft commit; the local adversarial pass is not represented as an independent review.",
       "risk": "high",
       "expectedCi": "required",
       "evidence": {
@@ -117,8 +117,8 @@
     "total": 7,
     "executed": 4,
     "notExecuted": 3,
-    "passed": 3,
-    "failed": 1,
+    "passed": 4,
+    "failed": 0,
     "skipped": 2,
     "unavailable": 1,
     "notApplicable": 0
@@ -127,20 +127,20 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops:91d955fc21980981c9f43e75061329c098fe7882:paperclip-sandbox-activation",
+    "idempotencyKey": "SmadjaPaul/kube-ops:01be5dc04f74c0586e0d4d843d816241da1793fe:paperclip-sandbox-activation",
     "payload": {
-      "resultId": "paperclip-sandbox-activation-91d955fc",
+      "resultId": "paperclip-sandbox-activation-01be5dc0",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "91d955fc21980981c9f43e75061329c098fe7882",
+      "revision": "01be5dc04f74c0586e0d4d843d816241da1793fe",
       "tests": [
         {
           "id": "ci-exact-head",
           "name": "GitHub V1 Contract CI on exact HEAD",
           "execution": "executed",
-          "status": "FAILED",
-          "classification": "failed",
-          "reason": "Docker Hub HTTP 429 blocked the shared repository validation before Paperclip rendering.",
-          "risk": "medium",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "GitHub validation passed on the exact PR head.",
+          "risk": "low",
           "expectedCi": "required"
         }
       ],
@@ -149,8 +149,8 @@
         "total": 7,
         "executed": 4,
         "notExecuted": 3,
-        "passed": 3,
-        "failed": 1,
+        "passed": 4,
+        "failed": 0,
         "skipped": 2,
         "unavailable": 1,
         "notApplicable": 0
