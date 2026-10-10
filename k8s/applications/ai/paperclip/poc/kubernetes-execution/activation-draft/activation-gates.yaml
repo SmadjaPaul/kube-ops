@@ -9,11 +9,14 @@ spec:
   selectedOption: A
   paperclip:
     prerequisiteRepository: SmadjaPaul/paperclip
-    prerequisitePullRequest: 11
-    prerequisiteHead: 15f1c38525715fb8f8070cfa63df1dda3b8bafd4
+    prerequisitePullRequest: 14
+    prerequisiteHead: 3534bd8264802ada420c8277d4b4740349ec76e6
+    prerequisiteMergeCommit: 90e47758119910f8c7ecda1de55fd2b378ca1a28
+    kindCiRun: 38089528661
+    imageCiRun: 38090000606
     currentlyDeployedImage: ghcr.io/smadjapaul/paperclip@sha256:aa46b347c8e9e6375bce384373d5cf410ad34775ac82963ce1e68c7442b34e90
     currentlyDeployedSourceCommit: 64ae540df892e3a13d20d49b88de162c92ba0518
-    requiredImageDigest: human-required-after-paperclip-11-release
+    requiredImageDigest: pending-published-image-with-kubernetes-plugin
     pluginPackage: '@paperclipai/plugin-kubernetes'
     pluginVersion: 0.1.0
     providerManifestVersion: 0.1.0-alpha.1
@@ -55,10 +58,25 @@ spec:
   controlPlaneRbac:
     namespaceCreate: [get, create]
     tenantResources: [serviceaccounts, roles, rolebindings, resourcequotas, limitranges, networkpolicies, ciliumnetworkpolicies]
-    workloadObservation: [pods/get, pods/list, pods/log/get, pods/exec/create]
+    workloadObservation: [pods/get, pods/list, pods/log/get, pods/exec/get, pods/exec/create]
     leaseResources: [secrets/create, secrets/delete, sandboxes/get, sandboxes/create, sandboxes/delete]
+  outstandingProofs:
+    paperclipRuntimeImagePublished: false
+    paperclipServerPluginLoadObserved: false
+    operatorInstanceSchemaRenderObserved: false
+    litellmScopedVirtualKeyInjectedIntoSandbox: false
+    githubAppScopedAgentPrRunObserved: false
+    paperclipControlPlaneKubeApiReachabilityObserved: false
+    paperclipSandboxCallbackIngressObserved: false
+  evidenceScope:
+    kindCi: isolated disposable cluster; no homelab access
+    imageCi: image bundling proven locally; push=false
+    disposableRuntimeProof: false means no homelab disposable run has been authorized
   gates:
-    paperclip11Merged: false
+    paperclip11Merged: true
+    paperclip14Merged: true
+    ciKindSandboxRuntimeProof: true
+    ciBundledImageVerified: true
     replacementImagePublishedAndPinned: false
     pluginDistPresentAndLoadable: false
     operatorSchemaRendered: false
