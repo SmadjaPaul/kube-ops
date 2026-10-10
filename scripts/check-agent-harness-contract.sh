@@ -124,6 +124,8 @@ if grep -Ein "$physical_pattern" "${consumer_files[@]}"; then
   exit 1
 fi
 
+bash tests/harness/paperclip-litellm-model-contract-test.sh
+
 echo "PAPERCLIP_ROLE_CAPABILITIES=PASS"
 echo "PAPERCLIP_WORKSPACE_ISOLATION=PASS"
 echo "AI_CONSUMER_MODEL_ABSTRACTION=PASS"
