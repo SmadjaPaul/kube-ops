@@ -2,6 +2,8 @@
 set -euo pipefail
 for cmd in kustomize yq jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
 
+bash tests/harness/velero-storage-tier-test.sh
+
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 rendered="$tmp/rendered.yaml"

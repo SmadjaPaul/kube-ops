@@ -17,9 +17,6 @@ data:
         patches:
           - operation: remove
             path: "/spec/volumeName"
-          - operation: replace
-            path: "/spec/storageClassName"
-            value: proxmox-csi
       # Velero copies the source object's Argo tracking annotation into the
       # isolated namespace. Remove it before restore so the drill cannot be
       # attributed to the production Application or inflate orphan warnings.
