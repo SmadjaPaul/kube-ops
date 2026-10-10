@@ -14,7 +14,11 @@ kubeApiServer:
   serviceMonitor:
     interval: 60s
 
+# Trial: slower scrape for Grafana's own /metrics only (not UI or dashboards).
+# Expect fewer monitoring samples; verify grafana alert inputs before merge.
 grafana:
+  serviceMonitor:
+    interval: 60s
   # OIDC Configuration for Authentik
   persistence: {}
   grafana.ini:
