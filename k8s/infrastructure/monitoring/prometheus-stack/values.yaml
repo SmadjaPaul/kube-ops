@@ -18,6 +18,9 @@ grafana:
   # OIDC Configuration for Authentik
   persistence: {}
   grafana.ini:
+    server:
+      domain: grafana.smadja.dev
+      root_url: https://grafana.smadja.dev/
     auth.generic_oauth:
       enabled: true
       name: Authentik
