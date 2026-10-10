@@ -1,0 +1,14 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: mastra-factory-postgresql-weekly
+  namespace: mastra-factory
+spec:
+  schedule: "0 15 3 * * 0"
+  backupOwnerReference: self
+  cluster: {name: mastra-factory-postgresql}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: mastra-factory-hetzner-store

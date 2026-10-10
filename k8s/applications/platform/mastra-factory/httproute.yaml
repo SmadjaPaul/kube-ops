@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mastra-factory
+  namespace: mastra-factory
+spec:
+  parentRefs:
+    - {name: internal, namespace: gateway}
+  hostnames:
+    - factory.smadja.dev
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: mastra-factory, port: 4111}

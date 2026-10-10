@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mastra-factory
+resources:
+  - namespace.yaml
+  - secrets.yaml
+  - registry-externalsecret.yaml
+  - database-s3-credentials.yaml
+  - database-objectstore.yaml
+  - database.yaml
+  - database-scheduled-backup.yaml
+  - deployment.yaml
+  - service.yaml
+  - httproute.yaml
+  - networkpolicy.yaml
