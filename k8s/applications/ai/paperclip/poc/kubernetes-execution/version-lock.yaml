@@ -1,10 +1,13 @@
 # Review artifact only. Not a Kubernetes object and not referenced by the
 # candidate Kustomization.
-qualificationDate: "2026-10-09"
+qualificationDate: "2026-10-11"
 paperclip:
   prerequisiteRepository: "SmadjaPaul/paperclip"
-  prerequisitePullRequest: 11
-  prerequisiteHead: "15f1c38525715fb8f8070cfa63df1dda3b8bafd4"
+  prerequisitePullRequest: 14
+  prerequisiteHead: "3534bd8264802ada420c8277d4b4740349ec76e6"
+  prerequisiteMergeCommit: "90e47758119910f8c7ecda1de55fd2b378ca1a28"
+  kindWorkflowRun: 38089528661
+  imageWorkflowRun: 38090000606
   pluginPackage: "@paperclipai/plugin-kubernetes"
   npmVersion: "0.1.0"
   npmDistIntegrity: "sha512-kcjyuF/kOs+n7oYAVaUujRdVznDDA/bdDozsj5U1IVIG40TrJfGwiQEMi/Yk+jrplkYEkvD0bfbSZDdPHRxGpA=="
@@ -34,7 +37,7 @@ paperclip:
       acquirePathOverrideInput: null
       environmentOverrideField: PAPERCLIP_ADAPTERS[].runtimeImage
       environmentOverrideSource: deployed-commit-64ae540d
-      immutableDigestReachability: static-code-proven-runtime-not-observed
+      immutableDigestReachability: observed-in-disposable-kind-not-live-operator
 agentSandbox:
   repository: "https://github.com/kubernetes-sigs/agent-sandbox"
   selectedVersion: v1.0.5
@@ -57,8 +60,9 @@ compatibility:
   sandboxCr: candidate-compatible-with-v1.0.5
   job: available-without-agent-sandbox-controller-but-insufficient-for-SMA-31-workspace-proof
   reason: >-
-    Paperclip#11 targets the single v1beta1 API served by Agent Sandbox v1.0.5.
+    Paperclip#11 and #14 target and runtime-test the single v1beta1 API served by Agent Sandbox v1.0.5.
     The older v0.5.6 release is not selected because it would require a
     separate alpha provider contract. Job mode lacks multi-command exec and
-    native workspace sync. Live controller installation and end-to-end
-    qualification remain blocked and are not implied by this static result.
+    native workspace sync. The 222-test Kind E2E and local image bundle were verified in CI, but live
+    server/plugin integration, scoped LiteLLM key, GitHub PR and homelab
+    installation remain blocked pending H3 and separate orchestrator approval.
