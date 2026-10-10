@@ -26,8 +26,10 @@ grep -F 'groupResource: persistentvolumeclaims' <<<"$modifier_rules" >/dev/null
 grep -F 'namespaces:' <<<"$modifier_rules" >/dev/null
 grep -F -- '- invoice-ninja' <<<"$modifier_rules" >/dev/null
 grep -F 'path: "/spec/volumeName"' <<<"$modifier_rules" >/dev/null
-grep -F 'path: "/spec/storageClassName"' <<<"$modifier_rules" >/dev/null
-grep -F 'value: proxmox-csi' <<<"$modifier_rules" >/dev/null
+if grep -F 'path: "/spec/storageClassName"' <<<"$modifier_rules" >/dev/null; then
+  echo 'ASSERTION_FAILED preserve original fast/bulk StorageClass on restore' >&2
+  exit 1
+fi
 grep -F 'groupResource: "*.*"' <<<"$modifier_rules" >/dev/null
 grep -F 'argocd.argoproj.io/tracking-id' <<<"$modifier_rules" >/dev/null
 grep -F '"argocd.argoproj.io/tracking-id": null' <<<"$modifier_rules" >/dev/null
