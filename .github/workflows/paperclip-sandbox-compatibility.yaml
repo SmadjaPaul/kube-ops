@@ -1,0 +1,27 @@
+name: Paperclip sandbox compatibility gate
+
+on:
+  pull_request:
+    paths:
+      - "k8s/applications/ai/paperclip/**"
+      - "docs/factory/SMA-31_ACCEPTANCE.md"
+      - "tests/harness/paperclip-h3-api-compatibility.test.mjs"
+      - ".github/workflows/paperclip-sandbox-compatibility.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "k8s/applications/ai/paperclip/**"
+      - "docs/factory/SMA-31_ACCEPTANCE.md"
+      - "tests/harness/paperclip-h3-api-compatibility.test.mjs"
+      - ".github/workflows/paperclip-sandbox-compatibility.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  paperclip-h3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --test tests/harness/paperclip-h3-api-compatibility.test.mjs
