@@ -78,6 +78,20 @@ prometheusOperator:
 prometheus:
   prometheusSpec:
     replicas: 1
+    # HOST EXPORTER PRECONDITION: Proxmox 10.0.20.51 must run the upstream
+    # node_exporter on a private LAN endpoint, firewall-restricted to the
+    # Talos monitoring traffic. No exporter is installed by this repo change.
+    # Never expose unauthenticated node_exporter through Cloudflare.
+    # Default collectors read kernel counters/hwmon; no SMART polling.
+    additionalScrapeConfigs:
+      - job_name: proxmox-host
+        scrape_interval: 30s
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["10.0.20.51:9100"]
+            labels:
+              origin: proxmox
+              host: tatouine
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname
