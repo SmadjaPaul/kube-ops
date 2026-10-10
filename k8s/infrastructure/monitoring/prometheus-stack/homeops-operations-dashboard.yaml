@@ -27,7 +27,27 @@ data:
       },
       "editable": false,
       "templating": {
-        "list": []
+        "list": [
+          {
+            "name": "namespace",
+            "label": "Namespace",
+            "type": "query",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "query": "label_values(kube_pod_info, namespace)",
+            "definition": "label_values(kube_pod_info, namespace)",
+            "refresh": 1,
+            "includeAll": true,
+            "allValue": ".*",
+            "multi": false,
+            "current": {
+              "text": "All",
+              "value": "$__all"
+            }
+          }
+        ]
       },
       "annotations": {
         "list": []
@@ -45,7 +65,7 @@ data:
           },
           "options": {
             "mode": "markdown",
-            "content": "**HomeOps operational landing page.** This is **cluster-local monitoring**, not proof of host uptime when Talos/Proxmox are offline. Alert values reflect *firing*, not delivery: Alertmanager currently has no verified external receiver. `No data` is not healthy. Physical HDD temperatures are unavailable until a Proxmox exporter is approved and deployed."
+            "content": "**HomeOps operational landing page.** This is **cluster-local monitoring**, not proof of host uptime when Talos/Proxmox are offline. Alert values reflect *firing*, not delivery: Alertmanager currently has no verified external receiver. `No data` is not healthy. Physical HDD temperatures are unavailable until a Proxmox exporter is approved and deployed.\n\n**Related dashboards:** [Boot, CPU & Guest I/O](/d/homeops-edge-boot-io) · [Logs & Collection Cost](/d/homeops-logs-efficiency) · [Kubernetes Persistent Volumes](/d/919b92a8e8041bd567af9edab12c840c) · [Prometheus Overview](/d/9fa0d141-d019-4ad7-8bc5-42196ee308bd)."
           }
         },
         {
@@ -585,7 +605,7 @@ data:
           "targets": [
             {
               "refId": "A",
-              "expr": "topk(10, sum by (namespace,pod) (rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\",image!=\"\"}[5m])))",
+              "expr": "topk(10, sum by (namespace,pod) (rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\",image!=\"\",namespace=~\"$namespace\"}[5m])))",
               "legendFormat": "{{namespace}}/{{pod}}"
             }
           ],
@@ -627,7 +647,7 @@ data:
           "targets": [
             {
               "refId": "A",
-              "expr": "topk(12, 100 * (kubelet_volume_stats_used_bytes / clamp_min(kubelet_volume_stats_capacity_bytes,1)))",
+              "expr": "topk(12, 100 * (kubelet_volume_stats_used_bytes{namespace=~\"$namespace\"} / clamp_min(kubelet_volume_stats_capacity_bytes{namespace=~\"$namespace\"},1)))",
               "legendFormat": "{{namespace}}/{{persistentvolumeclaim}}"
             }
           ],
