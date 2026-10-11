@@ -1,14 +1,29 @@
 # Review artifact only. Not a Kubernetes object and not referenced by the
 # candidate Kustomization.
-qualificationDate: "2026-10-09"
+qualificationDate: "2026-10-11"
 paperclip:
   prerequisiteRepository: "SmadjaPaul/paperclip"
-  prerequisitePullRequest: 11
-  prerequisiteHead: "15f1c38525715fb8f8070cfa63df1dda3b8bafd4"
+  prerequisitePullRequest: 15
+  prerequisiteHead: "fdd83bcf3e23cc5633bbb7a1260bd05d601de76d"
+  prerequisiteMergeCommit: "be721124bfd9dc8566d77b0e04a3c38dcc0db283"
+  prerequisiteCiRun: 38092991455
+  networkFixPullRequest: 16
+  networkFixHead: "73c654e6eaabb07ef7594c6e53ccc70cb8318376"
+  networkFixCiStatus: "pending"
+  kindWorkflowRun: 38089528661
+  imageWorkflowRun: 38090000606
   pluginPackage: "@paperclipai/plugin-kubernetes"
+  # Registry metadata is retained only as a negative comparison. Operator
+  # v0.19.1 does not install spec.plugins, so this package is not selected.
   npmVersion: "0.1.0"
   npmDistIntegrity: "sha512-kcjyuF/kOs+n7oYAVaUujRdVznDDA/bdDozsj5U1IVIG40TrJfGwiQEMi/Yk+jrplkYEkvD0bfbSZDdPHRxGpA=="
   npmDistShasum: "ef73de11726dfd0acd727142fcf44c0bc83fd08c"
+  npmSelectionStatus: "not-selected-operator-does-not-install-spec.plugins"
+  selectedBundle:
+    source: "Paperclip image local bundle"
+    autoInstallKey: "kubernetes"
+    sourceCommit: "be721124bfd9dc8566d77b0e04a3c38dcc0db283"
+    catalogPath: "/app/packages/plugins/sandbox-providers/kubernetes"
   manifestId: "paperclip.kubernetes-sandbox-provider"
   manifestVersion: "0.1.0-alpha.1"
   sandboxApiExpected: "agents.x-k8s.io/v1beta1"
@@ -33,8 +48,8 @@ paperclip:
       configAllowListField: imageAllowList
       acquirePathOverrideInput: null
       environmentOverrideField: PAPERCLIP_ADAPTERS[].runtimeImage
-      environmentOverrideSource: deployed-commit-64ae540d
-      immutableDigestReachability: static-code-proven-runtime-not-observed
+      environmentOverrideSource: candidate-paperclip-master-be721124
+      immutableDigestReachability: observed-in-disposable-kind-not-live-operator
 agentSandbox:
   repository: "https://github.com/kubernetes-sigs/agent-sandbox"
   selectedVersion: v1.0.5
@@ -57,8 +72,9 @@ compatibility:
   sandboxCr: candidate-compatible-with-v1.0.5
   job: available-without-agent-sandbox-controller-but-insufficient-for-SMA-31-workspace-proof
   reason: >-
-    Paperclip#11 targets the single v1beta1 API served by Agent Sandbox v1.0.5.
+    Paperclip#11 and #14 target and runtime-test the single v1beta1 API served by Agent Sandbox v1.0.5.
     The older v0.5.6 release is not selected because it would require a
     separate alpha provider contract. Job mode lacks multi-command exec and
-    native workspace sync. Live controller installation and end-to-end
-    qualification remain blocked and are not implied by this static result.
+    native workspace sync. The 222-test Kind E2E and local image bundle were verified in CI, but live
+    server/plugin integration, scoped LiteLLM key, GitHub PR and homelab
+    installation remain blocked pending H3 and separate orchestrator approval.

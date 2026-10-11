@@ -35,6 +35,14 @@ spec:
         - ports:
             - port: "3100"
               protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            io.cilium.k8s.namespace.labels.paperclip.io/managed-by: paperclip-k8s-plugin
+            paperclip.io/role: agent
+      toPorts:
+        - ports:
+            - port: "3100"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:

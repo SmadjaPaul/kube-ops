@@ -1,0 +1,96 @@
+# Review artifact, intentionally not a Kubernetes object and not referenced by
+# any Argo Application. It is the merge checklist for the activation overlay.
+apiVersion: factory.smadja.dev/v1
+kind: PaperclipSandboxActivationDraft
+metadata:
+  name: paperclip-agent-sandbox-v1beta1
+spec:
+  status: blocked-human-gate
+  selectedOption: A
+  paperclip:
+    prerequisiteRepository: SmadjaPaul/paperclip
+    prerequisitePullRequest: 15
+    prerequisiteHead: fdd83bcf3e23cc5633bbb7a1260bd05d601de76d
+    prerequisiteMergeCommit: be721124bfd9dc8566d77b0e04a3c38dcc0db283
+    prerequisiteCiRun: 38092991455
+    networkFixPullRequest: 16
+    networkFixHead: 73c654e6eaabb07ef7594c6e53ccc70cb8318376
+    networkFixCiStatus: pending
+    kindCiRun: 38089528661
+    imageCiRun: 38090000606
+    currentlyDeployedImage: ghcr.io/smadjapaul/paperclip@sha256:aa46b347c8e9e6375bce384373d5cf410ad34775ac82963ce1e68c7442b34e90
+    currentlyDeployedSourceCommit: 64ae540df892e3a13d20d49b88de162c92ba0518
+    requiredImageDigest: pending-published-image-with-kubernetes-plugin
+    pluginSource: bundled-local-image
+    pluginAutoInstallKey: kubernetes
+    operatorReviewTag: v0.19.1
+    operatorReviewCommit: 30d762c59185f5b67aec3a2f8bd1ce27b44a5a2e
+    operatorSpecPluginsConsumed: false
+    providerManifestVersion: v1beta1-contract-from-paperclip-14-plus-network-fix-pending
+  agentSandbox:
+    release: v1.0.5
+    sandboxApi: agents.x-k8s.io/v1beta1
+    controllerImage: registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:dd92effc491e593aea41e19169683a09e1d1193d43f25204ba9fe1fbbc53ff8f
+    releaseAssetSha256: b150cb058c577c59c42b060ff7f22e31b5311ca80430db98129f1280a0e85970
+  agentImage:
+    reference: ghcr.io/paperclipai/agent-runtime-opencode@sha256:349fc68e609998f1d9fc77f94208d50263368b49631f746a51f819917d9b0d2d
+    architecture: linux/amd64
+  runtimePath:
+    adapterRegistryField: PAPERCLIP_ADAPTERS[].runtimeImage
+    providerSelection: onEnvironmentAcquireLease -> resolveImage -> buildSandboxCrManifest
+    podCommand: [/usr/bin/tini, --, /bin/sh, -c, "git config --global --add safe.directory /workspace || true; exec sleep infinity"]
+    workspace: /workspace
+  tenantLifecycle:
+    namespaceScope: persistent-per-company
+    runCleanup:
+      - sandbox
+      - pod
+      - per-run-secret
+      - temporary-run-policies
+    preserved:
+      - namespace
+      - resourcequota
+      - limitrange
+      - baseline-cilium-networkpolicy
+    namespaceDeleteDuringRunCleanup: false
+  driftVerification:
+    scope: every-existing-tenant-namespace
+    mode: read-only
+    resources:
+      - resourcequota
+      - limitrange
+      - ciliumnetworkpolicy
+    mismatchResult: blocker
+    autoRepair: false
+  controlPlaneRbac:
+    namespaceCreate: [get, create]
+    tenantResources: [serviceaccounts, roles, rolebindings, resourcequotas, limitranges, networkpolicies, ciliumnetworkpolicies]
+    workloadObservation: [pods/get, pods/list, pods/log/get, pods/exec/get, pods/exec/create]
+    leaseResources: [secrets/create, secrets/delete, sandboxes/get, sandboxes/create, sandboxes/delete]
+  outstandingProofs:
+    paperclipRuntimeImagePublished: false
+    paperclipServerPluginLoadObserved: false
+    operatorInstanceSchemaRenderObserved: false
+    litellmScopedVirtualKeyInjectedIntoSandbox: false
+    githubAppScopedAgentPrRunObserved: false
+    paperclipControlPlaneKubeApiReachabilityObserved: false
+    paperclipSandboxCallbackIngressObserved: false
+    paperclipSandboxCallbackEgressSelectorObserved: false
+    existingTenantNetworkPolicyDriftAudited: false
+  evidenceScope:
+    kindCi: isolated disposable cluster; no homelab access
+    imageCi: image bundling proven locally; push=false
+    disposableRuntimeProof: false means no homelab disposable run has been authorized
+  gates:
+    paperclip11Merged: true
+    paperclip14Merged: true
+    paperclip15Merged: true
+    ciKindSandboxRuntimeProof: true
+    ciBundledImageVerified: true
+    replacementImagePublishedAndPinned: false
+    pluginDistPresentAndLoadable: false
+    operatorSchemaRendered: false
+    h3HumanApproval: false
+    orchestratorApproval: false
+    disposableRuntimeProof: false
+  rollback: revert_activation_pr_and_reconcile
