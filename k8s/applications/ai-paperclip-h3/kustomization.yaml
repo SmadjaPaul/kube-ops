@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - service-account.yaml
+  - role.yaml
+  - role-binding.yaml
+  - resource-quota.yaml
+  - limit-range.yaml
+  - deny-all.yaml
+  - cilium-egress.yaml
+  - paperclip-control-role.yaml
+  - paperclip-control-role-binding.yaml
+  - paperclip-namespace-reader.yaml
+  - paperclip-namespace-reader-binding.yaml

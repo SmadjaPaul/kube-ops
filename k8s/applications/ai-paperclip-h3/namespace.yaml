@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: paperclip-exec-h3
+  labels:
+    paperclip.io/company-id: 0c4afe5a-c044-4b3d-86a2-14a64a063d18
+    paperclip.io/managed-by: paperclip-k8s-plugin
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
