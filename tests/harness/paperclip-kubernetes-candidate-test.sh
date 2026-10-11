@@ -47,7 +47,7 @@ jq -e '
   (.[0].defaultEnv.OPENCODE_CONFIG_CONTENT | contains("http://litellm.litellm.svc.cluster.local:80/v1")) and
   (.[0].defaultEnv.OPENCODE_CONFIG_CONTENT | contains("{env:LITELLM_API_KEY}"))
 ' <<<"$adapter_registry_json" >/dev/null
-test "$(yq -r '.spec.env[] | select(.name == "PAPERCLIP_K8S_INTERNAL_SERVICES") | .value' "$candidate")" = '[{"name":"litellm","namespace":"litellm","port":80}]'
+test "$(yq -r '.spec.env[] | select(.name == "PAPERCLIP_K8S_INTERNAL_SERVICES") | .value' "$candidate")" = '[{"name":"litellm","namespace":"litellm","port":4000}]'
 test "$(yq -r '.spec.env[] | select(.name == "PAPERCLIP_K8S_SERVER_ENDPOINT_LABELS") | .value' "$candidate")" = '{"app.kubernetes.io/name":"paperclip","app.kubernetes.io/component":"server"}'
 ! grep -F 'LITELLM_MASTER_KEY' "$candidate" >/dev/null
 ! grep -F 'egressAllowFqdns:' "$candidate" >/dev/null

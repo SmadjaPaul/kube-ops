@@ -19,10 +19,10 @@ spec:
           name: paperclip-agent-litellm
           key: LITELLM_API_KEY
           optional: false
-    # `port` is the LiteLLM Service frontend port (80). Kubernetes resolves
-    # the Service targetPort (4000); do not put the Pod targetPort here.
+    # `port` is the Cilium post-DNAT backend port (4000). OpenCode still uses
+    # the LiteLLM Service frontend URL on port 80.
     - name: PAPERCLIP_K8S_INTERNAL_SERVICES
-      value: '[{"name":"litellm","namespace":"litellm","port":80}]'
+      value: '[{"name":"litellm","namespace":"litellm","port":4000}]'
     - name: PAPERCLIP_K8S_SERVER_ENDPOINT_LABELS
       value: '{"app.kubernetes.io/name":"paperclip","app.kubernetes.io/component":"server"}'
     # Non-secret, immutable adapter registry consumed by the deployed Paperclip
