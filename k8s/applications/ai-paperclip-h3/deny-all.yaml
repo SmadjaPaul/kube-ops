@@ -1,0 +1,12 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paperclip-deny-all
+  namespace: paperclip-exec-h3
+  labels:
+    paperclip.io/managed-by: paperclip-k8s-plugin
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
