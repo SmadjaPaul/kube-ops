@@ -5,7 +5,7 @@ metadata:
   namespace: paperclip-exec-h3
 rules:
   - apiGroups: [""]
-    resources: ["serviceaccounts", "pods", "resourcequotas", "limitranges", "secrets"]
+    resources: ["serviceaccounts", "pods", "resourcequotas", "limitranges"]
     verbs: ["get"]
   - apiGroups: [""]
     resources: ["pods"]
