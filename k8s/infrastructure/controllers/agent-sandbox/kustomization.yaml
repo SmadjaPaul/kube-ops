@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Agent Sandbox v1.0.5 upstream release asset. The release checksum and the
+# controller's amd64 digest are recorded in README.md; no alpha API or
+# extension controller is included.
+resources:
+  - https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.5/sandbox.yaml
+
+images:
+  - name: registry.k8s.io/agent-sandbox/agent-sandbox-controller
+    newName: registry.k8s.io/agent-sandbox/agent-sandbox-controller
+    digest: sha256:dd92effc491e593aea41e19169683a09e1d1193d43f25204ba9fe1fbbc53ff8f
