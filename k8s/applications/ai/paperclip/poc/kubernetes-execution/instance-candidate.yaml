@@ -19,6 +19,8 @@ spec:
           name: paperclip-agent-litellm
           key: LITELLM_API_KEY
           optional: false
+    # `port` is the LiteLLM Service frontend port (80). Kubernetes resolves
+    # the Service targetPort (4000); do not put the Pod targetPort here.
     - name: PAPERCLIP_K8S_INTERNAL_SERVICES
       value: '[{"name":"litellm","namespace":"litellm","port":80}]'
     - name: PAPERCLIP_K8S_SERVER_ENDPOINT_LABELS
