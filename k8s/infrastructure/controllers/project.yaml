@@ -19,8 +19,6 @@ spec:
       server: '*'
     - namespace: 'paperclip-operator-system'
       server: '*'
-    - namespace: 'agent-sandbox-system'
-      server: '*'
     - namespace: 'openclaw-operator-system'
       server: '*'
     - namespace: 'openclaw'
