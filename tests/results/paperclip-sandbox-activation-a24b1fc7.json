@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "paperclip-sandbox-activation-01be5dc0",
+  "producedAt": "2026-10-11T00:00:00Z",
+  "actor": {
+    "kind": "agent",
+    "name": "codex"
+  },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "01be5dc04f74c0586e0d4d843d816241da1793fe",
+    "branch": "codex/paperclip-sandbox-activation-draft-stacked"
+  },
+  "tests": [
+    {
+      "id": "activation-draft-static",
+      "name": "Non-live activation draft contract",
+      "command": "bash tests/harness/paperclip-sandbox-activation-draft-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Activation package is excluded from the production Kustomization and all fail-closed gates remain false.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "local exit 0"
+      }
+    },
+    {
+      "id": "repository-check",
+      "name": "Repository static checks",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Repository contract, backup contract, agent harness and existing Paperclip candidate checks passed locally.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "local exit 0"
+      }
+    },
+    {
+      "id": "diff-check",
+      "name": "Git whitespace check",
+      "command": "git diff --check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "No whitespace errors were found.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "local exit 0"
+      }
+    },
+    {
+      "id": "ci-exact-head",
+      "name": "GitHub V1 Contract CI on exact HEAD",
+      "command": "GitHub Actions run 38092949400",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "GitHub validation on the exact merged PR head passed the repository contracts and Paperclip activation-draft checks.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "ci",
+        "reference": "https://github.com/SmadjaPaul/kube-ops/actions/runs/38092949400"
+      }
+    },
+    {
+      "id": "independent-review",
+      "name": "Independent security and activation review",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No independent reviewer result is recorded for this exact draft commit; the local adversarial pass is not represented as an independent review.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "agent-sandbox-runtime",
+      "name": "Disposable Agent Sandbox runtime proof",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "skipped",
+      "reason": "Agent Sandbox deployment, RBAC grant and runtime activation require explicit human and orchestrator approval.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "llm-run",
+      "name": "Bounded LLM-backed SMA-31 run",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "skipped",
+      "reason": "No paid LLM call is authorized before H3 and explicit orchestrator approval.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": {
+        "kind": "none"
+      }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 7,
+    "executed": 4,
+    "notExecuted": 3,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 2,
+    "unavailable": 1,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops:01be5dc04f74c0586e0d4d843d816241da1793fe:paperclip-sandbox-activation",
+    "payload": {
+      "resultId": "paperclip-sandbox-activation-01be5dc0",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "01be5dc04f74c0586e0d4d843d816241da1793fe",
+      "tests": [
+        {
+          "id": "ci-exact-head",
+          "name": "GitHub V1 Contract CI on exact HEAD",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "GitHub validation passed on the exact PR head.",
+          "risk": "low",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {
+        "outcome": "incomplete",
+        "total": 7,
+        "executed": 4,
+        "notExecuted": 3,
+        "passed": 4,
+        "failed": 0,
+        "skipped": 2,
+        "unavailable": 1,
+        "notApplicable": 0
+      }
+    }
+  }
+}

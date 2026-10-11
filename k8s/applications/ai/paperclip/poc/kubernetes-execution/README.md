@@ -42,6 +42,12 @@ quota/LimitRange bounds and the operator bridge schema. The plugin package and
 upstream image evidence are recorded in `version-lock.yaml`; the complete H3
 record is in `docs/factory/H3_AGENT_IMAGE_MANIFEST_2026-10-09.yaml`.
 
+`PAPERCLIP_K8S_INTERNAL_SERVICES.port` is the Cilium post-DNAT backend port,
+not necessarily the Kubernetes Service frontend port: the non-live candidate
+declares LiteLLM as `litellm:4000`, while OpenCode connects to the Service on
+`80`. The disposable Kind proof must verify that mapping and independently
+deny an unrelated Service using the same backend port.
+
 The Paperclip server itself needs a separately reviewed, narrowly scoped
 control-plane Role/ClusterRole for tenant provisioning and Sandbox lifecycle:
 namespace, tenant ServiceAccount/Role/RoleBinding, quota, LimitRange,
