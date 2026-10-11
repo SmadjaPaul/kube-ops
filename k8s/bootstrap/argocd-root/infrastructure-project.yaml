@@ -84,6 +84,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: paperclip-operator-system
       server: https://kubernetes.default.svc
+    - namespace: agent-sandbox-system
+      server: https://kubernetes.default.svc
     - namespace: paperless
       server: https://kubernetes.default.svc
     - namespace: pinepods
