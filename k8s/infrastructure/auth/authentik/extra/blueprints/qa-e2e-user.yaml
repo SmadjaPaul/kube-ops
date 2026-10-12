@@ -23,3 +23,4 @@ entries:
         - !Find [authentik_core.group, [name, "dev"]]
         - !Find [authentik_core.group, [name, "Home Assistant Users"]]
         - !Find [authentik_core.group, [name, "Open WebUI Users"]]
+        - !Find [authentik_core.group, [name, "Grafana Users"]]
