@@ -35,7 +35,7 @@ singleBinary:
   replicas: 1
   persistence:
     enabled: true
-    storageClass: longhorn-bulk
+    storageClass: longhorn-fast
     size: 20Gi
     whenDeleted: Retain
     whenScaled: Retain
