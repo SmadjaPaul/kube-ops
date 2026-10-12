@@ -8,8 +8,8 @@ metadata:
 spec:
   image:
     repository: ghcr.io/smadjapaul/paperclip
-    tag: "sha-c83fe86d23c6d15102c2bff426aeea732ba7f63f"
-    digest: "sha256:d5473c3dcaa32bf9ea54c6c0d7da9dcfe78939b1aa9e2146faa45dfe7ea7b2dc"
+    tag: "sha-0020d44d444b81e89ae5e8a609ff8a21873f9678"
+    digest: "sha256:32cc54a44bb0874154847dd272014b7a3b2305e44c353fbd02a12f114f4bd587"
     pullPolicy: IfNotPresent
   deployment:
     mode: authenticated
