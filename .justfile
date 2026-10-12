@@ -25,6 +25,7 @@ check:
     npm run check
     bash tests/harness/kube-preflight-test.sh
     bash tests/harness/affected-tests-test.sh
+    bash tests/harness/runtime-smoke-test.sh
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/invoice-backup-test.sh
@@ -34,6 +35,7 @@ check:
 check-affected:
     bash -n scripts/check-agent-harness-contract.sh scripts/check-v1-active-contract.sh scripts/backup-static-contract.sh
     bash tests/harness/argo-orphan-contract-test.sh
+    bash tests/harness/runtime-smoke-test.sh
     bash tests/harness/invoice-restore-isolation-test.sh
     bash tests/harness/velero-storage-tier-test.sh
     npm run check:agent-harness
