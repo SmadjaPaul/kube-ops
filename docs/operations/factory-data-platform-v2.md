@@ -32,4 +32,7 @@ As of 2026-10-12, private factory-platform workflows fail before runner allocati
 (runner_id=0, steps=[]). Do not infer application failures or success; deployment
 is BLOCKED until usable runners build and qualify both images.
 
-Fusion dbt v2 native per-model/test OTLP telemetry is enabled via DBT_EXPORT_TO_OTLP=true. Validation requires a real trace found in Tempo, not just successful Python wrapper export.
+Fusion dbt v2 native per-model/test OTLP telemetry is enabled by the dbt runner's
+`--export-to-otlp` build flag when `OTEL_EXPORTER_OTLP_ENDPOINT` is present.
+Validation requires a real trace found in Tempo, not just successful Python
+wrapper export.

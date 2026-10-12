@@ -43,14 +43,16 @@ spec:
                     secretKeyRef:
                       name: factory-platform-postgresql-app
                       key: uri
-                - name: DBT_EXPORT_TO_OTLP
-                  value: "true"
                 - name: OTEL_EXPORTER_OTLP_ENDPOINT
                   value: http://alloy.monitoring.svc.cluster.local:4318
                 - name: DEPLOYMENT_ENVIRONMENT
                   value: production
                 - name: DBT_DUCKDB_PATH
                   value: /tmp/factory.duckdb
+                - name: DBT_TARGET_PATH
+                  value: /tmp/dbt-target
+                - name: DBT_LOG_PATH
+                  value: /tmp/dbt-logs
                 - name: DBT_HOST
                   valueFrom:
                     secretKeyRef:

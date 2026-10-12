@@ -21,6 +21,10 @@ data:
           path: /var/tempo/wal
         local:
           path: /var/tempo/blocks
+    backend_worker:
+      compaction:
+        block_retention: 168h
+        compacted_block_retention: 1h
     # Tempo 3 monolithic handles compaction through the in-process backend worker.
     # Trace retention is bounded by the ephemeral storage lifetime.
     usage_report:
