@@ -26,3 +26,8 @@ images to SHA256 digests and allow Argo to reconcile. Check DBT job exit codes,
 mart published_at freshness (where exposed), Alloy queue/drop metrics, Tempo
 query health, Prometheus targets, and Grafana traces. No test that was skipped
 or not observed counts as passing.
+
+## GitHub Actions environment blocker
+As of 2026-10-12, private factory-platform workflows fail before runner allocation
+(runner_id=0, steps=[]). Do not infer application failures or success; deployment
+is BLOCKED until usable runners build and qualify both images.

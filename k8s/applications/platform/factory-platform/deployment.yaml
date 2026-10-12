@@ -33,7 +33,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: ghcr.io/smadjapaul/factory-platform:sha-a457e9291e69a4b2176f9c61e9e49e355292e6f1
+          image: ghcr.io/smadjapaul/factory-platform:sha-f5662d61b3cfe2c3ee060cbd3c65599a25740bde
           imagePullPolicy: IfNotPresent
           command: ["alembic"]
           args: ["upgrade", "head"]
@@ -65,7 +65,7 @@ spec:
               memory: 256Mi
       containers:
         - name: api
-          image: ghcr.io/smadjapaul/factory-platform:sha-a457e9291e69a4b2176f9c61e9e49e355292e6f1
+          image: ghcr.io/smadjapaul/factory-platform:sha-f5662d61b3cfe2c3ee060cbd3c65599a25740bde
           imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL
