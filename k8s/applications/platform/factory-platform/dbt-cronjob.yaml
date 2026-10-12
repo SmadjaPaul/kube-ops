@@ -35,7 +35,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: dbt
-              image: ghcr.io/smadjapaul/factory-platform-dbt@sha256:3792ef08d80a5676241544c0c6ceff50e0171f92dade6bec03f63720a29aeb06
+              image: ghcr.io/smadjapaul/factory-platform-dbt@sha256:482c0c311f854d09349e2fa9e65650a993dfa92be9ba3c4c15ee384a33de6423
               imagePullPolicy: IfNotPresent
               env:
                 - name: DATABASE_URL
