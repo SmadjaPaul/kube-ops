@@ -11,7 +11,7 @@ require_kube_access
 PAPERCLIP_NS="${PAPERCLIP_NS:-paperclip}"
 LITELLM_NS="${LITELLM_NS:-litellm}"
 LITELLM_BASE_URL="${LITELLM_BASE_URL:-http://litellm.litellm.svc.cluster.local:80/v1}"
-RUN_MODEL_REQUEST="${RUN_MODEL_REQUEST:-yes}"
+RUN_MODEL_REQUEST="${RUN_MODEL_REQUEST:-no}"
 
 yesno() {
   [[ "$1" == "true" ]] && printf 'YES' || printf 'NO'
