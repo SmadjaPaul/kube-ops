@@ -107,7 +107,7 @@ alloy:
         }
       }
 
-      # OTLP is only exposed via the private Alloy ClusterIP service.
+      // OTLP is only exposed via the private Alloy ClusterIP service.
       otelcol.receiver.otlp "factory" {
         http {
           endpoint = "0.0.0.0:4318"
