@@ -125,7 +125,7 @@ IFS=$'\t' read -r litellm_pod litellm_container <<<"$litellm_pod_row"
 
 vkey_diagnostic="$(
   printf '%s' "$paperclip_key_encoded" |
-    kubectl exec -i -n "$LITELLM_NS" "$litellm_pod" -c "$litellm_container" --       python -c "$(cat "$LITELLM_DIAGNOSTIC_PY")"
+    kubectl exec -i -n "$LITELLM_NS" "$litellm_pod" -c "$litellm_container" --       env RUN_MODEL_REQUEST="$RUN_MODEL_REQUEST" python -c "$(cat "$LITELLM_DIAGNOSTIC_PY")"
 )"
 
 env_probe="$(
@@ -299,8 +299,8 @@ printf 'PAPERCLIP_VKEY_TEAM_PRESENT=%s\n' "$(yesno "$vkey_team_present")"
 printf 'PAPERCLIP_VKEY_USER_PRESENT=%s\n' "$(yesno "$vkey_user_present")"
 printf 'LITELLM_MASTER_MODELS_HTTP=%s\n' "$master_models_http"
 printf 'LITELLM_MASTER_EXPECTED_MODELS_PRESENT=%s\n' "$(yesno "$master_expected_models")"
-printf 'LITELLM_MASTER_FACTORY_DEFAULT_HTTP=%s\n' "$master_completion_http"
-printf 'LITELLM_MASTER_FACTORY_DEFAULT_REQUEST=%s\n' "$([[ "$master_completion_pass" == true ]] && echo PASS || echo FAIL)"
+printf 'LITELLM_MASTER_FACTORY_DEFAULT_HTTP=%s\n' "${master_completion_http:-SKIPPED}"
+printf 'LITELLM_MASTER_FACTORY_DEFAULT_REQUEST=%s\n' "$([[ "$RUN_MODEL_REQUEST" != yes ]] && echo SKIPPED || { [[ "$master_completion_pass" == true ]] && echo PASS || echo FAIL; })"
 printf 'PAPERCLIP_VKEY_MODELS_HTTP=%s\n' "$models_http"
 printf 'PAPERCLIP_VKEY_VISIBLE_MODEL_COUNT=%s\n' "$models_visible_count"
 printf 'PAPERCLIP_VKEY_EXPECTED_MODELS_PRESENT=%s\n' "$(yesno "$models_expected")"
@@ -329,7 +329,9 @@ runtime_ready=PASS
 [[ "$vkey_scope_exact" == true ]] || runtime_ready=FAIL
 [[ "$master_models_http" == 200 ]] || runtime_ready=FAIL
 [[ "$master_expected_models" == true ]] || runtime_ready=FAIL
-[[ "$master_completion_pass" == true ]] || runtime_ready=FAIL
+if [[ "$RUN_MODEL_REQUEST" == "yes" ]]; then
+  [[ "$master_completion_pass" == true ]] || runtime_ready=FAIL
+fi
 [[ "$models_http" == 200 ]] || runtime_ready=FAIL
 [[ "$models_expected" == true ]] || runtime_ready=FAIL
 if [[ "$RUN_MODEL_REQUEST" == "yes" && "$model_request" != PASS ]]; then
