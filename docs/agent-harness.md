@@ -40,6 +40,13 @@ Argo CD is the workload inventory and reconciliation authority. Gateway API HTTP
 - UniFi DNS via `DNS_SERVER` (default `10.0.20.1`);
 - valid TLS and HTTP directly against `10.0.20.192` while preserving SNI/Host.
 
+When a generated route has an `OpenClawInstance` ownerReference whose canonical
+resource state is `spec.suspended=true` or `status.phase=Suspended`, the result
+is `SKIPPED_DISABLED_BY_DESIGN` and no HTTP probe is sent. Missing or
+indeterminate owner state is not a skip: the route remains a normal smoke
+failure candidate. This keeps active workloads tested while avoiding a false
+alarm for an explicitly suspended workload.
+
 A route can refine the generic probe:
 
 ```yaml
