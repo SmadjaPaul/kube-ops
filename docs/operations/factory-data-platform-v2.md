@@ -31,3 +31,5 @@ or not observed counts as passing.
 As of 2026-10-12, private factory-platform workflows fail before runner allocation
 (runner_id=0, steps=[]). Do not infer application failures or success; deployment
 is BLOCKED until usable runners build and qualify both images.
+
+Fusion dbt v2 native per-model/test OTLP telemetry is enabled via DBT_EXPORT_TO_OTLP=true. Validation requires a real trace found in Tempo, not just successful Python wrapper export.

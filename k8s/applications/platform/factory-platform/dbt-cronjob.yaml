@@ -35,7 +35,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: dbt
-              image: ghcr.io/smadjapaul/factory-platform-dbt:sha-f5662d61b3cfe2c3ee060cbd3c65599a25740bde
+              image: ghcr.io/smadjapaul/factory-platform-dbt:sha-1f234c1779212f4dea45dde0366857b66578453e
               imagePullPolicy: IfNotPresent
               env:
                 - name: DATABASE_URL
@@ -43,6 +43,8 @@ spec:
                     secretKeyRef:
                       name: factory-platform-postgresql-app
                       key: uri
+                - name: DBT_EXPORT_TO_OTLP
+                  value: "true"
                 - name: OTEL_EXPORTER_OTLP_ENDPOINT
                   value: http://alloy.monitoring.svc.cluster.local:4318
                 - name: DEPLOYMENT_ENVIRONMENT

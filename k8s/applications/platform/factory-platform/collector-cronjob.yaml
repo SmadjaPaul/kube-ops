@@ -35,7 +35,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: collect-github
-              image: ghcr.io/smadjapaul/factory-platform:sha-f5662d61b3cfe2c3ee060cbd3c65599a25740bde
+              image: ghcr.io/smadjapaul/factory-platform:sha-1f234c1779212f4dea45dde0366857b66578453e
               imagePullPolicy: IfNotPresent
               args: ["collect-github"]
               env:
