@@ -33,11 +33,15 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: ghcr.io/smadjapaul/factory-platform@sha256:b25c9ef1d3ddbe739d25d414b5f93b4bd0ccb77dcc34c9f243241c8f5ec68440
+          image: ghcr.io/smadjapaul/factory-platform:sha-a457e9291e69a4b2176f9c61e9e49e355292e6f1
           imagePullPolicy: IfNotPresent
           command: ["alembic"]
           args: ["upgrade", "head"]
           env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://alloy.monitoring.svc.cluster.local:4318
+            - name: DEPLOYMENT_ENVIRONMENT
+              value: production
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -61,7 +65,7 @@ spec:
               memory: 256Mi
       containers:
         - name: api
-          image: ghcr.io/smadjapaul/factory-platform@sha256:b25c9ef1d3ddbe739d25d414b5f93b4bd0ccb77dcc34c9f243241c8f5ec68440
+          image: ghcr.io/smadjapaul/factory-platform:sha-a457e9291e69a4b2176f9c61e9e49e355292e6f1
           imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL

@@ -1,0 +1,39 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-tempo-ingress
+  namespace: monitoring
+spec:
+  description: "Only monitoring components can ingest/query traces; Tempo is not public."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: tempo
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "3200"
+              protocol: TCP
+            - port: "4318"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-alloy-otlp-ingress
+  namespace: monitoring
+spec:
+  description: "Allow OTLP only from private Factory workloads and monitoring probes."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: factory-platform
+      toPorts:
+        - ports:
+            - port: "4318"
+              protocol: TCP

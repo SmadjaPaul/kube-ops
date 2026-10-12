@@ -55,6 +55,13 @@ grafana:
       url: http://loki-gateway.monitoring.svc.cluster.local
       isDefault: false
       editable: false
+    - name: Tempo
+      uid: tempo
+      type: tempo
+      access: proxy
+      url: http://tempo.monitoring.svc.cluster.local:3200
+      isDefault: false
+      editable: false
 
   resources:
     requests:

@@ -8,6 +8,11 @@ alloy:
     extra:
       - name: alloy-storage
         mountPath: /tmp/alloy
+  extraPorts:
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
   resources:
     requests:
       cpu: 50m
@@ -99,6 +104,28 @@ alloy:
       loki.write "local" {
         endpoint {
           url = "http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+        }
+      }
+
+      # OTLP is only exposed via the private Alloy ClusterIP service.
+      otelcol.receiver.otlp "factory" {
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        output {
+          traces = [otelcol.processor.batch.factory.input]
+        }
+      }
+
+      otelcol.processor.batch "factory" {
+        output {
+          traces = [otelcol.exporter.otlphttp.tempo.input]
+        }
+      }
+
+      otelcol.exporter.otlphttp "tempo" {
+        client {
+          endpoint = "http://tempo.monitoring.svc.cluster.local:4318"
         }
       }
 

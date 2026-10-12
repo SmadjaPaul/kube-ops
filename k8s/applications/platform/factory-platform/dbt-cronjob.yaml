@@ -35,10 +35,20 @@ spec:
               type: RuntimeDefault
           containers:
             - name: dbt
-              image: ghcr.io/smadjapaul/factory-platform@sha256:b25c9ef1d3ddbe739d25d414b5f93b4bd0ccb77dcc34c9f243241c8f5ec68440
+              image: ghcr.io/smadjapaul/factory-platform-dbt:sha-a457e9291e69a4b2176f9c61e9e49e355292e6f1
               imagePullPolicy: IfNotPresent
-              args: ["dbt-build"]
               env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-platform-postgresql-app
+                      key: uri
+                - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                  value: http://alloy.monitoring.svc.cluster.local:4318
+                - name: DEPLOYMENT_ENVIRONMENT
+                  value: production
+                - name: DBT_DUCKDB_PATH
+                  value: /tmp/factory.duckdb
                 - name: DBT_HOST
                   valueFrom:
                     secretKeyRef:
@@ -75,15 +85,15 @@ spec:
                   type: RuntimeDefault
               resources:
                 requests:
-                  cpu: 50m
-                  memory: 256Mi
+                  cpu: 100m
+                  memory: 512Mi
                 limits:
-                  cpu: "1"
-                  memory: 1Gi
+                  cpu: "2"
+                  memory: 2Gi
               volumeMounts:
                 - name: tmp
                   mountPath: /tmp
           volumes:
             - name: tmp
               emptyDir:
-                sizeLimit: 512Mi
+                sizeLimit: 2Gi

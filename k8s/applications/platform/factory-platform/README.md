@@ -1,4 +1,4 @@
-# Factory Platform V0
+# Factory Platform V2
 
 Internal deployment of the private `SmadjaPaul/factory-platform` image.
 
@@ -34,9 +34,16 @@ preflight failed.
 ## Data/storage
 
 - PostgreSQL is single-instance CNPG on `longhorn-bulk`.
-- dbt staging/fact models are views; only the small overview mart is materialized.
+- The dbt v2/DuckDB CronJob uses a temporary local file, reads PostgreSQL directly, and publishes small validated marts back to analytics in a single transaction. No persistent copy of raw events.
 - GitHub collection is bounded to the latest two pages every 30 minutes and uses
   per-repository watermarks, one-hour overlap and idempotent upserts rather than
   appending duplicates. Run evidence records inserted events, duplicates and
   errors.
 - WAL is archived continuously and a weekly base backup is written to Hetzner Object Storage.
+
+## Observability / cutover
+
+Existing Loki/Prometheus/Grafana/Alloy are reused. Tempo receives traces via private
+Alloy OTLP/HTTP; neither port 4318 nor Tempo are exposed through a Gateway.
+See docs/operations/factory-data-platform-v2.md before merging: the sha-tagged
+images here are **temporary** and must be replaced by immutable GHCR digests.

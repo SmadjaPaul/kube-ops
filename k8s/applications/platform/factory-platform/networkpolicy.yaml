@@ -6,7 +6,7 @@ metadata:
   labels:
     policy-type: platform-audit
 spec:
-  description: "Factory Platform V0: internal-only API; egress limited to DNS, CNPG and GitHub API."
+  description: "Factory Platform V2: internal-only API; egress limited to DNS, CNPG, GitHub API and Alloy OTLP."
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: factory-platform
@@ -43,6 +43,14 @@ spec:
       toPorts:
         - ports:
             - port: "5432"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: alloy
+      toPorts:
+        - ports:
+            - port: "4318"
               protocol: TCP
     - toFQDNs:
         - matchName: api.github.com

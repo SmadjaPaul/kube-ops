@@ -9,3 +9,4 @@ resources:
   - blackbox
   - loki
   - alloy
+  - tempo
