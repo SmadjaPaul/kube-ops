@@ -180,7 +180,7 @@ vkey_team_present="$(jq -r '.teamIdPresent // false' <<<"$vkey_diagnostic")"
 vkey_user_present="$(jq -r '.userIdPresent // false' <<<"$vkey_diagnostic")"
 master_models_http="$(jq -r '.masterModelsHttp // "N/A"' <<<"$vkey_diagnostic")"
 master_expected_models="$(jq -r '.masterExpectedModelsPresent // false' <<<"$vkey_diagnostic")"
-master_completion_http="$(jq -r '.masterCompletionHttp // "N/A"' <<<"$vkey_diagnostic")"
+master_completion_http="$(jq -r '.masterCompletionHttp // "SKIPPED"' <<<"$vkey_diagnostic")"
 master_completion_pass="$(jq -r '.masterCompletionPass // false' <<<"$vkey_diagnostic")"
 
 models_probe="$(
