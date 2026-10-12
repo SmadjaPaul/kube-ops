@@ -75,7 +75,9 @@ master_ids = [
     if isinstance(item, dict) and isinstance(item.get("id"), str)
 ]
 
-master_completion_status, master_completion_payload = request(
+master_completion_status, master_completion_payload = (None, {})
+if os.environ.get("RUN_MODEL_REQUEST", "no") == "yes":
+    master_completion_status, master_completion_payload = request(
     "/v1/chat/completions",
     method="POST",
     body={
@@ -85,7 +87,7 @@ master_completion_status, master_completion_payload = request(
         "temperature": 0,
     },
     token=master,
-)
+    )
 master_completion_ok = (
     master_completion_status == 200
     and isinstance(master_completion_payload.get("choices"), list)
