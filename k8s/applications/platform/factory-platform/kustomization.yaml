@@ -7,6 +7,7 @@ resources:
   - registry-externalsecret.yaml
   - runtime-externalsecret.yaml
   - database-s3-credentials.yaml
+  - database-source-credentials.yaml
   - database-objectstore.yaml
   - database.yaml
   - database-scheduled-backup.yaml

@@ -47,6 +47,8 @@ spec:
                   value: http://alloy.monitoring.svc.cluster.local:4318
                 - name: DEPLOYMENT_ENVIRONMENT
                   value: production
+                - name: FACTORY_REPOSITORY
+                  value: SmadjaPaul/factory-platform
                 - name: DBT_DUCKDB_PATH
                   value: /tmp/factory.duckdb
                 - name: DBT_TARGET_PATH
@@ -66,12 +68,12 @@ spec:
                 - name: DBT_USER
                   valueFrom:
                     secretKeyRef:
-                      name: factory-platform-postgresql-app
-                      key: user
+                      name: factory-platform-postgresql-source
+                      key: username
                 - name: DBT_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: factory-platform-postgresql-app
+                      name: factory-platform-postgresql-source
                       key: password
                 - name: DBT_DBNAME
                   valueFrom:

@@ -15,6 +15,17 @@ retention is best effort; a pod restart clears history). Do not back this up.
 6. Ensure imagefs >= kubelet thresholds, and keep Docker/container image sizes bounded.
 7. Deploy both PRs together; avoid simultaneous API/job image version mismatch.
 
+## PostgreSQL source isolation
+
+The dbt job uses the `factory_source_ro` role for DuckDB source reads. The
+role is reconciled by CloudNativePG's `spec.managed.roles`, inherits only the
+PostgreSQL `pg_read_all_data` predefined role, and has `LOGIN` enabled with
+`SUPERUSER`, `CREATEDB`, and `CREATEROLE` disabled. Its password is generated
+once by External Secrets into a separate `kubernetes.io/basic-auth` Secret;
+the application publication URL continues to use the CNPG application Secret.
+The disposable qualification must include a rejected `INSERT` through the
+source role before this PR is considered ready.
+
 ## Rollback
 Revert the kube-ops commit to restore previous pinned images and dbt Core
 CronJob. No source-schema or customer-data migration occurs in this release.
@@ -29,8 +40,10 @@ or not observed counts as passing.
 
 ## GitHub Actions environment blocker
 As of 2026-10-12, private factory-platform workflows fail before runner allocation
-(runner_id=0, steps=[]). Do not infer application failures or success; deployment
-is BLOCKED until usable runners build and qualify both images.
+(runner_id=0, steps=[]). The candidate is therefore qualified on the disposable
+Linux/amd64 Docker/BuildKit environment documented in the handoff; this does not
+turn the failed Actions jobs into passes. The PR remains draft until the GHCR
+push, immutable digests, and runtime LGTM evidence are present.
 
 Fusion dbt v2 native per-model/test OTLP telemetry is enabled by the dbt runner's
 `--export-to-otlp` build flag when `OTEL_EXPORTER_OTLP_ENDPOINT` is present.
