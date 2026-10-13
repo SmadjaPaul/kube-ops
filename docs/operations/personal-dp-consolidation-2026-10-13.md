@@ -1,6 +1,6 @@
 # Personal DP consolidation — coordinated cutover (2026-10-13)
 
-**Status: DRAFT, NOT PROMOTABLE.** This change is deliberately bundled into one GitOps PR. Its worktrees simultaneously remove legacy app declarations and introduce candidate replacements. Do not merge until all readiness gates are green: the replacement Deployment manifests currently have `replicas: 0`.
+**Status: DIRECT CUTOVER AUTHORIZED, CANDIDATES INACTIVE.** The operator explicitly authorized retiring legacy AI services and their data before replacement E2Es. This is a desired-state cutover only: Agentgateway, Cube and Mastra currently have `replicas: 0`. Their availability must not be claimed.
 
 ## Repositories
 
@@ -25,7 +25,7 @@
 3. Authorize each MCP target with Authentik-verified user/delegated service principal and enforce document, query and tool ACLs *in the backend* too. Test cross-user denials, revoked credentials and cache isolation. Do not use a shared OpenConnector admin token.
 4. Enable CubeStore and Cube only after schema and read-only database credential tests. Verify the Factory mart, API JWT/row policy, the effect of a malicious SQL query, and memory footprint. Pin image digests.
 5. Merge verified factory-platform source, enable the Mastra production identity grants, prove Talos gVisor on a disposable VM, and run sandbox lifecycle + GitHub issue-to-PR E2E before increasing `mastra-factory` replicas above zero.
-6. Build/test/deploy an Authentik-protected CopilotKit / AG-UI chat surface before deleting Open WebUI. Export any chat history and Open WebUI collections worth keeping.
+6. Build/test/deploy an Authentik-protected CopilotKit / AG-UI chat surface as the final chat UI. Open WebUI is removed immediately by explicit operator decision; no old chat history or collection export is required. The chat endpoint will remain unavailable until then.
 7. Replicate LiteLLM model aliases for every consumer (Paperclip, OpenClaw migration, Web UI, factory tools, embeddings) and test cost and credentials. Model aliases presently staged are only `factory/fast` and `factory/code`.
 8. Qualify single-node memory, disk pressure, CPU requests, backups and refresh/worker costs against the actual node headroom.
 9. Validate `kustomize build`, server-side dry run, secret schema, network policies, image digests, deny E2E and OTel traces end-to-end. No live cluster proof is claimed.
@@ -37,7 +37,7 @@ Reuse the current Alloy OTLP/HTTP receiver port 4318 -> Tempo; Loki receives Kub
 
 ## Exact rollback / cleanup contract
 
-As a bundle the Git revert restores the desired *resource declarations* after Argo reconciliation. It does not revert IAM/auth changes, OAuth callbacks, rotated keys, removed Longhorn volumes, deleted CNPG state or external integrations. Take an inventory before pruning and keep one readable backup. Before deleting legacy state, capture orphan inventory (read-only script above); delete only explicitly classified unused resources.
+As a bundle the Git revert restores the desired *resource declarations* after Argo reconciliation. It does not revert IAM/auth changes, OAuth callbacks, rotated keys, removed Longhorn volumes, deleted CNPG state or external integrations. No backup/export of the retired application's data is required by the operator; verify ownership and restore targets rather than assuming that all volumes belong to the retired service. Legacy service data retention is not required: delete residual PVC/PV, CNPG, Secret and backup objects **after** confirming ownership and dependent controllers/finalizers; do not delete unrelated workloads or restore-drill resources. `StatefulSet.volumeClaimTemplates` may leave PVCs behind despite prune.
 
 ## Do not confuse staged with implemented
 
