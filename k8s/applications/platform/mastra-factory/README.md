@@ -15,10 +15,13 @@ Those are **deployment** checks, not Factory Issue→PR E2E proof.
 
 ## Pending operator/security gates
 
-1. Better Auth is enabled; Authentik human SSO, authorized session and
-   cross-user denial remain unproven. **Do not grant Personal Agent access.**
-   Verify current Better Auth/Factory login compatibility and Mastra Studio's
-   published production SSO licensing boundary before proceeding.
+1. Better Auth is the chosen Factory identity provider: email/password,
+   no Authentik OIDC for Factory. Create the initial operator using the
+   short-lived, token- and email-scoped bootstrap described in
+   `factory-platform/mastra-factory/docs/better-auth-operator.md`.
+   Disable bootstrap afterward. Validate sign-in, session persistence,
+   unauthorized API access and isolation. **Do not grant Personal Agent access**
+   until the security E2E is proven.
 2. Factory model settings report no configured provider. The standalone
    `agentgateway` namespace exposes a private, budget-limited endpoint on
    port 4000 with `factory/fast` and `factory/code`. Configure the custom
@@ -40,15 +43,13 @@ Those are **deployment** checks, not Factory Issue→PR E2E proof.
    dispatch and Meta Loop Board approval are still runtime gates.
 7. Keep Paperclip until a real Factory Issue→PR E2E passes.
 
-## Authentik blueprint
+## Identity ownership
 
-`k8s/infrastructure/auth/authentik/extra/blueprints/apps-mastra-factory.yaml`
-is committed as a **dormant template**, not part of the generated blueprint
-ConfigMap. It depends on a separate Doppler-provided
-`MASTRA_FACTORY_OIDC_CLIENT_SECRET` and a verified Better Auth OAuth callback
-route. Do not load it before those prerequisites and the production SSO license
-question are resolved. Do not create an ExternalSecret pointing at a missing
-Doppler key, since that would degrade the active Authentik reconciliation.
+Factory owns its own Better Auth login and sessions, backed by its existing
+CNPG storage. Authentik remains the identity provider for other applications
+but does **not** own Factory accounts. The previously staged Factory-specific
+OIDC blueprint has been removed because it was dormant and not selected.
+No active Authentik blueprint or secret is modified.
 
 ## Deployment / rollback
 
