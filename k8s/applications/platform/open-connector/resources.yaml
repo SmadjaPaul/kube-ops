@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: open-connector
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: open-connector-data
+  namespace: open-connector
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-bulk
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-connector
+  namespace: open-connector
+spec:
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: open-connector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: open-connector
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: open-connector
+          image: ghcr.io/oomol-lab/open-connector:v1.8.0
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: OOMOL_CONNECT_DATA_DIR
+              value: /app/data
+            - name: OOMOL_CONNECT_ALLOW_PRIVATE_NETWORK
+              value: "true" # Cilium egress still restricts to Paperless only.
+            - name: OOMOL_CONNECT_CATALOG_LAZY_SCHEMAS
+              value: "true"
+            - name: OOMOL_CONNECT_ALLOWED_ACTIONS
+              value: "home_assistant.list_states,home_assistant.get_state,paperless_ngx.list_documents,paperless_ngx.get_document"
+            - name: OOMOL_CONNECT_BLOCKED_PROXIES
+              value: "*"
+          envFrom:
+            - secretRef:
+                name: open-connector-private
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: open-connector-data
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-connector
+  namespace: open-connector
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: open-connector
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: open-connector-default-deny
+  namespace: open-connector
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: open-connector
+  ingress:
+    - fromEntities: [host]
+      toPorts:
+        - ports:
+            - {port: "3000", protocol: TCP}
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory
+            app.kubernetes.io/name: mastra-factory
+      toPorts:
+        - ports:
+            - {port: "3000", protocol: TCP}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: paperless
+            app.kubernetes.io/name: paperless
+      toPorts:
+        - ports:
+            - {port: "8000", protocol: TCP}
+            - {port: "80", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}

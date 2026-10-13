@@ -1,0 +1,138 @@
+# STAGING ONLY: parent kustomization does not include this directory.
+# CRDs/RuntimeClass are prerequisites; no workloads are activated by this PR.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mastra-sandbox
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mastra-factory
+  namespace: mastra-factory
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mastra-agent-sandbox-client
+  namespace: mastra-sandbox
+rules:
+  - apiGroups: ["extensions.agents.x-k8s.io"]
+    resources: ["sandboxclaims"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: ["agents.x-k8s.io"]
+    resources: ["sandboxes"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mastra-agent-sandbox-client
+  namespace: mastra-sandbox
+subjects:
+  - kind: ServiceAccount
+    name: mastra-factory
+    namespace: mastra-factory
+roleRef:
+  kind: Role
+  name: mastra-agent-sandbox-client
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxTemplate
+metadata:
+  name: mastra-code
+  namespace: mastra-sandbox
+spec:
+  envVarsInjectionPolicy: Disallowed
+  volumeClaimTemplatesPolicy: Disallowed
+  service: true
+  networkPolicyManagement: Unmanaged
+  podTemplate:
+    spec:
+      automountServiceAccountToken: false
+      runtimeClassName: gvisor # Must exist and be verified on Talos before any run.
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sandboxd
+          # NOT PROMOTABLE: replace this mutable image with a built, immutable
+          # sandboxd + git + node + npm image digest BEFORE enabling GitOps.
+          image: us-central1-docker.pkg.dev/k8s-staging-images/agent-sandbox/sandboxd:latest-main
+          command:
+            - /usr/local/bin/sandboxd
+            - --root-dir=/workspace
+            - --rest-port=8080
+            - --grpc-port=9090
+          ports:
+            - {name: rest, containerPort: 8080}
+            - {name: grpc, containerPort: 9090}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          readinessProbe:
+            httpGet: {path: /v1/health, port: rest}
+            periodSeconds: 5
+          volumeMounts:
+            - {name: workspace, mountPath: /workspace}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 256Mi}
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: longhorn-fast
+        resources:
+          requests: {storage: 2Gi}
+---
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxWarmPool
+metadata:
+  name: mastra-code
+  namespace: mastra-sandbox
+spec:
+  replicas: 0 # Zero idle cost; claims cold-start from the template.
+  updateStrategy: {type: Recreate}
+  sandboxTemplateRef: {name: mastra-code}
+---
+# sandboxd's REST/gRPC endpoints are unauthenticated and plaintext inside
+# the cluster. Only the trusted Factory pod may reach them.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: mastra-sandbox-restricted
+  namespace: mastra-sandbox
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory
+            app.kubernetes.io/name: mastra-factory
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
+            - {port: "9090", protocol: TCP}
+  egress: [] # No exfiltration path until per-repo network allowlist is reviewed.
