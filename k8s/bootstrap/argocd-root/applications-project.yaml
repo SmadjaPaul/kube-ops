@@ -50,6 +50,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: open-webui
       server: https://kubernetes.default.svc
+    - namespace: open-connector
+      server: https://kubernetes.default.svc
     - namespace: openclaw
       server: https://kubernetes.default.svc
     - namespace: openclaw-talos-ops
