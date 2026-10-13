@@ -4,6 +4,7 @@ namespace: monitoring
 
 resources:
   - rbac.yaml
+  - factory-dp-otlp-secret.yaml
 
 helmCharts:
   - name: alloy
