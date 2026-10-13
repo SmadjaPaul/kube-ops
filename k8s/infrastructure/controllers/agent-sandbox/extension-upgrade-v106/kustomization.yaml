@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# NOT INCLUDED by any live parent. Single future migration, not a second
+# controller running next to the existing v1.0.5 base installation.
+resources:
+  - https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.6/sandbox-with-extensions.yaml
