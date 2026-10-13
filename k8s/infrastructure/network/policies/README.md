@@ -60,8 +60,8 @@ hubble observe --verdict AUDITED --since 24h --all-namespaces
 
 ### Expected Output
 ```
-policy-verdict: EGRESS AUDITED → database/postgres:5432 (from litellm/app)
-policy-verdict: INGRESS AUDITED → qdrant/server:6333 (from ai/opencode)
+policy-verdict: EGRESS AUDITED → application-specific database endpoints
+policy-verdict: INGRESS AUDITED → application-specific service endpoints
 policy-verdict: EGRESS AUDITED → external/https:443 (from app/curl)
 ```
 

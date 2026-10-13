@@ -20,22 +20,6 @@ spec:
         protocol: TCP
   - fromEndpoints:
     - matchLabels:
-        k8s:io.kubernetes.pod.namespace: open-webui
-        app: open-webui
-    toPorts:
-    - ports:
-      - port: "9000"
-        protocol: TCP
-  - fromEndpoints:
-    - matchLabels:
-        k8s:io.kubernetes.pod.namespace: litellm
-        app: litellm
-    toPorts:
-    - ports:
-      - port: "9000"
-        protocol: TCP
-  - fromEndpoints:
-    - matchLabels:
         k8s:io.kubernetes.pod.namespace: karakeep
         app: karakeep-web
     toPorts:

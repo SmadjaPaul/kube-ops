@@ -3,9 +3,7 @@ kind: Kustomization
 resources:
 - karakeep
 - opencode
-- litellm
 - gpt-researcher
-- qdrant
 labels:
 - pairs:
     policy-type: ai-audit
