@@ -18,4 +18,3 @@ resources:
 - node-feature-discovery
 - paperclip-operator
 - agent-sandbox
-- openclaw-operator # Temporary uninstall controller; CR finalizers must complete before operator pruning
