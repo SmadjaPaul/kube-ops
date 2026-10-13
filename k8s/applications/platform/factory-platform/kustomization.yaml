@@ -21,3 +21,4 @@ resources:
   - cube-secrets.yaml
   - cubestore.yaml
   - cube.yaml
+  - cube-networkpolicy.yaml
