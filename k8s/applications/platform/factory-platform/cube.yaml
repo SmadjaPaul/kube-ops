@@ -30,7 +30,8 @@ spec:
             - {name: CUBEJS_DB_PASS, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-source, key: password}}}
             - {name: CUBEJS_API_SECRET, valueFrom: {secretKeyRef: {name: factory-cube-auth, key: CUBEJS_API_SECRET}}}
           volumeMounts:
-            - {name: models, mountPath: /cube/conf/schema, readOnly: true}
+            - {name: models, mountPath: /cube/conf/model, readOnly: true}
+            - {name: cube-config, mountPath: /cube/conf/cube.js, subPath: cube.js, readOnly: true}
           resources:
             requests: {cpu: 100m, memory: 768Mi}
             limits: {cpu: "1", memory: 2Gi}
@@ -41,7 +42,13 @@ spec:
             seccompProfile: {type: RuntimeDefault}
       volumes:
         - name: models
-          configMap: {name: factory-cube-schema}
+          configMap:
+            name: factory-cube-schema
+            items: [{key: FactoryOverview.js, path: FactoryOverview.js}]
+        - name: cube-config
+          configMap:
+            name: factory-cube-schema
+            items: [{key: cube.js, path: cube.js}]
 ---
 apiVersion: v1
 kind: Service
