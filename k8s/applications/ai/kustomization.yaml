@@ -3,20 +3,16 @@ kind: Kustomization
 
 resources:
 - project.yaml
-- openwebui
 - karakeep
-- litellm
 - opencode
-- qdrant
 - gpt-researcher
-- openclaw
-- openclaw-talos-personal
-- openclaw-talos-ops
-- openclaw-talos-test
 - executor
 - paperclip
 
 # Intentionally disabled from the V1 active catalog:
-# - perplexica: redundant with OpenWebUI + GPT Researcher.
-# - vllm-embed: logical factory/embedding is provided through LiteLLM.
+# - perplexica: decommissioned in favor of Mastra research tools.
+# - vllm-embed: inactive CPU embedder; migration to pgvector/search TBD.
 # - pocket-tts: local CPU TTS is too expensive on the current single-node host.
+
+# Coordinated CUTOVER ONLY: removed Open WebUI, LiteLLM, Qdrant and OpenClaw app trees.
+# DO NOT merge without the staged Agentgateway + Mastra + UI replacement E2E.
