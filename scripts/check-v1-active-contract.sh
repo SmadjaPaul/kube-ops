@@ -81,20 +81,14 @@ grep -q 'gestion.lechaplais.com' k8s/applications/business/invoice-ninja/service
 grep -q 'name: external' k8s/applications/business/invoice-ninja/service-route.yaml
 grep -q 'name: internal' k8s/applications/business/invoice-ninja/service-route.yaml
 
-# Backend/admin surfaces that are only consumed from inside the cluster or LAN
-# must never attach to the public Gateway. Qdrant is consumed by Open WebUI via
-# its ClusterIP service; Zigbee2MQTT is an operator UI.
-for internal_route in \
-  k8s/applications/ai/qdrant/httproute.yaml; do
-  grep -q 'name: internal' "$internal_route" || {
-    echo "ERROR: $internal_route must attach to the internal Gateway" >&2
-    exit 1
-  }
-  if grep -q 'name: external' "$internal_route"; then
-    echo "ERROR: $internal_route must not attach to the external Gateway" >&2
-    exit 1
-  fi
-done
+# The new AI LLM gateway is ClusterIP-only and its authorizing API key
+# policy is strict. Retired Qdrant/OpenWebUI routes must not be referenced.
+grep -q 'type: ClusterIP' k8s/applications/platform/agentgateway/resources.yaml
+grep -q 'mode: strict' k8s/applications/platform/agentgateway/resources.yaml
+if grep -qE '^-[[:space:]]*(litellm|openwebui|qdrant|openclaw(-talos-.*)?)$' k8s/applications/ai/kustomization.yaml; then
+  echo 'ERROR: legacy AI workloads must not be rendered by apps-ai' >&2
+  exit 1
+fi
 
 # Authentik V1 stays on the current stable series and uses upstream-native
 # authentication flows rather than carrying a parallel passwordless graph.
