@@ -61,8 +61,8 @@ jobs:
           sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
           kubeconform -v
 
-      - name: Validate Paperclip OpenCode to LiteLLM model contract
-        run: bash tests/harness/paperclip-litellm-model-contract-test.sh
+      - name: Validate Paperclip OpenCode to Agentgateway model contract
+        run: bash tests/harness/paperclip-agentgateway-model-contract-test.sh
 
       - name: Validate V1 desired state and backup coverage
         run: npm run check
