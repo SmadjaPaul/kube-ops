@@ -4,11 +4,6 @@ kind: Kustomization
 resources:
 - project.yaml
 - karakeep
-# Retained DATA ONLY after direct workload cutover. No LiteLLM/Qdrant/UI Pods.
-# Existing CNPG backup, Qdrant PVC and OpenWebUI namespace are preserved.
-- litellm
-- qdrant
-- openwebui
 - opencode
 - gpt-researcher
 - executor
@@ -19,5 +14,7 @@ resources:
 # - vllm-embed: inactive CPU embedder; migration to pgvector/search TBD.
 # - pocket-tts: local CPU TTS is too expensive on the current single-node host.
 
-# Direct cutover: removed old workloads and OpenClaw CRs; data-only roots retained.
-# DO NOT merge without the staged Agentgateway + Mastra + UI replacement E2E.
+# Direct cutover: Open WebUI, LiteLLM, Qdrant, OpenClaw workloads and
+# their desired-state data resources are intentionally retired.
+# PVCs created by StatefulSet volumeClaimTemplates can survive pruning;
+# reconcile residuals after the cutover.
