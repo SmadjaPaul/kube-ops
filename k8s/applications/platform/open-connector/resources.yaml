@@ -53,6 +53,13 @@ spec:
               value: /app/data
             - name: OOMOL_CONNECT_CATALOG_LAZY_SCHEMAS
               value: "true"
+            - name: OOMOL_CONNECT_ALLOWED_ACTIONS
+              value: "home_assistant.list_states,home_assistant.get_state,paperless_ngx.list_documents,paperless_ngx.get_document"
+            - name: OOMOL_CONNECT_BLOCKED_PROXIES
+              value: "*"
+          envFrom:
+            - secretRef:
+                name: open-connector-private
           readinessProbe:
             httpGet:
               path: /health
@@ -105,5 +112,24 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: open-connector
-  ingress: []
-  egress: []
+  ingress:
+    - fromEntities: [host]
+      toPorts:
+        - ports:
+            - {port: "3000", protocol: TCP}
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory
+            app.kubernetes.io/name: mastra-factory
+      toPorts:
+        - ports:
+            - {port: "3000", protocol: TCP}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
