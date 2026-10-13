@@ -12,6 +12,32 @@ spec:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: agentgateway}
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports: [{port: "53", protocol: UDP}, {port: "53", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: factory-platform
+            cnpg.io/cluster: factory-platform-postgresql
+      toPorts:
+        - ports: [{port: "5432", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: factory-platform
+            app: factory-cubestore
+      toPorts:
+        - ports: [{port: "3030", protocol: TCP}]
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports: [{port: "53", protocol: UDP}, {port: "53", protocol: TCP}]
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
