@@ -74,7 +74,7 @@ data:
     frontendPolicies:
       tracing:
         host: alloy.monitoring.svc.cluster.local:4318
-        protocol: http/protobuf
+        protocol: http
         randomSampling: true
 ---
 apiVersion: apps/v1
@@ -98,7 +98,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: agentgateway
-          image: cr.agentgateway.dev/agentgateway:v1.6.0
+          image: cr.agentgateway.dev/agentgateway@sha256:9d3e6044ddcdc0878b1787f77bd401252b95e22684203fb5e874c4c42d2ed90c
           args: ["-f", "/config/config.yaml"]
           workingDir: /data
           envFrom:
