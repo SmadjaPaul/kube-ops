@@ -12,3 +12,7 @@ integration is developer-only until Authentik identity checks are implemented.
 
 Provision Doppler keys and Cilium policy before any promotion. No external
 Google OAuth, public ingress or Composio is needed for the first homelab test.
+
+Upstream release pinned for staging: v1.8.0 (published 2026-09-30).
+Paperless-ngx actions `list_documents` and `get_document` are present in this release.
+Replace the tag with an immutable image digest at promotion.
