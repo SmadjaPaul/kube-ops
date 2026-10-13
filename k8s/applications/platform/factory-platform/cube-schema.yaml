@@ -44,7 +44,8 @@ data:
       },
       dimensions: {
         tenantId: { sql: 'tenant_id', type: 'string' },
-        taskId: { sql: 'task_id', type: 'string', primaryKey: true },
+        taskEventId: { sql: 'task_event_id', type: 'string', primaryKey: true },
+        taskId: { sql: 'task_id', type: 'string' },
         repository: { sql: 'repository', type: 'string' },
         status: { sql: 'status', type: 'string' }
       }
