@@ -75,12 +75,17 @@ if grep -A2 'heartbeat:' "$company/.paperclip.yaml" | grep -q 'enabled: true'; t
   exit 1
 fi
 
-for model in default code research review; do
-  grep -q "litellm/factory/$model" "$company/.paperclip.yaml" || {
-    echo "ERROR: missing logical factory model contract: $model" >&2
-    exit 1
-  }
-done
+# All Paperclip roles must select a model served by the new gateway.
+# Research/review roles intentionally reuse the code alias until the
+# corresponding Agentgateway models and budgets are E2E-qualified.
+grep -q 'agentgateway/factory/code' "$company/.paperclip.yaml" || {
+  echo "ERROR: missing Agentgateway code model in Paperclip roles" >&2
+  exit 1
+}
+if grep -q 'litellm/' "$company/.paperclip.yaml"; then
+  echo "ERROR: Paperclip contains retired LiteLLM model aliases" >&2
+  exit 1
+fi
 
 # GitHub broker traffic must stay inside the Paperclip namespace. The broker
 # is the existing ClusterIP service, not a public endpoint or a run override.
@@ -109,13 +114,11 @@ fi
 
 ruby "$company/desired-state/validate-desired-state.rb"
 
-# Consumer configs must use logical model contracts. Physical provider mappings
-# belong in LiteLLM, not in Paperclip/OpenClaw/OpenWebUI/GPT Researcher.
+# Active consumers must not hardcode physical LLM providers. Their logical
+# model aliases are routed by Agentgateway, which owns backend mapping.
 consumer_files=(
-  k8s/applications/ai/openclaw/configmap.yaml
   k8s/applications/ai/paperclip/runtime-config.yaml
   k8s/applications/ai/gpt-researcher/gpt-researcher-deployment.yaml
-  k8s/applications/ai/openwebui/webui-statefulset.yaml
 )
 
 physical_pattern='minimax/|anthropic/|azure/|openai/gpt-|@cf/qwen/|qwen3-embedding-0\.6b'
@@ -124,7 +127,7 @@ if grep -Ein "$physical_pattern" "${consumer_files[@]}"; then
   exit 1
 fi
 
-bash tests/harness/paperclip-litellm-model-contract-test.sh
+bash tests/harness/paperclip-agentgateway-model-contract-test.sh
 
 echo "PAPERCLIP_ROLE_CAPABILITIES=PASS"
 echo "PAPERCLIP_WORKSPACE_ISOLATION=PASS"

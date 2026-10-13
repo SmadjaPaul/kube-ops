@@ -11,24 +11,20 @@ data:
   OPENCODE_CONFIG_CONTENT: |
     {
       "$schema": "https://opencode.ai/config.json",
-      "enabled_providers": ["litellm"],
-      "model": "litellm/factory/default",
-      "small_model": "litellm/factory/fast",
+      "enabled_providers": ["agentgateway"],
+      "model": "agentgateway/factory/code",
+      "small_model": "agentgateway/factory/fast",
       "provider": {
-        "litellm": {
+        "agentgateway": {
           "npm": "@ai-sdk/openai-compatible",
-          "name": "Smadja LiteLLM",
+          "name": "Smadja Agentgateway",
           "options": {
-            "baseURL": "http://litellm.litellm.svc.cluster.local:80/v1",
-            "apiKey": "{env:LITELLM_API_KEY}"
+            "baseURL": "http://agentgateway.agentgateway.svc.cluster.local:4000/v1",
+            "apiKey": "{env:AGENTGATEWAY_API_KEY}"
           },
           "models": {
-            "factory/default": {"name": "Factory default"},
             "factory/fast": {"name": "Factory fast"},
-            "factory/code": {"name": "Factory code"},
-            "factory/research": {"name": "Factory research"},
-            "factory/review": {"name": "Factory review"},
-            "factory/embedding": {"name": "Factory embedding"}
+            "factory/code": {"name": "Factory code"}
           }
         }
       }

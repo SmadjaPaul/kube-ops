@@ -156,6 +156,10 @@ spec:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: factory-platform}
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: paperclip}
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
   egress:
     - toEndpoints:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}
