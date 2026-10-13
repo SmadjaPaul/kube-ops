@@ -39,3 +39,4 @@ resources:
   - daily-sure.yaml
   - daily-stirling-pdf.yaml
   - daily-vikunja.yaml
+  - daily-open-connector.yaml
