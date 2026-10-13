@@ -76,7 +76,7 @@ spec:
             - name: FACTORY_TENANT_ID
               value: smadja-internal
             - name: FACTORY_GITHUB_REPOS
-              value: SmadjaPaul/kube-ops,SmadjaPaul/factory-platform,SmadjaPaul/homelab-infra,SmadjaPaul/website,SmadjaPaul/paperclip
+              value: SmadjaPaul/kube-ops,SmadjaPaul/factory-platform,SmadjaPaul/homelab-infra,SmadjaPaul/website
             - name: FACTORY_GITHUB_PULL_MAX_PAGES
               value: "4"
             - name: FACTORY_GITHUB_WORKFLOW_MAX_PAGES
