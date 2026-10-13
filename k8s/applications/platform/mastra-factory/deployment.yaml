@@ -47,7 +47,7 @@ spec:
           envFrom:
             - secretRef: {name: mastra-factory-runtime}
           readinessProbe:
-            tcpSocket: {port: http}
+            httpGet: {path: /health, port: http}
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 12
