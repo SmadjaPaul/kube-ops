@@ -4,3 +4,6 @@ kind: Kustomization
 resources:
   - factory-platform
   - open-connector
+  - agentgateway
+  - mastra-factory
+  - mastra-sandbox

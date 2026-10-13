@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: factory-cube-schema, namespace: factory-platform}
+data:
+  # All Cube requests must carry a signed, backend-issued JWT with this
+  # explicit service role. Client-supplied headers/claims are not authority.
+  # Household/tenant datasets require separate RLS models; this mart is a
+  # global Factory operations aggregate, not a household serving API.
+  cube.js: |
+    module.exports = {
+      queryRewrite: (query, { securityContext }) => {
+        if (securityContext?.role !== 'factory_analytics') {
+          throw new Error('Cube Factory mart access denied');
+        }
+        return query;
+      },
+    };
+  FactoryOverview.js: |
+    cube('FactoryOverview', {
+      sql: `SELECT * FROM analytics.mart_factory_overview`,
+      measures: {
+        totalEvents: { sql: 'total_events', type: 'max' },
+        githubPullRequests: { sql: 'github_pull_requests', type: 'max' },
+        githubWorkflowRuns: { sql: 'github_workflow_runs', type: 'max' },
+        paperclipRuns: { sql: 'paperclip_runs', type: 'max' },
+        ciSuccessRate: { sql: 'ci_success_rate', type: 'max' },
+        humanInterventions: { sql: 'human_interventions', type: 'max' }
+      },
+      dimensions: {},
+    });
