@@ -1,0 +1,24 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-factory-platform
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: factory-platform
+spec:
+  schedule: "20 5 * * *"
+  template:
+    includedNamespaces:
+      - factory-platform
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+      - clusters.postgresql.cnpg.io
+      - backups.postgresql.cnpg.io
+      - scheduledbackups.postgresql.cnpg.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h

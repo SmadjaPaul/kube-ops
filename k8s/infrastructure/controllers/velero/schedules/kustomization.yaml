@@ -37,3 +37,5 @@ resources:
   - daily-stirling-pdf.yaml
   - daily-vikunja.yaml
   - daily-open-connector.yaml
+  - daily-agentgateway.yaml
+  - daily-factory-platform.yaml
