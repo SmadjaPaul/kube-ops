@@ -36,7 +36,22 @@ data:
           keys:
             - key: "$AGENTGATEWAY_CLIENT_KEY"
               metadata:
+                name: factory-canary
                 owner: factory-canary
+              allowedModels:
+                - factory/fast
+                - factory/code
+              # Token budget works even when the custom MiniMax model has no
+              # verified USD entry in the agentgateway price catalog.
+              # Per-key USD budgets require measured nonzero catalog costs.
+              budgets:
+                - name: canary-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 50000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
       models:
         - name: factory/fast
           provider:
@@ -90,6 +105,10 @@ spec:
             - secretRef: {name: agentgateway-runtime}
           ports:
             - {name: llm, containerPort: 4000}
+          readinessProbe:
+            tcpSocket: {port: llm}
+            periodSeconds: 10
+            failureThreshold: 6
           resources:
             requests: {cpu: 50m, memory: 192Mi}
             limits: {cpu: "1", memory: 768Mi}
@@ -146,4 +165,9 @@ spec:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: kube-system, k8s:k8s-app: kube-dns}
       toPorts:
         - ports: [{port: "53", protocol: UDP}, {port: "53", protocol: TCP}]
-    # Pin exact external MiniMax FQDN separately after Cilium DNS egress test.
+    # Cilium FQDN policy: no blanket world/LAN access. DNS proxy learns
+    # api.minimax.io, and only 443/TCP is allowed to that exact FQDN.
+    - toFQDNs:
+        - matchName: api.minimax.io
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
