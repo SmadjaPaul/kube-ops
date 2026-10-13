@@ -1,0 +1,28 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-cube-private
+  namespace: factory-platform
+spec:
+  endpointSelector:
+    matchLabels: {app: factory-cube}
+  ingress:
+    - fromEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: mastra-factory}
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: agentgateway}
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-cubestore-private
+  namespace: factory-platform
+spec:
+  endpointSelector:
+    matchLabels: {app: factory-cubestore}
+  ingress:
+    - fromEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: factory-platform, app: factory-cube}
+      toPorts:
+        - ports: [{port: "3030", protocol: TCP}]
