@@ -13,7 +13,8 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: mastra-factory}
     spec:
-      automountServiceAccountToken: false
+      serviceAccountName: mastra-factory
+      automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
       imagePullSecrets:
         - name: mastra-factory-ghcr
       securityContext:
@@ -32,6 +33,11 @@ spec:
           env:
             - {name: NODE_ENV, value: production}
             - {name: PORT, value: "4111"}
+            - {name: FACTORY_SANDBOX_PROVIDER, value: kubernetes}
+            - {name: FACTORY_KUBERNETES_NAMESPACE, value: mastra-sandbox}
+            - {name: FACTORY_KUBERNETES_WARMPOOL, value: mastra-code}
+            - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
+            - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
             - name: DATABASE_URL
               valueFrom:
