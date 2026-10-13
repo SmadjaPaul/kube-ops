@@ -25,7 +25,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: factory
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:b2bc495a175ffeca68a7d4532ca528e537039f734116d5ad0eeeda3180bab78f
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:92c77b047a7453f62f08a4fd2c6cd0fcb299e31f6b7b3412084593edcecc694b
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -33,8 +33,6 @@ spec:
           env:
             - {name: NODE_ENV, value: production}
             - {name: PORT, value: "4111"}
-            - {name: MASTRA_PERSONAL_ENABLED, value: ""}
-            - {name: PERSONAL_OPENCONNECTOR_ENABLED, value: ""}
             - {name: FACTORY_SANDBOX_PROVIDER, value: kubernetes}
             - {name: FACTORY_KUBERNETES_NAMESPACE, value: mastra-sandbox}
             - {name: FACTORY_KUBERNETES_WARMPOOL, value: mastra-code}
