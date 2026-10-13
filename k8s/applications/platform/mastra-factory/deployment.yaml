@@ -67,8 +67,11 @@ spec:
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
             - {name: cache, mountPath: /home/node/.cache}
+            - {name: config, mountPath: /home/node/.config}
       volumes:
         - name: tmp
           emptyDir: {sizeLimit: 512Mi}
         - name: cache
           emptyDir: {sizeLimit: 512Mi}
+        - name: config
+          emptyDir: {sizeLimit: 32Mi}
