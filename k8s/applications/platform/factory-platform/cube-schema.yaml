@@ -2,10 +2,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata: {name: factory-cube-schema, namespace: factory-platform}
 data:
-  # All Cube requests must carry a signed, backend-issued JWT with this
-  # explicit service role. Client-supplied headers/claims are not authority.
-  # Household/tenant datasets require separate RLS models; this mart is a
-  # global Factory operations aggregate, not a household serving API.
+  # Internal admin-only analytics. Do not reuse this credential for households;
+  # tenant-facing models need their own RLS and delegated JWT identity.
   cube.js: |
     module.exports = {
       queryRewrite: (query, { securityContext }) => {
@@ -22,9 +20,65 @@ data:
         totalEvents: { sql: 'total_events', type: 'max' },
         githubPullRequests: { sql: 'github_pull_requests', type: 'max' },
         githubWorkflowRuns: { sql: 'github_workflow_runs', type: 'max' },
-        paperclipRuns: { sql: 'paperclip_runs', type: 'max' },
+        agentRuns: { sql: 'agent_runs', type: 'max' },
+        firstPassSuccessRate: { sql: 'first_pass_success_rate', type: 'max' },
+        observedCostUsd: { sql: 'observed_cost_usd', type: 'max' },
         ciSuccessRate: { sql: 'ci_success_rate', type: 'max' },
-        humanInterventions: { sql: 'human_interventions', type: 'max' }
+        humanInterventions: { sql: 'human_interventions', type: 'max' },
+        averagePrMergeSeconds: { sql: 'avg_pr_time_to_merge_seconds', type: 'max' }
       },
-      dimensions: {},
+      dimensions: {}
+    });
+  FactoryDelivery.js: |
+    // One row per tenant/task after dbt deduplication. Do not SUM portfolio
+    // scorecard columns duplicated across delivery-task rows.
+    cube('FactoryDelivery', {
+      sql: `SELECT * FROM analytics.mart_delivery_task`,
+      measures: {
+        tasks: { sql: 'task_id', type: 'countDistinct' },
+        acceptedTasks: {
+          sql: `case when ${CUBE}.is_accepted then ${CUBE}.task_id end`,
+          type: 'countDistinct'
+        },
+        taskCostUsd: { sql: 'task_cost_usd', type: 'sum' }
+      },
+      dimensions: {
+        tenantId: { sql: 'tenant_id', type: 'string' },
+        taskId: { sql: 'task_id', type: 'string', primaryKey: true },
+        repository: { sql: 'repository', type: 'string' },
+        status: { sql: 'status', type: 'string' }
+      }
+    });
+  FactoryTestQuality.js: |
+    // Test counts are historical; do not average pass ratios across repos.
+    cube('FactoryTestQuality', {
+      sql: `SELECT * FROM analytics.mart_test_quality`,
+      measures: {
+        executedTests: { sql: 'executed_tests', type: 'sum' },
+        passedTests: { sql: 'passed_tests', type: 'sum' },
+        failedTests: { sql: 'failed_tests', type: 'sum' }
+      },
+      dimensions: {
+        tenantId: { sql: 'tenant_id', type: 'string' },
+        repository: { sql: 'repository', type: 'string' },
+        aggregationScope: { sql: 'aggregation_scope', type: 'string' }
+      }
+    });
+  FactoryModelUsage.js: |
+    // Sampled diagnostics only. Always filter/group by serviceName to avoid
+    // conflating the same request observed by both Mastra and Agentgateway.
+    cube('FactoryModelUsage', {
+      sql: `SELECT * FROM analytics.mart_factory_model_usage`,
+      measures: {
+        observedSpans: { sql: 'observed_model_spans', type: 'sum' },
+        observedInputTokens: { sql: 'observed_input_tokens', type: 'sum' },
+        observedOutputTokens: { sql: 'observed_output_tokens', type: 'sum' }
+      },
+      dimensions: {
+        tenantId: { sql: 'tenant_id', type: 'string' },
+        serviceName: { sql: 'service_name', type: 'string' },
+        model: { sql: 'model', type: 'string' },
+        observedDay: { sql: 'observed_day', type: 'time' },
+        coverage: { sql: 'coverage', type: 'string' }
+      }
     });
