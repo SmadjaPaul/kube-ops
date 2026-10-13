@@ -83,7 +83,7 @@ metadata:
   name: agentgateway
   namespace: agentgateway
 spec:
-  replicas: 0 # PR cutover gate: secrets, schema, traffic, spend and OTel not qualified
+  replicas: 1
   strategy: {type: Recreate}
   selector: {matchLabels: {app: agentgateway}}
   template:
