@@ -17,6 +17,12 @@ spec:
     metadata: {labels: {app: factory-cubestore}}
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
       containers:
         - name: cubestore
           image: cubejs/cubestore:v1.8.3
@@ -26,8 +32,10 @@ spec:
             requests: {cpu: 100m, memory: 512Mi}
             limits: {cpu: "1", memory: 2Gi}
           securityContext:
+            runAsNonRoot: true
             allowPrivilegeEscalation: false
             capabilities: {drop: [ALL]}
+            seccompProfile: {type: RuntimeDefault}
           volumeMounts:
             - {name: data, mountPath: /cube/data}
       volumes:
