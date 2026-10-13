@@ -10,7 +10,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: factory-cubestore, namespace: factory-platform}
 spec:
-  replicas: 0 # same readiness gate as Cube API
+  replicas: 1
   strategy: {type: Recreate}
   selector: {matchLabels: {app: factory-cubestore}}
   template:
@@ -25,7 +25,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: cubestore
-          image: cubejs/cubestore:v1.8.3
+          image: cubejs/cubestore@sha256:574600f8edd4ada8b61749603dc60c2f6050a06780f3c5aeb881537df1612f45
           env: [{name: CUBESTORE_REMOTE_DIR, value: /cube/data}]
           ports: [{name: http, containerPort: 3030}]
           resources:
