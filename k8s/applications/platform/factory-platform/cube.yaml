@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: factory-cube, namespace: factory-platform}
+spec:
+  replicas: 0 # enable after auth, schema, cache and query E2E
+  selector: {matchLabels: {app: factory-cube}}
+  template:
+    metadata: {labels: {app: factory-cube}}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: cube
+          image: cubejs/cube:v1.8.3
+          ports: [{name: http, containerPort: 4000}]
+          env:
+            - {name: CUBEJS_DB_TYPE, value: postgres}
+            - {name: CUBEJS_DEV_MODE, value: "false"}
+            - {name: CUBEJS_TELEMETRY, value: "false"}
+            - {name: CUBEJS_CUBESTORE_HOST, value: factory-cubestore.factory-platform.svc.cluster.local}
+            - {name: CUBEJS_DB_HOST, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-app, key: host}}}
+            - {name: CUBEJS_DB_PORT, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-app, key: port}}}
+            - {name: CUBEJS_DB_NAME, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-app, key: dbname}}}
+            - {name: CUBEJS_DB_USER, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-source, key: username}}}
+            - {name: CUBEJS_DB_PASS, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-source, key: password}}}
+            - {name: CUBEJS_API_SECRET, valueFrom: {secretKeyRef: {name: factory-cube-auth, key: CUBEJS_API_SECRET}}}
+          volumeMounts:
+            - {name: models, mountPath: /cube/conf/schema, readOnly: true}
+          resources:
+            requests: {cpu: 100m, memory: 768Mi}
+            limits: {cpu: "1", memory: 2Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: models
+          configMap: {name: factory-cube-schema}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: factory-cube, namespace: factory-platform}
+spec:
+  selector: {app: factory-cube}
+  ports: [{name: http, port: 4000, targetPort: http}]
