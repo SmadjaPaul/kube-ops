@@ -33,6 +33,8 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: factory-platform
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: agentgateway
       toPorts:
         - ports:
             - port: "4318"
