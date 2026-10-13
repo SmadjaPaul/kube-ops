@@ -17,3 +17,7 @@ resources:
   - collector-cronjob.yaml
   - dbt-cronjob.yaml
   - networkpolicy.yaml
+  - cube-schema.yaml
+  - cube-secrets.yaml
+  - cubestore.yaml
+  - cube.yaml
