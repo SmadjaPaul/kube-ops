@@ -8,6 +8,11 @@ alloy:
     extra:
       - name: alloy-storage
         mountPath: /tmp/alloy
+  # Optional during bootstrap: Tempo remains independent if ESO sync is late.
+  envFrom:
+    - secretRef:
+        name: alloy-factory-dp-otlp
+        optional: true
   extraPorts:
     - name: otlp-http
       port: 4318
@@ -119,7 +124,36 @@ alloy:
 
       otelcol.processor.batch "factory" {
         output {
-          traces = [otelcol.exporter.otlphttp.tempo.input]
+          traces = [
+            otelcol.exporter.otlphttp.tempo.input,
+            otelcol.exporter.otlphttp.factory_dp.input,
+          ]
+        }
+      }
+
+      // OTLP JSON mirror is DIAGNOSTIC ONLY; never use sampled traces as the
+      // source of exact Factory billing or task counts. API stores allowlisted
+      // GenAI attributes only and is authenticated on the private ClusterIP.
+      otelcol.auth.headers "factory_dp" {
+        header {
+          key   = "X-Factory-Ingest-Key"
+          value = sys.env("FACTORY_DP_INGEST_KEY")
+        }
+      }
+
+      otelcol.exporter.otlphttp "factory_dp" {
+        encoding = "json"
+        traces_endpoint = "http://factory-platform.factory-platform.svc.cluster.local:8080/v1/otlp/traces"
+        client {
+          endpoint = "http://factory-platform.factory-platform.svc.cluster.local:8080"
+          auth     = otelcol.auth.headers.factory_dp.handler
+          timeout  = "5s"
+        }
+        retry_on_failure {
+          enabled = true
+          initial_interval = "1s"
+          max_interval = "15s"
+          max_elapsed_time = "60s"
         }
       }
 
