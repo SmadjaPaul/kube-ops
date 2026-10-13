@@ -30,7 +30,7 @@ spec:
             - {name: CUBEJS_DB_PASS, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-source, key: password}}}
             - {name: CUBEJS_API_SECRET, valueFrom: {secretKeyRef: {name: factory-cube-auth, key: CUBEJS_API_SECRET}}}
           volumeMounts:
-            - {name: models, mountPath: /cube/conf/model, readOnly: true}
+            - {name: models, mountPath: /cube/conf/model/FactoryOverview.js, subPath: FactoryOverview.js, readOnly: true}
             - {name: cube-config, mountPath: /cube/conf/cube.js, subPath: cube.js, readOnly: true}
             - {name: tmp, mountPath: /tmp}
           resources:
