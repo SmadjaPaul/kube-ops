@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: open-connector
 resources:
   - resources.yaml
+  - secrets.yaml
