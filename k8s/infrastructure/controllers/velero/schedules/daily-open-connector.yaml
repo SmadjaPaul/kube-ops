@@ -1,0 +1,21 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-open-connector
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: open-connector
+spec:
+  schedule: "50 4 * * *"
+  template:
+    includedNamespaces:
+      - open-connector
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h
