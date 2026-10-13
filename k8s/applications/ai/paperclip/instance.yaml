@@ -61,6 +61,11 @@ spec:
   env:
     - name: NODE_OPTIONS
       value: ""
+    - name: AGENTGATEWAY_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: paperclip-runtime-secrets
+          key: AGENTGATEWAY_API_KEY
   security:
     networkPolicy:
       enabled: false
