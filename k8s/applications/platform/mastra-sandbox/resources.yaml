@@ -70,9 +70,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: sandboxd
-          # NOT PROMOTABLE: replace this mutable image with a built, immutable
-          # sandboxd + git + node + npm image digest BEFORE enabling GitOps.
-          image: us-central1-docker.pkg.dev/k8s-staging-images/agent-sandbox/sandboxd:latest-main
+          # Staged only: gVisor and the full SandboxClaim path must pass before
+          # this directory is referenced by the parent kustomization.
+          image: ghcr.io/smadjapaul/mastra-sandboxd@sha256:22906dc31b9ef7d2a46f6eff816b380301311bce5eacdc56df2b7eb8140614c0
           command:
             - /usr/local/bin/sandboxd
             - --root-dir=/workspace
