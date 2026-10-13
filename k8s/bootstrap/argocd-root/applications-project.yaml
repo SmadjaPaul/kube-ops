@@ -20,6 +20,8 @@ spec:
     # project scope and must not amplify every Application warning.
     - namespace: argocd
       server: https://kubernetes.default.svc
+    - namespace: agentgateway
+      server: https://kubernetes.default.svc
     - namespace: executor
       server: https://kubernetes.default.svc
     - namespace: factory-platform
@@ -38,7 +40,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: listmonk
       server: https://kubernetes.default.svc
-    - namespace: litellm
+    - namespace: mastra-factory
+      server: https://kubernetes.default.svc
+    - namespace: mastra-sandbox
       server: https://kubernetes.default.svc
     - namespace: mealie
       server: https://kubernetes.default.svc
@@ -48,17 +52,7 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: ntfy
       server: https://kubernetes.default.svc
-    - namespace: open-webui
-      server: https://kubernetes.default.svc
     - namespace: open-connector
-      server: https://kubernetes.default.svc
-    - namespace: openclaw
-      server: https://kubernetes.default.svc
-    - namespace: openclaw-talos-ops
-      server: https://kubernetes.default.svc
-    - namespace: openclaw-talos-personal
-      server: https://kubernetes.default.svc
-    - namespace: openclaw-talos-test
       server: https://kubernetes.default.svc
     - namespace: opencode
       server: https://kubernetes.default.svc
@@ -69,8 +63,6 @@ spec:
     - namespace: paperless
       server: https://kubernetes.default.svc
     - namespace: pinepods
-      server: https://kubernetes.default.svc
-    - namespace: qdrant
       server: https://kubernetes.default.svc
     - namespace: renovate
       server: https://kubernetes.default.svc
