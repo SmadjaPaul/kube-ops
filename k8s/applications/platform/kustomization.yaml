@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - factory-platform
   - open-connector
+  - agentgateway
