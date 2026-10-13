@@ -81,6 +81,8 @@ spec:
               value: "4"
             - name: FACTORY_GITHUB_WORKFLOW_MAX_PAGES
               value: "2"
+            - name: FACTORY_OTLP_TENANT_ID
+              value: smadja-internal
             - name: FACTORY_INGEST_API_KEY
               valueFrom:
                 secretKeyRef:
