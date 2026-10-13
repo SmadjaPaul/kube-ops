@@ -1,0 +1,45 @@
+# Agentgateway v1.6.0 OSS standalone. Deliberately private: no user-facing
+# federation until Authentik principal delegation and backend ACL E2E pass.
+# Migration source: k8s/applications/ai/litellm/proxy_server_config.yaml
+config:
+  database:
+    url: sqlite://data.db
+gateways:
+  default:
+    port: 4000
+llm:
+  gateways: default
+  policies:
+    apiKey:
+      mode: strict
+      keys:
+        - key: "$AGENTGATEWAY_CLIENT_KEY"
+          metadata:
+            owner: factory-canary
+  models:
+    - name: factory/fast
+      provider:
+        custom:
+          formats:
+            - type: completions
+      params:
+        baseUrl: https://api.minimax.io/v1
+        model: MiniMax-M2.7
+        apiKey: "$MINIMAX_API_KEY"
+    - name: factory/code
+      provider:
+        custom:
+          formats:
+            - type: completions
+      params:
+        baseUrl: https://api.minimax.io/v1
+        model: MiniMax-M3
+        apiKey: "$MINIMAX_API_KEY"
+# The MCP listener is not enabled yet: a static OpenConnector runtime token
+# cannot safely impersonate every Authentik user. Federate after individual
+# per-principal policies and upstream auth propagation have been proven.
+frontendPolicies:
+  tracing:
+    host: alloy.monitoring.svc.cluster.local:4318
+    protocol: http/protobuf
+    randomSampling: true
