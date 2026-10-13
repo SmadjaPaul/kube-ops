@@ -51,6 +51,8 @@ spec:
           env:
             - name: OOMOL_CONNECT_DATA_DIR
               value: /app/data
+            - name: OOMOL_CONNECT_ALLOW_PRIVATE_NETWORK
+              value: "true" # Cilium egress still restricts to Paperless only.
             - name: OOMOL_CONNECT_CATALOG_LAZY_SCHEMAS
               value: "true"
             - name: OOMOL_CONNECT_ALLOWED_ACTIONS
@@ -125,6 +127,14 @@ spec:
         - ports:
             - {port: "3000", protocol: TCP}
   egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: paperless
+            app.kubernetes.io/name: paperless
+      toPorts:
+        - ports:
+            - {port: "8000", protocol: TCP}
+            - {port: "80", protocol: TCP}
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
