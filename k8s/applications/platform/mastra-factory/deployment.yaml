@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
 spec:
-  replicas: 0 # Activation is explicitly gated; NOT an E2E success.
+  replicas: 1 # Keep one dispatcher until cross-replica sandbox claim locking is qualified.
   strategy: {type: Recreate}
   selector:
     matchLabels: {app.kubernetes.io/name: mastra-factory}
