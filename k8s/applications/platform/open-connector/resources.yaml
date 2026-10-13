@@ -44,7 +44,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: open-connector
-          image: ghcr.io/oomol-lab/open-connector:v1.8.0
+          image: ghcr.io/oomol-lab/open-connector@sha256:2f1a48c833b2768e6dfa14859ca94b5150da4dbbb9cf6908c404b7f7ee63c302
           ports:
             - name: http
               containerPort: 3000
@@ -56,7 +56,7 @@ spec:
             - name: OOMOL_CONNECT_CATALOG_LAZY_SCHEMAS
               value: "true"
             - name: OOMOL_CONNECT_ALLOWED_ACTIONS
-              value: "home_assistant.list_states,home_assistant.get_state,paperless_ngx.list_documents,paperless_ngx.get_document"
+              value: "paperless_ngx.list_documents,paperless_ngx.get_document"
             - name: OOMOL_CONNECT_BLOCKED_PROXIES
               value: "*"
           envFrom:
