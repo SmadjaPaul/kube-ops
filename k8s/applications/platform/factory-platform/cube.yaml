@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: factory-cube, namespace: factory-platform}
 spec:
-  replicas: 0 # enable after auth, schema, cache and query E2E
+  replicas: 1
   selector: {matchLabels: {app: factory-cube}}
   template:
     metadata: {labels: {app: factory-cube}}
@@ -16,7 +16,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: cube
-          image: cubejs/cube:v1.8.3
+          image: cubejs/cube@sha256:a84bae164de5d6b6a8ab3f5e6bb55f62a17dbc31021aa85d8a226ebc1e52eb5c
           ports: [{name: http, containerPort: 4000}]
           env:
             - {name: CUBEJS_DB_TYPE, value: postgres}
