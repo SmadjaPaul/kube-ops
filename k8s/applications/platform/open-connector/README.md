@@ -1,9 +1,8 @@
-# OpenConnector staging (inactive)
+# OpenConnector private test
 
-This directory is not referenced by the parent Argo CD Kustomization.
-The deployment remains at 0 replicas until Doppler credentials, encrypted
-storage, network egress boundaries and OAuth multi-user isolation have been
-validated. There is no Gateway or HTTPRoute.
+The parent Argo CD Kustomization references this directory for the private
+Paperless test only. The service is ClusterIP-only: there is no Gateway or
+HTTPRoute, and no public OAuth or Composio integration.
 
 Use the upstream OpenConnector image and an encrypted store. For the first
 acceptance run, use a single, explicitly restricted persistent runtime token
