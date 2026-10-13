@@ -1,13 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
+# DATA RETENTION ONLY. StatefulSet is pruned and its volumeClaimTemplates
+# PVCs are retained by Kubernetes default whenDeleted=Retain.
+# Leave namespace until verified PVC/export inventory is complete.
 resources:
-- namespace.yaml
-- webui-statefulset.yaml
-- webui-service.yaml
-- http-route.yaml
-- openwebui-secrets-external.yaml
-- litellm-api-key.yaml
-- openwebui-ai-backend-keys.yaml
-- openwebui-qdrant-api-key.yaml
-- openwebui-network-policy.yaml
+  - namespace.yaml
