@@ -12,8 +12,9 @@ without permanent idle Pods. This does not mean the controller is installed.
 Outstanding release gates:
 - confirm Talos node really supports the gVisor RuntimeClass; never silently
   fall back to runc for untrusted source code;
-- build immutable, verified, tool-rich sandboxd image (git, Node 22, npm)
-  and use its digest instead of `latest-main`;
+- use the published immutable `ghcr.io/smadjapaul/mastra-sandboxd` digest
+  (`sha256:22906dc31b9ef7d2a46f6eff816b380301311bce5eacdc56df2b7eb8140614c0`)
+  containing git, Node 22, and npm;
 - verify Agent Sandbox CRDs and v1beta1 compatibility, Cilium endpoint labels,
   sandboxd root relative filesystem, in-cluster-service DNS and pod network;
 - verify ServiceAccount privileges scoped to this namespace, without cluster-admin;
