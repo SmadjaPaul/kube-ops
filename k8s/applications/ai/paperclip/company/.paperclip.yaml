@@ -7,7 +7,7 @@ agents:
     adapter:
       type: opencode_local
       config:
-        model: litellm/factory/default
+        model: agentgateway/factory/code
     budgetMonthlyCents: 3000
     runtime:
       heartbeat:
@@ -16,7 +16,7 @@ agents:
     adapter:
       type: opencode_local
       config:
-        model: litellm/factory/research
+        model: agentgateway/factory/code
     budgetMonthlyCents: 1500
     runtime:
       heartbeat:
@@ -25,7 +25,7 @@ agents:
     adapter:
       type: opencode_local
       config:
-        model: litellm/factory/code
+        model: agentgateway/factory/code
     budgetMonthlyCents: 3000
     runtime:
       heartbeat:
@@ -34,7 +34,7 @@ agents:
     adapter:
       type: opencode_local
       config:
-        model: litellm/factory/review
+        model: agentgateway/factory/code
     budgetMonthlyCents: 2000
     runtime:
       heartbeat:
@@ -43,7 +43,7 @@ agents:
     adapter:
       type: opencode_local
       config:
-        model: litellm/factory/review
+        model: agentgateway/factory/code
     budgetMonthlyCents: 2000
     runtime:
       heartbeat:
@@ -52,7 +52,7 @@ agents:
     adapter:
       type: opencode_local
       config:
-        model: litellm/factory/default
+        model: agentgateway/factory/code
     budgetMonthlyCents: 2500
     runtime:
       heartbeat:
@@ -61,7 +61,7 @@ agents:
     adapter:
       type: opencode_local
       config:
-        model: litellm/factory/code
+        model: agentgateway/factory/code
     budgetMonthlyCents: 3000
     runtime:
       heartbeat:
@@ -70,7 +70,7 @@ agents:
     adapter:
       type: opencode_local
       config:
-        model: litellm/factory/code
+        model: agentgateway/factory/code
     budgetMonthlyCents: 2500
     runtime:
       heartbeat:
