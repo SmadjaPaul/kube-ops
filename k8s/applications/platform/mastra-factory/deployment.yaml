@@ -12,6 +12,8 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: mastra-factory}
+      annotations:
+        secret.reloader.stakater.com/reload: mastra-factory-runtime
     spec:
       serviceAccountName: mastra-factory
       automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
