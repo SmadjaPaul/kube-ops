@@ -48,7 +48,7 @@ data:
                 - name: canary-daily-tokens
                   limit:
                     unit: Tokens
-                    amount: 50000
+                    amount: 5000000
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
