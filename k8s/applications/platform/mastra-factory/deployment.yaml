@@ -27,7 +27,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: factory
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:44907535c5cbc1eb85efea80cd171cdcef2b8325c1c8862868ab45ff1412b722
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:dbc2ee1ba3a490533154d9abef8e87e511fff0ccc9535f58bf8a9b7803bd391e
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
