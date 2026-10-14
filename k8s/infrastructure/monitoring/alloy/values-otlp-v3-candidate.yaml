@@ -1,0 +1,234 @@
+alloy:
+  enableReporting: false
+  stabilityLevel: generally-available
+  storagePath: /tmp/alloy
+  mounts:
+    varlog: false
+    dockercontainers: false
+    extra:
+      - name: alloy-storage
+        mountPath: /tmp/alloy
+  # Optional during bootstrap: Tempo remains independent if ESO sync is late.
+  envFrom:
+    - secretRef:
+        name: alloy-factory-dp-otlp
+        optional: true
+  extraPorts:
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 384Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 473
+    runAsGroup: 473
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  configMap:
+    content: |-
+      logging {
+        level  = "info"
+        format = "logfmt"
+      }
+
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node_name"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+          separator     = "/"
+          target_label  = "job"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.process.pods.receiver]
+      }
+
+      loki.process "pods" {
+        stage.static_labels {
+          values = {
+            cluster = "homeops",
+            source  = "kubernetes",
+          }
+        }
+        forward_to = [loki.write.local.receiver]
+      }
+
+      loki.source.kubernetes_events "events" {
+        job_name   = "integrations/kubernetes/eventhandler"
+        forward_to = [loki.process.events.receiver]
+      }
+
+      loki.process "events" {
+        stage.static_labels {
+          values = {
+            cluster = "homeops",
+            source  = "kubernetes-events",
+          }
+        }
+        forward_to = [loki.write.local.receiver]
+      }
+
+      loki.write "local" {
+        endpoint {
+          url = "http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+        }
+      }
+
+      // OTLP is only exposed via the private Alloy ClusterIP service.
+      otelcol.receiver.otlp "factory" {
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        output {
+          traces = [otelcol.processor.batch.factory.input]
+        }
+      }
+
+      otelcol.processor.batch "factory" {
+        output {
+          traces = [
+            otelcol.exporter.otlphttp.tempo.input,
+            otelcol.processor.filter.factory_dp.input,
+          ]
+        }
+      }
+
+      // The DP receives only model-usage spans from trusted Factory sources;
+      // the complete trace stream still goes directly to Tempo.
+      otelcol.processor.filter "factory_dp" {
+        error_mode = "ignore"
+        traces {
+          span = [
+            `resource.attributes["service.name"] != "mastra-factory" and resource.attributes["service.name"] != "agentgateway"`,
+            `attributes["gen_ai.usage.input_tokens"] == nil and attributes["gen_ai.usage.output_tokens"] == nil`,
+          ]
+          // Span events may contain prompts or tool data; no such payload
+          // should be sent to the analytics mirror.
+          spanevent = [`true`]
+        }
+        output {
+          traces = [otelcol.processor.transform.factory_dp.input]
+        }
+      }
+
+      otelcol.processor.transform "factory_dp" {
+        error_mode = "ignore"
+        trace_statements {
+          context = "resource"
+          statements = [
+            `keep_keys(attributes, ["service.name"])`,
+          ]
+        }
+        trace_statements {
+          context = "span"
+          statements = [
+            `keep_keys(attributes, ["gen_ai.operation.name", "gen_ai.request.model", "gen_ai.response.model", "gen_ai.usage.input_tokens", "gen_ai.usage.output_tokens"])`,
+          ]
+        }
+        output {
+          traces = [otelcol.exporter.otlphttp.factory_dp.input]
+        }
+      }
+
+      // OTLP JSON mirror is DIAGNOSTIC ONLY; never use sampled traces as the
+      // source of exact Factory billing or task counts. API stores allowlisted
+      // GenAI attributes only and is authenticated on the private ClusterIP.
+      otelcol.auth.headers "factory_dp" {
+        header {
+          key   = "X-Factory-Ingest-Key"
+          value = sys.env("FACTORY_DP_INGEST_KEY")
+        }
+      }
+
+      otelcol.exporter.otlphttp "factory_dp" {
+        encoding = "json"
+        traces_endpoint = "http://factory-platform.factory-platform.svc.cluster.local:8080/v1/otlp/traces"
+        client {
+          endpoint = "http://factory-platform.factory-platform.svc.cluster.local:8080"
+          compression = "none"
+          auth     = otelcol.auth.headers.factory_dp.handler
+          timeout  = "5s"
+        }
+        sending_queue {
+          enabled = true
+          queue_size = 32
+          num_consumers = 1
+          batch {
+            min_size = 1
+            max_size = 200
+          }
+        }
+        retry_on_failure {
+          enabled = true
+          initial_interval = "1s"
+          max_interval = "15s"
+          max_elapsed_time = "60s"
+        }
+      }
+
+      otelcol.exporter.otlphttp "tempo" {
+        client {
+          endpoint = "http://tempo.monitoring.svc.cluster.local:4318"
+        }
+      }
+
+controller:
+  type: deployment
+  replicas: 1
+  hostNetwork: false
+  hostPID: false
+  volumes:
+    extra:
+      - name: alloy-storage
+        emptyDir: {}
+
+rbac:
+  create: false
+
+serviceAccount:
+  create: true
+  name: alloy
+  automountServiceAccountToken: true
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack
