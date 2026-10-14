@@ -8,11 +8,6 @@ alloy:
     extra:
       - name: alloy-storage
         mountPath: /tmp/alloy
-  # Optional during bootstrap: Tempo remains independent if ESO sync is late.
-  envFrom:
-    - secretRef:
-        name: alloy-factory-dp-otlp
-        optional: true
   extraPorts:
     - name: otlp-http
       port: 4318
@@ -124,83 +119,7 @@ alloy:
 
       otelcol.processor.batch "factory" {
         output {
-          traces = [
-            otelcol.exporter.otlphttp.tempo.input,
-            otelcol.processor.filter.factory_dp.input,
-          ]
-        }
-      }
-
-      // The DP receives only model-usage spans from trusted Factory sources;
-      // the complete trace stream still goes directly to Tempo.
-      otelcol.processor.filter "factory_dp" {
-        error_mode = "ignore"
-        traces {
-          span = [
-            `resource.attributes["service.name"] != "mastra-factory" and resource.attributes["service.name"] != "agentgateway"`,
-            `attributes["gen_ai.usage.input_tokens"] == nil and attributes["gen_ai.usage.output_tokens"] == nil`,
-          ]
-          // Span events may contain prompts or tool data; no such payload
-          // should be sent to the analytics mirror.
-          spanevent = [`true`]
-        }
-        output {
-          traces = [otelcol.processor.transform.factory_dp.input]
-        }
-      }
-
-      otelcol.processor.transform "factory_dp" {
-        error_mode = "ignore"
-        trace_statements {
-          context = "resource"
-          statements = [
-            `keep_keys(attributes, ["service.name"])`,
-          ]
-        }
-        trace_statements {
-          context = "span"
-          statements = [
-            `keep_keys(attributes, ["gen_ai.operation.name", "gen_ai.request.model", "gen_ai.response.model", "gen_ai.usage.input_tokens", "gen_ai.usage.output_tokens"])`,
-          ]
-        }
-        output {
-          traces = [otelcol.exporter.otlphttp.factory_dp.input]
-        }
-      }
-
-      // OTLP JSON mirror is DIAGNOSTIC ONLY; never use sampled traces as the
-      // source of exact Factory billing or task counts. API stores allowlisted
-      // GenAI attributes only and is authenticated on the private ClusterIP.
-      otelcol.auth.headers "factory_dp" {
-        header {
-          key   = "X-Factory-Ingest-Key"
-          value = sys.env("FACTORY_DP_INGEST_KEY")
-        }
-      }
-
-      otelcol.exporter.otlphttp "factory_dp" {
-        encoding = "json"
-        traces_endpoint = "http://factory-platform.factory-platform.svc.cluster.local:8080/v1/otlp/traces"
-        client {
-          endpoint = "http://factory-platform.factory-platform.svc.cluster.local:8080"
-          compression = "none"
-          auth     = otelcol.auth.headers.factory_dp.handler
-          timeout  = "5s"
-        }
-        sending_queue {
-          enabled = true
-          queue_size = 32
-          num_consumers = 1
-          batch {
-            min_size = 1
-            max_size = 200
-          }
-        }
-        retry_on_failure {
-          enabled = true
-          initial_interval = "1s"
-          max_interval = "15s"
-          max_elapsed_time = "60s"
+          traces = [otelcol.exporter.otlphttp.tempo.input]
         }
       }
 
