@@ -12,4 +12,5 @@ resources:
   - deployment.yaml
   - service.yaml
   - httproute.yaml
+  - httproute-webhook-external.yaml
   - networkpolicy.yaml
