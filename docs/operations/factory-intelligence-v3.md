@@ -3,17 +3,21 @@
 **Coordinated change:** this kube-ops PR depends on
 `SmadjaPaul/factory-platform:feat/dp-mastra-otel-cube-v3-20261014`.
 
+## Activation state — intentionally inactive
+
+**Safe merge:** The active `cube-schema.yaml`, Alloy `values.yaml` and Alloy `kustomization.yaml` are byte-for-byte unchanged from main. V3 definitions live in `cube-schema-v3-candidate.yaml` and `values-otlp-v3-candidate.yaml`, neither referenced by the active Kustomizations. The ESO resource for the mirror is also unreferenced. No new telemetry stream or Cube schema is activated by merging this PR. A separate deployment PR must pin new API/dbt images, validate the candidates and switch them atomically with a tested rollback.
+
 ## Scope
 
 - Internal-only Cube views for FactoryOverview, FactoryDelivery,
   FactoryTestQuality and sampled FactoryModelUsage. `factory_analytics`
   JWT role is required by the existing Cube `queryRewrite`.
-- Alloy OTLP traces still reach Tempo. A second, private OTLP/HTTP JSON
+- **Inactive candidate** Alloy OTLP traces still reach Tempo. A future second, private OTLP/HTTP JSON
   destination filters to Mastra/Agentgateway GenAI usage spans, removes
   unapproved attributes, and sends only diagnostics to Factory's authenticated
   `/v1/otlp/traces`. Logs stay in Loki, and native Prometheus metrics
   remain scraped as before.
-- The receiver token is delivered to Alloy via ESO from the existing
+- When activated, the receiver token will be delivered to Alloy via ESO from the existing
   `APP_FACTORY_PLATFORM_INGEST_API_KEY` Doppler secret, not stored in Git.
 - Remove Paperclip from the Factory GitHub collector repository list.
 - Set `FACTORY_OTLP_TENANT_ID=smadja-internal` on the DP API; never read tenant
