@@ -12,8 +12,6 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: mastra-factory}
-      annotations:
-        smadja.dev/temporary-bootstrap-activation: b249019b68adcb13b39e5336b86969ba8f4f9137
     spec:
       serviceAccountName: mastra-factory
       automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
