@@ -4,6 +4,11 @@ const sidebars: SidebarsConfig = {
   DocumentationSidebar: [
     'intro',
     {
+      type: 'doc',
+      id: 'organization/operating-model',
+      label: 'Organization & Operating Model',
+    },
+    {
       type: 'category',
       label: 'Getting Started',
       link: { type: 'doc', id: 'getting-started' },
