@@ -30,6 +30,25 @@ Unknown and unobserved values are **N/A**, never zero. Never compare repositorie
 
 Existing [factory-platform/dbt](https://github.com/SmadjaPaul/factory-platform/tree/main/dbt) fact and mart models are the starting point; preserve historical data and data contracts, then add gaps under a separate Data Platform change.
 
+## Deterministic code-health indicators
+
+In addition to delivery and agent-outcome measures, follow the [Codacy eight-metric taxonomy](https://blog.codacy.com/code-quality-metrics) as an **analysis vocabulary**, not as a requirement to purchase another platform:
+
+| Signal | Minimal reproducible measurement | Guardrail |
+| --- | --- | --- |
+| Cyclomatic complexity | Function decision paths on the changed code; inspect hotspot trends | Avoid automatic refactors solely to reduce a scalar |
+| Code churn | Changes and reverts per file in rolling 30/90-day windows | Distinguish generated code, migrations and intentional iteration |
+| Test coverage | Branch + line coverage of **changed executable code** when measurable | No blanket 80% pass condition; independently verify behavioral cases and negative paths |
+| Security | New actionable SAST/secrets/dependency findings per diff + policy gate results | Never treat an unrun scan as clean; identify source/rule/severity |
+| Documentation | Broken links, stale owner/path/command refs, runbook verification age | Do not optimize comment ratio or claim that a date proves accuracy |
+| Duplication | Repeated non-generated logic in changed hotspots | Deduplicate only when responsibilities and tests justify reuse |
+| Defects / code smells | Independently confirmed defects and their 30/90-day escape rate | Track confirmed vs rejected findings; not every style warning is a bug |
+| AI-generated change compliance | Agent-authored changes with independent tests, review and security gates | Compare against human contribution baselines by task/risk class, not individual rankings |
+
+Prioritize `churn × complexity × independent defect evidence` for the Quality Curator; keep a denominator and source SHA for every score. Treat missing coverage/instrumentation as `N/A`, never `0%` or `PASS`. Evaluate Quality Curator itself using confirmed-finding precision, false-positive rate, human review minutes, model/build cost, and persistent improvement after 30 days.
+
+This extends the existing Meta Loop evidence contract without inventing a second data store or using the article's promotional `80%` coverage/comment thresholds as automatic engineering gates.
+
 ## Evidence and workflow
 
 1. **On each PR:** typecheck, build, tests, static analyzer findings scoped to the diff, and security gates. Broken CI that did not execute is UNAVAILABLE, not PASS.
