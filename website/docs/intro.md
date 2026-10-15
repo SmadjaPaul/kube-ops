@@ -1,81 +1,50 @@
 ---
-title: Homelab Kubernetes Configuration Guide
-description: Discover the philosophy behind this elaborate GitOps homelab, built for resilience, automation, and continuous learning with Kubernetes.
+title: Homelab architecture and operating guide
+description: Current GitOps boundaries, operational entry points, and evidence needed before changing the homelab.
 ---
 
-# Overview
+# Homelab architecture and operating guide
 
-This guide explains my homelab Kubernetes setup, designed to help IT admins understand, run, and maintain the system.
+> **Documentation status — reviewed against Git on 2026-10-15.** Git describes desired state, not guaranteed live health. Verify Argo CD and runtime state before operating on resources. Older migration/runbook pages may describe historical configurations.
 
-## Searching the docs
+## Canonical repositories
 
-Local search runs entirely in the browser thanks to the `@easyops-cn/docusaurus-search-local` plugin. Use the search bar at the top of any page to quickly find topics, and your search terms will be highlighted on the destination page.
+| Repository | Owns | Does not own |
+| --- | --- | --- |
+| [kube-ops](https://github.com/SmadjaPaul/kube-ops) | Argo CD, Kubernetes manifests, application networking, in-cluster secrets delivery, backup configuration | Proxmox/Talos provisioning and external cloud resources |
+| [homelab-infra](https://github.com/SmadjaPaul/homelab-infra) | Proxmox, Talos bootstrap, Cloudflare/UniFi and external providers, OpenTofu state | Kubernetes application desired state |
+| [factory-platform](https://github.com/SmadjaPaul/factory-platform) | Mastra Factory, CI/CD code, harnesses and Data Platform dbt models | Live GitOps image digests |
+| [website](https://github.com/SmadjaPaul/website) | Public sites and Sanity Studio | Kubernetes infrastructure and homelab documentation |
 
-# Core Design Principles
+**Delivery model:** Git → Argo CD → Kubernetes. CI publishes images; deployments are pinned to an immutable digest in kube-ops. A built image is not a deployed image.
 
-1. **GitOps as Source of Truth**
+## Current platform components
 
-   - All cluster states live in this Git repo
-   - ArgoCD syncs cluster state with Git definitions
-   - Changes require Git commits for audit tracking
+- **Compute:** Proxmox VE hosts the Talos Kubernetes VM; Talos bootstrap belongs to homelab-infra.
+- **Networking:** Cilium and Kubernetes Gateway API provide internal and externally routed traffic; external exposure is route-specific, not automatic.
+- **Reconciliation:** Argo CD + Kustomize manage Kubernetes desired state.
+- **Identity and secrets:** Authentik supports app SSO where configured; External Secrets handles in-cluster delivery. Mastra Factory has its own application authentication contract.
+- **State and recovery:** Longhorn for application volumes, CloudNativePG for PostgreSQL, and Velero/Kopia plus database backups for disaster recovery.
 
-2. **Declarative Configuration**
+See [architecture](./architecture), [local-first networking](./local-first-network), [infrastructure overview](./infrastructure/overview), and [disaster recovery](./disaster/disaster-recovery).
 
-   - Uses Kubernetes YAML, Kustomize, and OpenTofu
-   - Tools manage state based on defined specs
+## Software Factory
 
-3. **Automated Operations**
+Mastra Factory manifests live under [`k8s/applications/platform/mastra-factory`](https://github.com/SmadjaPaul/kube-ops/tree/main/k8s/applications/platform/mastra-factory).
+Its full web UI is routed through the **internal Gateway**. Only the signed GitHub webhook has an external HTTPRoute; do not expose the UI merely to enable remote development.
 
-   - ArgoCD ApplicationSets handle deployments
-   - Cert-Manager runs certificate lifecycle
-   - CI/CD pipelines automate testing and deployment
+Cloud Build/GHCR work is tracked in [factory-platform PR #54](https://github.com/SmadjaPaul/factory-platform/pull/54) and [homelab-infra PR #127](https://github.com/SmadjaPaul/homelab-infra/pull/127). PRs are *proposals*, not automatically deployed capability.
 
-4. **Security First**
+Paperclip is being decommissioned via [kube-ops PR #494](https://github.com/SmadjaPaul/kube-ops/pull/494). Historical Paperclip instructions must not be treated as current operating guidance.
 
-   - Non-root container execution
-   - Network policies control traffic
-   - External secrets management
-   - Regular security scans
+## Where to start
 
-5. **Clean Organization**
-   - Kustomize manages configurations
-   - ArgoCD projects group related apps
-   - ApplicationSets simplify scaling
+- **Provisioning:** [homelab-infra](https://github.com/SmadjaPaul/homelab-infra) and its documented bootstrap procedures; avoid copying old Terraform commands from historical migration pages.
+- **Daily Kubernetes operations:** [Kubernetes management](./k8s/manage-kubernetes), then validate the exact live Argo Application and resource before making changes.
+- **Application changes:** [Application management](./k8s/applications/application-management).
+- **Contribution and evidence:** [Contributing guide](./contributing/overview) and [quality reviews](./contributing/code-quality-and-agent-reviews).
+- **Incident recovery:** [Disaster recovery](./disaster/disaster-recovery) and tested restore procedures.
 
-# Documentation Map
+## Documentation hygiene
 
-## Cluster Setup
-
-- [Provision Talos Kubernetes](/docs/tofu/provisioning-task-guide.md)
-  - OpenTofu-based Talos deployment on Proxmox
-  - Infrastructure setup steps
-
--## Kubernetes Management
-
-<!-- vale Google.Units = NO -->
-- [GitOps Configuration](/docs/k8s/manage-kubernetes.md)
-  - ArgoCD setup and usage
-  - Manifest structure
-  - Service management
-
-## Application Guides
-
-- [Deploy Apps](k8s/applications/application-management.md)
-  - User application deployment
-  - App lifecycle management
-
-## Infrastructure
-
-- [Core Services](k8s/infrastructure/infrastructure-management.md)
-  - Network setup
-  - Storage configuration
-  - Auth systems
-  - Monitoring stack
-
-## CI/CD
-
-- [Pipeline Configuration](github/github-configuration.md)
-  - CI/CD workflow setup
-  - Renovate and Dependabot settings
-  - Repo maintenance
-<!-- vale Google.Units = YES -->
+Docusaurus **publishes** documentation stored in Git; it is not a separate authority. Each substantial update should cite its canonical code/config source, distinguish **current / proposed / historical**, and be validated by a Docusaurus build plus targeted source checks. Broken links or stale runbooks are findings, not grounds for silent deletion of production manifests.
