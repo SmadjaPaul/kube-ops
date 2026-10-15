@@ -49,4 +49,4 @@ This design marries an immutable Talos OS, Kubernetes, and GitOps to create a re
 ```shell
 kubectl get nodes -o wide       # Talos nodes present?
 argocd app list                 # All apps Synced/Healthy?
-````
+```
