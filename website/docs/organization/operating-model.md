@@ -36,7 +36,7 @@ An incident may require immediate safe mitigation rather than business-scored pr
 
 ## Canonical pointers
 
-- **[Shared operations V3 charter and OKR method — draft PR #57](https://github.com/SmadjaPaul/factory-platform/pull/57)** — reviewed Git proposal; once merged, `factory-platform/docs/operating-model` will be the versioned source for this policy.
+- **[Shared operations V3 charter and OKR method — versioned source](https://github.com/SmadjaPaul/factory-platform/tree/main/docs/operating-model)** — merged from [factory-platform PR #57](https://github.com/SmadjaPaul/factory-platform/pull/57). The organizational definitions are versioned in Git; quarterly KR targets, metric baselines and runtime evidence remain unapproved/unverified until their own checks.
 - **[Linear Operating Handbook V3](https://linear.app/boule/document/start-here-operating-handbook-v3-ai-native-shared-operations-75316205ed7c)** — may require access to the connected Linear workspace.
 - **[Linear Curator (proposal-only) contract](https://github.com/SmadjaPaul/factory-platform/blob/main/mastra-factory/docs/linear-backlog-curator.md)** — existing source contract; V3 changes are in a separately reviewed PR.
 - **[kube-ops](https://github.com/SmadjaPaul/kube-ops)** — declarative state at the Kubernetes API, not Proxmox/Talos bootstrap.
