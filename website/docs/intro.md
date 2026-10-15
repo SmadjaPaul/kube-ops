@@ -37,6 +37,12 @@ Cloud Build/GHCR work is tracked in [factory-platform PR #54](https://github.com
 
 Paperclip is being decommissioned via [kube-ops PR #494](https://github.com/SmadjaPaul/kube-ops/pull/494). Historical Paperclip instructions must not be treated as current operating guidance.
 
+## Organization and operating model
+
+The internal AI-native Shared Operations department now uses five durable outcomes (O1–O5), nine operational capabilities (C1–C9) and seven IT4IT value streams (VS1–VS7) to discover and route work across repositories and services. See [Operating Model V3](./organization/operating-model) for responsibilities, service and task decision boundaries, the draft versioned strategy and how agents should treat runtime versus static evidence.
+
+This is **governance and navigation**, not proof of production agent execution or an invitation to publish private operational information. The Git strategy and metrics remain pending human approval.
+
 ## Where to start
 
 - **Provisioning:** [homelab-infra](https://github.com/SmadjaPaul/homelab-infra) and its documented bootstrap procedures; avoid copying old Terraform commands from historical migration pages.
