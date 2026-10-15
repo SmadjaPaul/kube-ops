@@ -5,6 +5,12 @@ const sidebars: SidebarsConfig = {
     'intro',
     {
       type: 'category',
+      label: 'Organization & Operating Model',
+      link: { type: 'doc', id: 'organization/operating-model' },
+      items: ['organization/operating-model'],
+    },
+    {
+      type: 'category',
       label: 'Getting Started',
       link: { type: 'doc', id: 'getting-started' },
       items: [
