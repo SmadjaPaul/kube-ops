@@ -22,7 +22,6 @@ resources:
   - daily-pinepods.yaml
   - daily-mqtt.yaml
   - daily-zigbee2mqtt.yaml
-  - daily-paperclip.yaml
   - daily-listmonk.yaml
   - daily-twenty.yaml
   - daily-gpt-researcher.yaml

@@ -119,7 +119,6 @@ roots=(
   k8s/infrastructure/auth
   k8s/infrastructure/security
   k8s/applications/ai
-  k8s/applications/ai-paperclip-h3
   k8s/applications/media
   k8s/applications/automation
   k8s/applications/web
