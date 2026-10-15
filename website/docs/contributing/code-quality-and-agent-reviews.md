@@ -11,7 +11,7 @@ description: Measurable, reviewable continuous improvement for human and agent c
 
 Improve accepted, maintainable changes without rewarding lines written, PR count, or an agent's self-declared success. GitHub owns code/reviews, Mastra owns agent execution, the Data Platform owns analytical events and models, Linear owns actionable backlog, and Argo CD owns Kubernetes reconciliation.
 
-Use the **existing** Mastra Meta Loop: `candidate → independent evaluation → human review → promotion`. Do not create a second orchestrator, collector database or shadow scorecard. Candidate changes to harnesses/skills/policies must be tested on a pinned dataset and approved; the author is not their sole reviewer.
+The [Factory Meta Loop contract](https://github.com/SmadjaPaul/factory-platform/blob/main/mastra-factory/docs/harness-meta-loop.md) is currently **offline/preflight and not production enabled**. Adopt its existing design: `candidate → independent evaluation → human review → promotion`. Do not create a second orchestrator, collector database or shadow scorecard. Follow the [delivery policy](https://github.com/SmadjaPaul/factory-platform/blob/main/mastra-factory/docs/delivery-harness.md) for risk levels and trusted host verification. Candidate changes to harnesses/skills/policies must be tested on a pinned dataset and approved; the author is not their sole reviewer.
 
 ## Baseline (first 30 days, per repository)
 
