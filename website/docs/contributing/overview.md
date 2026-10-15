@@ -4,9 +4,9 @@ title: Contributing Guide
 
 Welcome. This guide contains everything you need to know to contribute to the homelab project, from setting up your local environment to my standards for pull requests.
 
-I'm currently the only person maintaining this repository, and I'd be happy to have help. Whether it's fixing a typo, updating a Helm chart, or adding a new application, your contributions are welcome. To keep things organized, I've adopted some standard open-source practices like conventional commits.
+This repository accepts human and agent-authored contributions through the same Git-reviewable change process. Whether it's fixing a typo, updating a Helm chart, or adding a new application, your contributions are welcome. To keep things organized, I've adopted some standard open-source practices like conventional commits.
 
-For community expectations, please read my [Code of Conduct](https://github.com/theepicsaxguy/homelab/blob/main/.github/CODE_OF_CONDUCT.md). If you just need a quick reference on the workflow, see the [short contributing guide](https://github.com/theepicsaxguy/homelab/blob/main/.github/CONTRIBUTING.md).
+For community expectations, please read my [Code of Conduct](https://github.com/SmadjaPaul/kube-ops/blob/main/.github/CODE_OF_CONDUCT.md). If you just need a quick reference on the workflow, see the [short contributing guide](https://github.com/SmadjaPaul/kube-ops/blob/main/.github/CONTRIBUTING.md).
 
 ## Local Development Setup
 
@@ -14,7 +14,7 @@ To ensure your changes are valid, you'll need a few tools.
 
 <!-- vale Project.NoVersionNumbers = NO -->
 
-- **OpenTofu:** For validating any changes in the `/tofu` directory.
+- **OpenTofu:** For external infrastructure changes, use the appropriate stack under [homelab-infra/terraform](https://github.com/SmadjaPaul/homelab-infra/tree/main/terraform), not this Kubernetes GitOps repository.
 - **Kustomize:** For building and validating Kubernetes manifests.
 - **Node.js/npm:** For type checking and running the documentation website. **Requires Node.js >=20.18.1 and npm >=10.0.0**.
 - **pre-commit:** For running validation hooks automatically. **Optional but recommended**.
@@ -90,8 +90,8 @@ Before opening a pull request, please run these checks on any files you've modif
 
 - **OpenTofu Files:**
   ```shell
-  cd tofu
-  tofu fmt
+  # In the intended homelab-infra/terraform/<stack> directory, with a configured backend:
+  tofu fmt -check
   tofu validate
   ```
 
@@ -105,7 +105,7 @@ Before opening a pull request, please run these checks on any files you've modif
 
 ## The Pull Request Process
 
-1. **Open an Issue (For Big Changes):** If you're planning to add a new application or make a significant architectural change, please [open an issue](https://github.com/theepicsaxguy/homelab/issues/new?template=feature_request.md) first. For small changes like version bumps or typo fixes, you can go straight to a PR.
+1. **Open an Issue (For Big Changes):** If you're planning to add a new application or make a significant architectural change, please [open an issue](https://github.com/SmadjaPaul/kube-ops/issues/new) first. For small changes like version bumps or typo fixes, you can go straight to a PR.
 2. **Create a Branch:** Start your work from an up-to-date `main` branch in your fork.
 3. **Commit Your Changes:** I use **Conventional Commits** to automate releases and generate changelogs. Please follow this format strictly. Your PR title must also follow this format.
    - **Format:** `type(scope): description`
@@ -114,11 +114,11 @@ Before opening a pull request, please run these checks on any files you've modif
        - `fix(network): correct cilium network policy`
        - `docs(contributing): clarify PR process`
        - `chore(deps): update helm chart for argocd`
-   - For full details, see the [commit convention guide](https://github.com/theepicsaxguy/homelab/blob/main/.github/commit-convention.md).
+   - For full details, see the [commit convention guide](https://github.com/SmadjaPaul/kube-ops/blob/main/.github/commit-convention.md).
 4. **Open the Pull Request:** Push your branch and open a PR against the `main` branch. In the description, briefly explain the "what" and "why" of your change. If it resolves an issue, include `Fixes #123`.
 
 ## What Makes a Good Contribution?
 
 - **Small, Focused PRs:** It's much easier to review a PR that updates one Helm chart than a PR that updates ten.
-- **Follow the Pattern:** When adding a new application, look at an existing one (like `it-tools` or `jellyfin`) and copy its structure.
+- **Follow the Pattern:** When adding a new application, look at an existing one (like `jellyfin`) and copy its structure.
 - **Update Documentation:** If your change affects how something works, please update the relevant documentation in `/website/docs`.
