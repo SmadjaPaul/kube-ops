@@ -4,10 +4,9 @@ const sidebars: SidebarsConfig = {
   DocumentationSidebar: [
     'intro',
     {
-      type: 'category',
+      type: 'doc',
+      id: 'organization/operating-model',
       label: 'Organization & Operating Model',
-      link: { type: 'doc', id: 'organization/operating-model' },
-      items: ['organization/operating-model'],
     },
     {
       type: 'category',
