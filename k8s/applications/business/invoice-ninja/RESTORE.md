@@ -36,25 +36,25 @@ jq -e '
 ' <<<"$PVB_JSON"
 # Stop if the details show `Pod Volume Backups: <none included>`, if a PVB is
 # not Completed, or if any protected pod volume is absent from the backup.
+# Before including cluster-scoped PV metadata, review the full Backup Resource
+# List. Abort if unexpected cluster-scoped resources or additional PVs exist;
+# only the four confirmed Invoice Ninja FSB metadata PVs may be admitted.
+
 
 kubectl create namespace "$DRILL_NS"
 velero restore create "$RESTORE_NAME" \
   --from-backup "$BACKUP_NAME" \
   --namespace-mappings "invoice-ninja:$DRILL_NS" \
-  --include-cluster-resources=false \
+  --include-cluster-resources=true \
   --restore-volumes=true \
   --resource-modifier-configmap restore-pvc-isolation \
-  --exclude-resources "persistentvolumes,secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
+  --exclude-resources "customresourcedefinitions.apiextensions.k8s.io,namespaces,secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
   --wait
 
 # The modifier removes the source PVCs' stale volumeName before restore. The
 # namespace in the modifier is the source namespace, not $DRILL_NS. This is
 # required because volumeName is immutable on a PVC and otherwise points at a
-# production PV. PersistentVolumes are excluded and the modifier preserves
-# the source StorageClass: new PVCs must be dynamically provisioned on the
-# SAME Longhorn fast/bulk tier. Never map the restore to legacy proxmox-csi.
-# `--restore-volumes=true` is required: with FSB/Kopia it
-# enables the PVR path that restores the bytes into those fresh PVCs.
+# production PV. PersistentVolumes are included as File System Backup metadata; Velero dynamically provisions fresh target PVs from the isolated PVCs. CRDs and namespaces remain excluded. `--restore-volumes=true` enables PodVolumeRestore creation and data recovery. Do not run without verifying the four PVs and their owners.
 
 # `Completed` only means that Kubernetes objects were restored.  It is not
 # proof that Velero's filesystem data movers restored the PVC contents.  Stop
