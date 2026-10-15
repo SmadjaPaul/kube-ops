@@ -31,6 +31,7 @@ check:
     bash tests/harness/mastra-factory-readiness-test.sh
     bash tests/harness/invoice-backup-test.sh
     bash tests/harness/runtime-inventory-test.sh
+    bash tests/harness/longhorn-tier-restore-runbook-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:
@@ -39,6 +40,7 @@ check-affected:
     bash tests/harness/runtime-smoke-test.sh
     bash tests/harness/invoice-restore-isolation-test.sh
     bash tests/harness/velero-storage-tier-test.sh
+    bash tests/harness/longhorn-tier-restore-runbook-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
     npm run check:agent-harness
     bash scripts/affected-tests.sh
