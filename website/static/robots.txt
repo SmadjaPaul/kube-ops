@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://homelab.orkestack.com/sitemap.xml
