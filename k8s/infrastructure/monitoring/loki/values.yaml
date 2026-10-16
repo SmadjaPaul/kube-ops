@@ -35,6 +35,8 @@ singleBinary:
   replicas: 1
   persistence:
     enabled: true
+    # Keep the live PVC's existing class unchanged. A fast-tier cutover must
+    # be performed by a separately approved StatefulSet/PVC migration.
     storageClass: longhorn-bulk
     size: 20Gi
     whenDeleted: Retain
