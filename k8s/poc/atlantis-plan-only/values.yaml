@@ -41,6 +41,14 @@ environment:
 
 repoConfig: |
   repos:
+    # Atlantis always has a default repo entry. Keep an explicit server-side
+    # deny rule first so a future broad match cannot accidentally inherit an
+    # executable workflow. The exact repository rule below wins last.
+    - id: /.*/
+      branch: /.*/
+      workflow: atlantis-deny
+      allowed_overrides: []
+      allow_custom_workflows: false
     - id: github.com/SmadjaPaul/homelab-infra
       branch: /^main$/
       repo_config_file: .atlantis/plan-only.yaml
@@ -53,6 +61,27 @@ repoConfig: |
       allowed_overrides: []
       allow_custom_workflows: false
   workflows:
+    atlantis-deny:
+      plan:
+        steps:
+          - run: |
+              echo "Atlantis server-side repository allowlist denied this repository" >&2
+              exit 1
+      apply:
+        steps:
+          - run: |
+              echo "Atlantis server-side repository allowlist denied this repository" >&2
+              exit 1
+      import:
+        steps:
+          - run: |
+              echo "Atlantis server-side repository allowlist denied this repository" >&2
+              exit 1
+      state_rm:
+        steps:
+          - run: |
+              echo "Atlantis server-side repository allowlist denied this repository" >&2
+              exit 1
     atlantis-plan-only:
       plan:
         steps:
