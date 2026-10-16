@@ -63,3 +63,36 @@ Implementation and onboarding runbook:
 Official references: https://factory.mastra.ai/configure/auth ,
 https://factory.mastra.ai/configure/models ,
 https://factory.mastra.ai/configure/github .
+
+## Authentik OIDC — dormant until Doppler credentials exist
+
+Implementation: `factory-platform/mastra-factory/docs/authentik-oidc.md`.
+The OIDC provider and optional env hook are versioned, but **no credential
+was fabricated or activated during this PR**. Existing Better Auth sessions
+remain valid, and absent OIDC credentials leave the default login unchanged.
+
+Activation sequence:
+
+1. Create distinct `APP_MASTRA_FACTORY_AUTHENTIK_OIDC_CLIENT_ID`
+   (value `mastra-factory`) and `APP_MASTRA_FACTORY_AUTHENTIK_OIDC_CLIENT_SECRET`
+   in Doppler, keeping both stable across namespaces.
+2. Add `oidc-external-secret.dormant.yaml` to THIS kustomization's resources.
+   Wait for ExternalSecret `mastra-factory-authentik-oidc` to become Ready.
+3. Add `factory-oidc-external-secret.dormant.yaml` to
+   `k8s/infrastructure/auth/authentik/extra/kustomization.yml`, add the
+   matching `authentik-blueprint-factory-oidc` envFrom secret to the Authentik
+   worker/server values, and add `blueprints/apps-factory.yaml` to the active
+   ConfigMap generator. Verify Authentik blueprint successfully reconciles.
+4. Verify Authentik discovery at
+   `https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration`,
+   and strict callback
+   `https://factory.smadja.dev/auth/api/callback/authentik`.
+5. Promote a new Mastra Factory digest containing Generic OAuth before
+   interpreting `/auth/api/oidc/login` as a supported login flow.
+6. Prove allowed Authentik `admin` login, denied `dev` login, session
+   continuity and correct organization and Factory settings access. Keep
+   operator bootstrap fallback until recovery is validated.
+
+Do not add the dormant ExternalSecrets before their remoteRef Doppler keys
+exist: missing keys can degrade the Authentik rollout. Existing Factory
+workload references the OIDC Secret as optional for this reason.
