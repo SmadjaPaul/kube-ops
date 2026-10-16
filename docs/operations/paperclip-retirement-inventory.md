@@ -1,32 +1,49 @@
-# Paperclip retirement inventory
+# Paperclip retirement — staged Git cleanup
 
-Status: **cleanup contract only; live deletion deferred**.
+Status (2026-10-16): **repository-only cleanup**, NOT live Paperclip decommission.
 
-The retirement PR and this contract must not be treated as permission to prune
-live objects. Argo CD uses automated pruning, so live ownership must be
-inventoried before any generator, allow-list or policy reference is removed.
+The existing #494 draft is reconciled onto current `main` without deleting
+Kubernetes resources. Deletions only affect the obsolete Paperclip company
+package, out-of-tree execution proof-of-concept, Paperclip-specific local CLI
+preflights/tests and their harness references. Git history retains every file.
 
-## Independent cleanup contract
+## Runtime explicitly retained until the operator finishes the prune proof
 
-- CI no longer calls Paperclip-only harnesses and preflight scripts that are
-  not part of the retained repository contract.
-- The Paperclip retirement PR remains responsible for deleting its Git-owned
-  manifests in a separate review.
-- This document records the live checks required before narrowing Argo scope.
+- `apps-ai` still renders `k8s/applications/ai/paperclip/` including Instance,
+  CNPG Cluster, ScheduledBackup, ObjectStore, ExternalSecrets, namespace and
+  NetworkPolicy. The existing SQL/WAL/PVC resources are not pruned.
+- `apps-ai-paperclip-h3` remains present in the ApplicationSet and its
+  corresponding directory/Kustomization remains intact. Do not delete a
+  generated Application with `prune: true` without a live inventory.
+- `infra-controllers` still manages the Paperclip operator Application and
+  leader-election RBAC; this avoids orphaning a live Paperclip Instance while
+  its CR finalizers are unknown.
+- `velero-daily-paperclip` remains in the controller schedule root until its
+  backup retention and content ownership are qualified.
+- Docusaurus `website/` and `netlify.toml` remain untouched.
+- All other Argo applications, Factory, Agentgateway, CNPG and backups remain
+  unchanged by this PR.
 
-## References requiring live inventory
+## Before the separate runtime retirement
 
-| Surface | Git reference | Required evidence before removal |
-| --- | --- | --- |
-| ApplicationSet | `k8s/applications/ai-paperclip-h3` generator path | Argo Application plus desired objects, PVC/PV/CNPG/backup ownership |
-| Applications AppProject | `paperclip`, `paperclip-exec-h3` destinations | No active Application targets either namespace |
-| Infrastructure AppProject | `paperclip`, `paperclip-operator-system` destinations | No operator or custom-resource ownership remains |
-| Controllers AppProject | Paperclip OCI source and operator namespace | No live Application uses the source or destination |
-| VPA | Paperclip target in `vpa/recommendations.yaml` | VPA and target ownership confirmed |
-| RBAC | Retired Paperclip Role/Binding manifests | Live Role, RoleBinding, ClusterRole and ClusterRoleBinding inventory |
-| NetworkPolicy | Executor/blackbox Paperclip selectors | No active endpoint needs the cross-namespace rule |
-| Monitoring | Paperclip probes and alerts | Endpoint retirement and alert ownership confirmed |
+Follow `docs/operations/paperclip-prune-gates.md`. Collect and compare the
+live **Argo managedResources** inventory and old/new Helm/Kustomize manifests
+for apps-ai, apps-ai-paperclip-h3, infra-controllers, and the nested
+paperclip-operator Application. Explicitly classify namespace finalizers,
+Paperclip Instance finalizer, operator CRDs, CNPG PVC/PV, Velero backup,
+ExternalSecret, Cilium policy, DNS/HTTPRoute and any shared dependency.
 
-The follow-up retirement PR must state the expected prune set. It remains
-blocked if any PVC, PV, database, backup or operator-owned resource is
-ambiguous. No delete, prune or Argo mutation is performed by this contract.
+Remove the Paperclip Instance only while its operator still exists, wait
+until operator finalization completes, confirm intended volumes/backup retention,
+then decommission the operator in a later independently observed sync.
+Remove remaining AppProject/monitoring references only after no active
+Paperclip objects are owned. Use GitOps; avoid blind `kubectl delete`.
+
+## Regression contracts
+
+`npm run check:paperclip-retirement-stage` verifies this Git-only boundary;
+`npm run check:argocd-roots` guards ApplicationSet paths. Both intentionally
+block accidental destructive removal until the contracts and proof are revised
+with real runtime evidence.
+
+No live cluster diff, sync, data deletion or decommission is claimed.

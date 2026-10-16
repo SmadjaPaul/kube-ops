@@ -7,12 +7,12 @@
     "check:backup-contract": "bash scripts/backup-static-contract.sh",
     "check:gatekeeper-contract": "bash tests/harness/gatekeeper-audit-values-test.sh",
     "check:atlantis-dispatch": "bash scripts/check-atlantis-dispatch-contract.sh",
-    "check:paperclip-kubernetes-candidate": "bash tests/harness/paperclip-kubernetes-candidate-test.sh",
-    "check": "npm run check:v1-contract && npm run check:backup-contract && npm run check:gatekeeper-contract && npm run check:atlantis-dispatch && npm run check:agent-harness && npm run check:paperclip-kubernetes-candidate && npm run check:alerting-stage && npm run check:argocd-roots",
+    "check": "npm run check:v1-contract && npm run check:backup-contract && npm run check:gatekeeper-contract && npm run check:atlantis-dispatch && npm run check:agent-harness && npm run check:alerting-stage && npm run check:argocd-roots && npm run check:paperclip-retirement-stage",
     "check:cluster-contract": "npm run check:v1-contract",
     "check:agent-harness": "bash scripts/check-agent-harness-contract.sh",
     "check:alerting-stage": "node --test tests/harness/alertmanager-ntfy-staged-test.mjs",
-    "check:argocd-roots": "node --test tests/harness/argocd-generator-paths.test.mjs"
+    "check:argocd-roots": "node --test tests/harness/argocd-generator-paths.test.mjs",
+    "check:paperclip-retirement-stage": "node --test tests/harness/paperclip-retirement-stage.test.mjs"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.0.2",
