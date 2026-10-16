@@ -55,6 +55,13 @@ grafana:
       url: http://loki-gateway.monitoring.svc.cluster.local
       isDefault: false
       editable: false
+    - name: Tempo
+      uid: tempo
+      type: tempo
+      access: proxy
+      url: http://tempo.monitoring.svc.cluster.local:3200
+      isDefault: false
+      editable: false
 
   resources:
     requests:
@@ -99,6 +106,20 @@ prometheusOperator:
 prometheus:
   prometheusSpec:
     replicas: 1
+    # HOST EXPORTER PRECONDITION: Proxmox 10.0.20.51 must run the upstream
+    # node_exporter on a private LAN endpoint, firewall-restricted to the
+    # Talos monitoring traffic. No exporter is installed by this repo change.
+    # Never expose unauthenticated node_exporter through Cloudflare.
+    # Default collectors read kernel counters/hwmon; no SMART polling.
+    additionalScrapeConfigs:
+      - job_name: proxmox-host
+        scrape_interval: 30s
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["10.0.20.51:9100"]
+            labels:
+              origin: proxmox
+              host: tatouine
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname
@@ -117,15 +138,9 @@ prometheus:
     enabled: false
     minAvailable: 1
 
-# GATED: do not merge before APP_ALERTMANAGER_NTFY_PUBLISHER_TOKEN exists in
-# Doppler, ExternalSecret is Ready, and an isolated ntfy firing/resolved E2E
-# has passed. Only critical alerts route to ntfy; the 43 existing warnings
-# continue to the null receiver. No credentials are embedded in Git.
 alertmanager:
   alertmanagerSpec:
     replicas: 1
-    secrets:
-      - alertmanager-ntfy-publisher
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname
@@ -136,46 +151,6 @@ alertmanager:
     podDisruptionBudget:
       enabled: false
       minAvailable: 1
-  config:
-    global:
-      resolve_timeout: 5m
-    # Preserve KPS default inhibition so severity escalations don't duplicate.
-    inhibit_rules:
-      - source_matchers: ['severity = critical']
-        target_matchers: ['severity =~ warning|info']
-        equal: [namespace, alertname]
-      - source_matchers: ['severity = warning']
-        target_matchers: ['severity = info']
-        equal: [namespace, alertname]
-      - source_matchers: ['alertname = InfoInhibitor']
-        target_matchers: ['severity = info']
-        equal: [namespace]
-      - target_matchers: ['alertname = InfoInhibitor']
-    route:
-      group_by: [namespace]
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 12h
-      receiver: 'null'
-      routes:
-        - receiver: 'null'
-          matchers: ['alertname = Watchdog']
-        - receiver: ntfy-critical
-          matchers: ['severity = critical']
-          group_by: [namespace, alertname]
-    receivers:
-      - name: 'null'
-      - name: ntfy-critical
-        webhook_configs:
-          - url: http://ntfy.ntfy.svc.cluster.local/homeops-critical?template=alertmanager
-            send_resolved: true
-            max_alerts: 10
-            http_config:
-              authorization:
-                type: Bearer
-                credentials_file: /etc/alertmanager/secrets/alertmanager-ntfy-publisher/token
-    templates:
-      - /etc/alertmanager/config/*.tmpl
 
 prometheus-node-exporter:
   tolerations:
