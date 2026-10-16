@@ -9,18 +9,25 @@ Secret value was read.
 The following key names are absent from `infrastructure/prd` and are also
 reported by ESO as failed remote lookups:
 
-| Namespace | ExternalSecret | Missing Doppler key names |
-|---|---|---|
-| `gpt-researcher` | `app-gpt-researcher-litellm-api-key` | `APP_GPT_RESEARCHER_FACTORY_LITELLM_API_KEY` |
-| `gpt-researcher` | `gpt-researcher-secrets` | `APP_GPT_RESEARCHER_TAVILY_API_KEY`, `APP_GPT_RESEARCHER_LANGCHAIN_API_KEY` |
-| `invoice-ninja` | `invoice-ninja-mcp` | `APP_INVOICE_NINJA_API_TOKEN`, `APP_INVOICE_NINJA_MCP_OPENCLAW_TOKEN`, `APP_INVOICE_NINJA_MCP_PAPERCLIP_TOKEN` |
-| `litellm` | `litellm-provider-secrets` | `APP_OPENAI_BASE_URL_1`, `APP_OPENAI_API_KEY_1`, `APP_CLOUDFLARE_WORKERS_API_BASE`, `APP_CLOUDFLARE_WORKERS_API_KEY`, `APP_CEREBRAS_API_KEY`, `APP_OPENAI_BASE_URL_2`, `APP_OPENAI_API_KEY_2`, `APP_MISTRAL_API_KEY`, `APP_ANTHROPIC_API_KEY`, `APP_TAVILY_API_KEY`, `APP_MINIMAX_TOKEN_PLAN_API_KEY`, `APP_MINIMAX_TOKEN_PLAN_API_BASE` |
-| `media` | `jellyseerr-secrets` | `APP_JELLYSEERR_JELLYFIN_URL`, `APP_JELLYSEERR_JELLYFIN_API_KEY` |
-| `media` | `seerr-first-run` | `APP_JELLYSEERR_JELLYFIN_API_KEY`, `APP_SEERR_BOOTSTRAP_ADMIN_PASSWORD` |
-| `open-webui` | `app-openwebui-litellm-api-key` | `APP_OPENWEBUI_FACTORY_LITELLM_API_KEY` |
-| `open-webui` | `openwebui-ai-backend-keys` | `APP_OPENWEBUI_FACTORY_LITELLM_API_KEY`, `APP_OPENCLAW_TALOS_PERSONAL_GATEWAY_TOKEN` |
-| `renovate` | `renovate` | `APP_RENOVATE_GITHUB_TOKEN` |
-| `security-system` | `falco-slack-webhook` | `FALCO_SLACK_WEBHOOK_URL` |
+| Namespace | ExternalSecret | Missing Doppler key names | Owner role and approval path |
+|---|---|---|---|
+| `gpt-researcher` | `app-gpt-researcher-litellm-api-key` | `APP_GPT_RESEARCHER_FACTORY_LITELLM_API_KEY` | AI application owner; confirm intended Factory gateway consumer |
+| `gpt-researcher` | `gpt-researcher-secrets` | `APP_GPT_RESEARCHER_TAVILY_API_KEY`, `APP_GPT_RESEARCHER_LANGCHAIN_API_KEY` | AI application owner; confirm external-provider billing and scope |
+| `invoice-ninja` | `invoice-ninja-mcp` | `APP_INVOICE_NINJA_API_TOKEN`, `APP_INVOICE_NINJA_MCP_OPENCLAW_TOKEN`, `APP_INVOICE_NINJA_MCP_PAPERCLIP_TOKEN` | Business/MCP application owner; confirm each consumer separately |
+| `litellm` | `litellm-provider-secrets` | `APP_OPENAI_BASE_URL_1`, `APP_OPENAI_API_KEY_1`, `APP_CLOUDFLARE_WORKERS_API_BASE`, `APP_CLOUDFLARE_WORKERS_API_KEY`, `APP_CEREBRAS_API_KEY`, `APP_OPENAI_BASE_URL_2`, `APP_OPENAI_API_KEY_2`, `APP_MISTRAL_API_KEY`, `APP_ANTHROPIC_API_KEY`, `APP_TAVILY_API_KEY`, `APP_MINIMAX_TOKEN_PLAN_API_KEY`, `APP_MINIMAX_TOKEN_PLAN_API_BASE` | AI provider owner; confirm provider, budget and egress scope per key |
+| `media` | `jellyseerr-secrets` | `APP_JELLYSEERR_JELLYFIN_URL`, `APP_JELLYSEERR_JELLYFIN_API_KEY` | Media application owner; confirm Jellyfin endpoint and least-privilege account |
+| `media` | `seerr-first-run` | `APP_JELLYSEERR_JELLYFIN_API_KEY`, `APP_SEERR_BOOTSTRAP_ADMIN_PASSWORD` | Media application owner; bootstrap password requires one-time operator handling |
+| `open-webui` | `app-openwebui-litellm-api-key` | `APP_OPENWEBUI_FACTORY_LITELLM_API_KEY` | AI application owner; confirm Factory gateway audience |
+| `open-webui` | `openwebui-ai-backend-keys` | `APP_OPENWEBUI_FACTORY_LITELLM_API_KEY`, `APP_OPENCLAW_TALOS_PERSONAL_GATEWAY_TOKEN` | AI/platform owner; confirm OpenClaw consumer and token audience |
+| `renovate` | `renovate` | `APP_RENOVATE_GITHUB_TOKEN` | Platform maintenance owner; confirm repository scope and read-only permissions |
+| `security-system` | `falco-slack-webhook` | `FALCO_SLACK_WEBHOOK_URL` | Security/notification owner; confirm destination and incident policy |
+
+The `litellm` provider key names are intentionally retained in the row rather
+than copied into a second secret inventory. The owner column names a role, not a
+person and is an approval request, not evidence that a credential exists. D did
+not read, create, rotate or infer any value. The application owner must confirm
+the row and provide the value through the approved Doppler workflow; D only
+rechecks the ExternalSecret condition afterward.
 
 These are credential-provisioning gates, not Git manifest defects. No
 placeholder values must be added to Git.

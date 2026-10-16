@@ -1,0 +1,34 @@
+# Offline qualification fixture. This is not a Kubernetes resource.
+apiVersion: sre.smadja.dev/v1alpha1
+kind: AlertDeliveryQualification
+metadata:
+  name: alertmanager-ntfy-critical-v1
+spec:
+  status: not-executed
+  approval: required
+  receiver: ntfy
+  endpoint: http://ntfy.ntfy.svc.cluster.local/homeops-critical?template=alertmanager
+  credentialsFileRequired: true
+  lifecycle: [firing, resolved]
+  deduplication:
+    sameFingerprintMaxMessages: 1
+    groupingKey: [alertname, cluster, namespace, severity]
+  syntheticAlert:
+    labels:
+      alertname: DAlertDeliveryQualification
+      severity: critical
+      qualification: "true"
+    ttlSeconds: 120
+  assertions:
+    - id: firing-delivered
+      expected: one_authenticated_message
+    - id: resolved-delivered
+      expected: one_authenticated_message
+    - id: duplicate-fingerprint-grouped
+      expected: no_additional_message
+    - id: alertmanager-http-success
+      expected: status_2xx
+    - id: unauthenticated-publish-denied
+      expected: status_401_or_403
+    - id: no-public-route
+      expected: absent
