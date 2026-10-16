@@ -40,7 +40,8 @@ by a caller. Their states are not read, copied, migrated, or provisioned.
 3. A server-side plan receipt is created only after Atlantis reports success.
    It includes the exact PR/head SHA, root, workspace, backend state key and
    lineage, admission ID, policy revision, plan digest, creation time and
-   expiry. It contains no state contents or secret values.
+   expiry, plus passing change-policy and budget verdicts. It contains no state
+   contents or secret values.
 4. An apply request must reference that receipt. The dispatcher compares every
    binding and rejects stale SHA, root, workspace, backend lineage, policy
    revision, plan digest, expired receipt, unknown caller and duplicate request
@@ -72,8 +73,9 @@ API plan is not equivalent evidence.
 
 The native Atlantis approval requirements are not used as the final
 authorization model. Code admission is a prerequisite for planning and is not
-an apply approval. Technical policy/budget checks and the receipt/replay gate
-are separate controls. The current fixture remains
+an apply approval. Technical change-policy and budget verdicts must both be
+`pass` in the server-created receipt; the receipt/replay gate is a separate
+control. The current fixture remains
 `disableApply: true` until these controls and dedicated identities are
 qualified.
 
