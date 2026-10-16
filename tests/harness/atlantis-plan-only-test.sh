@@ -18,9 +18,21 @@ grep -q 'name: atlantis-github-app' "$rendered"
 grep -q 'key.pem' "$rendered"
 grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
+grep -q 'github.com/SmadjaPaul/homelab-infra' "$rendered"
+grep -q 'repo_config_file: .atlantis/plan-only.yaml' "$rendered"
+grep -q 'branch: /^main$/' "$rendered"
+grep -q 'plan_requirements: \[approved, mergeable, undiverged\]' "$rendered"
+grep -q 'apply_requirements: \[approved, mergeable, undiverged\]' "$rendered"
+grep -q 'allowed_overrides: \[\]' "$rendered"
+grep -q 'allow_custom_workflows: false' "$rendered"
 
 if grep -Eq '(:|@)latest(["[:space:]]|$)|:main(["[:space:]]|$)' "$rendered"; then
   echo "unversioned Atlantis image or chart artifact detected" >&2
+  exit 1
+fi
+
+if grep -Eiq 'value:[[:space:]]*infrastructure/prd|name:[[:space:]]*OCI_S3|allowForkPRs:[[:space:]]*true|allowDraftPRs:[[:space:]]*true|disableApply:[[:space:]]*false' "$rendered"; then
+  echo "operator secret surface or unsafe PR setting detected" >&2
   exit 1
 fi
 

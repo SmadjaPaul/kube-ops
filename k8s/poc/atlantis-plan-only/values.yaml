@@ -2,6 +2,12 @@ fullnameOverride: atlantis-pilot
 
 # Dormant until PLT-89 is approved and an operator supplies the exact App ID,
 # installation ID, webhook endpoint and dedicated pilot state identity.
+# The GitHub App must be installed only on SmadjaPaul/homelab-infra. Its
+# Atlantis-required permissions are an operator decision: statuses/checks,
+# contents, issues, pull requests and webhooks; administration, members and
+# actions remain read-only and are added only when the selected authorization
+# feature requires them. These permissions are not encoded as Kubernetes
+# secrets or inferred from the placeholders below.
 orgAllowlist: github.com/SmadjaPaul/homelab-infra
 atlantisUrl: https://atlantis-webhook.smadja.dev
 
@@ -73,7 +79,8 @@ repoConfig: |
                 echo "only terraform_data is permitted in the pilot" >&2
                 exit 1
               fi
-              if grep -REiq 'DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|cloudflare|unifi|migadu|kubernetes|helm|local-exec|remote-exec|external' "$DIR"/*.tf; then
+              forbidden_pattern='DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|cloudflare|unifi|migadu|kubernetes|helm|local-exec|remote-exec|external'
+              if grep -REiq "$forbidden_pattern" "$DIR"/*.tf; then
                 echo "an existing infrastructure authority or execution escape hatch is forbidden" >&2
                 exit 1
               fi
