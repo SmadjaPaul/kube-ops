@@ -55,6 +55,14 @@ cat >"$tmp/openclawinstances.json" <<'JSON'
 }
 JSON
 
+cat >"$tmp/interceptorroutes.json" <<'JSON'
+{
+  "items": [
+    {"spec": {"rules": [{"hosts": ["active-healthy.example.test"]}]}}
+  ]
+}
+JSON
+
 cat >"$tmp/bin/kubectl" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -76,6 +84,9 @@ case "$args" in
     ;;
   *'get openclawinstances.openclaw.rocks -A -o json'*)
     cat "$SMOKE_FIXTURE_DIR/openclawinstances.json"
+    ;;
+  *'get interceptorroutes -A -o json'*)
+    cat "$SMOKE_FIXTURE_DIR/interceptorroutes.json"
     ;;
   *'get httproutes.gateway.networking.k8s.io -A -o json'*)
     cat "$SMOKE_FIXTURE_DIR/routes.json"
@@ -109,7 +120,15 @@ cat >"$tmp/bin/curl" <<'SH'
 set -euo pipefail
 printf '%s\n' "$*" >>"$SMOKE_CURL_LOG"
 case "$*" in
-  *active-healthy.example.test*|*resumed.example.test*) printf '200\n' ;;
+  *active-healthy.example.test*)
+    if ! grep -q 'KEDA_WARMUP_MARKER' "$SMOKE_CURL_LOG"; then
+      printf '%s\n' 'KEDA_WARMUP_MARKER' >>"$SMOKE_CURL_LOG"
+      printf '000\n'
+    else
+      printf '200\n'
+    fi
+    ;;
+  *resumed.example.test*) printf '200\n' ;;
   *) printf '503\n' ;;
 esac
 SH
@@ -125,6 +144,7 @@ if output="$(
     SMOKE_CURL_LOG="$tmp/curl.log" \
     KUBE_ACCESS_BOOTSTRAP=never \
     KUBECONFIG="$tmp/kubeconfig" \
+    KEDA_WAKE_RETRY_DELAY_SECONDS=0 \
     ARTIFACT_DIR="$tmp/artifacts" \
     "$repo_root/scripts/runtime-smoke.sh"
 )"; then
@@ -146,6 +166,7 @@ report="$tmp/artifacts/results.jsonl"
 [[ "$(jq -s '[.[] | select(.route == "active-no-endpoint" and .result == "FAIL" and (.reasons | contains("no-ready-endpoint")))] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "absent-indeterminate" and .result == "FAIL")] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "resumed" and .result == "PASS")] | length' "$report")" == 1 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.route == "active-healthy" and .result == "PASS" and .kedaManaged == true and .httpAttempts == 2)] | length' "$report")" == 1 ]] || exit 1
 if grep -q 'suspended-by-' "$tmp/curl.log"; then
   printf 'suspended routes must not be probed\n' >&2
   exit 1
