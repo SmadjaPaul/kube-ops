@@ -123,3 +123,10 @@ spec:
         - matchLabels: { k8s:io.kubernetes.pod.namespace: gateway }
       toPorts:
         - ports: [{ protocol: TCP, port: "8080" }]
+    # Scoped Alertmanager publisher: no anonymous or general monitoring access.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: alertmanager
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
