@@ -26,7 +26,7 @@ canonical operator-access path in `homelab-infra`, and the off-cluster backup
 services.
 
 Stop before creating anything if the selected CNPG backup is not successful,
-WAL continuity is unknown, the selected Velero backup is `Completed`,
+WAL continuity is unknown, the selected Velero backup is not `Completed`,
 PodVolumeBackups are incomplete, or a target namespace/PVC name overlaps a
 production resource. Do not use `PartiallyFailed`, `Failed` or `InProgress`
 backups as sources.
