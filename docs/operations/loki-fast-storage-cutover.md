@@ -1,9 +1,11 @@
 # Loki: disposable move from HDD bulk to NVMe fast
 
-Status: **staged; not applied**. The operator explicitly accepts loss of **Loki log history only**.
-This runbook and the accompanying change in `k8s/infrastructure/monitoring/loki/values.yaml`
-must **not** be merged into an automatically reconciling Argo CD application
-before a coordinated StatefulSet/PVC cutover is ready.
+Status: **plan only; not applied**. The operator explicitly accepts loss of
+**Loki log history only**. This PR intentionally leaves the live desired state
+on `longhorn-bulk`; a separately approved migration PR may select
+`longhorn-fast` only after the preflight and rollback gates below are complete.
+Do not merge a StorageClass change into an automatically reconciling Argo CD
+application before a coordinated StatefulSet/PVC cutover is ready.
 
 ## Why
 
@@ -45,7 +47,9 @@ virtual disk. These numbers measure different layers and must not be added.
    Confirm the associated PV/Longhorn volume is detached and preserved
    until the new Loki instance passes acceptance. Never target a PVC by
    wildcard or delete all PVCs in a namespace.
-4. Apply the GitOps desired state with `storageClass: longhorn-fast`.
+4. Apply a separately reviewed GitOps desired-state change with
+   `storageClass: longhorn-fast`. That change must be the only workload
+   mutation in its PR and must not be merged before the maintenance window.
    Let the chart/StatefulSet create a brand-new PVC. Verify its bound PV is
    actually scheduled to the Longhorn `fast` disk tag, not merely named fast.
 5. Resume the approved Argo reconciliation. Prove Loki and gateway Ready,
