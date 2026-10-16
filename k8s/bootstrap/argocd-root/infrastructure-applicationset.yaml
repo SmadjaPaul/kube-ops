@@ -22,6 +22,7 @@ spec:
           - path: k8s/infrastructure/auth
           - path: k8s/infrastructure/database
           - path: k8s/infrastructure/security
+          - path: k8s/poc/atlantis-plan-only
   template:
     metadata:
       name: 'infra-{{ path.basename }}'
