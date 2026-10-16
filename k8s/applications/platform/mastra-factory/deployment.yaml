@@ -13,7 +13,7 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: mastra-factory}
       annotations:
-        secret.reloader.stakater.com/reload: mastra-factory-runtime
+        secret.reloader.stakater.com/reload: mastra-factory-runtime,mastra-factory-authentik-oidc
     spec:
       serviceAccountName: mastra-factory
       automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
@@ -41,11 +41,15 @@ spec:
             - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
             - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
+            - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef: {name: mastra-factory-postgresql-app, key: uri}
           envFrom:
             - secretRef: {name: mastra-factory-runtime}
+            # Optional until the separate OIDC client credential is provisioned.
+            # Missing optional Secret cannot break today's Factory login.
+            - secretRef: {name: mastra-factory-authentik-oidc, optional: true}
           readinessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 10
