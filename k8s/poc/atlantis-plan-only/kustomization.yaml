@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# This directory is intentionally not referenced by either Argo ApplicationSet.
+# Activation requires an approved PLT-89 ADR plus a separate operator PR that
+# adds the namespace to the infrastructure AppProject and this path to the
+# deployment ApplicationSet.
+resources:
+  - namespace.yaml
+  - github-app-external-secret.yaml
+  - webhook-route.yaml
+  - network-policy.yaml
+
+patches:
+  - path: statefulset-patch.yaml
+    target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: atlantis-pilot
+
+helmCharts:
+  - name: atlantis
+    repo: https://runatlantis.github.io/helm-charts
+    version: 6.16.1
+    releaseName: atlantis-pilot
+    namespace: atlantis-system
+    valuesFile: values.yaml

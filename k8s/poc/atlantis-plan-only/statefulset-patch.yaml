@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: atlantis-pilot
+  namespace: atlantis-system
+spec:
+  template:
+    spec:
+      volumes:
+        - name: atlantis-home-dir
+          emptyDir:
+            sizeLimit: 128Mi
+        - name: tmp-dir
+          emptyDir:
+            sizeLimit: 128Mi
