@@ -3,13 +3,13 @@ kind: Kustomization
 
 resources:
   - alertmanager-http-route.yaml
-  - alertmanager-ntfy-secret.yaml
   - grafana-http-route.yaml
   - grafana-oauth-secret.yaml
   - prometheus-http-route.yaml
   - edge-boot-io-dashboard.yaml
   - homeops-operations-dashboard.yaml
   - homeops-logs-efficiency-dashboard.yaml
+  - factory-data-platform-v2-dashboard.yaml
 
 helmCharts:
   - name: kube-prometheus-stack
