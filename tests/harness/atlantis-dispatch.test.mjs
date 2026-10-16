@@ -21,6 +21,8 @@ const receipt = {
   policyRevision,
   pullRequest: 137,
   admissionId: "github-admission-137-001",
+  changePolicyVerdict: "pass",
+  budgetVerdict: "pass",
   planDigest,
   generatedAt: "2026-10-16T10:00:00.000Z",
   expiresAt: "2026-10-16T11:00:00.000Z",
@@ -35,6 +37,8 @@ function request(action = "apply") {
     stateLineage: receipt.stateLineage,
     policyRevision,
     admissionId: receipt.admissionId,
+    changePolicyVerdict: receipt.changePolicyVerdict,
+    budgetVerdict: receipt.budgetVerdict,
     requestId: `${action}-request-001`,
     caller: PILOT.caller,
     ...(action === "plan"

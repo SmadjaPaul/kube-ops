@@ -93,6 +93,8 @@ export function validatePlanReceipt(receipt) {
     "stateLineage",
     "policyRevision",
     "admissionId",
+    "changePolicyVerdict",
+    "budgetVerdict",
     "headSha",
     "planDigest",
     "generatedAt",
@@ -102,6 +104,9 @@ export function validatePlanReceipt(receipt) {
   }
   if (!SHA256.test(receipt.policyRevision) || !SHA256.test(receipt.planDigest)) {
     throw new DispatchError("invalid_receipt", "receipt digests must be SHA-256 values");
+  }
+  if (receipt.changePolicyVerdict !== "pass" || receipt.budgetVerdict !== "pass") {
+    throw new DispatchError("policy_denied", "change and budget policy verdicts must both be pass");
   }
   if (!COMMIT_SHA.test(receipt.headSha)) {
     throw new DispatchError("invalid_receipt", "receipt.headSha must be a lowercase commit SHA");
@@ -130,6 +135,8 @@ function matchesReceipt(request, receipt) {
     "headSha",
     "pullRequest",
     "admissionId",
+    "changePolicyVerdict",
+    "budgetVerdict",
   ].every((field) => request[field] === receipt[field]) && request.planDigest === receipt.planDigest;
 }
 
@@ -156,6 +163,8 @@ export function buildPlanRequest(request) {
       backendStateKey: request.backendStateKey,
       policyRevision: request.policyRevision,
       admissionId: request.admissionId,
+      changePolicyVerdict: request.changePolicyVerdict,
+      budgetVerdict: request.budgetVerdict,
     },
   };
 }
@@ -203,6 +212,8 @@ export function buildApplyRequest(request, receipt, { now = new Date() } = {}) {
       stateLineage: request.stateLineage,
       policyRevision: request.policyRevision,
       admissionId: request.admissionId,
+      changePolicyVerdict: request.changePolicyVerdict,
+      budgetVerdict: request.budgetVerdict,
     },
   };
 }
