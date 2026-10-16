@@ -48,6 +48,7 @@ test('every active Argo directory-generator root exists and has a Kustomization'
   // If the restore root becomes a real Kustomization, the exception must be
   // removed in the same PR, so it doesn't hide future regressions.
   for (const missing of KNOWN_MISSING) {
+    assert.ok(observed.has(missing), `stale known-missing waiver; generator no longer references: ${missing}`);
     assert.ok(
       !['kustomization.yaml', 'kustomization.yml', 'Kustomization'].some(file => existsSync(join(ROOT, missing, file))),
       `stale known-missing exception; remove waiver: ${missing}`,
