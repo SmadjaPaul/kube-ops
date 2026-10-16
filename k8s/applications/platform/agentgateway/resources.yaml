@@ -48,7 +48,9 @@ data:
                 - name: canary-daily-tokens
                   limit:
                     unit: Tokens
-                    amount: 5000000
+                    # One native Factory canary only; raise only through a
+                    # separately reviewed budget change after evidence.
+                    amount: 2000
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
