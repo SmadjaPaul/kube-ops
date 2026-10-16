@@ -19,12 +19,19 @@ grep -q 'key.pem' "$rendered"
 grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
 grep -q 'github.com/SmadjaPaul/homelab-infra' "$rendered"
+grep -q 'workflow: atlantis-deny' "$rendered"
 grep -q 'repo_config_file: .atlantis/plan-only.yaml' "$rendered"
 grep -q 'branch: /^main$/' "$rendered"
 grep -q 'plan_requirements: \[approved, mergeable, undiverged\]' "$rendered"
 grep -q 'apply_requirements: \[approved, mergeable, undiverged\]' "$rendered"
 grep -q 'allowed_overrides: \[\]' "$rendered"
 grep -q 'allow_custom_workflows: false' "$rendered"
+
+deny_line="$(grep -n '^    - id: /\.\*/' k8s/poc/atlantis-plan-only/values.yaml | head -1 | cut -d: -f1)"
+exact_line="$(grep -n '^    - id: github.com/SmadjaPaul/homelab-infra' k8s/poc/atlantis-plan-only/values.yaml | head -1 | cut -d: -f1)"
+test -n "$deny_line"
+test -n "$exact_line"
+test "$deny_line" -lt "$exact_line"
 
 if grep -Eq '(:|@)latest(["[:space:]]|$)|:main(["[:space:]]|$)' "$rendered"; then
   echo "unversioned Atlantis image or chart artifact detected" >&2
