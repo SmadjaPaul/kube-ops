@@ -59,6 +59,13 @@ metadata:
 
 HTTP 404 is a failure by default because it frequently signals a Gateway hostname mismatch. Apps whose root intentionally returns 404 should declare a better probe path.
 
+Routes declared by a KEDA `InterceptorRoute` are treated as scale-to-zero
+surfaces: an initial HTTP `000` is retried twice by default so the interceptor
+can wake the target deployment. Override `KEDA_WAKE_RETRIES` or
+`KEDA_WAKE_RETRY_DELAY_SECONDS` only for a bounded diagnostic run. Non-KEDA
+routes keep a single probe attempt. The JSONL result records `kedaManaged` and
+`httpAttempts` so a delayed success is distinguishable from an outage.
+
 When `ARTIFACT_DIR` is set, results are JSONL in that directory. Without it,
 the report is temporary and removed when the smoke command exits.
 

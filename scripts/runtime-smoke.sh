@@ -51,9 +51,46 @@ report="$ARTIFACT_DIR/results.jsonl"
 : >"$report"
 
 routes="$(kubectl get httproutes.gateway.networking.k8s.io -A -o json)"
+keda_interceptor_routes='{"items":[]}'
+if ! keda_interceptor_routes="$(kubectl get interceptorroutes -A -o json 2>/dev/null)" ||
+  ! jq -e '.items | type == "array"' >/dev/null <<<"$keda_interceptor_routes"; then
+  keda_interceptor_routes='{"items":[]}'
+fi
 failures=0
 tested=0
 skipped_disabled_by_design=0
+keda_wake_retries="${KEDA_WAKE_RETRIES:-2}"
+keda_wake_retry_delay_seconds="${KEDA_WAKE_RETRY_DELAY_SECONDS:-2}"
+
+keda_managed_host() {
+  local host="$1"
+  jq -e --arg host "$host" '
+    any(.items[]?; any(.spec.rules[]?.hosts[]?; . == $host))
+  ' <<<"$keda_interceptor_routes" >/dev/null
+}
+
+probe_http() {
+  local host="$1" path="$2" attempts=0 max_attempts=1 code
+  if keda_managed_host "$host"; then
+    max_attempts=$((keda_wake_retries + 1))
+  fi
+
+  while (( attempts < max_attempts )); do
+    attempts=$((attempts + 1))
+    code=''
+    if ! code="$(curl --silent --show-error --output /dev/null --max-time 15 \
+      --resolve "${host}:443:${INTERNAL_VIP}" \
+      --write-out '%{http_code}' "https://${host}${path}" 2>/dev/null)"; then
+      code=000
+    fi
+    [[ "$code" =~ ^0+$ ]] && code=000
+    if [[ "$code" != 000 || "$attempts" -ge "$max_attempts" ]]; then
+      printf '%s\t%s\n' "$code" "$attempts"
+      return 0
+    fi
+    sleep "$keda_wake_retry_delay_seconds"
+  done
+}
 
 while IFS= read -r route; do
   ns="$(jq -r '.metadata.namespace' <<<"$route")"
@@ -102,7 +139,11 @@ while IFS= read -r route; do
     dns_ok=false
     if tr ',' '\n' <<<"$dns_answers" | grep -qx "$INTERNAL_VIP"; then dns_ok=true; fi
 
-    code="$(curl --silent --show-error --output /dev/null --max-time 15       --resolve "${host}:443:${INTERNAL_VIP}" --write-out '%{http_code}' "https://${host}${path}" 2>/dev/null || printf '000')"
+    probe_result="$(probe_http "$host" "$path")"
+    code="${probe_result%%$'\t'*}"
+    http_attempts="${probe_result#*$'\t'}"
+    keda_managed=false
+    if keda_managed_host "$host"; then keda_managed=true; fi
     http_ok=false
     if tr ',' '\n' <<<"$expected" | grep -qx "$code"; then http_ok=true; fi
 
@@ -119,7 +160,7 @@ while IFS= read -r route; do
 
     [[ "$result" == PASS ]] || failures=$((failures + 1))
     reason_csv="$(IFS=,; echo "${reasons[*]:-}")"
-    jq -nc       --arg namespace "$ns" --arg route "$name" --arg host "$host"       --arg accepted "$accepted" --arg resolvedRefs "$refs"       --arg dns "$dns_answers" --arg code "$code" --arg result "$result"       --arg reasons "$reason_csv" --argjson readyEndpoints "$endpoint_count"       '{namespace:$namespace,route:$route,host:$host,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),dns:$dns,httpStatus:$code,readyEndpoints:$readyEndpoints,result:$result,reasons:($reasons|if length > 0 then . else null end),disabledByDesign:false}'       | tee -a "$report"
+    jq -nc       --arg namespace "$ns" --arg route "$name" --arg host "$host"       --arg accepted "$accepted" --arg resolvedRefs "$refs"       --arg dns "$dns_answers" --arg code "$code" --arg result "$result"       --arg reasons "$reason_csv" --argjson readyEndpoints "$endpoint_count"       --argjson httpAttempts "$http_attempts" --argjson kedaManaged "$keda_managed"       '{namespace:$namespace,route:$route,host:$host,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),dns:$dns,httpStatus:$code,httpAttempts:$httpAttempts,kedaManaged:$kedaManaged,readyEndpoints:$readyEndpoints,result:$result,reasons:($reasons|if length > 0 then . else null end),disabledByDesign:false}'       | tee -a "$report"
   done < <(jq -r '.spec.hostnames[]?' <<<"$route")
 done < <(jq -c '.items[]' <<<"$routes")
 
