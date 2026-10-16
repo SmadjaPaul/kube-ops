@@ -1,0 +1,167 @@
+fullnameOverride: atlantis-pilot
+
+# Dormant until PLT-89 is approved and an operator supplies the exact App ID,
+# installation ID, webhook endpoint and dedicated pilot state identity.
+# The GitHub App must be installed only on SmadjaPaul/homelab-infra. Its
+# Atlantis-required permissions are an operator decision: statuses/checks,
+# contents, issues, pull requests and webhooks; administration, members and
+# actions remain read-only and are added only when the selected authorization
+# feature requires them. These permissions are not encoded as Kubernetes
+# secrets or inferred from the placeholders below.
+orgAllowlist: github.com/SmadjaPaul/homelab-infra
+atlantisUrl: https://atlantis-webhook.smadja.dev
+
+image:
+  repository: ghcr.io/runatlantis/atlantis
+  tag: v0.48.1@sha256:42bde40e38ec7b89f02a2968b4b1b74b990121eb8768d0a7de7caad125344298
+  pullPolicy: IfNotPresent
+
+githubApp:
+  id: REPLACE_WITH_OPERATOR_GITHUB_APP_ID
+  installationId: REPLACE_WITH_OPERATOR_GITHUB_INSTALLATION_ID
+  slug: atlantis-pilot
+vcsSecretName: atlantis-github-app
+
+allowForkPRs: false
+allowDraftPRs: false
+hidePrevPlanComments: true
+hideUnchangedPlanComments: true
+disableApply: true
+disableApplyAll: true
+disableRepoLocking: false
+defaultTFDistribution: opentofu
+defaultTFVersion: "1.13.1"
+
+environment:
+  ATLANTIS_ALLOW_COMMANDS: version,plan,policy_check
+  ATLANTIS_CHECKOUT_STRATEGY: merge
+  ATLANTIS_RESTRICT_FILE_LIST: "true"
+  ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
+  ATLANTIS_DISCARD_APPROVAL_ON_PLAN: "true"
+
+repoConfig: |
+  repos:
+    - id: github.com/SmadjaPaul/homelab-infra
+      branch: /^main$/
+      repo_config_file: .atlantis/plan-only.yaml
+      workflow: atlantis-plan-only
+      plan_requirements: [approved, mergeable, undiverged]
+      apply_requirements: [approved, mergeable, undiverged]
+      import_requirements: [approved, mergeable, undiverged]
+      repo_locks:
+        mode: on_plan
+      allowed_overrides: []
+      allow_custom_workflows: false
+  workflows:
+    atlantis-plan-only:
+      plan:
+        steps:
+          - run: |
+              set -eu
+              test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
+              test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
+              test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
+              test "$PROJECT_NAME" = "atlantis-pilot"
+              test -z "$COMMENT_ARGS"
+              test "$ATLANTIS_PR_APPROVED" = "true"
+              test "$ATLANTIS_PR_MERGEABLE" = "true"
+              test "$HEAD_COMMIT" != ""
+              test -f "$DIR/backend.tf"
+              test -f "$DIR/main.tf"
+              grep -Eq 'required_version = "= 1.13.1"' "$DIR/versions.tf"
+              grep -Eq 'key[[:space:]]*=[[:space:]]*"atlantis-pilot/terraform.tfstate"' "$DIR/backend.tf"
+              grep -Eq 'REPLACE_WITH_DEDICATED_ATLANTIS_PILOT_' "$DIR/backend.tf"
+              if grep -REn '^[[:space:]]*(provider|module|data|provisioner)[[:space:]]' "$DIR"/*.tf; then
+                echo "external provider/module/data/provisioner is forbidden in the pilot" >&2
+                exit 1
+              fi
+              if grep -REn '^[[:space:]]*resource[[:space:]]+"' "$DIR"/*.tf | grep -v 'resource "terraform_data"'; then
+                echo "only terraform_data is permitted in the pilot" >&2
+                exit 1
+              fi
+              forbidden_pattern='DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|cloudflare|unifi|migadu|kubernetes|helm|local-exec|remote-exec|external'
+              if grep -REiq "$forbidden_pattern" "$DIR"/*.tf; then
+                echo "an existing infrastructure authority or execution escape hatch is forbidden" >&2
+                exit 1
+              fi
+          - init
+          - plan
+      apply:
+        steps:
+          - run: |
+              echo "plan-only Atlantis: apply is disabled server-side" >&2
+              exit 1
+      import:
+        steps:
+          - run: |
+              echo "plan-only Atlantis: import is disabled server-side" >&2
+              exit 1
+      state_rm:
+        steps:
+          - run: |
+              echo "plan-only Atlantis: state operations are disabled server-side" >&2
+              exit 1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 4141
+
+ingress:
+  enabled: false
+webhook_ingress:
+  enabled: false
+route:
+  main:
+    enabled: true
+    hostnames:
+      - atlantis.smadja.dev
+    parentRefs:
+      - name: internal
+        namespace: gateway
+
+serviceAccount:
+  create: true
+  mount: false
+  name: atlantis-pilot
+
+volumeClaim:
+  enabled: true
+  dataStorage: 5Gi
+  storageClassName: longhorn-fast
+  accessModes:
+    - ReadWriteOnce
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+statefulSet:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
+containerSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+test:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false

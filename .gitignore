@@ -2,6 +2,7 @@
 charts/example
 **/infrastructure/**/charts
 **/applications/**/charts
+**/poc/**/charts
 !*secret*.yaml
 
 .terraform

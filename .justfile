@@ -23,6 +23,7 @@ inventory:
 [doc('Run deterministic clusterless V1 + backup validation')]
 check:
     npm run check
+    bash tests/harness/atlantis-plan-only-test.sh
     bash tests/harness/kube-preflight-test.sh
     bash tests/harness/affected-tests-test.sh
     bash tests/harness/runtime-smoke-test.sh

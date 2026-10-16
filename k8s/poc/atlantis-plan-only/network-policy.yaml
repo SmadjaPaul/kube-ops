@@ -1,0 +1,44 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: atlantis-pilot
+  namespace: atlantis-system
+spec:
+  description: >-
+    Dormant plan-only Atlantis: webhook/UI ingress, DNS and GitHub egress
+    only; OCI S3 and provider registry destinations require a separate
+    activation PR.
+  endpointSelector:
+    matchLabels:
+      app: atlantis
+      release: atlantis-pilot
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "4141"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toFQDNs:
+        # These are the only outbound destinations for the dormant fixture.
+        # Do not add OCI S3 or provider-registry hosts until their exact
+        # activation endpoint, TLS path and disposable identity are reviewed.
+        - matchName: api.github.com
+        - matchName: github.com
+        - matchName: codeload.github.com
+        - matchName: objects.githubusercontent.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
