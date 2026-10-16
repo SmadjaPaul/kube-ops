@@ -1,0 +1,25 @@
+# Offline qualification fixture. No object in this file is applied to Kubernetes.
+apiVersion: sre.smadja.dev/v1alpha1
+kind: RecoveryQualification
+metadata:
+  name: cnpg-velero-kopia-synthetic-v1
+spec:
+  status: not-executed
+  approval: required
+  restoreTarget: isolated
+  productionTargetsExcluded: true
+  cnpg:
+    source: barman-object-store
+    temporaryNamespaceRequired: true
+    sentinelCheck: row-count-and-checksum
+    acceptance: [ready, sql-sentinel, wal-continuity]
+  veleroKopia:
+    source: completed-backup-with-pod-volume-backups
+    expectedPodVolumeBackups: 2
+    expectedPodVolumeRestores: 2
+    preservedStorageClasses: [longhorn-fast, longhorn-bulk]
+    checksumRequired: true
+  measurements: [T0, T1, T2, T3, T4]
+  cleanup:
+    approvalRequired: true
+    deleteProductionObjects: false

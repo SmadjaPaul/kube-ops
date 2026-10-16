@@ -1,0 +1,29 @@
+# Offline qualification fixture. No case is applied to the cluster.
+apiVersion: sre.smadja.dev/v1alpha1
+kind: RuntimePolicyQualification
+metadata:
+  name: tenant-policy-pre-enforcement-v1
+spec:
+  status: not-executed
+  approval: required
+  currentModes:
+    kyverno: Audit
+    gatekeeper: dryrun
+  cases:
+    - id: compliant-restricted-pod
+      expectedFinding: none
+      expectedAdmission: allowed
+    - id: missing-run-as-non-root
+      expectedFinding: violation
+      expectedAdmission: would-deny-after-enforcement
+    - id: host-namespace-sharing
+      expectedFinding: violation
+      expectedAdmission: would-deny-after-enforcement
+    - id: capabilities-not-dropped
+      expectedFinding: violation
+      expectedAdmission: would-deny-after-enforcement
+  tenantIsolation:
+    status: not-executed
+    sameTenantExpected: allowed
+    crossTenantExpected: denied
+    requiredSourceAndDestinationLabels: true

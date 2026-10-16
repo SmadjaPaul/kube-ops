@@ -1,0 +1,25 @@
+# Read-only inventory classification. It is evidence, not a cleanup manifest.
+apiVersion: sre.smadja.dev/v1alpha1
+kind: StorageRecoveryInventory
+metadata:
+  name: longhorn-drill-classification-2026-10
+spec:
+  status: observed
+  deletionAuthorized: false
+  longhorn:
+    healthyVolumes: 70
+    detachedOrUnknownVolumes: 28
+    snapshotsObserved: 0
+    classes: [longhorn-fast, longhorn-bulk]
+  classifications:
+    - class: active-or-controller-owned
+      action: retain
+    - class: durable-state-or-pv-linked
+      action: retain
+    - class: named-drill-pvc
+      action: retain-until-evidence-and-approval
+    - class: unknown
+      action: retain-and-inventory
+  backupAudit:
+    uncoveredDrillPvcs: 17
+    action: document-and-reclassify
