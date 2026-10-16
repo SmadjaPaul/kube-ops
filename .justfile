@@ -30,6 +30,7 @@ check:
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
+    bash tests/harness/mastra-factory-promotion-test.sh
     bash tests/harness/invoice-backup-test.sh
     bash tests/harness/runtime-inventory-test.sh
     bash tests/harness/longhorn-tier-restore-runbook-test.sh
@@ -45,6 +46,7 @@ check-affected:
     bash tests/harness/longhorn-tier-restore-runbook-test.sh
     bash tests/harness/d-recovery-contract-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
+    bash tests/harness/mastra-factory-promotion-test.sh
     npm run check:agent-harness
     bash scripts/affected-tests.sh
 
