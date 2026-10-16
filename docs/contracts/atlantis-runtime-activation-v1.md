@@ -5,6 +5,27 @@
 **Related merged change:** #506 `b678a78e21007564978ed4cceca6bb1955c22209`
 **Status:** prepared, not activated
 
+## Runtime observation — 2026-10-16
+
+The canonical operator access harness passed against Kubernetes `v1.36.3`.
+The observation was metadata-only and did not read Secret data. The cluster
+reported 22 Argo Applications, all `Synced`; `infra-controllers` was
+`Healthy` at reconciled revision
+`af405362217e2cb75b15cc599306aedc8268c6dc`. This is platform evidence only,
+not Atlantis evidence.
+
+Atlantis-specific runtime discovery returned:
+
+- namespace `atlantis-system`: **not found**;
+- Argo Application/ApplicationSet matching Atlantis: **none**;
+- Atlantis ExternalSecret, HTTPRoute, pod, Service and PVC: **none**.
+
+Therefore `RECONCILED=NO` and `RUNTIME=NO` for Atlantis. The absence is a
+positive safety result: no GitHub App credential, backend identity, provider
+egress or Atlantis API endpoint is currently active. No plan, lock, provider
+call or apply can be qualified until a separately authorized activation PR is
+reconciled.
+
 ## Exact difference
 
 | Surface | Declared in Git | Runtime conclusion |
