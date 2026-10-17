@@ -53,19 +53,6 @@ spec:
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
-  name: paperclip
-  namespace: paperclip
-spec:
-  targetRef:
-    apiVersion: paperclip.inc/v1alpha1
-    kind: Instance
-    name: paperclip
-  updatePolicy:
-    updateMode: "Off"
----
-apiVersion: autoscaling.k8s.io/v1
-kind: VerticalPodAutoscaler
-metadata:
   name: immich-server
   namespace: immich
 spec:

@@ -1,7 +1,7 @@
 # Paperclip retirement — staged Git cleanup
 
-Status (2026-10-17): **stage 1 runtime prune completed; stage 2 stateless cleanup and
-execution-root retirement prepared**.
+Status (2026-10-17): **stage 1 runtime prune completed; stateless and execution-root
+retirement completed; operator GitOps retirement prepared**.
 
 PR #517 removed the Paperclip `Instance` from desired state and Argo pruned the
 server workload. This change removes the now-unconsumed application runtime
@@ -34,9 +34,11 @@ preflights/tests and their harness references. Git history retains every file.
 - The `applications` AppProject destination allowlist retains
   `paperclip-exec-h3` for now; it is policy metadata, not a workload resource,
   and will be narrowed only after the namespace has been observed absent.
-- `infra-controllers` still manages the Paperclip operator Application and
-  leader-election RBAC; the operator remains until all CRD and data dependencies
-  are reviewed separately.
+- The Paperclip operator Application, chart source, leader-election RBAC,
+  operator destination allowlist and Paperclip-specific VPA target are removed
+  by this operator-retirement change. The live chart-generated CRDs are
+  intentionally retained because they carry `helm.sh/resource-policy: keep`;
+  no custom-resource instances remain.
 - `velero-daily-paperclip` remains in the controller schedule root until its
   backup retention and content ownership are qualified.
 - Docusaurus `website/` and `netlify.toml` remain untouched.
@@ -49,12 +51,12 @@ Follow `docs/operations/paperclip-prune-gates.md`. The live stage-1 inventory
 confirmed no Paperclip Instance, server StatefulSet, server Service or server
 HTTPRoute remains, while the operator, CRD, CNPG PVC/PV, backups, CNPG credential
 ExternalSecret, Cilium policies and namespace remain. Explicitly classify each
-before proposing the next separate PR. The H3 execution-root PR must be observed
-separately before narrowing the AppProject destination allowlist.
+before proposing the next separate PR. The H3 execution-root PR was observed
+separately before narrowing its policy allowlist.
 
 Remove the Paperclip Instance only while its operator still exists, wait
 until operator finalization completes, confirm intended volumes/backup retention,
-then decommission the operator in a later independently observed sync.
+then decommission the operator in this independently reviewed sync.
 Remove remaining AppProject/monitoring references only after no active
 Paperclip objects are owned. Use GitOps; avoid blind `kubectl delete`.
 
