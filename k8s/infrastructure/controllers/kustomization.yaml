@@ -16,4 +16,5 @@ resources:
 - vpa
 - velero
 - node-feature-discovery
+- paperclip-operator
 - agent-sandbox
