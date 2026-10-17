@@ -101,6 +101,36 @@ Kyverno Chainsaw is the preferred disposable-cluster scenario runner when apply/
 
 Never promote lower-level evidence to a higher level.
 
+`just backup-audit` reports separate persistence signals rather than treating
+every non-covered PVC as a production backup failure:
+
+- `PRODUCTION_PVC_COVERAGE` requires a Bound PVC/PV, a completed Velero Backup
+  for its scheduled namespace, and a completed PodVolumeBackup correlated to
+  the PVC (directly or through its Pod volume). PVCs with a Schedule and
+  completed Backup but no provable PVB are reported as `unverified`, not as a
+  PASS; the PVB must also reference the completed Backup.
+- `CNPG_BACKUP_CONFIGURATION` checks WAL archiving, ScheduledBackup, completed
+  CNPG Backup, and Barman ObjectStore configuration.
+- `CNPG_RESTORE_PROOF` is independent from backup completion and remains
+  unproven without explicit application acceptance.
+- `RESTORE_DRILL_SUCCESS` distinguishes completed-but-unaccepted restores from
+  failed restores; it never treats `Restore.status.phase=Completed` alone as
+  application success.
+- `RESTORE_RESIDUE_COUNT` counts PVCs explicitly marked or named as restore/drill
+  residue, while `ORPHAN_PVC_COUNT` counts only explicit orphan markers. The
+  latter is deliberately conservative and does not infer orphanhood from an
+  absent Pod.
+
+The script accepts `BACKUP_AUDIT_INPUT_DIR` containing the collected Kubernetes
+API JSON (`pvc`, `pv`, `pods`, `schedules`, `backups`, `restores`, `pvbs`,
+`cnpg`, `cnpg-backups`, `cnpg-scheduled-backups`, and `objectstores`) for deterministic clusterless
+tests. Restore residue remains visible while only production coverage and CNPG
+backup configuration contribute to the production exit gate. The legacy
+`BACKUP_AUDIT_LEGACY_GAPS` counter remains available for comparison with the
+previous audit, while `BACKUP_AUDIT_GAPS` includes unverified production PVCs,
+CNPG configuration gaps, and restore residue. Missing required Kubernetes APIs
+fail closed rather than becoming an empty successful inventory.
+
 
 ## Backup classification
 

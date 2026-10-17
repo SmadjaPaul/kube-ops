@@ -1,0 +1,3 @@
+{"apiVersion":"postgresql.cnpg.io/v1","kind":"ScheduledBackupList","items":[
+  {"metadata":{"namespace":"invoice-ninja","name":"postgres-scheduled"},"spec":{"cluster":{"name":"postgres"},"pluginConfiguration":{"parameters":{"barmanObjectName":"postgres-objectstore"}}}}
+]}

@@ -1,0 +1,3 @@
+{"apiVersion":"postgresql.cnpg.io/v1","kind":"BackupList","items":[
+  {"metadata":{"namespace":"invoice-ninja","name":"postgres-backup-1"},"spec":{"cluster":{"name":"postgres"}},"status":{"phase":"completed"}}
+]}

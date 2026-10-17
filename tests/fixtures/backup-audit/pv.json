@@ -1,0 +1,4 @@
+{"apiVersion":"v1","kind":"List","items":[
+  {"metadata":{"name":"pv-invoice-storage"},"spec":{"claimRef":{"namespace":"invoice-ninja","name":"storage"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-drill-storage"},"spec":{"claimRef":{"namespace":"invoice-ninja-restore-drill-v1","name":"storage"}},"status":{"phase":"Bound"}}
+]}
