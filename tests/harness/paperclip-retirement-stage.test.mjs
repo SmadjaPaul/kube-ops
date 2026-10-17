@@ -21,7 +21,7 @@ test('Paperclip local CLI/agent scaffolding is retired from Git', () => {
   assert.match(pkg.scripts.check, /check:argocd-roots/);
 });
 
-test('Paperclip server and operator child are removed before data prune', () => {
+test('Paperclip server and operator GitOps roots are retired before data prune', () => {
   assert.equal(exists('k8s/applications/ai/paperclip/instance.yaml'), false);
   assert.equal(exists('k8s/applications/ai/paperclip/runtime-config.yaml'), false);
   assert.equal(exists('k8s/applications/ai/paperclip/externalsecret.yaml'), false);

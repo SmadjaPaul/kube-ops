@@ -1,7 +1,7 @@
 # Paperclip retirement — staged Git cleanup
 
-Status (2026-10-17): **stage 1 runtime prune completed; stateless, execution-root
-operator and operator-namespace retirement completed; data retirement remains gated**.
+Status (2026-10-17): **stage 1 runtime prune completed; execution-root cleanup
+completed; operator GitOps retirement prepared; data retirement remains gated**.
 
 PR #517 removed the Paperclip `Instance` from desired state and Argo pruned the
 server workload. This change removes the now-unconsumed application runtime
@@ -40,6 +40,11 @@ preflights/tests and their harness references. Git history retains every file.
   the temporary chart source/destination permissions after that cascade proof.
   The live CRDs remain marked `helm.sh/resource-policy: keep` and are gated
   separately.
+- The operator Application, leader-election RBAC, operator AppProject source and
+  Paperclip-specific VPA target are removed by the operator-retirement change.
+  The chart-generated CRDs are intentionally retained for a separate explicit
+  deletion gate because the live chart marks them
+  `helm.sh/resource-policy: keep`; no CR instances remain.
 - `velero-daily-paperclip` remains in the controller schedule root until its
   backup retention and content ownership are qualified.
 - Docusaurus `website/` and `netlify.toml` remain untouched.
@@ -55,11 +60,14 @@ ExternalSecret, Cilium policies and namespace remain. Explicitly classify each
 before proposing the next separate PR. The H3 execution-root PR was observed
 separately before narrowing its policy allowlist.
 
-Remove the Paperclip Instance only while its operator still exists, wait
-until operator finalization completes, confirm intended volumes/backup retention,
-then retain the separate data namespace and its backup-covered resources until
-the data-retirement gate is explicitly qualified. No data resource is included
-in the operator cleanup.
+The Instance was removed while its operator still existed and its finalization
+completed. The operator can now be retired in a separate independently observed
+sync. Do not treat removal of the operator Application as CRD deletion: the
+Helm-kept CRDs require a separate, explicit cluster-scoped deletion decision
+after confirming that no custom resources or API consumers remain.
+The separate data namespace and its backup-covered resources remain retained
+until the data-retirement gate is explicitly qualified. No data resource is
+included in the operator cleanup.
 Remove remaining AppProject/monitoring references only after no active
 Paperclip objects are owned. Use GitOps; avoid blind `kubectl delete`.
 
