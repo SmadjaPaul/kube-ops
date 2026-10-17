@@ -1,0 +1,21 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-atlantis
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: atlantis
+spec:
+  schedule: "55 2 * * *"
+  template:
+    includedNamespaces:
+      - atlantis-system
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h
