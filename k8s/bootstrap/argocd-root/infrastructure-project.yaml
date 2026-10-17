@@ -82,8 +82,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: paperclip
       server: https://kubernetes.default.svc
-    - namespace: paperclip-operator-system
-      server: https://kubernetes.default.svc
     - namespace: agent-sandbox-system
       server: https://kubernetes.default.svc
     - namespace: atlantis-system
