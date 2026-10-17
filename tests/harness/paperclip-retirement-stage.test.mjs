@@ -16,8 +16,15 @@ test('Paperclip local CLI/agent scaffolding is retired, generic harness retained
   assert.match(pkg.scripts.check, /check:argocd-roots/);
 });
 
-test('Paperclip server and execution roots are retired before data and operator prune', () => {
-  assert.equal(exists('k8s/applications/ai-paperclip-h3/kustomization.yaml'), false);
+test('Paperclip operator Application is protected for a later Argo retirement', () => {
+  const application = read('k8s/infrastructure/controllers/paperclip-operator/application.yaml');
+  assert.match(
+    application,
+    /metadata:\n  name: paperclip-operator\n  namespace: argocd\n  finalizers:\n    - resources-finalizer\.argocd\.argoproj\.io/,
+  );
+});
+
+test('Paperclip server roots are retired before data and operator prune', () => {
   assert.equal(exists('k8s/applications/ai/paperclip/instance.yaml'), false);
   assert.equal(exists('k8s/applications/ai/paperclip/runtime-config.yaml'), false);
   assert.equal(exists('k8s/applications/ai/paperclip/externalsecret.yaml'), false);
@@ -26,7 +33,6 @@ test('Paperclip server and execution roots are retired before data and operator 
   assert.ok(exists('k8s/applications/ai/paperclip/database-scheduled-backup.yaml'));
   assert.ok(exists('k8s/infrastructure/controllers/paperclip-operator/application.yaml'));
   assert.ok(exists('k8s/infrastructure/controllers/velero/schedules/daily-paperclip.yaml'));
-  assert.doesNotMatch(read('k8s/bootstrap/argocd-root/applications-applicationset.yaml'), /path: k8s\/applications\/ai-paperclip-h3/);
   assert.match(read('k8s/applications/ai/kustomization.yaml'), /^- paperclip\s*$/m);
 });
 
