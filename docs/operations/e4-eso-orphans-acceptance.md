@@ -20,7 +20,7 @@ reported by ESO as failed remote lookups:
 | `open-webui` | `app-openwebui-litellm-api-key` | `APP_OPENWEBUI_FACTORY_LITELLM_API_KEY` | AI application owner; confirm Factory gateway audience |
 | `open-webui` | `openwebui-ai-backend-keys` | `APP_OPENWEBUI_FACTORY_LITELLM_API_KEY`, `APP_OPENCLAW_TALOS_PERSONAL_GATEWAY_TOKEN` | AI/platform owner; confirm OpenClaw consumer and token audience |
 | `renovate` | `renovate` | `APP_RENOVATE_GITHUB_TOKEN` | Platform maintenance owner; confirm repository scope and read-only permissions |
-| `security-system` | `falco-slack-webhook` | `FALCO_SLACK_WEBHOOK_URL` | Security/notification owner; confirm destination and incident policy |
+| `security-system` | `falco-slack-webhook` | `FALCO_SLACK_WEBHOOK_URL` | Retired on 2026-10-18 after static/live consumer review; no active destination remains |
 
 The `litellm` provider key names are intentionally retained in the row rather
 than copied into a second secret inventory. The owner column names a role, not a
@@ -31,6 +31,11 @@ rechecks the ExternalSecret condition afterward.
 
 These are credential-provisioning gates, not Git manifest defects. No
 placeholder values must be added to Git.
+
+The `security-system/falco-slack-webhook` ExternalSecret was removed from the
+desired state on 2026-10-18 after confirming that no Deployment, StatefulSet,
+DaemonSet, Job or CronJob references its target Secret and that Falco remains
+running without it. The shared `doppler-cluster` SecretStore was not changed.
 
 ## Application acceptance
 
