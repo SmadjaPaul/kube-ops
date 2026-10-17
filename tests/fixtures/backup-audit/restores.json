@@ -1,0 +1,4 @@
+{"apiVersion":"velero.io/v1","kind":"RestoreList","items":[
+  {"metadata":{"namespace":"invoice-ninja-restore-drill-v1","name":"restore-completed-without-acceptance"},"status":{"phase":"Completed"}},
+  {"metadata":{"namespace":"invoice-ninja-restore-drill-v1","name":"restore-failed"},"status":{"phase":"Failed"}}
+]}

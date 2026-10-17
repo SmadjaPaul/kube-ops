@@ -1,0 +1,3 @@
+{"apiVersion":"postgresql.cnpg.io/v1","kind":"ClusterList","items":[
+  {"metadata":{"namespace":"invoice-ninja","name":"postgres"},"spec":{"plugins":[{"isWALArchiver":true,"parameters":{"barmanObjectName":"postgres-objectstore"}}]}}
+]}

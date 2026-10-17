@@ -1,0 +1,3 @@
+{"apiVersion":"velero.io/v1","kind":"PodVolumeBackupList","items":[
+  {"metadata":{"namespace":"velero","name":"invoice-storage-pvb","labels":{"velero.io/pvc-namespace":"invoice-ninja","velero.io/pvc-name":"storage","velero.io/backup-name":"daily-invoice-20261018"}},"spec":{"pod":{"namespace":"invoice-ninja","name":"invoice-web-0"},"volume":"storage"},"status":{"phase":"Completed"}}
+]}

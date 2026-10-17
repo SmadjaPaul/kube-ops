@@ -1,0 +1,3 @@
+{"apiVersion":"barmancloud.cnpg.io/v1","kind":"ObjectStoreList","items":[
+  {"metadata":{"namespace":"invoice-ninja","name":"postgres-objectstore"}}
+]}
