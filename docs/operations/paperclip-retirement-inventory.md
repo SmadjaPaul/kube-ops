@@ -1,7 +1,7 @@
 # Paperclip retirement — staged Git cleanup
 
-Status (2026-10-17): **stage 1 runtime prune completed; stateless and execution-root
-retirement completed; operator cascade retirement prepared**.
+Status (2026-10-17): **stage 1 runtime prune completed; stateless, execution-root
+and operator cascade retirement completed; data retirement remains gated**.
 
 PR #517 removed the Paperclip `Instance` from desired state and Argo pruned the
 server workload. This change removes the now-unconsumed application runtime
@@ -35,11 +35,11 @@ preflights/tests and their harness references. Git history retains every file.
   `paperclip-exec-h3` for now; it is policy metadata, not a workload resource,
   and will be narrowed only after the namespace has been observed absent.
 - The operator cleanup recovery reattached the Paperclip operator Application
-  with its official cascade finalizer and chart permissions so Argo regained
-  ownership of the orphaned operator workload. This change removes the child
-  Application and operator RBAC while retaining the chart permissions until
-  post-merge cascade is proven. It does not restore the Paperclip VPA target;
-  live CRDs remain marked `helm.sh/resource-policy: keep`.
+  with its official cascade finalizer; Argo then removed the child Application,
+  Deployment, Pod, Service, ReplicaSet and operator RBAC. This change removes
+  the temporary chart source/destination permissions after that cascade proof.
+  The live CRDs remain marked `helm.sh/resource-policy: keep` and are gated
+  separately.
 - `velero-daily-paperclip` remains in the controller schedule root until its
   backup retention and content ownership are qualified.
 - Docusaurus `website/` and `netlify.toml` remain untouched.
@@ -57,8 +57,8 @@ separately before narrowing its policy allowlist.
 
 Remove the Paperclip Instance only while its operator still exists, wait
 until operator finalization completes, confirm intended volumes/backup retention,
-then remove the temporary chart permissions in a subsequent independently
-reviewed sync.
+then decide separately whether the empty operator namespace should be removed
+through an explicit GitOps cleanup gate.
 Remove remaining AppProject/monitoring references only after no active
 Paperclip objects are owned. Use GitOps; avoid blind `kubectl delete`.
 
