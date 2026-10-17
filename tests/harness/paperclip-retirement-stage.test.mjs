@@ -30,8 +30,7 @@ test('Paperclip server and operator child are removed before data prune', () => 
   assert.equal(read('k8s/infrastructure/controllers/project.yaml').includes('ghcr.io/paperclipinc/charts'), false);
   assert.equal(read('k8s/infrastructure/controllers/project.yaml').includes('paperclip-operator-system'), false);
   assert.equal(read('k8s/bootstrap/argocd-root/infrastructure-project.yaml').includes('paperclip-operator-system'), false);
-  assert.ok(exists('k8s/infrastructure/controllers/paperclip-operator-namespace.yaml'));
-  assert.match(read('k8s/infrastructure/controllers/paperclip-operator-namespace.yaml'), /name: paperclip-operator-system/);
+  assert.equal(exists('k8s/infrastructure/controllers/paperclip-operator-namespace.yaml'), false);
   assert.ok(exists('k8s/infrastructure/controllers/velero/schedules/daily-paperclip.yaml'));
   assert.match(read('k8s/applications/ai/kustomization.yaml'), /^- paperclip\s*$/m);
 });

@@ -1,7 +1,7 @@
 # Paperclip retirement — staged Git cleanup
 
 Status (2026-10-17): **stage 1 runtime prune completed; stateless, execution-root
-and operator cascade retirement completed; operator namespace cleanup in progress**.
+operator and operator-namespace retirement completed; data retirement remains gated**.
 
 PR #517 removed the Paperclip `Instance` from desired state and Argo pruned the
 server workload. This change removes the now-unconsumed application runtime
@@ -57,8 +57,9 @@ separately before narrowing its policy allowlist.
 
 Remove the Paperclip Instance only while its operator still exists, wait
 until operator finalization completes, confirm intended volumes/backup retention,
-then remove the now-adopted empty operator namespace through a separate GitOps
-prune gate. No data resource is included in that cleanup.
+then retain the separate data namespace and its backup-covered resources until
+the data-retirement gate is explicitly qualified. No data resource is included
+in the operator cleanup.
 Remove remaining AppProject/monitoring references only after no active
 Paperclip objects are owned. Use GitOps; avoid blind `kubectl delete`.
 
