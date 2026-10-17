@@ -1,37 +1,43 @@
 # Paperclip retirement — staged Git cleanup
 
-Status (2026-10-16): **repository-only cleanup**, NOT live Paperclip decommission.
+Status (2026-10-17): **stage 1 runtime prune completed; stage 2 stateless cleanup**.
+
+PR #517 removed the Paperclip `Instance` from desired state and Argo pruned the
+server workload. This change removes the now-unconsumed application runtime
+ConfigMap, admin bootstrap ExternalSecret and application runtime ExternalSecret
+from the desired state. It does not remove the operator, database, backups,
+namespace, network policies or CNPG credentials.
 
 The existing #494 draft is reconciled onto current `main` without deleting
 Kubernetes resources. Deletions only affect the obsolete Paperclip company
 package, out-of-tree execution proof-of-concept, Paperclip-specific local CLI
 preflights/tests and their harness references. Git history retains every file.
 
-## Runtime explicitly retained until the operator finishes the prune proof
+## Runtime explicitly retained for the next retirement gates
 
-- `apps-ai` still renders `k8s/applications/ai/paperclip/` including Instance,
-  CNPG Cluster, ScheduledBackup, ObjectStore, ExternalSecrets, namespace and
-  NetworkPolicy. The existing SQL/WAL/PVC resources are not pruned.
+- `apps-ai` renders the Paperclip CNPG Cluster, ScheduledBackup, ObjectStore,
+  namespace and NetworkPolicy. The Instance and application runtime secrets/config
+  were removed in separate reviewed stages. The SQL/WAL/PVC resources are not
+  pruned by this change.
 - `apps-ai-paperclip-h3` remains present in the ApplicationSet and its
   corresponding directory/Kustomization remains intact. Do not delete a
   generated Application with `prune: true` without a live inventory.
 - `infra-controllers` still manages the Paperclip operator Application and
-  leader-election RBAC; this avoids orphaning a live Paperclip Instance while
-  its CR finalizers are unknown.
+  leader-election RBAC; the operator remains until all CRD and data dependencies
+  are reviewed separately.
 - `velero-daily-paperclip` remains in the controller schedule root until its
   backup retention and content ownership are qualified.
 - Docusaurus `website/` and `netlify.toml` remain untouched.
 - All other Argo applications, Factory, Agentgateway, CNPG and backups remain
   unchanged by this PR.
 
-## Before the separate runtime retirement
+## Before operator and data retirement
 
-Follow `docs/operations/paperclip-prune-gates.md`. Collect and compare the
-live **Argo managedResources** inventory and old/new Helm/Kustomize manifests
-for apps-ai, apps-ai-paperclip-h3, infra-controllers, and the nested
-paperclip-operator Application. Explicitly classify namespace finalizers,
-Paperclip Instance finalizer, operator CRDs, CNPG PVC/PV, Velero backup,
-ExternalSecret, Cilium policy, DNS/HTTPRoute and any shared dependency.
+Follow `docs/operations/paperclip-prune-gates.md`. The live stage-1 inventory
+confirmed no Paperclip Instance, server StatefulSet, server Service or server
+HTTPRoute remains, while the operator, CRD, CNPG PVC/PV, backups, CNPG credential
+ExternalSecret, Cilium policies and namespace remain. Explicitly classify each
+before proposing the next separate PR.
 
 Remove the Paperclip Instance only while its operator still exists, wait
 until operator finalization completes, confirm intended volumes/backup retention,
@@ -46,4 +52,5 @@ Paperclip objects are owned. Use GitOps; avoid blind `kubectl delete`.
 block accidental destructive removal until the contracts and proof are revised
 with real runtime evidence.
 
-No live cluster diff, sync, data deletion or decommission is claimed.
+No live cluster mutation is claimed until this change is reviewed, merged and
+reconciled by Argo.

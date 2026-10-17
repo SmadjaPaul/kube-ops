@@ -19,6 +19,9 @@ test('Paperclip local CLI/agent scaffolding is retired, generic harness retained
 test('Paperclip server Instance is retired before data and operator prune', () => {
   assert.ok(exists('k8s/applications/ai-paperclip-h3/kustomization.yaml'));
   assert.equal(exists('k8s/applications/ai/paperclip/instance.yaml'), false);
+  assert.equal(exists('k8s/applications/ai/paperclip/runtime-config.yaml'), false);
+  assert.equal(exists('k8s/applications/ai/paperclip/externalsecret.yaml'), false);
+  assert.equal(exists('k8s/applications/ai/paperclip/admin-bootstrap-secret.yaml'), false);
   assert.ok(exists('k8s/applications/ai/paperclip/database.yaml'));
   assert.ok(exists('k8s/applications/ai/paperclip/database-scheduled-backup.yaml'));
   assert.ok(exists('k8s/infrastructure/controllers/paperclip-operator/application.yaml'));
