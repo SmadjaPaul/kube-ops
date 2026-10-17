@@ -10,5 +10,4 @@ resources:
   - database-objectstore.yaml
   - database.yaml
   - database-scheduled-backup.yaml
-  - instance.yaml
   - networkpolicy.yaml
