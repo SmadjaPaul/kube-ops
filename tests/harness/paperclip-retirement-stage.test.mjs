@@ -16,9 +16,9 @@ test('Paperclip local CLI/agent scaffolding is retired, generic harness retained
   assert.match(pkg.scripts.check, /check:argocd-roots/);
 });
 
-test('Argo roots, runtime data and Paperclip operator remain until owner-confirmed prune', () => {
+test('Paperclip server Instance is retired before data and operator prune', () => {
   assert.ok(exists('k8s/applications/ai-paperclip-h3/kustomization.yaml'));
-  assert.ok(exists('k8s/applications/ai/paperclip/instance.yaml'));
+  assert.equal(exists('k8s/applications/ai/paperclip/instance.yaml'), false);
   assert.ok(exists('k8s/applications/ai/paperclip/database.yaml'));
   assert.ok(exists('k8s/applications/ai/paperclip/database-scheduled-backup.yaml'));
   assert.ok(exists('k8s/infrastructure/controllers/paperclip-operator/application.yaml'));
