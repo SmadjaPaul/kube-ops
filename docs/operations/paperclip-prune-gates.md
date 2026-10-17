@@ -1,10 +1,10 @@
 # Paperclip retirement: Argo prune gates before #494
 
-Status: **STATIC GUARD IMPLEMENTED; RUNTIME PRUNE NOT QUALIFIED.** This file does not authorize a cluster mutation.
+Status: **STATIC GUARD IMPLEMENTED; H3 EXECUTION-ROOT PR PREPARED; RUNTIME PRUNE NOT QUALIFIED.** This file does not authorize a cluster mutation.
 
 ## Problem found on 2026-10-16
 
-Draft [kube-ops #494](https://github.com/SmadjaPaul/kube-ops/pull/494) deletes `k8s/applications/ai-paperclip-h3` while the active `applications` ApplicationSet still generates it from `k8s/bootstrap/argocd-root/applications-applicationset.yaml` with automated `prune: true`. Removing the directory without changing its generator is an invalid GitOps state. Removing the generator entry instead may delete the generated Application and its managed cluster resources. Neither outcome qualifies as a safe retirement without live ownership evidence.
+Draft [kube-ops #494](https://github.com/SmadjaPaul/kube-ops/pull/494) attempted to delete `k8s/applications/ai-paperclip-h3` while the active `applications` ApplicationSet still generated it from `k8s/bootstrap/argocd-root/applications-applicationset.yaml` with automated `prune: true`. Removing the directory without changing its generator is an invalid GitOps state. The current bounded change removes the generator entry and directory together, but the resulting prune still requires post-merge live ownership evidence.
 
 The `infra-controllers` generated Application includes the Paperclip operator; its removal may affect Paperclip CRDs, namespace-scoped controllers, and PVC/backup ownership. Remove both the server and operator in deliberate phases.
 
@@ -12,7 +12,7 @@ The same generator already references `k8s/applications/restore`, a missing dire
 
 ## Required read-only inventory
 
-Before allowing #494's live Paperclip removals, gather at the *current deployed revision*:
+Before allowing the H3 execution-root removal or later Paperclip removals, gather at the *current deployed revision*:
 
 1. List the Argo Applications and their sources/last syncs, especially `apps-ai`, `apps-ai-paperclip-h3` and `infra-controllers`; separately identify any operator Application.
 2. Export each Application's managed-resource inventory, including resource UID and namespace; identify which objects would be pruned by the proposed rendered manifests.

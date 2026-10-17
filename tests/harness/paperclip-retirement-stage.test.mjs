@@ -16,8 +16,8 @@ test('Paperclip local CLI/agent scaffolding is retired, generic harness retained
   assert.match(pkg.scripts.check, /check:argocd-roots/);
 });
 
-test('Paperclip server Instance is retired before data and operator prune', () => {
-  assert.ok(exists('k8s/applications/ai-paperclip-h3/kustomization.yaml'));
+test('Paperclip server and execution roots are retired before data and operator prune', () => {
+  assert.equal(exists('k8s/applications/ai-paperclip-h3/kustomization.yaml'), false);
   assert.equal(exists('k8s/applications/ai/paperclip/instance.yaml'), false);
   assert.equal(exists('k8s/applications/ai/paperclip/runtime-config.yaml'), false);
   assert.equal(exists('k8s/applications/ai/paperclip/externalsecret.yaml'), false);
@@ -26,7 +26,7 @@ test('Paperclip server Instance is retired before data and operator prune', () =
   assert.ok(exists('k8s/applications/ai/paperclip/database-scheduled-backup.yaml'));
   assert.ok(exists('k8s/infrastructure/controllers/paperclip-operator/application.yaml'));
   assert.ok(exists('k8s/infrastructure/controllers/velero/schedules/daily-paperclip.yaml'));
-  assert.match(read('k8s/bootstrap/argocd-root/applications-applicationset.yaml'), /path: k8s\/applications\/ai-paperclip-h3/);
+  assert.doesNotMatch(read('k8s/bootstrap/argocd-root/applications-applicationset.yaml'), /path: k8s\/applications\/ai-paperclip-h3/);
   assert.match(read('k8s/applications/ai/kustomization.yaml'), /^- paperclip\s*$/m);
 });
 

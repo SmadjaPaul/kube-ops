@@ -17,7 +17,6 @@ spec:
           - path: k8s/applications/media
           - path: k8s/applications/tools
           - path: k8s/applications/ai
-          - path: k8s/applications/ai-paperclip-h3
           - path: k8s/applications/web
           - path: k8s/applications/automation
           - path: k8s/applications/games
