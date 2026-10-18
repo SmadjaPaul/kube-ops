@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {policy-type: platform-audit}
 spec:
-  description: "Staged only; internal ingress and bounded backend API access."
+  description: "Internal ingress and bounded backend access; Research may fetch public HTTPS only after its application-level SSRF and redirect checks."
   endpointSelector:
     matchLabels: {app.kubernetes.io/name: mastra-factory}
   ingress:
@@ -65,6 +65,39 @@ spec:
     - toFQDNs:
         - {matchName: api.github.com}
         - {matchName: github.com}
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+    # Research page fetches are restricted to public HTTPS destinations here.
+    # The application independently rejects private/reserved DNS answers,
+    # literal private addresses and unsafe redirects; this rule does not grant
+    # access to cluster, node, RFC1918, link-local or other reserved ranges.
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 0.0.0.0/8
+            - 10.0.0.0/8
+            - 100.64.0.0/10
+            - 127.0.0.0/8
+            - 169.254.0.0/16
+            - 172.16.0.0/12
+            - 192.0.0.0/24
+            - 192.0.2.0/24
+            - 192.168.0.0/16
+            - 198.18.0.0/15
+            - 198.51.100.0/24
+            - 203.0.113.0/24
+            - 224.0.0.0/4
+            - 240.0.0.0/4
+        - cidr: ::/0
+          except:
+            - ::/128
+            - ::1/128
+            - ::ffff:0:0/96
+            - 2001:db8::/32
+            - fc00::/7
+            - fe80::/10
+            - ff00::/8
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
