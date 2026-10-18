@@ -62,6 +62,9 @@ global:
         name: authentik-blueprint-talos-bluegreen
         optional: true
     - secretRef:
+        name: authentik-blueprint-factory-oidc
+        optional: true
+    - secretRef:
         name: authentik-smtp-credentials
 
   # -- Additional volumeMounts to all deployed Deployments. Does not apply to GeoIP
