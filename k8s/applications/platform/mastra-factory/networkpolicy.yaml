@@ -69,13 +69,27 @@ spec:
         - ports:
             - {port: "443", protocol: TCP}
     # Better Auth performs OIDC discovery and the authorization-code token
-    # exchange against the public Authentik issuer. Keep this destination
-    # host-scoped; do not open the auth namespace or general private egress.
+    # exchange against the canonical HTTPS issuer. Preserve the host-scoped
+    # policy for auth.smadja.dev:443.
     - toFQDNs:
         - {matchName: auth.smadja.dev}
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
+    # Cilium Gateway API can enforce client egress on the selected HTTPRoute
+    # backend identity and *Pod port*, even though the request targets the
+    # HTTPS Gateway (https://github.com/cilium/cilium/issues/47617).
+    # Authentik chart 2026.8.3: Service authentik-server:80 -> server Pod:9000.
+    # Select only the Authentik server Pods; not the worker or whole namespace.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/instance: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+            - {port: "9000", protocol: TCP}
     # Research page fetches are restricted to public HTTPS destinations here.
     # The application independently rejects private/reserved DNS answers,
     # literal private addresses and unsafe redirects; this rule does not grant
