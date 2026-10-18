@@ -34,6 +34,9 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: factory-platform
         - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory
+            app.kubernetes.io/name: mastra-factory
+        - matchLabels:
             k8s:io.kubernetes.pod.namespace: agentgateway
       toPorts:
         - ports:

@@ -118,6 +118,7 @@ roots=(
   k8s/infrastructure/database
   k8s/infrastructure/auth
   k8s/infrastructure/security
+  k8s/applications/platform
   k8s/applications/ai
   k8s/applications/media
   k8s/applications/automation

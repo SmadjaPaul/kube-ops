@@ -44,6 +44,19 @@ spec:
             - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
             - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
+            # Research stays explicitly disabled until a reviewed image
+            # containing the lifecycle routes is promoted.
+            - {name: MASTRA_RESEARCH_ENABLED, value: "0"}
+            - {name: RESEARCH_LLM_BASE_URL, value: "http://agentgateway.agentgateway.svc.cluster.local:4000/v1"}
+            - {name: RESEARCH_MODEL_ID, value: "factory/fast"}
+            - {name: RESEARCH_SEARX_URL, value: "http://searxng.searxng.svc.cluster.local:80/"}
+            - {name: RESEARCH_MAX_ITERATIONS, value: "2"}
+            - {name: RESEARCH_MAX_QUERIES, value: "2"}
+            - {name: RESEARCH_MAX_PAGES, value: "4"}
+            - {name: RESEARCH_GLOBAL_TIMEOUT_MS, value: "60000"}
+            - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://alloy.monitoring.svc.cluster.local:4318"}
+            - {name: OTEL_SERVICE_NAME, value: "mastra-factory"}
+            - {name: DEPLOYMENT_ENVIRONMENT, value: "production"}
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef: {name: mastra-factory-postgresql-app, key: uri}
