@@ -54,6 +54,20 @@ data:
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
+            - key: "$GPT_RESEARCHER_API_KEY"
+              metadata:
+                name: gpt-researcher
+                owner: gpt-researcher
+              allowedModels:
+                - factory/research
+              budgets:
+                - name: gpt-researcher-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 2000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
       models:
         - name: factory/fast
           provider:
@@ -65,6 +79,15 @@ data:
             model: MiniMax-M2.7
             apiKey: "$MINIMAX_API_KEY"
         - name: factory/code
+          provider:
+            custom:
+              formats:
+                - type: completions
+          params:
+            baseUrl: https://api.minimax.io/v1
+            model: MiniMax-M3
+            apiKey: "$MINIMAX_API_KEY"
+        - name: factory/research
           provider:
             custom:
               formats:
@@ -160,6 +183,12 @@ spec:
         - ports: [{port: "4000", protocol: TCP}]
     - fromEndpoints:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: paperclip}
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: gpt-researcher
+            app.kubernetes.io/name: gpt-researcher
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
   egress:
