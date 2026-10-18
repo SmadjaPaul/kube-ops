@@ -51,7 +51,7 @@ spec:
             - name: RETRIEVER
               value: 'searx'
             - name: SEARX_URL
-              value: 'https://search.smadja.dev/'
+              value: 'http://searxng.searxng.svc.cluster.local:80/'
             - name: LOGGING_LEVEL
               value: 'INFO'
             # Environment variables take precedence over config.json for FastAPI requests
