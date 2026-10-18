@@ -48,6 +48,20 @@ spec:
       toPorts:
         - ports:
             - {port: "4000", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: searxng
+            app.kubernetes.io/name: searxng
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: alloy
+      toPorts:
+        - ports:
+            - {port: "4318", protocol: TCP}
     - toFQDNs:
         - {matchName: api.github.com}
         - {matchName: github.com}
