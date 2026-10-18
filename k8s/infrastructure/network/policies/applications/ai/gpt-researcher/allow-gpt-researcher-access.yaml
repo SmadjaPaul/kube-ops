@@ -24,8 +24,8 @@ spec:
   egress:
   - toEndpoints:
     - matchLabels:
-        k8s:io.kubernetes.pod.namespace: litellm
-        app.kubernetes.io/name: litellm
+        k8s:io.kubernetes.pod.namespace: agentgateway
+        app: agentgateway
     toPorts:
     - ports:
       - port: "4000"
