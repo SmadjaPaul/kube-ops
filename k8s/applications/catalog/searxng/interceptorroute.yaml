@@ -33,7 +33,9 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: searxng
-  minReplicaCount: 0
+  # GPT Researcher uses the internal Service directly so it can send the
+  # SearX JSON API request without relying on the external KEDA host route.
+  minReplicaCount: 1
   maxReplicaCount: 1
   cooldownPeriod: 300
   triggers:
