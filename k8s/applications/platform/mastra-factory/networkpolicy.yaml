@@ -68,6 +68,14 @@ spec:
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
+    # Better Auth performs OIDC discovery and the authorization-code token
+    # exchange against the public Authentik issuer. Keep this destination
+    # host-scoped; do not open the auth namespace or general private egress.
+    - toFQDNs:
+        - {matchName: auth.smadja.dev}
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
     # Research page fetches are restricted to public HTTPS destinations here.
     # The application independently rejects private/reserved DNS answers,
     # literal private addresses and unsafe redirects; this rule does not grant
