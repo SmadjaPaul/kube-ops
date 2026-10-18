@@ -1,5 +1,5 @@
 {
-  "RETRIEVER": "tavily",
+  "RETRIEVER": "searx",
   "EMBEDDING": "openai:factory/embedding",
   "SIMILARITY_THRESHOLD": 0.42,
   "FAST_LLM": "openai:factory/fast",

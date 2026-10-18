@@ -7,7 +7,6 @@ resources:
   - namespace.yaml
   - networkpolicy.yaml
   - externalsecret-litellm-api-key.yaml
-  - externalsecret-gpt-researcher.yaml
   - pvc.yaml
   - gpt-researcher-deployment.yaml
   - gpt-researcher-service.yaml
