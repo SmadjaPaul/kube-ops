@@ -81,3 +81,9 @@ spec:
             k8s:app.kubernetes.io/component: interceptor
       toPorts:
         - ports: [{ protocol: TCP, port: "8080" }]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: gpt-researcher
+            app.kubernetes.io/name: gpt-researcher
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
