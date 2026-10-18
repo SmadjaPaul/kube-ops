@@ -48,9 +48,10 @@ data:
                 - name: canary-daily-tokens
                   limit:
                     unit: Tokens
-                    # One native Factory canary only; raise only through a
-                    # separately reviewed budget change after evidence.
-                    amount: 2000
+                    # Factory canary ceiling: 100k tokens per rolling 24h.
+                    # Keep enforcement fail-closed; per-request usage is
+                    # emitted through Agentgateway GenAI/OTel telemetry.
+                    amount: 100000
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
