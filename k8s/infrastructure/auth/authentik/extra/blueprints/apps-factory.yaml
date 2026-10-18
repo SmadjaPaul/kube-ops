@@ -1,6 +1,4 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
-# Dormant until the dedicated Doppler OIDC secret is provisioned and the
-# blueprint is explicitly added to the Authentik ConfigMap generator.
 ---
 version: 1
 metadata:

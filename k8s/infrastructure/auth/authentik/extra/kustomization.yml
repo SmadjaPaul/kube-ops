@@ -5,6 +5,7 @@ resources:
   - secrets.yml
   - smtp-externalsecret.yaml
   - talos-bluegreen-externalsecret.yaml
+  - factory-oidc-external-secret.dormant.yaml
 
 generatorOptions:
   disableNameSuffixHash: false
@@ -49,3 +50,4 @@ configMapGenerator:
       # password or invitation token is stored in Git/Doppler. notifications.yaml
       # stays excluded until its optional Slack webhook exists.
       - ./blueprints/apps-talos-bluegreen.yaml
+      - ./blueprints/apps-factory.yaml
