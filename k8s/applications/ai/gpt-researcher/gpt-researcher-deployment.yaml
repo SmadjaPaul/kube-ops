@@ -48,6 +48,8 @@ spec:
                   key: OPENAI_API_KEY
             - name: OPENAI_BASE_URL
               value: 'http://agentgateway.agentgateway.svc.cluster.local:4000/v1'
+            - name: RETRIEVER
+              value: 'searx'
             - name: SEARX_URL
               value: 'https://search.smadja.dev/'
             - name: LOGGING_LEVEL
