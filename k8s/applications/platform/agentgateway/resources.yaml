@@ -112,7 +112,12 @@ spec:
   strategy: {type: Recreate}
   selector: {matchLabels: {app: agentgateway}}
   template:
-    metadata: {labels: {app: agentgateway}}
+    metadata:
+      labels: {app: agentgateway}
+      # Bump when the config or envFrom secret contract changes so the
+      # process starts with the current runtime configuration.
+      annotations:
+        checksum/agentgateway-runtime: gpt-researcher-routing-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
