@@ -50,3 +50,36 @@ After each lot, verify the target objects are absent, preserved backups remain
 `Completed`, the other drill lot is unchanged, and Factory/Mastra and Argo
 health show no new regression. Keep the JSONL journal and secret-free metadata
 snapshots as the evidence archive.
+
+## Execution result
+
+The two eligible lots were executed on 2026-10-19 from the merged tree
+`51744568d92f51f16d47379084725023068627c6`:
+
+- Longhorn proof: one namespace, four PVs and four Longhorn volumes deleted;
+  four remote Longhorn backups remained `Completed`.
+- CNPG/Barman: two namespaces, six drill CRs, two PVs and two Longhorn volumes
+  deleted. No S3 or Velero delete API was called. The Barman metadata and the
+  source completed-backup evidence were captured before apply.
+- Historical: zero deleted. All 17 PVCs remain REVIEW because active
+  restore-drill workloads and/or Argo references still exist.
+
+Execution journals are retained at:
+
+- `/tmp/dr-pvc-proof-20261019193651-cleanup-20261019.journal.jsonl`, SHA-256
+  `563be25d18a438a7a48f7037a3791e4a5686c654b092e90fae91131c9b550b8e`;
+- `/tmp/dr-synth-20261019170700-cnpg-cleanup-20261019.journal.jsonl`, SHA-256
+  `467910fd92a36e82444b2d5c355cee0ce737b5fe4e0d460fb0a88273cc7bb1a9`.
+
+Post-cleanup checks found 21/21 Argo applications Synced, 17 Healthy and 4
+pre-existing Degraded; `infra-database` remained Healthy/Synced and both
+Mastra Factory pods were Running/Ready. The backup audit still fails on
+pre-existing gaps: 5 unverified PVCs, CNPG configuration 12/12, restore proof
+still unproven and 17 historical residues. The lower PVC denominator is a
+mechanical consequence of removing six drill PVCs, not proof of improved
+production coverage.
+
+Synthetic Barman S3 data was not enumerated or deleted. The source prefix is
+shared by two drill ObjectStores and remains subject to the one-day retention
+policy; a separate S3 qualification and approval is still required for any
+object deletion.
