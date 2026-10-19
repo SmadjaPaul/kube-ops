@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "backup-audit/restore-evidence-v1",
+  "producedAt": "2026-10-19T21:20:00Z",
+  "maxAgeSeconds": 86400,
+  "scope": "synthetic-dr-qualification",
+  "items": [
+    {
+      "id": "velero-kopia-synthetic-20261019",
+      "kind": "Velero/Kopia",
+      "status": "PASS",
+      "accepted": true,
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "cnpg-barman-synthetic-20261019",
+      "kind": "CNPG/Barman",
+      "status": "PASS",
+      "accepted": true,
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-agentgateway-20261019",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"agentgateway","name":"agentgateway-state","uid":"00d1af5f-70e1-4dcf-81db-6e4e1f12255f"},
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-atlantis-20261019",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"atlantis-system","name":"atlantis-pilot-data","uid":"24ed83e6-2ac2-486f-8f6a-37ea3d064731"},
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-listmonk-20261019",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"listmonk","name":"listmonk-uploads","uid":"8a7998ba-7603-41f7-bbeb-18a146a89ad6"},
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-twenty-20261019",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"twenty","name":"twenty-storage","uid":"5052b6c5-9815-4123-afe1-8c8f81515c3f"},
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    }
+  ]
+}

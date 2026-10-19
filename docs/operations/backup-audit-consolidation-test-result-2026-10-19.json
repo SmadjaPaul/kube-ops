@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "backup-audit-consolidation-2026-10-19",
+  "producedAt": "2026-10-19T23:30:00+02:00",
+  "actor": {"kind":"agent","name":"codex"},
+  "repository": {
+    "name":"SmadjaPaul/kube-ops",
+    "revision":"working-tree",
+    "branch":"codex/backup-audit-consolidation"
+  },
+  "tests": [
+    {
+      "id":"backup-audit-contract",
+      "name":"backup audit fixture contract",
+      "command":"bash tests/harness/backup-audit-contract-test.sh",
+      "execution":"executed",
+      "status":"PASSED",
+      "classification":"passed",
+      "reason":"Existing Velero coverage, missing PVB, failed CNPG backup, Longhorn Completed backup correlation, explicit restore evidence and machine-readable output assertions passed.",
+      "risk":"low",
+      "expectedCi":"required",
+      "evidence":{"kind":"command","reference":"backup-audit contract: PASS"}
+    },
+    {
+      "id":"repository-check",
+      "name":"repository static and contract suite",
+      "command":"just check",
+      "execution":"executed",
+      "status":"PASSED",
+      "classification":"passed",
+      "reason":"The complete repository check suite passed, including backup, DR, Longhorn, Argo and Factory contracts.",
+      "risk":"low",
+      "expectedCi":"required",
+      "evidence":{"kind":"command","reference":"just check exit 0"}
+    },
+    {
+      "id":"live-bounded-backup-audit",
+      "name":"bounded live backup audit",
+      "command":"BACKUP_AUDIT_REPORT_FILE=/tmp/backup-audit-v2-machine.json BACKUP_AUDIT_REQUEST_TIMEOUT_SECONDS=3 BACKUP_AUDIT_TIMEOUT_SECONDS=8 bash scripts/backup-audit.sh",
+      "execution":"executed",
+      "status":"FAILED",
+      "classification":"failed",
+      "reason":"Collection completed, but the audit correctly remains FAIL: 52/55 production PVCs are covered, one Immich Redis PVC lacks correlated off-site proof, and two dynamic Mastra sandbox PVCs have no configured backup mechanism. This is an exposed data-protection gap, not a masked test failure.",
+      "risk":"high",
+      "expectedCi":"optional",
+      "evidence":{"kind":"command","reference":"BACKUP_AUDIT_STATUS=COMPLETE; PRODUCTION_PVC_COVERAGE=FAIL (52/55); PRODUCTION_PVC_UNVERIFIED=1; BACKUP_AUDIT_GAPS=20"}
+    },
+    {
+      "id":"historical-pvc-review",
+      "name":"historical PVC inventory review",
+      "command":"review docs/operations/dr-synth-historical-review-manifest-2026-10-19.json",
+      "execution":"executed",
+      "status":"PASSED",
+      "classification":"passed",
+      "reason":"All 17 historical PVCs remain explicitly retained for review; no deletion list or live mutation was introduced.",
+      "risk":"high",
+      "expectedCi":"optional",
+      "evidence":{"kind":"file","reference":"docs/operations/dr-synth-historical-review-manifest-2026-10-19.json"}
+    },
+    {
+      "id":"live-cleanup",
+      "name":"historical or DR cleanup",
+      "execution":"not-executed",
+      "status":"NOT_APPLICABLE",
+      "classification":"not-applicable",
+      "reason":"This mission authorizes no deletion, PVC mutation, or cleanup execution.",
+      "risk":"high",
+      "expectedCi":"not-expected",
+      "evidence":{"kind":"none","reference":"no live delete issued"}
+    }
+  ],
+  "summary": {
+    "outcome":"incomplete",
+    "total":5,
+    "executed":4,
+    "notExecuted":1,
+    "passed":3,
+    "failed":1,
+    "notApplicable":1
+  },
+  "transmission": {
+    "target":"factory-platform",
+    "eventType":"agent.test.result",
+    "schema":"agent-test-result/v1",
+    "idempotencyKey":"SmadjaPaul/kube-ops@working-tree:backup-audit-consolidation-2026-10-19",
+    "payload": {
+      "resultId":"backup-audit-consolidation-2026-10-19",
+      "repository":"SmadjaPaul/kube-ops",
+      "revision":"working-tree",
+      "tests":[
+        {"id":"backup-audit-contract","name":"backup audit fixture contract","execution":"executed","status":"PASSED","classification":"passed","reason":"Fixture contract passed.","risk":"low","expectedCi":"required"},
+        {"id":"repository-check","name":"repository static and contract suite","execution":"executed","status":"PASSED","classification":"passed","reason":"Repository checks passed.","risk":"low","expectedCi":"required"}
+      ],
+      "summary":{"outcome":"incomplete","total":5,"executed":4,"notExecuted":1}
+    }
+  }
+}
