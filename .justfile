@@ -23,6 +23,7 @@ inventory:
 [doc('Run deterministic clusterless V1 + backup validation')]
 check:
     npm run check
+    bash tests/harness/grafana-dashboard-contract-test.sh
     bash tests/harness/backup-audit-contract-test.sh
     bash tests/harness/atlantis-plan-only-test.sh
     bash tests/harness/kube-preflight-test.sh

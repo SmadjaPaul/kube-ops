@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "kube-ops-grafana-catalog-2026-10-19",
+  "producedAt": "2026-10-19T09:04:09Z",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "kube-ops",
+    "revision": "working-tree",
+    "branch": "codex/grafana-catalog-refactor"
+  },
+  "tests": [
+    {
+      "id": "grafana-catalog-contract",
+      "name": "Curated Grafana dashboard contract",
+      "command": "bash tests/harness/grafana-dashboard-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "11 dashboards parsed with unique UIDs, required folders, tags, descriptions, links and non-empty panels.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local 2026-10-19"}
+    },
+    {
+      "id": "promql-live-validation",
+      "name": "Live PromQL validation",
+      "command": "80 unique dashboard expressions queried through the canonical Prometheus API proxy",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All 81 unique PromQL expressions returned Prometheus status success after replacing Grafana variables with bounded selectors; the Loki LogQL panel was excluded from the Prometheus endpoint check.",
+      "risk": "low",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "canonical kube access; local 2026-10-19"}
+    },
+    {
+      "id": "kustomize-monitoring-render",
+      "name": "Monitoring Kustomize and Helm render",
+      "command": "kustomize build --enable-helm k8s/infrastructure/monitoring",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Render completed and contained the curated ConfigMaps, folder annotations and sidecar folder configuration without chart dashboard ConfigMaps.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local /tmp/monitoring-rendered.yaml; 2026-10-19"}
+    },
+    {
+      "id": "repository-diff-check",
+      "name": "Whitespace and patch integrity",
+      "command": "git diff --check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "No whitespace errors were reported.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local 2026-10-19"}
+    },
+    {
+      "id": "repository-check",
+      "name": "Repository check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "Existing paperclip-retirement-stage test fails because the repository still contains the pre-existing local scaffolding; the failure is outside the Grafana files and blocks a clean full-suite result.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "tests/harness/paperclip-retirement-stage.test.mjs:10; local 2026-10-19"}
+    },
+    {
+      "id": "runtime-baseline",
+      "name": "Pre-change runtime inventory",
+      "command": "just runtime-inventory",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Baseline showed infra-monitoring Synced/Healthy, 45 live dashboard ConfigMaps, reachable routes and the Proxmox target up; this is not post-reconcile proof.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "just runtime-inventory; pre-change baseline 2026-10-19"}
+    },
+    {
+      "id": "post-reconcile-runtime",
+      "name": "Post-reconcile Argo and dashboard runtime proof",
+      "command": "just runtime-inventory && just runtime-smoke",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The PR branch has not been merged or reconciled; running this now would only observe the old main revision.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "run after merge and Argo reconciliation"}
+    },
+    {
+      "id": "grafana-browser-render",
+      "name": "Grafana browser rendering and folder placement",
+      "command": "Open Grafana and inspect all curated dashboards with live datasources",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The replacement ConfigMaps are not live yet and no dashboard UI acceptance was run against the branch.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "run after merge and Argo reconciliation"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 8,
+    "executed": 6,
+    "notExecuted": 2,
+    "passed": 5,
+    "failed": 1,
+    "skipped": 0,
+    "unavailable": 2,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "kube-ops-grafana-catalog-2026-10-19",
+    "payload": {
+      "resultId": "kube-ops-grafana-catalog-2026-10-19",
+      "repository": "kube-ops",
+      "revision": "working-tree",
+      "tests": [
+        {
+          "id": "grafana-catalog-contract",
+          "name": "Curated Grafana dashboard contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "11 dashboards parsed with unique UIDs, required folders, tags, descriptions, links and non-empty panels.",
+          "risk": "none",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "incomplete", "total": 8, "executed": 6, "notExecuted": 2, "passed": 5, "failed": 1, "unavailable": 2}
+    }
+  }
+}

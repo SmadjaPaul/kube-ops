@@ -8,13 +8,19 @@
 - `prometheus.prometheusSpec.storageSpec` is absent in Git; upstream default is emptyDir (non-durable across Pod re-creation). Confirm the **live** Prometheus StatefulSet and volume before planning any PVC change.
 - `Loki` is a single monolithic instance backed by `longhorn-bulk` on the HDD tier. Alloy is one Deployment using Kubernetes API pod logs and Kubernetes events, not node-file reading.
 
-## HomeOps dashboards (provisioned by the Grafana dashboard sidecar)
+## Grafana catalogue (provisioned by the Grafana dashboard sidecar)
 
-- `HomeOps — Operations Overview`: node Ready, alerts firing, synthetic checks, Argo health, PVC pending/usage, cluster CPU/RAM, failing scrapes. No hardware telemetry is inferred.
-- `HomeOps — Logs & Collection Cost`: Loki per-namespace bytes/s and lines/s, Kubernetes event throughput, Loki+Alloy CPU/RAM. Existing `source=kubernetes` / `source=kubernetes-events` labels and the existing Loki datasource are reused.
-- `HomeOps — Boot, CPU & Guest I/O`: continue using for cAdvisor, Prometheus cost and guest virtual disks.
+The curated catalogue is documented in `docs/operations/grafana-catalog.md`.
+The former HomeOps views retain their UIDs while becoming `Platform Overview`,
+`Telemetry Pipeline` and `Host & Hardware`. Loki per-namespace bytes/s,
+request errors and the configured retention policy now live in Telemetry
+Pipeline; the existing `source=kubernetes` label and Loki datasource are
+reused. Prometheus, Loki and KPS metrics/rules remain enabled.
 
-Dashboard queries run when viewed; refresh is 1m for Overview and 2m for Logs. Validate datasource variable `DS_LOKI` against the actual Grafana instance after Argo reconciliation. A *No data* panel is **not** proof of zero errors or a healthy system.
+Dashboard queries run when viewed; refresh is 1m for Overview and 2m for
+Telemetry Pipeline. Validate datasource variable `DS_LOKI` against the actual
+Grafana instance after Argo reconciliation. A *No data* panel is **not** proof
+of zero errors or a healthy system.
 
 ## Alertmanager → ntfy activation contract (intentionally **not** deployed yet)
 
@@ -54,6 +60,6 @@ No `storageSpec` is declared. Before modifying the StatefulSet:
 
 1. `just check` and GitHub CI PASS.
 2. Argo `infra-monitoring` Synced/Healthy at the merged SHA.
-3. Grafana dashboard sidecar recognizes both new ConfigMaps; Overview panels render and Loki datasource resolves.
-4. Grafana SSO, existing dashboards, Prometheus scrapes and KPS default alerts unchanged.
+3. Grafana dashboard sidecar recognizes the seven folders; curated panels render and the Loki datasource resolves.
+4. Grafana SSO, preserved dashboard UIDs, Prometheus scrapes and KPS default alerts remain functional.
 5. Confirm before claiming delivery: `ALERTS` existence != Alertmanager-to-ntfy success.

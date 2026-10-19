@@ -105,7 +105,10 @@ bloomGateway:
 
 monitoring:
   dashboards:
-    enabled: true
+    # Loki metrics and recording rules remain enabled; only the chart's
+    # dashboard ConfigMaps are disabled because Telemetry Pipeline owns the
+    # curated Loki views.
+    enabled: false
   serviceMonitor:
     enabled: true
     labels:
