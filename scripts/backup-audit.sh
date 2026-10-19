@@ -31,6 +31,7 @@ if [[ -n "${BACKUP_AUDIT_INPUT_DIR:-}" ]]; then
       printf '%s\n' '{"items":[]}' >"$scratch/$file.json"
     }
   done
+  [[ -s "$input_dir/recovery-policy.json" ]] || printf '%s\n' '{"policies":[]}' >"$scratch/recovery-policy.json"
 else
   command -v kubectl >/dev/null || { echo "ERROR: kubectl required" >&2; exit 2; }
   source "$(dirname "$0")/lib/kube-preflight.sh"
@@ -82,6 +83,7 @@ else
   jq -Rn '[inputs | split("\t") | {resource: .[0], reason: .[1]}]' \
     <"$scratch/collection-errors.tsv" >"$collection_errors_file"
   printf '%s\n' '{"items":[]}' >"$tmp/restore-evidence.json"
+  printf '%s\n' '{"policies":[]}' >"$tmp/recovery-policy.json"
 fi
 
 evidence_file="${BACKUP_AUDIT_RESTORE_EVIDENCE_FILE:-}"
@@ -94,6 +96,17 @@ elif [[ -n "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$input_dir/restore-evidence.json
   evidence_input="$input_dir/restore-evidence.json"
 else
   evidence_input="$scratch/restore-evidence.json"
+fi
+policy_file="${BACKUP_AUDIT_RECOVERY_POLICY_FILE:-}"
+if [[ -z "$policy_file" && -z "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$(dirname "$0")/../docs/operations/pvc-recovery-policy-2026-10-20.json" ]]; then
+  policy_file="$(dirname "$0")/../docs/operations/pvc-recovery-policy-2026-10-20.json"
+fi
+if [[ -n "$policy_file" && -s "$policy_file" ]]; then
+  policy_input="$policy_file"
+elif [[ -n "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$input_dir/recovery-policy.json" ]]; then
+  policy_input="$input_dir/recovery-policy.json"
+else
+  policy_input="$scratch/recovery-policy.json"
 fi
 lh_volumes_input="$input_dir/longhorn-volumes.json"
 lh_backups_input="$input_dir/longhorn-backups.json"
@@ -117,8 +130,10 @@ jq -n \
   --slurpfile lhvolumes "$lh_volumes_input" \
   --slurpfile lhbackups "$lh_backups_input" \
   --slurpfile evidence "$evidence_input" \
+  --slurpfile recoveryPolicies "$policy_input" \
   --slurpfile collectionErrors "$collection_errors_file" \
   --arg collectionStatus "$collection_status" \
+  --arg observedAt "${BACKUP_AUDIT_OBSERVED_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" \
   --arg requireUIDs "$([[ -z "${BACKUP_AUDIT_INPUT_DIR:-}" ]] && echo true || echo false)" '
 def items($doc): $doc[0].items // [];
 def ns: .metadata.namespace // "default";
@@ -225,6 +240,20 @@ def evidence_for_pvc($pvc):
     (.pvc.namespace // "") == ($pvc | ns) and
     (.pvc.name // "") == ($pvc | name) and
     (.pvc.uid // "") == ($pvc.metadata.uid // ""));
+def recovery_policy_for($pvc):
+  [($recoveryPolicies[0].policies // [])[] |
+    select((.namespace // "") == ($pvc | ns) and
+      (.name // "") == ($pvc | name) and
+      (.uid // "") == ($pvc.metadata.uid // ""))] | first // {};
+def recovery_status($policy; $offsite; $classification):
+  if $offsite then "PROTECTED"
+  elif (($policy.recoveryPolicy // "") == "EPHEMERAL_VERIFIED" and
+        (($policy.recoveryEvidence // []) | length) > 0) then "EPHEMERAL_VERIFIED"
+  elif (($policy.recoveryPolicy // "") == "EXCLUDE_ACCEPTED_LOSS" and
+        (($policy.recoveryEvidence // []) | length) > 0) then "EXCLUDE_ACCEPTED_LOSS"
+  elif (($policy.recoveryPolicy // "") == "UNKNOWN_REVIEW") then "UNKNOWN_REVIEW"
+  elif $classification == "production" then "UNPROTECTED"
+  else "UNKNOWN_REVIEW" end;
 
  (items($pvs) | reduce .[] as $pv ({}; .[$pv.metadata.name] = $pv)) as $pv_index |
  (completed_backups) as $completed_backups_list |
@@ -251,6 +280,7 @@ def evidence_for_pvc($pvc):
      .[(($volume.status.kubernetesStatus.namespace // "") + "/" + ($volume.status.kubernetesStatus.pvcName // ""))] = $volume
    else . end)) as $lh_volume_index |
 ([items($pvcs)[] | . as $pvc |
+  (recovery_policy_for($pvc)) as $policy |
   (lh_volume_for($pvc; $lh_volume_index)) as $lhvolume |
   (lh_backup_for($pvc; $lh_volume_index; $lh_backup_index)) as $lhbackup |
   (pvb_for_pvc($pvc; $pvb_claim_index)) as $pvb |
@@ -269,6 +299,10 @@ def evidence_for_pvc($pvc):
     volume:(.spec.volumeName // ""),
     classification:(if is_excluded then "explicitly-excluded" elif is_drill then "synthetic/test" else "production" end),
     decision:(if is_excluded then "EXPLICITLY_EXCLUDED" elif is_drill then "REVIEW" else "PROTECT" end),
+    recoveryPolicy:($policy.recoveryPolicy // (if is_excluded then "UNKNOWN_REVIEW" elif is_drill then "UNKNOWN_REVIEW" else "PROTECT_OFFSITE" end)),
+    recoveryEvidence:($policy.recoveryEvidence // []),
+    lastVerifiedAt:($policy.lastVerifiedAt // ""),
+    policyMatched:(($policy.uid // "") != "" and ($policy.uid == (.metadata.uid // ""))),
     scheduled:(schedule_for_namespace(ns)),
     completedBackup:(completed_backup_for_namespace(ns; $completed_backups_list)),
     completedPVB:($pvb != false),
@@ -281,6 +315,8 @@ def evidence_for_pvc($pvc):
   }
   | .coverageReady=(.bound and .pvBound and .backupConfigured and .offsiteBackupVerified)
   | .backupMechanism=(if .completedPVB then "velero/kopia" elif .longhornBackupCompleted then "longhorn-s3" elif .scheduled then "configured-no-completed-proof" else "none" end)
+  | .recoveryStatus=(recovery_status($policy; .offsiteBackupVerified; .classification))
+  | .lastVerifiedAt=(if .lastVerifiedAt != "" then .lastVerifiedAt elif .offsiteBackupVerified then $observedAt else "" end)
 ] | map(select((.rebuildable or .excluded) | not))) as $all_pvcs |
 ($all_pvcs | map(select(.drill))) as $drill_pvcs |
 ($all_pvcs | map(select((.drill or .cnpg) | not))) as $production_pvcs |
@@ -299,6 +335,7 @@ def evidence_for_pvc($pvc):
 ($restores | map(select(.cnpg))) as $cnpg_restores |
 ($restores | map(select(.drill))) as $drill_restores |
 (evidence_pass) as $evidence_pass |
+($production_pvcs | map(.recoveryStatus) | group_by(.) | map({key:.[0],value:length}) | from_entries) as $recovery_counts |
 {
   schemaVersion:"backup-audit/v2",
   collectionStatus:$collectionStatus,
@@ -315,6 +352,13 @@ def evidence_for_pvc($pvc):
     covered:([ $production_pvcs[] | select(.coverageReady) ]|length),
     uncovered:([ $production_pvcs[] | select((.bound and .pvBound and .backupConfigured)|not) ]),
     unverified:([ $production_pvcs[] | select(.bound and .pvBound and .backupConfigured and (.offsiteBackupVerified|not)) ])
+  },
+  productionRecovery:{
+    protected:($recovery_counts.PROTECTED // 0),
+    ephemeralVerified:($recovery_counts.EPHEMERAL_VERIFIED // 0),
+    excludeAcceptedLoss:($recovery_counts.EXCLUDE_ACCEPTED_LOSS // 0),
+    unknownReview:($recovery_counts.UNKNOWN_REVIEW // 0),
+    unprotected:($recovery_counts.UNPROTECTED // 0)
   },
   cnpgConfiguration:{
     total:($cnpg_inventory|length),
@@ -340,6 +384,7 @@ def evidence_for_pvc($pvc):
   pvCount:($pv_inventory|length)
 } |
 .productionPVCStatus=(if $collectionStatus != "COMPLETE" then "PARTIAL" elif .productionPVC.total == 0 then "NOT_APPLICABLE" elif (.productionPVC.uncovered|length)>0 then "FAIL" elif (.productionPVC.unverified|length)>0 then "UNKNOWN" else "PASS" end) |
+.productionRecoveryStatus=(if $collectionStatus != "COMPLETE" then "PARTIAL" elif .productionPVC.total == 0 then "NOT_APPLICABLE" elif ((.productionRecovery.unknownReview + .productionRecovery.unprotected) > 0) then "FAIL" else "PASS" end) |
 .cnpgBackupConfigurationStatus=(if $collectionStatus != "COMPLETE" then "PARTIAL" elif .cnpgConfiguration.total == 0 then "NOT_APPLICABLE" elif (.cnpgConfiguration.uncovered|length)==0 then "PASS" else "FAIL" end) |
 .cnpgRestoreProofStatus=(if .cnpgRestoreProof.completed > 0 or .cnpgRestoreProof.evidenceAccepted > 0 then "PASS" elif .cnpgRestoreProof.unacceptedCompleted > 0 then "PARTIAL" else "UNPROVEN" end) |
 .restoreDrillStatus=(if .restoreDrills.evidenceAccepted > 0 then "PASS" elif .restoreDrills.total == 0 then "NONE" elif .restoreDrills.failed > 0 then "FAIL" elif .restoreDrills.completedUnaccepted > 0 then "PARTIAL" elif .restoreDrills.accepted == .restoreDrills.total then "PASS" else "UNPROVEN" end) |
@@ -362,6 +407,13 @@ printf 'PRODUCTION_PVC_COVERAGE=%s (%s/%s)\n' \
   "$(jq -r '.productionPVC.covered' <<<"$report")" \
   "$(jq -r '.productionPVC.total' <<<"$report")"
 printf 'PRODUCTION_PVC_UNVERIFIED=%s\n' "$(jq -r '.productionPVC.unverified|length' <<<"$report")"
+printf 'PRODUCTION_RECOVERY_STATUS=%s (PROTECTED=%s EPHEMERAL_VERIFIED=%s EXCLUDE_ACCEPTED_LOSS=%s UNKNOWN_REVIEW=%s UNPROTECTED=%s)\n' \
+  "$(jq -r '.productionRecoveryStatus' <<<"$report")" \
+  "$(jq -r '.productionRecovery.protected' <<<"$report")" \
+  "$(jq -r '.productionRecovery.ephemeralVerified' <<<"$report")" \
+  "$(jq -r '.productionRecovery.excludeAcceptedLoss' <<<"$report")" \
+  "$(jq -r '.productionRecovery.unknownReview' <<<"$report")" \
+  "$(jq -r '.productionRecovery.unprotected' <<<"$report")"
 printf 'CNPG_BACKUP_CONFIGURATION=%s (%s/%s)\n' \
   "$(jq -r '.cnpgBackupConfigurationStatus' <<<"$report")" \
   "$(jq -r '.cnpgConfiguration.covered' <<<"$report")" \
