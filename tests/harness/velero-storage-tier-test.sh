@@ -16,7 +16,12 @@ fi
 
 # Isolated restores must discard stale PV identity but preserve the tier.
 rules="$(yq -r '.data["resource-modifier.yaml"]' "$modifier")"
-grep -F 'path: "/spec/volumeName"' <<<"$rules" >/dev/null
+grep -F 'mergePatches:' <<<"$rules" >/dev/null
+grep -F '"volumeName": null' <<<"$rules" >/dev/null
+if grep -F 'operation: remove' <<<"$rules" >/dev/null; then
+  echo "ERROR: non-idempotent JSON Patch remove remains in restore modifier" >&2
+  exit 1
+fi
 if grep -F 'path: "/spec/storageClassName"' <<<"$rules" >/dev/null; then
   echo "ERROR: storage class rewriting in restore modifier" >&2
   exit 1
