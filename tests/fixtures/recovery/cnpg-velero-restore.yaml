@@ -6,8 +6,24 @@ metadata:
 spec:
   status: not-executed
   approval: required
+  authorization:
+    scope: synthetic-only
+    operatorApprovalRequired: true
+    autonomousExecutionAllowed: true
+    secondOperatorRequired: false
+    independentStopRequired: true
+    hardDeadlineRequired: true
   restoreTarget: isolated
   productionTargetsExcluded: true
+  applicationRestore:
+    approvalRequired: true
+    productionTargetsExcluded: true
+  network:
+    enforcement: cilium
+    defaultDenyIngress: true
+    defaultDenyEgress: true
+    productionNamespacesDenied: true
+    externalServicesDenied: true
   cnpg:
     source: barman-object-store
     temporaryNamespaceRequired: true

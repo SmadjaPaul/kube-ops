@@ -54,8 +54,21 @@ yq -e '
   .kind == "RecoveryQualification" and
   .spec.status == "not-executed" and
   .spec.approval == "required" and
+  .spec.authorization.scope == "synthetic-only" and
+  .spec.authorization.operatorApprovalRequired == true and
+  .spec.authorization.autonomousExecutionAllowed == true and
+  .spec.authorization.secondOperatorRequired == false and
+  .spec.authorization.independentStopRequired == true and
+  .spec.authorization.hardDeadlineRequired == true and
   .spec.restoreTarget == "isolated" and
   .spec.productionTargetsExcluded == true and
+  .spec.applicationRestore.approvalRequired == true and
+  .spec.applicationRestore.productionTargetsExcluded == true and
+  .spec.network.enforcement == "cilium" and
+  .spec.network.defaultDenyIngress == true and
+  .spec.network.defaultDenyEgress == true and
+  .spec.network.productionNamespacesDenied == true and
+  .spec.network.externalServicesDenied == true and
   .spec.cnpg.sentinelCheck == "row-count-and-checksum" and
   .spec.veleroKopia.expectedPodVolumeBackups == 2 and
   .spec.veleroKopia.expectedPodVolumeRestores == 2 and

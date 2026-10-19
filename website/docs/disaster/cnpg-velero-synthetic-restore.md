@@ -5,7 +5,7 @@ sidebar_position: 12
 
 # CNPG and Velero/Kopia synthetic restore qualification
 
-This is an **unexecuted, human-gated** design for PLT-51. It proves two
+This is an **unexecuted, technically gated** synthetic-only design for PLT-51. It proves two
 different recovery paths in isolated namespaces: a CloudNativePG recovery from
 the Barman object store and a Velero/Kopia filesystem restore of a small
 synthetic PVC. It must not restore into a production namespace, production PVC,
@@ -18,12 +18,29 @@ Kubernetes resource.
 
 ## Approval and isolation gates
 
-The operator must approve a bounded window, fresh namespace names, the exact
-backup identifiers and cleanup set before any temporary object is created. The
-window must include a second operator able to stop the drill. Atlantis is not a
-runtime dependency: the recovery package must be available from Git, the
-canonical operator-access path in `homelab-infra`, and the off-cluster backup
-services.
+The operator authorizes autonomous execution **only for a fresh, disposable,
+synthetic** two-leg restore, after all fail-closed preflight gates pass. The
+agent records a bounded UTC execution window, unique namespaces, exact backup
+IDs, a manifest/resource allowlist and a cleanup inventory before any write.
+No second human operator is required for this synthetic-only scope; instead an
+**independent, tested stop mechanism** must be available outside the agent's
+own process, with hard deadlines and health gates. A shell trap by itself is
+not sufficient. If the independent stop mechanism fails validation, stop.
+
+Before creating anything, verify Cilium egress isolation (not merely absence
+of ingress), deny access to production databases and external services, check
+Longhorn capacity and node CPU/memory/disk pressure, and reserve headroom for
+active Factory/Mastra sandboxes and jobs. Use narrowly bounded PVC sizes,
+requests/limits and one restore leg at a time. Fail closed if required network
+paths for restoring data cannot be allowed without exposing production targets.
+Do not change shared Cilium policies, resource quotas, StorageClasses or
+production resources to make the drill pass. Stop for new cluster/Factory
+health regressions, missing metrics, unexpected PVC/PV references or timeout.
+
+Atlantis is not a runtime dependency: recovery prerequisites must remain
+available from Git, the canonical operator-access path in `homelab-infra`,
+and the off-cluster backup services. A production or Invoice Ninja application
+restore is **outside** this authorization and retains its separate human gates.
 
 Stop before creating anything if the selected CNPG backup is not successful,
 WAL continuity is unknown, the selected Velero backup is not `Completed`,
@@ -51,7 +68,7 @@ external ingress is needed.
 | Data acceptance | Sentinel row, row count and checksum match the recorded source value |
 | Stop condition | Any WAL gap, unexpected source object, reused PVC, or checksum mismatch stops the drill |
 
-The exact temporary manifest is generated only after approval because it
+The exact temporary manifest is generated only after the synthetic preflight passes because it
 contains environment-specific object-store references. It is not committed as
 desired state and it must not contain a secret value.
 
@@ -91,7 +108,7 @@ reasons without including credentials or secret data.
 ## Cleanup and result
 
 Capture the Backup, Restore, PVB/PVR, CNPG status and checksum evidence before
-cleanup. Cleanup is a separate operator-approved action naming the exact
+cleanup. Cleanup remains a separate operator-approved action naming the exact
 temporary namespace, cluster, PVC, PV and backup objects. No cleanup command is
 part of this documentation change.
 
