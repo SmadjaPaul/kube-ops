@@ -1,0 +1,6 @@
+- op: add
+  path: /spec/volumeClaimTemplates/0/metadata/labels/recurring-job.longhorn.io~1source
+  value: enabled
+- op: add
+  path: /spec/volumeClaimTemplates/0/metadata/labels/recurring-job.longhorn.io~1immich-redis-offsite
+  value: enabled

@@ -12,16 +12,20 @@
         {
           "kind": "runtime-observation",
           "reference": "Immich Redis StatefulSet uses appendonly=yes and save=disabled; queues/jobs are not proven reconstructible"
+        },
+        {
+          "kind": "longhorn-restore",
+          "reference": "dr-restore-evidence-2026-10-20.json: Longhorn backup Completed; AOF and Redis copy recovery PASS; full Immich recovery remains unproven"
         }
       ],
-      "lastVerifiedAt": "2026-10-19T22:28:31Z"
+      "lastVerifiedAt": "2026-10-19T22:52:14Z"
     },
     {
       "namespace": "mastra-sandbox",
       "name": "workspace-sandbox-claim-05473af3",
       "uid": "c36eea64-f347-46af-88a2-46ab620575b0",
       "classification": "production",
-      "recoveryPolicy": "UNKNOWN_REVIEW",
+      "recoveryPolicy": "PROTECT_OFFSITE",
       "recoveryEvidence": [
         {
           "kind": "runtime-observation",
@@ -30,16 +34,20 @@
         {
           "kind": "factory-contract",
           "reference": "Factory recovery guard refuses claim recreation until persisted workspace/run recovery is proven"
+        },
+        {
+          "kind": "longhorn-restore",
+          "reference": "dr-restore-evidence-2026-10-20.json: current workspace backup and filesystem restore PASS; agent continuation remains unproven"
         }
       ],
-      "lastVerifiedAt": "2026-10-19T22:28:31Z"
+      "lastVerifiedAt": "2026-10-19T22:52:14Z"
     },
     {
       "namespace": "mastra-sandbox",
       "name": "workspace-sandbox-claim-0de14859",
       "uid": "06fc6da9-bf5d-4538-b8a3-42fc735956c0",
       "classification": "production",
-      "recoveryPolicy": "UNKNOWN_REVIEW",
+      "recoveryPolicy": "PROTECT_OFFSITE",
       "recoveryEvidence": [
         {
           "kind": "runtime-observation",
@@ -48,9 +56,13 @@
         {
           "kind": "factory-contract",
           "reference": "Factory recovery guard refuses claim recreation until persisted workspace/run recovery is proven"
+        },
+        {
+          "kind": "longhorn-restore",
+          "reference": "dr-restore-evidence-2026-10-20.json: suspended workspace backup and filesystem restore PASS; agent continuation remains unproven"
         }
       ],
-      "lastVerifiedAt": "2026-10-19T22:28:31Z"
+      "lastVerifiedAt": "2026-10-19T22:52:14Z"
     }
   ]
 }

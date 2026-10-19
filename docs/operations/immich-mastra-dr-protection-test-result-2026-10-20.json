@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "immich-mastra-dr-protection-2026-10-20",
+  "producedAt": "2026-10-19T22:59:16Z",
+  "actor": {"kind": "agent", "name": "Codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "26f99817194a9dd32742f18e99b43a05797301a7",
+    "branch": "codex/immich-mastra-dr-protection"
+  },
+  "tests": [
+    {
+      "id": "backup-audit-contract",
+      "name": "Backup audit contract and restore evidence gates",
+      "command": "bash tests/harness/backup-audit-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Fixture coverage, exact source PVC UIDs, restore evidence and drill classification passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:backup-audit-contract:PASS"}
+    },
+    {
+      "id": "longhorn-offsite-contract",
+      "name": "Longhorn offsite protection contract",
+      "command": "bash tests/harness/longhorn-offsite-pvc-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Recurring job, PVC label patch and native backup assumptions passed static assertions.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:longhorn-offsite-pvc-contract:PASS"}
+    },
+    {
+      "id": "helm-render",
+      "name": "Longhorn and Immich rendered manifests",
+      "command": "kustomize build --enable-helm k8s/infrastructure/storage/longhorn && kustomize build --enable-helm k8s/applications/media/immich",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Rendered manifests contain the recurring backup job and the Redis PVC source/job labels.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:kustomize-render:PASS"}
+    },
+    {
+      "id": "just-check",
+      "name": "Repository validation",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All repository checks completed successfully, including DR and Longhorn contracts.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:just-check:PASS"}
+    },
+    {
+      "id": "backup-audit-runtime",
+      "name": "Live backup audit",
+      "command": "BACKUP_AUDIT_REPORT_FILE=/tmp/immich-mastra-audit-final.json just backup-audit",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Live audit reported 55/55 production PVCs covered, zero unknown and zero unprotected; CNPG and synthetic restore proof passed.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "runtime:/tmp/immich-mastra-audit-final.json"}
+    },
+    {
+      "id": "longhorn-backup-restore-runtime",
+      "name": "Native Longhorn S3 backup and isolated restore qualification",
+      "command": "kubectl get backups.longhorn.io,volumes.longhorn.io,pv,pvc -A",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Three named remote backups completed and each restored to a new detached Longhorn volume and bound temporary PVC; source PVCs remained unchanged.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": {"kind": "manual", "reference": "runtime:dr-restore-evidence-2026-10-20"}
+    },
+    {
+      "id": "cilium-isolation-runtime",
+      "name": "Isolated restore namespace policy validation",
+      "command": "kubectl get ciliumnetworkpolicies -A -l dr.smadja.dev/restore-proof=true",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All three temporary restore namespaces had valid deny-all Cilium policies and no source workload was resumed or interrupted.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": {"kind": "manual", "reference": "runtime:cilium-restore-proof-policies:Valid=True"}
+    },
+    {
+      "id": "argo-post-merge",
+      "name": "Post-merge Argo reconciliation and recurring policy verification",
+      "command": "just status-app apps-platform && kubectl -n longhorn-system get recurringjob immich-redis-offsite",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "This result records pre-merge validation; Argo reconciliation and the live recurring policy must be rechecked after merge.",
+      "risk": "medium",
+      "expectedCi": "optional"
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 8,
+    "executed": 7,
+    "notExecuted": 1,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "unavailable": 0,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@codex/immich-mastra-dr-protection:immich-mastra-dr-protection-2026-10-20",
+    "payload": {
+      "resultId": "immich-mastra-dr-protection-2026-10-20",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "26f99817194a9dd32742f18e99b43a05797301a7",
+      "tests": [
+        {"id":"backup-audit-contract","name":"Backup audit contract and restore evidence gates","execution":"executed","status":"PASSED","classification":"passed","reason":"Fixture coverage and restore evidence passed.","risk":"low","expectedCi":"required"},
+        {"id":"just-check","name":"Repository validation","execution":"executed","status":"PASSED","classification":"passed","reason":"Repository checks passed.","risk":"low","expectedCi":"required"},
+        {"id":"argo-post-merge","name":"Post-merge Argo reconciliation","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"Requires merge and reconcile.","risk":"medium","expectedCi":"optional"}
+      ],
+      "summary": {"outcome":"incomplete","total":8,"executed":7,"notExecuted":1,"passed":7,"failed":0,"skipped":0,"unavailable":0,"notApplicable":0}
+    }
+  }
+}
