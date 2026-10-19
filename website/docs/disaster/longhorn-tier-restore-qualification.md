@@ -5,13 +5,19 @@ sidebar_position: 11
 
 # Longhorn fast/bulk restore qualification
 
-This is a human-gated, same-cluster Velero/Kopia drill. It validates the two
-V1 storage tiers with synthetic data and an isolated namespace. It does not
-touch production PVCs, PVs, namespaces, Secrets, Routes, or applications.
+This is an operator-authorized, technically gated, same-cluster Velero/Kopia
+synthetic drill. It validates the two V1 storage tiers with synthetic data and
+an isolated namespace. Autonomous execution is permitted only after the
+independent stop, Cilium isolation, capacity and backup preflights pass. It
+does not touch production PVCs, PVs, namespaces, Secrets, Routes, or
+applications. Application restores and cleanup remain separately approved.
 
 The drill is intentionally not an Argo resource. Do not add the synthetic
-namespace, PVCs, Pod, Backup, or Restore objects to GitOps. Run it only after
-an operator has approved the temporary resources and a cleanup window.
+namespace, PVCs, Pod, Backup, or Restore objects to GitOps. Record the
+operator's synthetic-only authorization and a bounded UTC window before
+creating temporary resources. A second operator is not required for this
+scope, but an independent tested stop mechanism is mandatory. Cleanup still
+requires a separate approval.
 
 ## Preconditions
 
@@ -25,6 +31,14 @@ kubectl -n velero get deploy/velero
 Stop if either StorageClass is absent, the backup location is not `Available`,
 Velero is not Ready, or another restore is in progress. Do not use a
 `PartiallyFailed` or `Failed` backup as the source of this qualification.
+
+Before starting either leg, apply a namespace-scoped Cilium default-deny
+policy to both the source and target drill namespaces. The storage-only pod
+does not need ingress or egress; do not substitute a standard NetworkPolicy.
+Verify the policy is enforced by Cilium for every drill endpoint and record
+that no production namespace, database Service, Gateway, or external service
+is an allowed destination. If the Cilium policy cannot be observed as
+enforced, stop before creating the backup.
 
 The current `restore-pvc-isolation` resource modifier removes only the stale
 `spec.volumeName` from PVCs in the synthetic source namespace. It does not
