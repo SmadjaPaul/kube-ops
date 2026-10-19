@@ -1,0 +1,311 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-platform-overview-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "00 — Overview"
+  labels:
+    grafana_dashboard: "1"
+data:
+  platform-overview.json: |
+    {
+      "uid":"homeops-operations",
+      "title":"Platform Overview",
+      "description":"Primary entry point for cluster health, critical services, GitOps state and capacity.",
+      "tags":["platform","kubernetes","security"],
+      "timezone":"browser",
+      "schemaVersion":39,
+      "version":2,
+      "refresh":"1m",
+      "time":{"from":"now-3h","to":"now"},
+      "editable":false,
+      "links":[
+        {"title":"Host & Hardware","type":"link","url":"/d/homeops-edge-boot-io","targetBlank":false},
+        {"title":"Cluster & Workloads","type":"link","url":"/d/cluster-workloads","targetBlank":false},
+        {"title":"Telemetry Pipeline","type":"link","url":"/d/homeops-logs-efficiency","targetBlank":false},
+        {"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}
+      ],
+      "templating":{"list":[{"name":"namespace","label":"Namespace","type":"query","datasource":{"type":"prometheus","uid":"prometheus"},"query":"label_values(kube_pod_info, namespace)","refresh":1,"includeAll":true,"allValue":".*","current":{"text":"All","value":"$__all"}},{"name":"DS_LOKI","label":"Loki datasource","type":"datasource","query":"loki","refresh":1,"includeAll":false,"current":{"text":"Loki","value":"Loki"}}]},
+      "panels":[
+        {"id":1,"type":"text","title":"How to read this page","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"This is the operational landing page. A zero is an observed zero; **No data** is unknown. Follow the links for host, workload, network, telemetry, factory and data-platform diagnosis. GitOps state is controller evidence, not proof that a user journey works."}},
+        {"id":2,"type":"stat","title":"Ready Kubernetes nodes","gridPos":{"x":0,"y":3,"w":4,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(kube_node_status_condition{condition=\"Ready\",status=\"true\"})","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"stat","title":"Critical alerts firing","gridPos":{"x":4,"y":3,"w":4,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(ALERTS{alertstate=\"firing\",severity=\"critical\"}) or vector(0)","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":4,"type":"stat","title":"User-ready probes (%)","gridPos":{"x":8,"y":3,"w":4,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"100 * sum(probe_success{v1_user_ready=\"true\"}) / clamp_min(count(probe_success{v1_user_ready=\"true\"}),1)","instant":true}],"fieldConfig":{"defaults":{"unit":"percent","noValue":"No data","min":0,"max":100},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":5,"type":"stat","title":"Argo apps not Synced","gridPos":{"x":12,"y":3,"w":4,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(argocd_app_info{sync_status!=\"Synced\"}) or vector(0)","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":6,"type":"stat","title":"PVCs pending","gridPos":{"x":16,"y":3,"w":4,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(kube_persistentvolumeclaim_status_phase{phase=\"Pending\"}) or vector(0)","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":7,"type":"stat","title":"Prometheus head series","gridPos":{"x":20,"y":3,"w":4,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"prometheus_tsdb_head_series","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":8,"type":"timeseries","title":"Service availability","gridPos":{"x":0,"y":8,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"probe_success{v1_user_ready=\"true\"}","legendFormat":"{{target}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0,"max":1},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":9,"type":"timeseries","title":"Top namespaces by CPU","gridPos":{"x":12,"y":8,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"topk(12,sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\",image!=\"\",namespace=~\"$namespace\"}[5m])))","legendFormat":"{{namespace}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":10,"type":"timeseries","title":"Scrape targets down","gridPos":{"x":0,"y":16,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (job) (up == 0)","legendFormat":"{{job}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":11,"type":"timeseries","title":"Container working-set memory","gridPos":{"x":12,"y":16,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (namespace) (container_memory_working_set_bytes{container!=\"\",container!=\"POD\",image!=\"\",namespace=~\"$namespace\"})","legendFormat":"{{namespace}}"}],"fieldConfig":{"defaults":{"unit":"bytes","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-host-hardware-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "10 — Infrastructure"
+  labels:
+    grafana_dashboard: "1"
+data:
+  host-hardware.json: |
+    {
+      "uid":"homeops-edge-boot-io",
+      "title":"Host & Hardware",
+      "description":"Physical Proxmox host and Talos guest resource diagnosis, with explicit sensor gaps.",
+      "tags":["infrastructure","storage","advanced"],
+      "timezone":"browser","schemaVersion":39,"version":2,"refresh":"30s","time":{"from":"now-2h","to":"now"},"editable":false,
+      "links":[{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Storage & Backups","type":"link","url":"/d/storage-backups","targetBlank":false},{"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}],
+      "templating":{"list":[{"name":"instance","label":"Host","type":"query","datasource":{"type":"prometheus","uid":"prometheus"},"query":"label_values(node_uname_info{job=\"proxmox-host\"}, instance)","refresh":1,"includeAll":true,"allValue":".*","current":{"text":"All","value":"$__all"}}]},
+      "panels":[
+        {"id":1,"type":"text","title":"Scope and sensor evidence","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"This view separates the physical Proxmox exporter (`job=proxmox-host`) from Talos guest metrics. CPU modes, iowait, disk I/O, busy ratio, load and memory are measured. The current exporter exposes **no hwmon temperature/fan or SMART series**, so their absence is shown as unknown rather than zero. Do not add the guest and physical I/O totals together."}},
+        {"id":2,"type":"stat","title":"Proxmox exporter up","gridPos":{"x":0,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"up{job=\"proxmox-host\",instance=~\"$instance\"}","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0,"max":1},"overrides":[]},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"timeseries","title":"CPU modes and iowait","gridPos":{"x":6,"y":3,"w":18,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (mode) (rate(node_cpu_seconds_total{job=\"proxmox-host\",instance=~\"$instance\",mode=~\"user|system|iowait|idle|steal\"}[5m]))","legendFormat":"{{mode}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":4,"type":"timeseries","title":"Load average","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"node_load1{job=\"proxmox-host\",instance=~\"$instance\"}","legendFormat":"1m"},{"refId":"B","expr":"node_load5{job=\"proxmox-host\",instance=~\"$instance\"}","legendFormat":"5m"},{"refId":"C","expr":"node_load15{job=\"proxmox-host\",instance=~\"$instance\"}","legendFormat":"15m"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":5,"type":"timeseries","title":"Physical disk throughput","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (device) (rate(node_disk_read_bytes_total{job=\"proxmox-host\",instance=~\"$instance\",device!~\"loop.*|dm-.*\"}[5m]))","legendFormat":"{{device}} read"},{"refId":"B","expr":"sum by (device) (rate(node_disk_written_bytes_total{job=\"proxmox-host\",instance=~\"$instance\",device!~\"loop.*|dm-.*\"}[5m]))","legendFormat":"{{device}} write"}],"fieldConfig":{"defaults":{"unit":"Bps","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":6,"type":"timeseries","title":"Disk IOPS","gridPos":{"x":0,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (device) (rate(node_disk_reads_completed_total{job=\"proxmox-host\",instance=~\"$instance\",device!~\"loop.*|dm-.*\"}[5m]))","legendFormat":"{{device}} read IOPS"},{"refId":"B","expr":"sum by (device) (rate(node_disk_writes_completed_total{job=\"proxmox-host\",instance=~\"$instance\",device!~\"loop.*|dm-.*\"}[5m]))","legendFormat":"{{device}} write IOPS"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":7,"type":"timeseries","title":"Disk busy ratio","gridPos":{"x":12,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (device) (rate(node_disk_io_time_seconds_total{job=\"proxmox-host\",instance=~\"$instance\",device!~\"loop.*|dm-.*\"}[5m]))","legendFormat":"{{device}}"}],"fieldConfig":{"defaults":{"unit":"percentunit","noValue":"No data","min":0,"max":1}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":8,"type":"timeseries","title":"Host memory available","gridPos":{"x":0,"y":27,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"node_memory_MemAvailable_bytes{job=\"proxmox-host\",instance=~\"$instance\"}","legendFormat":"available"},{"refId":"B","expr":"node_memory_MemTotal_bytes{job=\"proxmox-host\",instance=~\"$instance\"}","legendFormat":"total"}],"fieldConfig":{"defaults":{"unit":"bytes","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-storage-backups-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "10 — Infrastructure"
+  labels:
+    grafana_dashboard: "1"
+data:
+  storage-backups.json: |
+    {
+      "uid":"storage-backups","title":"Storage & Backups","description":"PVC, Longhorn-backed capacity, database workload and backup job evidence without double-counting I/O.","tags":["storage","infrastructure","platform"],"timezone":"browser","schemaVersion":39,"version":1,"refresh":"2m","time":{"from":"now-24h","to":"now"},"editable":false,
+      "links":[{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Host & Hardware","type":"link","url":"/d/homeops-edge-boot-io","targetBlank":false},{"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}],
+      "templating":{"list":[{"name":"namespace","label":"Namespace","type":"query","datasource":{"type":"prometheus","uid":"prometheus"},"query":"label_values(kube_persistentvolumeclaim_info, namespace)","refresh":1,"includeAll":true,"allValue":".*","current":{"text":"All","value":"$__all"}}]},
+      "panels":[
+        {"id":1,"type":"text","title":"Interpretation","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"Capacity is shown from Kubernetes PVC/PV evidence. Longhorn, ZFS and physical disk I/O are deliberately not added together. The current scrape has no native Longhorn, ZFS, Velero or Kopia metric families; backup job state and PVC evidence are therefore shown here, while the missing exporter signals remain an explicit gap."}},
+        {"id":2,"type":"timeseries","title":"PVC used / capacity","gridPos":{"x":0,"y":3,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"topk(20,100 * kubelet_volume_stats_used_bytes{namespace=~\"$namespace\"} / clamp_min(kubelet_volume_stats_capacity_bytes{namespace=~\"$namespace\"},1))","legendFormat":"{{namespace}}/{{persistentvolumeclaim}}"}],"fieldConfig":{"defaults":{"unit":"percent","noValue":"No data","min":0,"max":100}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":3,"type":"timeseries","title":"Requested storage by class","gridPos":{"x":12,"y":3,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (storageclass) (kube_persistentvolumeclaim_resource_requests_storage_bytes{namespace=~\"$namespace\"})","legendFormat":"{{storageclass}}"}],"fieldConfig":{"defaults":{"unit":"bytes","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":4,"type":"stat","title":"Longhorn PVs","gridPos":{"x":0,"y":11,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"count(kube_persistentvolume_info{storageclass=~\"longhorn.*\"}) or vector(0)","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":5,"type":"stat","title":"Velero backup job failures","gridPos":{"x":6,"y":11,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(kube_job_status_failed{namespace=\"velero\"}) or vector(0)","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":6,"type":"timeseries","title":"Backup and database job outcomes","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (namespace) (kube_job_status_failed{namespace=~\"velero|factory-platform\"})","legendFormat":"{{namespace}} failed"},{"refId":"B","expr":"sum by (namespace) (kube_job_status_succeeded{namespace=~\"velero|factory-platform\"})","legendFormat":"{{namespace}} succeeded"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":7,"type":"timeseries","title":"CNPG workload memory","gridPos":{"x":0,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (namespace) (container_memory_working_set_bytes{namespace=~\"cnpg-system|factory-platform\",container!=\"\",container!=\"POD\"})","legendFormat":"{{namespace}}"}],"fieldConfig":{"defaults":{"unit":"bytes","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":8,"type":"text","title":"Data coverage","gridPos":{"x":12,"y":19,"w":12,"h":8},"options":{"mode":"markdown","content":"**Known:** PVC capacity, Longhorn-backed PV count, CNPG/factory workload resources and Kubernetes backup-job outcomes.\n\n**Not currently scraped:** ZFS pool health/WAL, Longhorn volume latency, Velero/Kopia object-store transfer and retention counters. Those require exporter/controller metrics in the owning infrastructure repositories; this dashboard does not infer them from unrelated disk counters."}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-cluster-workloads-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "20 — Kubernetes"
+  labels:
+    grafana_dashboard: "1"
+data:
+  cluster-workloads.json: |
+    {
+      "uid":"cluster-workloads","title":"Cluster & Workloads","description":"Talos/Kubernetes health, saturation, restarts, OOM and GitOps workload state.","tags":["kubernetes","platform","advanced"],"timezone":"browser","schemaVersion":39,"version":1,"refresh":"1m","time":{"from":"now-6h","to":"now"},"editable":false,
+      "links":[{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Networking","type":"link","url":"/d/networking","targetBlank":false},{"title":"Storage & Backups","type":"link","url":"/d/storage-backups","targetBlank":false},{"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}],
+      "templating":{"list":[{"name":"namespace","label":"Namespace","type":"query","datasource":{"type":"prometheus","uid":"prometheus"},"query":"label_values(kube_pod_info, namespace)","refresh":1,"includeAll":true,"allValue":".*","current":{"text":"All","value":"$__all"}}]},
+      "panels":[
+        {"id":1,"type":"text","title":"Workload diagnosis","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"Use saturation, restarts and OOM together. A pending or unscheduled workload is not equivalent to a failed process. Argo state is included to connect desired state to runtime evidence."}},
+        {"id":2,"type":"stat","title":"Ready nodes","gridPos":{"x":0,"y":3,"w":4,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(kube_node_status_condition{condition=\"Ready\",status=\"true\"})","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"stat","title":"Pods not running","gridPos":{"x":4,"y":3,"w":4,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(kube_pod_status_phase{phase=~\"Pending|Failed\",namespace=~\"$namespace\"}) or vector(0)","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":4,"type":"timeseries","title":"CPU saturation by namespace","gridPos":{"x":8,"y":3,"w":8,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\",image!=\"\",namespace=~\"$namespace\"}[5m]))","legendFormat":"{{namespace}} usage"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":5,"type":"timeseries","title":"Working-set memory by namespace","gridPos":{"x":16,"y":3,"w":8,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (namespace) (container_memory_working_set_bytes{container!=\"\",container!=\"POD\",image!=\"\",namespace=~\"$namespace\"})","legendFormat":"{{namespace}}"}],"fieldConfig":{"defaults":{"unit":"bytes","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":6,"type":"timeseries","title":"Container restarts (1h)","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"topk(15,sum by (namespace,pod) (increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[1h])))","legendFormat":"{{namespace}}/{{pod}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":7,"type":"timeseries","title":"OOMKilled containers","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (namespace,pod) (kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\",namespace=~\"$namespace\"})","legendFormat":"{{namespace}}/{{pod}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":8,"type":"timeseries","title":"Top workloads by CPU","gridPos":{"x":0,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"topk(15,sum by (namespace,pod) (rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\",image!=\"\",namespace=~\"$namespace\"}[5m])))","legendFormat":"{{namespace}}/{{pod}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":9,"type":"timeseries","title":"Argo applications not healthy","gridPos":{"x":12,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (health_status) (argocd_app_info{health_status!=\"Healthy\"})","legendFormat":"{{health_status}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-networking-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "20 — Kubernetes"
+  labels:
+    grafana_dashboard: "1"
+data:
+  networking.json: |
+    {
+      "uid":"networking","title":"Networking","description":"Cilium datapath, drops, DNS and route-facing probe evidence.","tags":["network","kubernetes","security"],"timezone":"browser","schemaVersion":39,"version":1,"refresh":"1m","time":{"from":"now-3h","to":"now"},"editable":false,
+      "links":[{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Cluster & Workloads","type":"link","url":"/d/cluster-workloads","targetBlank":false},{"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}],
+      "panels":[
+        {"id":1,"type":"text","title":"Network evidence","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"Cilium is the kube-proxy replacement. Drops and forwarding are shown from Cilium counters; DNS is shown from CoreDNS. Gateway API and Cloudflare reachability are represented by the existing blackbox/user-ready probes because no separate Gateway/Cloudflare metric family is currently scraped."}},
+        {"id":2,"type":"stat","title":"Cilium agent up","gridPos":{"x":0,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(up{job=\"cilium-agent\"})","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"timeseries","title":"Cilium datapath drops","gridPos":{"x":6,"y":3,"w":18,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (reason) (rate(cilium_drop_count_total[5m]))","legendFormat":"{{reason}}"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":4,"type":"timeseries","title":"Cilium forwarding rate","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(cilium_forward_count_total[5m]))","legendFormat":"forwarded packets"},{"refId":"B","expr":"sum(rate(cilium_forward_bytes_total[5m]))","legendFormat":"forwarded bytes"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":5,"type":"timeseries","title":"CoreDNS request rate","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (server) (rate(coredns_dns_requests_total[5m]))","legendFormat":"{{server}}"},{"refId":"B","expr":"sum by (server) (rate(coredns_dns_responses_total{rcode!=\"NOERROR\"}[5m]))","legendFormat":"{{server}} errors"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":6,"type":"timeseries","title":"User-ready route probes","gridPos":{"x":0,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"probe_success{v1_user_ready=\"true\"}","legendFormat":"{{target}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0,"max":1}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":7,"type":"timeseries","title":"Cilium endpoint state","gridPos":{"x":12,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (state) (cilium_endpoint_state)","legendFormat":"{{state}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-telemetry-pipeline-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "30 — Observability"
+  labels:
+    grafana_dashboard: "1"
+data:
+  telemetry-pipeline.json: |
+    {
+      "uid":"homeops-logs-efficiency","title":"Telemetry Pipeline","description":"Prometheus, Loki, Tempo and Alloy ingestion, storage and resource-cost signals.","tags":["observability","platform","storage"],"timezone":"browser","schemaVersion":39,"version":2,"refresh":"2m","time":{"from":"now-2h","to":"now"},"editable":false,
+      "links":[{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Prometheus Diagnostics","type":"link","url":"/d/9fa0d141-d019-4ad7-8bc5-42196ee308bd","targetBlank":false},{"title":"Explore Loki","type":"link","url":"/explore?orgId=1&left=%7B%22datasource%22:%22Loki%22%7D","targetBlank":true},{"title":"Explore Tempo","type":"link","url":"/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22%7D","targetBlank":true}],
+      "templating":{"list":[{"name":"namespace","label":"Namespace","type":"query","datasource":{"type":"prometheus","uid":"prometheus"},"query":"label_values(kube_pod_info, namespace)","refresh":1,"includeAll":true,"allValue":".*","current":{"text":"All","value":"$__all"}}]},
+      "panels":[
+        {"id":1,"type":"text","title":"Interpretation","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"This dashboard measures telemetry flow and operational cost. Loki log volume, request errors and the configured 168h retention policy are kept together with Prometheus and Tempo ingestion/storage. Alloy has a healthy scrape target, but the current Alloy build exposes no component-cardinality metric; CPU/memory and target health are the safe pipeline signals. No panel treats missing telemetry as zero."}},
+        {"id":2,"type":"timeseries","title":"Prometheus samples appended","gridPos":{"x":0,"y":3,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(prometheus_tsdb_head_samples_appended_total[5m]))","legendFormat":"samples/s"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":3,"type":"timeseries","title":"Prometheus head series","gridPos":{"x":12,"y":3,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"prometheus_tsdb_head_series","legendFormat":"head series"},{"refId":"B","expr":"prometheus_tsdb_storage_blocks_bytes","legendFormat":"blocks"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[{"matcher":{"id":"byName","options":"blocks"},"properties":[{"id":"unit","value":"bytes"}]}]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":4,"type":"timeseries","title":"Loki bytes received","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(loki_distributor_bytes_received_total[5m]))","legendFormat":"Loki bytes/s"}],"fieldConfig":{"defaults":{"unit":"Bps","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":5,"type":"timeseries","title":"Tempo spans and bytes received","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(tempo_distributor_spans_received_total[5m]))","legendFormat":"Tempo spans/s"},{"refId":"B","expr":"sum(rate(tempo_distributor_bytes_received_total[5m]))","legendFormat":"Tempo bytes/s"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0},"overrides":[{"matcher":{"id":"byName","options":"Tempo bytes/s"},"properties":[{"id":"unit","value":"Bps"}]}]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":6,"type":"timeseries","title":"Telemetry component resources","gridPos":{"x":0,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"monitoring\",pod=~\"(alloy|loki|tempo|kube-prometheus-stack-prometheus).*\",container!=\"\",container!=\"POD\"}[5m]))","legendFormat":"{{pod}} CPU"},{"refId":"B","expr":"sum by (pod) (container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\"(alloy|loki|tempo|kube-prometheus-stack-prometheus).*\",container!=\"\",container!=\"POD\"})","legendFormat":"{{pod}} memory"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[{"matcher":{"id":"byName","options":"{{pod}} memory"},"properties":[{"id":"unit","value":"bytes"}]}]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":7,"type":"timeseries","title":"Loki request rate","gridPos":{"x":12,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (route) (rate(loki_request_duration_seconds_count[5m]))","legendFormat":"{{route}}"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":8,"type":"timeseries","title":"Loki application log bytes/s","gridPos":{"x":0,"y":27,"w":12,"h":8},"datasource":{"type":"loki","uid":"${DS_LOKI}"},"targets":[{"refId":"A","expr":"sum by (namespace) (bytes_rate({source=\"kubernetes\"}[5m]))","legendFormat":"{{namespace}}"}],"fieldConfig":{"defaults":{"unit":"Bps","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":9,"type":"timeseries","title":"Loki request errors","gridPos":{"x":12,"y":27,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (route) (rate(loki_request_duration_seconds_count{status_code=~\"5..\"}[5m]))","legendFormat":"{{route}} 5xx"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":10,"type":"text","title":"Loki retention policy","gridPos":{"x":0,"y":35,"w":24,"h":3},"options":{"mode":"markdown","content":"Git configures Loki retention for **168h** with the compactor enabled on the filesystem-backed `longhorn-bulk` PVC. The chart's Thanos object-store and Bloom dashboards are disabled because those components are not deployed. Retention execution remains a runtime/controller check, not a fabricated metric."}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-factory-operations-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "40 — Software Factory"
+  labels:
+    grafana_dashboard: "1"
+data:
+  factory-operations.json: |
+    {
+      "uid":"factory-operations","title":"Factory Operations","description":"Mastra/Paperclip runs, GitHub collection and factory service health.","tags":["factory","platform","security"],"timezone":"browser","schemaVersion":39,"version":1,"refresh":"1m","time":{"from":"now-24h","to":"now"},"editable":false,
+      "links":[{"title":"Factory Performance","type":"link","url":"/d/factory-performance","targetBlank":false},{"title":"dbt V2 Operations","type":"link","url":"/d/factory-data-platform-v2","targetBlank":false},{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}],
+      "panels":[
+        {"id":1,"type":"text","title":"Factory scope","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"These are observed factory-platform metrics. `factory_paperclip_runs` is the current run gauge; GitHub collection and workflow metrics are separate signals. Agentgateway/sandbox-specific series are not currently exposed, so this dashboard does not manufacture them."}},
+        {"id":2,"type":"stat","title":"Factory API up","gridPos":{"x":0,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"up{job=\"factory-platform\"}","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0,"max":1}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"stat","title":"Active Paperclip runs","gridPos":{"x":6,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_paperclip_runs","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":4,"type":"timeseries","title":"Factory event volume","gridPos":{"x":12,"y":3,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_total_events","legendFormat":"total events"},{"refId":"B","expr":"factory_human_interventions_total","legendFormat":"human interventions"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":5,"type":"timeseries","title":"GitHub workflow runs","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_github_workflow_runs","legendFormat":"workflow runs"},{"refId":"B","expr":"factory_github_pull_requests","legendFormat":"pull requests"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":6,"type":"timeseries","title":"GitHub collection errors","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_github_collection_latest_errors","legendFormat":"errors"},{"refId":"B","expr":"factory_github_collection_latest_duplicates","legendFormat":"duplicates"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":7,"type":"timeseries","title":"Factory pod restarts","gridPos":{"x":0,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=\"factory-platform\"}[24h]))","legendFormat":"{{pod}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":8,"type":"timeseries","title":"Factory API resources","gridPos":{"x":12,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (container) (rate(container_cpu_usage_seconds_total{namespace=\"factory-platform\",container!=\"\",container!=\"POD\"}[5m]))","legendFormat":"{{container}} CPU"},{"refId":"B","expr":"sum by (container) (container_memory_working_set_bytes{namespace=\"factory-platform\",container!=\"\",container!=\"POD\"})","legendFormat":"{{container}} memory"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[{"matcher":{"id":"byName","options":"{{container}} memory"},"properties":[{"id":"unit","value":"bytes"}]}]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-factory-performance-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "40 — Software Factory"
+  labels:
+    grafana_dashboard: "1"
+data:
+  factory-performance.json: |
+    {
+      "uid":"factory-performance","title":"Factory Performance","description":"Observed factory throughput, CI quality, merge latency and collection duration.","tags":["factory","advanced","platform"],"timezone":"browser","schemaVersion":39,"version":1,"refresh":"2m","time":{"from":"now-7d","to":"now"},"editable":false,
+      "links":[{"title":"Factory Operations","type":"link","url":"/d/factory-operations","targetBlank":false},{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}],
+      "panels":[
+        {"id":1,"type":"text","title":"Evidence boundary","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"Only application-exported factory metrics are shown. There is no invented token/cost/quality metric: cost per run and token throughput remain unmeasured until the factory exposes them. Existing CI success and first-pass metrics are ratios in the range 0–1."}},
+        {"id":2,"type":"stat","title":"CI success rate","gridPos":{"x":0,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_ci_success_rate","instant":true}],"fieldConfig":{"defaults":{"unit":"percentunit","noValue":"No data","min":0,"max":1}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"stat","title":"First-pass success rate","gridPos":{"x":6,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_first_pass_success_rate","instant":true}],"fieldConfig":{"defaults":{"unit":"percentunit","noValue":"No data","min":0,"max":1}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":4,"type":"timeseries","title":"Average PR time to merge","gridPos":{"x":12,"y":3,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_avg_pr_time_to_merge_seconds","legendFormat":"seconds"}],"fieldConfig":{"defaults":{"unit":"s","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":5,"type":"timeseries","title":"Collection duration","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_github_collection_latest_duration_seconds","legendFormat":"seconds"}],"fieldConfig":{"defaults":{"unit":"s","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":6,"type":"timeseries","title":"Workflow and pull-request volume","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_github_workflow_runs","legendFormat":"workflow runs"},{"refId":"B","expr":"factory_github_pull_requests","legendFormat":"pull requests"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":7,"type":"timeseries","title":"Collection rate-limit headroom","gridPos":{"x":0,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_github_collection_latest_rate_limit_remaining","legendFormat":"remaining"},{"refId":"B","expr":"factory_github_collection_latest_rate_limit_limit","legendFormat":"limit"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":8,"type":"timeseries","title":"Collection errors and duplicates","gridPos":{"x":12,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_github_collection_latest_errors","legendFormat":"errors"},{"refId":"B","expr":"factory_github_collection_latest_duplicates","legendFormat":"duplicates"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dbt-v2-operations-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "50 — Data Platform"
+  labels:
+    grafana_dashboard: "1"
+data:
+  dbt-v2-operations.json: |
+    {
+      "uid":"factory-data-platform-v2","title":"dbt V2 Operations","description":"dbt V2/DuckDB publication operations, job duration, resources and OTEL trace handoff.","tags":["data-platform","factory","observability"],"timezone":"browser","schemaVersion":39,"version":2,"refresh":"1m","time":{"from":"now-24h","to":"now"},"editable":false,
+      "links":[{"title":"Data Quality","type":"link","url":"/d/data-quality","targetBlank":false},{"title":"Factory Operations","type":"link","url":"/d/factory-operations","targetBlank":false},{"title":"Explore Tempo","type":"link","url":"/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22%7D","targetBlank":true}],
+      "panels":[
+        {"id":1,"type":"text","title":"Data Platform V2","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"dbt V2/Fusion transforms a read-only PostgreSQL source into ephemeral DuckDB and publishes validated marts transactionally. Fusion references are retained because the V2 runtime is active. `No data` is unknown, not success; use Tempo Explore to validate real OTLP traces."}},
+        {"id":2,"type":"stat","title":"Latest dbt completion","gridPos":{"x":0,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"max(kube_job_status_completion_time{namespace=\"factory-platform\",job_name=~\"factory-platform-dbt.*\"})","instant":true}],"fieldConfig":{"defaults":{"unit":"dateTimeAsIso","noValue":"No data"}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"timeseries","title":"dbt transformation duration","gridPos":{"x":6,"y":3,"w":9,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"kube_job_status_completion_time{namespace=\"factory-platform\",job_name=~\"factory-platform-dbt.*\"} - kube_job_status_start_time{namespace=\"factory-platform\",job_name=~\"factory-platform-dbt.*\"}","legendFormat":"{{job_name}}"}],"fieldConfig":{"defaults":{"unit":"s","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":4,"type":"stat","title":"Source freshness","gridPos":{"x":15,"y":3,"w":9,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_dbt_source_freshness_seconds","instant":true}],"fieldConfig":{"defaults":{"unit":"s","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":5,"type":"timeseries","title":"dbt job failures / publication gate","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(kube_job_status_failed{namespace=\"factory-platform\",job_name=~\"factory-platform-dbt.*\"})","legendFormat":"failed dbt jobs"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":6,"type":"timeseries","title":"Factory API/dbt resources","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (container) (rate(container_cpu_usage_seconds_total{namespace=\"factory-platform\",container=~\"api|dbt\"}[5m]))","legendFormat":"{{container}} CPU"},{"refId":"B","expr":"sum by (container) (container_memory_working_set_bytes{namespace=\"factory-platform\",container=~\"api|dbt\"})","legendFormat":"{{container}} memory"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[{"matcher":{"id":"byName","options":"{{container}} memory"},"properties":[{"id":"unit","value":"bytes"}]}]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":7,"type":"text","title":"Tempo trace search","gridPos":{"x":0,"y":19,"w":24,"h":4},"options":{"mode":"markdown","content":"[Open Grafana Explore and select Tempo](/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22%7D%5D%7D). Native Fusion per-model/test spans require a completed dbt run with OTLP export; wrapper spans alone are not acceptance evidence."}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-data-quality-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "50 — Data Platform"
+  labels:
+    grafana_dashboard: "1"
+data:
+  data-quality.json: |
+    {
+      "uid":"data-quality","title":"Data Quality","description":"dbt test outcomes, source freshness and publication-readiness signals.","tags":["data-platform","factory","advanced"],"timezone":"browser","schemaVersion":39,"version":1,"refresh":"2m","time":{"from":"now-7d","to":"now"},"editable":false,
+      "links":[{"title":"dbt V2 Operations","type":"link","url":"/d/factory-data-platform-v2","targetBlank":false},{"title":"Factory Performance","type":"link","url":"/d/factory-performance","targetBlank":false},{"title":"Explore Tempo","type":"link","url":"/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22%7D","targetBlank":true}],
+      "panels":[
+        {"id":1,"type":"text","title":"Quality interpretation","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"The exporter publishes bounded outcome labels (`passed`, `failed`, `skipped`, `unknown`, `not_executed`, `unclassified`). A missing series is unknown, not a passing test. Publication availability is assessed with the dbt job gate and freshness together."}},
+        {"id":2,"type":"timeseries","title":"dbt test outcomes","gridPos":{"x":0,"y":3,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_dbt_tests","instant":true,"legendFormat":"{{outcome}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":3,"type":"stat","title":"Failed tests","gridPos":{"x":12,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_dbt_tests{outcome=\"failed\"}","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":4,"type":"stat","title":"Source freshness","gridPos":{"x":18,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_dbt_source_freshness_seconds","instant":true}],"fieldConfig":{"defaults":{"unit":"s","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":5,"type":"timeseries","title":"dbt completion timestamp","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"factory_dbt_last_run_timestamp_seconds","legendFormat":"last run"}],"fieldConfig":{"defaults":{"unit":"dateTimeAsIso","noValue":"No data"}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":6,"type":"timeseries","title":"Failed dbt jobs","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(kube_job_status_failed{namespace=\"factory-platform\",job_name=~\"factory-platform-dbt.*\"})","legendFormat":"failed jobs"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":7,"type":"text","title":"Publication gate","gridPos":{"x":0,"y":19,"w":24,"h":4},"options":{"mode":"markdown","content":"A quality decision requires: latest dbt run present, failed-test count at zero, source freshness within the accepted policy, and a successful publication path. This view does not claim publication success from a single metric."}}
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-prometheus-diagnostics-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "90 — Advanced Diagnostics"
+  labels:
+    grafana_dashboard: "1"
+data:
+  prometheus-diagnostics.json: |
+    {
+      "uid":"9fa0d141-d019-4ad7-8bc5-42196ee308bd","title":"Prometheus & Scrape Diagnostics","description":"Advanced Prometheus ingestion, cardinality, target and TSDB diagnostics.","tags":["advanced","observability","platform"],"timezone":"browser","schemaVersion":39,"version":1,"refresh":"2m","time":{"from":"now-6h","to":"now"},"editable":false,
+      "links":[{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Telemetry Pipeline","type":"link","url":"/d/homeops-logs-efficiency","targetBlank":false},{"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}],
+      "templating":{"list":[{"name":"job","label":"Job","type":"query","datasource":{"type":"prometheus","uid":"prometheus"},"query":"label_values(up, job)","refresh":1,"includeAll":true,"allValue":".*","current":{"text":"All","value":"$__all"}}]},
+      "panels":[
+        {"id":1,"type":"text","title":"Diagnostic scope","gridPos":{"x":0,"y":0,"w":24,"h":3},"options":{"mode":"markdown","content":"This is an advanced view, not a daily landing page. It supports cardinality and ingestion investigations. Reducing dashboard count does **not** reduce Prometheus collection cost; use these signals before proposing scrape or metric changes."}},
+        {"id":2,"type":"stat","title":"Head series","gridPos":{"x":0,"y":3,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"prometheus_tsdb_head_series","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"timeseries","title":"Samples appended","gridPos":{"x":6,"y":3,"w":18,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(prometheus_tsdb_head_samples_appended_total[5m]))","legendFormat":"samples/s"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":4,"type":"timeseries","title":"Targets down by job","gridPos":{"x":0,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (job) (up{job=~\"$job\"} == 0)","legendFormat":"{{job}}"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":5,"type":"timeseries","title":"TSDB head chunks and blocks","gridPos":{"x":12,"y":11,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"prometheus_tsdb_head_chunks","legendFormat":"head chunks"},{"refId":"B","expr":"prometheus_tsdb_storage_blocks_bytes","legendFormat":"blocks bytes"}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0},"overrides":[{"matcher":{"id":"byName","options":"blocks bytes"},"properties":[{"id":"unit","value":"bytes"}]}]},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull"]}}},
+        {"id":6,"type":"timeseries","title":"Scrape sample rate by job","gridPos":{"x":0,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum by (job) (rate(scrape_samples_scraped{job=~\"$job\"}[5m]))","legendFormat":"{{job}}"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":7,"type":"timeseries","title":"Scrape duration by job","gridPos":{"x":12,"y":19,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"max by (job) (scrape_duration_seconds{job=~\"$job\"})","legendFormat":"{{job}}"}],"fieldConfig":{"defaults":{"unit":"s","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}}
+      ]
+    }

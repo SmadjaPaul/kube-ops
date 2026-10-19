@@ -19,6 +19,15 @@ kubeApiServer:
 grafana:
   serviceMonitor:
     interval: 60s
+  # The chart's full default catalogue is not the operational interface. The
+  # curated ConfigMaps in grafana-catalog.yaml retain the useful signals while
+  # keeping upstream metrics, rules and alerting untouched.
+  defaultDashboardsEnabled: false
+  sidecar:
+    dashboards:
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
   # OIDC Configuration for Authentik
   persistence: {}
   grafana.ini:

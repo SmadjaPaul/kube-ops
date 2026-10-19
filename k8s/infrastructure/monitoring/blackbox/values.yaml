@@ -45,6 +45,8 @@ serviceMonitor:
     - name: authentik-ui
       url: https://auth.smadja.dev
       module: http_ui
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
       labels:
         release: kube-prometheus-stack
         qa_level: l2
@@ -52,6 +54,8 @@ serviceMonitor:
     - name: argocd-ui
       url: https://argocd.smadja.dev
       module: http_ui
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
       labels:
         release: kube-prometheus-stack
         qa_level: l2
@@ -59,6 +63,8 @@ serviceMonitor:
     - name: openwebui-ui
       url: https://chat.smadja.dev
       module: http_ui
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
       labels:
         release: kube-prometheus-stack
         qa_level: l2
@@ -66,6 +72,8 @@ serviceMonitor:
     - name: paperclip-ui
       url: https://paperclip.smadja.dev
       module: http_ui
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
       labels:
         release: kube-prometheus-stack
         qa_level: l2
@@ -81,6 +89,8 @@ serviceMonitor:
     - name: home-assistant-ui
       url: https://hassio.smadja.dev
       module: http_ui
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
       labels:
         release: kube-prometheus-stack
         qa_level: l2
@@ -88,6 +98,8 @@ serviceMonitor:
     - name: authentik-argocd-discovery
       url: https://auth.smadja.dev/application/o/argocd/.well-known/openid-configuration
       module: http_oidc
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
       labels:
         release: kube-prometheus-stack
         qa_level: l2
@@ -95,6 +107,8 @@ serviceMonitor:
     - name: authentik-openwebui-discovery
       url: https://auth.smadja.dev/application/o/openwebui/.well-known/openid-configuration
       module: http_oidc
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
       labels:
         release: kube-prometheus-stack
         qa_level: l2
@@ -102,6 +116,8 @@ serviceMonitor:
     - name: authentik-home-assistant-discovery
       url: https://auth.smadja.dev/application/o/home-assistant/.well-known/openid-configuration
       module: http_oidc
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
       labels:
         release: kube-prometheus-stack
         qa_level: l2

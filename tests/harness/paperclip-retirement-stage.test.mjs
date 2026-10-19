@@ -1,13 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
 const exists = file => existsSync(file);
 const read = file => readFileSync(file, 'utf8');
+const hasTrackedFiles = pathspec =>
+  execFileSync('git', ['ls-files', '--', pathspec], { encoding: 'utf8' }).trim().length > 0;
 
-test('Paperclip local CLI/agent scaffolding is retired, generic harness retained', () => {
-  assert.equal(exists('scripts/paperclip'), false);
-  assert.equal(exists('k8s/applications/ai/paperclip/company'), false);
+test('Paperclip local CLI/agent scaffolding is retired from Git', () => {
+  // Empty/generated directories may remain in a developer worktree. The
+  // retirement boundary is the tracked desired state, not filesystem shape.
+  assert.equal(hasTrackedFiles('scripts/paperclip/**'), false);
+  assert.equal(hasTrackedFiles('k8s/applications/ai/paperclip/company/**'), false);
   assert.equal(exists('tests/harness/paperclip-kubernetes-candidate-test.sh'), false);
   assert.ok(exists('docs/contracts/agent-test-result-v1.schema.json'));
   assert.ok(exists('scripts/check-agent-harness-contract.sh'));
