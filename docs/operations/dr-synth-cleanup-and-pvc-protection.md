@@ -32,7 +32,10 @@ The Barman flag is required because deleting the drill namespaces deletes the
 drill-local CNPG Cluster, Backup and ObjectStore CRs. The script never calls
 S3, Barman or Velero deletion APIs. It blocks when an ObjectStore has no
 retention policy, a CNPG Backup is not completed, or a finalizer is present.
-External backup retention remains a separate storage-owner decision.
+External backup retention remains a separate storage-owner decision. Manifests
+for proof and CNPG cleanup may pin an explicit `identityLabels` map when the
+namespace does not carry the default `dr.smadja.dev/run` label; every listed
+label is still revalidated before each applicable deletion.
 
 Each deletion is sequential and revalidates the UID immediately before the
 delete. PVs must be Retain, match the exact claimRef and CSI volumeHandle,

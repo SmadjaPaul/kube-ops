@@ -49,6 +49,10 @@ if [[ "$cmd" == get ]]; then
     jq -n '{apiVersion:"v1",kind:"Namespace",metadata:{name:"dr-synth-test-src",uid:"recreated",labels:{"dr.smadja.dev/run":"dr-synth-test"}}}'
     exit 0
   fi
+  if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == custom-identity-label && "$resource" == namespace ]]; then
+    jq -n --arg uid "$([[ "$name" == dr-synth-test-src ]] && echo ns-src || echo ns-tgt)" --arg name "$name" '{apiVersion:"v1",kind:"Namespace",metadata:{name:$name,uid:$uid,labels:{"backup.smadja.dev/purpose":"pvc-restore-proof"}}}'
+    exit 0
+  fi
   if deleted "$resource" "$ns" "$name"; then exit 1; fi
   case "$resource/$name" in
     namespace/dr-synth-test-src|namespace/dr-synth-test-tgt)

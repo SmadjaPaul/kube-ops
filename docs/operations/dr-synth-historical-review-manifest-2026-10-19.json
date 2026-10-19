@@ -1,0 +1,37 @@
+{
+  "manifestId": "dr-restore-historical-pvcs-review-2026-10-19",
+  "scope": "historical-review-only",
+  "executable": false,
+  "reason": "All 17 PVCs are still in active restore-drill namespaces; automatic deletion is blocked until workload ownership, Argo references and operator intent are individually resolved.",
+  "namespaces": [
+    {"name":"invoice-ninja-restore-drill-20261009","uid":"011a194e-b1aa-4407-a3fc-ade7bf72f2c7"},
+    {"name":"invoice-ninja-restore-drill-20261009-v2","uid":"7429ee3a-696f-416f-ad8d-1ed6e56d86eb"},
+    {"name":"openclaw-restore-drill-20261005","uid":"43598c09-ee4c-4075-8733-f9dc62f4e985"},
+    {"name":"openclaw-restore-drill-20261005-v2","uid":"a4f09de7-22f7-4c09-bbb7-cac4bbb4e0c2"},
+    {"name":"openclaw-restore-drill-20261005-v3","uid":"96e1a56d-b625-4b57-9058-51d99474ddcc"},
+    {"name":"openclaw-restore-drill-20261005-v4","uid":"1c83bd04-7ab0-45de-8a9b-c0eb37aa82a3"},
+    {"name":"openclaw-restore-drill-20261005-v5","uid":"5bc12500-436a-4bb9-b7fb-79bacc523ef6"}
+  ],
+  "pvcCount": 17,
+  "pvcs": [
+    {"namespace":"invoice-ninja-restore-drill-20261009","name":"data-invoice-ninja-mysql-0","uid":"51d97b5b-8880-4078-82d6-5acb724d40e6","phase":"Pending"},
+    {"namespace":"invoice-ninja-restore-drill-20261009","name":"invoice-ninja-public","uid":"03f66755-a871-438e-9d8c-126faad321c2","phase":"Pending"},
+    {"namespace":"invoice-ninja-restore-drill-20261009","name":"invoice-ninja-redis","uid":"096041b7-016c-4af7-8824-047065394c7a","phase":"Pending"},
+    {"namespace":"invoice-ninja-restore-drill-20261009","name":"invoice-ninja-storage","uid":"8872a515-3a0e-448e-aed8-1fbd7fff0565","phase":"Pending"},
+    {"namespace":"invoice-ninja-restore-drill-20261009-v2","name":"data-invoice-ninja-mysql-0","uid":"d4a2d766-20e7-495f-8e76-fd22015a65d5","phase":"Bound"},
+    {"namespace":"invoice-ninja-restore-drill-20261009-v2","name":"invoice-ninja-public","uid":"cb5dff28-fa32-4d7e-8981-4083edb5b837","phase":"Bound"},
+    {"namespace":"invoice-ninja-restore-drill-20261009-v2","name":"invoice-ninja-redis","uid":"5e302a5e-b830-4dab-b4a8-5b20a9f5e639","phase":"Bound"},
+    {"namespace":"invoice-ninja-restore-drill-20261009-v2","name":"invoice-ninja-storage","uid":"92a94764-f26f-4b7c-941d-1b16ac685103","phase":"Bound"},
+    {"namespace":"openclaw-restore-drill-20261005","name":"openclaw-config-openclaw-0","uid":"40d1fa24-aa4a-4c3f-8aea-fc033cb1150c","phase":"Pending"},
+    {"namespace":"openclaw-restore-drill-20261005","name":"openclaw-data","uid":"c7df5aaa-e900-49d2-9360-b25c90c243cf","phase":"Bound"},
+    {"namespace":"openclaw-restore-drill-20261005","name":"openclaw-data-openclaw-0","uid":"11765724-6a47-4abb-8243-4066e371e359","phase":"Pending"},
+    {"namespace":"openclaw-restore-drill-20261005","name":"openclaw-logs-openclaw-0","uid":"5102ec6a-bbb0-4ddd-a63c-d836a10070e8","phase":"Pending"},
+    {"namespace":"openclaw-restore-drill-20261005","name":"openclaw-workspace-openclaw-0","uid":"e749e9e6-1d07-474e-a5db-afd5a3394326","phase":"Pending"},
+    {"namespace":"openclaw-restore-drill-20261005-v2","name":"openclaw-data","uid":"bdabb517-22bf-4839-a28b-c48990d4b5c7","phase":"Pending"},
+    {"namespace":"openclaw-restore-drill-20261005-v3","name":"openclaw-data","uid":"5265d81b-cd13-4946-be0d-83d39a1d2809","phase":"Pending"},
+    {"namespace":"openclaw-restore-drill-20261005-v4","name":"openclaw-data","uid":"0672eeba-79e8-429d-99e3-ddde1f576d5f","phase":"Bound"},
+    {"namespace":"openclaw-restore-drill-20261005-v5","name":"openclaw-data","uid":"aff2eca4-a871-4f1e-97be-6d1fb7d9bd63","phase":"Bound"}
+  ],
+  "delete": [],
+  "review": "docs/operations/dr-cleanup-live-inventory-2026-10-19.md"
+}
