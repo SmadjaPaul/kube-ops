@@ -14,3 +14,13 @@ spec:
           method: POST
       backendRefs:
         - {name: mastra-factory, port: 4111}
+    # Linear's native OAuth flow needs only these exact public GET endpoints.
+    # The integration still validates the authenticated tenant and signed OAuth
+    # state; no general Factory API surface is exposed here.
+    - matches:
+        - path: {type: Exact, value: /auth/linear/connect}
+          method: GET
+        - path: {type: Exact, value: /auth/linear/callback}
+          method: GET
+      backendRefs:
+        - {name: mastra-factory, port: 4111}
