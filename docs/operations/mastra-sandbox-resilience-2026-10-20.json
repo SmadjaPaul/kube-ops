@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "resultId": "mastra-sandbox-resilience-2026-10-20",
+  "producedAt": "2026-10-19T23:26:45Z",
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "884f7a57722f0dcaf3d76a8b6664e1552a83219d",
+    "branch": "main"
+  },
+  "findings": {
+    "argoApplication": {"name": "apps-platform", "sync": "Synced", "health": "Healthy", "revision": "884f7a57722f0dcaf3d76a8b6664e1552a83219d"},
+    "factoryReplicaPolicy": "one replica; cross-replica SandboxClaim creation is not qualified",
+    "sandboxTemplate": {"name": "mastra-code", "namespace": "mastra-sandbox", "storageClass": "longhorn-fast", "workspaceSize": "2Gi", "ttlSeconds": 7200},
+    "warmPool": {"name": "mastra-code", "namespace": "mastra-sandbox", "replicas": 0},
+    "dynamicWorkspaceRecovery": "UNPROVEN",
+    "dynamicWorkspaceRecurringBackup": "NOT_ENABLED",
+    "dynamicWorkspaceBackupReason": "A recurring Longhorn label can be applied at PVC creation, but no owner-aware cleanup bounds remote backups to the workspace TTL. One-off backups remain the qualified protection.",
+    "factoryRuntimeRecovery": "FAIL_CLOSED_UNTIL_DURABLE_STATE_PROOF",
+    "fullAgentResume": "UNPROVEN",
+    "activeSandboxInterrupted": false
+  },
+  "evidence": [
+    {"id": "platform-argo", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Argo reported apps-platform Synced/Healthy at the inspected main revision.", "risk": "medium", "expectedCi": "required", "evidenceRef": "runtime:just status-app apps-platform"},
+    {"id": "sandbox-lifecycle-source", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Factory persists SandboxClaim identity, suspends/resumes claims, refuses ambiguous reattachment and refuses unknown-workspace recreation.", "risk": "high", "expectedCi": "required", "evidenceRef": "factory-platform:mastra-factory/src/mastra/sandbox/kubernetes.ts"},
+    {"id": "durable-state-contract", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Worked-session recreation requires a remote commit SHA, clean workspace and no unpersisted artifacts; reader errors fail closed.", "risk": "high", "expectedCi": "required", "evidenceRef": "factory-platform:mastra-factory/tests/sandbox-recovery.test.mjs"},
+    {"id": "sandbox-runtime-e2e", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "unavailable", "reason": "No active sandbox was interrupted and no issue-to-PR recovery E2E was run; the mission forbids interrupting active sandboxes.", "risk": "high", "expectedCi": "required", "evidenceRef": "blocked:runtime-qualification"},
+    {"id": "recurring-dynamic-backup", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "not-applicable", "reason": "No recurring policy was enabled because owner-aware orphan-backup cleanup is not available.", "risk": "high", "expectedCi": "required", "evidenceRef": "decision:no-permanent-recurring-policy"}
+  ],
+  "summary": {"outcome": "incomplete", "dynamicRecovery": "unproven", "recurringBackup": "not-enabled", "cleanupExecuted": false},
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "mastra-sandbox-resilience-2026-10-20",
+    "payload": {"resultId": "mastra-sandbox-resilience-2026-10-20", "repository": "SmadjaPaul/kube-ops", "revision": "884f7a57722f0dcaf3d76a8b6664e1552a83219d", "tests": []}
+  }
+}

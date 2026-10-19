@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "industrialize-factory-resilience-kube-ops-2026-10-20",
+  "producedAt": "2026-10-20T02:00:00+02:00",
+  "actor": {"kind": "agent", "name": "codex-industrialize-factory-resilience"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "884f7a57722f0dcaf3d76a8b6664e1552a83219d",
+    "branch": "codex/industrialize-factory-resilience"
+  },
+  "tests": [
+    {"id":"just-check","name":"Repository contract and validation suite","command":"just check","execution":"executed","status":"PASSED","classification":"passed","reason":"All repository checks completed successfully, including backup, recovery, Longhorn, Argo and runtime safety contracts.","risk":"high","expectedCi":"required","evidence":{"kind":"command","reference":"just check:exit=0"}},
+    {"id":"kustomize-platform","name":"Platform Kustomize render","command":"kustomize build k8s/applications/platform","execution":"executed","status":"PASSED","classification":"passed","reason":"The platform desired state rendered without errors.","risk":"medium","expectedCi":"required","evidence":{"kind":"command","reference":"KUSTOMIZE_PLATFORM=PASS"}},
+    {"id":"json-manifests","name":"Operational manifest JSON validation","command":"jq -e . docs/operations/dr-protect-qualification-cleanup-manifest-2026-10-20.json docs/operations/mastra-sandbox-resilience-2026-10-20.json","execution":"executed","status":"PASSED","classification":"passed","reason":"Both operational evidence documents are valid JSON.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"jq:exit=0"}},
+    {"id":"git-diff-check","name":"Whitespace and patch integrity","command":"git diff --check","execution":"executed","status":"PASSED","classification":"passed","reason":"No whitespace errors were found in the proposed kube-ops changes.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"git diff --check:exit=0"}},
+    {"id":"dynamic-sandbox-runtime-e2e","name":"Interrupted sandbox recovery runtime E2E","command":"qualified private runtime exercise","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"No active sandbox was interrupted and no production recovery claim is made; the mission requires preserving active sandboxes.","risk":"high","expectedCi":"required","evidence":{"kind":"none","reference":"blocked:runtime-qualification"}},
+    {"id":"cleanup-live","name":"Qualification namespace cleanup","command":"scripts/dr-synth-cleanup.sh","execution":"not-executed","status":"NOT_EXECUTED","classification":"not-applicable","reason":"This mission authorizes preparation only; live deletion remains explicitly forbidden.","risk":"high","expectedCi":"not-expected","evidence":{"kind":"none","reference":"policy:cleanupExecuted=false"}}
+  ],
+  "summary": {"outcome":"incomplete","total":6,"executed":4,"notExecuted":2,"passed":4,"failed":0,"skipped":0,"unavailable":1,"notApplicable":1},
+  "transmission": {
+    "target":"factory-platform",
+    "eventType":"agent.test.result",
+    "schema":"agent-test-result/v1",
+    "idempotencyKey":"industrialize-factory-resilience-kube-ops-2026-10-20",
+    "payload": {
+      "resultId":"industrialize-factory-resilience-kube-ops-2026-10-20",
+      "repository":"SmadjaPaul/kube-ops",
+      "revision":"884f7a57722f0dcaf3d76a8b6664e1552a83219d",
+      "tests":[
+        {"id":"just-check","name":"Repository contract and validation suite","execution":"executed","status":"PASSED","classification":"passed","reason":"just check passed.","risk":"high","expectedCi":"required"},
+        {"id":"dynamic-sandbox-runtime-e2e","name":"Interrupted sandbox recovery runtime E2E","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"No active sandbox was interrupted.","risk":"high","expectedCi":"required"}
+      ],
+      "summary":{"outcome":"incomplete","total":6,"executed":4,"notExecuted":2,"passed":4,"failed":0,"unavailable":1,"notApplicable":1}
+    }
+  }
+}
