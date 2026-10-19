@@ -4,6 +4,7 @@ namespace: mastra-factory
 resources:
   - namespace.yaml
   - secrets.yaml
+  - linear-external-secret.yaml
   - registry-externalsecret.yaml
   - oidc-external-secret.dormant.yaml
   - database-s3-credentials.yaml
