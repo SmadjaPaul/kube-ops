@@ -245,12 +245,14 @@ def recovery_policy_for($pvc):
     select((.namespace // "") == ($pvc | ns) and
       (.name // "") == ($pvc | name) and
       (.uid // "") == ($pvc.metadata.uid // ""))] | first // {};
+def has_recovery_evidence($policy; $kind):
+  any(($policy.recoveryEvidence // [])[]; (.kind // "") == $kind);
 def recovery_status($policy; $offsite; $classification):
   if $offsite then "PROTECTED"
   elif (($policy.recoveryPolicy // "") == "EPHEMERAL_VERIFIED" and
-        (($policy.recoveryEvidence // []) | length) > 0) then "EPHEMERAL_VERIFIED"
+        has_recovery_evidence($policy; "functional-recovery")) then "EPHEMERAL_VERIFIED"
   elif (($policy.recoveryPolicy // "") == "EXCLUDE_ACCEPTED_LOSS" and
-        (($policy.recoveryEvidence // []) | length) > 0) then "EXCLUDE_ACCEPTED_LOSS"
+        has_recovery_evidence($policy; "operator-acceptance")) then "EXCLUDE_ACCEPTED_LOSS"
   elif (($policy.recoveryPolicy // "") == "UNKNOWN_REVIEW") then "UNKNOWN_REVIEW"
   elif $classification == "production" then "UNPROTECTED"
   else "UNKNOWN_REVIEW" end;

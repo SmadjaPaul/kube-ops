@@ -63,20 +63,24 @@ cp -R "$fixture_dir/." "$policy_dir/"
 jq '.items += [
   {"metadata":{"namespace":"immich","name":"redis-data-immich-redis-master-0","uid":"redis-uid"},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-redis"},"status":{"phase":"Bound"}},
   {"metadata":{"namespace":"mastra-sandbox","name":"workspace-sandbox-claim-05473af3","uid":"mastra-active-uid"},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-mastra-active"},"status":{"phase":"Bound"}},
-  {"metadata":{"namespace":"mastra-sandbox","name":"workspace-sandbox-claim-0de14859","uid":"mastra-suspended-uid"},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-mastra-suspended"},"status":{"phase":"Bound"}}
+  {"metadata":{"namespace":"mastra-sandbox","name":"workspace-sandbox-claim-0de14859","uid":"mastra-suspended-uid"},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-mastra-suspended"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"synthetic","name":"ephemeral-workspace","uid":"ephemeral-uid"},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-ephemeral"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"synthetic","name":"accepted-loss-cache","uid":"accepted-loss-uid"},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-accepted-loss"},"status":{"phase":"Bound"}}
 ]' "$policy_dir/pvc.json" >"$tmp_json"
 mv "$tmp_json" "$policy_dir/pvc.json"
 jq '.items += [
   {"metadata":{"name":"pv-redis"},"spec":{"claimRef":{"namespace":"immich","name":"redis-data-immich-redis-master-0","uid":"redis-uid"}},"status":{"phase":"Bound"}},
   {"metadata":{"name":"pv-mastra-active"},"spec":{"claimRef":{"namespace":"mastra-sandbox","name":"workspace-sandbox-claim-05473af3","uid":"mastra-active-uid"}},"status":{"phase":"Bound"}},
-  {"metadata":{"name":"pv-mastra-suspended"},"spec":{"claimRef":{"namespace":"mastra-sandbox","name":"workspace-sandbox-claim-0de14859","uid":"mastra-suspended-uid"}},"status":{"phase":"Bound"}}
+  {"metadata":{"name":"pv-mastra-suspended"},"spec":{"claimRef":{"namespace":"mastra-sandbox","name":"workspace-sandbox-claim-0de14859","uid":"mastra-suspended-uid"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-ephemeral"},"spec":{"claimRef":{"namespace":"synthetic","name":"ephemeral-workspace","uid":"ephemeral-uid"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-accepted-loss"},"spec":{"claimRef":{"namespace":"synthetic","name":"accepted-loss-cache","uid":"accepted-loss-uid"}},"status":{"phase":"Bound"}}
 ]' "$policy_dir/pv.json" >"$tmp_json"
 mv "$tmp_json" "$policy_dir/pv.json"
 policy_report="$policy_dir/report.json"
 BACKUP_AUDIT_INPUT_DIR="$policy_dir" BACKUP_AUDIT_REPORT_FILE="$policy_report" \
   bash "$repo_root/scripts/backup-audit.sh" >"$output" || true
 grep -F 'PRODUCTION_RECOVERY_STATUS=FAIL' "$output" >/dev/null
-jq -e '.productionRecovery.protected == 1 and .productionRecovery.unknownReview == 2 and .productionRecovery.unprotected == 1 and (.productionPVC.covered == 1) and ([.productionPVCs[] | select(.namespace == "mastra-sandbox") | .policyMatched] | all)' \
+jq -e '.productionRecovery.protected == 1 and .productionRecovery.unknownReview == 2 and .productionRecovery.unprotected == 1 and (.productionPVC.covered == 1) and ([.productionPVCs[] | select(.namespace == "mastra-sandbox") | .policyMatched] | all) and ([.pvc[] | select(.namespace == "synthetic") | .recoveryStatus] | sort == ["EPHEMERAL_VERIFIED", "EXCLUDE_ACCEPTED_LOSS"])' \
   "$policy_report" >/dev/null
 
 cp -R "$policy_dir/." "$stale_policy_dir/"
