@@ -62,11 +62,14 @@ command -v "$kubectl_bin" >/dev/null 2>&1 || die "kubectl is required: $kubectl_
 kube() { "$kubectl_bin" --request-timeout="$request_timeout" "$@"; }
 
 manifest_sha="$(sha256_file "$manifest")"
+script_sha="$(sha256_file "$0")"
 run="$(jq -er '.run' "$manifest")" || die "manifest.run missing"
 inventory_file="$(jq -er '.inventory.file' "$manifest")" || die "manifest.inventory.file missing"
 inventory_sha="$(jq -er '.inventory.sha256' "$manifest")" || die "manifest.inventory.sha256 missing"
+expected_script_sha="$(jq -er '.cleanupScript.sha256' "$manifest")" || die "manifest.cleanupScript.sha256 missing"
 [[ -s "$inventory_file" ]] || die "inventory missing: $inventory_file"
 [[ "$(sha256_file "$inventory_file")" == "$inventory_sha" ]] || die "inventory digest mismatch"
+[[ "$script_sha" == "$expected_script_sha" ]] || die "cleanup script digest mismatch"
 [[ "$(jq -r '.namespaces|length' "$manifest")" -gt 0 ]] || die "empty namespace plan"
 
 mkdir -p "$(dirname "$journal")" "$(dirname "$report")" "$metadata_dir"
@@ -186,11 +189,11 @@ preflight_storage() {
     [[ "$volume_pvc" == "$pvc" ]] || die "manifest Longhorn/PVC mismatch: $volume"
     log_event verified volumes.longhorn.io "$volume_ns" "$volume" "$vuid" "exclusive=$ns/$pvc"
 
-    attachments="$(kube get volumeattachments.storage.k8s.io -o json 2>/dev/null || printf '{"items":[]}')"
+    attachments="$(kube get volumeattachments.storage.k8s.io -o json)" || die "cannot inspect VolumeAttachments"
     if jq -e --arg pv "$pv" 'any(.items[]?; .spec.source.persistentVolumeName == $pv)' <<<"$attachments" >/dev/null; then
       log_event verified volumeattachment '' "$pv" "$pvuid" "attachment belongs to planned target; deletion remains blocked until detached"
     fi
-    refs="$(kube get pvc -A -o json)"
+    refs="$(kube get pvc -A -o json)" || die "cannot inspect PVC references"
     if jq -e --arg pv "$pv" --arg ns "$ns" --arg pvc "$pvc" \
       'any(.items[]; .spec.volumeName == $pv and (.metadata.namespace != $ns or .metadata.name != $pvc))' <<<"$refs" >/dev/null; then
       die "PV has another PVC reference: $pv"
@@ -203,7 +206,7 @@ preflight_barman() {
   for ns in $(jq -r '.namespaces[].name' "$manifest"); do
     case "$ns" in *-cnpg-*) ;; *) continue ;; esac
     for kind in clusters.postgresql.cnpg.io backups.postgresql.cnpg.io scheduledbackups.postgresql.cnpg.io objectstores.barmancloud.cnpg.io; do
-      list="$(get_list_json "$kind" "$ns" 2>/dev/null || printf '{"items":[]}')"
+      list="$(get_list_json "$kind" "$ns")" || die "cannot inspect CNPG/Barman resources: $ns/$kind"
       while IFS= read -r item; do
         name="$(jq -r '.metadata.name' <<<"$item")"; uid="$(jq -r '.metadata.uid' <<<"$item")"
         has_barman=true
@@ -305,7 +308,7 @@ delete_plan() {
     json="$(wait_for_json volumes.longhorn.io "$volume_ns" "$volume" '.status.state == "detached"')" || die "Longhorn volume did not become detached: $volume"
     [[ "$(jq -r '.metadata.uid' <<<"$json")" == "$vuid" ]] || die "Longhorn UID changed while waiting: $volume"
     [[ "$(jq -r '.status.kubernetesStatus.pvcName // ""' <<<"$json")" == "$volume_pvc" ]] || die "Longhorn claim changed while waiting: $volume"
-    attachments="$(kube get volumeattachments.storage.k8s.io -o json 2>/dev/null || printf '{"items":[]}')"
+    attachments="$(kube get volumeattachments.storage.k8s.io -o json)" || die "cannot inspect VolumeAttachments"
     if jq -e --arg pv "$pv" 'any(.items[]?; .spec.source.persistentVolumeName == $pv)' <<<"$attachments" >/dev/null; then
       die "Longhorn volume still has a VolumeAttachment: $volume"
     fi
@@ -315,15 +318,15 @@ delete_plan() {
 
 [[ "$mode" == dry-run || "$mode" == apply ]] || die "invalid mode"
 if [[ "$mode" == apply ]]; then
-  [[ "${DR_CLEANUP_APPROVAL:-}" == "APPROVE:${run}:${manifest_sha}" ]] || die "approval token mismatch"
+  [[ "${DR_CLEANUP_APPROVAL:-}" == "APPROVE:${run}:${manifest_sha}:${script_sha}" ]] || die "approval token mismatch"
   if [[ -s "$journal" && "$resume" != true ]] && jq -e -s 'any(.[]; .action == "run-start")' "$journal" >/dev/null; then
     die "journal exists; use --resume after reviewing partial state"
   fi
-  if [[ "$resume" == true ]] && ! jq -e -s --arg run "$run" --arg sha "$manifest_sha" \
-    'any(.[]; .action == "run-start" and .run == $run and .detail == $sha)' "$journal" >/dev/null; then
+  if [[ "$resume" == true ]] && ! jq -e -s --arg run "$run" --arg digest "${manifest_sha}:${script_sha}" \
+    'any(.[]; .action == "run-start" and .run == $run and .detail == $digest)' "$journal" >/dev/null; then
     die "resume journal does not match this run and manifest"
   fi
-  log_event run-start run '' '' '' "$manifest_sha"
+  log_event run-start run '' '' '' "$manifest_sha:$script_sha"
 fi
 
 preflight_namespace

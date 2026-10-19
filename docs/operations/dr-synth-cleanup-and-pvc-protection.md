@@ -24,7 +24,7 @@ Apply is a separate operator action and requires the exact manifest digest:
 
     manifest=/tmp/dr-synth-20261019170700-cleanup-manifest.json
     sha256sum "$manifest"
-    DR_CLEANUP_APPROVAL="APPROVE:dr-synth-20261019170700:<digest>" \
+    DR_CLEANUP_APPROVAL="APPROVE:dr-synth-20261019170700:<manifest-digest>:<script-digest>" \
     DR_CLEANUP_ALLOW_BARMAN_CR_DELETE=true \
     scripts/dr-synth-cleanup.sh --apply --manifest "$manifest"
 

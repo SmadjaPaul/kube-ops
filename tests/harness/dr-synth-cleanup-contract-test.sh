@@ -40,7 +40,9 @@ run_cleanup() {
 
 approval_for() {
   local manifest="$1"
-  printf 'APPROVE:dr-synth-test:%s' "$(sha256sum "$manifest" | awk '{print $1}')"
+  printf 'APPROVE:dr-synth-test:%s:%s' \
+    "$(sha256sum "$manifest" | awk '{print $1}')" \
+    "$(sha256sum "$script" | awk '{print $1}')"
 }
 
 expect_nonzero() {

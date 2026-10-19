@@ -1,8 +1,9 @@
 {
   "run": "dr-synth-test",
+  "cleanupScript": {"sha256": "4c79cce4a22bf438e804df32373fe67e32ea16d60e83577a20cf4ca1fd7f20fe"},
   "inventory": {
     "file": "tests/fixtures/dr-cleanup/inventory.md",
-    "sha256": "4f9a080c273e3ad52e0361a21a8498081607ddab40b510d7ce892da894040cf8"
+    "sha256": "7118db7475906517f4434ffbabd71a97fbbd4084bd023acbb365f6eec45cab43"
   },
   "namespaces": [
     {"name": "dr-synth-test-src", "uid": "ns-src"},
