@@ -14,6 +14,20 @@ stale_policy_dir="$(mktemp -d)"
 tmp_json="$longhorn_dir/mutation.tmp.json"
 trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
 
+qualification_evidence="$repo_root/docs/operations/dr-restore-evidence-2026-10-20.json"
+jq -e '
+  . as $root |
+  [.items[] | select(.kind == "Longhorn/S3" and ((.pvc.uid // "") as $uid |
+    $uid == "a09c12b9-203b-4610-8558-1e6f8088c18c" or
+    $uid == "c36eea64-f347-46af-88a2-46ab620575b0" or
+    $uid == "06fc6da9-bf5d-4538-b8a3-42fc735956c0"))] | length == 3 and
+  ([$root.items[] | select(.id == "longhorn-s3-immich-redis-20261020")][0] |
+    .restoreVerified == true and .aofIntegrityVerified == true and
+    .redisCopyRecoveryVerified == true and .applicationRecoveryVerified == false) and
+  ([$root.items[] | select(.id == "longhorn-s3-mastra-active-20261020" or .id == "longhorn-s3-mastra-suspended-20261020")] |
+    all(.[]; .restoreVerified == true and .applicationRecoveryVerified == false))
+' "$qualification_evidence" >/dev/null
+
 cp -R "$fixture_dir/." "$positive_dir/"
 BACKUP_AUDIT_INPUT_DIR="$positive_dir" bash "$repo_root/scripts/backup-audit.sh" >"$output"
 test ! -e "$fixture_dir/report.json"
@@ -29,12 +43,30 @@ grep -F 'BACKUP_AUDIT_GAPS=2' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_LEGACY_GAPS=2' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_UNVERIFIED=0' "$output" >/dev/null
 
+cp -R "$fixture_dir/." "$stale_evidence_dir/"
+jq '.items += [
+  {"metadata":{"namespace":"dr-protect-20261020-immich","name":"restored-redis-data","uid":"restore-proof-uid"},"spec":{"storageClassName":"longhorn-fast","volumeName":"restore-proof-pv"},"status":{"phase":"Bound"}}
+]' "$stale_evidence_dir/pvc.json" >"$tmp_json"
+mv "$tmp_json" "$stale_evidence_dir/pvc.json"
+BACKUP_AUDIT_INPUT_DIR="$stale_evidence_dir" BACKUP_AUDIT_REPORT_FILE="$stale_evidence_dir/report.json" \
+  bash "$repo_root/scripts/backup-audit.sh" >"$output"
+jq -e '.productionPVCs | all(.[]; .namespace != "dr-protect-20261020-immich")' \
+  "$stale_evidence_dir/report.json" >/dev/null
+jq -e '[.restorePVCs[] | select(.namespace == "dr-protect-20261020-immich")][0].classification == "synthetic/test"' \
+  "$stale_evidence_dir/report.json" >/dev/null
+
 cp -R "$fixture_dir/." "$longhorn_dir/"
 jq '.items=[]' "$longhorn_dir/pvbs.json" >"$tmp_json"
 mv "$tmp_json" "$longhorn_dir/pvbs.json"
 jq '.items=[{"metadata":{"name":"pv-invoice-storage"},"status":{"kubernetesStatus":{"namespace":"invoice-ninja","pvcName":"storage"}}}]' \
   "$longhorn_dir/longhorn-volumes.json" >"$tmp_json"
 mv "$tmp_json" "$longhorn_dir/longhorn-volumes.json"
+jq '.items[0].metadata.labels={"recurring-job.longhorn.io/immich-redis-offsite":"enabled"}' \
+  "$longhorn_dir/longhorn-volumes.json" >"$tmp_json"
+mv "$tmp_json" "$longhorn_dir/longhorn-volumes.json"
+jq '.items=[{"metadata":{"name":"immich-redis-offsite"},"spec":{"task":"backup","groups":[]}}]' \
+  "$longhorn_dir/longhorn-recurringjobs.json" >"$tmp_json"
+mv "$tmp_json" "$longhorn_dir/longhorn-recurringjobs.json"
 jq '.items=[{"metadata":{"name":"backup-invoice-storage"},"status":{"state":"Completed","volumeName":"pv-invoice-storage"}}]' \
   "$longhorn_dir/longhorn-backups.json" >"$tmp_json"
 mv "$tmp_json" "$longhorn_dir/longhorn-backups.json"
@@ -51,6 +83,7 @@ grep -F 'CNPG_RESTORE_PROOF=PASS' "$output" >/dev/null
 grep -F 'RESTORE_DRILL_SUCCESS=PASS' "$output" >/dev/null
 jq -e '.productionPVCs[0].backupMechanism == "longhorn-s3" and .productionPVCs[0].offsiteBackupVerified == true' \
   "$longhorn_report" >/dev/null
+jq -e '.productionPVCs[0].recurringBackupConfigured == true' "$longhorn_report" >/dev/null
 
 cp -R "$fixture_dir/." "$stale_evidence_dir/"
 jq '.producedAt="2020-01-01T00:00:00Z"' "$stale_evidence_dir/restore-evidence.json" >"$tmp_json"

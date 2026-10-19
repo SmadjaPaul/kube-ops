@@ -10,5 +10,13 @@ helmCharts:
   valuesFile: values.yaml
   version: 28.0.5
 
+patches:
+- path: recurring-backup-patch.yaml
+  target:
+    group: apps
+    version: v1
+    kind: StatefulSet
+    name: immich-redis-master
+
 generatorOptions:
   disableNameSuffixHash: true

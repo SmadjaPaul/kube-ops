@@ -9,6 +9,7 @@ resources:
   - storageclasses.yaml
   - backup-credentials.yaml
   - recurring-job.yaml
+  - immich-redis-recurring-job.yaml
 
 helmCharts:
   - name: longhorn

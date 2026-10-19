@@ -26,7 +26,7 @@ if [[ -n "${BACKUP_AUDIT_INPUT_DIR:-}" ]]; then
       exit 2
     }
   done
-  for file in longhorn-volumes longhorn-backups restore-evidence; do
+  for file in longhorn-volumes longhorn-backups longhorn-recurringjobs restore-evidence; do
     [[ -s "$input_dir/$file.json" ]] || {
       printf '%s\n' '{"items":[]}' >"$scratch/$file.json"
     }
@@ -53,6 +53,7 @@ else
     'objectstores|objectstores.barmancloud.cnpg.io -A'
     'longhorn-volumes|volumes.longhorn.io -A'
     'longhorn-backups|backups.longhorn.io -A'
+    'longhorn-recurringjobs|recurringjobs.longhorn.io -A'
   )
   request_timeout="${BACKUP_AUDIT_REQUEST_TIMEOUT_SECONDS:-8}"
   overall_timeout="${BACKUP_AUDIT_TIMEOUT_SECONDS:-30}"
@@ -87,7 +88,9 @@ else
 fi
 
 evidence_file="${BACKUP_AUDIT_RESTORE_EVIDENCE_FILE:-}"
-if [[ -z "$evidence_file" && -z "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-19.json" ]]; then
+if [[ -z "$evidence_file" && -z "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-20.json" ]]; then
+  evidence_file="$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-20.json"
+elif [[ -z "$evidence_file" && -z "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-19.json" ]]; then
   evidence_file="$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-19.json"
 fi
 if [[ -n "$evidence_file" && -s "$evidence_file" ]]; then
@@ -110,8 +113,10 @@ else
 fi
 lh_volumes_input="$input_dir/longhorn-volumes.json"
 lh_backups_input="$input_dir/longhorn-backups.json"
+lh_recurring_input="$input_dir/longhorn-recurringjobs.json"
 [[ -s "$lh_volumes_input" ]] || lh_volumes_input="$scratch/longhorn-volumes.json"
 [[ -s "$lh_backups_input" ]] || lh_backups_input="$scratch/longhorn-backups.json"
+[[ -s "$lh_recurring_input" ]] || lh_recurring_input="$scratch/longhorn-recurringjobs.json"
 [[ -s "$collection_errors_file" ]] || printf '%s\n' '[]' >"$collection_errors_file"
 
 report_file="$(mktemp)"
@@ -129,6 +134,7 @@ jq -n \
   --slurpfile stores "$input_dir/objectstores.json" \
   --slurpfile lhvolumes "$lh_volumes_input" \
   --slurpfile lhbackups "$lh_backups_input" \
+  --slurpfile lhrecurring "$lh_recurring_input" \
   --slurpfile evidence "$evidence_input" \
   --slurpfile recoveryPolicies "$policy_input" \
   --slurpfile collectionErrors "$collection_errors_file" \
@@ -141,7 +147,7 @@ def name: .metadata.name;
 def is_drill:
   ((.metadata.labels["backup.smadja.dev/restore-drill"] // "") == "true") or
   ((.metadata.labels["qa.smadja.dev/restore"] // "") == "true") or
-  ((ns | test("(^|[-])restore([-]|$)|(^|[-])drill([-]|$)")));
+  ((ns | test("(^|[-])restore([-]|$)|(^|[-])drill([-]|$)|(^|[-])dr-protect([-]|$)")));
 def is_rebuildable:
   (.metadata.labels["backup.smadja.dev/strategy"] // "") == "rebuildable";
 def is_excluded:
@@ -236,10 +242,10 @@ def evidence_pass:
     [items($evidence)[] | select((.status // "") == "PASS" and ((.accepted // false) == true or (.applicationAccepted // false) == true))]
   else [] end;
 def evidence_for_pvc($pvc):
-  any(evidence_pass[];
+  [evidence_pass[] | select(
     (.pvc.namespace // "") == ($pvc | ns) and
     (.pvc.name // "") == ($pvc | name) and
-    (.pvc.uid // "") == ($pvc.metadata.uid // ""));
+    (.pvc.uid // "") == ($pvc.metadata.uid // ""))] | first // null;
 def recovery_policy_for($pvc):
   [($recoveryPolicies[0].policies // [])[] |
     select((.namespace // "") == ($pvc | ns) and
@@ -256,6 +262,11 @@ def recovery_status($policy; $offsite; $classification):
   elif (($policy.recoveryPolicy // "") == "UNKNOWN_REVIEW") then "UNKNOWN_REVIEW"
   elif $classification == "production" then "UNPROTECTED"
   else "UNKNOWN_REVIEW" end;
+def recurring_backup_for($lhvolume):
+  any(items($lhrecurring)[];
+    (.spec.task // "") == "backup" and
+    ((($lhvolume.metadata.labels // {})[("recurring-job.longhorn.io/" + (.metadata.name // ""))] // "") == "enabled" or
+     any((.spec.groups // [])[]; (($lhvolume.metadata.labels // {})[("recurring-job-group.longhorn.io/" + .)] // "") == "enabled")));
 
  (items($pvs) | reduce .[] as $pv ({}; .[$pv.metadata.name] = $pv)) as $pv_index |
  (completed_backups) as $completed_backups_list |
@@ -285,6 +296,7 @@ def recovery_status($policy; $offsite; $classification):
   (recovery_policy_for($pvc)) as $policy |
   (lh_volume_for($pvc; $lh_volume_index)) as $lhvolume |
   (lh_backup_for($pvc; $lh_volume_index; $lh_backup_index)) as $lhbackup |
+  (evidence_for_pvc($pvc)) as $restore_evidence |
   (pvb_for_pvc($pvc; $pvb_claim_index)) as $pvb |
   {
     namespace:ns,
@@ -311,7 +323,10 @@ def recovery_status($policy; $offsite; $classification):
     longhornVolumePresent:($lhvolume != null),
     longhornVolume:($lhvolume.metadata.name // ""),
     longhornBackupCompleted:($lhbackup),
-    restoreVerified:evidence_for_pvc($pvc),
+    restoreVerified:($restore_evidence != null and (($restore_evidence.restoreVerified // true) == true)),
+    applicationRecoveryVerified:($restore_evidence != null and (($restore_evidence.applicationRecoveryVerified // false) == true)),
+    restoreEvidence:($restore_evidence // null),
+    recurringBackupConfigured:recurring_backup_for($lhvolume),
     backupConfigured:(schedule_for_namespace(ns) or ($lhbackup)),
     offsiteBackupVerified:(($pvb != false) or ($lhbackup))
   }
