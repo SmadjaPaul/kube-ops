@@ -18,6 +18,11 @@ patches:
       version: v1
       kind: StatefulSet
       name: atlantis-pilot
+  - path: pvc-backup-patch.yaml
+    target:
+      version: v1
+      kind: PersistentVolumeClaim
+      name: atlantis-pilot-data
 
 helmCharts:
   - name: atlantis

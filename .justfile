@@ -37,6 +37,7 @@ check:
     bash tests/harness/invoice-backup-test.sh
     bash tests/harness/runtime-inventory-test.sh
     bash tests/harness/longhorn-servicemonitor-contract-test.sh
+    bash tests/harness/longhorn-offsite-pvc-contract-test.sh
     bash tests/harness/longhorn-tier-restore-runbook-test.sh
     bash tests/harness/d-recovery-contract-test.sh
 

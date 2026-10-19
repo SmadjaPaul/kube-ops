@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: twenty-storage
   namespace: twenty
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/persistent-offsite-backup: enabled
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:

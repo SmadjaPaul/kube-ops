@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "longhorn-offsite-pvc-2026-10-19",
+  "producedAt": "2026-10-19T19:12:00Z",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "working-tree",
+    "branch": "codex/longhorn-offsite-protection"
+  },
+  "tests": [
+    {
+      "id": "longhorn-offsite-pvc-contract",
+      "name": "Longhorn off-site PVC contract",
+      "command": "bash tests/harness/longhorn-offsite-pvc-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Verified the pinned Longhorn target, ESO references, recurring backup policy, four PVC labels and absence of credential values.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:PASS"}
+    },
+    {
+      "id": "repository-check",
+      "name": "Repository static and contract suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Existing repository contracts and the new Longhorn off-site contract passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:PASS"}
+    },
+    {
+      "id": "helm-kustomize-render",
+      "name": "Longhorn and four workload render",
+      "command": "kustomize build --enable-helm <longhorn|agentgateway|listmonk|twenty|atlantis roots>",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Rendered Longhorn 1.12.1 and all four PVC owners; labels are present without changing storage sizing or class declarations.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:PASS"}
+    },
+    {
+      "id": "runtime-backup-qualification",
+      "name": "Longhorn backup and restore qualification",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "not-applicable",
+      "reason": "Requires the PR to be merged and Argo to reconcile the target before creating any backup or temporary restore volume.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": {"kind": "none", "reference": "post-merge runtime gate"}
+    }
+  ],
+  "summary": {
+    "outcome": "passed",
+    "total": 4,
+    "executed": 3,
+    "notExecuted": 1,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "unavailable": 0,
+    "notApplicable": 1
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@working-tree:longhorn-offsite-pvc",
+    "payload": {
+      "resultId": "longhorn-offsite-pvc-2026-10-19",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "working-tree",
+      "tests": [
+        {
+          "id": "longhorn-offsite-pvc-contract",
+          "name": "Longhorn off-site PVC contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Static safety contract passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "passed", "total": 4, "executed": 3, "notExecuted": 1}
+    }
+  }
+}
