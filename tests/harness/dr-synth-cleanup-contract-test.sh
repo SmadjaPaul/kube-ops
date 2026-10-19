@@ -73,6 +73,10 @@ rc="$(run_cleanup wrong_uid "$wrong_uid" "" "" --dry-run)"
 expect_nonzero "$rc" "wrong UID"
 grep -F 'UID divergence' "$tmp/out-wrong_uid/stderr" >/dev/null
 
+custom_identity="$(make_manifest custom_identity '.identityLabels = {"backup.smadja.dev/purpose":"pvc-restore-proof"} | .configMaps = [] | .pvs = []')"
+rc="$(run_cleanup custom_identity "$custom_identity" "" custom-identity-label --dry-run)"
+[[ "$rc" == 0 ]]
+
 wrong_claim="$(make_manifest wrong_claim '.pvs[0].claimRef.name = "unexpected"')"
 rc="$(run_cleanup wrong_claim "$wrong_claim" "" "" --dry-run)"
 expect_nonzero "$rc" "unexpected claimRef"

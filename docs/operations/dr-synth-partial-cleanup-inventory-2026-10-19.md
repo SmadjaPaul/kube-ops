@@ -61,7 +61,7 @@ preserved by the manifest.
 
 The wrapper delegates deletion to `scripts/dr-synth-cleanup.sh` from PR #564,
 pinned to SHA-256
-`f90f034e3ce7ae9e88ee400d43f765138933e98a682f4f5914470565ae01306a`.
+`f9dff8061b69d9fdcf8b424477ce25a611df3dcc1bb98c3221fb61400c67e413`.
 
 Order is ConfigMaps, four namespaces, PVs after `Released`, then Longhorn
 volumes after `Detached` and no `VolumeAttachment`. Each identity is checked

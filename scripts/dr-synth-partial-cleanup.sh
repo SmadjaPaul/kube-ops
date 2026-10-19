@@ -9,7 +9,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 engine="$repo_root/scripts/dr-synth-cleanup.sh"
 manifest="$repo_root/docs/operations/dr-synth-partial-cleanup-manifest-2026-10-19.json"
-expected_engine_sha="f90f034e3ce7ae9e88ee400d43f765138933e98a682f4f5914470565ae01306a"
+expected_engine_sha="f9dff8061b69d9fdcf8b424477ce25a611df3dcc1bb98c3221fb61400c67e413"
 
 die() {
   printf 'DR_PARTIAL_CLEANUP=BLOCKED\nREASON=%s\n' "$*" >&2
