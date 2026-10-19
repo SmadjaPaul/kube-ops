@@ -5,6 +5,7 @@ resources:
   - immich-config-external-secret.yaml
   - database.yaml
   - database-scheduled-backup.yaml
+  - backup-gap-remediation-20261019.yaml
   - database-objectstore.yaml
   - database-hetzner-credentials.yaml
   - podmonitor.yaml

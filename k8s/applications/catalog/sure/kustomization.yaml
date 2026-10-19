@@ -4,6 +4,7 @@ resources:
   - namespace.yaml
   - database.yaml
   - backup.yaml
+  - backup-gap-remediation-20261019.yaml
   - runtime.yaml
   - storage.yaml
   - redis.yaml
