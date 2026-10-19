@@ -1,7 +1,8 @@
 # Grafana catalogue consolidation
 
-Status: PR #551 review candidate; Argo reconciliation and Grafana browser
-rendering remain post-merge gates.
+Status: PR #551 is merged at `fca985b4005ced3ac67dc9edf948e3d4b18030a8`.
+The follow-up provisioning repair is a targeted Grafana-only change; Argo
+reconciliation and authenticated Grafana runtime rendering remain its gates.
 
 ## Provisioning contract
 
@@ -25,6 +26,37 @@ Datasource references are deliberately explicit: PromQL panels use the
 Grafana datasource UID `prometheus`; the Loki panel uses the `DS_LOKI` variable
 whose selected datasource is `Loki`; Tempo is an Explore link using the
 configured `tempo` datasource. No panel relies on a generated datasource UID.
+
+### Sidecar deletion and namespace scope
+
+The installed Grafana pod uses `quay.io/kiwigrid/k8s-sidecar:2.10.1`. Both
+Grafana and `grafana-sc-dashboard` mount `/tmp/dashboards` from the
+`sc-dashboard-volume` `emptyDir`; it is not the Grafana data volume and is not
+a PVC. Before the follow-up repair, the dashboard sidecar used
+`METHOD=WATCH` and `NAMESPACE=ALL`. The first Argo reconciliation removed the
+old dashboard ConfigMaps after the pod had already populated this ephemeral
+directory. The corresponding DELETE events were not observed by the sidecar,
+so old files remained and Grafana saw duplicate UIDs. The live evidence was
+the coexistence of the 11 curated folder files with root-level upstream files,
+plus Grafana's `same UID is used more than once` and `restricted database
+access` messages.
+
+The repair uses only the installed chart's supported settings:
+
+- `searchNamespace: monitoring` makes the catalogue sidecar ignore unrelated
+  dashboard ConfigMaps from `kube-system` and `cnpg-system`.
+- `watchMethod: SLEEP` performs a complete list every 60 seconds. The
+  k8s-sidecar 2.10.1 list reconciliation removes files belonging to resources
+  no longer present, so a missed watch DELETE is repaired without a cleaner,
+  hook, CronJob or custom script.
+
+The values change also rolls the Grafana pod declaratively. Since the old
+files are in `emptyDir`, the new pod starts with a clean provisioning
+directory; no Grafana database, data volume, PVC, metrics, rules or alerts are
+deleted. The expected post-reconcile filesystem is exactly 11 JSON files under
+the seven catalogue folders. A legitimate No Data result for intermittent
+Factory/dbt executions remains a dashboard/query concern and is not altered
+by this provisioning repair.
 
 ## Decision
 
@@ -126,15 +158,18 @@ metric, alert or data-retention deletion.
 
 ## Rollback
 
-Revert the merged PR #551 commit(s) and let Argo reconcile. The revert restores
-the previous four local ConfigMaps, re-enables chart-provided dashboard
-ConfigMaps, restores the Loki dashboard chart setting and removes the
-blackbox metric relabel addition. No Prometheus scrape, alert, rule, PVC or
-application data is deleted by this catalogue refactor; the blackbox change
-restores the intended label on an existing probe series and does not change
-probe targets or retention.
+For the follow-up repair, revert its single Git commit (or the PR) and let
+Argo reconcile. That restores the previous dashboard sidecar scope and watch
+mode without deleting the Grafana database or any volume. If a provisioning
+regression is detected after rollback, the catalogue PR #551 rollback remains
+the separate documented action: revert its commits to restore the previous
+four local ConfigMaps, chart dashboard settings and blackbox relabel addition.
+No Prometheus scrape, alert, rule, PVC or application data is deleted by
+either rollback path.
 
 Before merging, verify the four preserved UIDs and the replacement rendering in
 Grafana. After merge, verify `infra-monitoring` is `Synced/Healthy`, the
-sidecar reports the seven folders, and the live dashboard count is 11 curated
-views plus no AIX/MacOS/Bloom ConfigMaps.
+Grafana rollout is complete, the sidecar reports `NAMESPACE=monitoring` and
+`METHOD=SLEEP`, the provisioning directory has no root-level retired files,
+and the authenticated Grafana API exposes exactly 11 curated views in seven
+folders. A route returning HTTP 302 alone is not dashboard validation.

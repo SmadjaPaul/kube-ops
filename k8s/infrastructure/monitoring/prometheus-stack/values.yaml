@@ -25,6 +25,13 @@ grafana:
   defaultDashboardsEnabled: false
   sidecar:
     dashboards:
+      # The Grafana catalogue is owned by this namespace. Restricting the
+      # sidecar avoids importing unrelated dashboard ConfigMaps into Grafana.
+      searchNamespace: monitoring
+      # WATCH can miss a DELETE during an Argo prune/reconcile transition.
+      # SLEEP performs a full list every 60s and removes files absent from the
+      # current ConfigMap set, making catalogue retirement reproducible.
+      watchMethod: SLEEP
       folderAnnotation: grafana_folder
       provider:
         foldersFromFilesStructure: true
