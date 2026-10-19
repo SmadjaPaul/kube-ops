@@ -68,14 +68,38 @@
       "risk": "high",
       "expectedCi": "not-expected",
       "evidence": {"kind": "none", "reference": "no live mutation issued"}
+    },
+    {
+      "id": "just-check",
+      "name": "repository check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All repository contracts, including backup, DR, Argo, Longhorn, and Mastra checks, passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "just check exit 0"}
+    },
+    {
+      "id": "recovery-evidence-gates",
+      "name": "accepted-loss evidence gates",
+      "command": "bash tests/harness/backup-audit-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "EPHEMERAL_VERIFIED requires functional-recovery evidence and EXCLUDE_ACCEPTED_LOSS requires operator-acceptance evidence.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "backup-audit contract: PASS"}
     }
   ],
   "summary": {
     "outcome": "incomplete",
-    "total": 5,
-    "executed": 4,
+    "total": 7,
+    "executed": 6,
     "notExecuted": 1,
-    "passed": 2,
+    "passed": 4,
     "failed": 2,
     "skipped": 0,
     "notApplicable": 1
@@ -111,9 +135,31 @@
           "reason": "The live decision gate remains failed by design.",
           "risk": "high",
           "expectedCi": "required"
+        },
+        {
+          "id": "just-check",
+          "name": "repository check suite",
+          "command": "just check",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Repository checks passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "recovery-evidence-gates",
+          "name": "accepted-loss evidence gates",
+          "command": "bash tests/harness/backup-audit-contract-test.sh",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Evidence gates passed.",
+          "risk": "medium",
+          "expectedCi": "required"
         }
       ],
-      "summary": {"outcome": "incomplete", "total": 5, "executed": 4, "notExecuted": 1}
+      "summary": {"outcome": "incomplete", "total": 7, "executed": 6, "notExecuted": 1}
     }
   }
 }

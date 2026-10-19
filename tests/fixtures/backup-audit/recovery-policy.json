@@ -24,6 +24,22 @@
       "recoveryPolicy": "UNKNOWN_REVIEW",
       "recoveryEvidence": [{"kind": "fixture", "reference": "suspended workspace recovery not proven"}],
       "lastVerifiedAt": "2026-10-19T22:28:31Z"
+    },
+    {
+      "namespace": "synthetic",
+      "name": "ephemeral-workspace",
+      "uid": "ephemeral-uid",
+      "recoveryPolicy": "EPHEMERAL_VERIFIED",
+      "recoveryEvidence": [{"kind": "functional-recovery", "reference": "rebuild test"}],
+      "lastVerifiedAt": "2026-10-19T22:28:31Z"
+    },
+    {
+      "namespace": "synthetic",
+      "name": "accepted-loss-cache",
+      "uid": "accepted-loss-uid",
+      "recoveryPolicy": "EXCLUDE_ACCEPTED_LOSS",
+      "recoveryEvidence": [{"kind": "operator-acceptance", "reference": "loss accepted"}],
+      "lastVerifiedAt": "2026-10-19T22:28:31Z"
     }
   ]
 }
