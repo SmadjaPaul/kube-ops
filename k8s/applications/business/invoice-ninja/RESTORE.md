@@ -77,7 +77,8 @@ velero restore create "$RESTORE_NAME" \
   --exclude-resources "customresourcedefinitions.apiextensions.k8s.io,namespaces,secrets,externalsecrets.external-secrets.io,httproutes.gateway.networking.k8s.io" \
   --wait
 
-# The modifier removes the source PVCs' stale volumeName before restore. The
+# The modifier deletes the source PVCs' stale volumeName before restore using
+# an idempotent JSON Merge Patch. The
 # namespace in the modifier is the source namespace, not $DRILL_NS. This is
 # required because volumeName is immutable on a PVC and otherwise points at a
 # production PV. PersistentVolumes are included as File System Backup metadata; Velero dynamically provisions fresh target PVs from the isolated PVCs. CRDs and namespaces remain excluded. `--restore-volumes=true` enables PodVolumeRestore creation and data recovery. Do not run without verifying the four PVs and their owners.

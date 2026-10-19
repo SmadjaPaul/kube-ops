@@ -40,9 +40,10 @@ that no production namespace, database Service, Gateway, or external service
 is an allowed destination. If the Cilium policy cannot be observed as
 enforced, stop before creating the backup.
 
-The current `restore-pvc-isolation` resource modifier removes only the stale
-`spec.volumeName` from PVCs in the synthetic source namespace. It does not
-rewrite `spec.storageClassName`; this is the property being qualified.
+The current `restore-pvc-isolation` resource modifier deletes only the stale
+`spec.volumeName` from PVCs in the synthetic source namespace by JSON Merge
+Patch. This is idempotent when Velero has already omitted the field. It does
+not rewrite `spec.storageClassName`; this is the property being qualified.
 
 ## 1. Create synthetic source data
 

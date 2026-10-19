@@ -15,9 +15,15 @@ data:
           namespaces:
             - invoice-ninja
             - longhorn-tier-dr-source
-        patches:
-          - operation: remove
-            path: "/spec/volumeName"
+        # JSON Merge Patch deletion is idempotent: unlike a JSON Patch remove,
+        # it also succeeds when Velero has already omitted volumeName.
+        mergePatches:
+          - patchData: |
+              {
+                "spec": {
+                  "volumeName": null
+                }
+              }
       # Velero copies the source object's Argo tracking annotation into the
       # isolated namespace. Remove it before restore so the drill cannot be
       # attributed to the production Application or inflate orphan warnings.

@@ -29,7 +29,12 @@ modifier_rules="$(yq -r '.data["resource-modifier.yaml"]' "$modifier")"
 grep -F 'groupResource: persistentvolumeclaims' <<<"$modifier_rules" >/dev/null
 grep -F 'namespaces:' <<<"$modifier_rules" >/dev/null
 grep -F -- '- invoice-ninja' <<<"$modifier_rules" >/dev/null
-grep -F 'path: "/spec/volumeName"' <<<"$modifier_rules" >/dev/null
+grep -F 'mergePatches:' <<<"$modifier_rules" >/dev/null
+grep -F '"volumeName": null' <<<"$modifier_rules" >/dev/null
+if grep -F 'operation: remove' <<<"$modifier_rules" >/dev/null; then
+  echo 'ASSERTION_FAILED restore modifier must be idempotent when volumeName is absent' >&2
+  exit 1
+fi
 if grep -F 'path: "/spec/storageClassName"' <<<"$modifier_rules" >/dev/null; then
   echo 'ASSERTION_FAILED preserve original StorageClass on restore' >&2
   exit 1

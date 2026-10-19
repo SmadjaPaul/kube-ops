@@ -3,6 +3,7 @@ set -euo pipefail
 for cmd in kustomize yq jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
 
 bash tests/harness/velero-storage-tier-test.sh
+bash tests/harness/velero-resource-modifier-test.sh
 bash tests/harness/cnpg-gap-backup-contract-test.sh
 
 tmp="$(mktemp -d)"
