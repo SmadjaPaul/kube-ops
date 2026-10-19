@@ -1,0 +1,62 @@
+{
+  "manifestId": "dr-synth-20261019170700-partial-non-cnpg",
+  "scope": "partial-non-cnpg",
+  "run": "dr-synth-20261019170700",
+  "cleanupScript": {
+    "path": "scripts/dr-synth-cleanup.sh",
+    "sha256": "f90f034e3ce7ae9e88ee400d43f765138933e98a682f4f5914470565ae01306a"
+  },
+  "inventory": {
+    "file": "docs/operations/dr-synth-partial-cleanup-inventory-2026-10-19.md",
+    "sha256": "64027a16a33440f252dca3e651ad51666008f7aada05256ec5899be0b0cf2afe"
+  },
+  "namespaces": [
+    {"name":"dr-synth-20261019170700-velero-src","uid":"c9872e04-9f36-4962-b761-2b221cd1041c"},
+    {"name":"dr-synth-20261019170700-velero-tgt","uid":"93286195-37c1-4414-bb82-c6abca6b2a97"},
+    {"name":"dr-synth-20261019170700-velero-tgt-v2","uid":"c7be4bfe-eaa7-4990-b74a-e73fc98120e6"},
+    {"name":"dr-synth-20261019170700-stop","uid":"ed5d2bf4-d849-4bb3-a080-1ddcf7964526"}
+  ],
+  "excludedNamespaces": [
+    {"name":"dr-synth-20261019170700-cnpg-src","uid":"1c5deb49-e9c5-4ad2-bbe2-f107f9413113"},
+    {"name":"dr-synth-20261019170700-cnpg-tgt","uid":"9f6c1f6c-279f-4481-b53f-501c669e7079"}
+  ],
+  "configMaps": [
+    {"namespace":"velero","name":"dr-synth-20261019170700-pvc-isolation","uid":"36665f5f-0c53-44e6-b8fb-791a948aa811"},
+    {"namespace":"velero","name":"dr-synth-20261019170700-pvc-isolation-v2","uid":"fb11af08-86b7-47d3-9073-9ea41c197a3b"}
+  ],
+  "pvs": [
+    {"name":"pvc-c8efe26b-fc83-4410-b606-fe370f15029e","uid":"c8d94fc2-7cb5-43a1-b425-9b326773596c","claimRef":{"namespace":"dr-synth-20261019170700-velero-src","name":"bulk-data","uid":"c8efe26b-fc83-4410-b606-fe370f15029e"},"volumeHandle":"pvc-c8efe26b-fc83-4410-b606-fe370f15029e","volumeName":"pvc-c8efe26b-fc83-4410-b606-fe370f15029e","volumeUid":"dd5d0204-4e81-42f7-8f60-d643df6323db","volumeNamespace":"longhorn-system","volumePvcName":"bulk-data"},
+    {"name":"pvc-d4f55404-f4ab-4d86-8cf9-53dfe0a1f633","uid":"d60c279f-1d4f-45b4-ac79-b841b3371e71","claimRef":{"namespace":"dr-synth-20261019170700-velero-src","name":"fast-data","uid":"d4f55404-f4ab-4d86-8cf9-53dfe0a1f633"},"volumeHandle":"pvc-d4f55404-f4ab-4d86-8cf9-53dfe0a1f633","volumeName":"pvc-d4f55404-f4ab-4d86-8cf9-53dfe0a1f633","volumeUid":"f4699d06-dbf8-4a11-8101-0437d7f917b0","volumeNamespace":"longhorn-system","volumePvcName":"fast-data"},
+    {"name":"pvc-9c7057f3-bc2a-4844-bf6e-210c4dd78e90","uid":"2f04dd83-00e2-4a50-aaca-cb16cf0c1071","claimRef":{"namespace":"dr-synth-20261019170700-velero-tgt","name":"bulk-data","uid":"9c7057f3-bc2a-4844-bf6e-210c4dd78e90"},"volumeHandle":"pvc-9c7057f3-bc2a-4844-bf6e-210c4dd78e90","volumeName":"pvc-9c7057f3-bc2a-4844-bf6e-210c4dd78e90","volumeUid":"910b603e-e8fd-4f8c-af7b-634db444f21b","volumeNamespace":"longhorn-system","volumePvcName":"bulk-data"},
+    {"name":"pvc-53d528eb-82a6-4cdd-88ac-64ae292819d4","uid":"565c0a2d-df51-4b9d-b792-ac1f8a337297","claimRef":{"namespace":"dr-synth-20261019170700-velero-tgt","name":"fast-data","uid":"53d528eb-82a6-4cdd-88ac-64ae292819d4"},"volumeHandle":"pvc-53d528eb-82a6-4cdd-88ac-64ae292819d4","volumeName":"pvc-53d528eb-82a6-4cdd-88ac-64ae292819d4","volumeUid":"b820829b-eec8-47c3-80ab-b3732a6e607d","volumeNamespace":"longhorn-system","volumePvcName":"fast-data"},
+    {"name":"pvc-00d57f78-8be8-4084-9df7-92197ff1e5f1","uid":"0bf0dac6-e9c1-4794-8c88-9e80a1cde286","claimRef":{"namespace":"dr-synth-20261019170700-velero-tgt-v2","name":"bulk-data","uid":"00d57f78-8be8-4084-9df7-92197ff1e5f1"},"volumeHandle":"pvc-00d57f78-8be8-4084-9df7-92197ff1e5f1","volumeName":"pvc-00d57f78-8be8-4084-9df7-92197ff1e5f1","volumeUid":"63926431-1370-4737-a896-16a436506c86","volumeNamespace":"longhorn-system","volumePvcName":"bulk-data"},
+    {"name":"pvc-db227530-6dfb-475b-b7bd-ef36a3dafd31","uid":"ddc7a7ec-6378-4fdc-b519-99a17a9f641c","claimRef":{"namespace":"dr-synth-20261019170700-velero-tgt-v2","name":"fast-data","uid":"db227530-6dfb-475b-b7bd-ef36a3dafd31"},"volumeHandle":"pvc-db227530-6dfb-475b-b7bd-ef36a3dafd31","volumeName":"pvc-db227530-6dfb-475b-b7bd-ef36a3dafd31","volumeUid":"19218702-09c7-4597-93df-bcffea198cec","volumeNamespace":"longhorn-system","volumePvcName":"fast-data"}
+  ],
+  "preserve": [
+    {"kind":"backups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup","uid":"f824dfe2-0de9-4e01-b462-327b24196084"},
+    {"kind":"backups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup-v2","uid":"e9962dc5-9e58-45a4-a012-f1b1b8e0d665"},
+    {"kind":"restores.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-restore","uid":"30a489f3-dbce-412c-9993-402e4a1b35f2"},
+    {"kind":"restores.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-restore-v2","uid":"8eba147a-6742-4275-a713-c4beb6840723"},
+    {"kind":"podvolumebackups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup-42ln6","uid":"07142820-66c9-4422-9cac-64a98edfd717"},
+    {"kind":"podvolumebackups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup-p57bq","uid":"704e361d-149d-464f-9330-d94170386946"},
+    {"kind":"podvolumebackups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup-xpqkm","uid":"c6c6afee-572f-4ea4-be9a-f3a36de0311d"},
+    {"kind":"podvolumebackups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup-v2-cskzc","uid":"2bf6cc58-d530-43b6-bf58-44cf8890dbe1"},
+    {"kind":"podvolumebackups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup-v2-xj6dp","uid":"7eedd9f8-4194-43bb-97e0-eff2a2c61728"},
+    {"kind":"podvolumerestores.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-restore-9tl2t","uid":"61801757-70b2-4910-8f4b-35debaac83d6"},
+    {"kind":"podvolumerestores.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-restore-pmqf6","uid":"d36d7da0-0c1e-429d-b4c2-027dc2e4be7f"},
+    {"kind":"podvolumerestores.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-restore-v2-j2dnk","uid":"b83b3266-ff36-4c1c-b9b6-ae0d65cecd7a"},
+    {"kind":"podvolumerestores.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-restore-v2-ll2g5","uid":"9bf4eb84-6e4f-4e3f-a98c-0c395c0c5112"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"dr-proof-20261019193651-agentgateway","uid":"c45cb76a-c9f5-45b6-b35f-a7789f859c21"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"dr-proof-20261019193651-atlantis","uid":"d25f2673-1256-4386-a249-be9ae915fd99"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"dr-proof-20261019193651-listmonk","uid":"a1eadbf3-edd3-4f74-95da-834cf29851ce"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"dr-proof-20261019193651-twenty","uid":"4c74b3cb-b404-4462-b314-836b462ac543"},
+    {"kind":"namespace","name":"dr-synth-20261019170700-cnpg-src","uid":"1c5deb49-e9c5-4ad2-bbe2-f107f9413113"},
+    {"kind":"namespace","name":"dr-synth-20261019170700-cnpg-tgt","uid":"9f6c1f6c-279f-4481-b53f-501c669e7079"},
+    {"kind":"clusters.postgresql.cnpg.io","namespace":"dr-synth-20261019170700-cnpg-src","name":"dr-synth-20261019170700-cnpg","uid":"e96a6679-c96e-4f74-a420-20434b875467"},
+    {"kind":"backups.postgresql.cnpg.io","namespace":"dr-synth-20261019170700-cnpg-src","name":"dr-synth-20261019170700-cnpg-backup","uid":"e6844b7e-12eb-4084-8e56-fa47c071e222"},
+    {"kind":"objectstores.barmancloud.cnpg.io","namespace":"dr-synth-20261019170700-cnpg-src","name":"dr-synth-20261019170700-store","uid":"29c158c5-699a-4840-b24b-4d150ce9348e"},
+    {"kind":"clusters.postgresql.cnpg.io","namespace":"dr-synth-20261019170700-cnpg-tgt","name":"dr-synth-20261019170700-cnpg-recovered","uid":"292456e8-f87b-447a-b851-6001370f05bb"},
+    {"kind":"objectstores.barmancloud.cnpg.io","namespace":"dr-synth-20261019170700-cnpg-tgt","name":"dr-synth-20261019170700-source-store","uid":"c0c6e31f-c1de-419c-bc25-163ba308b17e"},
+    {"kind":"objectstores.barmancloud.cnpg.io","namespace":"dr-synth-20261019170700-cnpg-tgt","name":"dr-synth-20261019170700-target-store","uid":"db060443-73bf-4dcc-ac9e-bcfc643dbfa2"}
+  ]
+}

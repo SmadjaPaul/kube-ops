@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "dr-synth-partial-cleanup-2026-10-19T20:25:04Z",
+  "producedAt": "2026-10-19T20:25:04Z",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "91d173a5be67c4a98e381638284534a6c238cd83+partial-working-tree",
+    "branch": "codex/dr-cleanup-safety"
+  },
+  "tests": [
+    {
+      "id": "partial-cleanup-contract",
+      "name": "partial cleanup scope contract",
+      "command": "bash tests/harness/dr-synth-partial-cleanup-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The wrapper rejects CNPG namespaces and claimRefs, non-Velero ConfigMaps, and incomplete exclusions.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "dr-synth-partial-cleanup scope contract: PASS" }
+    },
+    {
+      "id": "cleanup-safety-contract",
+      "name": "existing cleanup safety contract",
+      "command": "bash tests/harness/dr-synth-cleanup-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The shared PR #564 cleanup engine safety contract passed.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "dr-synth-cleanup safety contract: PASS" }
+    },
+    {
+      "id": "shell-and-syntax",
+      "name": "Bash syntax and ShellCheck",
+      "command": "bash -n scripts/dr-synth-partial-cleanup.sh scripts/dr-synth-cleanup.sh tests/harness/dr-synth-partial-cleanup-contract-test.sh tests/harness/dr-synth-cleanup-contract-test.sh && shellcheck scripts/dr-synth-partial-cleanup.sh scripts/dr-synth-cleanup.sh tests/harness/dr-synth-partial-cleanup-contract-test.sh tests/harness/dr-synth-cleanup-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All checked scripts passed syntax validation and ShellCheck.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "shellcheck exit 0" }
+    },
+    {
+      "id": "just-check",
+      "name": "repository contracts",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All repository checks completed successfully, including backup, cleanup, Argo and runtime contract tests.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "just check exit 0" }
+    },
+    {
+      "id": "live-partial-dry-run",
+      "name": "live partial cleanup dry-run",
+      "command": "source scripts/lib/kube-preflight.sh && require_kube_access && bash scripts/dr-synth-partial-cleanup.sh --dry-run",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The live dry-run revalidated four namespaces, two ConfigMaps, six PV/PVC/Longhorn chains, VolumeAttachments, and explicit Velero/CNPG/Longhorn preservation entries without emitting delete-intent.",
+      "risk": "low",
+      "expectedCi": "optional",
+      "evidence": { "kind": "command", "reference": "/tmp/dr-synth-partial-20261019170700-dry-run-final.journal.jsonl" }
+    },
+    {
+      "id": "barman-policy-review",
+      "name": "CNPG/Barman lifecycle review",
+      "command": "manual review of CNPG operator 1.29.1 and Barman Cloud plugin v0.11.0 semantics",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The partial plan excludes both CNPG namespaces and all six CNPG/Barman CRs; Barman data remains governed by the existing one-day retention policy and no CR deletion is included.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": { "kind": "manual", "reference": "docs/operations/dr-synth-partial-cleanup.md" }
+    },
+    {
+      "id": "runtime-smoke",
+      "name": "runtime smoke",
+      "command": "just runtime-smoke",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "Two pre-existing route failures were observed: atlantis has no ready endpoint and home-assistant returned HTTP 000; mastra-factory returned HTTP 401 with a ready endpoint and was PASS.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": { "kind": "command", "reference": "RUNTIME_SMOKE_FAILURES=2; mastra-factory PASS" }
+    },
+    {
+      "id": "backup-audit",
+      "name": "backup protection audit",
+      "command": "just backup-audit",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The independent live audit reports PRODUCTION_PVC_COVERAGE=48/63, CNPG_BACKUP_CONFIGURATION=12/14, CNPG_RESTORE_PROOF=UNPROVEN, RESTORE_RESIDUE_COUNT=17 and BACKUP_AUDIT_GAPS=34; this is an existing platform blocker, not changed by this partial cleanup.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": { "kind": "command", "reference": "BACKUP_AUDIT_GAPS=34" }
+    },
+    {
+      "id": "live-apply",
+      "name": "live cleanup apply",
+      "command": "bash scripts/dr-synth-partial-cleanup.sh --apply",
+      "execution": "not-executed",
+      "status": "NOT_APPLICABLE",
+      "classification": "skipped",
+      "reason": "The mission explicitly forbids live cleanup; a separate operator approval for this exact partial manifest is required.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 9,
+    "executed": 8,
+    "notExecuted": 1,
+    "passed": 6,
+    "failed": 2,
+    "skipped": 1,
+    "unavailable": 0,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@91d173a5be67c4a98e381638284534a6c238cd83+partial-working-tree:dr-synth-partial-cleanup",
+    "payload": {
+      "resultId": "dr-synth-partial-cleanup-2026-10-19T20:25:04Z",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "91d173a5be67c4a98e381638284534a6c238cd83+partial-working-tree",
+      "tests": [
+        { "id": "partial-cleanup-contract", "name": "partial cleanup scope contract", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Scope contract passed.", "risk": "none", "expectedCi": "required" },
+        { "id": "cleanup-safety-contract", "name": "existing cleanup safety contract", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Shared cleanup safety contract passed.", "risk": "none", "expectedCi": "required" },
+        { "id": "shell-and-syntax", "name": "Bash syntax and ShellCheck", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Syntax and ShellCheck passed.", "risk": "none", "expectedCi": "required" },
+        { "id": "just-check", "name": "repository contracts", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "just check passed.", "risk": "none", "expectedCi": "required" },
+        { "id": "live-partial-dry-run", "name": "live partial cleanup dry-run", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Live dry-run passed without delete-intent.", "risk": "low", "expectedCi": "optional" },
+        { "id": "barman-policy-review", "name": "CNPG/Barman lifecycle review", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "CNPG scope remains excluded.", "risk": "medium", "expectedCi": "optional" },
+        { "id": "runtime-smoke", "name": "runtime smoke", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Two unrelated existing route failures remain.", "risk": "medium", "expectedCi": "optional" },
+        { "id": "backup-audit", "name": "backup protection audit", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Existing backup coverage and restore-proof gaps remain.", "risk": "high", "expectedCi": "optional" },
+        { "id": "live-apply", "name": "live cleanup apply", "execution": "not-executed", "status": "NOT_APPLICABLE", "classification": "skipped", "reason": "Explicitly forbidden by the mission.", "risk": "high", "expectedCi": "not-expected" }
+      ],
+      "summary": { "outcome": "incomplete", "total": 9, "executed": 8, "notExecuted": 1 }
+    }
+  }
+}
