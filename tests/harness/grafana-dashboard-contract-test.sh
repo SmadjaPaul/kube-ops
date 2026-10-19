@@ -52,13 +52,19 @@ jq -e '
 
 jq -e '
   [.[].data[] | fromjson] as $dashboards |
+  ($dashboards | map(.uid)) as $uids |
   (($dashboards | map(.uid) | length) == ($dashboards | map(.uid) | unique | length)) and
   ($dashboards | all(
     .uid and .title and .description and
     (.tags | type == "array" and length >= 2 and length <= 4) and
     (.tags | all(. as $tag | ["platform","infrastructure","kubernetes","observability","factory","data-platform","storage","network","security","advanced"] | index($tag) != null)) and
     (.panels | type == "array" and length > 0) and
-    (.links | type == "array" and length > 0)
+    (.links | type == "array" and length > 0) and
+    ([.links[]?.url | select(startswith("/d/")) | split("/")[2]] as $links |
+      ($links | all(.[]; . as $uid | $uids | index($uid) != null))) and
+    ([.panels[] | select(.type != "text") | .fieldConfig.defaults.unit] | all(. != null and length > 0)) and
+    ([.panels[] | select(.type == "timeseries") | .targets[]] | all(has("legendFormat"))) and
+    ([.panels[] | select(.type == "timeseries") | .options.legend] | all(. != null))
   ))
 ' "$catalog_json" >/dev/null
 

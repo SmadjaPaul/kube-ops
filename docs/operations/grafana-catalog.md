@@ -1,7 +1,30 @@
 # Grafana catalogue consolidation
 
-Status: PR-ready GitOps change; Argo reconciliation and Grafana browser rendering
-remain post-merge gates.
+Status: PR #551 review candidate; Argo reconciliation and Grafana browser
+rendering remain post-merge gates.
+
+## Provisioning contract
+
+The installed `kube-prometheus-stack` chart is `88.3.0` and bundles Grafana
+chart `12.10.4`. Its values documentation explicitly supports using
+`sidecar.dashboards.folderAnnotation` together with
+`sidecar.dashboards.provider.foldersFromFilesStructure`. The rendered templates
+turn the former into the sidecar `FOLDER_ANNOTATION` environment variable and
+the latter into the Grafana file-provider option; when the latter is enabled,
+the provider does not use one fixed `folder`/`folderUid`.
+
+This catalogue therefore has one folder authority: the
+`metadata.annotations.grafana_folder` annotation on each curated ConfigMap.
+The seven folder names below are rendered into the sidecar filesystem and are
+not duplicated by a provider-level folder setting. `defaultDashboardsEnabled:
+false` disables only the chart's upstream dashboard ConfigMaps. The Prometheus,
+Loki, Tempo and Alloy metric collection, recording rules and alerts remain
+enabled.
+
+Datasource references are deliberately explicit: PromQL panels use the
+Grafana datasource UID `prometheus`; the Loki panel uses the `DS_LOKI` variable
+whose selected datasource is `Loki`; Tempo is an Explore link using the
+configured `tempo` datasource. No panel relies on a generated datasource UID.
 
 ## Decision
 
@@ -64,12 +87,52 @@ Operations, Factory Performance, dbt V2 Operations and Data Quality. It does
 not currently expose token/cost-per-run or agentgateway/sandbox-specific
 series, so those panels were not invented.
 
+The pre-merge Prometheus audit evaluated 81 unique PromQL expressions (94
+panel usages): there were no query errors. Before the blackbox relabel fix,
+the only empty results were the user-ready probe selector and the OOMKilled
+selector. The former was a real label propagation defect: target labels were
+present only on ServiceMonitor metadata, so the probe metric did not carry
+`v1_user_ready`; the catalogue change adds the supported
+`additionalMetricsRelabels` entry to the eight user-ready targets and preserves
+the existing alert intent. OOMKilled remains a legitimate empty result while
+no container has recorded that termination reason. Factory/dbt queries retain
+their natural No Data behavior for intermittent executions; they do not turn
+absence into a false zero.
+
+### Exact upstream dashboard retirement inventory
+
+After reconcile, these upstream dashboard ConfigMaps are expected to disappear
+from Grafana provisioning:
+
+- kube-prometheus-stack: `alertmanager-overview`, `apiserver`,
+  `cluster-total`, `controller-manager`, `etcd`, `grafana-overview`,
+  `k8s-coredns`, `k8s-resources-cluster`, `k8s-resources-multicluster`,
+  `k8s-resources-namespace`, `k8s-resources-node`,
+  `k8s-resources-nodes-overview`, `k8s-resources-pod`,
+  `k8s-resources-workload`, `k8s-resources-workloads-namespace`, `kubelet`,
+  `namespace-by-pod`, `namespace-by-workload`, `node-cluster-rsrc-use`,
+  `node-rsrc-use`, `nodes`, `nodes-aix`, `nodes-darwin`,
+  `persistentvolumesusage`, `pod-total`, `prometheus`, `scheduler`,
+  `workload-total`.
+- Loki: `bloom-build`, `bloom-gateway`, `chunks`, `deletion`, `logs`,
+  `recording-rules`, `operational`, `reads`, `reads-resources`, `retention`,
+  `thanos-object-storage`, `writes`, `writes-resources`.
+
+The four former local ConfigMap names are also replaced by curated resources,
+but their operational UIDs remain stable: `homeops-operations`,
+`homeops-edge-boot-io`, `homeops-logs-efficiency` and
+`factory-data-platform-v2`. This is a dashboard-resource replacement, not a
+metric, alert or data-retention deletion.
+
 ## Rollback
 
-Revert this Git commit and let Argo reconcile. The revert restores the previous
-four local ConfigMaps, re-enables chart-provided dashboard ConfigMaps and
-restores the Loki dashboard chart setting. No Prometheus scrape, alert, rule,
-PVC or application data is changed by this catalogue refactor.
+Revert the merged PR #551 commit(s) and let Argo reconcile. The revert restores
+the previous four local ConfigMaps, re-enables chart-provided dashboard
+ConfigMaps, restores the Loki dashboard chart setting and removes the
+blackbox metric relabel addition. No Prometheus scrape, alert, rule, PVC or
+application data is deleted by this catalogue refactor; the blackbox change
+restores the intended label on an existing probe series and does not change
+probe targets or retention.
 
 Before merging, verify the four preserved UIDs and the replacement rendering in
 Grafana. After merge, verify `infra-monitoring` is `Synced/Healthy`, the
