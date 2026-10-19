@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: listmonk-uploads
   namespace: listmonk
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/persistent-offsite-backup: enabled
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
