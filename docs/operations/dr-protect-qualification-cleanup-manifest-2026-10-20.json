@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "manifestId": "dr-protect-qualification-cleanup-2026-10-20",
+  "purpose": "Nominative dry-run plan for the three isolated Longhorn restore-proof namespaces; this manifest authorizes no live deletion.",
+  "capturedAt": "2026-10-19T23:26:45Z",
+  "execution": {
+    "defaultMode": "dry-run",
+    "liveDeletionAuthorized": false,
+    "requiredApproval": "explicit approval of this exact manifest digest after a fresh live preflight",
+    "engine": "scripts/dr-synth-cleanup.sh",
+    "deleteOrder": [
+      "namespace-cascade-after-identity-revalidation",
+      "pvc-and-pv-only-after-namespace-cascade-is-observed",
+      "longhorn-volume-only-after-detached-and-no-volumeattachment"
+    ]
+  },
+  "deleteCandidates": {
+    "namespaces": [
+      {
+        "name": "dr-protect-20261020-immich",
+        "uid": "cd2e4f9c-963f-489f-a76c-ba33e1458e23",
+        "labels": {"dr.smadja.dev/purpose": "pvc-restore-proof"},
+        "cascade": "all namespaced proof Pods, PVC, CiliumNetworkPolicy and service-account ConfigMap objects",
+        "pvc": {
+          "name": "restored-redis-data",
+          "uid": "503add93-4e98-461a-9d6c-764ad12fab98",
+          "volumeName": "dr-protect-20261020-immich-pv",
+          "storageClass": "longhorn-fast",
+          "sourcePvcUid": "a09c12b9-203b-4610-8558-1e6f8088c18c"
+        },
+        "pv": {
+          "name": "dr-protect-20261020-immich-pv",
+          "uid": "2dca2398-5286-4972-8610-8fcc5ffb4f0f",
+          "claimRefUid": "503add93-4e98-461a-9d6c-764ad12fab98",
+          "volumeHandle": "dr-protect-20261020-immich-volume",
+          "reclaimPolicy": "Retain",
+          "phase": "Bound"
+        },
+        "longhornVolume": {
+          "name": "dr-protect-20261020-immich-volume",
+          "uid": "27af4a4a-2b43-40d0-80b7-2b75f0f11a2e",
+          "state": "detached",
+          "pvc": "dr-protect-20261020-immich/restored-redis-data"
+        },
+        "additionalNamespacedObjects": {
+          "ciliumNetworkPolicy": {"name": "restore-proof-deny-all", "uid": "1fc0011b-e0c8-458e-ab22-0b7eeeaba7ff"},
+          "configMap": {"name": "kube-root-ca.crt", "uid": "53dcec20-2901-4e10-b4f5-3601fbc27794"},
+          "pods": [
+            "isolation-probe",
+            "redis-restore-aof-check-v3",
+            "redis-restore-aof-check-v4",
+            "redis-restore-local-recovery-v5",
+            "redis-restore-reader",
+            "redis-restore-reader-v2"
+          ]
+        }
+      },
+      {
+        "name": "dr-protect-20261020-mastra-active",
+        "uid": "942b8567-e315-4160-bcfb-d28b9ac4a124",
+        "labels": {"dr.smadja.dev/purpose": "pvc-restore-proof"},
+        "cascade": "all namespaced proof Pods, PVC, CiliumNetworkPolicy and service-account ConfigMap objects",
+        "pvc": {
+          "name": "restored-workspace",
+          "uid": "307469f9-65a5-4c24-ac5b-7478b8b9b496",
+          "volumeName": "dr-protect-20261020-mastra-active-pv",
+          "storageClass": "longhorn-fast",
+          "sourcePvcUid": "c36eea64-f347-46af-88a2-46ab620575b0"
+        },
+        "pv": {
+          "name": "dr-protect-20261020-mastra-active-pv",
+          "uid": "b3a863d5-958c-470b-b845-d825f65b8aad",
+          "claimRefUid": "307469f9-65a5-4c24-ac5b-7478b8b9b496",
+          "volumeHandle": "dr-protect-20261020-mastra-active-volume",
+          "reclaimPolicy": "Retain",
+          "phase": "Bound"
+        },
+        "longhornVolume": {
+          "name": "dr-protect-20261020-mastra-active-volume",
+          "uid": "19ffd0bd-6176-49fb-985b-88872371a757",
+          "state": "detached",
+          "pvc": "dr-protect-20261020-mastra-active/restored-workspace"
+        },
+        "additionalNamespacedObjects": {
+          "ciliumNetworkPolicy": {"name": "restore-proof-deny-all", "uid": "b2655d0b-554e-418a-b1a8-9064d878b44b"},
+          "configMap": {"name": "kube-root-ca.crt", "uid": "382ee0ff-5868-420f-97a4-f9630a8e0fc2"},
+          "pods": ["isolation-probe", "workspace-restore-reader", "workspace-restore-reader-v2"]
+        }
+      },
+      {
+        "name": "dr-protect-20261020-mastra-suspended",
+        "uid": "375e65c9-6ac8-4606-9a2f-43cf46491928",
+        "labels": {"dr.smadja.dev/purpose": "pvc-restore-proof"},
+        "cascade": "all namespaced proof Pods, PVC, CiliumNetworkPolicy and service-account ConfigMap objects",
+        "pvc": {
+          "name": "restored-workspace",
+          "uid": "93656934-b7b9-4a60-aeda-5efca54d1bc8",
+          "volumeName": "dr-protect-20261020-mastra-suspended-pv",
+          "storageClass": "longhorn-fast",
+          "sourcePvcUid": "06fc6da9-bf5d-4538-b8a3-42fc735956c0"
+        },
+        "pv": {
+          "name": "dr-protect-20261020-mastra-suspended-pv",
+          "uid": "48f9025f-977e-42a7-9a95-6774c07816c8",
+          "claimRefUid": "93656934-b7b9-4a60-aeda-5efca54d1bc8",
+          "volumeHandle": "dr-protect-20261020-mastra-susp-ba5aeb52",
+          "reclaimPolicy": "Retain",
+          "phase": "Bound"
+        },
+        "longhornVolume": {
+          "name": "dr-protect-20261020-mastra-susp-ba5aeb52",
+          "uid": "3482dc09-92d1-4925-9dd5-68bc0ce1b701",
+          "state": "detached",
+          "pvc": "dr-protect-20261020-mastra-suspended/restored-workspace"
+        },
+        "additionalNamespacedObjects": {
+          "ciliumNetworkPolicy": {"name": "restore-proof-deny-all", "uid": "a8fc163c-f8b1-43b1-bc2d-5979b134f56c"},
+          "configMap": {"name": "kube-root-ca.crt", "uid": "7d3a78ad-2cde-4018-a8b9-a65a72068492"},
+          "pods": ["isolation-probe", "workspace-restore-reader", "workspace-restore-reader-v2"]
+        }
+      }
+    ]
+  },
+  "preserve": {
+    "sourcePvcUids": [
+      "a09c12b9-203b-4610-8558-1e6f8088c18c",
+      "c36eea64-f347-46af-88a2-46ab620575b0",
+      "06fc6da9-bf5d-4538-b8a3-42fc735956c0"
+    ],
+    "remoteLonghornBackups": [
+      "dr-protect-20261020-immich-redis",
+      "dr-protect-20261020-mastra-active",
+      "dr-protect-20261020-mastra-suspended"
+    ],
+    "veleroAndBarmanEvidence": "preserve; not owned by these restore-proof namespaces",
+    "historicalPvcCount": 17,
+    "productionNamespaces": "preserve",
+    "factoryAndMastraNamespaces": ["factory-platform", "mastra-factory", "mastra-sandbox"]
+  },
+  "gates": [
+    "fresh namespace UID and dr.smadja.dev/purpose label match",
+    "fresh PVC UID, namespace/name and volumeName match",
+    "fresh PV UID, claimRef namespace/name/UID, volumeHandle and Retain policy match",
+    "fresh Longhorn Volume UID, namespace/PVC status and volumeHandle match",
+    "no Pod, controller, VolumeAttachment or cross-namespace reference remains",
+    "PV is Released before PV deletion",
+    "Longhorn Volume is Detached and has no VolumeAttachment before volume deletion",
+    "remote qualification backups and evidence remain Completed and outside delete set",
+    "Factory/Mastra and Argo health are checked immediately before and after any separately approved cleanup",
+    "stop on any identity divergence; no wildcard, force-detach or finalizer removal"
+  ],
+  "historicalPvcReview": {
+    "count": 17,
+    "action": "REVIEW_ONLY",
+    "liveDeletionAuthorized": false,
+    "reason": "Age/name alone do not prove absence of use or ownership. Each PVC requires an independent workload, PV, Longhorn and backup review."
+  }
+}
