@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "dr-synth-cleanup-2026-10-19",
+  "producedAt": "2026-10-19T18:21:42Z",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "c1ebadeb+working-tree",
+    "branch": "codex/dr-cleanup-safety"
+  },
+  "tests": [
+    {
+      "id": "dr-synth-cleanup-contract",
+      "name": "Synthetic DR cleanup safety contract",
+      "command": "bash tests/harness/dr-synth-cleanup-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Mocked tests covered dry-run, approval, UID/claimRef divergence, namespace recreation, attachment, bounded transitions, interruption/resume, missing evidence and preservation.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:PASS"}
+    },
+    {
+      "id": "repository-check",
+      "name": "Repository static and contract suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All existing checks plus the cleanup contract passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:PASS"}
+    },
+    {
+      "id": "shellcheck-and-diff-check",
+      "name": "ShellCheck and whitespace validation",
+      "command": "shellcheck -S warning scripts/dr-synth-cleanup.sh tests/harness/dr-synth-cleanup-contract-test.sh tests/fixtures/dr-cleanup/bin/kubectl && git diff --check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "ShellCheck and git whitespace checks passed for the cleanup implementation and harness.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local:PASS"}
+    },
+    {
+      "id": "live-cleanup-dry-run",
+      "name": "Live synthetic DR cleanup dry-run",
+      "command": "scripts/dr-synth-cleanup.sh --dry-run --manifest /tmp/dr-synth-20261019170700-cleanup-manifest.json",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Exact live inventory, ownership, claimRef, Longhorn and preservation gates passed without deletion.",
+      "risk": "none",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "DR_CLEANUP=DRY_RUN; manifest SHA d904bad82c4870ad1412d15d7b8f6791601b09aa47aa02c8be4efc0d43018d7f; metadata review v5 secret-free"}
+    },
+    {
+      "id": "live-cleanup-apply",
+      "name": "Live synthetic DR cleanup apply",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "not-applicable",
+      "reason": "Explicitly outside this development authorization; operator approval of the exact manifest is still required.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": {"kind": "none", "reference": "operator approval required"}
+    }
+  ],
+  "summary": {
+    "outcome": "passed",
+    "total": 5,
+    "executed": 4,
+    "notExecuted": 1,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "unavailable": 0,
+    "notApplicable": 1
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@c1ebadeb+working-tree:dr-synth-cleanup",
+    "payload": {
+      "resultId": "dr-synth-cleanup-2026-10-19",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "c1ebadeb+working-tree",
+      "tests": [
+        {
+          "id": "dr-synth-cleanup-contract",
+          "name": "Synthetic DR cleanup safety contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Mocked safety contract passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "passed", "total": 5, "executed": 4, "notExecuted": 1}
+    }
+  }
+}
