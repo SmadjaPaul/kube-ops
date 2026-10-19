@@ -63,6 +63,10 @@ def is_drill:
   ((ns | test("(^|[-])restore([-]|$)|(^|[-])drill([-]|$)")));
 def is_rebuildable:
   (.metadata.labels["backup.smadja.dev/strategy"] // "") == "rebuildable";
+def is_excluded:
+  # An explicit Velero exclusion is an operator-declared EXCLUDE decision. It
+  # is not recovery proof and must not be reported as a protected PVC gap.
+  (.metadata.annotations["velero.io/exclude-from-backup"] // "") == "true";
 def is_cnpg:
   (.metadata.labels["cnpg.io/cluster"] // "") != "";
 def is_restore_drill:
@@ -149,12 +153,13 @@ def restore_statuses:
   drill:is_drill,
   cnpg:is_cnpg,
   rebuildable:is_rebuildable,
+  excluded:is_excluded,
   orphan:((.metadata.labels["backup.smadja.dev/orphan"] // "") == "true"),
   volume:(.spec.volumeName // ""),
   scheduled:(schedule_for_namespace(ns)),
   completedBackup:(completed_backup_for_namespace(ns)),
   completedPVB:(pvb_for_pvc(.))
-}] | map(select(.rebuildable | not))) as $all_pvcs |
+}] | map(select((.rebuildable or .excluded) | not))) as $all_pvcs |
 ($all_pvcs | map(select(.drill))) as $drill_pvcs |
 ($all_pvcs | map(select((.drill or .cnpg) | not))) as $production_pvcs |
 ([items($pvs)[] | {name:name, phase:(.status.phase // "Unknown"), claimNamespace:(.spec.claimRef.namespace // ""), claimName:(.spec.claimRef.name // "")}]) as $pv_inventory |
