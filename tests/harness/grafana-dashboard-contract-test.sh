@@ -3,6 +3,7 @@
 set -euo pipefail
 
 catalog="k8s/infrastructure/monitoring/prometheus-stack/grafana-catalog.yaml"
+values="k8s/infrastructure/monitoring/prometheus-stack/values.yaml"
 folders=(
   '00 — Overview'
   '10 — Infrastructure'
@@ -26,8 +27,18 @@ expected_titles=(
 )
 
 [[ -f "$catalog" ]] || { echo "missing $catalog" >&2; exit 1; }
+[[ -f "$values" ]] || { echo "missing $values" >&2; exit 1; }
 command -v yq >/dev/null || { echo "yq is required" >&2; exit 1; }
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
+
+[[ "$(yq '.grafana.sidecar.dashboards.searchNamespace' "$values")" == "monitoring" ]] || {
+  echo "dashboard sidecar must be scoped to monitoring" >&2
+  exit 1
+}
+[[ "$(yq '.grafana.sidecar.dashboards.watchMethod' "$values")" == "SLEEP" ]] || {
+  echo "dashboard sidecar must use SLEEP reconciliation" >&2
+  exit 1
+}
 
 catalog_json="$(mktemp)"
 trap 'rm -f "$catalog_json"' EXIT

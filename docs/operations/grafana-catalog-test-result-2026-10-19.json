@@ -1,12 +1,12 @@
 {
   "schemaVersion": "agent-test-result/v1",
   "resultId": "kube-ops-grafana-catalog-2026-10-19",
-  "producedAt": "2026-10-19T09:31:06Z",
+  "producedAt": "2026-10-19T10:00:00Z",
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "kube-ops",
-    "revision": "codex/grafana-catalog-refactor",
-    "branch": "codex/grafana-catalog-refactor"
+    "revision": "codex/grafana-provisioning-cleanup",
+    "branch": "codex/grafana-provisioning-cleanup"
   },
   "tests": [
     {
@@ -58,6 +58,18 @@
       "evidence": {"kind": "command", "reference": "local 2026-10-19"}
     },
     {
+      "id": "grafana-sidecar-provisioning-contract",
+      "name": "Grafana sidecar namespace and deletion contract",
+      "command": "bash tests/harness/grafana-dashboard-contract-test.sh && kustomize build --enable-helm k8s/infrastructure/monitoring",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The installed chart renders METHOD=SLEEP and NAMESPACE=monitoring while retaining FOLDER_ANNOTATION=grafana_folder, foldersFromFilesStructure=true and disableDeletion=false; no storage or datasource changes are rendered.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "local /tmp/grafana-provisioning-cleanup-rendered.yaml; 2026-10-19"}
+    },
+    {
       "id": "repository-check",
       "name": "Repository check suite",
       "command": "just check",
@@ -106,13 +118,25 @@
       "evidence": {"kind": "command", "reference": "just runtime-inventory; pre-change baseline 2026-10-19"}
     },
     {
+      "id": "grafana-stale-files-diagnosis",
+      "name": "Live Grafana stale provisioning diagnosis",
+      "command": "kubectl -n monitoring get deployment kube-prometheus-stack-grafana -o json; kubectl -n monitoring logs deployment/kube-prometheus-stack-grafana -c grafana-sc-dashboard; kubectl -n monitoring exec deployment/kube-prometheus-stack-grafana -c grafana-sc-dashboard -- find /tmp/dashboards",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The live pod uses an emptyDir dashboard volume with k8s-sidecar 2.10.1 in WATCH/ALL mode; root-level retired JSON files coexist with the 11 curated files and Grafana reports duplicate UIDs plus restricted database access. This is the defect addressed by the follow-up values change.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "canonical kube access; live monitoring pod 2026-10-19"}
+    },
+    {
       "id": "post-reconcile-runtime",
       "name": "Post-reconcile Argo and dashboard runtime proof",
       "command": "just runtime-inventory && just runtime-smoke",
       "execution": "not-executed",
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
-      "reason": "The PR branch has not been merged or reconciled; running this now would only observe the old main revision.",
+      "reason": "The follow-up PR has not been merged or reconciled; the current main revision is the known stale-files baseline. Run after the repair merge.",
       "risk": "high",
       "expectedCi": "required",
       "evidence": {"kind": "none", "reference": "run after merge and Argo reconciliation"}
@@ -124,7 +148,7 @@
       "execution": "not-executed",
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
-      "reason": "The replacement ConfigMaps are not live yet and no dashboard UI acceptance was run against the branch.",
+      "reason": "The repair values are not live yet and authenticated dashboard API/browser acceptance must run after the repair merge.",
       "risk": "medium",
       "expectedCi": "required",
       "evidence": {"kind": "none", "reference": "run after merge and Argo reconciliation"}
@@ -132,11 +156,11 @@
   ],
   "summary": {
     "outcome": "incomplete",
-    "total": 10,
-    "executed": 8,
+    "total": 12,
+    "executed": 10,
     "notExecuted": 2,
-    "passed": 8,
-    "failed": 0,
+    "passed": 9,
+    "failed": 1,
     "skipped": 0,
     "unavailable": 2,
     "notApplicable": 0
@@ -149,7 +173,7 @@
     "payload": {
       "resultId": "kube-ops-grafana-catalog-2026-10-19",
       "repository": "kube-ops",
-      "revision": "codex/grafana-catalog-refactor",
+      "revision": "codex/grafana-provisioning-cleanup",
       "tests": [
         {
           "id": "grafana-catalog-contract",
@@ -162,7 +186,7 @@
           "expectedCi": "required"
         }
       ],
-      "summary": {"outcome": "incomplete", "total": 10, "executed": 8, "notExecuted": 2, "passed": 8, "failed": 0, "unavailable": 2}
+      "summary": {"outcome": "incomplete", "total": 12, "executed": 10, "notExecuted": 2, "passed": 9, "failed": 1, "unavailable": 2}
     }
   }
 }
