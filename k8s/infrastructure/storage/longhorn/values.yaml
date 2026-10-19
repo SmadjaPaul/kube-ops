@@ -72,5 +72,9 @@ longhornDriver:
 metrics:
   serviceMonitor:
     enabled: true
+    # kube-prometheus-stack selects ServiceMonitors by this release label.
+    # Longhorn's chart exposes the upstream metrics without it by default.
+    additionalLabels:
+      release: kube-prometheus-stack
     interval: 30s
     scrapeTimeout: 10s
