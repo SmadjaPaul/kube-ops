@@ -5,7 +5,7 @@
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "dbd56e99+working-tree",
+    "revision": "c1ebadeb+working-tree",
     "branch": "codex/dr-cleanup-safety"
   },
   "tests": [
@@ -55,7 +55,7 @@
       "reason": "Exact live inventory, ownership, claimRef, Longhorn and preservation gates passed without deletion.",
       "risk": "none",
       "expectedCi": "optional",
-      "evidence": {"kind": "command", "reference": "DR_CLEANUP=DRY_RUN; manifest SHA 8b2d528307e7cdbdcf107b9f6ab2507da43e284d797f33003581aa4d5d810c8e; metadata review v4 secret-free"}
+      "evidence": {"kind": "command", "reference": "DR_CLEANUP=DRY_RUN; manifest SHA d904bad82c4870ad1412d15d7b8f6791601b09aa47aa02c8be4efc0d43018d7f; metadata review v5 secret-free"}
     },
     {
       "id": "live-cleanup-apply",
@@ -84,11 +84,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@dbd56e99+working-tree:dr-synth-cleanup",
+    "idempotencyKey": "SmadjaPaul/kube-ops@c1ebadeb+working-tree:dr-synth-cleanup",
     "payload": {
       "resultId": "dr-synth-cleanup-2026-10-19",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "dbd56e99+working-tree",
+      "revision": "c1ebadeb+working-tree",
       "tests": [
         {
           "id": "dr-synth-cleanup-contract",

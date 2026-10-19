@@ -15,7 +15,7 @@ Usage: dr-synth-cleanup.sh [--dry-run|--apply] [--resume]
   [--manifest FILE] [--journal FILE] [--report FILE] [--metadata-dir DIR]
 
 Default mode is --dry-run. Apply requires:
-  DR_CLEANUP_APPROVAL=APPROVE:<run>:<manifest-sha256>
+  DR_CLEANUP_APPROVAL=APPROVE:<run>:<manifest-sha256>:<script-sha256>
 
 If CNPG/Barman objects exist in the drill, apply also requires:
   DR_CLEANUP_ALLOW_BARMAN_CR_DELETE=true

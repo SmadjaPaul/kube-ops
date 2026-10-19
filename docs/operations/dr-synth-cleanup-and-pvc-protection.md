@@ -20,7 +20,7 @@ Longhorn ownership, CNPG/Barman and preservation checks and writes:
 - a JSONL per-resource report;
 - secret-free CNPG/Barman metadata snapshots.
 
-Apply is a separate operator action and requires the exact manifest digest:
+Apply is a separate operator action and requires the exact manifest and script digests:
 
     manifest=/tmp/dr-synth-20261019170700-cleanup-manifest.json
     sha256sum "$manifest"
