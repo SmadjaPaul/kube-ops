@@ -13,6 +13,32 @@ isolated namespace and must not be run against `invoice-ninja` in place.
 - The Velero run is intentionally after the logical dump so the dump is
   included in the off-cluster backup.
 
+## Preflight before creating restore resources
+
+The Invoice Ninja namespace drill is different from the two-leg synthetic CNPG
+and Velero/Kopia drill. It does not establish CNPG recovery evidence.
+
+Before creating resources, record the approved window, named temporary namespace,
+exact source backup and expected four PVBs, and a second operator able to stop
+the test. Cleanup requires a separate named approval. Stop if any gate is missing.
+
+Verify the full Velero backup resource list, not just the Completed phase.
+If the CLI or complete resource list is unavailable, stop. In particular,
+review cluster-scoped PV metadata before using
+`--include-cluster-resources=true`.
+
+Measure free CPU, memory, ephemeral disk and Longhorn capacity immediately
+before the test. Preserve headroom for Mastra and Factory workloads. A restore
+must not change their namespaces, PVCs, deployments or resource quotas.
+
+Exclude public routes and production credentials. Also verify isolation from
+production databases, outbound services and third-party integrations: omitting
+HTTPRoute alone does not stop egress. Establish drill-only network restrictions
+before starting recovered application pods, or stop if isolation is unproven.
+
+Do not reuse or delete PVCs belonging to earlier restore drills. Inventory all
+created resources and retain them until explicitly authorized cleanup.
+
 ## Velero namespace restore
 
 Choose a fresh drill namespace and the latest `Completed` backup. Do not use a
