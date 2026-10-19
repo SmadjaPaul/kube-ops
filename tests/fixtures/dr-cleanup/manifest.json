@@ -1,0 +1,29 @@
+{
+  "run": "dr-synth-test",
+  "inventory": {
+    "file": "tests/fixtures/dr-cleanup/inventory.md",
+    "sha256": "4f9a080c273e3ad52e0361a21a8498081607ddab40b510d7ce892da894040cf8"
+  },
+  "namespaces": [
+    {"name": "dr-synth-test-src", "uid": "ns-src"},
+    {"name": "dr-synth-test-tgt", "uid": "ns-tgt"}
+  ],
+  "configMaps": [
+    {"namespace": "velero", "name": "dr-synth-test-modifier", "uid": "cm-1"}
+  ],
+  "pvs": [
+    {
+      "name": "pvc-pv-1",
+      "uid": "pv-1",
+      "claimRef": {"namespace": "dr-synth-test-src", "name": "data", "uid": "pvc-1"},
+      "volumeHandle": "pvc-pv-1",
+      "volumeName": "pvc-pv-1",
+      "volumeUid": "lh-1",
+      "volumeNamespace": "longhorn-system",
+      "volumePvcName": "data"
+    }
+  ],
+  "preserve": [
+    {"kind": "backups.velero.io", "namespace": "velero", "name": "dr-synth-test-backup", "uid": "backup-1"}
+  ]
+}

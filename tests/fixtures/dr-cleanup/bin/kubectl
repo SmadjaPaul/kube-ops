@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+state="${DR_CLEANUP_FIXTURE_STATE:?}"
+mkdir -p "$state"
+
+ns=
+if [[ "${1:-}" == --request-timeout=* ]]; then shift; fi
+while (($#)); do
+  if [[ "$1" == -n ]]; then ns="$2"; shift 2; else break; fi
+done
+cmd="${1:-}"; shift || true
+resource="${1:-}"; shift || true
+name=
+if [[ "${1:-}" != -* && -n "${1:-}" ]]; then name="$1"; shift; fi
+deleted() { [[ -e "$state/deleted__${1}__${2:-cluster}__${3:-none}" ]]; }
+mark_deleted() { : >"$state/deleted__${1}__${2:-cluster}__${3:-none}"; }
+
+if [[ "$cmd" == get ]]; then
+  all=false
+  for arg in "$@"; do [[ "$arg" == -A ]] && all=true; done
+  if [[ -z "$name" && "${DR_CLEANUP_FIXTURE_CASE:-}" == barman-finalizer && "$resource" == objectstores.barmancloud.cnpg.io ]]; then
+    jq -n '{items:[{metadata:{name:"store",namespace:"dr-synth-test-cnpg-src",uid:"store-1",finalizers:["protect.example"]},spec:{retentionPolicy:"1d"},status:{}}]}'
+    exit 0
+  fi
+  if [[ -z "$name" && "${DR_CLEANUP_FIXTURE_CASE:-}" == barman-no-retention && "$resource" == objectstores.barmancloud.cnpg.io ]]; then
+    jq -n '{items:[{metadata:{name:"store",namespace:"dr-synth-test-cnpg-src",uid:"store-1",finalizers:[]},spec:{},status:{}}]}'
+    exit 0
+  fi
+  if [[ "$resource" == volumeattachments.storage.k8s.io ]]; then
+    if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == volume-attached ]]; then
+      jq -n '{items:[{spec:{source:{persistentVolumeName:"pvc-pv-1"}}}]}'
+    else jq -n '{items:[]}'; fi
+    exit 0
+  fi
+  if [[ "$resource" == pvc && "$all" == true ]]; then
+    if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == claim-drift ]]; then
+      jq -n '{items:[
+        {metadata:{namespace:"dr-synth-test-src",name:"data"},spec:{volumeName:"pvc-pv-1"}},
+        {metadata:{namespace:"other",name:"unexpected"},spec:{volumeName:"pvc-pv-1"}}
+      ]}'
+    else jq -n '{items:[{metadata:{namespace:"dr-synth-test-src",name:"data"},spec:{volumeName:"pvc-pv-1"}}]}'; fi
+    exit 0
+  fi
+  if [[ -z "$name" ]]; then
+    jq -n '{items:[]}'
+    exit 0
+  fi
+  if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == namespace-recreated && "$resource" == namespace && "$name" == dr-synth-test-src ]]; then
+    jq -n '{apiVersion:"v1",kind:"Namespace",metadata:{name:"dr-synth-test-src",uid:"recreated",labels:{"dr.smadja.dev/run":"dr-synth-test"}}}'
+    exit 0
+  fi
+  if deleted "$resource" "$ns" "$name"; then exit 1; fi
+  case "$resource/$name" in
+    namespace/dr-synth-test-src|namespace/dr-synth-test-tgt)
+      uid=$([[ "$name" == dr-synth-test-src ]] && echo ns-src || echo ns-tgt)
+      jq -n --arg uid "$uid" --arg name "$name" '{apiVersion:"v1",kind:"Namespace",metadata:{name:$name,uid:$uid,labels:{"dr.smadja.dev/run":"dr-synth-test"}}}' ;;
+    configmap/dr-synth-test-modifier)
+      jq -n '{apiVersion:"v1",kind:"ConfigMap",metadata:{name:"dr-synth-test-modifier",namespace:"velero",uid:"cm-1",labels:{"dr.smadja.dev/run":"dr-synth-test"}}}' ;;
+    pv/pvc-pv-1)
+      phase=Bound
+      [[ -e "$state/namespace-deleted" ]] && phase=Released
+      if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == pv-delayed && -e "$state/namespace-deleted" ]]; then
+        count=0
+        [[ -s "$state/pv-reads" ]] && count="$(cat "$state/pv-reads")"
+        count=$((count + 1))
+        printf '%s' "$count" >"$state/pv-reads"
+        if (( count >= 3 )); then phase=Released; fi
+      fi
+      jq -n --arg phase "$phase" '{apiVersion:"v1",kind:"PersistentVolume",metadata:{name:"pvc-pv-1",uid:"pv-1"},spec:{persistentVolumeReclaimPolicy:"Retain",claimRef:{namespace:"dr-synth-test-src",name:"data",uid:"pvc-1"},csi:{volumeHandle:"pvc-pv-1"}},status:{phase:$phase}}' ;;
+    pvc/data)
+      jq -n '{apiVersion:"v1",kind:"PersistentVolumeClaim",metadata:{name:"data",namespace:"dr-synth-test-src",uid:"pvc-1"},spec:{volumeName:"pvc-pv-1"}}' ;;
+    volumes.longhorn.io/pvc-pv-1)
+      state_value=attached
+      [[ -e "$state/pv-deleted" ]] && state_value=detached
+      jq -n --arg state "$state_value" '{apiVersion:"longhorn.io/v1beta2",kind:"Volume",metadata:{name:"pvc-pv-1",uid:"lh-1"},status:{state:$state,robustness:"healthy",kubernetesStatus:{namespace:"dr-synth-test-src",pvcName:"data"}}}' ;;
+    backups.velero.io/dr-synth-test-backup)
+      jq -n '{apiVersion:"velero.io/v1",kind:"Backup",metadata:{name:"dr-synth-test-backup",namespace:"velero",uid:"backup-1"}}' ;;
+    clusters.postgresql.cnpg.io/*|backups.postgresql.cnpg.io/*|scheduledbackups.postgresql.cnpg.io/*|objectstores.barmancloud.cnpg.io/*)
+      jq -n '{items:[]}' ;;
+    *) exit 1 ;;
+  esac
+  exit 0
+fi
+
+if [[ "$cmd" == delete ]]; then
+  case "$resource" in
+    namespace)
+      if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == interrupt && "$name" == dr-synth-test-src ]]; then
+        mark_deleted namespace cluster "$name"; : >"$state/namespace-deleted"; exit 77
+      fi
+      mark_deleted namespace cluster "$name"; : >"$state/namespace-deleted" ;;
+    configmap|pv|volumes.longhorn.io)
+      mark_deleted "$resource" "$ns" "$name"
+      [[ "$resource" == pv ]] && : >"$state/pv-deleted"
+      ;;
+    *) exit 2 ;;
+  esac
+  exit 0
+fi
+exit 2
