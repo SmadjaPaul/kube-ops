@@ -9,6 +9,7 @@ resources:
   - database-mas.yaml
   - database-objectstores.yaml
   - database-scheduled-backups.yaml
+  - backup-gap-remediation-20261020.yaml
   - database-s3-credentials.yaml
   - media-pvc.yaml
   - externalsecret.yaml
