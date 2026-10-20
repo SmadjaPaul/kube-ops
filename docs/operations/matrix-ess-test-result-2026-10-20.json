@@ -5,7 +5,7 @@
   "actor": { "kind": "agent", "name": "codex" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "d13f1bcb437977dbe4d5eff2a7a21998659cf012+working-tree",
+    "revision": "834445d89d024e68e7eb6a60c4e66cbd3fd6f860+working-tree",
     "branch": "codex/promote-factory-pending-diagnostic"
   },
   "tests": [
@@ -143,11 +143,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@d13f1bcb437977dbe4d5eff2a7a21998659cf012+working-tree:matrix-ess",
+    "idempotencyKey": "SmadjaPaul/kube-ops@834445d89d024e68e7eb6a60c4e66cbd3fd6f860+working-tree:matrix-ess",
     "payload": {
       "resultId": "matrix-ess-2026-10-20-working-tree",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "d13f1bcb437977dbe4d5eff2a7a21998659cf012+working-tree",
+      "revision": "834445d89d024e68e7eb6a60c4e66cbd3fd6f860+working-tree",
       "tests": [
         { "id": "repo-check", "name": "repository static and harness checks", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "just check passed.", "risk": "low", "expectedCi": "required" },
         { "id": "matrix-kustomize-render", "name": "ESS Matrix Kustomize render", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Matrix render passed.", "risk": "low", "expectedCi": "required" },
