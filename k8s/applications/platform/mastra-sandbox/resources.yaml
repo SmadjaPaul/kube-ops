@@ -1,5 +1,5 @@
-# STAGING ONLY: parent kustomization does not include this directory.
-# CRDs/RuntimeClass are prerequisites; no workloads are activated by this PR.
+# Active SandboxTemplate via apps-platform: new SandboxClaims use these settings.
+# WarmPool remains at zero; this change does not start an extra workload.
 apiVersion: v1
 kind: Namespace
 metadata:
