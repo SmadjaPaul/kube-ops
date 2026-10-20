@@ -5,8 +5,9 @@ metadata:
   labels:
     policy-type: platform
 spec:
-  description: "Allow Gateway Envoy to reach the Authentik backend for the MAS OIDC hairpin"
+  description: "Allow the Matrix MAS Gateway hairpin without constraining shared Gateway routes"
   enableDefaultDeny:
+    ingress: false
     egress: false
   endpointSelector:
     matchExpressions:
@@ -21,3 +22,11 @@ spec:
       toPorts:
         - ports:
             - {port: "9000", protocol: TCP}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix
+            k8s:app.kubernetes.io/name: matrix-authentication-service
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
