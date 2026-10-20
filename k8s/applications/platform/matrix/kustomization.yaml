@@ -88,6 +88,10 @@ patches:
       kind: Job
       name: matrix-synapse-check-config
     patch: |-
+      - op: remove
+        path: /metadata/annotations/helm.sh~1hook
+      - op: remove
+        path: /metadata/annotations/helm.sh~1hook-weight
       - op: add
         path: /metadata/annotations/argocd.argoproj.io~1hook
         value: Sync
