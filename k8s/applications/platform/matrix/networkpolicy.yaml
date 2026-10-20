@@ -38,6 +38,13 @@ spec:
             - {port: "8081", protocol: TCP}
             - {port: "8405", protocol: TCP}
             - {port: "9001", protocol: TCP}
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory
+            app.kubernetes.io/name: mastra-factory
+      toPorts:
+        - ports:
+            - {port: "8008", protocol: TCP}
   egress:
     - toEntities: [kube-apiserver]
       toPorts:

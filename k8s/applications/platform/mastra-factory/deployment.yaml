@@ -57,10 +57,9 @@ spec:
             - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://alloy.monitoring.svc.cluster.local:4318"}
             - {name: OTEL_SERVICE_NAME, value: "mastra-factory"}
             - {name: DEPLOYMENT_ENVIRONMENT, value: "production"}
-            # Factory's outbound Matrix adapter is deliberately opt-in. The
-            # secret is mounted now so a later reviewed activation only needs
-            # to change this flag after the bot/room smoke has passed.
-            - {name: MASTRACODE_MATRIX_NOTIFICATIONS_ENABLED, value: "0"}
+            # Factory's outbound Matrix adapter is enabled only after the
+            # bot, private room and authenticated API smoke have passed.
+            - {name: MASTRACODE_MATRIX_NOTIFICATIONS_ENABLED, value: "1"}
             - {name: MATRIX_HOMESERVER_URL, value: "http://matrix-synapse.matrix.svc.cluster.local:8008"}
             - {name: MATRIX_BOT_USER_ID, value: "@factory-notifier:smadja.dev"}
             - name: DATABASE_URL
@@ -74,9 +73,9 @@ spec:
             # Native LinearIntegration reads this optional, paired OAuth credential Secret.
             # Provision via Doppler/ESO only after the actual OAuth app exists.
             - secretRef: {name: mastra-factory-linear-oauth, optional: true}
-            # Optional until the Matrix bot account, token and private room
-            # have been provisioned in Doppler.
-            - secretRef: {name: mastra-factory-matrix, optional: true}
+            # Required by the enabled Matrix adapter; ESO must reconcile this
+            # Secret before the workload can start.
+            - secretRef: {name: mastra-factory-matrix}
           readinessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 10

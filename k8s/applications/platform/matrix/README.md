@@ -41,9 +41,9 @@ changed after the first deployment.
    non-E2EE `#factory-ops` room. E2EE is intentionally deferred until bot
    device/key recovery has been proven.
 
-Factory's Matrix adapter remains disabled by default. No event subscription,
-public publishing, inbound commands or merge/deploy capability is enabled by
-this package.
+Factory's Matrix adapter is enabled only by the reviewed GitOps deployment
+change after the bot, private room and ESO checks pass. This package does not
+enable public publishing, inbound commands or merge/deploy capability.
 
 ## Evidence gates
 
