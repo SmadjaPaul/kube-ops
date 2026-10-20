@@ -96,16 +96,17 @@ spec:
       app.kubernetes.io/name: matrix-authentication-service
       app.kubernetes.io/part-of: matrix-stack
   egress:
-    # The first Gateway enforcement point presents the per-node Envoy as the
-    # reserved ingress entity to the MAS endpoint. Keep the destination bound
-    # to that entity and enforce the exact Authentik TLS SNI.
-    - toPorts:
+    # Bind the hairpin to the internal Gateway Service and enforce the exact
+    # Authentik TLS SNI at the first Gateway enforcement point.
+    - toServices:
+        - k8sService:
+            namespace: gateway
+            serviceName: cilium-gateway-internal
+      toPorts:
         - ports:
             - {port: "443", protocol: TCP}
           serverNames:
             - auth.smadja.dev
-      toEntities:
-        - ingress
 
 ---
 apiVersion: cilium.io/v2
