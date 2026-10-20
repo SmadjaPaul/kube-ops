@@ -60,7 +60,7 @@ spec:
             # Factory's outbound Matrix adapter is deliberately opt-in. The
             # secret is mounted now so a later reviewed activation only needs
             # to change this flag after the bot/room smoke has passed.
-            - {name: MASTRACODE_MATRIX_NOTIFICATIONS_ENABLED, value: "0"}
+            - {name: MASTRACODE_MATRIX_NOTIFICATIONS_ENABLED, value: "1"}
             - {name: MATRIX_HOMESERVER_URL, value: "http://matrix-synapse.matrix.svc.cluster.local:8008"}
             - {name: MATRIX_BOT_USER_ID, value: "@factory-notifier:smadja.dev"}
             - name: DATABASE_URL
