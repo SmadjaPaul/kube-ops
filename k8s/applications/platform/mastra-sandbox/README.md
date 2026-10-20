@@ -1,5 +1,38 @@
 # Mastra Factory isolated agent-sandbox (qualified staging path)
 
+## PLT-103 npm ci eviction — targeted capacity correction
+
+The PLT-103 native Factory session was evicted while `npm ci` used `/tmp`:
+`Evicted: Usage of EmptyDir volume "tmp" exceeds the limit "256Mi"`.
+
+The `SandboxTemplate/mastra-code` now sets the `tmp` `emptyDir.sizeLimit`
+to **1Gi** (was 256Mi); the `workspace` remains a separate **2Gi**
+`longhorn-fast` PVC. No runtimeClass, sandboxd image, permissions, network
+egress or warm-pool replica count is changed. This is a **disk emptyDir**
+resource limit, not an increase to the sandbox's memory limit or a claim that
+npm always fits.
+
+Acceptance after reviewed GitOps promotion:
+1. Check that the reconciled `SandboxTemplate` has `tmp.sizeLimit=1Gi`.
+2. Create a new disposable `SandboxClaim`; do **not** assume a running Pod
+   inherited a template change.
+3. From the actual agent workspace, run the same pinned `npm ci` then
+   `node --test tests/source-control-branch.test.mjs` with the real network and
+   allowed credentials already available to Factory.
+4. Observe Pod termination reason, actual `/tmp` peak, node ephemeral-storage
+   pressure and workspace PVC capacity; the first failure proves only the 256Mi
+   threshold was exceeded. If the new limit is insufficient, capture evidence
+   before making a second bounded change.
+5. Verify GitHub App produces **one** PR for PLT-103 and that the separate
+   reviewer evaluates the exact HEAD. Respect PLT-103's **no merge/deploy**
+   instruction for its generated application PR.
+6. Prove cleanup of SandboxClaim, Sandbox and PVC without deleting a workspace
+   containing unpushed changes. Recovery after Pod eviction remains unproven
+   until it is exercised.
+
+Static guard: `bash tests/harness/mastra-sandbox-tmp-contract-test.sh`,
+also included in `just check` and `just check-affected`.
+
 The parent platform kustomization references this directory and Argo currently
 reconciles its Namespace, RBAC, Cilium policy, `SandboxTemplate` and
 `SandboxWarmPool`. This is still not a production recovery qualification:
