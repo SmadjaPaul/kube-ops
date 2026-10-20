@@ -10,6 +10,7 @@ resources:
   - sandbox-storageclass.yaml
   - backup-credentials.yaml
   - recurring-job.yaml
+  - matrix-media-proof-recurring-job.yaml
   - immich-redis-recurring-job.yaml
 
 helmCharts:

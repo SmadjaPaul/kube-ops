@@ -1,0 +1,17 @@
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: matrix-synapse-media-backup-proof
+  namespace: longhorn-system
+  labels:
+    app.kubernetes.io/part-of: storage
+    app.kubernetes.io/component: longhorn-backup
+    backup.smadja.dev/purpose: restore-proof
+spec:
+  cron: "*/5 * * * *"
+  task: backup
+  retain: 1
+  concurrency: 1
+  labels:
+    backup.smadja.dev/tier: matrix-restore-proof
+    backup.smadja.dev/source: matrix-synapse-media
