@@ -26,6 +26,10 @@ required_patterns=(
   'maxRunners: 1'
   'automountServiceAccountToken: false'
   'runAsNonRoot: true'
+  'runAsUser: 1001'
+  'runAsGroup: 1001'
+  'fsGroup: 1001'
+  'fsGroupChangePolicy: OnRootMismatch'
   'image: ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807'
   'pod-security.kubernetes.io/enforce: restricted'
 )
