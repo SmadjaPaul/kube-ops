@@ -81,14 +81,43 @@ spec:
       toPorts:
         - ports:
             - {port: "5432", protocol: TCP}
-    # Authentik is reached through Gateway/internal. Do not allow MAS/Synapse
-    # to hairpin through Cloudflare's public AAAA path: the LAN DNS contract
-    # supplies this IPv4 VIP while preserving the public issuer.
+
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: matrix-mas-authentik-egress
+  namespace: matrix
+  labels: {policy-type: platform}
+spec:
+  description: "Allow MAS OIDC discovery only to Authentik through Gateway/internal."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: matrix-authentication-service
+      app.kubernetes.io/part-of: matrix-stack
+  egress:
     - toCIDRSet:
         - {cidr: 10.0.20.192/32}
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
+          serverNames:
+            - auth.smadja.dev
+
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: matrix-synapse-federation-egress
+  namespace: matrix
+  labels: {policy-type: platform}
+spec:
+  description: "Preserve Synapse public IPv4 federation and HTTPS egress without IPv6 hairpinning."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: synapse-main
+      app.kubernetes.io/part-of: matrix-stack
+  egress:
     - toCIDRSet:
         - cidr: 0.0.0.0/0
           except:
