@@ -151,16 +151,53 @@ the approver, a UTC window, the selected completed backup names, the expected
 cost bound, and the independent reviewer. It creates new names in a new
 namespace and never changes `matrix`.
 
-1. Record `T0` in UTC, the Velero backup completion time, the two CNPG backup
-   completion times, the Longhorn media backup completion time, and the latest
-   known application write marker. Confirm all source artifacts are retained.
+1. Record `T0` (the drill start) in UTC and retain a source vector rather than
+   one ambiguous timestamp: `S_key` (Velero completion), `S_synapse` (the
+   selected Synapse CNPG `Backup.status.stoppedAt`), `S_mas` (the selected MAS
+   CNPG `Backup.status.stoppedAt`), and `S_media` (the selected Longhorn
+   backup's source/snapshot timestamp). Define the common application source
+   point as `S_app = min(S_key, S_synapse, S_mas, S_media)` because every
+   component must be recoverable from a point no newer than the oldest source.
+   Record `W0`, the latest application write marker with a verified UTC
+   timestamp at or before `S_app`. These values must come from named, retained
+   evidence; do not substitute the drill start for a source point. Confirm all
+   source artifacts are retained.
 2. Create a namespace such as `dr-matrix-YYYYMMDDHHMM` with default-deny
    ingress and egress. Do not create an HTTPRoute, public DNS record, public
    Service, federation egress, Authentik callback, or production identity
    binding. Use only ClusterIP services and allow-listed test traffic.
+   The application configuration must be rendered for this namespace and may
+   not reuse production service names, claims, hostnames, or identity Secrets:
+
+   | Component | Drill-only value or reference |
+   | --- | --- |
+   | Synapse CNPG | Cluster `dr-matrix-synapse-postgresql`; service `dr-matrix-synapse-postgresql-rw.dr-matrix-<utc>.svc.cluster.local`; database `synapse`; CNPG-generated Secret `dr-matrix-synapse-postgresql-app` |
+   | MAS CNPG | Cluster `dr-matrix-mas-postgresql`; service `dr-matrix-mas-postgresql-rw.dr-matrix-<utc>.svc.cluster.local`; database `mas`; CNPG-generated Secret `dr-matrix-mas-postgresql-app` |
+   | Synapse media | New PVC `dr-matrix-synapse-media` restored from the pinned Longhorn backup below; never `matrix-synapse-media` |
+   | Stable keys | Only the selector-scoped `matrix-generated` Secret restored into the drill namespace |
+   | Matrix identity | Original logical `server_name` `smadja.dev` inside the isolated stack only; no Gateway/DNS/federation/public listener, production callback, access token, or external traffic |
+
+   The target CNPG clusters create their own application credential Secrets in
+   the drill namespace. The drill does not copy production CNPG Secrets. Do
+   not restore `matrix-mas-oidc`; either run MAS in its local, callback-free
+   validation mode or use a separately provisioned drill-only OIDC
+   configuration with no production issuer, client, callback, or identity.
+   Before starting an application pod, inspect rendered metadata and config
+   references (not Secret values) and fail if any production namespace service,
+   production PVC, production hostname, `matrix-mas-oidc`, or Authentik endpoint
+   remains. Network policy must deny cross-namespace and external egress for
+   application pods; during CNPG bootstrap, allow only CNPG plugin pods to
+   resolve cluster DNS and reach `https://fsn1.your-objectstorage.com:443`.
+   Revoke that object-storage egress after recovery. Only drill
+   application-to-CNPG, media, and validation traffic is allowed thereafter.
 3. For each database, create an isolated Barman `ObjectStore` that points to
-   the existing recovery prefix and uses an ESO-created credential Secret by
-   key reference; do not copy or print credential values. Create a new CNPG
+   the existing recovery prefix and uses the drill-local
+   `dr-matrix-cnpg-hetzner-credentials` Secret in the drill namespace, created
+   by an explicitly named `ExternalSecret/dr-matrix-cnpg-hetzner-credentials`
+   from the two Doppler key references used by the production ObjectStore. The
+   credential must be read-only for the recovery prefixes, or the drill is
+   blocked until a restore-only credential exists. Do not copy or print
+   credential values. Create a new CNPG
    `Cluster` with `bootstrap.recovery.source` and an `externalClusters.plugin`
    entry for `barman-cloud.cloudnative-pg.io`. The source mapping is pinned as
    follows, and must be checked against the live `Backup.status.backupId`
@@ -168,8 +205,8 @@ namespace and never changes `matrix`.
 
    | Target | Source `serverName` | Recovery ObjectStore | Backup CR | `recoveryTarget.backupID` |
    | --- | --- | --- | --- | --- |
-   | Synapse | `matrix-synapse-postgresql` | `matrix-synapse-hetzner-store` | `matrix-synapse-postgresql-gap-remediation-20261020` | `20261020T151710` |
-   | MAS | `matrix-mas-postgresql` | `matrix-mas-hetzner-store` | `matrix-mas-postgresql-gap-remediation-20261020` | `20261020T151710` |
+   | Synapse | `matrix-synapse-postgresql` | `dr-matrix-synapse-store` (source prefix `cnpg/matrix-synapse`) | `matrix-synapse-postgresql-gap-remediation-20261020` | `20261020T151710` |
+   | MAS | `matrix-mas-postgresql` | `dr-matrix-mas-store` (source prefix `cnpg/matrix-mas`) | `matrix-mas-postgresql-gap-remediation-20261020` | `20261020T151710` |
 
    If the live `backupId` differs, stop and record the newly selected value;
    never let the plugin silently choose the newest backup. Keep the target's
@@ -183,7 +220,16 @@ namespace and never changes `matrix`.
    Matrix event/state tables, and a transaction-consistency check. Record
    command exit status and timestamps, not credentials or full user data.
 5. Restore media only from the selected completed Longhorn backup into a new
-   Longhorn volume/PVC in the drill namespace. Mount it read-only for the
+   Longhorn volume/PVC in the drill namespace. The current qualified source is
+   pinned as follows and must be rechecked immediately before execution:
+
+   | Source PVC | Longhorn volume | Backup | Required state |
+   | --- | --- | --- | --- |
+   | `matrix/matrix-synapse-media` (`longhorn-bulk`, 50Gi) | `pvc-d6977f4f-c8b1-41c6-8d1b-620c5bb461f4` | `backup-a2c6662bf82841f5` | `Completed`, progress `100`, exact `status.volumeName` |
+
+   If the backup name, source PVC/volume identity, completion state, or
+   progress differs, stop and select a newly qualified source; never restore
+   the newest Longhorn backup implicitly. Mount the new PVC read-only for the
    inventory phase, record file count/size and a small approved sentinel set,
    then use a writable copy only if the application compatibility check
    requires it. Never mount the production PVC into the drill namespace.
@@ -199,10 +245,13 @@ namespace and never changes `matrix`.
    identities, domains, access tokens, or room IDs for serving traffic.
 8. Record `T1` restore submission, `T2` first Ready for both CNPG clusters,
    `T3` first successful SQL/media sentinels, and `T4` successful internal
-   application smoke. `RTO = T4 - T1`. `RPO` is the UTC distance from the
-   latest accepted durable source point (`T0`/selected backup or approved
-   PITR target) to the latest verified application write marker. If no
-   application write marker exists, report `RPO=NOT_MEASURED`, not zero.
+   application smoke. `RTO = T4 - T1`. Overall `RPO = S_app - W0`, where
+   `S_app` is the oldest point in the source vector above and `W0` is the
+   latest verified application write marker at or before it. If a component has
+   no comparable source or `W0` is absent or cannot be independently verified,
+   report the affected component and overall `RPO=NOT_MEASURED`, not zero; this
+   makes the result incomplete rather than successful. The approval must record
+   the accepted RPO and RTO thresholds before execution.
 9. Preserve the evidence outside the production namespace. Cleanup is a
    separate approved action restricted to the exact drill namespace, PVCs,
    PVs, Longhorn volumes, Services, Jobs, and CNPG resources created for this
@@ -230,9 +279,12 @@ the SQL sentinels. `MEDIA_RECOVERY=PASS` requires the restored Longhorn volume
 to mount and pass the approved inventory/sentinel checks. `KEYS_CURRENT` is
 metadata-only; `KEYS_DURABLE=PASS` requires the protected baseline and the
 selector-scoped restore. `MATRIX_APP_RESTORE=PASS` additionally requires the
-internal Synapse/MAS and room/media smoke. A completed backup, a successful
-static render, or a healthy production workload alone cannot set any of these
-application restore gates to PASS.
+internal Synapse/MAS and room/media smoke, measured `RPO` and `RTO`, and both
+values to be within the thresholds approved in PLT-92. `RPO=NOT_MEASURED`,
+`RTO=NOT_MEASURED`, or an absent source/write marker is an incomplete result,
+never a PASS. A completed backup, a successful static render, or a healthy
+production workload alone cannot set any of these application restore gates to
+PASS.
 
 ## Acceptance gates
 
