@@ -1,22 +1,22 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "matrix-key-recovery-2026-10-20",
-  "producedAt": "2026-10-20T20:30:00Z",
+  "resultId": "matrix-drill-preflight-2026-10-20",
+  "producedAt": "2026-10-20T21:18:26Z",
   "actor": { "kind": "agent", "name": "codex" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "codex/matrix-key-recovery-runbook-final+working-tree",
-    "branch": "codex/matrix-key-recovery-runbook-final"
+    "revision": "438aee647b1b2e47c21a246f3ba1f94bc8614de2",
+    "branch": "codex/matrix-plt92-drill"
   },
   "tests": [
     {
-      "id": "origin-main-integration",
-      "name": "PR 601 integration with current origin/main",
-      "command": "git fetch origin main; git merge --no-edit origin/main",
+      "id": "origin-main-baseline",
+      "name": "exact origin/main baseline",
+      "command": "git fetch origin --prune; git rev-parse origin/main",
       "execution": "executed",
       "status": "PASSED",
       "classification": "passed",
-      "reason": "The PR 601 document was integrated from ec970ff5; origin/main includes 17dcf692 (#600) and 95650532 (#602), and the final diff against origin/main contains only Matrix documentation.",
+      "reason": "The worktree was created from the fetched origin/main at 8ba32fcb135ae19f97e8bc570dfa9d62f9020b75, the merged PR 601 base that includes #600 and #602; no ARC, Factory, or checkpoint files are changed.",
       "risk": "low",
       "expectedCi": "required",
       "evidence": { "kind": "command", "reference": "git diff --name-status origin/main...HEAD" }
@@ -26,12 +26,12 @@
       "name": "repository static and harness checks",
       "command": "just check",
       "execution": "executed",
-      "status": "PASSED",
-      "classification": "passed",
-      "reason": "All repository contracts completed successfully, including backup, Argo, agent-result and Kustomize checks.",
-      "risk": "low",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The current origin/main run exits non-zero in the existing backup-audit contract harness at its Longhorn fixture assertion for CNPG_RESTORE_PROOF=PASS; this is outside the merged Matrix documentation and blocks a repository-wide static PASS.",
+      "risk": "high",
       "expectedCi": "required",
-      "evidence": { "kind": "command", "reference": "just check" }
+      "evidence": { "kind": "command", "reference": "just check; backup-audit-contract-test.sh" }
     },
     {
       "id": "matrix-render",
@@ -55,7 +55,7 @@
       "reason": "Both Matrix CNPG clusters are Ready with continuous archiving and completed backups; Velero Matrix is Completed 324/324; matrix-default-kopia is Ready; the exact Matrix media Longhorn backup is Completed at 100%.",
       "risk": "medium",
       "expectedCi": "required",
-      "evidence": { "kind": "manual", "reference": "runtime: matrix CNPG/Velero/Kopia/Longhorn read-only evidence at 2026-10-20T20:26Z" }
+      "evidence": { "kind": "manual", "reference": "runtime: matrix CNPG/Velero/Kopia/Longhorn read-only evidence at 2026-10-20T21:10Z" }
     },
     {
       "id": "selector-preflight",
@@ -67,7 +67,7 @@
       "reason": "The stable five-label selector matches exactly secret/matrix-generated; the installed Velero CLI exposes selector, namespace mapping, Secret resource filtering, cluster-resource exclusion, no-volume restore and existing-resource policy flags.",
       "risk": "medium",
       "expectedCi": "required",
-      "evidence": { "kind": "manual", "reference": "runtime: selector matched one Secret; Velero flags verified at 2026-10-20T20:32Z" }
+      "evidence": { "kind": "manual", "reference": "runtime: selector matched one Secret; Velero flags verified at 2026-10-20T21:10Z" }
     },
     {
       "id": "cnpg-source-pinning",
@@ -79,7 +79,7 @@
       "reason": "Synapse and MAS gap-remediation Backups are completed and both expose backupId 20261020T151710; the runbook pins the source serverName, ObjectStore and recoveryTarget.backupID for each cluster.",
       "risk": "medium",
       "expectedCi": "required",
-      "evidence": { "kind": "manual", "reference": "runtime: CNPG Backup.status at 2026-10-20T20:32Z" }
+      "evidence": { "kind": "manual", "reference": "runtime: CNPG Backup.status at 2026-10-20T21:10Z" }
     },
     {
       "id": "backup-audit-global",
@@ -88,10 +88,22 @@
       "execution": "executed",
       "status": "FAILED",
       "classification": "failed",
-      "reason": "The repository-wide audit still reports unrelated global PVC coverage gaps and restore residue; this does not invalidate the Matrix-specific backup facts above but blocks a global PASS.",
+      "reason": "The repository-wide audit still reports global PVC coverage gaps and restore residue (53/56 covered, 3 unprotected, 20 residues); this does not invalidate the Matrix-specific backup facts above but blocks a global PASS.",
       "risk": "high",
       "expectedCi": "required",
       "evidence": { "kind": "command", "reference": "PRODUCTION_PVC_COVERAGE=FAIL; BACKUP_AUDIT_GAPS=23" }
+    },
+    {
+      "id": "independent-runbook-review",
+      "name": "independent review of isolated Matrix recovery procedure",
+      "command": "read-only review of merged runbook and current runtime contract",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The independent review found no P0, confirmed the Velero selector and CNPG pinning, and identified the four documentation defects corrected in this follow-up.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "manual", "reference": "independent reviewer Noether at 2026-10-20T21:16Z" }
     },
     {
       "id": "selector-scoped-key-restore",
@@ -132,35 +144,35 @@
   ],
   "summary": {
     "outcome": "incomplete",
-    "total": 10,
-    "executed": 7,
+    "total": 11,
+    "executed": 8,
     "notExecuted": 3,
     "passed": 6,
-    "failed": 1,
+    "failed": 2,
     "unavailable": 3
   },
   "transmission": {
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@matrix-key-recovery-2026-10-20",
+    "idempotencyKey": "SmadjaPaul/kube-ops@matrix-drill-preflight-2026-10-20",
     "payload": {
-      "resultId": "matrix-key-recovery-2026-10-20",
+      "resultId": "matrix-drill-preflight-2026-10-20",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "codex/matrix-key-recovery-runbook-final+working-tree",
+      "revision": "438aee647b1b2e47c21a246f3ba1f94bc8614de2",
       "tests": [
         {
           "id": "repository-check",
           "name": "repository static and harness checks",
           "execution": "executed",
-          "status": "PASSED",
-          "classification": "passed",
-          "reason": "just check passed.",
-          "risk": "low",
+          "status": "FAILED",
+          "classification": "failed",
+          "reason": "just check exits non-zero in the existing backup-audit contract harness; this result records the failure rather than implying a pass.",
+          "risk": "high",
           "expectedCi": "required"
         }
       ],
-      "summary": { "outcome": "incomplete", "total": 10, "executed": 7, "notExecuted": 3, "passed": 6, "failed": 1, "unavailable": 3 }
+      "summary": { "outcome": "incomplete", "total": 11, "executed": 8, "notExecuted": 3, "passed": 6, "failed": 2, "unavailable": 3 }
     }
   }
 }
