@@ -61,7 +61,7 @@ assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .secur
 runner_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-node-npm-egress")'
 assert_yq "$runner_download_policy | .metadata.namespace" 'arc-runners'
 assert_yq "$runner_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'factory-ci-arc'
-assert_yq "$runner_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | sort | join(\",\")" 'nodejs.org,registry.npmjs.org'
+assert_yq "$runner_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | sort | join(\",\")" 'nodejs.org,raw.githubusercontent.com,registry.npmjs.org'
 
 [[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2

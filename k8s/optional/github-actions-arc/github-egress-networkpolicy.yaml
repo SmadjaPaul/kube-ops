@@ -111,6 +111,8 @@ spec:
     - toFQDNs:
         # setup-node downloads the pinned Node distribution from this host.
         - matchName: nodejs.org
+        # setup-node resolves its pinned-version manifest from this host.
+        - matchName: raw.githubusercontent.com
         # npm ci resolves the lockfile from the public npm registry.
         - matchName: registry.npmjs.org
       toPorts:
