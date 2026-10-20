@@ -3,6 +3,8 @@ kind: Cluster
 metadata:
   name: matrix-synapse-postgresql
   namespace: matrix
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
   labels:
     backup.smadja.dev/cnpg-cluster: matrix-synapse-postgresql
 spec:

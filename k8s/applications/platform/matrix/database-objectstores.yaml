@@ -3,6 +3,8 @@ kind: ObjectStore
 metadata:
   name: matrix-synapse-hetzner-store
   namespace: matrix
+  annotations:
+    argocd.argoproj.io/sync-wave: "-11"
 spec:
   retentionPolicy: "14d"
   instanceSidecarConfiguration:
@@ -23,6 +25,8 @@ kind: ObjectStore
 metadata:
   name: matrix-mas-hetzner-store
   namespace: matrix
+  annotations:
+    argocd.argoproj.io/sync-wave: "-11"
 spec:
   retentionPolicy: "14d"
   instanceSidecarConfiguration:

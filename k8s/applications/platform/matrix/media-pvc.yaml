@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: matrix-synapse-media
   namespace: matrix
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
   labels:
     app.kubernetes.io/name: matrix-synapse-media
     app.kubernetes.io/part-of: matrix
