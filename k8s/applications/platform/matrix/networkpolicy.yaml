@@ -104,6 +104,18 @@ spec:
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
+    # For pod-origin Gateway requests, Cilium enforces client egress
+    # against the routed backend Pod identity and *backend* port.
+    # Do not allow the shared "ingress" entity: it spans every Gateway.
+    # See cilium/cilium#47617 (Gateway API hairpin -> 403).
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+            - {port: "9000", protocol: TCP}
 
 ---
 apiVersion: cilium.io/v2
