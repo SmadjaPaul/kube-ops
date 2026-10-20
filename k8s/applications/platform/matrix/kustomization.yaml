@@ -82,3 +82,18 @@ patches:
         path: /spec/template/metadata/annotations
         value:
           secret.reloader.stakater.com/reload: matrix-mas-oidc,matrix-mas-postgresql-app
+  - target:
+      group: batch
+      version: v1
+      kind: Job
+      name: matrix-synapse-check-config
+    patch: |-
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1hook
+        value: Sync
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1hook-delete-policy
+        value: BeforeHookCreation,HookSucceeded
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1sync-wave
+        value: "10"
