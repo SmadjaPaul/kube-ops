@@ -25,6 +25,8 @@ required_patterns=(
   'minRunners: 0'
   'maxRunners: 1'
   'pod-security.kubernetes.io/enforce: restricted'
+  'matchName: nodejs.org'
+  'matchName: registry.npmjs.org'
 )
 
 for pattern in "${required_patterns[@]}"; do

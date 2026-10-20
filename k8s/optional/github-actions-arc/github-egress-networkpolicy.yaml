@@ -72,6 +72,10 @@ spec:
         - matchName: github-releases.githubusercontent.com
         - matchName: github-registry-files.githubusercontent.com
         - matchName: results-receiver.actions.githubusercontent.com
+        # setup-node downloads the pinned Node distribution from this host.
+        - matchName: nodejs.org
+        # npm ci resolves the lockfile from the public npm registry.
+        - matchName: registry.npmjs.org
         - matchPattern: "*.actions.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
       toPorts:
