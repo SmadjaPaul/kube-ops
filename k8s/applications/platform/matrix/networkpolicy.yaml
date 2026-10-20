@@ -96,12 +96,10 @@ spec:
       app.kubernetes.io/name: matrix-authentication-service
       app.kubernetes.io/part-of: matrix-stack
   egress:
-    # Bind the hairpin to the internal Gateway Service and enforce the exact
-    # Authentik TLS SNI at the first Gateway enforcement point.
-    - toServices:
-        - k8sService:
-            namespace: gateway
-            serviceName: cilium-gateway-internal
+    # The Gateway VIP is observed by Cilium as the internal 10/8 CIDR identity;
+    # keep the L3 target bounded to that identity and enforce the exact SNI.
+    - toCIDRSet:
+        - {cidr: 10.0.0.0/8}
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
