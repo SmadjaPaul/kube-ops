@@ -96,8 +96,10 @@ spec:
       app.kubernetes.io/name: matrix-authentication-service
       app.kubernetes.io/part-of: matrix-stack
   egress:
-    - toCIDRSet:
-        - {cidr: 10.0.20.192/32}
+    - toServices:
+        - k8sService:
+            namespace: gateway
+            serviceName: cilium-gateway-internal
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
