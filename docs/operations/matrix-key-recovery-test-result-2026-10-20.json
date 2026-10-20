@@ -5,7 +5,7 @@
   "actor": { "kind": "agent", "name": "codex" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "8ba32fcb135ae19f97e8bc570dfa9d62f9020b75+working-tree",
+    "revision": "438aee647b1b2e47c21a246f3ba1f94bc8614de2",
     "branch": "codex/matrix-plt92-drill"
   },
   "tests": [
@@ -159,7 +159,7 @@
     "payload": {
       "resultId": "matrix-drill-preflight-2026-10-20",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "8ba32fcb135ae19f97e8bc570dfa9d62f9020b75+working-tree",
+      "revision": "438aee647b1b2e47c21a246f3ba1f94bc8614de2",
       "tests": [
         {
           "id": "repository-check",
