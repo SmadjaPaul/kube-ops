@@ -5,7 +5,14 @@ metadata:
   labels:
     policy-type: audit-baseline
 spec:
-  endpointSelector: {}
+  endpointSelector:
+    matchExpressions:
+      # MAS has an explicit egress policy. Do not inherit this audit baseline's
+      # broad RFC1918 allowance, which would bypass MAS backend isolation.
+      - key: k8s:app.kubernetes.io/name
+        operator: NotIn
+        values:
+          - matrix-authentication-service
   enableDefaultDeny:
     ingress: false
     egress: false
