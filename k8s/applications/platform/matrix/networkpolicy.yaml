@@ -104,6 +104,11 @@ spec:
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
+    - toEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
 
 ---
 apiVersion: cilium.io/v2
