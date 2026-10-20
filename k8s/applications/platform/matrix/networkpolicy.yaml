@@ -96,14 +96,16 @@ spec:
       app.kubernetes.io/name: matrix-authentication-service
       app.kubernetes.io/part-of: matrix-stack
   egress:
-    # Cilium Gateway hairpin traffic does not match the Gateway LB VIP as a
-    # stable L3 entity from the MAS endpoint. Keep the L3 rule targetless and
-    # use the exact TLS SNI as the enforced destination boundary instead.
+    # The first Gateway enforcement point presents the per-node Envoy as the
+    # reserved ingress entity to the MAS endpoint. Keep the destination bound
+    # to that entity and enforce the exact Authentik TLS SNI.
     - toPorts:
         - ports:
             - {port: "443", protocol: TCP}
           serverNames:
             - auth.smadja.dev
+      toEntities:
+        - ingress
 
 ---
 apiVersion: cilium.io/v2

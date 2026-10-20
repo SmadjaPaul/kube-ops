@@ -4,6 +4,7 @@ resources:
 - default-deny-audit.yaml
 - allow-cluster-essentials.yaml
 - allow-gateway-http.yaml
+- allow-matrix-mas-oidc-egress.yaml
 labels:
 - pairs:
     policy-type: audit-baseline
