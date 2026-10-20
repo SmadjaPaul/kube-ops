@@ -1,6 +1,6 @@
 # GitHub Actions Runner Controller — staged GitOps pilot
 
-**NOT DEPLOYED.** This folder is deliberately **not** referenced by the live Argo root or ApplicationSets. No controller/runner/Secret is created merely by merging this directory. To activate, a separate reviewed change must attach this kustomization to the appropriate Argo path after the gates below.
+**NOT DEPLOYED.** This branch is not deployed until this activation PR is merged and the gates below are satisfied. No controller/runner/Secret is created merely by the directory existing on an unmerged branch; after merge, Argo will discover the explicit ApplicationSet entry and reconcile it.
 
 Upstream reference: https://github.com/actions/actions-runner-controller (official `gha-runner-scale-set-controller` and `gha-runner-scale-set` charts, pinned to 0.15.0). Legacy RunnerDeployment is intentionally not used.
 
