@@ -5,7 +5,7 @@ metadata:
   namespace: matrix
   labels: {policy-type: platform}
 spec:
-  description: "Bound Matrix ingress, intra-stack traffic, DNS, separate CNPG databases and Authentik OIDC/federation egress."
+  description: "Bound Matrix ingress, intra-stack traffic, DNS and separate CNPG databases; MAS and Synapse egress are scoped in dedicated policies."
   endpointSelector:
     matchLabels:
       k8s:io.kubernetes.pod.namespace: matrix
