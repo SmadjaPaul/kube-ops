@@ -20,6 +20,8 @@ spec:
     # project scope and must not amplify every Application warning.
     - namespace: argocd
       server: https://kubernetes.default.svc
+    - namespace: arc-runners
+      server: https://kubernetes.default.svc
     - namespace: agentgateway
       server: https://kubernetes.default.svc
     - namespace: executor

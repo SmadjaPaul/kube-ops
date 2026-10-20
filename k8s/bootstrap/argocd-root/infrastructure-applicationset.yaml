@@ -23,6 +23,7 @@ spec:
           - path: k8s/infrastructure/database
           - path: k8s/infrastructure/security
           - path: k8s/poc/atlantis-plan-only
+          - path: k8s/optional/github-actions-arc
   template:
     metadata:
       name: 'infra-{{ path.basename }}'

@@ -84,6 +84,10 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: agent-sandbox-system
       server: https://kubernetes.default.svc
+    - namespace: arc-systems
+      server: https://kubernetes.default.svc
+    - namespace: arc-runners
+      server: https://kubernetes.default.svc
     - namespace: atlantis-system
       server: https://kubernetes.default.svc
     - namespace: paperless
