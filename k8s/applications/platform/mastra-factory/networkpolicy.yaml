@@ -41,8 +41,8 @@ spec:
       toPorts:
         - ports:
             - {port: "5432", protocol: TCP}
-    # Factory's opt-in Matrix adapter sends only to the ESS Synapse client API
-    # service. Its disabled default means this path is idle until reviewed.
+    # Factory's reviewed Matrix adapter sends only to the ESS Synapse client
+    # API service; inbound commands and federation remain out of scope.
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: matrix
