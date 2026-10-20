@@ -1,0 +1,33 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: matrix-synapse-postgresql-gap-remediation-20261020
+  namespace: matrix
+  labels:
+    backup.smadja.dev/purpose: gap-remediation
+    backup.smadja.dev/restore-proof-source: matrix
+spec:
+  cluster:
+    name: matrix-synapse-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-synapse-hetzner-store
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: matrix-mas-postgresql-gap-remediation-20261020
+  namespace: matrix
+  labels:
+    backup.smadja.dev/purpose: gap-remediation
+    backup.smadja.dev/restore-proof-source: matrix
+spec:
+  cluster:
+    name: matrix-mas-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-mas-hetzner-store
