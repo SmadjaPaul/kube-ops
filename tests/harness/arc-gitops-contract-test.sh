@@ -24,32 +24,52 @@ required_patterns=(
   'name: arc-gha-rs-controller'
   'minRunners: 0'
   'maxRunners: 1'
-  'automountServiceAccountToken: false'
-  'runAsNonRoot: true'
-  'image: ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807'
   'pod-security.kubernetes.io/enforce: restricted'
 )
 
 for pattern in "${required_patterns[@]}"; do
-  rg -F "$pattern" "$rendered" >/dev/null || {
+  grep -F -- "$pattern" "$rendered" >/dev/null || {
     printf 'ARC_GITOPS_CONTRACT=FAIL missing=%s\n' "$pattern" >&2
     exit 1
   }
 done
 
-[[ "$(rg -c '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
+assert_yq() {
+  local expression=$1 expected=$2 actual
+  actual="$(yq eval-all "$expression" "$rendered")"
+  [[ "$actual" == "$expected" ]] || {
+    printf 'ARC_GITOPS_CONTRACT=FAIL expression=%s expected=%s actual=%s\n' \
+      "$expression" "$expected" "$actual" >&2
+    exit 1
+  }
+}
+
+runner_values='select(.kind == "Application" and .metadata.name == "apps-arc-factory-ci") | .spec.source.helm.valuesObject.template.spec'
+assert_yq "$runner_values | .automountServiceAccountToken" 'false'
+assert_yq "$runner_values | .securityContext.runAsNonRoot" 'true'
+assert_yq "$runner_values | .securityContext.runAsUser" '1001'
+assert_yq "$runner_values | .securityContext.runAsGroup" '1001'
+assert_yq "$runner_values | .securityContext.fsGroup" '1001'
+assert_yq "$runner_values | .securityContext.fsGroupChangePolicy" 'OnRootMismatch'
+assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .image" \
+  'ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807'
+assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .securityContext.allowPrivilegeEscalation" 'false'
+assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | (.securityContext.capabilities.drop | join(\",\"))" 'ALL'
+assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .securityContext.seccompProfile.type" 'RuntimeDefault'
+
+[[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
   exit 1
 }
 
 for project in "$infrastructure_project" "$applications_project"; do
-  rg -F -- '    - ghcr.io/actions/actions-runner-controller-charts' "$project" >/dev/null || {
+  grep -F -- '    - ghcr.io/actions/actions-runner-controller-charts' "$project" >/dev/null || {
     printf 'ARC_GITOPS_CONTRACT=FAIL appproject-oci-source-allowlist file=%s\n' "$project" >&2
     exit 1
   }
 done
 
-if rg -n 'privileged:\s*true|ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER:\s*false|github_token:|github_app_private_key:\s*\|' "$rendered"; then
+if grep -En 'privileged:\s*true|ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER:\s*false|github_token:|github_app_private_key:\s*\|' "$rendered"; then
   printf 'ARC_GITOPS_CONTRACT=FAIL insecure-or-inline-credential\n' >&2
   exit 1
 fi
