@@ -28,7 +28,7 @@ required_patterns=(
 )
 
 for pattern in "${required_patterns[@]}"; do
-  rg -F "$pattern" "$rendered" >/dev/null || {
+  grep -F -- "$pattern" "$rendered" >/dev/null || {
     printf 'ARC_GITOPS_CONTRACT=FAIL missing=%s\n' "$pattern" >&2
     exit 1
   }
@@ -57,19 +57,19 @@ assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .secur
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | (.securityContext.capabilities.drop | join(\",\"))" 'ALL'
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .securityContext.seccompProfile.type" 'RuntimeDefault'
 
-[[ "$(rg -c '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
+[[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
   exit 1
 }
 
 for project in "$infrastructure_project" "$applications_project"; do
-  rg -F -- '    - ghcr.io/actions/actions-runner-controller-charts' "$project" >/dev/null || {
+  grep -F -- '    - ghcr.io/actions/actions-runner-controller-charts' "$project" >/dev/null || {
     printf 'ARC_GITOPS_CONTRACT=FAIL appproject-oci-source-allowlist file=%s\n' "$project" >&2
     exit 1
   }
 done
 
-if rg -n 'privileged:\s*true|ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER:\s*false|github_token:|github_app_private_key:\s*\|' "$rendered"; then
+if grep -En 'privileged:\s*true|ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER:\s*false|github_token:|github_app_private_key:\s*\|' "$rendered"; then
   printf 'ARC_GITOPS_CONTRACT=FAIL insecure-or-inline-credential\n' >&2
   exit 1
 fi
