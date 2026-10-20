@@ -62,14 +62,21 @@ namespace and must not restore into `matrix`.
    only the API calls and internal test traffic needed for the validation Job;
    do not create an HTTPRoute, public Service, federation egress, or OAuth
    callback.
-2. Restore only the `matrix-generated` object from the selected completed
-   Velero backup, using an explicit object selector or equivalent
-   object-scoped restore filter and an explicit namespace mapping from
-   `matrix` to the isolated namespace. A resource-type filter for `Secret`
-   alone is insufficient because it could restore OIDC, CNPG, or S3
-   credentials. Assert that exactly one Secret named `matrix-generated` was
-   restored before mounting it. Do not restore the production namespace in
-   place and do not restore PVCs for this key-only test.
+2. Preflight the installed Velero CLI and confirm that `restore create`
+   supports label selectors. Restore only the `matrix-generated` object from
+   the selected completed backup with `--include-namespaces matrix`,
+   `--include-resources secrets`, an explicit namespace mapping from
+   `matrix` to the isolated namespace, and this existing unique selector:
+   `app.kubernetes.io/instance=matrix-init-secrets,app.kubernetes.io/managed-by=matrix-tools-init-secrets,app.kubernetes.io/name=init-secrets`.
+   Verify in the selected backup inventory that this selector matches exactly
+   one object named `matrix-generated` before creating the restore. A resource-
+   type filter for `Secret` alone is insufficient because it could restore
+   OIDC, CNPG, or S3 credentials. After the restore, assert that exactly one
+   Secret named `matrix-generated` exists in the isolated namespace before
+   mounting it. If the installed Velero version cannot apply this selector,
+   stop and use an approved compatible tool or extraction path; never fall
+   back to an unfiltered Secret restore. Do not restore the production
+   namespace in place and do not restore PVCs for this key-only test.
 3. Verify only metadata and key names with `kubectl`; never print Secret YAML,
    decoded data, environment dumps, or application logs that may contain
    credentials.
