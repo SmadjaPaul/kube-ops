@@ -46,6 +46,8 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: matrix
+            app.kubernetes.io/name: haproxy
+            app.kubernetes.io/part-of: matrix-stack
       toPorts:
         - ports:
             - {port: "8008", protocol: TCP}
