@@ -10,7 +10,6 @@ metadata:
     app.kubernetes.io/part-of: matrix
     recurring-job.longhorn.io/source: enabled
     recurring-job.longhorn.io/persistent-offsite-backup: enabled
-    recurring-job.longhorn.io/matrix-synapse-media-backup-proof: enabled
 spec:
   accessModes: [ReadWriteOnce]
   volumeMode: Filesystem
