@@ -10,6 +10,7 @@ spec:
   description: Cluster infrastructure reconciled from the canonical kube-ops repository
   sourceRepos:
     - https://github.com/SmadjaPaul/kube-ops.git
+    - ghcr.io/actions/actions-runner-controller-charts
   destinations:
     # Applications use an empty destination namespace because their rendered
     # manifests carry explicit namespaces; this is not a wildcard namespace.
@@ -83,6 +84,10 @@ spec:
     - namespace: paperclip
       server: https://kubernetes.default.svc
     - namespace: agent-sandbox-system
+      server: https://kubernetes.default.svc
+    - namespace: arc-systems
+      server: https://kubernetes.default.svc
+    - namespace: arc-runners
       server: https://kubernetes.default.svc
     - namespace: atlantis-system
       server: https://kubernetes.default.svc
