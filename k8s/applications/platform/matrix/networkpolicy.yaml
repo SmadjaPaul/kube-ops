@@ -81,8 +81,12 @@ spec:
       toPorts:
         - ports:
             - {port: "5432", protocol: TCP}
-    - toFQDNs:
-        - {matchName: auth.smadja.dev}
+    # Authentik is reached through the internal Gateway VIPs. Do not allow
+    # MAS/Synapse to hairpin through Cloudflare's public AAAA path: the LAN
+    # DNS contract supplies these IPv4 VIPs while preserving the public issuer.
+    - toCIDRSet:
+        - {cidr: 10.0.20.192/32}
+        - {cidr: 10.0.20.193/32}
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
