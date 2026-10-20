@@ -78,3 +78,42 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-node-npm-egress
+  namespace: arc-runners
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "Allow only the ARC runner pods to download the pinned Node runtime and npm dependencies"
+  endpointSelector:
+    matchLabels:
+      k8s:actions.github.com/scale-set-name: factory-ci-arc
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        # setup-node downloads the pinned Node distribution from this host.
+        - matchName: nodejs.org
+        # npm ci resolves the lockfile from the public npm registry.
+        - matchName: registry.npmjs.org
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
