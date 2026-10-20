@@ -136,7 +136,7 @@
           "expectedCi": "required"
         }
       ],
-      "summary": { "outcome": "incomplete", "total": 8, "executed": 5, "notExecuted": 3 }
+      "summary": { "outcome": "incomplete", "total": 8, "executed": 5, "notExecuted": 3, "passed": 4, "failed": 1, "unavailable": 3 }
     }
   }
 }

@@ -69,6 +69,11 @@ The current `matrix-generated` Secret exposes the expected key names only and
 has no owner reference. Synapse and MAS reference the expected generated and
 ESO-owned Secret objects through their rendered configuration. Secret values,
 decoded data, and fingerprints are deliberately absent from this repository.
+The selector intentionally excludes `app.kubernetes.io/managed-by`: the
+rendered Job uses `Helm`, while the existing generated Secret retains a
+different historical manager label. The stable five-label selector matches
+exactly one live Secret and must be rechecked against the selected backup
+inventory before restore.
 The `matrix-init-secrets` Job completed after the selected Velero backup, so
 the backup is not accepted as proof of the bytes currently mounted by the
 workloads. The durable key status therefore remains `NOT_PROVEN` until the
@@ -94,8 +99,9 @@ namespace and must not restore into `matrix`.
    supports label selectors. Restore only the `matrix-generated` object from
    the selected completed backup with `--include-namespaces matrix`,
    `--include-resources secrets`, an explicit namespace mapping from
-   `matrix` to the isolated namespace, and this existing unique selector:
-   `app.kubernetes.io/instance=matrix-init-secrets,app.kubernetes.io/managed-by=matrix-tools-init-secrets,app.kubernetes.io/name=init-secrets`.
+   `matrix` to the isolated namespace, and this existing unique selector
+   matching the stable ESS labels shared by the live Secret and rendered Job:
+   `app.kubernetes.io/instance=matrix-init-secrets,app.kubernetes.io/part-of=matrix-stack,app.kubernetes.io/component=matrix-tools,app.kubernetes.io/name=init-secrets,app.kubernetes.io/version=0.10.4`.
    Verify in the selected backup inventory that this selector matches exactly
    one object named `matrix-generated` before creating the restore. A resource-
    type filter for `Secret` alone is insufficient because it could restore
@@ -141,14 +147,23 @@ namespace and never changes `matrix`.
    the existing recovery prefix and uses an ESO-created credential Secret by
    key reference; do not copy or print credential values. Create a new CNPG
    `Cluster` with `bootstrap.recovery.source` and an `externalClusters.plugin`
-   entry for `barman-cloud.cloudnative-pg.io`, with the source
-   `barmanObjectName` and exact source `serverName`. Keep the target's
+   entry for `barman-cloud.cloudnative-pg.io`. The source mapping is pinned as
+   follows, and must be checked against the live `Backup.status.backupId`
+   immediately before the drill:
+
+   | Target | Source `serverName` | Recovery ObjectStore | Backup CR | `recoveryTarget.backupID` |
+   | --- | --- | --- | --- | --- |
+   | Synapse | `matrix-synapse-postgresql` | `matrix-synapse-hetzner-store` | `matrix-synapse-postgresql-gap-remediation-20261020` | `20261020T151710` |
+   | MAS | `matrix-mas-postgresql` | `matrix-mas-hetzner-store` | `matrix-mas-postgresql-gap-remediation-20261020` | `20261020T151710` |
+
+   If the live `backupId` differs, stop and record the newly selected value;
+   never let the plugin silently choose the newest backup. Keep the target's
    `spec.plugins` section enabled only if WAL archiving is intentionally
    required for the drill. This is a new cluster bootstrap, not an in-place
    restore. The official plugin recovery shape is documented at
    https://cloudnative-pg.io/plugin-barman-cloud/docs/usage/.
-4. Pin each recovery to the selected backup or approved `recoveryTarget`.
-   Wait for both isolated clusters to report Ready, then run read-only SQL
+4. Pin each recovery to the selected `recoveryTarget.backupID` above. Wait for
+   both isolated clusters to report Ready, then run read-only SQL
    sentinels: database identity, schema/table presence, row counts for the
    Matrix event/state tables, and a transaction-consistency check. Record
    command exit status and timestamps, not credentials or full user data.
@@ -183,14 +198,17 @@ namespace and never changes `matrix`.
 
 Before the key-only restore, verify with the installed Velero CLI that
 `restore create` supports `--selector`, `--include-resources`,
-`--include-namespaces`, `--namespace-mappings`, and `--restore-volumes=false`.
+`--include-namespaces`, `--namespace-mappings`,
+`--include-cluster-resources=false`, and `--restore-volumes=false`.
 Preflight the selected backup inventory and require exactly one object named
-`matrix-generated` matching the three-label selector. Use
+`matrix-generated` matching the five-label selector. Use
 `--existing-resource-policy=none`; fail if any object outside the selector,
-namespace mapping, or Secret resource filter is planned. A Secret count other
-than one, a selector mismatch, a restored key mismatch, a CNPG recovery error,
-or any attempted production endpoint is an immediate `FAIL` and stops the
-drill.
+namespace mapping, or Secret resource filter is planned. After the restore,
+enumerate the restored namespace and compare the complete `(apiVersion,kind,
+namespace,name)` set to the single expected Secret before mounting it. A
+Secret count other than one, a selector mismatch, a restored key mismatch, a
+CNPG recovery error, or any attempted production endpoint is an immediate
+`FAIL` and stops the drill.
 
 `CNPG_RECOVERY=PASS` requires both isolated clusters to reach Ready and pass
 the SQL sentinels. `MEDIA_RECOVERY=PASS` requires the restored Longhorn volume
