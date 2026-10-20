@@ -111,6 +111,21 @@ namespace and must not restore into `matrix`.
    stop and use an approved compatible tool or extraction path; never fall
    back to an unfiltered Secret restore. Do not restore the production
    namespace in place and do not restore PVCs for this key-only test.
+
+   The approved command shape is explicit about every scope boundary (replace
+   the namespaced restore name and destination only after PLT-92 approval):
+
+   ```text
+   velero restore create matrix-generated-key-<utc> \
+     --from-backup velero-daily-matrix-<selected> \
+     --include-namespaces matrix \
+     --include-resources secrets \
+     --namespace-mappings matrix:dr-matrix-<utc> \
+     --selector 'app.kubernetes.io/instance=matrix-init-secrets,app.kubernetes.io/part-of=matrix-stack,app.kubernetes.io/component=matrix-tools,app.kubernetes.io/name=init-secrets,app.kubernetes.io/version=0.10.4' \
+     --include-cluster-resources=false \
+     --restore-volumes=false \
+     --existing-resource-policy=none
+   ```
 3. Verify only metadata and key names with `kubectl`; never print Secret YAML,
    decoded data, environment dumps, or application logs that may contain
    credentials.
@@ -236,4 +251,3 @@ application restore gates to PASS.
 - The result must record source backup identity, UTC timestamps, namespace,
   reviewer, and cleanup decision without recording secret values or hashes in
   public evidence.
-

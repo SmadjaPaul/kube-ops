@@ -60,7 +60,7 @@
     {
       "id": "selector-preflight",
       "name": "Velero object-scope and live Secret selector preflight",
-      "command": "kubectl get secret -n matrix -l <stable-five-label-selector>; velero restore create --help",
+      "command": "kubectl get secret -n matrix -l app.kubernetes.io/instance=matrix-init-secrets,app.kubernetes.io/part-of=matrix-stack,app.kubernetes.io/component=matrix-tools,app.kubernetes.io/name=init-secrets,app.kubernetes.io/version=0.10.4; velero restore create --help",
       "execution": "executed",
       "status": "PASSED",
       "classification": "passed",
