@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matrix-synapse-media
+  namespace: matrix
+  labels:
+    app.kubernetes.io/name: matrix-synapse-media
+    app.kubernetes.io/part-of: matrix
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/persistent-offsite-backup: enabled
+spec:
+  accessModes: [ReadWriteOnce]
+  volumeMode: Filesystem
+  storageClassName: longhorn-bulk
+  resources:
+    requests:
+      storage: 50Gi

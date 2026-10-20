@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "matrix-ess-2026-10-20-working-tree",
+  "producedAt": "2026-10-20T00:00:00Z",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "834445d89d024e68e7eb6a60c4e66cbd3fd6f860+working-tree",
+    "branch": "codex/promote-factory-pending-diagnostic"
+  },
+  "tests": [
+    {
+      "id": "repo-check",
+      "name": "repository static and harness checks",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All repository static contracts and harness checks completed successfully.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "just check" }
+    },
+    {
+      "id": "matrix-kustomize-render",
+      "name": "ESS Matrix Kustomize render",
+      "command": "kustomize build --enable-helm k8s/applications/platform/matrix",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Rendered 54 resources with four HTTPRoutes and no generated Ingress resources.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "kustomize build --enable-helm k8s/applications/platform/matrix" }
+    },
+    {
+      "id": "platform-auth-render",
+      "name": "platform and Authentik Kustomize renders",
+      "command": "kustomize build --enable-helm k8s/applications/platform; kustomize build --enable-helm k8s/infrastructure/auth/authentik",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Both parent renders completed successfully, including the Matrix Authentik blueprint references.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "platform=114 resources; auth=37 resources" }
+    },
+    {
+      "id": "matrix-kubeconform",
+      "name": "ESS Matrix schema validation",
+      "command": "kubeconform -strict -ignore-missing-schemas -summary /tmp/matrix-kustomize.yaml",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "41 resources validated; 13 CRD-backed resources were skipped because their schemas are cluster-owned.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "Valid: 41, Invalid: 0, Errors: 0, Skipped: 13" }
+    },
+    {
+      "id": "backup-audit-baseline",
+      "name": "pre-change runtime backup audit baseline",
+      "command": "just backup-audit",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "Baseline audit reported existing coverage gaps (48/56 PVCs covered), unverified volumes, no CNPG restore proof, and restore residue; no Matrix resources were reconciled yet.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "PRODUCTION_PVC_COVERAGE=FAIL; CNPG_RESTORE_PROOF=UNPROVEN" }
+    },
+    {
+      "id": "argo-reconciliation",
+      "name": "Argo reconciliation of Matrix and Authentik changes",
+      "command": "just status-app apps-platform; just status-app infra-auth",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The change is still in the working tree and has not been merged or reconciled by Argo.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "runtime-smoke",
+      "name": "Gateway, DNS, TLS and Matrix route smoke",
+      "command": "just runtime-smoke",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "Live runtime still reflects the pre-change cluster; no Matrix route was applied.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "mas-oidc-user-smoke",
+      "name": "MAS Authentik OIDC login and account lifecycle",
+      "command": "manual browser smoke",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "Requires Argo reconciliation, the Authentik provider secret, DNS and a real test user.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "factory-matrix-operator-smoke",
+      "name": "Factory authenticated Matrix operator smoke",
+      "command": "POST /web/operator/matrix/smoke with an authenticated Factory session",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The Factory Matrix adapter remains disabled and the bot token/room are intentionally not read by the agent.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "cnpg-restore-proof",
+      "name": "CNPG restore proof for both Matrix databases",
+      "command": "just backup-audit",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "Restore proof requires reconciled Matrix clusters and an operator-approved restore drill; the baseline reported CNPG_RESTORE_PROOF=UNPROVEN.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 10,
+    "executed": 5,
+    "notExecuted": 5,
+    "passed": 4,
+    "failed": 1,
+    "unavailable": 5
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@834445d89d024e68e7eb6a60c4e66cbd3fd6f860+working-tree:matrix-ess",
+    "payload": {
+      "resultId": "matrix-ess-2026-10-20-working-tree",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "834445d89d024e68e7eb6a60c4e66cbd3fd6f860+working-tree",
+      "tests": [
+        { "id": "repo-check", "name": "repository static and harness checks", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "just check passed.", "risk": "low", "expectedCi": "required" },
+        { "id": "matrix-kustomize-render", "name": "ESS Matrix Kustomize render", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Matrix render passed.", "risk": "low", "expectedCi": "required" },
+        { "id": "platform-auth-render", "name": "platform and Authentik Kustomize renders", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Parent renders passed.", "risk": "low", "expectedCi": "required" },
+        { "id": "matrix-kubeconform", "name": "ESS Matrix schema validation", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Schema validation passed.", "risk": "low", "expectedCi": "required" },
+        { "id": "backup-audit-baseline", "name": "pre-change runtime backup audit baseline", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Baseline backup gaps remain.", "risk": "high", "expectedCi": "required" },
+        { "id": "argo-reconciliation", "name": "Argo reconciliation of Matrix and Authentik changes", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "unavailable", "reason": "Not merged or reconciled.", "risk": "high", "expectedCi": "not-expected" },
+        { "id": "runtime-smoke", "name": "Gateway, DNS, TLS and Matrix route smoke", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "unavailable", "reason": "No Matrix route applied.", "risk": "high", "expectedCi": "not-expected" },
+        { "id": "mas-oidc-user-smoke", "name": "MAS Authentik OIDC login and account lifecycle", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "unavailable", "reason": "Requires reconciled live identity setup.", "risk": "high", "expectedCi": "not-expected" },
+        { "id": "factory-matrix-operator-smoke", "name": "Factory authenticated Matrix operator smoke", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "unavailable", "reason": "Adapter remains disabled.", "risk": "high", "expectedCi": "not-expected" },
+        { "id": "cnpg-restore-proof", "name": "CNPG restore proof for both Matrix databases", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "unavailable", "reason": "Requires operator-approved restore drill.", "risk": "high", "expectedCi": "not-expected" }
+      ],
+      "summary": { "outcome": "incomplete", "total": 10, "executed": 5, "notExecuted": 5 }
+    }
+  }
+}

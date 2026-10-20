@@ -7,6 +7,7 @@ resources:
   - linear-external-secret.yaml
   - registry-externalsecret.yaml
   - oidc-external-secret.dormant.yaml
+  - matrix-externalsecret.yaml
   - database-s3-credentials.yaml
   - database-objectstore.yaml
   - database.yaml

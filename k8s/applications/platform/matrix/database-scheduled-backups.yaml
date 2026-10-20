@@ -1,0 +1,29 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: matrix-synapse-postgresql-weekly
+  namespace: matrix
+spec:
+  schedule: "0 30 3 * * 0"
+  backupOwnerReference: self
+  cluster: {name: matrix-synapse-postgresql}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-synapse-hetzner-store
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: matrix-mas-postgresql-weekly
+  namespace: matrix
+spec:
+  schedule: "0 45 3 * * 0"
+  backupOwnerReference: self
+  cluster: {name: matrix-mas-postgresql}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-mas-hetzner-store

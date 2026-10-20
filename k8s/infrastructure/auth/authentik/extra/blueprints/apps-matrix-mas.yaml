@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+---
+version: 1
+metadata:
+  name: Apps - Matrix Authentication Service
+entries:
+  - id: matrix_mas_oidc_provider
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: k8s.smadja.dev/platform/matrix-mas
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-one-time-consent"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      client_type: confidential
+      grant_types: [authorization_code]
+      redirect_uris:
+        - url: https://account.smadja.dev/upstream/callback/01HFRQFT5QFMJFGF01P7JAV2ME
+          matching_mode: strict
+      client_id: !Env MATRIX_MAS_OIDC_CLIENT_ID
+      client_secret: !Env MATRIX_MAS_OIDC_CLIENT_SECRET
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      refresh_token_validity: days=30
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+
+  - id: matrix_mas_oidc_application
+    model: authentik_core.application
+    identifiers:
+      slug: matrix-mas
+    attrs:
+      name: Matrix Authentication Service
+      group: Infrastructure
+      meta_description: Matrix human identity via Authentik
+      provider: !KeyOf matrix_mas_oidc_provider
+      policy_engine_mode: any
+
+  - id: matrix_mas_family_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf matrix_mas_oidc_application
+      group: !Find [authentik_core.group, [name, "family"]]
+    attrs:
+      order: 10
+
+  - id: matrix_mas_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf matrix_mas_oidc_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
