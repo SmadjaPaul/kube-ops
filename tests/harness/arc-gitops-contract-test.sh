@@ -3,6 +3,8 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 arc_root="$repo_root/k8s/optional/github-actions-arc"
+infrastructure_project="$repo_root/k8s/bootstrap/argocd-root/infrastructure-project.yaml"
+applications_project="$repo_root/k8s/bootstrap/argocd-root/applications-project.yaml"
 rendered="$(mktemp)"
 cleanup() { rm -f "$rendered"; }
 trap cleanup EXIT
@@ -39,6 +41,13 @@ done
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
   exit 1
 }
+
+for project in "$infrastructure_project" "$applications_project"; do
+  rg -F -- '    - ghcr.io/actions/actions-runner-controller-charts' "$project" >/dev/null || {
+    printf 'ARC_GITOPS_CONTRACT=FAIL appproject-oci-source-allowlist file=%s\n' "$project" >&2
+    exit 1
+  }
+done
 
 if rg -n 'privileged:\s*true|ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER:\s*false|github_token:|github_app_private_key:\s*\|' "$rendered"; then
   printf 'ARC_GITOPS_CONTRACT=FAIL insecure-or-inline-credential\n' >&2
