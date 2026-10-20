@@ -111,6 +111,8 @@ spec:
     - toFQDNs:
         # setup-node downloads the pinned Node distribution from this host.
         - matchName: nodejs.org
+        # onnxruntime-node resolves its Linux GPU package from the public NuGet feed.
+        - matchName: api.nuget.org
         # npm ci resolves the lockfile from the public npm registry.
         - matchName: registry.npmjs.org
       toPorts:
