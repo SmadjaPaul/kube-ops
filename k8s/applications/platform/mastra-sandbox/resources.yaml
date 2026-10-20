@@ -97,7 +97,10 @@ spec:
             - {name: tmp, mountPath: /tmp}
       volumes:
         - name: tmp
-          emptyDir: {sizeLimit: 256Mi}
+          # npm ci uses /tmp for transient install/extract files; 256Mi caused
+          # the PLT-103 sandboxd Pod eviction (emptyDir tmp size limit).
+          # This is node-local ephemeral storage, not a memory or PVC quota.
+          emptyDir: {sizeLimit: 1Gi}
   volumeClaimTemplates:
     - metadata:
         name: workspace
