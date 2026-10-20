@@ -58,6 +58,30 @@
       "evidence": { "kind": "manual", "reference": "runtime: matrix CNPG/Velero/Kopia/Longhorn read-only evidence at 2026-10-20T20:26Z" }
     },
     {
+      "id": "selector-preflight",
+      "name": "Velero object-scope and live Secret selector preflight",
+      "command": "kubectl get secret -n matrix -l <stable-five-label-selector>; velero restore create --help",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The stable five-label selector matches exactly secret/matrix-generated; the installed Velero CLI exposes selector, namespace mapping, Secret resource filtering, cluster-resource exclusion, no-volume restore and existing-resource policy flags.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "manual", "reference": "runtime: selector matched one Secret; Velero flags verified at 2026-10-20T20:32Z" }
+    },
+    {
+      "id": "cnpg-source-pinning",
+      "name": "CNPG Barman source and backup ID preflight",
+      "command": "kubectl get backups.postgresql.cnpg.io -n matrix ... -o json",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Synapse and MAS gap-remediation Backups are completed and both expose backupId 20261020T151710; the runbook pins the source serverName, ObjectStore and recoveryTarget.backupID for each cluster.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "manual", "reference": "runtime: CNPG Backup.status at 2026-10-20T20:32Z" }
+    },
+    {
       "id": "backup-audit-global",
       "name": "global backup protection audit",
       "command": "just backup-audit",
@@ -108,10 +132,10 @@
   ],
   "summary": {
     "outcome": "incomplete",
-    "total": 8,
-    "executed": 5,
+    "total": 10,
+    "executed": 7,
     "notExecuted": 3,
-    "passed": 4,
+    "passed": 6,
     "failed": 1,
     "unavailable": 3
   },
@@ -136,7 +160,7 @@
           "expectedCi": "required"
         }
       ],
-      "summary": { "outcome": "incomplete", "total": 8, "executed": 5, "notExecuted": 3, "passed": 4, "failed": 1, "unavailable": 3 }
+      "summary": { "outcome": "incomplete", "total": 10, "executed": 7, "notExecuted": 3, "passed": 6, "failed": 1, "unavailable": 3 }
     }
   }
 }
