@@ -41,6 +41,7 @@ spec:
             - {name: FACTORY_KUBERNETES_NAMESPACE, value: mastra-sandbox}
             - {name: FACTORY_KUBERNETES_WARMPOOL, value: mastra-code}
             - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
+            - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
             - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
             # Research stays explicitly disabled until a reviewed image
