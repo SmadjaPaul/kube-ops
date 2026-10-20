@@ -141,6 +141,18 @@ spec:
       toPorts:
         - ports:
             - {port: "5432", protocol: TCP}
+    # MAS checks localpart availability through the matrix-synapse Service.
+    # That Service targets the Matrix HAProxy pod, not the Synapse pod, on 8008.
+    # Keep this bounded to the exact backend and port required during login.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix
+            app.kubernetes.io/component: matrix-stack-ingress
+            app.kubernetes.io/instance: matrix-haproxy
+            app.kubernetes.io/name: haproxy
+      toPorts:
+        - ports:
+            - {port: "8008", protocol: TCP}
     # Keep the L3 target bounded to the Gateway internal VIP. Cilium's L7 SNI
     # proxy returns 403 for this internal Gateway hairpin, so Host/SNI routing
     # remains enforced by the Gateway route and the MAS issuer configuration.
