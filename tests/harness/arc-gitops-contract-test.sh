@@ -20,13 +20,12 @@ required_patterns=(
   'name: arc-runner-bounds'
   'name: arc-systems-github-egress'
   'name: arc-runners-github-egress'
+  'name: arc-runners-node-npm-egress'
   'targetRevision: 0.15.0'
   'name: arc-gha-rs-controller'
   'minRunners: 0'
   'maxRunners: 1'
   'pod-security.kubernetes.io/enforce: restricted'
-  'matchName: nodejs.org'
-  'matchName: registry.npmjs.org'
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -58,6 +57,11 @@ assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .image
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .securityContext.allowPrivilegeEscalation" 'false'
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | (.securityContext.capabilities.drop | join(\",\"))" 'ALL'
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .securityContext.seccompProfile.type" 'RuntimeDefault'
+
+runner_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-node-npm-egress")'
+assert_yq "$runner_download_policy | .metadata.namespace" 'arc-runners'
+assert_yq "$runner_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'factory-ci-arc'
+assert_yq "$runner_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | sort | join(\",\")" 'nodejs.org,registry.npmjs.org'
 
 [[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
