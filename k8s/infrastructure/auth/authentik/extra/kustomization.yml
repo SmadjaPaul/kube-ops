@@ -6,6 +6,7 @@ resources:
   - smtp-externalsecret.yaml
   - talos-bluegreen-externalsecret.yaml
   - factory-oidc-external-secret.dormant.yaml
+  - matrix-mas-oidc-externalsecret.yaml
 
 generatorOptions:
   disableNameSuffixHash: false
@@ -51,3 +52,4 @@ configMapGenerator:
       # stays excluded until its optional Slack webhook exists.
       - ./blueprints/apps-talos-bluegreen.yaml
       - ./blueprints/apps-factory.yaml
+      - ./blueprints/apps-matrix-mas.yaml

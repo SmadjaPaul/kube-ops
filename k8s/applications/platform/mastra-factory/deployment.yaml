@@ -15,7 +15,7 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: mastra-factory}
       annotations:
-        secret.reloader.stakater.com/reload: mastra-factory-runtime,mastra-factory-authentik-oidc,mastra-factory-linear-oauth
+        secret.reloader.stakater.com/reload: mastra-factory-runtime,mastra-factory-authentik-oidc,mastra-factory-linear-oauth,mastra-factory-matrix
     spec:
       serviceAccountName: mastra-factory
       automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
@@ -57,6 +57,12 @@ spec:
             - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://alloy.monitoring.svc.cluster.local:4318"}
             - {name: OTEL_SERVICE_NAME, value: "mastra-factory"}
             - {name: DEPLOYMENT_ENVIRONMENT, value: "production"}
+            # Factory's outbound Matrix adapter is deliberately opt-in. The
+            # secret is mounted now so a later reviewed activation only needs
+            # to change this flag after the bot/room smoke has passed.
+            - {name: MASTRACODE_MATRIX_NOTIFICATIONS_ENABLED, value: "0"}
+            - {name: MATRIX_HOMESERVER_URL, value: "http://matrix-synapse.matrix.svc.cluster.local:8008"}
+            - {name: MATRIX_BOT_USER_ID, value: "@factory-notifier:smadja.dev"}
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef: {name: mastra-factory-postgresql-app, key: uri}
@@ -68,6 +74,9 @@ spec:
             # Native LinearIntegration reads this optional, paired OAuth credential Secret.
             # Provision via Doppler/ESO only after the actual OAuth app exists.
             - secretRef: {name: mastra-factory-linear-oauth, optional: true}
+            # Optional until the Matrix bot account, token and private room
+            # have been provisioned in Doppler.
+            - secretRef: {name: mastra-factory-matrix, optional: true}
           readinessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 10

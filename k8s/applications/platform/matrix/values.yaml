@@ -1,0 +1,69 @@
+serverName: smadja.dev
+
+storage:
+  storageClassName: longhorn-bulk
+  resourcePolicy: keep
+
+ingress:
+  tlsEnabled: true
+  tlsSecret: cert-smadja
+
+matrixRTC:
+  enabled: false
+
+elementAdmin:
+  enabled: false
+
+elementWeb:
+  enabled: true
+  ingress:
+    host: chat.smadja.dev
+    tlsSecret: cert-smadja
+
+hookshot:
+  enabled: false
+
+postgres:
+  enabled: false
+
+synapse:
+  ingress:
+    host: matrix.smadja.dev
+    tlsSecret: cert-smadja
+  postgres:
+    host: matrix-synapse-postgresql-rw.matrix.svc.cluster.local
+    port: 5432
+    user: synapse
+    database: synapse
+    sslMode: prefer
+    password:
+      secret: matrix-synapse-postgresql-app
+      secretKey: password
+  media:
+    storage:
+      existingClaim: matrix-synapse-media
+
+matrixAuthenticationService:
+  ingress:
+    host: account.smadja.dev
+    tlsSecret: cert-smadja
+  postgres:
+    host: matrix-mas-postgresql-rw.matrix.svc.cluster.local
+    port: 5432
+    user: mas
+    database: mas
+    sslMode: prefer
+    password:
+      secret: matrix-mas-postgresql-app
+      secretKey: password
+  additional:
+    authentik:
+      configSecret: matrix-mas-oidc
+      configSecretKey: authentik.yaml
+
+wellKnownDelegation:
+  enabled: true
+  ingress:
+    tlsSecret: cert-smadja
+  baseDomainRedirect:
+    enabled: false

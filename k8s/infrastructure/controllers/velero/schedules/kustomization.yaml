@@ -40,3 +40,4 @@ resources:
   - daily-agentgateway.yaml
   - daily-atlantis.yaml
   - daily-factory-platform.yaml
+  - daily-matrix.yaml

@@ -1,0 +1,84 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: matrix
+
+resources:
+  - namespace.yaml
+  - database-synapse.yaml
+  - database-mas.yaml
+  - database-objectstores.yaml
+  - database-scheduled-backups.yaml
+  - database-s3-credentials.yaml
+  - media-pvc.yaml
+  - externalsecret.yaml
+  - httproutes.yaml
+  - networkpolicy.yaml
+
+helmCharts:
+  - name: matrix-stack
+    repo: oci://ghcr.io/element-hq/ess-helm
+    version: 26.10.2
+    releaseName: matrix
+    namespace: matrix
+    includeCRDs: false
+    valuesFile: values.yaml
+
+# The cluster uses Cilium Gateway API, while ESS Community emits Ingress
+# objects. Keep the chart's service/workload graph and replace only its edge
+# objects with the explicit HTTPRoutes above.
+patches:
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: matrix-element-web
+    patch: |-
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: matrix-element-web
+      $patch: delete
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: matrix-matrix-authentication-service
+    patch: |-
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: matrix-matrix-authentication-service
+      $patch: delete
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: matrix-synapse
+    patch: |-
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: matrix-synapse
+      $patch: delete
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: matrix-well-known
+    patch: |-
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: matrix-well-known
+      $patch: delete
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: matrix-matrix-authentication-service
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/annotations
+        value:
+          secret.reloader.stakater.com/reload: matrix-mas-oidc,matrix-mas-postgresql-app

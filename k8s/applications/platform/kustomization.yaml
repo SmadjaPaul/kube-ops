@@ -7,3 +7,4 @@ resources:
   - agentgateway
   - mastra-factory
   - mastra-sandbox
+  - matrix
