@@ -5,7 +5,7 @@ metadata:
   namespace: matrix
   labels: {policy-type: platform}
 spec:
-  description: "Bound Matrix ingress, intra-stack traffic, DNS, separate CNPG databases and Authentik OIDC/federation egress."
+  description: "Bound Matrix ingress, intra-stack traffic, DNS and separate CNPG databases; MAS and Synapse egress are scoped in dedicated policies."
   endpointSelector:
     matchLabels:
       k8s:io.kubernetes.pod.namespace: matrix
@@ -81,11 +81,43 @@ spec:
       toPorts:
         - ports:
             - {port: "5432", protocol: TCP}
-    - toFQDNs:
-        - {matchName: auth.smadja.dev}
+
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: matrix-mas-authentik-egress
+  namespace: matrix
+  labels: {policy-type: platform}
+spec:
+  description: "Allow MAS OIDC discovery only to Authentik through Gateway/internal."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: matrix-authentication-service
+      app.kubernetes.io/part-of: matrix-stack
+  egress:
+    - toCIDRSet:
+        - {cidr: 10.0.20.192/32}
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
+          serverNames:
+            - auth.smadja.dev
+
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: matrix-synapse-federation-egress
+  namespace: matrix
+  labels: {policy-type: platform}
+spec:
+  description: "Preserve Synapse public IPv4 federation and HTTPS egress without IPv6 hairpinning."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: synapse-main
+      app.kubernetes.io/part-of: matrix-stack
+  egress:
     - toCIDRSet:
         - cidr: 0.0.0.0/0
           except:
@@ -103,15 +135,6 @@ spec:
             - 203.0.113.0/24
             - 224.0.0.0/4
             - 240.0.0.0/4
-        - cidr: ::/0
-          except:
-            - ::/128
-            - ::1/128
-            - ::ffff:0:0/96
-            - 2001:db8::/32
-            - fc00::/7
-            - fe80::/10
-            - ff00::/8
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
