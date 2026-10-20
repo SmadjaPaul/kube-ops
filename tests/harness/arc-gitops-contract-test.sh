@@ -35,6 +35,11 @@ for pattern in "${required_patterns[@]}"; do
   }
 done
 
+[[ "$(rg -c '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
+  printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
+  exit 1
+}
+
 if rg -n 'privileged:\s*true|ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER:\s*false|github_token:|github_app_private_key:\s*\|' "$rendered"; then
   printf 'ARC_GITOPS_CONTRACT=FAIL insecure-or-inline-credential\n' >&2
   exit 1
