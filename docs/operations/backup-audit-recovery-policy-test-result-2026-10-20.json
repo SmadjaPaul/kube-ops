@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "backup-audit-recovery-policy-2026-10-20",
+  "producedAt": "2026-10-19T22:29:03Z",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "working-tree",
+    "branch": "codex/dr-recovery-policy"
+  },
+  "tests": [
+    {
+      "id": "backup-audit-contract",
+      "name": "backup audit policy and stale-UID fixtures",
+      "command": "bash tests/harness/backup-audit-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The contract covers the three policy records, separate recovery counts, and invalidation after PVC UID recreation, without live mutation.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "backup-audit contract: PASS"}
+    },
+    {
+      "id": "live-recovery-policy-audit",
+      "name": "bounded live recovery-policy audit",
+      "command": "BACKUP_AUDIT_REPORT_FILE=<temporary> BACKUP_AUDIT_REQUEST_TIMEOUT_SECONDS=5 BACKUP_AUDIT_TIMEOUT_SECONDS=10 bash scripts/backup-audit.sh",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "Collection completed, but one critical PVC is UNPROTECTED and two Mastra workspaces are UNKNOWN_REVIEW. This is the intended fail-closed result.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "PRODUCTION_RECOVERY_STATUS=FAIL; PROTECTED=52; UNKNOWN_REVIEW=2; UNPROTECTED=1"}
+    },
+    {
+      "id": "mastra-runtime-observation",
+      "name": "read-only Mastra workspace observation",
+      "command": "kubectl get SandboxClaim/Sandbox/PVC/PV/Longhorn metadata; read-only workspace inspection",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Both claims and their UID-bound volumes were identified. No sandbox was stopped, resumed, deleted, or modified.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": {"kind": "manual", "reference": "docs/operations/backup-audit-recovery-policy-2026-10-20.md"}
+    },
+    {
+      "id": "factory-runtime-regression",
+      "name": "Factory/Mastra health preservation",
+      "command": "just runtime-smoke",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "Mastra route passed with HTTP 401 and one Ready endpoint; the overall smoke command failed only on the pre-existing Atlantis route with HTTP 503 and no ready endpoint.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "RUNTIME_SMOKE_TESTED=37; RUNTIME_SMOKE_FAILURES=1; mastra-factory HTTP 401 PASS; atlantis HTTP 503 FAIL"}
+    },
+    {
+      "id": "live-mutation",
+      "name": "PVC or sandbox mutation",
+      "command": "none",
+      "execution": "not-executed",
+      "status": "NOT_APPLICABLE",
+      "classification": "not-applicable",
+      "reason": "No source volume modification, sandbox interruption, backup deletion, or restore drill is authorized.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": {"kind": "none", "reference": "no live mutation issued"}
+    },
+    {
+      "id": "just-check",
+      "name": "repository check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All repository contracts, including backup, DR, Argo, Longhorn, and Mastra checks, passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "just check exit 0"}
+    },
+    {
+      "id": "recovery-evidence-gates",
+      "name": "accepted-loss evidence gates",
+      "command": "bash tests/harness/backup-audit-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "EPHEMERAL_VERIFIED requires functional-recovery evidence and EXCLUDE_ACCEPTED_LOSS requires operator-acceptance evidence.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "backup-audit contract: PASS"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 7,
+    "executed": 6,
+    "notExecuted": 1,
+    "passed": 4,
+    "failed": 2,
+    "skipped": 0,
+    "notApplicable": 1
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@working-tree:backup-audit-recovery-policy-2026-10-20",
+    "payload": {
+      "resultId": "backup-audit-recovery-policy-2026-10-20",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "working-tree",
+      "tests": [
+        {
+          "id": "backup-audit-contract",
+          "name": "backup audit policy and stale-UID fixtures",
+          "command": "bash tests/harness/backup-audit-contract-test.sh",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Fixture contract passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "live-recovery-policy-audit",
+          "name": "bounded live recovery-policy audit",
+          "command": "bash scripts/backup-audit.sh",
+          "execution": "executed",
+          "status": "FAILED",
+          "classification": "failed",
+          "reason": "The live decision gate remains failed by design.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "just-check",
+          "name": "repository check suite",
+          "command": "just check",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Repository checks passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "recovery-evidence-gates",
+          "name": "accepted-loss evidence gates",
+          "command": "bash tests/harness/backup-audit-contract-test.sh",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Evidence gates passed.",
+          "risk": "medium",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "incomplete", "total": 7, "executed": 6, "notExecuted": 1}
+    }
+  }
+}

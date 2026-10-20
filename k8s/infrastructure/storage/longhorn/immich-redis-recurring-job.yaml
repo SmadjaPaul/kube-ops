@@ -1,0 +1,17 @@
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: immich-redis-offsite
+  namespace: longhorn-system
+  labels:
+    app.kubernetes.io/part-of: storage
+    app.kubernetes.io/component: longhorn-backup
+    dr.smadja.dev/owner: immich-redis
+spec:
+  cron: "47 3 * * *"
+  task: backup
+  retain: 7
+  concurrency: 1
+  labels:
+    backup.smadja.dev/tier: persistent-offsite
+    backup.smadja.dev/owner: immich-redis

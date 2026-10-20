@@ -1,0 +1,58 @@
+{
+  "manifestId": "dr-synth-20261019170700-cnpg-cleanup",
+  "scope": "cnpg-barman-kubernetes-only",
+  "run": "dr-synth-20261019170700",
+  "cleanupScript": {
+    "path": "scripts/dr-synth-cleanup.sh",
+    "sha256": "f9dff8061b69d9fdcf8b424477ce25a611df3dcc1bb98c3221fb61400c67e413"
+  },
+  "inventory": {
+    "file": "docs/operations/dr-cleanup-live-inventory-2026-10-19.md",
+    "sha256": "f14bcb99965b586abf966eb33c28a30f1823d3f74ff849fe11f697bff092548f"
+  },
+  "namespaces": [
+    {"name":"dr-synth-20261019170700-cnpg-src","uid":"1c5deb49-e9c5-4ad2-bbe2-f107f9413113"},
+    {"name":"dr-synth-20261019170700-cnpg-tgt","uid":"9f6c1f6c-279f-4481-b53f-501c669e7079"}
+  ],
+  "configMaps": [],
+  "barmanResources": [
+    {"kind":"Cluster","namespace":"dr-synth-20261019170700-cnpg-src","name":"dr-synth-20261019170700-cnpg","uid":"e96a6679-c96e-4f74-a420-20434b875467"},
+    {"kind":"Backup","namespace":"dr-synth-20261019170700-cnpg-src","name":"dr-synth-20261019170700-cnpg-backup","uid":"e6844b7e-12eb-4084-8e56-fa47c071e222"},
+    {"kind":"ObjectStore","namespace":"dr-synth-20261019170700-cnpg-src","name":"dr-synth-20261019170700-store","uid":"29c158c5-699a-4840-b24b-4d150ce9348e"},
+    {"kind":"Cluster","namespace":"dr-synth-20261019170700-cnpg-tgt","name":"dr-synth-20261019170700-cnpg-recovered","uid":"292456e8-f87b-447a-b851-6001370f05bb"},
+    {"kind":"ObjectStore","namespace":"dr-synth-20261019170700-cnpg-tgt","name":"dr-synth-20261019170700-source-store","uid":"c0c6e31f-c1de-419c-bc25-163ba308b17e"},
+    {"kind":"ObjectStore","namespace":"dr-synth-20261019170700-cnpg-tgt","name":"dr-synth-20261019170700-target-store","uid":"db060443-73bf-4dcc-ac9e-bcfc643dbfa2"}
+  ],
+  "s3Deletion": "not-in-scope",
+  "pvs": [
+    {"name":"pvc-bcbd7819-98bc-44da-be48-7d591bdb0638","uid":"bf1714b0-8fe2-4434-af80-1de9bc56f1d7","claimRef":{"namespace":"dr-synth-20261019170700-cnpg-src","name":"dr-synth-20261019170700-cnpg-1","uid":"bcbd7819-98bc-44da-be48-7d591bdb0638"},"volumeHandle":"pvc-bcbd7819-98bc-44da-be48-7d591bdb0638","volumeName":"pvc-bcbd7819-98bc-44da-be48-7d591bdb0638","volumeUid":"95086901-0613-4a83-961b-e8853424001b","volumeNamespace":"longhorn-system","volumePvcName":"dr-synth-20261019170700-cnpg-1"},
+    {"name":"pvc-5de7ece7-7662-441d-9037-285a501ed5e7","uid":"d9b4c296-e7bc-43fc-8db5-182c0672fdfe","claimRef":{"namespace":"dr-synth-20261019170700-cnpg-tgt","name":"dr-synth-20261019170700-cnpg-recovered-1","uid":"5de7ece7-7662-441d-9037-285a501ed5e7"},"volumeHandle":"pvc-5de7ece7-7662-441d-9037-285a501ed5e7","volumeName":"pvc-5de7ece7-7662-441d-9037-285a501ed5e7","volumeUid":"3f0ec65c-d96f-4031-8f41-b54e30657bb9","volumeNamespace":"longhorn-system","volumePvcName":"dr-synth-20261019170700-cnpg-recovered-1"}
+  ],
+  "preserve": [
+    {"kind":"backups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup","uid":"f824dfe2-0de9-4e01-b462-327b24196084"},
+    {"kind":"backups.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-backup-v2","uid":"e9962dc5-9e58-45a4-a012-f1b1b8e0d665"},
+    {"kind":"restores.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-restore","uid":"30a489f3-dbce-412c-9993-402e4a1b35f2"},
+    {"kind":"restores.velero.io","namespace":"velero","name":"dr-synth-20261019170700-velero-restore-v2","uid":"8eba147a-6742-4275-a713-c4beb6840723"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"dr-proof-20261019193651-agentgateway","uid":"c45cb76a-c9f5-45b6-b35f-a7789f859c21"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"dr-proof-20261019193651-atlantis","uid":"d25f2673-1256-4386-a249-be9ae915fd99"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"dr-proof-20261019193651-listmonk","uid":"a1eadbf3-edd3-4f74-95da-834cf29851ce"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"dr-proof-20261019193651-twenty","uid":"4c74b3cb-b404-4462-b314-836b462ac543"}
+    ,{"kind":"persistentvolumeclaim","namespace":"invoice-ninja-restore-drill-20261009","name":"data-invoice-ninja-mysql-0","uid":"51d97b5b-8880-4078-82d6-5acb724d40e6"}
+    ,{"kind":"persistentvolumeclaim","namespace":"invoice-ninja-restore-drill-20261009","name":"invoice-ninja-public","uid":"03f66755-a871-438e-9d8c-126faad321c2"}
+    ,{"kind":"persistentvolumeclaim","namespace":"invoice-ninja-restore-drill-20261009","name":"invoice-ninja-redis","uid":"096041b7-016c-4af7-8824-047065394c7a"}
+    ,{"kind":"persistentvolumeclaim","namespace":"invoice-ninja-restore-drill-20261009","name":"invoice-ninja-storage","uid":"8872a515-3a0e-448e-aed8-1fbd7fff0565"}
+    ,{"kind":"persistentvolumeclaim","namespace":"invoice-ninja-restore-drill-20261009-v2","name":"data-invoice-ninja-mysql-0","uid":"d4a2d766-20e7-495f-8e76-fd22015a65d5"}
+    ,{"kind":"persistentvolumeclaim","namespace":"invoice-ninja-restore-drill-20261009-v2","name":"invoice-ninja-public","uid":"cb5dff28-fa32-4d7e-8981-4083edb5b837"}
+    ,{"kind":"persistentvolumeclaim","namespace":"invoice-ninja-restore-drill-20261009-v2","name":"invoice-ninja-redis","uid":"5e302a5e-b830-4dab-b4a8-5b20a9f5e639"}
+    ,{"kind":"persistentvolumeclaim","namespace":"invoice-ninja-restore-drill-20261009-v2","name":"invoice-ninja-storage","uid":"92a94764-f26f-4b7c-941d-1b16ac685103"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005","name":"openclaw-config-openclaw-0","uid":"40d1fa24-aa4a-4c3f-8aea-fc033cb1150c"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005","name":"openclaw-data","uid":"c7df5aaa-e900-49d2-9360-b25c90c243cf"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005","name":"openclaw-data-openclaw-0","uid":"11765724-6a47-4abb-8243-4066e371e359"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005","name":"openclaw-logs-openclaw-0","uid":"5102ec6a-bbb0-4ddd-a63c-d836a10070e8"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005","name":"openclaw-workspace-openclaw-0","uid":"e749e9e6-1d07-474e-a5db-afd5a3394326"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005-v2","name":"openclaw-data","uid":"bdabb517-22bf-4839-a28b-c48990d4b5c7"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005-v3","name":"openclaw-data","uid":"5265d81b-cd13-4946-be0d-83d39a1d2809"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005-v4","name":"openclaw-data","uid":"0672eeba-79e8-429d-99e3-ddde1f576d5f"}
+    ,{"kind":"persistentvolumeclaim","namespace":"openclaw-restore-drill-20261005-v5","name":"openclaw-data","uid":"aff2eca4-a871-4f1e-97be-6d1fb7d9bd63"}
+  ]
+}

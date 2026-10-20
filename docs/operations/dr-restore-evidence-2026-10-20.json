@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "backup-audit/restore-evidence-v1",
+  "producedAt": "2026-10-19T22:52:14Z",
+  "maxAgeSeconds": 86400,
+  "scope": "production-pvc-longhorn-qualification",
+  "items": [
+    {
+      "id": "velero-kopia-synthetic-20261019",
+      "kind": "Velero/Kopia",
+      "status": "PASS",
+      "accepted": true,
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "cnpg-barman-synthetic-20261019",
+      "kind": "CNPG/Barman",
+      "status": "PASS",
+      "accepted": true,
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-agentgateway-20261019",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"agentgateway","name":"agentgateway-state","uid":"00d1af5f-70e1-4dcf-81db-6e4e1f12255f"},
+      "restoreVerified": true,
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-atlantis-20261019",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"atlantis-system","name":"atlantis-pilot-data","uid":"24ed83e6-2ac2-486f-8f6a-37ea3d064731"},
+      "restoreVerified": true,
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-listmonk-20261019",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"listmonk","name":"listmonk-uploads","uid":"8a7998ba-7603-41f7-bbeb-18a146a89ad6"},
+      "restoreVerified": true,
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-twenty-20261019",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"twenty","name":"twenty-storage","uid":"5052b6c5-9815-4123-afe1-8c8f81515c3f"},
+      "restoreVerified": true,
+      "evidence": "docs/operations/dr-cleanup-execution-result-2026-10-19.json"
+    },
+    {
+      "id": "longhorn-s3-immich-redis-20261020",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"immich","name":"redis-data-immich-redis-master-0","uid":"a09c12b9-203b-4610-8558-1e6f8088c18c"},
+      "backup": {
+        "name":"dr-protect-20261020-immich-redis",
+        "volume":"pvc-a09c12b9-203b-4610-8558-1e6f8088c18c",
+        "url":"s3://smadja-dev-homelab-backups@fsn1/longhorn/?backup=dr-protect-20261020-immich-redis&volume=pvc-a09c12b9-203b-4610-8558-1e6f8088c18c",
+        "completedAt":"2026-10-19T22:47:25Z"
+      },
+      "restoreVerified": true,
+      "applicationRecoveryVerified": false,
+      "aofIntegrityVerified": true,
+      "redisCopyRecoveryVerified": true,
+      "consistency":"crash-consistent Longhorn snapshot; AOF checked on writable copy",
+      "rpo":"snapshot-time; workload-level RPO not measured",
+      "rto":"restore and Redis copy load completed; full Immich application RTO not measured",
+      "restoreNamespace":"dr-protect-20261020-immich",
+      "restoreVolume":"dr-protect-20261020-immich-volume",
+      "restorePVC":"restored-redis-data",
+      "evidence":"runtime: Longhorn Backup/PVC/PV/Volume plus redis-check-aof and local redis-cli"
+    },
+    {
+      "id": "longhorn-s3-mastra-active-20261020",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"mastra-sandbox","name":"workspace-sandbox-claim-05473af3","uid":"c36eea64-f347-46af-88a2-46ab620575b0"},
+      "backup": {
+        "name":"dr-protect-20261020-mastra-active",
+        "volume":"pvc-c36eea64-f347-46af-88a2-46ab620575b0",
+        "url":"s3://smadja-dev-homelab-backups@fsn1/longhorn/?backup=dr-protect-20261020-mastra-active&volume=pvc-c36eea64-f347-46af-88a2-46ab620575b0",
+        "completedAt":"2026-10-19T22:47:18Z"
+      },
+      "restoreVerified": true,
+      "applicationRecoveryVerified": false,
+      "consistency":"crash-consistent Longhorn snapshot while sandbox Pod was Running",
+      "sourceInterrupted": false,
+      "restoredFileCount": 410,
+      "restoreNamespace":"dr-protect-20261020-mastra-active",
+      "restoreVolume":"dr-protect-20261020-mastra-active-volume",
+      "restorePVC":"restored-workspace",
+      "evidence":"runtime: Longhorn Backup/PVC/PV/Volume plus read-only busybox inventory"
+    },
+    {
+      "id": "longhorn-s3-mastra-suspended-20261020",
+      "kind": "Longhorn/S3",
+      "status": "PASS",
+      "accepted": true,
+      "pvc": {"namespace":"mastra-sandbox","name":"workspace-sandbox-claim-0de14859","uid":"06fc6da9-bf5d-4538-b8a3-42fc735956c0"},
+      "backup": {
+        "name":"dr-protect-20261020-mastra-suspended",
+        "volume":"pvc-06fc6da9-bf5d-4538-b8a3-42fc735956c0",
+        "url":"s3://smadja-dev-homelab-backups@fsn1/longhorn/?backup=dr-protect-20261020-mastra-suspended&volume=pvc-06fc6da9-bf5d-4538-b8a3-42fc735956c0",
+        "completedAt":"2026-10-19T22:47:26Z"
+      },
+      "restoreVerified": true,
+      "applicationRecoveryVerified": false,
+      "consistency":"crash-consistent Longhorn snapshot from a detached suspended workspace",
+      "sourceInterrupted": false,
+      "sourceSandboxResumed": false,
+      "restoredFileCount": 408,
+      "restoreNamespace":"dr-protect-20261020-mastra-suspended",
+      "restoreVolume":"dr-protect-20261020-mastra-susp-ba5aeb52",
+      "restorePVC":"restored-workspace",
+      "evidence":"runtime: Longhorn Backup/PVC/PV/Volume plus read-only busybox inventory"
+    }
+  ]
+}

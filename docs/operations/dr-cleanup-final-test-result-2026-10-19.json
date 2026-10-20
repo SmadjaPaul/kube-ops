@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "dr-cleanup-final-2026-10-19",
+  "producedAt": "2026-10-19T21:10:00Z",
+  "actor": {"kind":"agent","name":"codex"},
+  "repository": {"name":"SmadjaPaul/kube-ops","revision":"codex/dr-cleanup-final+working-tree","branch":"codex/dr-cleanup-final"},
+  "tests": [
+    {"id":"cleanup-contract","name":"Cleanup safety contract","command":"bash tests/harness/dr-synth-cleanup-contract-test.sh","execution":"executed","status":"PASSED","classification":"passed","reason":"Mocked dry-run, approval, UID and claimRef divergence, custom identity labels, attachments, delayed transitions, interruption/resume, missing evidence and preserved objects passed.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"local:PASS"}},
+    {"id":"partial-contract","name":"Existing partial cleanup scope contract","command":"bash tests/harness/dr-synth-partial-cleanup-contract-test.sh","execution":"executed","status":"PASSED","classification":"passed","reason":"The previously merged non-CNPG wrapper still pins the updated engine and exact partial scope.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"local:PASS"}},
+    {"id":"repository-check","name":"Repository static and contract suite","command":"just check","execution":"executed","status":"PASSED","classification":"passed","reason":"The complete repository check suite passed, including backup, Argo, Factory, Longhorn and DR contracts.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"local:PASS"}},
+    {"id":"shellcheck","name":"ShellCheck and whitespace validation","command":"shellcheck -S warning scripts/dr-synth-cleanup.sh scripts/dr-synth-partial-cleanup.sh tests/harness/dr-synth-cleanup-contract-test.sh tests/fixtures/dr-cleanup/bin/kubectl && git diff --check","execution":"executed","status":"PASSED","classification":"passed","reason":"Static shell and whitespace checks passed.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"local:PASS"}},
+    {"id":"proof-dry-run","name":"Live Longhorn proof cleanup dry-run","command":"scripts/dr-synth-cleanup.sh --dry-run --manifest docs/operations/dr-synth-proof-cleanup-manifest-2026-10-19.json","execution":"executed","status":"PASSED","classification":"passed","reason":"Exact namespace, UID, claimRef, volumeHandle, detached and preservation gates passed with no deletion.","risk":"medium","expectedCi":"optional","evidence":{"kind":"command","reference":"DR_CLEANUP=DRY_RUN; manifest SHA 125f7c06fd90a4d323108357f4ed82b515e75fb3b471ecb324702c8a8ea1425e"}},
+    {"id":"cnpg-dry-run","name":"Live CNPG/Barman cleanup dry-run","command":"scripts/dr-synth-cleanup.sh --dry-run --manifest docs/operations/dr-synth-cnpg-cleanup-manifest-2026-10-19.json","execution":"executed","status":"PASSED","classification":"passed","reason":"The Barman objects had no finalizers, the source Backup was completed, storage identities matched, and preserved external evidence was present. No deletion occurred.","risk":"high","expectedCi":"optional","evidence":{"kind":"command","reference":"DR_CLEANUP=DRY_RUN; manifest SHA d7209626961b7ce07cbf623ec4a9555527c1aba0e9c40c9dde2202c8334989f8"}},
+    {"id":"backup-audit","name":"Live backup audit baseline","command":"just backup-audit","execution":"executed","status":"FAILED","classification":"failed","reason":"Pre-existing audit gaps remain: production PVC coverage 48/57, five unverified PVCs, CNPG configuration 12/14, restore proof unproven and 17 historical residues. This failure is not hidden by the cleanup manifests.","risk":"high","expectedCi":"required","evidence":{"kind":"command","reference":"PRODUCTION_PVC_COVERAGE=FAIL; RESTORE_RESIDUE_COUNT=17"}},
+    {"id":"historical-apply","name":"Historical PVC cleanup apply","execution":"not-executed","status":"NOT_APPLICABLE","classification":"not-applicable","reason":"All 17 PVCs remain in active restore-drill namespaces and are explicitly REVIEW; no deletion list exists.","risk":"high","expectedCi":"not-expected","evidence":{"kind":"manual","reference":"dr-synth-historical-review-manifest-2026-10-19.json"}}
+  ],
+  "summary": {"outcome":"incomplete","total":8,"executed":7,"notExecuted":1,"passed":6,"failed":1,"skipped":0,"unavailable":0,"notApplicable":1},
+  "transmission": {
+    "target":"factory-platform","eventType":"agent.test.result","schema":"agent-test-result/v1","idempotencyKey":"SmadjaPaul/kube-ops@codex/dr-cleanup-final:dr-cleanup-final-2026-10-19",
+    "payload": {
+      "resultId":"dr-cleanup-final-2026-10-19","repository":"SmadjaPaul/kube-ops","revision":"codex/dr-cleanup-final+working-tree",
+      "tests":[{"id":"cleanup-contract","name":"Cleanup safety contract","execution":"executed","status":"PASSED","classification":"passed","reason":"Mocked safety contract passed.","risk":"low","expectedCi":"required"}],
+      "summary":{"outcome":"incomplete","total":8,"executed":7,"notExecuted":1}
+    }
+  }
+}

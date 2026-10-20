@@ -122,8 +122,17 @@ assert_identity() {
 
 assert_run_label() {
   local json="$1" kind="$2" namespace="$3" name="$4"
-  [[ "$(jq -r '.metadata.labels["dr.smadja.dev/run"] // ""' <<<"$json")" == "$run" ]] || \
-    die "run label mismatch: $kind $namespace/$name"
+  local identity_labels
+  identity_labels="$(jq -c '.identityLabels // {}' "$manifest")"
+  if [[ "$identity_labels" != "{}" ]]; then
+    while IFS=$'\t' read -r key value; do
+      [[ "$(jq -r --arg key "$key" '.metadata.labels[$key] // ""' <<<"$json")" == "$value" ]] || \
+        die "identity label mismatch: $kind $namespace/$name label=$key"
+    done < <(jq -r '. | to_entries[] | [.key,.value] | @tsv' <<<"$identity_labels")
+  else
+    [[ "$(jq -r '.metadata.labels["dr.smadja.dev/run"] // ""' <<<"$json")" == "$run" ]] || \
+      die "run label mismatch: $kind $namespace/$name"
+  fi
 }
 
 write_metadata_snapshot() {

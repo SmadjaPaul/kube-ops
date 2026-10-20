@@ -10,5 +10,8 @@ helmCharts:
   valuesFile: values.yaml
   version: 28.0.5
 
+resources:
+- redis-pvc-labels.yaml
+
 generatorOptions:
   disableNameSuffixHash: true

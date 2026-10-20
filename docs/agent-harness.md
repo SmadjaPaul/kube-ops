@@ -104,11 +104,12 @@ Never promote lower-level evidence to a higher level.
 `just backup-audit` reports separate persistence signals rather than treating
 every non-covered PVC as a production backup failure:
 
-- `PRODUCTION_PVC_COVERAGE` requires a Bound PVC/PV, a completed Velero Backup
-  for its scheduled namespace, and a completed PodVolumeBackup correlated to
-  the PVC (directly or through its Pod volume). PVCs with a Schedule and
-  completed Backup but no provable PVB are reported as `unverified`, not as a
-  PASS; the PVB must also reference the completed Backup.
+- `PRODUCTION_PVC_COVERAGE` requires a Bound PVC/PV and an exact off-site
+  backup proof. That proof is either a completed Velero Backup plus correlated
+  PodVolumeBackup, or a completed Longhorn backup correlated through the live
+  Longhorn volume's PVC identity. A Schedule alone, a local snapshot, or a
+  Longhorn volume without a completed remote backup is not proof. Missing
+  correlation remains `unverified`, not PASS.
 - `CNPG_BACKUP_CONFIGURATION` checks WAL archiving, ScheduledBackup, completed
   CNPG Backup, and Barman ObjectStore configuration.
 - `CNPG_RESTORE_PROOF` is independent from backup completion and remains
@@ -121,22 +122,46 @@ every non-covered PVC as a production backup failure:
   latter is deliberately conservative and does not infer orphanhood from an
   absent Pod.
 
+`PRODUCTION_RECOVERY_STATUS` is a separate decision gate. Each PVC has a
+`recoveryStatus` of `PROTECTED`, `EPHEMERAL_VERIFIED`,
+`EXCLUDE_ACCEPTED_LOSS`, `UNKNOWN_REVIEW`, or `UNPROTECTED`. The last two fail
+the recovery gate. Accepted-loss states remain visible and do not increment
+off-site backup coverage.
+
 The script accepts `BACKUP_AUDIT_INPUT_DIR` containing the collected Kubernetes
 API JSON (`pvc`, `pv`, `pods`, `schedules`, `backups`, `restores`, `pvbs`,
-`cnpg`, `cnpg-backups`, `cnpg-scheduled-backups`, and `objectstores`) for deterministic clusterless
-tests. Restore residue remains visible while only production coverage and CNPG
-backup configuration contribute to the production exit gate. The legacy
+`cnpg`, `cnpg-backups`, `cnpg-scheduled-backups`, and `objectstores`) plus
+optional `longhorn-volumes`, `longhorn-backups`, and `restore-evidence` files
+for deterministic clusterless tests. A live audit collects independent APIs in
+parallel with per-request and overall bounds (`BACKUP_AUDIT_REQUEST_TIMEOUT_SECONDS`
+and `BACKUP_AUDIT_TIMEOUT_SECONDS`); a timeout is `PARTIAL`, never an empty PASS.
+Set `BACKUP_AUDIT_REPORT_FILE` to retain the machine-readable report. The
+report classifies PVCs as `production`, `synthetic/test`, or
+`explicitly-excluded`, and records `backupConfigured`,
+`offsiteBackupVerified`, `restoreVerified`, `recoveryPolicy`,
+`recoveryEvidence`, `lastVerifiedAt`, and the mechanism used. Explicit
+restore evidence is opt-in through `BACKUP_AUDIT_RESTORE_EVIDENCE_FILE` (the
+checked-in synthetic qualification record is the default); it can prove a
+drill, but cannot prove a production PVC without an exact PVC UID match.
+Restore residue remains visible while only production coverage and CNPG backup
+configuration contribute to the production exit gate. The legacy
 `BACKUP_AUDIT_LEGACY_GAPS` counter remains available for comparison with the
 previous audit, while `BACKUP_AUDIT_GAPS` includes unverified production PVCs,
 CNPG configuration gaps, and restore residue. Missing required Kubernetes APIs
-fail closed rather than becoming an empty successful inventory.
+ fail closed rather than becoming an empty successful inventory.
+
+Recovery policy records are supplied through
+`BACKUP_AUDIT_RECOVERY_POLICY_FILE` or, in fixture mode,
+`recovery-policy.json`. The checked-in policy record is UID-bound and contains
+no secrets. A policy without an exact current UID match is ignored, so a
+recreated PVC cannot inherit an older recovery decision.
 
 
 ## Backup classification
 
 Every persisted application volume must be one of:
 
-- protected by an offsite Velero/Kopia schedule; or
+- protected by an exact offsite Velero/Kopia or Longhorn/S3 backup proof; or
 - explicitly labelled `backup.smadja.dev/strategy=rebuildable`.
 
 The rebuildable label is reserved for caches or reproducible downloaded datasets.

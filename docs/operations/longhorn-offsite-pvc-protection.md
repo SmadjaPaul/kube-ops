@@ -1,8 +1,11 @@
 # Longhorn off-site protection for retained PVCs
 
-Status: PR-only configuration. No Longhorn backup target or recurring backup
-was enabled by this document until the GitOps change is reconciled and the
-first restore proofs pass.
+Status: the target is reconciled and the first restore proofs are recorded in
+`dr-restore-evidence-2026-10-20.json`. The four original retained PVCs remain
+covered by the existing policy. Immich Redis now has an explicit recurring
+backup assignment; the two Mastra workspace PVCs are deliberately protected
+by traceable one-off qualification backups until their dynamic lifecycle has a
+safe owner-aware scheduling mechanism.
 
 ## Native capability and target
 
@@ -16,10 +19,10 @@ ESO creates `longhorn-hetzner-credentials` in `longhorn-system` from the same
 two Doppler keys already used by Velero. No credential value is stored in Git.
 The endpoint is the existing non-secret Hetzner endpoint.
 
-The cluster currently has `BackupTarget/default` with an empty URL and
-`available=false`, no Longhorn `BackupVolume` or backup, and no recurring job.
-The PR changes only this backup configuration; it does not change a PVC,
-volume size, StorageClass, replica count or data path.
+The cluster target is `BackupTarget/default`, available against the existing
+Hetzner S3 endpoint. The protection changes do not change a PVC volume size,
+StorageClass, replica count or data path. The Immich Redis PVC only gains
+Longhorn recurring-job source labels; no application restart is required.
 
 ## Four PVCs
 
@@ -55,6 +58,29 @@ controlled quiescence procedure; do not call the raw snapshot protected.
 Longhorn backup lifecycle and retention are managed by Longhorn. The S3 bucket
 must not receive an independent object-retention policy that conflicts with
 the Longhorn retain count.
+
+## Immich Redis and Mastra workspace qualification
+
+The 2026-10-20 qualification created these traceable Longhorn backups in the
+existing `longhorn/` S3 prefix:
+
+| PVC | Backup | Restore proof | Application proof |
+| --- | --- | --- | --- |
+| `immich/redis-data-immich-redis-master-0` | `dr-protect-20261020-immich-redis` | New Longhorn volume/PVC mounted read-only; AOF manifest, base RDB and incremental AOF validated with Redis 8.10.2; Redis loaded on an `emptyDir` copy and answered `PONG` | Redis recovery on a copy PASS; full Immich application recovery NOT TESTED |
+| `mastra-sandbox/workspace-sandbox-claim-05473af3` | `dr-protect-20261020-mastra-active` | New volume/PVC mounted read-only; 410 files inventoried; source sandbox remained running | Agent/workflow recovery NOT TESTED |
+| `mastra-sandbox/workspace-sandbox-claim-0de14859` | `dr-protect-20261020-mastra-suspended` | New volume/PVC mounted read-only; 408 files inventoried; suspended sandbox was not resumed | Agent/workflow recovery NOT TESTED |
+
+The Redis and active workspace captures are crash-consistent snapshots. The
+suspended workspace was detached and no agent process was running. A restored
+workspace is file recovery evidence only: it does not prove Factory claim
+reattachment or safe agent continuation. The temporary restore namespaces and
+volumes are retained pending a separate cleanup approval.
+
+The native recurring policy intentionally covers Immich Redis only. Mastra
+workspaces rotate dynamically; attaching a permanent job to a named PVC would
+leave orphaned schedules after claim rotation. Until Factory exposes an
+owner-aware upstream lifecycle hook, the audit reports the current Mastra
+backups/restores separately from continuous policy coverage.
 
 ## Rollback
 
