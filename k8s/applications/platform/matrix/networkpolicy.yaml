@@ -10,6 +10,11 @@ spec:
     matchLabels:
       k8s:io.kubernetes.pod.namespace: matrix
       app.kubernetes.io/part-of: matrix-stack
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values:
+          - matrix-authentication-service
   ingress:
     - fromEntities: [host, remote-node, ingress]
       toPorts:
@@ -95,7 +100,47 @@ spec:
     matchLabels:
       app.kubernetes.io/name: matrix-authentication-service
       app.kubernetes.io/part-of: matrix-stack
+  ingress:
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
+            - {port: "8081", protocol: TCP}
+            - {port: "9001", protocol: TCP}
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - {port: "8081", protocol: TCP}
+            - {port: "9001", protocol: TCP}
   egress:
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+            - {port: "6443", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix
+            cnpg.io/cluster: matrix-mas-postgresql
+      toPorts:
+        - ports:
+            - {port: "5432", protocol: TCP}
     # Keep the L3 target bounded to the Gateway internal VIP. Cilium's L7 SNI
     # proxy returns 403 for this internal Gateway hairpin, so Host/SNI routing
     # remains enforced by the Gateway route and the MAS issuer configuration.
