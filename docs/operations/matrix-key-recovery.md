@@ -52,6 +52,34 @@ approved fingerprint baseline is retained. Therefore signing-key
 recoverability remains `NOT_PROVEN` until the isolated procedure below is
 executed.
 
+## Live qualification snapshot
+
+The following evidence was collected read-only on 2026-10-20 and is a
+qualification baseline, not a restore authorization:
+
+| Component | Evidence | Interpretation |
+| --- | --- | --- |
+| Argo | `apps-platform` `Synced/Healthy`; live platform operation revision `17dcf692300ba66cdde1f990d387c5e6285f5852`; comparison head `95650532e915bd370e5b7aff092aee6be168c1d6` | Matrix desired state is reconciled; this does not prove recovery |
+| Synapse CNPG | `matrix-synapse-postgresql` `Ready`, `ContinuousArchiving=True`, `LastBackupSucceeded=True`; `matrix-synapse-postgresql-gap-remediation-20261020` completed at `2026-10-20T15:17:17Z` | Base backup and WAL path are live |
+| MAS CNPG | `matrix-mas-postgresql` `Ready`, `ContinuousArchiving=True`, `LastBackupSucceeded=True`; `matrix-mas-postgresql-gap-remediation-20261020` completed at `2026-10-20T15:17:20Z` | Base backup and WAL path are live |
+| Velero/Kopia | `velero-daily-matrix-20261020082008` `Completed`, 324/324 at `2026-10-20T08:37:15Z`; `matrix-default-kopia` `Ready` | The Matrix object backup is available |
+| Media | `matrix-synapse-media` is `Bound` on `longhorn-bulk`; Longhorn backup `backup-a2c6662bf82841f5` for its exact volume reached `Completed`, 100%, at `2026-10-20T15:30:17Z` | A Longhorn S3 recovery source exists; application recovery is not proven |
+
+The current `matrix-generated` Secret exposes the expected key names only and
+has no owner reference. Synapse and MAS reference the expected generated and
+ESO-owned Secret objects through their rendered configuration. Secret values,
+decoded data, and fingerprints are deliberately absent from this repository.
+The `matrix-init-secrets` Job completed after the selected Velero backup, so
+the backup is not accepted as proof of the bytes currently mounted by the
+workloads. The durable key status therefore remains `NOT_PROVEN` until the
+operator-held baseline and the isolated selector-scoped restore both exist.
+
+Longhorn is an additional media recovery source, not a replacement for
+Velero/Kopia or CNPG/Barman. The media PVC carries the explicit
+`persistent-offsite-backup` and `source` labels, and the completed backup is
+recorded as evidence; no production PVC, PV, volume, or recurring job was
+modified by this runbook.
+
 ## Approved isolated procedure
 
 Before execution, PLT-92 must record approval, the UTC window, the selected
@@ -94,6 +122,84 @@ The Matrix application drill additionally needs isolated CNPG recovery,
 isolated media, compatible configuration, and an internal Synapse/MAS smoke
 test. No RPO/RTO or `MATRIX_APP_RESTORE=PASS` may be inferred from the key-only
 test.
+
+## Isolated CNPG, media, and application recovery plan
+
+This procedure is prepared only. It must not be started until PLT-92 records
+the approver, a UTC window, the selected completed backup names, the expected
+cost bound, and the independent reviewer. It creates new names in a new
+namespace and never changes `matrix`.
+
+1. Record `T0` in UTC, the Velero backup completion time, the two CNPG backup
+   completion times, the Longhorn media backup completion time, and the latest
+   known application write marker. Confirm all source artifacts are retained.
+2. Create a namespace such as `dr-matrix-YYYYMMDDHHMM` with default-deny
+   ingress and egress. Do not create an HTTPRoute, public DNS record, public
+   Service, federation egress, Authentik callback, or production identity
+   binding. Use only ClusterIP services and allow-listed test traffic.
+3. For each database, create an isolated Barman `ObjectStore` that points to
+   the existing recovery prefix and uses an ESO-created credential Secret by
+   key reference; do not copy or print credential values. Create a new CNPG
+   `Cluster` with `bootstrap.recovery.source` and an `externalClusters.plugin`
+   entry for `barman-cloud.cloudnative-pg.io`, with the source
+   `barmanObjectName` and exact source `serverName`. Keep the target's
+   `spec.plugins` section enabled only if WAL archiving is intentionally
+   required for the drill. This is a new cluster bootstrap, not an in-place
+   restore. The official plugin recovery shape is documented at
+   https://cloudnative-pg.io/plugin-barman-cloud/docs/usage/.
+4. Pin each recovery to the selected backup or approved `recoveryTarget`.
+   Wait for both isolated clusters to report Ready, then run read-only SQL
+   sentinels: database identity, schema/table presence, row counts for the
+   Matrix event/state tables, and a transaction-consistency check. Record
+   command exit status and timestamps, not credentials or full user data.
+5. Restore media only from the selected completed Longhorn backup into a new
+   Longhorn volume/PVC in the drill namespace. Mount it read-only for the
+   inventory phase, record file count/size and a small approved sentinel set,
+   then use a writable copy only if the application compatibility check
+   requires it. Never mount the production PVC into the drill namespace.
+6. Restore `matrix-generated` with the selector-scoped procedure above, then
+   provide only the restored key files to isolated Synapse and MAS validation
+   pods. Start no public listener. Validate that the stable key set, database
+   schema, media paths, and configured `server_name` agree before running the
+   internal smoke.
+7. Run the application smoke entirely inside the namespace: Synapse health
+   and config check, MAS health and local account/session check, one test room
+   create/send/read cycle, and media upload/read against the restored copy.
+   Disable federation and external OAuth callbacks. Do not reuse production
+   identities, domains, access tokens, or room IDs for serving traffic.
+8. Record `T1` restore submission, `T2` first Ready for both CNPG clusters,
+   `T3` first successful SQL/media sentinels, and `T4` successful internal
+   application smoke. `RTO = T4 - T1`. `RPO` is the UTC distance from the
+   latest accepted durable source point (`T0`/selected backup or approved
+   PITR target) to the latest verified application write marker. If no
+   application write marker exists, report `RPO=NOT_MEASURED`, not zero.
+9. Preserve the evidence outside the production namespace. Cleanup is a
+   separate approved action restricted to the exact drill namespace, PVCs,
+   PVs, Longhorn volumes, Services, Jobs, and CNPG resources created for this
+   run. Existing `dr-matrix-media-20261020` and other restore residue are not
+   owned by this runbook and must not be removed implicitly.
+
+### Scope and failure gates
+
+Before the key-only restore, verify with the installed Velero CLI that
+`restore create` supports `--selector`, `--include-resources`,
+`--include-namespaces`, `--namespace-mappings`, and `--restore-volumes=false`.
+Preflight the selected backup inventory and require exactly one object named
+`matrix-generated` matching the three-label selector. Use
+`--existing-resource-policy=none`; fail if any object outside the selector,
+namespace mapping, or Secret resource filter is planned. A Secret count other
+than one, a selector mismatch, a restored key mismatch, a CNPG recovery error,
+or any attempted production endpoint is an immediate `FAIL` and stops the
+drill.
+
+`CNPG_RECOVERY=PASS` requires both isolated clusters to reach Ready and pass
+the SQL sentinels. `MEDIA_RECOVERY=PASS` requires the restored Longhorn volume
+to mount and pass the approved inventory/sentinel checks. `KEYS_CURRENT` is
+metadata-only; `KEYS_DURABLE=PASS` requires the protected baseline and the
+selector-scoped restore. `MATRIX_APP_RESTORE=PASS` additionally requires the
+internal Synapse/MAS and room/media smoke. A completed backup, a successful
+static render, or a healthy production workload alone cannot set any of these
+application restore gates to PASS.
 
 ## Acceptance gates
 

@@ -1,0 +1,142 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "matrix-key-recovery-2026-10-20",
+  "producedAt": "2026-10-20T20:30:00Z",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "codex/matrix-key-recovery-runbook-final+working-tree",
+    "branch": "codex/matrix-key-recovery-runbook-final"
+  },
+  "tests": [
+    {
+      "id": "origin-main-integration",
+      "name": "PR 601 integration with current origin/main",
+      "command": "git fetch origin main; git merge --no-edit origin/main",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The PR 601 document was integrated from ec970ff5; origin/main includes 17dcf692 (#600) and 95650532 (#602), and the final diff against origin/main contains only Matrix documentation.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "git diff --name-status origin/main...HEAD" }
+    },
+    {
+      "id": "repository-check",
+      "name": "repository static and harness checks",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All repository contracts completed successfully, including backup, Argo, agent-result and Kustomize checks.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "just check" }
+    },
+    {
+      "id": "matrix-render",
+      "name": "Matrix Kustomize render and schema validation",
+      "command": "kustomize build --enable-helm k8s/applications/platform/matrix | kubeconform -strict -ignore-missing-schemas -summary -",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The Matrix render produced 58 resources; kubeconform reported Valid 41, Invalid 0, Errors 0, Skipped 17.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "kustomize build + kubeconform" }
+    },
+    {
+      "id": "matrix-runtime-backup-evidence",
+      "name": "Matrix CNPG, Velero/Kopia and Longhorn runtime evidence",
+      "command": "read-only kubectl and velero backup describe through scripts/lib/kube-preflight.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Both Matrix CNPG clusters are Ready with continuous archiving and completed backups; Velero Matrix is Completed 324/324; matrix-default-kopia is Ready; the exact Matrix media Longhorn backup is Completed at 100%.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "manual", "reference": "runtime: matrix CNPG/Velero/Kopia/Longhorn read-only evidence at 2026-10-20T20:26Z" }
+    },
+    {
+      "id": "backup-audit-global",
+      "name": "global backup protection audit",
+      "command": "just backup-audit",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The repository-wide audit still reports unrelated global PVC coverage gaps and restore residue; this does not invalidate the Matrix-specific backup facts above but blocks a global PASS.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "PRODUCTION_PVC_COVERAGE=FAIL; BACKUP_AUDIT_GAPS=23" }
+    },
+    {
+      "id": "selector-scoped-key-restore",
+      "name": "object-scoped matrix-generated Secret restore",
+      "command": "operator-approved Velero restore in a fresh isolated namespace",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "PLT-92 remains Backlog and explicitly requires an approved UTC window; no restore was launched.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "isolated-cnpg-recovery",
+      "name": "isolated Synapse and MAS CNPG recovery",
+      "command": "new CNPG clusters with Barman ObjectStore bootstrap.recovery",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The runbook is prepared but restore execution is prohibited until PLT-92 approval and a UTC window.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "isolated-matrix-smoke",
+      "name": "isolated Synapse/MAS room and media smoke",
+      "command": "internal-only application smoke in the isolated recovery namespace",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "It depends on the approved key, CNPG and media restore drill; no public routes, federation or production writes were attempted.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 8,
+    "executed": 5,
+    "notExecuted": 3,
+    "passed": 4,
+    "failed": 1,
+    "unavailable": 3
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@matrix-key-recovery-2026-10-20",
+    "payload": {
+      "resultId": "matrix-key-recovery-2026-10-20",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "codex/matrix-key-recovery-runbook-final+working-tree",
+      "tests": [
+        {
+          "id": "repository-check",
+          "name": "repository static and harness checks",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "just check passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 8, "executed": 5, "notExecuted": 3 }
+    }
+  }
+}
