@@ -129,3 +129,11 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # DuckDB 1.5.6 starts extension installation over HTTP before following
+    # the registry redirect; keep TCP/80 limited to this single FQDN.
+    - toFQDNs:
+        - matchName: extensions.duckdb.org
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP

@@ -84,8 +84,10 @@ assert_yq "$runner_values | ((.volumes // []) | length)" '0'
 runner_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-node-npm-egress")'
 assert_yq "$runner_download_policy | .metadata.namespace" 'arc-runners'
 assert_yq "$runner_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'factory-ci-arc'
-assert_yq "$runner_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | sort | join(\",\")" \
+assert_yq "$runner_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
   'api.nuget.org,extensions.duckdb.org,files.pythonhosted.org,nodejs.org,public.cdn.getdbt.com,pypi.org,raw.githubusercontent.com,registry.npmjs.org,release-assets.githubusercontent.com'
+assert_yq "$runner_download_policy | [.spec.egress[] | select(.toFQDNs[0].matchName == \"extensions.duckdb.org\") | .toPorts[]?.ports[]?.port] | sort | join(\",\")" \
+  '80'
 
 [[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
