@@ -17,19 +17,6 @@ spec:
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
-  name: pocket-tts
-  namespace: pocket-tts
-spec:
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: pocket-tts
-  updatePolicy:
-    updateMode: "Off"
----
-apiVersion: autoscaling.k8s.io/v1
-kind: VerticalPodAutoscaler
-metadata:
   name: mastra-factory
   namespace: mastra-factory
 spec:
@@ -50,18 +37,5 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: romm
-  updatePolicy:
-    updateMode: "Off"
----
-apiVersion: autoscaling.k8s.io/v1
-kind: VerticalPodAutoscaler
-metadata:
-  name: whisperasr
-  namespace: media
-spec:
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: whisperasr
   updatePolicy:
     updateMode: "Off"
