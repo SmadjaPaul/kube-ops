@@ -18,10 +18,12 @@ grep -q 'name: atlantis-github-app' "$rendered"
 grep -q 'key.pem' "$rendered"
 grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
-grep -q 'name: ATLANTIS_GH_APP_ID' "$rendered"
-grep -q 'value: "5416988"' "$rendered"
-grep -q 'name: ATLANTIS_GH_APP_INSTALLATION_ID' "$rendered"
-grep -q 'value: "173903025"' "$rendered"
+grep -q -- '- --gh-app-id=5416988' "$rendered"
+grep -q -- '- --gh-app-installation-id=173903025' "$rendered"
+if grep -Eq 'name: ATLANTIS_GH_APP_(ID|INSTALLATION_ID)' "$rendered"; then
+  echo "GitHub App integer identifiers must be passed as CLI flags" >&2
+  exit 1
+fi
 if grep -Eq 'value: "[0-9]+\.[0-9]+e\+[0-9]+"' "$rendered"; then
   echo "scientific notation is forbidden for GitHub App identifiers" >&2
   exit 1
