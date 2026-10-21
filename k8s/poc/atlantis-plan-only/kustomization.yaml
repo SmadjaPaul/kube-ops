@@ -27,7 +27,7 @@ patches:
 helmCharts:
   - name: atlantis
     repo: https://runatlantis.github.io/helm-charts
-    version: 6.16.1
+    version: 6.16.2
     releaseName: atlantis-pilot
     namespace: atlantis-system
     valuesFile: values.yaml
