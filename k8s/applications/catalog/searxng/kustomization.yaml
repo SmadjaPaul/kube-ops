@@ -5,4 +5,3 @@ resources:
   - externalsecret.yaml
   - config.yaml
   - app.yaml
-  - interceptorroute.yaml
