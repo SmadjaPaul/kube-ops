@@ -6,12 +6,12 @@ test -f tests/harness/atlantis-dispatch.test.mjs
 test -f docs/contracts/atlantis-mastra-dispatch-v1.md
 test -f docs/contracts/atlantis-runtime-activation-v1.md
 
-# This is a dormant contract. It must not become an accidental Argo workload,
-# and the qualification fixture must remain plan-only.
-if rg -n 'atlantis-plan-only' k8s/applications k8s/argocd 2>/dev/null; then
-  echo "ERROR: dormant Atlantis fixture was added to an Argo application" >&2
-  exit 1
-fi
+# The plan-only pilot is intentionally declared in the infrastructure
+# ApplicationSet. Runtime qualification remains a separate evidence gate.
+grep -q '^          - path: k8s/poc/atlantis-plan-only$' \
+  k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml
+grep -q '^    - namespace: atlantis-system$' \
+  k8s/bootstrap/argocd-root/infrastructure-project.yaml
 grep -q '^disableApply: true$' k8s/poc/atlantis-plan-only/values.yaml
 grep -q '^disableApplyAll: true$' k8s/poc/atlantis-plan-only/values.yaml
 grep -q 'version: 6.16.1' k8s/poc/atlantis-plan-only/kustomization.yaml

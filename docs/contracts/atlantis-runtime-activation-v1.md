@@ -1,9 +1,9 @@
 # Atlantis pilot: declared versus runtime
 
-**Evidence date:** 2026-10-16
-**Source revision:** `kube-ops` `2acb4752ac6f173be387a254dd422affd49a4e95`
+**Evidence date:** 2026-10-21
+**Source revision:** `kube-ops` base `b578b6e81c0e0100e1e1669f32f3be276363b9a8`, qualification PR `bb64e8be077af242b26ad87ccda51e42e6073e0f`
 **Related merged change:** #506 `b678a78e21007564978ed4cceca6bb1955c22209`
-**Status:** prepared, not activated
+**Status:** plan-only pilot declared in Git; runtime qualification pending
 
 ## Runtime observation — 2026-10-16
 
@@ -23,19 +23,26 @@ Atlantis-specific runtime discovery returned:
 Therefore `RECONCILED=NO` and `RUNTIME=NO` for Atlantis. The absence is a
 positive safety result: no GitHub App credential, backend identity, provider
 egress or Atlantis API endpoint is currently active. No plan, lock, provider
-call or apply can be qualified until a separately authorized activation PR is
-reconciled.
+call or apply can be qualified until the declared pilot is reconciled and
+qualified.
+
+The Git declaration is wired into the infrastructure ApplicationSet and
+infrastructure AppProject. PR #632 supplies the GitHub App identity while
+preserving plan-only controls. Its merge is therefore an intentional request
+for Argo reconciliation of the pilot, not an accidental activation. The
+post-merge state must still be classified separately as `RECONCILED` and
+`RUNTIME`; no such evidence is claimed by this document.
 
 ## Exact difference
 
 | Surface | Declared in Git | Runtime conclusion |
 | --- | --- | --- |
-| Namespace and StatefulSet | `k8s/poc/atlantis-plan-only` renders a pinned Atlantis fixture | Not reconciled: the directory is not referenced by an Argo ApplicationSet/Application |
+| Namespace and StatefulSet | `k8s/poc/atlantis-plan-only` renders a pinned Atlantis fixture and is declared by the infrastructure ApplicationSet | Runtime reconciliation and workload readiness still require post-merge observation |
 | Image/chart | Atlantis `v0.48.1` with digest and chart `6.16.1` | Static pin only; no pod/image pull evidence |
-| GitHub identity | ExternalSecret references `atlantis-github-app` keys | Placeholder App ID/installation ID and secret values absent; no installed identity proven |
+| GitHub identity | ExternalSecret references `atlantis-github-app`; PR #632 binds the App ID, installation ID and slug | Secret synchronization and runtime authentication still require post-merge observation; values remain outside Git |
 | Webhook | private route declarations for `/events` and UI | No DNS, Gateway, TLS, signature or delivery evidence |
 | Repository policy | server-side exact allowlist, deny catch-all, plan-only workflow | Not loaded by an Atlantis process |
-| Root selection | only `terraform/atlantis-pilot` is allowed | No active root; the 12 existing roots remain inactive and untested by Atlantis |
+| Root selection | only `terraform/atlantis-pilot` is allowed | No privileged root is admitted; the 12 existing roots remain outside the pilot |
 | Backend/provider | placeholder pilot backend; no OCI/provider egress | No pilot state, identity or provider access provisioned; existing OCI states untouched |
 | Apply | `disableApply: true`, `disableApplyAll: true`, workflow apply fails | No apply capability is reconciled or exercised |
 | Mastra dispatch | offline admission contract only | No dispatcher workload, token, receipt database, replay guard or audit sink exists |
@@ -50,8 +57,9 @@ prove provider, state, lock, identity or post-apply safety.
 An operator-authorized activation must be a separate PR and must include all
 of the following before any privileged plan:
 
-1. Add the dormant path to the intended Argo ApplicationSet and namespace to
-   the infrastructure AppProject, with the ADR and exact revision recorded.
+1. Reconcile the already-declared path through the infrastructure
+   ApplicationSet and namespace entry in the infrastructure AppProject, with
+   the exact post-merge revision recorded.
 2. Replace only the GitHub App placeholders through the approved secret
    delivery path; verify repository installation, webhook signature and private
    route without exposing values.
@@ -76,7 +84,7 @@ post-apply qualification.
 
 ## Evidence classification
 
-- **STATIC:** `npm run check` passes, including the dormant fixture and
+- **STATIC:** `npm run check` passes, including the declared plan-only pilot and
   dispatcher negative tests.
 - **RECONCILED:** not established; no Argo sync evidence was collected.
 - **RUNTIME:** not established; no Atlantis pod, webhook, provider, state or
