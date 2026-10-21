@@ -156,12 +156,13 @@ No claim-loss exercise is authorized by this PR. The current result remains
 RPO is measured from the last successful workspace mutation to the completed
 manifest upload. RTO is measured from the observed claim disappearance to a
 new Ready workspace whose sentinel and Git identities verify. Use monotonic
-timestamps and record seconds with the fixture result. Until a live run is
-complete:
+timestamps and record seconds with the fixture result. Until a complete
+Factory claim-loss run is complete:
 
 | Measure | Result |
 | --- | --- |
-| S3 upload/download | `NOT_EXECUTED` |
+| S3 disposable transport (shared key only) | `RUNTIME_PASS` |
+| S3 effective prefix isolation | `RUNTIME_FAIL` |
 | claim-loss restore | `NOT_EXECUTED` |
 | RPO | `UNKNOWN` |
 | RTO | `UNKNOWN` |
@@ -177,9 +178,18 @@ negative live-reference protection have been proven in a separate review.
   candidate policy contract render successfully.
 - **SYNTHETIC:** Factory main's local bundle/manifest/checksum and mock-store
   tests only; no S3 or deployed claim-loss conclusion.
-- **RUNTIME:** currently `NOT_EXECUTED` for S3 and claim-loss; RPO/RTO remain
+- **RUNTIME:** disposable S3 transport and binding refusal are `PASS`; effective
+  prefix isolation is `FAIL`; claim-loss remains `NOT_EXECUTED`; RPO/RTO remain
   `UNKNOWN`.
 - **USER:** not in scope.
 
-The machine-readable handoff for this shared-bucket amendment is
+The machine-readable handoff for the static/shared-bucket amendment is
 `docs/operations/plt-109-plt-24-checkpoint-s3-shared-bucket-test-result-2026-10-21.json`.
+
+The subsequent live observations are recorded separately in
+`docs/operations/plt-109-plt-24-checkpoint-s3-runtime-evidence-2026-10-21.md`
+and
+`docs/operations/plt-109-plt-24-checkpoint-s3-runtime-test-result-2026-10-21.json`.
+The live transport fixture passed with the existing shared key, but effective
+prefix isolation failed; claim-loss restore and RPO/RTO remain unexecuted and
+unknown.

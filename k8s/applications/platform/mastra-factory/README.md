@@ -150,12 +150,14 @@ the residual cross-prefix risk, and keep the ExternalSecret dormant. Never
 probe production backups with write or delete operations; use only a
 read-only list denial and disposable canaries under the Factory prefix.
 
-The qualification fixture and controlled claim-loss exercise are recorded in
+The qualification contract and controlled claim-loss exercise are recorded in
 `docs/operations/plt-109-plt-24-checkpoint-s3-qualification-2026-10-21.md`.
-They remain `NOT_EXECUTED`; RPO and RTO remain `UNKNOWN` until a real private
-S3 upload/download and a disposable `SandboxClaim` disappearance drill have
-been approved and observed. Destructive checkpoint GC remains inactive until
-live-reference protection is proven.
+The runtime evidence is recorded separately in
+`docs/operations/plt-109-plt-24-checkpoint-s3-runtime-evidence-2026-10-21.md`:
+the disposable S3 transport and binding-refusal checks passed, but the shared
+key failed effective prefix isolation. The claim-loss drill remains
+`NOT_EXECUTED`; RPO and RTO remain `UNKNOWN`. Destructive checkpoint GC
+remains inactive until live-reference protection is proven.
 
 
 ### Hetzner shared-bucket handoff (PLT-109/24)
@@ -185,7 +187,9 @@ creates a project, bucket, policy or key.
 - This PR does **not** enable the ESO, alter workload replica count, enable
   destructive GC or run any SandboxClaim interruption.
 
-Keep `S3_LIVE=NOT_EXECUTED`, `CLAIM_LOSS=NOT_EXECUTED`,
-`RPO/RTO=UNKNOWN` and `PLT-100=OFF` until the external owner has produced
-authoritative proof. Do not confuse a passing static contract with a recovery
-test. Treat OCI/Argo and the GitHub checks as separate evidence boundaries.
+Keep `S3_TRANSPORT=RUNTIME_PASS`, `S3_ISOLATION=RUNTIME_FAIL`,
+`CLAIM_LOSS=NOT_EXECUTED`, `RPO/RTO=UNKNOWN` and `PLT-100=OFF` until the
+external owner has produced authoritative dedicated-key and policy proof, and
+the disposable claim-loss restore has been observed. Do not confuse a passing
+transport fixture with a recovery test. Treat OCI/Argo and the GitHub checks
+as separate evidence boundaries.
