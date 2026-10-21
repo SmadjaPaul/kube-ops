@@ -5,7 +5,10 @@
 - kube-prometheus-stack 88.3.0: alert rules are enabled; **no Alertmanager receiver override is declared in `prometheus-stack/values.yaml`**. Its upstream chart default receiver is `null`. Treat notifications as **NOT PROVEN**, even if Grafana shows firing alerts.
 - The most recent operator report counted **43 firing alerts, zero critical**. Do not connect an unfiltered receiver until warnings are classified and grouping/inhibition have been reviewed; avoid an alert storm.
 - Blackbox, Velero, CNPG, Argo orphan and Kubernetes mixin rules already exist. Do not duplicate them.
-- `prometheus.prometheusSpec.storageSpec` is absent in Git; upstream default is emptyDir (non-durable across Pod re-creation). Confirm the **live** Prometheus StatefulSet and volume before planning any PVC change.
+- At the 2026-10-21 baseline, `prometheus.prometheusSpec.storageSpec` was absent in
+  Git and the live Prometheus used `emptyDir` (non-durable across Pod
+  re-creation). PR #624 proposes a bounded `longhorn-fast` PVC; it is not an
+  approval or proof of reconciliation by itself.
 - `Loki` is a single monolithic instance backed by `longhorn-bulk` on the HDD tier. Alloy is one Deployment using Kubernetes API pod logs and Kubernetes events, not node-file reading.
 
 ## Grafana catalogue (provisioned by the Grafana dashboard sidecar)
@@ -45,11 +48,13 @@ Official contracts:
 
 ## Prometheus persistence: migration gate
 
-No `storageSpec` is declared. Before modifying the StatefulSet:
+The live baseline has no `storageSpec`. Before merging or reconciling the
+proposed StatefulSet change:
 - Capture live volume type, retention flags, actual TSDB disk usage and safe available capacity on `longhorn-fast`.
-- Choose a bounded persistent PVC and retention size with operator approval; verify existing data migration or explicitly accept history loss.
+- Choose a bounded persistent PVC and retention size with operator approval. The current proposal is 20Gi with `retentionSize: 14GB`, based on the measured ingestion and capacity evidence in PR #624; re-evaluate after a full week of persisted history.
+- Explicitly accept that the first StatefulSet replacement loses the current `emptyDir` history, or provide a separately qualified migration. Comments in Git do not substitute for that operator acceptance.
 - The in-cluster TSDB is not DR; preserve original historic data expectations and avoid deleting the old volume casually.
-- Validate Prometheus rules, scrapes, compaction and alerting after the migration. No PVC migration is authorized by this document.
+- Validate Prometheus rules, scrapes, compaction, alerting, PVC backup coverage and metric continuity after the migration. No PVC migration or production restart is authorized by this document.
 
 ## Pending hardware / availability
 
