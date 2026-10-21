@@ -5,7 +5,7 @@
   "actor": {"kind": "agent", "name": "codex-o2"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "ce1a0238",
+    "revision": "207657b1ab061f27b5b719ae87610085fa5931c7",
     "branch": "codex/factory-checkpoint-s3-gitops"
   },
   "tests": [
@@ -113,7 +113,7 @@
     "payload": {
       "resultId": "plt-109-plt-24-checkpoint-s3-gitops-2026-10-21",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "ce1a0238",
+      "revision": "207657b1ab061f27b5b719ae87610085fa5931c7",
       "tests": [
         {
           "id": "checkpoint-s3-static-contract",
