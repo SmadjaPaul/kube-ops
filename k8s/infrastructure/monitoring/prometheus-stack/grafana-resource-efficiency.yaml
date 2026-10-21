@@ -21,7 +21,7 @@ data:
       "timezone": "browser",
       "schemaVersion": 39,
       "version": 1,
-      "refresh": "2m",
+      "refresh": "5m",
       "time": {
         "from": "now-24h",
         "to": "now"
