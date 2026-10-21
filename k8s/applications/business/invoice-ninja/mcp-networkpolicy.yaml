@@ -1,3 +1,5 @@
+# DORMANT: fail closed until a reviewed Mastra/OpenConnector ingress owner
+# and an authenticated MCP_TOKEN_* bearer credential are configured.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -6,11 +8,4 @@ metadata:
 spec:
   endpointSelector:
     matchLabels: { app.kubernetes.io/name: invoice-ninja-mcp }
-  ingress:
-    - fromEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: openclaw
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: paperclip
-      toPorts:
-        - ports: [{ protocol: TCP, port: "8539" }]
+  ingress: []
