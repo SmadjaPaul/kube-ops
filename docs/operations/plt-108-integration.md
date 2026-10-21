@@ -50,17 +50,18 @@ USER or UNKNOWN. `UNQUALIFIED` is not a pass.
 | Ticket | Branch | HEAD | Tests | Review | Merge | Runtime | Blocker |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | PLT-108 | O0 `codex/plt-108-integration` | `647af9730d4094897a0401917db72bc3b2c45db2` | STATIC: inventory passed; `just check` failed in pre-existing `backup-audit-contract-test.sh` | Pending independent reviews | Not applicable | UNKNOWN | Baseline backup contract failure must be triaged separately; no O0 desired-state mutation |
-| PLT-114 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Audit first; PLT-100 stays OFF |
-| PLT-27 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Native hook proof |
-| PLT-29 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Exact-HEAD independent review |
-| PLT-100 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Blocked by PLT-114/27/29/24 |
+| PLT-114 | `codex/o1-plt114` / PR #143 | `f855ab9f463ac4fc79a4731cf8a4bfad1ac5be65` (docs; audited source `e6c3096…`) | STATIC: 35/35 targeted PASS; native 0.22.0/1.77.0 probe PASS; full TypeScript/core contract fail outside O1 | Pending independent review; checks queued/in progress | Not eligible | UNKNOWN | KEEP decision; no external review yet |
+| PLT-27 | `codex/o1-plt114` | `ae6cdff` | STATIC: workflow invariants PASS; no runtime activation | Pending | Not eligible | UNKNOWN | Native hook proof and external checks |
+| PLT-29 | `codex/o1-plt114` | `ae6cdff` | STATIC: stale/self-review refusals PASS | Pending | Not eligible | UNKNOWN | Exact-HEAD independent review and CI |
+| PLT-100 | `codex/o1-plt114` | `ae6cdff` | STATIC: admission/policy PASS | Pending | Forbidden | OFF / UNKNOWN | Blocked by PLT-24/27/29/112; do not activate |
 | PLT-109 | `codex/durable-sandbox-checkpoint` | `847a63c39420d178fa7a61f81635201fa2f3c4e4` (qualification reports; implementation under test at `01ceb742…`) | STATIC: TypeScript, 51 targeted and 263 core contracts PASS; live S3/claim-loss/GC not executed | Pending independent review on exact report SHA | Not eligible | UNKNOWN | Runtime S3 upload/download, disposable claim-loss restore and bounded GC remain open |
 | PLT-24 | `codex/durable-sandbox-checkpoint` | `847a63c39420d178fa7a61f81635201fa2f3c4e4` | STATIC: replay/idempotency and concurrent adoption tests PASS | Pending independent review | Not eligible | UNKNOWN | Depends on PLT-109 live evidence; `pytest` unavailable for canonical factory check |
-| PLT-74 | O3 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Source-to-digest-to-GitOps proof |
-| PLT-19 | O3 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Deployed version and rollback proof |
-| PLT-44 | O4 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Reject false PASS/skipped/mock evidence |
-| PLT-26 | O4 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Issue→run→PR→digest→Argo receipt |
-| PLT-67 | O4 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Cost/duration/tokens and UNKNOWN semantics |
+| PLT-74 | `codex/o3-ci-delivery-factory` / PR #144 | `01f3df705161ce815c365ea8cddecd379a30c823` (source code `f1d4a33…`) | STATIC: 30 contracts, digest/input/YAML/shell checks PASS; full checks fail/unavailable; no build | Pending independent review; checks queued | Not eligible | UNKNOWN | No BUILD_ID, digest, GitOps PR, Argo, smoke or rollback evidence |
+| PLT-19 | `codex/o3-ci-delivery-factory` | `01e77449598e35f44cc3fe75a7039c9a8fbe2caf` | STATIC only; source SHA pinned in changes | Pending | Not eligible | UNKNOWN | Deployed version and rollback not observed |
+| PLT-74 / kube promotion | `codex/o3-ci-delivery` / PR #617 | `6c883f111eec6415ad6151c207ca5ddb560d559b` (source code `2a071443…`) | STATIC: Kustomize/digest path report recorded; full kube check fails at existing backup contract | Pending independent review; `validate` in progress | Not eligible | UNKNOWN | No GitOps PR, Argo revision or smoke |
+| PLT-44 | `codex/plt-44-quality-evidence-o4` / PR #142 | `d0f7f639cdaf32aaa2ad3cd2669ae95fb8108585` (source tests `e97e1f3…`) | STATIC: targeted 14/14 and harness 41/41 PASS; full check/core contract fail | No review; checks `test`/`static-arc` in progress | Not eligible | UNKNOWN | Exact-head checks/review required |
+| PLT-26 | `codex/plt-44-quality-evidence-o4` / PR #142 | `d0f7f639cdaf32aaa2ad3cd2669ae95fb8108585` | STATIC receipt chain/refusal tests PASS | No review | Not eligible | UNKNOWN | OCI/Argo/user evidence absent |
+| PLT-67 | `codex/plt-44-quality-evidence-o4` / PR #142 | `d0f7f639cdaf32aaa2ad3cd2669ae95fb8108585` | STATIC: UNKNOWN metrics preserved; cost live not observed | No review | Not eligible | UNKNOWN | Live cost/duration/tokens not observed |
 | PLT-112 | O0 recipe | UNKNOWN | Not started | Not started | Not eligible | UNKNOWN | PLT-74/24/27/29/100 gates |
 
 ## Merge gate
