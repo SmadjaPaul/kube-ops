@@ -276,7 +276,7 @@ data:
           "targets": [
             {
               "refId": "A",
-              "expr": "sum(kube_pod_status_unschedulable{namespace=~\"$namespace\"}) or vector(0)",
+              "expr": "sum(kube_pod_status_unschedulable{namespace=~\"$namespace\"})",
               "instant": true
             }
           ],
