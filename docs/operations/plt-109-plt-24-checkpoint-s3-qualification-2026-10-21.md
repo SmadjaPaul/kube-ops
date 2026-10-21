@@ -12,37 +12,53 @@ currently has only the CNPG/Hetzner credential ExternalSecret in the
 
 The active cluster observes the private Hetzner backup bucket
 `smadja-dev-homelab-backups`, with CNPG prefixes and shared Velero/Longhorn
-usage. The proposed Factory bucket `smadja-dev-factory-checkpoints` does
-**not** exist in the observed inventory. Provisioning belongs in
-`homelab-infra`; this PR creates no Hetzner project, bucket, access key or
+usage. V1 deliberately reuses that bucket under the dedicated object prefix
+`factory-checkpoints/v1/`. This PR creates no project, bucket, access key or
 bucket policy.
 
-### Security boundary: project first, prefix second
+### Security boundary: shared bucket, dedicated key, proven policy
 
-**V1 decision:** create a separate Hetzner Object Storage project for Factory,
-with the dedicated private Factory bucket as its only bucket and a dedicated
-Factory access key. Do not create this key in the existing backups project.
+**V1 decision:** reuse `smadja-dev-homelab-backups` in `fsn1`; do not create a
+new Hetzner project or bucket. Factory objects use `factory-checkpoints/v1/`.
+
 Hetzner confirms that **every key can access all buckets in its own project by
-default**. A bucket-policy `Allow` on the new bucket does *not* revoke access
-to the existing backup buckets if keys share the backup project.
+default**. Therefore `cnpg-hetzner-credentials` and the shared
+`HETZNER_S3_*` identity are not acceptable Factory credentials. Keep the seven
+`FACTORY_CHECKPOINT_*` names separate and provision a dedicated key in the
+existing project if possible. A prefix in an object name is not proof of IAM
+isolation; a dedicated key is useful only if its effective permissions are
+tested.
 
-Within the dedicated Factory project, `factory-checkpoints/v1/` is initially
-an **object naming convention, not an independently enforced security
-boundary**. The Factory key can be restricted to this prefix only if an
-explicitly validated deny/allow policy, or a cross-project key with an explicit
-allow grant, really enforces it. Do not claim prefix-level denial merely
-because a policy lists a prefix under `Allow`.
+### Candidate same-bucket policy
 
-An optional stricter design uses **different projects for the key and bucket**:
-a credential project with no buckets, and the Factory bucket in its own project.
-For such a cross-project grant, Hetzner documents a
-`Principal: arn:aws:iam:::user/p<credential-project-id>:<access-key>`
-bucket policy. Grant `s3:ListBucket` only with the required `s3:prefix`
-condition and grant `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`
-only on `arn:aws:s3:::smadja-dev-factory-checkpoints/factory-checkpoints/v1/*`.
-**That `Allow`-only pattern is not sufficient for a key in the bucket's own
-project.** Choose the additional project only if strict prefix isolation is
-actually required; don't add a second project to satisfy an untested checklist.
+The following is a policy candidate for the external Hetzner operator. It is
+not applied by kube-ops and is not runtime proof. The principal and exact
+Hetzner policy envelope must be supplied by the external owner:
+
+```json
+{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::smadja-dev-homelab-backups",
+      "Condition": {"StringLike": {"s3:prefix": ["factory-checkpoints/v1", "factory-checkpoints/v1/*"]}}
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::smadja-dev-homelab-backups/factory-checkpoints/v1/*"
+    }
+  ]
+}
+```
+
+Do not describe this `Allow` as restrictive until disposable canaries prove
+denial outside the prefix and a read-only list of the shared bucket proves
+the intended boundary. If the same-project key remains project-wide, record
+those actual rights and the residual cross-prefix risk, keep ESO dormant, and
+do not claim prefix isolation. Existing CNPG/Velero/Longhorn access must stay
+untouched.
 
 The Factory adapter uses PutObject, GetObject, ListObjectsV2 and DeleteObject;
 its manifest is the commit point: the bundle is uploaded first, then the
@@ -51,14 +67,13 @@ Do not activate destructive GC just because the key has DeleteObject rights.
 
 Reference: https://docs.hetzner.com/storage/object-storage/faq/s3-credentials/
 
-**Required negative proof for V1:** with the Factory key, a *read-only* list of
-`smadja-dev-homelab-backups` must be denied. Never issue a write or delete
-against the production backups bucket to test isolation. Also confirm that the
-Factory project contains no other buckets. If strict prefix isolation is
-selected, additionally prove list/get/put/delete denial outside the prefix
-*using only explicitly disposable canaries in the Factory bucket*. Failure of
-any required negative test blocks runtime activation; record actual S3 response
-codes, not a speculative policy PASS.
+**Required negative proof for V1:** with the Factory key, a *read-only* list
+outside `factory-checkpoints/v1/` in `smadja-dev-homelab-backups` must be
+denied. Never issue a write or delete against CNPG, Velero or Longhorn objects
+to test isolation. If the key has access to other buckets in the same project,
+record that as residual risk. Failure of any required negative test blocks
+runtime activation; record actual S3 response codes, not a speculative policy
+PASS.
 
 ## Doppler → ESO → Factory wiring
 
@@ -73,10 +88,11 @@ rejects a partial four-field connection configuration.
 
 Activation is a separate reviewed change after all of the following are true:
 
-1. `homelab-infra` has provisioned a separate Hetzner storage project and the
-   private Factory-only bucket/key; confirmed the backup bucket cannot be listed
-   by the new key. If strict prefix isolation was selected, also prove its
-   separately configured bucket policy on disposable canaries.
+1. `homelab-infra`/Hetzner has supplied a dedicated Factory key for the
+   existing bucket and confirmed its effective policy. Confirm the key cannot
+   list other buckets in the project, and if prefix isolation is claimed,
+   prove list/get/put/delete denial outside the Factory prefix using disposable
+   canaries only.
 2. The seven Doppler keys exist in `infrastructure/prd` (presence only; never
    print their values).
 3. The dormant ExternalSecret is added to this Kustomization and Argo reports
@@ -99,7 +115,7 @@ Required sequence:
 3. Upload the JSON manifest second; verify schema version, capture ID,
    session/work-item/repository/branch binding, bundle key, size and digest.
 4. List only the fixture prefix and confirm both objects are visible.
-5. Assert the Factory key cannot list the existing shared backups bucket
+5. Assert the Factory key cannot list other buckets in the existing project
    (read-only check, do not read object contents or mutate any backup).
    For a separately chosen strict-prefix policy, also assert denial of
    list/get/put/delete outside the prefix **only on disposable Factory objects**.
@@ -108,7 +124,8 @@ Required sequence:
 The fixture is not a Factory runtime checkpoint and cannot promote GC or
 claim-loss recovery. A live run is `NOT_EXECUTED` until all six steps pass
 with the dedicated policy. Do not use a production session, a PLT-105 volume,
-or the #130/#134 fixture resources.
+or the #130/#134 fixture resources. Delete only objects below
+`factory-checkpoints/v1/fixture/`.
 
 ## Controlled SandboxClaim disappearance exercise
 
@@ -152,12 +169,12 @@ negative live-reference protection have been proven in a separate review.
 ## Evidence levels
 
 - **STATIC:** dormant ESO mapping, optional Deployment import, fixture and
-  policy contract render successfully.
+  candidate policy contract render successfully.
 - **SYNTHETIC:** Factory main's local bundle/manifest/checksum and mock-store
   tests only; no S3 or deployed claim-loss conclusion.
 - **RUNTIME:** currently `NOT_EXECUTED` for S3 and claim-loss; RPO/RTO remain
   `UNKNOWN`.
 - **USER:** not in scope.
 
-The machine-readable handoff is
-`docs/operations/plt-109-plt-24-checkpoint-s3-test-result-2026-10-21.json`.
+The machine-readable handoff for this shared-bucket amendment is
+`docs/operations/plt-109-plt-24-checkpoint-s3-shared-bucket-test-result-2026-10-21.json`.

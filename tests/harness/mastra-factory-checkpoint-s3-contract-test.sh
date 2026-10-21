@@ -42,13 +42,15 @@ yq -e '
   .spec.status == "not-executed" and
   .spec.scope == "synthetic-only" and
   .spec.productionTargetsExcluded == true and
-  .spec.storage.bucket == "smadja-dev-factory-checkpoints" and
-  .spec.storage.prefix == "factory-checkpoints/v1" and
-  .spec.storage.isolationMode == "dedicated-hetzner-project" and
+  .spec.storage.bucket == "smadja-dev-homelab-backups" and
+  .spec.storage.prefix == "factory-checkpoints/v1/" and
+  .spec.storage.isolationMode == "same-project-dedicated-key-policy-or-explicit-risk" and
   .spec.storage.existingBackupsBucket == "smadja-dev-homelab-backups" and
   .spec.storage.prefixIsolation == "not-assumed" and
   .spec.storage.sharedCredentialReuse == "prohibited" and
-  ([.spec.permissions.negativeCases[] | select(. == "list-existing-backups-bucket-denied-read-only")] | length) == 1 and
+  .spec.permissions.policyProof == "not-executed" and
+  .spec.permissions.fixturePrefix == "factory-checkpoints/v1/fixture/" and
+  ([.spec.permissions.negativeCases[] | select(. == "list-outside-factory-prefix-denied-read-only")] | length) == 1 and
   .spec.fixture.status == "not-executed" and
   .spec.claimLoss.status == "not-executed" and
   .spec.claimLoss.disposableOnly == true and

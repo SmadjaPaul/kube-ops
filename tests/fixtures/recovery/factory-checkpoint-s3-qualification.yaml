@@ -9,12 +9,12 @@ spec:
   productionTargetsExcluded: true
   externalAuthority: homelab-infra
   storage:
-    bucket: smadja-dev-factory-checkpoints
-    prefix: factory-checkpoints/v1
+    bucket: smadja-dev-homelab-backups
+    prefix: factory-checkpoints/v1/
     endpoint: https://fsn1.your-objectstorage.com
-    sharedBucketReuse: prohibited
+    sharedBucketReuse: approved-by-v1-decision
     sharedCredentialReuse: prohibited
-    isolationMode: dedicated-hetzner-project
+    isolationMode: same-project-dedicated-key-policy-or-explicit-risk
     existingBackupsBucket: smadja-dev-homelab-backups
     prefixIsolation: not-assumed
   permissions:
@@ -25,13 +25,15 @@ spec:
       - s3:DeleteObject
     listPrefix: factory-checkpoints/v1/
     objectPrefix: factory-checkpoints/v1/*
+    fixturePrefix: factory-checkpoints/v1/fixture/
     negativeCases:
-      - list-existing-backups-bucket-denied-read-only
+      - list-outside-factory-prefix-denied-read-only
     strictPrefixPolicyOnlyIfSeparatelyQualified:
       - list-outside-prefix-disposable
       - get-outside-prefix-disposable
       - put-outside-prefix-disposable
       - delete-outside-prefix-disposable
+    policyProof: not-executed
   fixture:
     status: not-executed
     objects:
@@ -45,6 +47,7 @@ spec:
       - sha256-and-byte-count
       - delete-disposable-objects
       - negative-permissions-denied
+      - effective-permission-codes-recorded
   claimLoss:
     status: not-executed
     disposableOnly: true
