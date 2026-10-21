@@ -129,8 +129,7 @@ roots=(
   k8s/applications/games
 )
 
-# Minecraft remains post-V1, but the games root is now active because RomM is
-# part of the V1 desired state.
+# The games root stays active for RomM; Minecraft manifests were retired.
 
 rendered="$(mktemp)"
 trap 'rm -f "$rendered"' EXIT

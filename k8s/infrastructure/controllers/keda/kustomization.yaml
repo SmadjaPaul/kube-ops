@@ -37,8 +37,6 @@ helmCharts:
     releaseName: http-add-on
     namespace: keda
     valuesInline:
-      operator:
-        replicas: 1
       scaler:
         replicas: 1
         resources:
@@ -54,6 +52,7 @@ helmCharts:
             cpu: 25m
             memory: 32Mi
       operator:
+        replicas: 1
         resources:
           requests:
             cpu: 25m
