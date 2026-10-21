@@ -36,7 +36,7 @@ configMapGenerator:
       - ./blueprints/apps-sure.yaml
       - ./blueprints/apps-searxng.yaml
       - ./blueprints/apps-invoice-ninja.yaml
-      # Dormant app blueprints (Actual Budget, Dawarich, Frigate, Metabase)
+      # Dormant app blueprints (Actual Budget, Dawarich, Metabase)
       # intentionally remain in Git history but are no longer loaded into the
       # active Authentik blueprint ConfigMap. Their ExternalSecrets are left
       # untouched here to avoid credential deletion/rotation in an R1 change.

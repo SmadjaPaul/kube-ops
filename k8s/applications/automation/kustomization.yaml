@@ -3,8 +3,7 @@ kind: Kustomization
 
 resources:
 - project.yaml
-# Disabled for initial bootstrap: hardware/camera-dependent workload
-# - frigate
+# Frigate was retired as an unused hardware-dependent workload (PLT-46).
 - mqtt
 - hassio
 # Deferred: upstream coordinator binding 10.0.10.160 is not a Smadja hardware contract.
