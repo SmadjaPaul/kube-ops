@@ -122,6 +122,22 @@ prometheusOperator:
 prometheus:
   prometheusSpec:
     replicas: 1
+    # Persistence sizing evidence (2026-10-21): Prometheus ingests about
+    # 4,671 samples/s and had about 371 MB of persisted blocks after 11.2 h.
+    # A 10-day projection is about 8 GB before WAL/compaction headroom.
+    # 20Gi keeps the existing 10d retention with roughly 2x growth headroom;
+    # re-evaluate after a full week of persisted history. This is a PVC only:
+    # no existing data is migrated or deleted by this change.
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn-fast
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+    retention: 10d
     # HOST EXPORTER PRECONDITION: Proxmox 10.0.20.51 must run the upstream
     # node_exporter on a private LAN endpoint, firewall-restricted to the
     # Talos monitoring traffic. No exporter is installed by this repo change.
