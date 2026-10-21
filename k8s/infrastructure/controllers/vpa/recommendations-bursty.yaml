@@ -14,7 +14,6 @@ spec:
   updatePolicy:
     updateMode: "Off"
 ---
----
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
@@ -27,7 +26,6 @@ spec:
     name: pocket-tts
   updatePolicy:
     updateMode: "Off"
----
 ---
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
@@ -42,7 +40,6 @@ spec:
   updatePolicy:
     updateMode: "Off"
 ---
----
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
@@ -55,7 +52,6 @@ spec:
     name: romm
   updatePolicy:
     updateMode: "Off"
----
 ---
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
