@@ -30,10 +30,15 @@ fi
 cronjobs=(
   k8s/applications/media/recyclarr/cronjob.yaml
   k8s/applications/catalog/renovate/cronjob.yaml
-  k8s/applications/games/minecraft/base/clear-entities-cronjob.yaml
   k8s/applications/business/invoice-ninja/backup-logical.yaml
 )
+# The list covers existing targeted CronJob retention contracts only.
+# Decommissioned applications must be removed here alongside their manifests.
 for cronjob in "${cronjobs[@]}"; do
+  [[ -f "$cronjob" ]] || {
+    echo "ERROR: tracked CronJob retention contract points to missing source: $cronjob" >&2
+    exit 1
+  }
   yq -e '.kind == "CronJob" and (.spec.successfulJobsHistoryLimit != null) and (.spec.failedJobsHistoryLimit != null) and (.spec.jobTemplate.spec.ttlSecondsAfterFinished == 86400)' "$cronjob" >/dev/null || {
     echo "ERROR: incomplete CronJob retention contract: $cronjob" >&2
     exit 1
