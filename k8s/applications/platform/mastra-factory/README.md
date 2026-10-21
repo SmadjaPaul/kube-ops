@@ -58,6 +58,19 @@ Keep all image changes pinned to an immutable GHCR digest, through a targeted
 Avoid destructive CNPG/PVC changes and cleanup of restore-drill data without
 explicit validation. CI unavailable for billing is not a successful test.
 
+The O3 delivery path is deliberately one-way and digest-bound:
+
+1. ARC CI qualifies the exact Factory source SHA.
+2. Cloud Build publishes `candidate-<source-sha>`, records OCI/SBOM evidence,
+   and promotes only the matching immutable `sha-<source-sha>` tag.
+3. A GitOps PR updates only this Deployment with
+   `scripts/promote-mastra-factory-digest.sh <source-sha> <digest>`.
+4. Argo CD reconciles the merged kube-ops revision.
+
+Until those external observations exist, `GITOPS_PR`, `ARGO_REVISION`,
+`SMOKE` and `ROLLBACK` are **UNKNOWN**. A local manifest edit or a successful
+static check is not runtime evidence.
+
 Implementation and onboarding runbook:
 `SmadjaPaul/factory-platform/mastra-factory/docs/operator-activation-gates.md`.
 Official references: https://factory.mastra.ai/configure/auth ,
