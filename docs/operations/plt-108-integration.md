@@ -54,8 +54,8 @@ USER or UNKNOWN. `UNQUALIFIED` is not a pass.
 | PLT-27 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Native hook proof |
 | PLT-29 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Exact-HEAD independent review |
 | PLT-100 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Blocked by PLT-114/27/29/24 |
-| PLT-109 | O2 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Live private-S3 upload/download and claim-loss restore |
-| PLT-24 | O2 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Depends on PLT-109; no double dispatch proof |
+| PLT-109 | `codex/durable-sandbox-checkpoint` | `847a63c39420d178fa7a61f81635201fa2f3c4e4` (qualification reports; implementation under test at `01ceb742…`) | STATIC: TypeScript, 51 targeted and 263 core contracts PASS; live S3/claim-loss/GC not executed | Pending independent review on exact report SHA | Not eligible | UNKNOWN | Runtime S3 upload/download, disposable claim-loss restore and bounded GC remain open |
+| PLT-24 | `codex/durable-sandbox-checkpoint` | `847a63c39420d178fa7a61f81635201fa2f3c4e4` | STATIC: replay/idempotency and concurrent adoption tests PASS | Pending independent review | Not eligible | UNKNOWN | Depends on PLT-109 live evidence; `pytest` unavailable for canonical factory check |
 | PLT-74 | O3 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Source-to-digest-to-GitOps proof |
 | PLT-19 | O3 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Deployed version and rollback proof |
 | PLT-44 | O4 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Reject false PASS/skipped/mock evidence |
