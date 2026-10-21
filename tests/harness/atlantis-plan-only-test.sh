@@ -18,6 +18,7 @@ grep -q 'name: atlantis-github-app' "$rendered"
 grep -q 'key.pem' "$rendered"
 grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
+grep -q 'maxUnavailable: 1' "$rendered"
 grep -q -- '- --gh-app-id=5416988' "$rendered"
 grep -q -- '- --gh-app-installation-id=173903025' "$rendered"
 if grep -Eq 'name: ATLANTIS_GH_APP_(ID|INSTALLATION_ID)' "$rendered"; then
