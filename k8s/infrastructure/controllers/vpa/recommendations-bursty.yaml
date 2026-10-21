@@ -1,0 +1,93 @@
+# Observation only: no automatic updates, no evictions, no CPU/RAM mutation.
+# Candidate workloads with comparatively high declared CPU/memory budgets.
+# Qualify recommendations against 7–30d Prometheus history and peak tests.
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: minecraft-bedrock
+  namespace: minecraft
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: minecraft-bedrock
+  updatePolicy:
+    updateMode: "Off"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: frigate
+  namespace: frigate
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: frigate
+  updatePolicy:
+    updateMode: "Off"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: jellyfin
+  namespace: media
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: jellyfin
+  updatePolicy:
+    updateMode: "Off"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: pocket-tts
+  namespace: pocket-tts
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pocket-tts
+  updatePolicy:
+    updateMode: "Off"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: mastra-factory
+  namespace: mastra-factory
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mastra-factory
+  updatePolicy:
+    updateMode: "Off"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: romm
+  namespace: romm
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: romm
+  updatePolicy:
+    updateMode: "Off"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: whisperasr
+  namespace: media
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: whisperasr
+  updatePolicy:
+    updateMode: "Off"
