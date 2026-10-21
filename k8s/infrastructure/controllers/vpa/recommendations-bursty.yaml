@@ -13,29 +13,3 @@ spec:
     name: jellyfin
   updatePolicy:
     updateMode: "Off"
----
-apiVersion: autoscaling.k8s.io/v1
-kind: VerticalPodAutoscaler
-metadata:
-  name: mastra-factory
-  namespace: mastra-factory
-spec:
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: mastra-factory
-  updatePolicy:
-    updateMode: "Off"
----
-apiVersion: autoscaling.k8s.io/v1
-kind: VerticalPodAutoscaler
-metadata:
-  name: romm
-  namespace: romm
-spec:
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: romm
-  updatePolicy:
-    updateMode: "Off"

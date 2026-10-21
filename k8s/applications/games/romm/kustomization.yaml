@@ -13,3 +13,4 @@ resources:
   - service.yaml
   - http-route.yaml
   - networkpolicy.yaml
+  - vpa.yaml

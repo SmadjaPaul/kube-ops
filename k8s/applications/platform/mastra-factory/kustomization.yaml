@@ -17,3 +17,4 @@ resources:
   - httproute.yaml
   - httproute-webhook-external.yaml
   - networkpolicy.yaml
+  - vpa.yaml
