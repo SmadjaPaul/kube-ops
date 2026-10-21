@@ -11,7 +11,7 @@ are recorded.
 
 | Repository | GitHub default branch | Verified remote HEAD | Local checkout note |
 | --- | --- | --- | --- |
-| `SmadjaPaul/factory-platform` | `main` | `e6c30965766d787c5f89326d717597cf4d770eb1` | Local checkout is on `codex/prevent-sandbox-claim-expiry`, ahead/behind and has untracked checkpoint files; do not use as an agent worktree. |
+| `SmadjaPaul/factory-platform` | `main` | `99e14ef094d2b02275fa178bf44238983772a4f0` (includes #145 and #142 merges) | Local checkout is on `codex/prevent-sandbox-claim-expiry`, ahead/behind and has untracked checkpoint files; do not use as an agent worktree. |
 | `SmadjaPaul/kube-ops` | `main` | `b835e41e0ed7f6c70b0994575e895a6d4e91f4c9` (PR #617 squash) | O0 checkout contains pre-existing untracked `.yml` and `tests/e2e/test-results/`; preserve them. |
 | `SmadjaPaul/homelab-infra` | `main` | Not in scope for desired-state changes | Read-only authority boundary only. |
 
@@ -91,7 +91,7 @@ upgrades evidence to RECONCILED, RUNTIME or USER.
 | 2026-10-21 | Merge Factory #142 after exact-head O4 qualification | O4 agent `01a15f4f-cc08-7ec2-a760-77e060389f3f` independently verified PR HEAD `6dea1d420…`, provenance separation, GitHub checks for RECONCILED, STATIC refusal, and parse/schema cleanliness. The user explicitly authorized progressive squash merge; no GitHub APPROVE identity was fabricated. Merge commit: `99e14ef094d2b02275fa178bf44238983772a4f0`. |
 | 2026-10-21 | Keep Factory #144 unmerged after main advanced | Exact HEAD `91ab2d431…` has green PR checks but remains architecturally unsafe: ARC cannot run Docker/Buildx and Cloud Build may submit before successful main CI. Rebase only after O3 correction and only if required by the new base `99e14ef…`. |
 
-## Next coordination step
+| 2026-10-21 | Keep PLT-109/PLT-24 blocked after O2 read-only qualification | No dedicated Factory checkpoint S3 endpoint/credentials are present; only CNPG S3 identities exist. Warm pool is zero and the sole SandboxClaim is tied to an active session, so it was preserved. S3 live upload/download, claim-loss restore and RPO/RTO remain NOT EXECUTED. |\n\n## Next coordination step
 
 Immediate executable lot: O1 removes the stored shell-error lines, binds its
 test-result to a new exact HEAD, and obtains fresh CI plus independent review.
