@@ -49,6 +49,7 @@ spec:
               - name: postgres
                 image: >-
                   postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+                args: ["-c", "listen_addresses=localhost"]
                 env:
                   - name: POSTGRES_USER
                     value: factory
@@ -75,6 +76,8 @@ spec:
                   limits: {cpu: "1", memory: 1Gi, ephemeral-storage: 2Gi}
                 securityContext:
                   runAsNonRoot: true
+                  runAsUser: 70
+                  runAsGroup: 70
                   allowPrivilegeEscalation: false
                   capabilities: {drop: ["ALL"]}
                   seccompProfile: {type: RuntimeDefault}
