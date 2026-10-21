@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - pocket-tts-referencegrant.yaml
-  - searxng-referencegrant.yaml
   - it-tools-referencegrant.yaml
 helmCharts:
   - name: keda
