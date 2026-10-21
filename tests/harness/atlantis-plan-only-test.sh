@@ -20,6 +20,10 @@ grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
 grep -q 'argocd.argoproj.io/sync-options: Force=true,Replace=true' "$rendered"
 grep -q 'runAsUser: 100' "$rendered"
+if grep -q 'runAsUser: 1000' "$rendered"; then
+  echo "Atlantis container must not run as image-incompatible UID 1000" >&2
+  exit 1
+fi
 grep -q -- '- --gh-app-id=5416988' "$rendered"
 grep -q -- '- --gh-app-installation-id=173903025' "$rendered"
 if grep -Eq 'name: ATLANTIS_GH_APP_(ID|INSTALLATION_ID)' "$rendered"; then
