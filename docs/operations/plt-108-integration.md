@@ -49,8 +49,8 @@ USER or UNKNOWN. `UNQUALIFIED` is not a pass.
 
 | Ticket | Branch | HEAD | Tests | Review | Merge | Runtime | Blocker |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| PLT-108 | O0 `codex/plt-108-integration` / PR #618 | `2dfa5366d5baf8996037c6ca14dacb233466e191` | STATIC: inventory passed; `just check` FAIL preserved at `tests/harness/backup-audit-contract-test.sh:82` (`CNPG_RESTORE_PROOF=PASS`) | O0 COMMENT on exact HEAD; Claude SKIPPED; no successful required check | Withheld | UNKNOWN | Isolated Longhorn/CNPG fixture assertion; no O0 desired-state mutation |
-| PLT-114 | `codex/o1-plt114` / PR #143 | `f855ab9f463ac4fc79a4731cf8a4bfad1ac5be65` (docs; audited source `e6c3096…`) | STATIC: 35/35 targeted PASS; native 0.22.0/1.77.0 probe PASS; GitHub `test` and `static-arc` PASS; full TypeScript/core contract fail outside O1 | O0 COMMENT exact HEAD; independent qualification requested from O2 | Pending qualification | UNKNOWN | KEEP decision; no runtime change; merge only after exact-head independent qualification and repo policy check |
+| PLT-108 | O0 `codex/plt-108-integration` / PR #618 | `9bff4c30aa0890f7cb55c307a39690ed15871d1e` | STATIC: inventory passed; `just check` FAIL preserved at `tests/harness/backup-audit-contract-test.sh:82` (`CNPG_RESTORE_PROOF=PASS`) | O0 COMMENT on prior exact HEAD; new journal commit pushed; Claude status for new HEAD pending/unknown | Withheld | UNKNOWN | Isolated Longhorn/CNPG fixture assertion; no O0 desired-state mutation |
+| PLT-114 | `codex/o1-plt114` / PR #143 | `f855ab9f463ac4fc79a4731cf8a4bfad1ac5be65` (docs; audited source `e6c3096…`) | STATIC: 35/35 targeted PASS; native 0.22.0/1.77.0 probe PASS; GitHub `test` and `static-arc` PASS; full TypeScript/core contract fail outside O1 | O2 independent review: BLOCKED exact HEAD | Pending correction/review | UNKNOWN | KEEP decision valid, but four docs contain a stored `.env` shell-error line and test-result targets audited source not PR HEAD; no merge |
 | PLT-27 | `codex/o1-plt114` | `ae6cdff` | STATIC: workflow invariants PASS; no runtime activation | Pending | Not eligible | UNKNOWN | Native hook proof and external checks |
 | PLT-29 | `codex/o1-plt114` | `ae6cdff` | STATIC: stale/self-review refusals PASS | Pending | Not eligible | UNKNOWN | Exact-HEAD independent review and CI |
 | PLT-100 | `codex/o1-plt114` | `ae6cdff` | STATIC: admission/policy PASS | Pending | Forbidden | OFF / UNKNOWN | Blocked by PLT-24/27/29/112; do not activate |
@@ -86,14 +86,14 @@ upgrades evidence to RECONCILED, RUNTIME or USER.
 | 2026-10-21 | Block Factory #142 pending targeted O4 correction | Both external checks PASS on exact `d0f7f639…`, but OCI/Argo provenance is coupled to PR HEAD instead of the post-merge/build source and STATIC can expose `eligible=true` without review/merge. O4 was messaged on its existing task; GitHub self-review restriction prevents formal `REQUEST_CHANGES`, so a blocking top-level comment was recorded. |
 | 2026-10-21 | Block Factory #144 pending targeted O3 correction | Both external checks PASS on exact `01f3df70…`, but docs-only Cloud Build, missing durable post-execution dedup, and removal of API/dbt without qualified replacement violate PLT-74. O3 was messaged on its existing task; no paid build launched. GitHub self-review restriction prevents formal `REQUEST_CHANGES`, so a blocking top-level comment was recorded. |
 | 2026-10-21 | Keep PLT-100 OFF and PLT-112 unlaunched | PLT-24, 27, 29, 74 and 100 lack the required end-to-end qualification; #145 remains static/synthetic and its test is still active. No autonomous flag, pilot session, lease or external operation was restarted. |
+| 2026-10-21 | Do not merge Factory #143 despite PASS checks | Independent O2 review found a stored `.env` shell-error line at the beginning of all four documentation files, invalidating the JSON evidence, and the test-result revision is `e6c3096…` rather than the PR HEAD. O1 must correct the existing branch and obtain fresh CI/review. |
 
 ## Next coordination step
 
-Immediate executable lot: complete the independent exact-HEAD qualification
-of PR #143 and merge it only if the repository's merge rules accept the two
-successful checks and the independent review. In parallel, observe (do not
-restart) the already-running `test` on PR #145. O3/O4 continue only on their
-existing branches after the targeted corrections above; every new HEAD needs
-fresh CI and review. O0 will re-fetch every PR head after any merge to detect
-base/conflict drift, and will prepare PLT-112 without claiming its E2E gate is
-complete before all dependencies qualify.
+Immediate executable lot: O1 removes the stored shell-error lines, binds its
+test-result to a new exact HEAD, and obtains fresh CI plus independent review.
+In parallel, observe (do not restart) the already-running `test` on PR #145.
+O3/O4 continue only on their existing branches after the targeted corrections
+above; every new HEAD needs fresh CI and review. O0 will re-fetch every PR
+head after any merge to detect base/conflict drift, and will prepare PLT-112
+without claiming its E2E gate is complete before all dependencies qualify.
