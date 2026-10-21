@@ -33,6 +33,15 @@ reservation before edits.
 | O4 | PLT-44, 26, 67 | `factory-platform` | `mastra-factory/src/harness/{evidence,delivery-policy,delivery-context}.mjs`; `mastra-factory/docs/observability-contract.md`; harness/evidence quality tests; new quality-evidence reports under `mastra-factory/docs/operations/` | O1 autonomous tests/state; O2 recovery; O3 workflows/build manifests; no new persistent evidence store |
 | O0 | PLT-108, PLT-112 | `kube-ops` coordination worktree | This ledger, merge/review matrix, cross-repo qualification records and final PLT-112 recipe | No runtime controller, second scheduler, or imperative production repair |
 
+Delegations started 2026-10-21 in parallel:
+
+| Orchestrator | Agent id | Initial state |
+| --- | --- | --- |
+| O1 | `01a15f4f-ca80-7cb0-932d-ab79987627c1` (Galileo) | Running audit; no O0 dependency |
+| O2 | `01a15f4f-caf3-79b2-9f67-a410b6813713` (Kuhn) | Running recovery audit/tests |
+| O3 | `01a15f4f-cb71-79a0-9821-ac1e133dac86` (Dirac) | Running CI/build audit |
+| O4 | `01a15f4f-cc08-7ec2-a760-77e060389f3f` (Rawls) | Running evidence audit |
+
 ## Permanent delivery matrix
 
 Status values are deliberately evidence-levelled: STATIC, RECONCILED, RUNTIME,
@@ -40,7 +49,7 @@ USER or UNKNOWN. `UNQUALIFIED` is not a pass.
 
 | Ticket | Branch | HEAD | Tests | Review | Merge | Runtime | Blocker |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| PLT-108 | O0 `codex/plt-108-integration` | `fc66104d68e0afdd8f89ee6660e6403e7eeb723f` baseline | STATIC: coordination not yet checked | Pending independent reviews | Not applicable | UNKNOWN | Ledger and reservations being established |
+| PLT-108 | O0 `codex/plt-108-integration` | `647af9730d4094897a0401917db72bc3b2c45db2` | STATIC: inventory passed; `just check` failed in pre-existing `backup-audit-contract-test.sh` | Pending independent reviews | Not applicable | UNKNOWN | Baseline backup contract failure must be triaged separately; no O0 desired-state mutation |
 | PLT-114 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Audit first; PLT-100 stays OFF |
 | PLT-27 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Native hook proof |
 | PLT-29 | O1 reserved | UNKNOWN | UNKNOWN | Pending | Not eligible | UNKNOWN | Exact-HEAD independent review |
@@ -71,6 +80,7 @@ upgrades evidence to RECONCILED, RUNTIME or USER.
 | 2026-10-21 | Keep PLT-100/autonomous flags OFF | Linear dependencies require PLT-114, 27, 29 and 24 qualification first. |
 | 2026-10-21 | No second queue, scheduler, database or Kubernetes reconciler | Canonical architecture assigns state to Mastra/CNPG, events/leases to existing Redis, bytes checkpoint to private S3, and desired state to GitOps. |
 | 2026-10-21 | Preserve #130/#134 and PLT-105 artefacts | They are no-merge fixtures and historical recovery evidence, not cleanup candidates. |
+| 2026-10-21 | Do not merge or repair through O0 for the initial `just check` failure | `npm run check` and the Grafana contract pass; the next recipe step `tests/harness/backup-audit-contract-test.sh` exits non-zero against the existing fixture contract. This is recorded as failed evidence, not silently converted to skipped/pass. |
 
 ## Next coordination step
 

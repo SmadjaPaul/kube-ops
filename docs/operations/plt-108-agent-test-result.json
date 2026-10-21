@@ -26,13 +26,13 @@
       "id": "coordination-check",
       "name": "Full kube-ops validation",
       "command": "just check",
-      "execution": "not-executed",
-      "status": "NOT_EXECUTED",
-      "classification": "skipped",
-      "reason": "Only the initial coordination ledger is being established; no desired-state change is being claimed as validated yet.",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The full recipe reached the existing backup-audit contract step and exited non-zero; npm run check and the preceding Grafana contract passed.",
       "risk": "medium",
       "expectedCi": "required",
-      "evidence": {"kind": "none"}
+      "evidence": {"kind": "command", "reference": "just check; tests/harness/backup-audit-contract-test.sh"}
     },
     {
       "id": "runtime",
@@ -46,7 +46,7 @@
       "evidence": {"kind": "none"}
     }
   ],
-  "summary": {"outcome": "incomplete", "total": 3, "executed": 1, "notExecuted": 2, "passed": 1, "failed": 0, "skipped": 1, "unavailable": 0, "notApplicable": 1},
+  "summary": {"outcome": "failed", "total": 3, "executed": 2, "notExecuted": 1, "passed": 1, "failed": 1, "skipped": 0, "unavailable": 0, "notApplicable": 1},
   "transmission": {
     "target": "factory-platform",
     "eventType": "agent.test.result",
@@ -58,10 +58,10 @@
       "revision": "fc66104d68e0afdd8f89ee6660e6403e7eeb723f",
       "tests": [
         {"id": "inventory", "name": "Repository inventory", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Inventory completed before repository traversal.", "risk": "low", "expectedCi": "expected"},
-        {"id": "coordination-check", "name": "Full kube-ops validation", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "skipped", "reason": "Only the initial coordination ledger is being established; no desired-state change is being claimed as validated yet.", "risk": "medium", "expectedCi": "required"},
+        {"id": "coordination-check", "name": "Full kube-ops validation", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "The full recipe reached the existing backup-audit contract step and exited non-zero; npm run check and the preceding Grafana contract passed.", "risk": "medium", "expectedCi": "required"},
         {"id": "runtime", "name": "Argo and runtime qualification", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "not-applicable", "reason": "No runtime mutation or deployment was performed during inventory and reservation.", "risk": "unknown", "expectedCi": "not-expected"}
       ],
-      "summary": {"outcome": "incomplete", "total": 3, "executed": 1, "notExecuted": 2}
+      "summary": {"outcome": "failed", "total": 3, "executed": 2, "notExecuted": 1}
     }
   }
 }
