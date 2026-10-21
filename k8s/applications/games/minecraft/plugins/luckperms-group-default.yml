@@ -1,7 +1,0 @@
-name: default
-prefixes:
-  - "&2[&aPlayer&2] &r":
-      priority: 100
-permissions:
-  - chestsort.use
-  - chestsort.use.inventory

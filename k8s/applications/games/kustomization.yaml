@@ -4,5 +4,4 @@ kind: Kustomization
 resources:
   - romm
 
-# Minecraft remains post-V1 until its LAN TCP/UDP exposure contract is finalized.
-# - minecraft
+# Minecraft was retired as an unused post-V1 workload (PLT-46).
