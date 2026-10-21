@@ -1,0 +1,14 @@
+# Observation only: keep recommendation generation separate from workload
+# ownership; no automatic updates or evictions are permitted.
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: mastra-factory
+  namespace: mastra-factory
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mastra-factory
+  updatePolicy:
+    updateMode: "Off"
