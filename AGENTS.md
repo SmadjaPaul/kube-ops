@@ -34,6 +34,7 @@ For a task read: this file → one relevant skill under `.agents/skills/` → on
 | Task | Entry skill |
 |---|---|
 | unfamiliar repository | `.agents/skills/repo-navigation` |
+| adding or retiring a service | `docs/operations/service-onboarding.md` |
 | Argo sync/health | `.agents/skills/argocd-debug` |
 | Kubernetes workload failure | `.agents/skills/kubernetes-debug` |
 | runtime/post-merge proof | `.agents/skills/runtime-observer` |
@@ -94,7 +95,7 @@ If runtime access fails:
 ## Operator command surface
 
 Prefer repository commands over improvised shell:
-- `just inventory`
+- `just inventory` (Git-only active imports and dormant candidates; not runtime evidence)
 - `just kube-access-check`
 - `just check`
 - `just runtime-inventory`
