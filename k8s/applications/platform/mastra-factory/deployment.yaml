@@ -15,7 +15,7 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: mastra-factory}
       annotations:
-        secret.reloader.stakater.com/reload: mastra-factory-runtime,mastra-factory-authentik-oidc,mastra-factory-linear-oauth,mastra-factory-matrix
+        secret.reloader.stakater.com/reload: mastra-factory-runtime,mastra-factory-authentik-oidc,mastra-factory-linear-oauth,mastra-factory-matrix,mastra-factory-checkpoint-s3
     spec:
       serviceAccountName: mastra-factory
       automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
@@ -76,6 +76,9 @@ spec:
             # Required by the enabled Matrix adapter; ESO must reconcile this
             # Secret before the workload can start.
             - secretRef: {name: mastra-factory-matrix}
+            # Dormant until the dedicated bucket, policy and all Doppler keys
+            # exist. Factory's own config parser remains all-or-none.
+            - secretRef: {name: mastra-factory-checkpoint-s3, optional: true}
           readinessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 10
