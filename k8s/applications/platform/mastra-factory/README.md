@@ -109,3 +109,47 @@ Activation sequence:
 Do not add the dormant ExternalSecrets before their remoteRef Doppler keys
 exist: missing keys can degrade the Authentik rollout. Existing Factory
 workload references the OIDC Secret as optional for this reason.
+
+## Durable sandbox checkpoint S3 — dormant until isolated storage exists
+
+Factory `origin/main` contains the PLT-109/PLT-24 checkpoint implementation.
+It is deliberately disabled when no complete S3 configuration is present. The
+Deployment references `mastra-factory-checkpoint-s3` through an optional
+`envFrom`; the ExternalSecret is kept out of the active Kustomization until
+its prerequisites are complete.
+
+The required contract is:
+
+| Doppler key | Factory variable | Policy |
+| --- | --- | --- |
+| `FACTORY_CHECKPOINT_S3_ENDPOINT` | `FACTORY_CHECKPOINT_S3_ENDPOINT` | HTTPS endpoint only |
+| `FACTORY_CHECKPOINT_S3_REGION` | `FACTORY_CHECKPOINT_S3_REGION` | `fsn1` |
+| `FACTORY_CHECKPOINT_S3_BUCKET` | `FACTORY_CHECKPOINT_S3_BUCKET` | `smadja-dev-factory-checkpoints` |
+| `FACTORY_CHECKPOINT_S3_PREFIX` | `FACTORY_CHECKPOINT_S3_PREFIX` | `factory-checkpoints/v1` |
+| `FACTORY_CHECKPOINT_S3_ACCESS_KEY_ID` | `FACTORY_CHECKPOINT_S3_ACCESS_KEY_ID` | dedicated key |
+| `FACTORY_CHECKPOINT_S3_SECRET_ACCESS_KEY` | `FACTORY_CHECKPOINT_S3_SECRET_ACCESS_KEY` | dedicated key |
+| `FACTORY_CHECKPOINT_INTERVAL_SECONDS` | `FACTORY_CHECKPOINT_INTERVAL_SECONDS` | at most `300` |
+
+The checked-in dormant manifest is
+`checkpoint-s3-externalsecret.dormant.yaml`. It must not reuse
+`cnpg-hetzner-credentials` or the shared `HETZNER_S3_*` identity. The
+existing bucket `smadja-dev-homelab-backups` is shared by CNPG, Velero and
+Longhorn; it is not an acceptable Factory identity without a reviewed
+bucket-policy/key isolation proof. `homelab-infra` must provision a **separate Hetzner Object Storage
+project** containing only the private Factory bucket
+(`smadja-dev-factory-checkpoints`) and its own access key, then place the
+values in Doppler `infrastructure/prd`. Hetzner keys otherwise access all
+buckets of their own project by default; an `Allow` bucket policy for Factory
+does not remove privileges on existing shared-backup buckets. The prefix is
+an object namespace, **not** proven prefix-level isolation. Before enabling,
+use a read-only ListBucket denial against the existing backups bucket, never
+a destructive permissions probe on production backups. Stricter prefix-level
+policy requires a separate, proved opt-in contract. See the qualification
+runbook and official Hetzner S3 credentials guidance.
+
+The qualification fixture and controlled claim-loss exercise are recorded in
+`docs/operations/plt-109-plt-24-checkpoint-s3-qualification-2026-10-21.md`.
+They remain `NOT_EXECUTED`; RPO and RTO remain `UNKNOWN` until a real private
+S3 upload/download and a disposable `SandboxClaim` disappearance drill have
+been approved and observed. Destructive checkpoint GC remains inactive until
+live-reference protection is proven.

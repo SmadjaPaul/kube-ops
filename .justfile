@@ -33,6 +33,7 @@ check:
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
+    bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh
     bash tests/harness/mastra-sandbox-tmp-contract-test.sh
     bash tests/harness/mastra-factory-promotion-test.sh
     bash tests/harness/arc-gitops-contract-test.sh
@@ -54,6 +55,7 @@ check-affected:
     bash tests/harness/longhorn-tier-restore-runbook-test.sh
     bash tests/harness/d-recovery-contract-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
+    bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh
     bash tests/harness/mastra-sandbox-tmp-contract-test.sh
     bash tests/harness/mastra-factory-promotion-test.sh
     npm run check:agent-harness

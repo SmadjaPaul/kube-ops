@@ -1,0 +1,68 @@
+apiVersion: recovery.kube-ops/v1
+kind: FactoryCheckpointS3Qualification
+metadata:
+  name: plt-109-plt-24-checkpoint-s3
+spec:
+  status: not-executed
+  approval: required
+  scope: synthetic-only
+  productionTargetsExcluded: true
+  externalAuthority: homelab-infra
+  storage:
+    bucket: smadja-dev-factory-checkpoints
+    prefix: factory-checkpoints/v1
+    endpoint: https://fsn1.your-objectstorage.com
+    sharedBucketReuse: prohibited
+    sharedCredentialReuse: prohibited
+    isolationMode: dedicated-hetzner-project
+    existingBackupsBucket: smadja-dev-homelab-backups
+    prefixIsolation: not-assumed
+  permissions:
+    required:
+      - s3:PutObject
+      - s3:GetObject
+      - s3:ListBucket
+      - s3:DeleteObject
+    listPrefix: factory-checkpoints/v1/
+    objectPrefix: factory-checkpoints/v1/*
+    negativeCases:
+      - list-existing-backups-bucket-denied-read-only
+    strictPrefixPolicyOnlyIfSeparatelyQualified:
+      - list-outside-prefix-disposable
+      - get-outside-prefix-disposable
+      - put-outside-prefix-disposable
+      - delete-outside-prefix-disposable
+  fixture:
+    status: not-executed
+    objects:
+      - bundle
+      - manifest
+    assertions:
+      - upload-bundle
+      - upload-manifest-last
+      - download-bundle
+      - manifest-schema-and-binding
+      - sha256-and-byte-count
+      - delete-disposable-objects
+      - negative-permissions-denied
+  claimLoss:
+    status: not-executed
+    disposableOnly: true
+    activeWorkspacesExcluded: true
+    productionNamespacesExcluded: true
+    stopConditions:
+      - any-live-session-reference
+      - ambiguous-work-item-binding
+      - missing-complete-manifest
+      - restore-target-not-empty
+  recoveryMetrics:
+    rpo:
+      status: unknown
+      valueSeconds: null
+    rto:
+      status: unknown
+      valueSeconds: null
+  garbageCollection:
+    status: inactive
+    deleteLiveReferences: false
+    requiresReferenceProtectionProof: true
