@@ -45,7 +45,9 @@ for file in \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
   "$repo_root/k8s/applications/business/retained/listmonk/storage.yaml" \
   "$repo_root/k8s/applications/business/retained/twenty/storage.yaml" \
-  "$repo_root/k8s/poc/atlantis-plan-only/pvc-backup-patch.yaml"; do
+  "$repo_root/k8s/poc/atlantis-plan-only/pvc-backup-patch.yaml" \
+  "$repo_root/k8s/applications/business/invoice-ninja/storage.yaml" \
+  "$repo_root/k8s/applications/catalog/sure/storage.yaml"; do
   grep -F 'recurring-job.longhorn.io/source: enabled' "$file" >/dev/null
   grep -F 'recurring-job.longhorn.io/persistent-offsite-backup: enabled' "$file" >/dev/null
 done
