@@ -153,3 +153,39 @@ They remain `NOT_EXECUTED`; RPO and RTO remain `UNKNOWN` until a real private
 S3 upload/download and a disposable `SandboxClaim` disappearance drill have
 been approved and observed. Destructive checkpoint GC remains inactive until
 live-reference protection is proven.
+
+
+### Hetzner project handoff (PLT-109/24)
+
+The Factory checkpoint S3 backend is **Hetzner Object Storage**, not Garage
+local in V1. Its infrastructure source of truth is
+`SmadjaPaul/homelab-infra/terraform/hetzner-object-storage/`,
+tracked by infrastructure PR #143. That PR only stages an opt-in bucket:
+neither Terraform merge nor this manifest automatically creates the Hetzner
+project, S3 key or the bucket.
+
+- The Hetzner Console must own the separate Factory project and dedicated key.
+  The Factory project must not share the backups project's S3 credentials.
+- Bucket: `smadja-dev-factory-checkpoints`; region: `fsn1`; endpoint:
+  `https://fsn1.your-objectstorage.com`; prefix:
+  `factory-checkpoints/v1`.
+- The **seven** `FACTORY_CHECKPOINT_*` keys are delivered from
+  Doppler `infrastructure/prd` by the **existing dormant** ExternalSecret
+  `checkpoint-s3-externalsecret.dormant.yaml`; this must remain outside the
+  active Kustomization until the external fixture and isolation checks pass.
+- A Factory key must fail a **read-only** list on
+  `smadja-dev-homelab-backups`. Never probe write/delete permissions on the
+  live backups bucket. A key's default rights on every bucket in its own
+  Hetzner project mean the path prefix alone cannot be claimed as a
+  permission boundary.
+- Before a later activation PR, check bucket presence, dedicated key identity,
+  negative read-only access, positive disposable put/get/list/delete within
+  the Factory bucket, complete manifest/sha256, active-claim isolation, and
+  bounded cleanup without deleting live references.
+- This PR does **not** enable the ESO, alter workload replica count, enable
+  destructive GC or run any SandboxClaim interruption.
+
+Keep `S3_LIVE=NOT_EXECUTED`, `CLAIM_LOSS=NOT_EXECUTED`,
+`RPO/RTO=UNKNOWN` and `PLT-100=OFF` until the external owner has produced
+authoritative proof. Do not confuse a passing static contract with a recovery
+test. Treat OCI/Argo and the GitHub checks as separate evidence boundaries.
