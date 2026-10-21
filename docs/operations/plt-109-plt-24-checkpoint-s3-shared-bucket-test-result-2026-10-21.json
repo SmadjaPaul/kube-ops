@@ -53,7 +53,7 @@
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
       "reason": "Dedicated Factory credentials and effective shared-bucket policy are not present; secret values were not inspected and no S3 objects were mutated.",
-      "risk": "critical",
+      "risk": "high",
       "expectedCi": "required",
       "evidence": {"kind": "none", "reference": "runtime gate pending"}
     },
@@ -65,7 +65,7 @@
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
       "reason": "No Factory key/policy was available for a safe read-only and disposable-only probe; CNPG, Velero and Longhorn objects were not touched.",
-      "risk": "critical",
+      "risk": "high",
       "expectedCi": "required",
       "evidence": {"kind": "none", "reference": "runtime gate pending"}
     },
@@ -77,7 +77,7 @@
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
       "reason": "No disposable claim interruption was approved or executed; active sessions, PLT-105 and fixture #130/#134 resources remain untouched.",
-      "risk": "critical",
+      "risk": "high",
       "expectedCi": "required",
       "evidence": {"kind": "none", "reference": "runtime gate pending"}
     },
@@ -113,7 +113,7 @@
       "status": "PASSED",
       "classification": "passed",
       "reason": "No GC scheduler or active deletion path is added; live-reference protection remains a prerequisite.",
-      "risk": "critical",
+      "risk": "high",
       "expectedCi": "required",
       "evidence": {"kind": "manual", "reference": "qualification runbook: GC INACTIVE"}
     }

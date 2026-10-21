@@ -43,7 +43,7 @@ yq -e '
   .spec.scope == "synthetic-only" and
   .spec.productionTargetsExcluded == true and
   .spec.storage.bucket == "smadja-dev-homelab-backups" and
-  .spec.storage.prefix == "factory-checkpoints/v1/" and
+  .spec.storage.prefix == "factory-checkpoints/v1" and
   .spec.storage.isolationMode == "same-project-dedicated-key-policy-or-explicit-risk" and
   .spec.storage.existingBackupsBucket == "smadja-dev-homelab-backups" and
   .spec.storage.prefixIsolation == "not-assumed" and
@@ -52,6 +52,7 @@ yq -e '
   .spec.permissions.fixturePrefix == "factory-checkpoints/v1/fixture/" and
   ([.spec.permissions.negativeCases[] | select(. == "list-outside-factory-prefix-denied-read-only")] | length) == 1 and
   .spec.fixture.status == "not-executed" and
+  ([.spec.fixture.negativeBindings[]] | sort | join(",")) == "branch-mismatch-refused,repository-mismatch-refused,session-id-mismatch-refused,work-item-mismatch-refused" and
   .spec.claimLoss.status == "not-executed" and
   .spec.claimLoss.disposableOnly == true and
   .spec.recoveryMetrics.rpo.status == "unknown" and

@@ -10,7 +10,7 @@ spec:
   externalAuthority: homelab-infra
   storage:
     bucket: smadja-dev-homelab-backups
-    prefix: factory-checkpoints/v1/
+    prefix: factory-checkpoints/v1
     endpoint: https://fsn1.your-objectstorage.com
     sharedBucketReuse: approved-by-v1-decision
     sharedCredentialReuse: prohibited
@@ -48,6 +48,11 @@ spec:
       - delete-disposable-objects
       - negative-permissions-denied
       - effective-permission-codes-recorded
+    negativeBindings:
+      - session-id-mismatch-refused
+      - repository-mismatch-refused
+      - branch-mismatch-refused
+      - work-item-mismatch-refused
   claimLoss:
     status: not-executed
     disposableOnly: true

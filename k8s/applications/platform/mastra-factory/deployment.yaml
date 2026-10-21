@@ -76,7 +76,7 @@ spec:
             # Required by the enabled Matrix adapter; ESO must reconcile this
             # Secret before the workload can start.
             - secretRef: {name: mastra-factory-matrix}
-            # Dormant until the dedicated bucket, policy and all Doppler keys
+            # Dormant until the shared-bucket policy and all Doppler keys
             # exist. Factory's own config parser remains all-or-none.
             - secretRef: {name: mastra-factory-checkpoint-s3, optional: true}
           readinessProbe:

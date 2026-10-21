@@ -19,7 +19,10 @@ bucket policy.
 ### Security boundary: shared bucket, dedicated key, proven policy
 
 **V1 decision:** reuse `smadja-dev-homelab-backups` in `fsn1`; do not create a
-new Hetzner project or bucket. Factory objects use `factory-checkpoints/v1/`.
+new Hetzner project or bucket. Factory object keys use
+`factory-checkpoints/v1/`; the Factory configuration value is
+`factory-checkpoints/v1` without a trailing slash because the upstream parser
+rejects a trailing slash.
 
 Hetzner confirms that **every key can access all buckets in its own project by
 default**. Therefore `cnpg-hetzner-credentials` and the shared
@@ -114,6 +117,8 @@ Required sequence:
 2. Read it back, compare byte count and SHA-256, and verify the exact content.
 3. Upload the JSON manifest second; verify schema version, capture ID,
    session/work-item/repository/branch binding, bundle key, size and digest.
+   Repeat the admission check with a wrong session, repository, branch and
+   Work Item association; each must be refused before restore.
 4. List only the fixture prefix and confirm both objects are visible.
 5. Assert the Factory key cannot list other buckets in the existing project
    (read-only check, do not read object contents or mutate any backup).

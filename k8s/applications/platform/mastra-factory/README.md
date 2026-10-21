@@ -125,7 +125,7 @@ The required contract is:
 | `FACTORY_CHECKPOINT_S3_ENDPOINT` | `FACTORY_CHECKPOINT_S3_ENDPOINT` | HTTPS endpoint only |
 | `FACTORY_CHECKPOINT_S3_REGION` | `FACTORY_CHECKPOINT_S3_REGION` | `fsn1` |
 | `FACTORY_CHECKPOINT_S3_BUCKET` | `FACTORY_CHECKPOINT_S3_BUCKET` | `smadja-dev-homelab-backups` |
-| `FACTORY_CHECKPOINT_S3_PREFIX` | `FACTORY_CHECKPOINT_S3_PREFIX` | `factory-checkpoints/v1/` |
+| `FACTORY_CHECKPOINT_S3_PREFIX` | `FACTORY_CHECKPOINT_S3_PREFIX` | `factory-checkpoints/v1` (no trailing slash) |
 | `FACTORY_CHECKPOINT_S3_ACCESS_KEY_ID` | `FACTORY_CHECKPOINT_S3_ACCESS_KEY_ID` | dedicated key |
 | `FACTORY_CHECKPOINT_S3_SECRET_ACCESS_KEY` | `FACTORY_CHECKPOINT_S3_SECRET_ACCESS_KEY` | dedicated key |
 | `FACTORY_CHECKPOINT_INTERVAL_SECONDS` | `FACTORY_CHECKPOINT_INTERVAL_SECONDS` | at most `300` |
@@ -135,7 +135,9 @@ The checked-in dormant manifest is
 `cnpg-hetzner-credentials` or the shared `HETZNER_S3_*` identity. V1 reuses
 the existing private bucket `smadja-dev-homelab-backups`, already used by
 CNPG, Velero and Longhorn, under the dedicated object prefix
-`factory-checkpoints/v1/`. No new Hetzner project or bucket is created.
+`factory-checkpoints/v1/`. The Factory config value is the same prefix
+without a trailing slash because Factory rejects that form. No new Hetzner
+project or bucket is created.
 
 The Factory Doppler key names remain separate (`FACTORY_CHECKPOINT_S3_*`):
 the existing shared key is not silently copied into Factory. A dedicated key
