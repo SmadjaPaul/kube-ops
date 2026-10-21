@@ -48,7 +48,7 @@ yq -e '
   .spec.storage.existingBackupsBucket == "smadja-dev-homelab-backups" and
   .spec.storage.prefixIsolation == "not-assumed" and
   .spec.storage.sharedCredentialReuse == "prohibited" and
-  ([.spec.permissions.negativeCases[]] | index("list-existing-backups-bucket-denied-read-only")) != null and
+  ([.spec.permissions.negativeCases[] | select(. == "list-existing-backups-bucket-denied-read-only")] | length) == 1 and
   .spec.fixture.status == "not-executed" and
   .spec.claimLoss.status == "not-executed" and
   .spec.claimLoss.disposableOnly == true and
