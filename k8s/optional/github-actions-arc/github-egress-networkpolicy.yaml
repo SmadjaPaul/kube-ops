@@ -90,7 +90,7 @@ metadata:
     app.kubernetes.io/part-of: github-actions-arc
     policy-type: github-actions-arc
 spec:
-  description: "Allow only the ARC runner pods to download the pinned Node runtime and npm dependencies"
+  description: "Allow only ARC runner pods to download pinned runtimes and Python/Node dependencies"
   endpointSelector:
     matchLabels:
       k8s:actions.github.com/scale-set-name: factory-ci-arc
@@ -111,6 +111,12 @@ spec:
     - toFQDNs:
         # setup-node downloads the pinned Node distribution from this host.
         - matchName: nodejs.org
+        # setup-python downloads the pinned interpreter from GitHub release assets.
+        - matchName: release-assets.githubusercontent.com
+        - matchName: raw.githubusercontent.com
+        # pip resolves the locked Python dependencies from these hosts.
+        - matchName: files.pythonhosted.org
+        - matchName: pypi.org
         # onnxruntime-node resolves its Linux GPU package from the public NuGet feed.
         - matchName: api.nuget.org
         # npm ci resolves the lockfile from the public npm registry.
