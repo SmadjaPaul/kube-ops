@@ -181,7 +181,7 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@codex/factory-s3-runtime-evidence:plt-109-plt-24-checkpoint-s3-runtime-2026-10-21",
+    "idempotencyKey": "SmadjaPaul/kube-ops@a75d3de45d33346227450ef171f4804bd61a6d61:plt-109-plt-24-checkpoint-s3-runtime-2026-10-21",
     "payload": {
       "resultId": "plt-109-plt-24-checkpoint-s3-runtime-2026-10-21",
       "repository": "SmadjaPaul/kube-ops",
