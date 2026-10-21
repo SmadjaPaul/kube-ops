@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - recommendations.yaml
+  - recommendations-bursty.yaml
 
 helmCharts:
   - name: vertical-pod-autoscaler
