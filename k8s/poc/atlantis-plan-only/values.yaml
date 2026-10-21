@@ -174,10 +174,11 @@ resources:
     memory: 1Gi
 
 statefulSet:
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
+  annotations:
+    # One-time recovery of the pre-fix CrashLooping StatefulSet. Remove this
+    # annotation after the replacement pod is Ready so future updates use the
+    # normal StatefulSet lifecycle.
+    argocd.argoproj.io/sync-options: Force=true,Replace=true
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
