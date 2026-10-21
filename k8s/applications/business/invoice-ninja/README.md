@@ -16,17 +16,23 @@ Authority:
 - SuperPDP: French PA/e-invoice/e-reporting transport.
 - PostHog: analytics/marketing/automated messages.
 - Migadu: human mailbox and low-volume Invoice Ninja SMTP, currently deferred.
-- Internal MCP: pinned MIT `DSS-AI/invoice-ninja-mcp`, reachable only from
-  OpenClaw/Paperclip namespaces through `invoice-ninja-mcp:8539/mcp`.
+- Internal MCP: the pinned MIT `DSS-AI/invoice-ninja-mcp` manifests are **dormant**.
+  The previous OpenClaw/Paperclip consumers are retired. Their bearer-token
+  references and ingress authorization are removed from the active graph.
+  The original upstream server **refuses startup** unless at least one
+  `MCP_TOKEN_*` is configured, so removing the tokens without deactivating its
+  Deployment would leave Invoice Ninja Degraded. Reactivate only with a
+  reviewed Mastra/OpenConnector identity, scoped bearer token and Cilium
+  ingress. Keep the Invoice Ninja API token separate from MCP client auth.
+  No business database, volume, main application or backup is removed.
 
 The public Stripe webhook commits to D1 before any projection here. Never make
 checkout availability depend on this namespace.
 
-The MCP has no public HTTPRoute. It uses a dedicated Invoice Ninja API token plus
-separate OpenClaw/Paperclip bearer tokens. Its instance policy starts with all
-invoice creation/status/send/cancel capabilities disabled; agents can still read
-business state and prepare bounded CRM/quote/project changes. Enabling invoice
-mutations is a separate reviewed decision.
+The dormant MCP has no public HTTPRoute. Its stored example configuration
+keeps invoice creation/status/send/cancel capabilities disabled. These defaults
+must remain when a future agent-specific MCP is qualified.
+
 
 The upstream Debian image performs root-owned first-boot filesystem preparation;
 the namespace therefore uses Pod Security Baseline rather than a custom image.
