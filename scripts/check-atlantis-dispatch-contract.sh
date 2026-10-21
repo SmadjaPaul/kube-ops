@@ -19,7 +19,7 @@ grep -q 'v0.48.1@sha256:' k8s/poc/atlantis-plan-only/values.yaml
 
 # The dispatcher is an admission/transport contract, never a replacement for
 # Atlantis or OpenTofu and never a place for an API credential.
-if rg -n 'ATLANTIS_API_SECRET|X-Atlantis-Token|curl .*api/(plan|apply)|tofu (plan|apply)|terraform (plan|apply)' \
+if grep -En 'ATLANTIS_API_SECRET|X-Atlantis-Token|curl .*api/(plan|apply)|tofu (plan|apply)|terraform (plan|apply)' \
   scripts/atlantis-dispatch.mjs tests/harness/atlantis-dispatch.test.mjs; then
   echo "ERROR: dispatcher contract must not contain credentials or an execution client" >&2
   exit 1
