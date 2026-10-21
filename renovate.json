@@ -5,11 +5,20 @@
     ":rebaseStalePrs",
     ":enablePreCommit",
     "docker:enableMajor",
-    ":automergePatch",
-    ":automergeMinor",
     "mergeConfidence:all-badges"
   ],
   "dependencyDashboard": true,
+  "automerge": false,
+  "timezone": "Europe/Paris",
+  "schedule": [
+    "after 4am before 5am every day"
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "pin",
+  "labels": [
+    "dependencies"
+  ],
   "kustomize": {
     "managerFilePatterns": [
       "**/kustomization.yaml",
@@ -75,7 +84,6 @@
     },
     {
       "groupName": "Cilium",
-      "automerge": true,
       "matchPackageNames": [
         "/cilium/.*/"
       ]
@@ -91,8 +99,7 @@
       "matchUpdateTypes": [
         "minor",
         "patch"
-      ],
-      "automerge": true
+      ]
     },
     {
       "matchManagers": [
@@ -102,8 +109,7 @@
       "matchUpdateTypes": [
         "minor",
         "patch"
-      ],
-      "automerge": true
+      ]
     },
     {
       "groupName": "external-secrets",
