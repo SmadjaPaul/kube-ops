@@ -7,7 +7,7 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 ## Components
 
 - `arc-systems` namespace: Helm controller, chart-managed service account and cluster RBAC. The 0.15.0 controller render creates `arc-gha-rs-controller`.
-- `arc-runners` namespace: one repository-scoped ephemeral runner scale set; min=0, max=1, no Docker/Kubernetes container mode. The runner pod has a pinned PostgreSQL 18 Alpine sidecar running as UID/GID 70; PostgreSQL is forced to `listen_addresses=localhost`, is reachable only through the pod's localhost network namespace, and disappears with the job pod.
+- `arc-runners` namespace: one repository-scoped ephemeral runner scale set; min=0, max=3, no Docker/Kubernetes container mode. The runner pod has a pinned PostgreSQL 18 Alpine sidecar running as UID/GID 70; PostgreSQL is forced to `listen_addresses=localhost`, is reachable only through the pod's localhost network namespace, and disappears with the job pod.
 - ESO secret `arc-github-app`: dedicated GitHub App credentials, provisioned through existing Doppler ClusterSecretStore; keys `APP_GITHUB_ARC_ID`, `APP_GITHUB_ARC_INSTALLATION_ID`, `APP_GITHUB_ARC_PRIVATE_KEY`.
 - Runner pods: non-privileged, no mounted Kubernetes API token, pinned runner image, cpu/memory/ephemeral-storage limits. The optional Cilium policies allow only DNS and the GitHub HTTPS domains required by the pilot.
 
@@ -25,7 +25,7 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 1. Ensure pinned chart 0.15.0 exists and Helm renders with pinned release names: the actual generated controller ServiceAccount is `arc-gha-rs-controller`, matching `controllerServiceAccount.name` in the scale set.
 2. Review AppProjects `applications` and `infrastructure` for permissions to install these namespaced and cluster-scoped resources. CRDs must be installed before the scale set.
 3. Verify Pod Security admission: the *runner* should be restricted. The controller chart might need separately reviewed security permissions.
-4. Inspect Talos node capacity and deployment disruption risk on this single-node cluster. Keep concurrency at 1 until spare resources are proven.
+4. Inspect Talos node capacity and deployment disruption risk on this single-node cluster. The three-runner setting requires 1.05 CPU/2.3Gi requests and 9 CPU/9Gi limits across three pods; keep the quota and node headroom aligned with those bounds.
 5. Provision a **dedicated** GitHub App installation with the minimal ARC permissions documented upstream. Never reuse the Factory source-control GitHub App or store keys in Git.
 6. Design/test egress policy for GitHub endpoints and DNS. The controller and listener need GitHub API outbound access. The staged policies are narrow FQDN policies and must be observed in Cilium audit mode before enforcement.
 7. Fully qualify non-privileged runner image and version pinning, chart values, and the behavior of `automountServiceAccountToken: false` with the chosen template.
