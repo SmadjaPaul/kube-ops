@@ -11,7 +11,7 @@
   "automerge": false,
   "timezone": "Europe/Paris",
   "schedule": [
-    "after 4am before 5am every day"
+    "* 0-7 * * *"
   ],
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
@@ -115,12 +115,6 @@
       "groupName": "external-secrets",
       "matchPackageNames": [
         "/^ghcr.io/external-secrets//"
-      ]
-    },
-    {
-      "groupName": "all dependencies",
-      "matchPackageNames": [
-        "*"
       ]
     },
     {
