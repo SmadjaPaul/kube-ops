@@ -135,9 +135,17 @@ The checked-in dormant manifest is
 `cnpg-hetzner-credentials` or the shared `HETZNER_S3_*` identity. The
 existing bucket `smadja-dev-homelab-backups` is shared by CNPG, Velero and
 Longhorn; it is not an acceptable Factory identity without a reviewed
-bucket-policy/key isolation proof. `homelab-infra` must provision the private
-Factory bucket/policy (`smadja-dev-factory-checkpoints`) and place the values
-in Doppler `infrastructure/prd`.
+bucket-policy/key isolation proof. `homelab-infra` must provision a **separate Hetzner Object Storage
+project** containing only the private Factory bucket
+(`smadja-dev-factory-checkpoints`) and its own access key, then place the
+values in Doppler `infrastructure/prd`. Hetzner keys otherwise access all
+buckets of their own project by default; an `Allow` bucket policy for Factory
+does not remove privileges on existing shared-backup buckets. The prefix is
+an object namespace, **not** proven prefix-level isolation. Before enabling,
+use a read-only ListBucket denial against the existing backups bucket, never
+a destructive permissions probe on production backups. Stricter prefix-level
+policy requires a separate, proved opt-in contract. See the qualification
+runbook and official Hetzner S3 credentials guidance.
 
 The qualification fixture and controlled claim-loss exercise are recorded in
 `docs/operations/plt-109-plt-24-checkpoint-s3-qualification-2026-10-21.md`.
