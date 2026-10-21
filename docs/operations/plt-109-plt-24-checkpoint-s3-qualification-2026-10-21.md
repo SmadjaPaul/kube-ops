@@ -10,50 +10,55 @@ static and synthetic evidence is separate from live evidence. `kube-ops`
 currently has only the CNPG/Hetzner credential ExternalSecret in the
 `mastra-factory` namespace; that Secret is not a Factory checkpoint identity.
 
-The active cluster observes one private Hetzner backup bucket,
-`smadja-dev-homelab-backups`, with CNPG prefixes such as `cnpg/mastra-factory`
-and shared Velero/Longhorn usage. Reusing its shared identity would exceed
-least privilege. The intended storage contract is a private Factory-only
-bucket (or a separately policy-isolated project) with the object prefix
-`smadja-dev-factory-checkpoints` with the object prefix
-`factory-checkpoints/v1/`. This bucket is a proposed dedicated target; it is
-not observed in the current runtime inventory. Bucket creation and key policy belong to
-`homelab-infra`; this repository contains no Terraform/OpenTofu for it.
+The active cluster observes the private Hetzner backup bucket
+`smadja-dev-homelab-backups`, with CNPG prefixes and shared Velero/Longhorn
+usage. The proposed Factory bucket `smadja-dev-factory-checkpoints` does
+**not** exist in the observed inventory. Provisioning belongs in
+`homelab-infra`; this PR creates no Hetzner project, bucket, access key or
+bucket policy.
 
-The policy must allow only the Factory key to operate on the checkpoint
-objects and must constrain listing to the checkpoint prefix. The Factory
-adapter needs `PutObject`, `GetObject`, `ListObjectsV2` and `DeleteObject`.
-The manifest is the commit point: upload the bundle first, then the manifest.
-An incomplete bundle or manifest is not recoverable.
+### Security boundary: project first, prefix second
 
-The minimum policy shape is:
+**V1 decision:** create a separate Hetzner Object Storage project for Factory,
+with the dedicated private Factory bucket as its only bucket and a dedicated
+Factory access key. Do not create this key in the existing backups project.
+Hetzner confirms that **every key can access all buckets in its own project by
+default**. A bucket-policy `Allow` on the new bucket does *not* revoke access
+to the existing backup buckets if keys share the backup project.
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "ListFactoryCheckpointPrefix",
-      "Effect": "Allow",
-      "Principal": {"AWS": "arn:aws:iam:::user/p<credentials-project>:<factory-key>"},
-      "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::smadja-dev-factory-checkpoints",
-      "Condition": {"StringLike": {"s3:prefix": ["factory-checkpoints/v1", "factory-checkpoints/v1/*"]}}
-    },
-    {
-      "Sid": "FactoryCheckpointObjects",
-      "Effect": "Allow",
-      "Principal": {"AWS": "arn:aws:iam:::user/p<credentials-project>:<factory-key>"},
-      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::smadja-dev-factory-checkpoints/factory-checkpoints/v1/*"
-    }
-  ]
-}
-```
+Within the dedicated Factory project, `factory-checkpoints/v1/` is initially
+an **object naming convention, not an independently enforced security
+boundary**. The Factory key can be restricted to this prefix only if an
+explicitly validated deny/allow policy, or a cross-project key with an explicit
+allow grant, really enforces it. Do not claim prefix-level denial merely
+because a policy lists a prefix under `Allow`.
 
-The `<credentials-project>` and `<factory-key>` placeholders are provisioned
-outside Git. The negative fixture cases must prove that this key cannot list,
-read, write or delete outside the prefix.
+An optional stricter design uses **different projects for the key and bucket**:
+a credential project with no buckets, and the Factory bucket in its own project.
+For such a cross-project grant, Hetzner documents a
+`Principal: arn:aws:iam:::user/p<credential-project-id>:<access-key>`
+bucket policy. Grant `s3:ListBucket` only with the required `s3:prefix`
+condition and grant `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`
+only on `arn:aws:s3:::smadja-dev-factory-checkpoints/factory-checkpoints/v1/*`.
+**That `Allow`-only pattern is not sufficient for a key in the bucket's own
+project.** Choose the additional project only if strict prefix isolation is
+actually required; don't add a second project to satisfy an untested checklist.
+
+The Factory adapter uses PutObject, GetObject, ListObjectsV2 and DeleteObject;
+its manifest is the commit point: the bundle is uploaded first, then the
+manifest. An incomplete upload is not evidence of a recoverable checkpoint.
+Do not activate destructive GC just because the key has DeleteObject rights.
+
+Reference: https://docs.hetzner.com/storage/object-storage/faq/s3-credentials/
+
+**Required negative proof for V1:** with the Factory key, a *read-only* list of
+`smadja-dev-homelab-backups` must be denied. Never issue a write or delete
+against the production backups bucket to test isolation. Also confirm that the
+Factory project contains no other buckets. If strict prefix isolation is
+selected, additionally prove list/get/put/delete denial outside the prefix
+*using only explicitly disposable canaries in the Factory bucket*. Failure of
+any required negative test blocks runtime activation; record actual S3 response
+codes, not a speculative policy PASS.
 
 ## Doppler → ESO → Factory wiring
 
@@ -68,8 +73,10 @@ rejects a partial four-field connection configuration.
 
 Activation is a separate reviewed change after all of the following are true:
 
-1. `homelab-infra` has provisioned a private bucket and a reviewed policy for
-   a dedicated access key; the CNPG/Velero/Longhorn key is not reused.
+1. `homelab-infra` has provisioned a separate Hetzner storage project and the
+   private Factory-only bucket/key; confirmed the backup bucket cannot be listed
+   by the new key. If strict prefix isolation was selected, also prove its
+   separately configured bucket policy on disposable canaries.
 2. The seven Doppler keys exist in `infrastructure/prd` (presence only; never
    print their values).
 3. The dormant ExternalSecret is added to this Kustomization and Argo reports
@@ -92,7 +99,10 @@ Required sequence:
 3. Upload the JSON manifest second; verify schema version, capture ID,
    session/work-item/repository/branch binding, bundle key, size and digest.
 4. List only the fixture prefix and confirm both objects are visible.
-5. Assert negative permissions for list/get/put/delete outside the prefix.
+5. Assert the Factory key cannot list the existing shared backups bucket
+   (read-only check, do not read object contents or mutate any backup).
+   For a separately chosen strict-prefix policy, also assert denial of
+   list/get/put/delete outside the prefix **only on disposable Factory objects**.
 6. Delete only the two disposable fixture objects and verify they are absent.
 
 The fixture is not a Factory runtime checkpoint and cannot promote GC or
