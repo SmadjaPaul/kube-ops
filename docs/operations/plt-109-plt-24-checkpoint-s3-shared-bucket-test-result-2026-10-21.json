@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt-109-plt-24-checkpoint-s3-shared-bucket-2026-10-21",
+  "producedAt": "2026-10-21T22:00:00+02:00",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "dbab4aaead0fc0664afee6cf5650284bbdc2b003",
+    "branch": "codex/factory-checkpoint-s3-shared-bucket"
+  },
+  "tests": [
+    {
+      "id": "checkpoint-s3-static-contract",
+      "name": "Dormant Doppler/ESO/Factory shared-bucket contract",
+      "command": "bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The seven-key dormant mapping, shared bucket, fixture prefix, optional envFrom, and GC guards are encoded.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "targeted contract"}
+    },
+    {
+      "id": "repository-check",
+      "name": "kube-ops static check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The complete kube-ops static check suite passed, including the shared-bucket checkpoint contract.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "just check"}
+    },
+    {
+      "id": "kustomize-render",
+      "name": "Mastra Factory Kustomize render",
+      "command": "kustomize build k8s/applications/platform/mastra-factory",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The Mastra Factory Kustomize directory rendered successfully.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kustomize build k8s/applications/platform/mastra-factory"}
+    },
+    {
+      "id": "s3-live-fixture",
+      "name": "Disposable S3 upload/download/manifest/checksum/negative-permission fixture",
+      "command": "approved disposable fixture procedure in the qualification runbook",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "Dedicated Factory credentials and effective shared-bucket policy are not present; secret values were not inspected and no S3 objects were mutated.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "runtime gate pending"}
+    },
+    {
+      "id": "effective-permissions",
+      "name": "Effective S3 permissions and disposable negative canaries",
+      "command": "read-only and disposable-canary permission procedure in the qualification runbook",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No Factory key/policy was available for a safe read-only and disposable-only probe; CNPG, Velero and Longhorn objects were not touched.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "runtime gate pending"}
+    },
+    {
+      "id": "claim-loss-drill",
+      "name": "Strictly disposable SandboxClaim disappearance and isolated restore",
+      "command": "approved disposable SandboxClaim drill in the qualification runbook",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No disposable claim interruption was approved or executed; active sessions, PLT-105 and fixture #130/#134 resources remain untouched.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "runtime gate pending"}
+    },
+    {
+      "id": "rpo-runtime",
+      "name": "Runtime RPO measurement",
+      "command": "last successful mutation to completed S3 manifest timestamp",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No live checkpoint completed; RPO remains UNKNOWN.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "UNKNOWN"}
+    },
+    {
+      "id": "rto-runtime",
+      "name": "Runtime RTO measurement",
+      "command": "claim disappearance to verified Ready replacement workspace timestamp",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No live claim-loss restore completed; RTO remains UNKNOWN.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "UNKNOWN"}
+    },
+    {
+      "id": "gc-safety",
+      "name": "Destructive checkpoint GC activation",
+      "command": "review active wiring and Factory main retention integration",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "No GC scheduler or active deletion path is added; live-reference protection remains a prerequisite.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "qualification runbook: GC INACTIVE"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 9,
+    "executed": 4,
+    "notExecuted": 5,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "unavailable": 5,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@codex/factory-checkpoint-s3-shared-bucket:plt-109-plt-24-checkpoint-s3-shared-bucket-2026-10-21",
+    "payload": {
+      "resultId": "plt-109-plt-24-checkpoint-s3-shared-bucket-2026-10-21",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "dbab4aaead0fc0664afee6cf5650284bbdc2b003",
+      "tests": [
+        {
+          "id": "checkpoint-s3-static-contract",
+          "name": "Dormant checkpoint shared-bucket contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The targeted static contract passed.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "incomplete", "total": 9, "executed": 4, "notExecuted": 5}
+    }
+  }
+}
