@@ -1,0 +1,17 @@
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: persistent-offsite-backup-default-group
+  namespace: longhorn-system
+  labels:
+    app.kubernetes.io/part-of: storage
+    app.kubernetes.io/component: longhorn-backup
+spec:
+  cron: "17 3 * * *"
+  task: backup
+  groups:
+    - default
+  retain: 7
+  concurrency: 1
+  labels:
+    backup.smadja.dev/tier: persistent-offsite
