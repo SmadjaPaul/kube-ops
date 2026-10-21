@@ -26,7 +26,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: fix-volume-permissions
-          image: busybox:1.37
+          image: busybox:1.38
           command: ["sh", "-c"]
           args:
             - >-
@@ -50,7 +50,7 @@ spec:
             - { name: storage, mountPath: /storage }
       containers:
         - name: stirling-pdf
-          image: stirlingtools/stirling-pdf:3.0.0
+          image: stirlingtools/stirling-pdf:3.2.1
           env:
             - { name: SECURITY_ENABLELOGIN, value: "false" }
             - { name: PUID, value: "1001" }

@@ -32,7 +32,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: metabase
-          image: metabase/metabase:v0.63.18
+          image: metabase/metabase:v0.64.3
           env:
             - { name: MB_DB_TYPE, value: "postgres" }
             - name: MB_DB_HOST

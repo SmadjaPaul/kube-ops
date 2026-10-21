@@ -17,7 +17,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: wait-dependencies
-          image: busybox:1.37.0
+          image: busybox:1.38.0
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -34,7 +34,7 @@ spec:
             seccompProfile: { type: RuntimeDefault }
       containers:
         - name: app
-          image: invoiceninja/invoiceninja-debian:5.13.43@sha256:c052414958dce9bb186f3da83c8066c84d419092e7a55025b5a7c201eff75387
+          image: invoiceninja/invoiceninja-debian:5.13.49@sha256:05efd0913eb0d72d0246ec96d6cb6adf5ac3d3e59b9b91514b9f64b892f21c92
           envFrom:
             - configMapRef: { name: invoice-ninja-env }
             - secretRef: { name: invoice-ninja-runtime }
@@ -59,7 +59,7 @@ spec:
             - { name: public, mountPath: /var/www/html/public }
             - { name: storage, mountPath: /var/www/html/storage }
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.29.4-alpine@sha256:a6c4f61f456b85b8fdf7ec7ab28cc3e299440e6fb4a9dea520e5fd8fd440025e
+          image: nginxinc/nginx-unprivileged:1.31.7-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
           ports: [{ name: http, containerPort: 8080 }]
           securityContext:
             runAsNonRoot: true

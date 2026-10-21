@@ -117,7 +117,7 @@ jobs:
           echo "MERGED_ALREADY_GONE_COUNT=$already_gone"
 
       - name: Checkout repository for ancestry cleanup
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 

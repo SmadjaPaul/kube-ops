@@ -18,6 +18,6 @@ helmCharts:
     namespace: longhorn-system
     releaseName: longhorn
     repo: https://charts.longhorn.io
-    version: 1.12.1
+    version: 1.13.0
     includeCRDs: true
     valuesFile: values.yaml

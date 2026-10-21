@@ -37,7 +37,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: paperless
-          image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
+          image: ghcr.io/paperless-ngx/paperless-ngx:3.3.3
           env:
             - { name: PAPERLESS_URL, value: "https://paperless.smadja.dev" }
             # Kubernetes ServiceLinks otherwise inject PAPERLESS_PORT as a

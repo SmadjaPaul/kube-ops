@@ -28,7 +28,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: bootstrap-admin
-          image: binwiederhier/ntfy:v2.28.0
+          image: binwiederhier/ntfy:v2.32.0
           command: ["sh","-c"]
           args:
             - >-
@@ -60,7 +60,7 @@ spec:
             - { name: tmp, mountPath: /tmp }
       containers:
         - name: ntfy
-          image: binwiederhier/ntfy:v2.28.0
+          image: binwiederhier/ntfy:v2.32.0
           args: ["serve"]
           env:
             - { name: NTFY_LISTEN_HTTP, value: ":8080" }

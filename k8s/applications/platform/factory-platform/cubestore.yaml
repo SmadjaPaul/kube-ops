@@ -25,7 +25,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: cubestore
-          image: cubejs/cubestore@sha256:574600f8edd4ada8b61749603dc60c2f6050a06780f3c5aeb881537df1612f45
+          image: cubejs/cubestore@sha256:4a5c06b207bc3d289b2d919104eb8923730f5e39d5911bef8b49277c81f4275c
           env: [{name: CUBESTORE_REMOTE_DIR, value: /cube/data}]
           ports: [{name: http, containerPort: 3030}]
           resources:

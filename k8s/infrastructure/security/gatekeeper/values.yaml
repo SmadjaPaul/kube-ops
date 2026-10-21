@@ -54,7 +54,7 @@ postInstall:
     enabled: true
     image:
       repository: openpolicyagent/gatekeeper-crds
-      tag: v3.22.2
+      tag: v3.23.1
       pullPolicy: IfNotPresent
   probeWebhook:
     enabled: true
@@ -69,7 +69,7 @@ preUninstall:
     enabled: true
     image:
       repository: openpolicyagent/gatekeeper-crds
-      tag: v3.22.2
+      tag: v3.23.1
       pullPolicy: IfNotPresent
 
 # CRD configuration
