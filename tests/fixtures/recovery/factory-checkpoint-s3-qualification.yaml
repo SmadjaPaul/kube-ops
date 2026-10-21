@@ -12,8 +12,11 @@ spec:
     bucket: smadja-dev-factory-checkpoints
     prefix: factory-checkpoints/v1
     endpoint: https://fsn1.your-objectstorage.com
-    sharedBucketReuse: prohibited-without-policy-proof
+    sharedBucketReuse: prohibited
     sharedCredentialReuse: prohibited
+    isolationMode: dedicated-hetzner-project
+    existingBackupsBucket: smadja-dev-homelab-backups
+    prefixIsolation: not-assumed
   permissions:
     required:
       - s3:PutObject
@@ -23,10 +26,12 @@ spec:
     listPrefix: factory-checkpoints/v1/
     objectPrefix: factory-checkpoints/v1/*
     negativeCases:
-      - list-outside-prefix
-      - get-outside-prefix
-      - put-outside-prefix
-      - delete-outside-prefix
+      - list-existing-backups-bucket-denied-read-only
+    strictPrefixPolicyOnlyIfSeparatelyQualified:
+      - list-outside-prefix-disposable
+      - get-outside-prefix-disposable
+      - put-outside-prefix-disposable
+      - delete-outside-prefix-disposable
   fixture:
     status: not-executed
     objects:
