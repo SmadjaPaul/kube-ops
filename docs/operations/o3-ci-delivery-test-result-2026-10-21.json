@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "o3-ci-delivery-kube-2026-10-21-2a07144",
+  "producedAt": "2026-10-21T18:40:31+02:00",
+  "actor": {"kind": "agent", "name": "O3"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "2a0714434a250c1d3ba727f8e9519700cf24d73e",
+    "branch": "codex/o3-ci-delivery"
+  },
+  "tests": [
+    {"id":"kube-yaml","name":"Mastra Factory Kubernetes YAML parse","command":"python YAML parse for deployment.yaml and kustomization.yaml","execution":"executed","status":"PASSED","classification":"passed","reason":"The targeted Kubernetes YAML parsed successfully.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"kube YAML parse: PASS"}},
+    {"id":"kustomize","name":"Mastra Factory Kustomize render","command":"kustomize build k8s/applications/platform/mastra-factory","execution":"executed","status":"PASSED","classification":"passed","reason":"The targeted application render completed successfully.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"kustomize: PASS"}},
+    {"id":"promotion-script-syntax","name":"Digest promotion script syntax","command":"bash -n scripts/promote-mastra-factory-digest.sh","execution":"executed","status":"PASSED","classification":"passed","reason":"The existing digest-promotion helper passed syntax validation; it was not invoked for mutation.","risk":"medium","expectedCi":"required","evidence":{"kind":"command","reference":"bash -n: PASS"}},
+    {"id":"diff-check","name":"Kube worktree diff check","command":"git diff --check","execution":"executed","status":"PASSED","classification":"passed","reason":"The documentation-only change has no whitespace errors.","risk":"low","expectedCi":"required","evidence":{"kind":"command","reference":"git diff --check: PASS"}},
+    {"id":"kube-full-check","name":"kube-ops full repository check","command":"just check","execution":"executed","status":"FAILED","classification":"failed","reason":"The check reached the backup-audit contract and exited 1; no O3 manifest code was changed and the failure was not masked.","risk":"high","expectedCi":"required","evidence":{"kind":"command","reference":"tests/harness/backup-audit-contract-test.sh exit 1"}},
+    {"id":"gitops-pr","name":"GitOps promotion pull request","command":"Targeted kube-ops pull request","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"No image digest exists and no promotion mutation was authorized.","risk":"high","expectedCi":"expected","evidence":{"kind":"none"}},
+    {"id":"argo-runtime","name":"Argo revision and runtime smoke","command":"Post-merge Argo status and runtime smoke","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"No GitOps PR or merge occurred; ARGO_REVISION, SMOKE and ROLLBACK remain UNKNOWN.","risk":"high","expectedCi":"expected","evidence":{"kind":"none"}},
+    {"id":"independent-review","name":"Independent exact-HEAD review","command":"Independent review of 2a0714434a250c1d3ba727f8e9519700cf24d73e","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"O0 must coordinate the independent review before merge.","risk":"high","expectedCi":"required","evidence":{"kind":"none"}}
+  ],
+  "summary": {"outcome":"incomplete","total":8,"executed":5,"notExecuted":3,"passed":4,"failed":1,"unavailable":3},
+  "transmission": {
+    "target":"factory-platform",
+    "eventType":"agent.test.result",
+    "schema":"agent-test-result/v1",
+    "idempotencyKey":"SmadjaPaul/factory-platform@f1d4a33c345e59615149468496598ce32a9d7568+SmadjaPaul/kube-ops@2a0714434a250c1d3ba727f8e9519700cf24d73e:o3-ci-delivery",
+    "payload": {
+      "resultId":"o3-ci-delivery-kube-2026-10-21-2a07144",
+      "repository":"SmadjaPaul/kube-ops",
+      "revision":"2a0714434a250c1d3ba727f8e9519700cf24d73e",
+      "tests":[
+        {"id":"kustomize","name":"Mastra Factory Kustomize render","execution":"executed","status":"PASSED","classification":"passed","reason":"Targeted render passed.","risk":"low","expectedCi":"required"},
+        {"id":"kube-full-check","name":"kube-ops full repository check","execution":"executed","status":"FAILED","classification":"failed","reason":"Backup-audit contract exited 1.","risk":"high","expectedCi":"required"},
+        {"id":"argo-runtime","name":"Argo revision and runtime smoke","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"No GitOps PR or merge occurred.","risk":"high","expectedCi":"expected"}
+      ],
+      "summary":{"outcome":"incomplete","total":8,"executed":5,"notExecuted":3}
+    }
+  }
+}
