@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt-109-plt-24-iam-qualification-2026-10-21",
+  "producedAt": "2026-10-21T23:42:19+02:00",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "b578b6e81c0e0100e1e1669f32f3be276363b9a8",
+    "branch": "codex/plt109-iam-qualification"
+  },
+  "tests": [
+    {
+      "id": "hetzner-policy-support-matrix",
+      "name": "Hetzner documented bucket-policy capability matrix",
+      "command": "official Hetzner S3 credentials and supported-actions documentation review",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Principal, NotPrincipal, Deny and s3 actions are documented; NotAction is explicitly unsupported; Condition and s3:prefix remain unqualified.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "plt-109-plt-24-iam-qualification-2026-10-21.md"}
+    },
+    {
+      "id": "shared-key-effective-permissions",
+      "name": "Existing shared-key effective permission probe",
+      "command": "read-only S3 LIST probes for Factory, CNPG, Velero and Longhorn prefixes",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The existing key can list outside the Factory prefix; it is not a least-privilege Factory identity.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "runtime evidence: effective permissions observed"}
+    },
+    {
+      "id": "shared-bucket-policy-safety",
+      "name": "Shared-bucket policy mutation guard",
+      "command": "operator review: no policy apply, no DenyAllUsersButOne, no backup-object mutation",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "No shared-bucket policy was changed and no CNPG, Velero or Longhorn object was written, deleted or overwritten.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "qualification report"}
+    },
+    {
+      "id": "factory-secret-presence",
+      "name": "Factory seven-key Doppler presence and dormant ESO state",
+      "command": "names-only Doppler inspection and canonical Kubernetes resource inventory",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The seven FACTORY_CHECKPOINT_* names are absent; checkpoint ExternalSecret is dormant and target Secret is absent by design.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "runtime inventory after #631"}
+    },
+    {
+      "id": "reconciled-factory-gate",
+      "name": "Post-#631 Argo and Factory readiness",
+      "command": "just runtime-inventory; just status-app apps-platform",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "apps-platform is Synced/Healthy at b578b6e8; Factory Pod is Ready/Running; optional checkpoint envFrom remains dormant.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "runtime inventory and status-app"}
+    },
+    {
+      "id": "disposable-policy-canary",
+      "name": "Disposable Hetzner policy canary",
+      "command": "owner-approved disposable bucket/environment policy test",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No disposable policy target or owner-approved test environment was available; the shared backup bucket was not modified.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    },
+    {
+      "id": "backup-identity-preservation",
+      "name": "CNPG/Velero/Longhorn permission preservation proof",
+      "command": "non-destructive post-policy canaries for existing backup identities",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No policy was applied, so there is no post-policy change to test; backup identities were preserved by non-intervention.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "blocked until disposable policy test"}
+    },
+    {
+      "id": "eso-activation",
+      "name": "Separate ESO activation PR and Secret readiness",
+      "command": "GitOps PR adding checkpoint ExternalSecret to active Kustomization",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "Dedicated credentials and effective policy are not qualified; activation remains intentionally disabled.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "BLOCKED"}
+    },
+    {
+      "id": "claim-loss-restore",
+      "name": "Disposable SandboxClaim loss and restore",
+      "command": "approved disposable claim-loss drill",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The IAM and ESO gates are not satisfied; no claim was created or removed.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "UNKNOWN"}
+    },
+    {
+      "id": "rpo-runtime",
+      "name": "Runtime RPO",
+      "command": "last mutation to completed checkpoint manifest",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No Factory checkpoint was captured through an activated dedicated identity; RPO remains UNKNOWN.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "UNKNOWN"}
+    },
+    {
+      "id": "rto-runtime",
+      "name": "Runtime RTO",
+      "command": "claim disappearance to verified Ready replacement workspace",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No claim-loss restore was executed; RTO remains UNKNOWN.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "UNKNOWN"}
+    },
+    {
+      "id": "gc-safety",
+      "name": "Destructive Factory GC remains inactive",
+      "command": "review active Kustomization and Factory retention wiring",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "No GC scheduler or active destructive deletion path is enabled.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "GC INACTIVE"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 12,
+    "executed": 6,
+    "notExecuted": 6,
+    "passed": 4,
+    "failed": 2,
+    "skipped": 0,
+    "unavailable": 6,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@b578b6e81c0e0100e1e1669f32f3be276363b9a8:plt-109-plt-24-iam-qualification-2026-10-21",
+    "payload": {
+      "resultId": "plt-109-plt-24-iam-qualification-2026-10-21",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "b578b6e81c0e0100e1e1669f32f3be276363b9a8",
+      "tests": [
+        {
+          "id": "shared-key-effective-permissions",
+          "name": "Existing shared-key effective permission probe",
+          "execution": "executed",
+          "status": "FAILED",
+          "classification": "failed",
+          "reason": "Cross-prefix LIST access remains allowed.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "claim-loss-restore",
+          "name": "Disposable SandboxClaim loss and restore",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "unavailable",
+          "reason": "IAM/ESO gates are blocked.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "incomplete", "total": 12, "executed": 6, "notExecuted": 6}
+    }
+  }
+}
