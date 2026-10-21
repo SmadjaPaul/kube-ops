@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: sure-storage
   namespace: sure
+  labels:
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/persistent-offsite-backup: enabled
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-fast
