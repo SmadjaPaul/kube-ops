@@ -1,6 +1,6 @@
 # PLT-108 — Factory V1 integration ledger
 
-Updated: 2026-10-21 (Europe/Paris)
+Updated: 2026-10-21 20:55+02:00 (source observations; see checks/commits for authoritative times)
 
 This is the O0 coordination ledger for PLT-108. GitHub, Linear, Mastra and
 Argo remain authorities for their own state. A local or agent report is not
@@ -11,8 +11,8 @@ are recorded.
 
 | Repository | GitHub default branch | Verified remote HEAD | Local checkout note |
 | --- | --- | --- | --- |
-| `SmadjaPaul/factory-platform` | `main` | `99e14ef094d2b02275fa178bf44238983772a4f0` (includes #145 and #142 merges) | Local checkout is on `codex/prevent-sandbox-claim-expiry`, ahead/behind and has untracked checkpoint files; do not use as an agent worktree. |
-| `SmadjaPaul/kube-ops` | `main` | `b835e41e0ed7f6c70b0994575e895a6d4e91f4c9` (PR #617 squash) | O0 checkout contains pre-existing untracked `.yml` and `tests/e2e/test-results/`; preserve them. |
+| `SmadjaPaul/factory-platform` | `main` | `21b9c7dad3ac2a08bc0f96ae48feb9dedb12983f` (includes Factory #142/#143/#144/#145 merges) | Local checkout is on `codex/prevent-sandbox-claim-expiry`, ahead/behind and has untracked checkpoint files; do not use as an agent worktree. |
+| `SmadjaPaul/kube-ops` | `main` | `457edc64bc7654e0730043f6b24ffc78da26989d` (newer commits exist beyond #618; snapshot at audit) | O0 checkout contains pre-existing untracked `.yml` and `tests/e2e/test-results/`; preserve them. |
 | `SmadjaPaul/homelab-infra` | `main` | Not in scope for desired-state changes | Read-only authority boundary only. |
 
 Fixtures and historical evidence reserved read-only: factory-platform PR #130,
@@ -49,19 +49,19 @@ USER or UNKNOWN. `UNQUALIFIED` is not a pass.
 
 | Ticket | Branch | HEAD | Tests | Review | Merge | Runtime | Blocker |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| PLT-108 | O0 post-merge ledger / PR #618 | `2eecaad88b76e01fc5ebb71fedb01bcc3fed39de` | STATIC: inventory passed; `just check` FAIL preserved at `tests/harness/backup-audit-contract-test.sh:82` (`CNPG_RESTORE_PROOF=PASS`) | O0 COMMENT; `validate` PASS on merged head; Claude SKIPPED | Merged squash `2eecaad88b76e01fc5ebb71fedb01bcc3fed39de` | UNKNOWN | Documentation ledger only; no runtime mutation |
+| PLT-108 | `codex/plt-108-post-merge-ledger` / kube-ops #620 | #618 squash `2eecaad88b76e01fc5ebb71fedb01bcc3fed39de`; #620 HEAD must be reverified | Prior local `just check` FAILED at CNPG fixture line 82; #618 fixes synthetic freshness, `validate` PASS on its head; full local `just check` post-fix UNKNOWN | GitHub #618 reviewed as content/comment by owner; #620 review pending | #618 MERGED; #620 OPEN | N/A | #620 documentation-only outside V1 contract workflow path filter; no check attached, must not claim runtime validation |
 | PLT-114 | `codex/o1-plt114` / PR #143 | merge `02e484b4c231d00d6190eebf51ca0747b7794966` (PR HEAD `d413301e…`) | STATIC: docs KEEP; `test` + `static-arc` PASS; no runtime activation | O2 independent content review identified/fixed artifact pollution; operator-authorized merge; no fabricated GitHub APPROVE | Merged squash `02e484b4c231d00d6190eebf51ca0747b7794966` | UNKNOWN | PLT-114 Done / KEEP; PLT-27/29/100 remain open gates; PLT-100 OFF |
 | PLT-27 | `codex/o1-plt114` | `ae6cdff` | STATIC: workflow invariants PASS; no runtime activation | Pending | Not eligible | UNKNOWN | Native hook proof and external checks |
 | PLT-29 | `codex/o1-plt114` | `ae6cdff` | STATIC: stale/self-review refusals PASS | Pending | Not eligible | UNKNOWN | Exact-HEAD independent review and CI |
 | PLT-100 | `codex/o1-plt114` | `ae6cdff` | STATIC: admission/policy PASS | Pending | Forbidden | OFF / UNKNOWN | Blocked by PLT-24/27/29/112; do not activate |
 | PLT-109 | `codex/plt-109-qualification-o0` / PR #145 | merge `55fc2512f4fa43ec81b91ae5be76c01362d96109` (PR HEAD `56da1bca…`) | STATIC: 51 targeted and 263 core contracts documented; live S3/claim-loss/GC not executed | O0 COMMENT; documentation merge only | Merged squash `55fc2512f4fa43ec81b91ae5be76c01362d96109` | UNKNOWN | PLT-109 remains open; do not qualify PLT-24 from synthetic evidence |
 | PLT-24 | `codex/durable-sandbox-checkpoint` | `847a63c39420d178fa7a61f81635201fa2f3c4e4` | STATIC: replay/idempotency and concurrent adoption tests PASS | Pending independent review | Not eligible | UNKNOWN | Depends on PLT-109 live evidence; `pytest` unavailable for canonical factory check |
-| PLT-74 | `codex/o3-ci-delivery-factory` / PR #144 | `91ab2d431f88973dd2b7d2190879241032c0af8d` | STATIC: `test` + `static-arc` PASS; no Cloud Build launched | O0 architectural review blocks merge; O3 correction/rebase required | Not merged | UNKNOWN | ARC has no Docker/Buildx capability; Cloud Build can submit before main CI succeeds; base now stale after Factory main `99e14ef…` |
-| PLT-19 | `codex/o3-ci-delivery-factory` | `01e77449598e35f44cc3fe75a7039c9a8fbe2caf` | STATIC only; source SHA pinned in changes | Pending | Not eligible | UNKNOWN | Deployed version and rollback not observed |
+| PLT-74 | `codex/o3-ci-delivery-factory` / Factory #144 | PR HEAD `8c9446d3453408050be82758ca1a8e4fd285b3f9`; squash main `21b9c7dad3ac2a08bc0f96ae48feb9dedb12983f` | PR checks `test` / `static-arc` PASS; post-merge main `test` / `static-arc` PASS; Cloud Build `delegate` FAILED BEFORE SUBMIT because WIF provider variable empty | O4 independent content review on PR HEAD | MERGED `21b9c7dad3ac2a08bc0f96ae48feb9dedb12983f` | UNKNOWN | No BUILD_ID/digest/GitOps/Argo; GCP_WIF_PROVIDER missing in workflow context, budget approval/gate must precede OIDC. Factory #146 opens narrow fix. |
+| PLT-19 | Factory #144 / PLT-74 post-merge delivery | `21b9c7dad3ac2a08bc0f96ae48feb9dedb12983f` | `test/static-arc` PASS; Cloud Build delegate FAILED before image build | static/review only | #144 MERGED | UNKNOWN | OCI digest, GitOps commit, Argo/health, smoke and rollback remain UNKNOWN |
 | PLT-74 / kube promotion | `codex/o3-ci-delivery` / PR #617 | `6c883f111eec6415ad6151c207ca5ddb560d559b` (source code `2a071443…`) | STATIC: Kustomize/digest path report recorded; full kube check fails at existing backup contract | O0 COMMENT on exact HEAD; `validate` SUCCESS | Merged squash `b835e41e0ed7f6c70b0994575e895a6d4e91f4c9` | UNKNOWN | No Argo revision or smoke; docs-only merge proves no runtime level |
 | PLT-44 | `codex/plt-44-quality-evidence-o4` / PR #142 | merge `99e14ef094d2b02275fa178bf44238983772a4f0` (PR HEAD `6dea1d42…`) | STATIC: `test` + `static-arc` PASS; receipt tests and JSON/schema validation PASS; no OCI/Argo runtime evidence | O4 agent `01a15f4f-cc08-7ec2-a760-77e060389f3f` read-only qualification; operator user authorization; no GitHub APPROVE fabricated | Merged squash `99e14ef094d2b02275fa178bf44238983772a4f0` | UNKNOWN | Static contract only; literal `\\n` documentation sequences are non-blocking; no runtime promotion |
-| PLT-26 | `codex/plt-44-quality-evidence-o4` / PR #142 | `d0f7f639cdaf32aaa2ad3cd2669ae95fb8108585` | STATIC receipt chain/refusal tests PASS | No review | Not eligible | UNKNOWN | OCI/Argo/user evidence absent |
-| PLT-67 | `codex/plt-44-quality-evidence-o4` / PR #142 | `d0f7f639cdaf32aaa2ad3cd2669ae95fb8108585` | STATIC: UNKNOWN metrics preserved; cost live not observed | No review | Not eligible | UNKNOWN | Live cost/duration/tokens not observed |
+| PLT-26 | Factory #142 | HEAD `6dea1d4205859536c87bdfb0733c419357518288`, merged `99e14ef094d2b02275fa178bf44238983772a4f0` | PR `test/static-arc` PASS, pure receipt contract only | O4 independent content qualification as recorded by O0 | #142 MERGED | UNKNOWN | No observed delivery receipt from real GitHub/OCI/Argo adapters; production source fields unknown |
+| PLT-67 | Factory #142 | HEAD `6dea1d4205859536c87bdfb0733c419357518288`, merged `99e14ef094d2b02275fa178bf44238983772a4f0` | Static test of nullable UNKNOWN metrics PASS | O4 independent content qualification as recorded by O0 | #142 MERGED | UNKNOWN | Actual token/duration/provider costs not measured; analytics gate open |
 | PLT-112 | O0 recipe | UNKNOWN | Prepared only; no pilot/workflow launched | Not started | Not eligible | UNKNOWN | PLT-74/24/27/29/100 gates; PLT-100 remains OFF; PLT-114/143 and PLT-109/145 documentation merges do not qualify the pilots |
 
 ## Merge gate
@@ -93,12 +93,15 @@ upgrades evidence to RECONCILED, RUNTIME or USER.
 
 | 2026-10-21 | Keep PLT-109/PLT-24 blocked after O2 read-only qualification | No dedicated Factory checkpoint S3 endpoint/credentials are present; only CNPG S3 identities exist. Warm pool is zero and the sole SandboxClaim is tied to an active session, so it was preserved. S3 live upload/download, claim-loss restore and RPO/RTO remain NOT EXECUTED. |
 
+## Latest reconciliation — 21 October 2026 after #144 merge
+
+1. Factory main `21b9c7dad3ac2a08bc0f96ae48feb9dedb12983f`: main `test` and `static-arc` PASS, but Cloud Build delegation is a **real FAILURE** at `google-github-actions/auth`, with empty `GCP_WIF_PROVIDER`. No build was submitted. Explicitly do not mark delivery PASSED.
+2. Factory PR #146: proposes a pre-OIDC approval+budget+authorization gate with WIF configuration preflight. It is not a substitute for configuring the WIF provider or qualifying a real build. CI/review and merge remain separate.
+3. Factory #142/#143/#144/#145 are merged; O1/O2/O4 static qualification is not Factory E2E runtime. PLT-109/24/27/29/100/112 remain blocked at their respective acceptance levels. Never touch historical PR #130/#134 or PLT-105 objects.
+4. Kube-ops #618 merged fixture freshness correction at `2eecaad…`; the earlier local `just check` failure remains historical evidence, and a new local full validation is not claimed.
+5. Kube-ops #620 is a documentation-only journal PR and does not match the V1 Contract workflow `pull_request.paths`. An absent CI check is **NOT** a PASS and not necessarily a runtime failure. Do not artificially modify unrelated tests to trigger a check; review the documentation change and its source SHA.
+6. O3 next: verify WIF identity without revealing credentials, requalify source-SHA/build scope + cost authorization, obtain genuine GCP BUILD_ID and OCI digest only with the operator's approved budget, then create GitOps PR and verify Argo/smoke/rollback. O2 next: dedicated private S3 + disposable claim-loss drill; O1: builder/reviewer post-push re-review contract.
+
 ## Next coordination step
 
-Immediate executable lot: O1 removes the stored shell-error lines, binds its
-test-result to a new exact HEAD, and obtains fresh CI plus independent review.
-In parallel, observe (do not restart) the already-running `test` on PR #145.
-O3/O4 continue only on their existing branches after the targeted corrections
-above; every new HEAD needs fresh CI and review. O0 will re-fetch every PR
-head after any merge to detect base/conflict drift, and will prepare PLT-112
-without claiming its E2E gate is complete before all dependencies qualify.
+Close only the explicitly qualified documentation/contract PRs. Keep delivery runtime, claim-loss recovery and autonomous end-to-end qualification UNKNOWN until proven by owning systems. No new scheduler, queue, privileged runner or unapproved paid build.
