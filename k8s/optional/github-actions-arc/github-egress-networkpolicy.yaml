@@ -117,6 +117,10 @@ spec:
         # pip resolves the locked Python dependencies from these hosts.
         - matchName: files.pythonhosted.org
         - matchName: pypi.org
+        # dbt's pinned source distribution fetches its wheel from this CDN.
+        - matchName: public.cdn.getdbt.com
+        # DuckDB's PostgreSQL extension is installed during the integration check.
+        - matchName: extensions.duckdb.org
         # onnxruntime-node resolves its Linux GPU package from the public NuGet feed.
         - matchName: api.nuget.org
         # npm ci resolves the lockfile from the public npm registry.
