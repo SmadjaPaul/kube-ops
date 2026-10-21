@@ -70,7 +70,9 @@ mv "$tmp_json" "$longhorn_dir/longhorn-recurringjobs.json"
 jq '.items=[{"metadata":{"name":"backup-invoice-storage"},"status":{"state":"Completed","volumeName":"pv-invoice-storage"}}]' \
   "$longhorn_dir/longhorn-backups.json" >"$tmp_json"
 mv "$tmp_json" "$longhorn_dir/longhorn-backups.json"
-jq '.items=[
+# Positive synthetic fixture must be fresh at execution time.
+# Keep the source fixture and the explicit stale-evidence refusal test unchanged.
+jq '.producedAt=(now | todateiso8601) | .items=[
   {"kind":"Velero/Kopia","status":"PASS","accepted":true},
   {"kind":"CNPG/Barman","status":"PASS","accepted":true}
 ]' "$longhorn_dir/restore-evidence.json" >"$tmp_json"

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://kube-ops.smadja.dev/contracts/agent-test-result-v1.schema.json",
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt-108-o0-inventory-2026-10-21",
+  "producedAt": "2026-10-21T18:00:00+02:00",
+  "actor": {"kind": "agent", "name": "O0"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "fc66104d68e0afdd8f89ee6660e6403e7eeb723f",
+    "branch": "codex/plt-108-integration"
+  },
+  "tests": [
+    {
+      "id": "inventory",
+      "name": "Repository inventory",
+      "command": "just inventory",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Inventory completed before repository traversal.",
+      "risk": "low",
+      "expectedCi": "expected",
+      "evidence": {"kind": "command", "reference": "just inventory"}
+    },
+    {
+      "id": "coordination-check",
+      "name": "Full kube-ops validation",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The full recipe reached the existing backup-audit contract step and exited non-zero; npm run check and the preceding Grafana contract passed.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "just check; tests/harness/backup-audit-contract-test.sh"}
+    },
+    {
+      "id": "runtime",
+      "name": "Argo and runtime qualification",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "not-applicable",
+      "reason": "No runtime mutation or deployment was performed during inventory and reservation.",
+      "risk": "unknown",
+      "expectedCi": "not-expected",
+      "evidence": {"kind": "none"}
+    }
+  ],
+  "summary": {"outcome": "failed", "total": 3, "executed": 2, "notExecuted": 1, "passed": 1, "failed": 1, "skipped": 0, "unavailable": 0, "notApplicable": 1},
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@fc66104d68e0afdd8f89ee6660e6403e7eeb723f:plt-108-o0-inventory-2026-10-21",
+    "payload": {
+      "resultId": "plt-108-o0-inventory-2026-10-21",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "fc66104d68e0afdd8f89ee6660e6403e7eeb723f",
+      "tests": [
+        {"id": "inventory", "name": "Repository inventory", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Inventory completed before repository traversal.", "risk": "low", "expectedCi": "expected"},
+        {"id": "coordination-check", "name": "Full kube-ops validation", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "The full recipe reached the existing backup-audit contract step and exited non-zero; npm run check and the preceding Grafana contract passed.", "risk": "medium", "expectedCi": "required"},
+        {"id": "runtime", "name": "Argo and runtime qualification", "execution": "not-executed", "status": "NOT_EXECUTED", "classification": "not-applicable", "reason": "No runtime mutation or deployment was performed during inventory and reservation.", "risk": "unknown", "expectedCi": "not-expected"}
+      ],
+      "summary": {"outcome": "failed", "total": 3, "executed": 2, "notExecuted": 1}
+    }
+  }
+}
