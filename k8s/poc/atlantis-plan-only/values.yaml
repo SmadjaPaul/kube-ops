@@ -17,8 +17,8 @@ image:
   pullPolicy: IfNotPresent
 
 githubApp:
-  id: 5416988
-  installationId: 173903025
+  id: "5416988"
+  installationId: "173903025"
   slug: smadja-atlantis
 vcsSecretName: atlantis-github-app
 
