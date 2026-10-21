@@ -122,6 +122,28 @@ prometheusOperator:
 prometheus:
   prometheusSpec:
     replicas: 1
+    # Persistence sizing evidence (2026-10-21): Prometheus ingests about
+    # 4,671 samples/s and had about 371 MB of persisted blocks, 223 MiB of WAL
+    # and 59 MB of head chunks after 11.2 h. A 10-day projection is about 8 GB
+    # of blocks before WAL/head and compaction headroom. Longhorn-fast had about
+    # 464 GiB available at capture time. 20Gi leaves operational headroom while
+    # retentionSize=14GB bounds TSDB growth below the PVC capacity; re-evaluate
+    # after a full week of persisted history.
+    # Migration gate: the current live TSDB is emptyDir. The first StatefulSet
+    # replacement will lose that ephemeral history because this PR does not
+    # migrate it. Merge/reconcile requires explicit operator acceptance of that
+    # history loss; no PVC or existing backup is deleted by this change.
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn-fast
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+    retention: 10d
+    retentionSize: 14GB
     # HOST EXPORTER PRECONDITION: Proxmox 10.0.20.51 must run the upstream
     # node_exporter on a private LAN endpoint, firewall-restricted to the
     # Talos monitoring traffic. No exporter is installed by this repo change.
