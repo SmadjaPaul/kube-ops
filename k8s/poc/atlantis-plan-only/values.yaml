@@ -181,7 +181,7 @@ statefulSet:
     argocd.argoproj.io/sync-options: Force=true,Replace=true
   securityContext:
     runAsNonRoot: true
-    runAsUser: 1000
+    runAsUser: 100
     runAsGroup: 1000
     fsGroup: 1000
     fsGroupChangePolicy: OnRootMismatch
