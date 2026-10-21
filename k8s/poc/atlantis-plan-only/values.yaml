@@ -17,9 +17,9 @@ image:
   pullPolicy: IfNotPresent
 
 githubApp:
-  id: REPLACE_WITH_OPERATOR_GITHUB_APP_ID
-  installationId: REPLACE_WITH_OPERATOR_GITHUB_INSTALLATION_ID
-  slug: atlantis-pilot
+  id: 5416988
+  installationId: 173903025
+  slug: smadja-atlantis
 vcsSecretName: atlantis-github-app
 
 allowForkPRs: false
