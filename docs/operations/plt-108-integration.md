@@ -88,7 +88,10 @@ upgrades evidence to RECONCILED, RUNTIME or USER.
 | 2026-10-21 | Keep PLT-100 OFF and PLT-112 unlaunched | PLT-24, 27, 29, 74 and 100 lack the required end-to-end qualification; #145 remains static/synthetic and its test is still active. No autonomous flag, pilot session, lease or external operation was restarted. |
 | 2026-10-21 | Do not merge Factory #143 despite PASS checks | Independent O2 review found a stored `.env` shell-error line at the beginning of all four documentation files, invalidating the JSON evidence, and the test-result revision is `e6c3096…` rather than the PR HEAD. O1 must correct the existing branch and obtain fresh CI/review. |
 
-| 2026-10-21 | Merge Factory #142 after exact-head O4 qualification | O4 agent `01a15f4f-cc08-7ec2-a760-77e060389f3f` independently verified PR HEAD `6dea1d420…`, provenance separation, GitHub checks for RECONCILED, STATIC refusal, and parse/schema cleanliness. The user explicitly authorized progressive squash merge; no GitHub APPROVE identity was fabricated. Merge commit: `99e14ef094d2b02275fa178bf44238983772a4f0`. |\n| 2026-10-21 | Keep Factory #144 unmerged after main advanced | Exact HEAD `91ab2d431…` has green PR checks but remains architecturally unsafe: ARC cannot run Docker/Buildx and Cloud Build may submit before successful main CI. Rebase only after O3 correction and only if required by the new base `99e14ef…`. |\n\n## Next coordination step
+| 2026-10-21 | Merge Factory #142 after exact-head O4 qualification | O4 agent `01a15f4f-cc08-7ec2-a760-77e060389f3f` independently verified PR HEAD `6dea1d420…`, provenance separation, GitHub checks for RECONCILED, STATIC refusal, and parse/schema cleanliness. The user explicitly authorized progressive squash merge; no GitHub APPROVE identity was fabricated. Merge commit: `99e14ef094d2b02275fa178bf44238983772a4f0`. |
+| 2026-10-21 | Keep Factory #144 unmerged after main advanced | Exact HEAD `91ab2d431…` has green PR checks but remains architecturally unsafe: ARC cannot run Docker/Buildx and Cloud Build may submit before successful main CI. Rebase only after O3 correction and only if required by the new base `99e14ef…`. |
+
+## Next coordination step
 
 Immediate executable lot: O1 removes the stored shell-error lines, binds its
 test-result to a new exact HEAD, and obtains fresh CI plus independent review.
