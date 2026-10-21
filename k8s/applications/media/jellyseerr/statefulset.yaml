@@ -100,6 +100,9 @@ spec:
                 # mode and reuse the existing Jellyseerr configuration PVC.
                 name: jellyseerr-secrets
                 optional: true
+          env:
+            - name: JELLYFIN_URL
+              value: http://jellyfin:8096
           ports:
             - name: http
               containerPort: 5055
