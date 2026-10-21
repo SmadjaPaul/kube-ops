@@ -5,7 +5,7 @@
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "origin/main@9dcab486ee5013be018155cace2091c3024d9816",
+    "revision": "dbab4aaead0fc0664afee6cf5650284bbdc2b003",
     "branch": "codex/factory-checkpoint-s3-shared-bucket"
   },
   "tests": [
@@ -137,7 +137,7 @@
     "payload": {
       "resultId": "plt-109-plt-24-checkpoint-s3-shared-bucket-2026-10-21",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "origin/main@9dcab486ee5013be018155cace2091c3024d9816",
+      "revision": "dbab4aaead0fc0664afee6cf5650284bbdc2b003",
       "tests": [
         {
           "id": "checkpoint-s3-static-contract",
