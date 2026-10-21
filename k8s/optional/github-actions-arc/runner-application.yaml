@@ -43,6 +43,44 @@ spec:
                   allowPrivilegeEscalation: false
                   capabilities: {drop: ["ALL"]}
                   seccompProfile: {type: RuntimeDefault}
+              # The runner pod is created for one GitHub job and removed after
+              # it exits. Keeping PostgreSQL in the same pod gives the job a
+              # disposable localhost-only database without Docker or API RBAC.
+              - name: postgres
+                image: >-
+                  postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+                args: ["-c", "listen_addresses=localhost"]
+                env:
+                  - name: POSTGRES_USER
+                    value: factory
+                  - name: POSTGRES_PASSWORD
+                    value: factory
+                  - name: POSTGRES_DB
+                    value: factory
+                ports:
+                  - name: postgres
+                    containerPort: 5432
+                    protocol: TCP
+                startupProbe:
+                  exec:
+                    command: ["pg_isready", "-U", "factory", "-d", "factory"]
+                  periodSeconds: 2
+                  failureThreshold: 60
+                readinessProbe:
+                  exec:
+                    command: ["pg_isready", "-U", "factory", "-d", "factory"]
+                  periodSeconds: 2
+                  timeoutSeconds: 2
+                resources:
+                  requests: {cpu: 100m, memory: 256Mi, ephemeral-storage: 512Mi}
+                  limits: {cpu: "1", memory: 1Gi, ephemeral-storage: 2Gi}
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 70
+                  runAsGroup: 70
+                  allowPrivilegeEscalation: false
+                  capabilities: {drop: ["ALL"]}
+                  seccompProfile: {type: RuntimeDefault}
   destination:
     server: https://kubernetes.default.svc
     namespace: arc-runners

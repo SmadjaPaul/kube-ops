@@ -1,13 +1,13 @@
 # GitHub Actions Runner Controller — staged GitOps pilot
 
-**NOT DEPLOYED.** This branch is not deployed until this activation PR is merged and the gates below are satisfied. No controller/runner/Secret is created merely by the directory existing on an unmerged branch; after merge, Argo will discover the explicit ApplicationSet entry and reconcile it.
+**Deployment is explicit.** The live cluster reconciles this directory through the root ApplicationSet; changes still require the normal PR, Argo and runtime gates below. No direct `helm install` is part of the operating model.
 
 Upstream reference: https://github.com/actions/actions-runner-controller (official `gha-runner-scale-set-controller` and `gha-runner-scale-set` charts, pinned to 0.15.0). Legacy RunnerDeployment is intentionally not used.
 
 ## Components
 
 - `arc-systems` namespace: Helm controller, chart-managed service account and cluster RBAC. The 0.15.0 controller render creates `arc-gha-rs-controller`.
-- `arc-runners` namespace: one repository-scoped ephemeral runner scale set; min=0, max=1, no Docker/Kubernetes container mode.
+- `arc-runners` namespace: one repository-scoped ephemeral runner scale set; min=0, max=1, no Docker/Kubernetes container mode. The runner pod has a pinned PostgreSQL 18 Alpine sidecar running as UID/GID 70; PostgreSQL is forced to `listen_addresses=localhost`, is reachable only through the pod's localhost network namespace, and disappears with the job pod.
 - ESO secret `arc-github-app`: dedicated GitHub App credentials, provisioned through existing Doppler ClusterSecretStore; keys `APP_GITHUB_ARC_ID`, `APP_GITHUB_ARC_INSTALLATION_ID`, `APP_GITHUB_ARC_PRIVATE_KEY`.
 - Runner pods: non-privileged, no mounted Kubernetes API token, pinned runner image, cpu/memory/ephemeral-storage limits. The optional Cilium policies allow only DNS and the GitHub HTTPS domains required by the pilot.
 
@@ -16,6 +16,8 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 - Controller chart `0.15.0`: `sha256:20a369215b8c2ed981c4c0c75e56e6009564d51fffcbbd314d5da0ef82de253a`.
 - Runner scale-set chart `0.15.0`: `sha256:bdfdad17cf8e45ae064c73ed6764f0c75d4bf71a6e2912e6363a43d6dfc787de`.
 - Runner image `2.338.0`: `sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807`.
+- PostgreSQL image `18-alpine` (multi-architecture index): `sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873`.
+- The official image currently has no OCI `USER` field; the pod therefore sets `runAsUser: 70` and `runAsGroup: 70`, matching the image's Alpine `postgres` account. `PGDATA` remains the image default `/var/lib/postgresql/18/docker` on the pod's disposable container filesystem; no PVC is mounted.
 - For repository-scoped registration, the dedicated GitHub App needs Repository `Administration: Read and write` and `Metadata: Read-only`. Organization `Self-hosted runners: Read and write` is only needed for organization-scoped registration. The Factory GitHub App is never reused.
 
 ## Blocking gates before activation
@@ -33,7 +35,7 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 
 ## Known restrictions
 
-- The existing `factory-platform/.github/workflows/ci.yml` provisions a PostgreSQL **service container** and cannot be migrated to the plain pilot runner unchanged.
+- GitHub Actions `services:` are Docker-specific here. `factory-platform/.github/workflows/ci.yml` uses the runner pod's PostgreSQL 18 sidecar instead; the workflow waits for PostgreSQL and verifies the major version before qualification.
 - Neither DinD privileged nor `ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER=false` in Kubernetes mode is acceptable in this pilot.
 - ARC scales runner pods to zero, **not** the controller and listener.
 - The host is an existing single-node Talos cluster; do not confuse pod autoscaling with machine autoscaling.
