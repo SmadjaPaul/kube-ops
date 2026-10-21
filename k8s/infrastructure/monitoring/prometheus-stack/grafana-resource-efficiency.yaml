@@ -4,7 +4,7 @@ metadata:
   name: grafana-resource-efficiency-dashboard
   namespace: monitoring
   annotations:
-    grafana_folder: "01 — Cluster"
+    grafana_folder: "20 — Kubernetes"
   labels:
     grafana_dashboard: "1"
 data:
