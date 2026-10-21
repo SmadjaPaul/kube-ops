@@ -1,0 +1,214 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt-109-plt-24-checkpoint-s3-runtime-2026-10-21",
+  "producedAt": "2026-10-21T23:18:00+02:00",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "a75d3de45d33346227450ef171f4804bd61a6d61",
+    "branch": "codex/factory-s3-runtime-evidence"
+  },
+  "tests": [
+    {
+      "id": "checkpoint-s3-static-contract",
+      "name": "Dormant Doppler/ESO/Factory shared-bucket contract",
+      "command": "bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The dormant seven-key mapping, shared bucket, fixture prefix, optional envFrom and GC guards remain encoded.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "targeted contract"}
+    },
+    {
+      "id": "repository-check",
+      "name": "kube-ops static check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The complete kube-ops static check suite passed on the tested desired-state revision.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "just check"}
+    },
+    {
+      "id": "kustomize-render",
+      "name": "Mastra Factory Kustomize render",
+      "command": "kustomize build k8s/applications/platform/mastra-factory",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The Mastra Factory Kustomize directory rendered successfully with checkpoint ESO dormant.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kustomize build k8s/applications/platform/mastra-factory"}
+    },
+    {
+      "id": "reconciled-platform-state",
+      "name": "apps-platform Argo reconciliation and Factory readiness",
+      "command": "just runtime-inventory; just status-app apps-platform",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "apps-platform was Synced/Healthy at a75d3de45 and the Factory Pod was Ready/Running; dormant checkpoint ESO remained absent.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": {"kind": "manual", "reference": "runtime inventory and status-app output"}
+    },
+    {
+      "id": "factory-checkpoint-secret-presence",
+      "name": "Factory checkpoint Doppler key names and ESO Secret presence",
+      "command": "names-only Doppler inspection and ExternalSecret/Secret inventory",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The seven FACTORY_CHECKPOINT_* names are absent; only the existing HETZNER_S3_* names are present and the checkpoint Secret is absent by design.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "runtime evidence: identity and effective permissions"}
+    },
+    {
+      "id": "s3-disposable-fixture",
+      "name": "Disposable S3 PUT/GET/LIST/manifest/checksum/DELETE",
+      "command": "disposable rclone fixture procedure with bundle before manifest",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "A live disposable bundle and manifest were uploaded, read back, listed, checksum/size verified, and deleted; remaining fixture objects were zero.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "runtime evidence: S3 runtime fixture"}
+    },
+    {
+      "id": "s3-effective-permissions",
+      "name": "Effective S3 isolation and non-destructive negative permission probe",
+      "command": "read-only list probes for Factory, CNPG, Velero and Longhorn prefixes",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The existing shared key could list cnpg/, velero/ and longhorn/; prefix isolation is not effective and activation is blocked. No production object was mutated.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "runtime evidence: identity and effective permissions"}
+    },
+    {
+      "id": "s3-bad-binding-runtime",
+      "name": "Live manifest refusal for wrong session/repository/branch/Work Item",
+      "command": "Factory main readCheckpointManifest against a live disposable manifest",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The valid manifest was accepted and each wrong binding was refused before restore; fixture objects were then deleted.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "runtime evidence: binding refusal fixture"}
+    },
+    {
+      "id": "claim-loss-drill",
+      "name": "Strictly disposable SandboxClaim disappearance and isolated restore",
+      "command": "approved disposable SandboxClaim drill",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No dedicated Factory identity or qualified effective policy exists; no claim was created, interrupted or deleted.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    },
+    {
+      "id": "rpo-runtime",
+      "name": "Runtime RPO measurement",
+      "command": "last mutation to completed live checkpoint manifest",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No live Factory checkpoint completed; RPO remains UNKNOWN.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "UNKNOWN"}
+    },
+    {
+      "id": "rto-runtime",
+      "name": "Runtime RTO measurement",
+      "command": "claim disappearance to verified Ready replacement workspace",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No live claim-loss restore completed; RTO remains UNKNOWN.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "UNKNOWN"}
+    },
+    {
+      "id": "gc-safety",
+      "name": "Destructive checkpoint GC activation",
+      "command": "review active wiring and Factory main retention integration",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "No GC scheduler or active deletion path was added; live-reference protection remains a prerequisite.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "GC INACTIVE"}
+    },
+    {
+      "id": "platform-backup-audit-context",
+      "name": "Global backup audit context",
+      "command": "just backup-audit",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The pre-existing platform-wide audit reports 52/57 PVC coverage and unproven general restore; this is separate from Factory S3 evidence and does not authorize mutation.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "backup audit context; not Factory proof"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 13,
+    "executed": 10,
+    "notExecuted": 3,
+    "passed": 7,
+    "failed": 3,
+    "skipped": 0,
+    "unavailable": 3,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@codex/factory-s3-runtime-evidence:plt-109-plt-24-checkpoint-s3-runtime-2026-10-21",
+    "payload": {
+      "resultId": "plt-109-plt-24-checkpoint-s3-runtime-2026-10-21",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "a75d3de45d33346227450ef171f4804bd61a6d61",
+      "tests": [
+        {
+          "id": "s3-disposable-fixture",
+          "name": "Disposable S3 runtime fixture",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Live disposable transport passed; see runtime evidence.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "claim-loss-drill",
+          "name": "Disposable claim-loss restore",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "unavailable",
+          "reason": "Dedicated identity and effective policy are missing.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "incomplete", "total": 13, "executed": 10, "notExecuted": 3}
+    }
+  }
+}

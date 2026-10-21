@@ -181,5 +181,13 @@ negative live-reference protection have been proven in a separate review.
   `UNKNOWN`.
 - **USER:** not in scope.
 
-The machine-readable handoff for this shared-bucket amendment is
+The machine-readable handoff for the static/shared-bucket amendment is
 `docs/operations/plt-109-plt-24-checkpoint-s3-shared-bucket-test-result-2026-10-21.json`.
+
+The subsequent live observations are recorded separately in
+`docs/operations/plt-109-plt-24-checkpoint-s3-runtime-evidence-2026-10-21.md`
+and
+`docs/operations/plt-109-plt-24-checkpoint-s3-runtime-test-result-2026-10-21.json`.
+The live transport fixture passed with the existing shared key, but effective
+prefix isolation failed; claim-loss restore and RPO/RTO remain unexecuted and
+unknown.
