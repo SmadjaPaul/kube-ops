@@ -17,9 +17,13 @@ image:
   pullPolicy: IfNotPresent
 
 githubApp:
-  id: "5416988"
-  installationId: "173903025"
   slug: smadja-atlantis
+# Atlantis v0.48.1 decodes these two flags as int64. Keep the non-secret
+# identity on Cobra's command line so it is parsed before Viper's environment
+# decoding; the chart still owns the App slug and secret-file wiring above.
+extraArgs:
+  - --gh-app-id=5416988
+  - --gh-app-installation-id=173903025
 vcsSecretName: atlantis-github-app
 
 allowForkPRs: false
