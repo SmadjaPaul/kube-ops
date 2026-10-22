@@ -144,6 +144,7 @@ repoConfig: |
               TOFU=/atlantis-data/bin/tofu1.12.6
               test -x "$TOFU"
               cd "$DIR/terraform/github"
+              "$TOFU" init -input=false -reconfigure
               test "$($TOFU workspace show)" = "default"
               "$TOFU" state list | grep -Fx 'github_repository.settings["homelab-infra"]'
               exit 0
@@ -163,6 +164,7 @@ repoConfig: |
               exit 1
             fi
             cd "$PILOT_DIR"
+            "$TOFU" init -input=false -reconfigure
             test "$($TOFU workspace show)" = "default"
             test "$("$TOFU" state list)" = "terraform_data.pilot"
       allowed_overrides: []
