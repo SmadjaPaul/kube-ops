@@ -24,6 +24,7 @@ spec:
           - path: k8s/infrastructure/security
           - path: k8s/poc/atlantis-plan-only
           - path: k8s/optional/github-actions-arc
+          - path: k8s/optional/github-actions-arc-homelab-infra
   template:
     metadata:
       name: 'infra-{{ path.basename }}'
