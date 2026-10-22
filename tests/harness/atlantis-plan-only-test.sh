@@ -62,12 +62,17 @@ if grep -q 'test "\$ATLANTIS_PR_APPROVED" = "true"' "$rendered"; then
   exit 1
 fi
 grep -q 'path: /etc/atlantis/conftest' "$rendered"
+grep -q 'policy_check: true' "$rendered"
 grep -q 'atlantis-pilot-bounded-change' "$rendered"
 grep -q 'Verify the pilot state after Atlantis apply' "$rendered"
 grep -q '        - policy_check:' "$rendered"
 grep -q '          - apply' "$rendered"
 grep -q 'name: atlantis-pilot-conftest' "$rendered"
 grep -q 'pilot.rego:' "$rendered"
+if grep -q 'subPath: pilot.rego' "$rendered"; then
+  echo "Conftest policy must be mounted as a directory for Atlantis" >&2
+  exit 1
+fi
 grep -q 'allowed_overrides: \[\]' "$rendered"
 grep -q 'allow_custom_workflows: false' "$rendered"
 

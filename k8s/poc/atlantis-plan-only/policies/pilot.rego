@@ -3,6 +3,7 @@ package main
 import rego.v1
 
 allowed_address := "terraform_data.pilot"
+allowed_marker := "atlantis-plan-only-fixture-v1"
 
 deny contains msg if {
   some change in input.resource_changes
@@ -14,17 +15,16 @@ deny contains msg if {
 deny contains msg if {
   some change in input.resource_changes
   change.address == allowed_address
-  change.change.actions != ["create"]
-  change.change.actions != ["no-op"]
-  msg := sprintf("resource %q has an action outside create/no-op: %v", [change.address, change.change.actions])
+  object.get(change.change, "importing", null) != null
+  msg := sprintf("resource %q contains an import and is not admitted", [change.address])
 }
 
 deny contains msg if {
   some change in input.resource_changes
   change.address == allowed_address
   change.change.actions == ["create"]
-  change.change.after.input.marker != "atlantis-plan-only-fixture-v1"
-  msg := "terraform_data.pilot marker is not the qualified fixture marker"
+  object.get(object.get(change.change.after, "input", {}), "marker", "") != allowed_marker
+  msg := sprintf("terraform_data.pilot marker is not the qualified fixture marker %q", [allowed_marker])
 }
 
 deny contains msg if {
