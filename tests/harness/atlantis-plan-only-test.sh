@@ -66,10 +66,16 @@ fi
 grep -q 'path: /etc/atlantis/conftest' "$rendered"
 grep -q 'policy_check: true' "$rendered"
 grep -q 'atlantis-pilot-bounded-change' "$rendered"
-grep -q 'Verify the pilot state after Atlantis apply' "$rendered"
+grep -q 'Verify the selected state after Atlantis apply' "$rendered"
 grep -q '          - apply' "$rendered"
 grep -q 'name: atlantis-pilot-conftest' "$rendered"
 grep -q 'pilot.rego:' "$rendered"
+grep -q 'name: atlantis-github-iac' "$rendered"
+grep -q 'name: atlantis-github-repository-safety' "$rendered"
+grep -q 'github-repository-safety.rego:' "$rendered"
+grep -q 'github-atlantis-guard.sh:' "$rendered"
+grep -q 'registry.terraform.io' "$rendered"
+grep -q 'TF_DATA_DIR' "$rendered"
 if grep -q 'subPath: pilot.rego' "$rendered"; then
   echo "Conftest policy must be mounted as a directory for Atlantis" >&2
   exit 1
