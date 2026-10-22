@@ -50,7 +50,7 @@ yq -e '
   .spec.storage.isolationMode == "same-project-dedicated-key-policy-or-explicit-risk" and
   .spec.storage.existingBackupsBucket == "smadja-dev-homelab-backups" and
   .spec.storage.prefixIsolation == "not-assumed" and
-  .spec.storage.sharedCredentialReuse == "prohibited" and
+  .spec.storage.sharedCredentialReuse == "accepted-by-v1-decision" and
   .spec.permissions.policyProof == "not-executed" and
   .spec.permissions.fixturePrefix == "factory-checkpoints/v1/fixture/" and
   ([.spec.permissions.negativeCases[] | select(. == "list-outside-factory-prefix-denied-read-only")] | length) == 1 and

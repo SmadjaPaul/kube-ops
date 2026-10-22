@@ -50,7 +50,7 @@
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
       "reason": "Run only after ESO and Factory readiness are observed; never touch CNPG, Velero or Longhorn objects.",
-      "risk": "critical",
+      "risk": "high",
       "expectedCi": "required"
     },
     {
@@ -61,7 +61,7 @@
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
       "reason": "No claim-loss operation is part of this GitOps PR; RPO/RTO remain UNKNOWN until observed.",
-      "risk": "critical",
+      "risk": "high",
       "expectedCi": "required"
     },
     {
@@ -72,7 +72,7 @@
       "status": "PASSED",
       "classification": "passed",
       "reason": "No destructive GC activation is introduced; live-reference protection remains a separate gate.",
-      "risk": "critical",
+      "risk": "high",
       "expectedCi": "required"
     }
   ],
@@ -86,5 +86,29 @@
     "skipped": 0,
     "unavailable": 3,
     "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@c5125d3cbe784c51eca5be7fba4bee6e4178d9ca:plt-109-plt-24-checkpoint-s3-activation-2026-10-22",
+    "payload": {
+      "resultId": "plt-109-plt-24-checkpoint-s3-activation-2026-10-22",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "c5125d3cbe784c51eca5be7fba4bee6e4178d9ca",
+      "tests": [
+        {
+          "id": "factory-eso-activation",
+          "name": "Factory checkpoint reconciliation",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "unavailable",
+          "reason": "Live Argo reconciliation is collected after merge.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "incomplete", "total": 6, "executed": 3, "notExecuted": 3}
+    }
   }
 }
