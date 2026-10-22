@@ -57,7 +57,7 @@ spec:
                   archive.extractall(target)
 
               config_path = pathlib.Path("/config/plugins/configurations/Jellyfin.Plugin.OIDC.xml")
-              system_config_path = pathlib.Path("/config/config/system.xml")
+              branding_config_path = pathlib.Path("/config/config/branding.xml")
               client_id_path = pathlib.Path("/run/jellyfin-oidc/client_id")
               client_secret_path = pathlib.Path("/run/jellyfin-oidc/client_secret")
               server_base_url = "https://jellyfin.smadja.dev"
@@ -256,13 +256,15 @@ spec:
                       tree.write(config_path, encoding="utf-8", xml_declaration=True)
               config_path.chmod(0o600)
 
-              if not system_config_path.exists():
-                  raise SystemExit("Jellyfin system configuration is missing")
-              system_tree = ET.parse(system_config_path)
-              system_root = system_tree.getroot()
-              login_disclaimer = system_root.find("LoginDisclaimer")
+              if branding_config_path.exists():
+                  branding_tree = ET.parse(branding_config_path)
+                  branding_root = branding_tree.getroot()
+              else:
+                  branding_root = ET.Element("BrandingOptions")
+                  branding_tree = ET.ElementTree(branding_root)
+              login_disclaimer = branding_root.find("LoginDisclaimer")
               if login_disclaimer is None:
-                  login_disclaimer = ET.SubElement(system_root, "LoginDisclaimer")
+                  login_disclaimer = ET.SubElement(branding_root, "LoginDisclaimer")
               if not (login_disclaimer.text or "").strip():
                   login_disclaimer.text = (
                       '<div style="margin:1em 0;text-align:center;">'
@@ -273,7 +275,7 @@ spec:
                       '<div style="margin:1em 0;color:#888;">'
                       '— or sign in with password —</div></div>'
                   )
-                  system_tree.write(system_config_path, encoding="utf-8", xml_declaration=True)
+                  branding_tree.write(branding_config_path, encoding="utf-8", xml_declaration=True)
           securityContext:
             runAsNonRoot: true
             runAsUser: 2501
