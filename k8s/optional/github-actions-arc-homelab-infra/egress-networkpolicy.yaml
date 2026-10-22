@@ -40,6 +40,7 @@ spec:
         - matchPattern: "*.actions.githubusercontent.com"
         - matchName: registry.opentofu.org
         - matchName: releases.hashicorp.com
+        - matchName: nodejs.org
         - matchName: mise.jdx.dev
         - matchName: pypi.org
         - matchName: files.pythonhosted.org
