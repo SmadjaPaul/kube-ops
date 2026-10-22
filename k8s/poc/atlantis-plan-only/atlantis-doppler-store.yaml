@@ -1,0 +1,13 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: atlantis-doppler
+  namespace: atlantis-system
+spec:
+  provider:
+    doppler:
+      auth:
+        secretRef:
+          dopplerToken:
+            name: atlantis-doppler-token
+            key: token

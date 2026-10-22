@@ -71,6 +71,15 @@ grep -q '          - apply' "$rendered"
 grep -q 'name: atlantis-pilot-conftest' "$rendered"
 grep -q 'pilot.rego:' "$rendered"
 grep -q 'name: atlantis-github-iac' "$rendered"
+grep -q 'kind: SecretStore' "$rendered"
+grep -q 'name: atlantis-doppler' "$rendered"
+grep -q 'name: atlantis-doppler-token' "$rendered"
+grep -q 'kind: SecretStore' k8s/poc/atlantis-plan-only/atlantis-doppler-store.yaml
+grep -q 'ESO_ATLANTIS' scripts/bootstrap-atlantis-secret.sh
+if grep -q 'doppler-cluster' k8s/poc/atlantis-plan-only/github-iac-external-secret.yaml; then
+  echo "GitHub IaC credentials must not use the cluster Doppler store" >&2
+  exit 1
+fi
 grep -q 'name: atlantis-github-repository-safety' "$rendered"
 grep -q 'github-repository-safety.rego:' "$rendered"
 grep -q 'github-atlantis-guard.sh:' "$rendered"
