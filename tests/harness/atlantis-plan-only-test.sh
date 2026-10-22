@@ -50,8 +50,14 @@ grep -q 'github.com/SmadjaPaul/homelab-infra' "$rendered"
 grep -q 'workflow: atlantis-deny' "$rendered"
 grep -q 'repo_config_file: .atlantis/plan-only.yaml' "$rendered"
 grep -q 'branch: /^main$/' "$rendered"
-grep -q 'plan_requirements: \[approved, mergeable, undiverged\]' "$rendered"
+grep -q 'plan_requirements: \[mergeable, undiverged\]' "$rendered"
 grep -q 'apply_requirements: \[approved, mergeable, undiverged\]' "$rendered"
+grep -q 'import_requirements: \[approved, mergeable, undiverged\]' "$rendered"
+if grep -q 'test "\$ATLANTIS_PR_APPROVED" = "true"' "$rendered"; then
+  echo "plan workflow must not require GitHub approval" >&2
+  exit 1
+fi
+grep -q 'plan-only Atlantis: apply is disabled server-side' "$rendered"
 grep -q 'allowed_overrides: \[\]' "$rendered"
 grep -q 'allow_custom_workflows: false' "$rendered"
 
