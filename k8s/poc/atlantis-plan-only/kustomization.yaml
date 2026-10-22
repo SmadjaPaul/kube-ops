@@ -6,7 +6,6 @@ kind: Kustomization
 # by the dedicated ExternalSecret below and never include operator credentials.
 resources:
   - namespace.yaml
-  - atlantis-doppler-store.yaml
   - github-app-external-secret.yaml
   - github-iac-external-secret.yaml
   - pilot-backend-external-secret.yaml
