@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "jellyfin-oidc-2026-10-22-e3fdc3ee",
+  "resultId": "jellyfin-oidc-2026-10-22-768458e4",
   "producedAt": "2026-10-22T16:29:07Z",
   "actor": { "kind": "agent", "name": "codex-jellyfin-oidc" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "e3fdc3ee4d7e62acb66d6f404e84323cd4280af4",
+    "revision": "768458e442467246050e97da4a889b575196e2f1",
     "branch": "codex/jellyfin-oidc-gitops-fix"
   },
   "tests": [
@@ -83,11 +83,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@e3fdc3ee4d7e62acb66d6f404e84323cd4280af4:jellyfin-oidc",
+    "idempotencyKey": "SmadjaPaul/kube-ops@768458e442467246050e97da4a889b575196e2f1:jellyfin-oidc",
     "payload": {
-      "resultId": "jellyfin-oidc-2026-10-22-e3fdc3ee",
+      "resultId": "jellyfin-oidc-2026-10-22-768458e4",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "e3fdc3ee4d7e62acb66d6f404e84323cd4280af4",
+      "revision": "768458e442467246050e97da4a889b575196e2f1",
       "tests": [
         {
           "id": "jellyfin-oidc-contract",
