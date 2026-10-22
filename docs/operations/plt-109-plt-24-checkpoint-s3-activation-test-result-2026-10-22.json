@@ -5,7 +5,7 @@
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "c331559fdd56fd0881f5d6dcbc173a42a502d398",
+    "revision": "4b7d3352df7382047c020fc09b19d60f1a2cf307",
     "branch": "codex/plt-109-24-activate-existing-hetzner-credentials"
   },
   "tests": [
@@ -91,11 +91,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@c331559fdd56fd0881f5d6dcbc173a42a502d398:plt-109-plt-24-checkpoint-s3-activation-2026-10-22",
+    "idempotencyKey": "SmadjaPaul/kube-ops@4b7d3352df7382047c020fc09b19d60f1a2cf307:plt-109-plt-24-checkpoint-s3-activation-2026-10-22",
     "payload": {
       "resultId": "plt-109-plt-24-checkpoint-s3-activation-2026-10-22",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "c331559fdd56fd0881f5d6dcbc173a42a502d398",
+      "revision": "4b7d3352df7382047c020fc09b19d60f1a2cf307",
       "tests": [
         {
           "id": "factory-eso-activation",
