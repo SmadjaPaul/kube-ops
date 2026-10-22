@@ -269,6 +269,13 @@ repoConfig: |
               fi
           - init
           - plan
+      policy_check:
+        steps:
+          - env:
+              name: TF_DATA_DIR
+              command: 'printf "%s/atlantis-tofu-data-%s-%s" "${TMPDIR:-/tmp}" "$PROJECT_NAME" "$PULL_NUM"'
+          - show
+          - policy_check
       apply:
         steps:
           - env:
