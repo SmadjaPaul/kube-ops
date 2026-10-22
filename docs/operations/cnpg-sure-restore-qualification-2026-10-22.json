@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "cnpg-sure-restore-qualification-2026-10-22",
+  "producedAt": "2026-10-22T17:45:00+02:00",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "1a46a13fa174b986c74db3fa434d20ef2b79d2e0",
+    "branch": "codex/recovery-consolidation-20261022"
+  },
+  "tests": [
+    {
+      "id": "cnpg-source-selection",
+      "name": "CNPG source and backup pinning",
+      "command": "canonical kubectl metadata-only inspection of sure/sure-postgresql and its CNPG Backup",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Source sure-postgresql was Ready with one instance, continuous archiving and LastBackupSucceeded=True; backup sure-postgresql-gap-remediation-20261019 completed with backupId 20261019T153211 and stoppedAt 2026-10-19T15:32:16Z.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "runtime evidence 2026-10-22; no Secret values read"}
+    },
+    {
+      "id": "cnpg-isolated-network",
+      "name": "Isolated recovery namespace and deny-by-default network",
+      "command": "canonical kubectl observation of namespace, CiliumNetworkPolicy, NetworkPolicy and negative connectivity probes",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Temporary namespace cnpg-restore-qual-sure-20261022 used Cilium default-deny plus Kubernetes ingress deny. Source-to-target ingress, target-to-source database access and target-to-public-IP probes all timed out; the permitted object-storage path remained usable for recovery.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "target_ingress_from_source_exit=124; source_db_from_target_exit=124; public_ip_from_target_exit=124"}
+    },
+    {
+      "id": "cnpg-credentials-reconciliation",
+      "name": "Temporary CNPG credential projection",
+      "command": "canonical kubectl metadata-only observation of ExternalSecret/cnpg-hetzner-credentials",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The temporary ExternalSecret reported Ready=True and SecretSynced for the existing cluster Doppler authority. Only key references and status were inspected; no credential value was read or printed.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "ExternalSecret UID 77fd83dc-a6e7-4536-b380-baee83c144ae"}
+    },
+    {
+      "id": "cnpg-physical-recovery",
+      "name": "CNPG physical recovery to a healthy independent cluster",
+      "command": "temporary CNPG Cluster recoveryTarget.backupID=20261019T153211",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "sure-postgresql-restore reached Cluster in healthy state with Ready=True, one ready instance, current primary sure-postgresql-restore-1, system ID 7693136689275056153 and timeline 2. Recovery logs showed WAL replay, consistent recovery state, archive recovery completion and promotion without restore-command errors.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "target Cluster UID 7e44b1a2-2223-448f-a1f3-0ea6866ae32a"}
+    },
+    {
+      "id": "cnpg-application-sentinel",
+      "name": "Restored database sentinel and checksum",
+      "command": "read-only SQL sentinel against the restored local PostgreSQL socket",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The independent target matched the source sentinel: 152 user tables, 456 total rows, checksum 7cb71792812bcc683586784f24618c9b, database sure, PostgreSQL 18.3, and in-recovery=false.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "source and target sentinel captured 2026-10-22; application user journey not asserted"}
+    },
+    {
+      "id": "cnpg-rto",
+      "name": "Observed CNPG recovery time",
+      "command": "timestamps from temporary Cluster acceptance, Ready condition and SQL sentinel",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Cluster acceptance at 2026-10-22T15:29:55Z, Ready at 15:31:01Z (1m06s), and SQL sentinel at 15:33:07Z (3m12s end-to-end). This is an observed RTO for this isolated Sure fixture only.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "RTO_READY=66s; RTO_SQL_SENTINEL=192s"}
+    },
+    {
+      "id": "cnpg-rpo",
+      "name": "Independent RPO measurement",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No independent pre-restore source transaction or LSN marker was recorded. The base backup timestamp is not an RPO because WAL replay continued through the recovery point; RPO remains unproven.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "RPO=UNPROVEN"}
+    },
+    {
+      "id": "cnpg-user-journey",
+      "name": "Full restored application user journey",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The qualification proved CNPG and SQL recovery for the Sure database, not the complete application authentication and durable user journey.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "application-level restore proof remains incomplete"}
+    },
+    {
+      "id": "cnpg-source-preservation",
+      "name": "Source cluster preservation",
+      "command": "canonical kubectl metadata-only recheck of sure/sure-postgresql and source Backup",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The production source remained healthy with one ready instance and unchanged LastBackupSucceeded metadata; the restore target had no archive plugin and no source WAL or production PITR operation was performed.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "source cluster UID c3ba9da8-c7d5-4944-b94a-3c797a3eb3ce"}
+    },
+    {
+      "id": "cnpg-fixture-cleanup",
+      "name": "Exact temporary resource cleanup",
+      "command": "delete only namespace cnpg-restore-qual-sure-20261022, its Released PV and its Longhorn volume after UID verification",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The temporary namespace, Pod, PVC, Secret projection, ExternalSecret, ObjectStore, CNPG Cluster, CiliumNetworkPolicy and NetworkPolicy were removed. The exact Released PV and Longhorn volume were then removed by identity; historical recovery namespaces and PLT-105 were untouched.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "PV pvc-193a9e05-f71e-4565-93fb-a72bb05748c9; Longhorn UID a1068aed-79f9-4a64-8154-d11a6bb1822a; remaining PV/PVC/Pod=0"}
+    },
+    {
+      "id": "repository-static-check",
+      "name": "Repository deterministic checks",
+      "command": "just check",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The documentation-only evidence change is still being prepared; the check is required before merge and is recorded here rather than implied.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "pending local and CI execution"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 11,
+    "executed": 8,
+    "notExecuted": 3,
+    "passed": 8,
+    "failed": 0,
+    "unavailable": 3
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops:cnpg-sure-restore-qualification-2026-10-22:1a46a13fa174b986c74db3fa434d20ef2b79d2e0",
+    "payload": {
+      "resultId": "cnpg-sure-restore-qualification-2026-10-22",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "1a46a13fa174b986c74db3fa434d20ef2b79d2e0",
+      "tests": [
+        {"id":"cnpg-source-selection","name":"CNPG source and backup pinning","execution":"executed","status":"PASSED","classification":"passed","reason":"Source and completed backup were pinned by metadata-only inspection.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-isolated-network","name":"Isolated recovery namespace and deny-by-default network","execution":"executed","status":"PASSED","classification":"passed","reason":"Negative source, public and cross-namespace probes were blocked.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-credentials-reconciliation","name":"Temporary CNPG credential projection","execution":"executed","status":"PASSED","classification":"passed","reason":"Temporary credential projection was Ready without reading protected values.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-physical-recovery","name":"CNPG physical recovery to a healthy independent cluster","execution":"executed","status":"PASSED","classification":"passed","reason":"Target CNPG cluster reached healthy and Ready state after recovery.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-application-sentinel","name":"Restored database sentinel and checksum","execution":"executed","status":"PASSED","classification":"passed","reason":"Source and target table, row and checksum sentinels matched.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-rto","name":"Observed CNPG recovery time","execution":"executed","status":"PASSED","classification":"passed","reason":"Ready and SQL-sentinel timestamps yielded bounded fixture RTO measurements.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-rpo","name":"Independent RPO measurement","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"No independent pre-restore source LSN or transaction marker was recorded.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-user-journey","name":"Full restored application user journey","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"Only CNPG and SQL recovery were qualified.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-source-preservation","name":"Source cluster preservation","execution":"executed","status":"PASSED","classification":"passed","reason":"Source remained healthy and no production WAL or PITR operation was performed.","risk":"high","expectedCi":"required"},
+        {"id":"cnpg-fixture-cleanup","name":"Exact temporary resource cleanup","execution":"executed","status":"PASSED","classification":"passed","reason":"Only the identified temporary namespace, storage and dependent objects were removed.","risk":"high","expectedCi":"required"},
+        {"id":"repository-static-check","name":"Repository deterministic checks","execution":"not-executed","status":"NOT_EXECUTED","classification":"unavailable","reason":"Required before merge; not implied by this pre-merge record.","risk":"medium","expectedCi":"required"}
+      ],
+      "summary": {"outcome": "incomplete", "total": 11, "executed": 8, "notExecuted": 3, "passed": 8, "failed": 0, "unavailable": 3}
+    }
+  }
+}
