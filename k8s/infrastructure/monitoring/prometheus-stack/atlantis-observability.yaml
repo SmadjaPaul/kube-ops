@@ -10,16 +10,16 @@ metadata:
 data:
   atlantis-observability.json: |
     {
-      "uid":"atlantis-observability","title":"Atlantis Observability","description":"Atlantis v0.48.1 operation counters and scrape coverage.","tags":["iac","atlantis","operations"],"timezone":"browser","schemaVersion":39,"version":1,"refresh":"1m","time":{"from":"now-24h","to":"now"},"editable":false,
+      "uid":"atlantis-observability","title":"Atlantis Observability","description":"Atlantis v0.48.1 runtime counters and scrape coverage.","tags":["iac","atlantis","operations"],"timezone":"browser","schemaVersion":39,"version":2,"refresh":"1m","time":{"from":"now-24h","to":"now"},"editable":false,
       "links":[{"title":"Platform Overview","type":"link","url":"/d/homeops-operations","targetBlank":false},{"title":"Explore Prometheus","type":"link","url":"/explore?orgId=1","targetBlank":true}],
       "panels":[
-        {"id":1,"type":"text","title":"Evidence boundary","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"These panels use Atlantis v0.48.1 documented Prometheus counters. **No data** means the endpoint is not scraped or the series has not been initialized; it is not a zero. The pilot remains dormant until PLT-91 qualifies the metrics endpoint and ServiceMonitor path."}},
-        {"id":2,"type":"stat","title":"Autoplan successes (24h)","gridPos":{"x":0,"y":4,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(increase(atlantis_cmd_autoplan_execution_success[24h]))","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
-        {"id":3,"type":"stat","title":"Autoplan errors (24h)","gridPos":{"x":6,"y":4,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(increase(atlantis_cmd_autoplan_execution_error[24h]))","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
-        {"id":4,"type":"stat","title":"Comment-plan errors (24h)","gridPos":{"x":12,"y":4,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(increase(atlantis_cmd_comment_plan_execution_error[24h]))","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
-        {"id":5,"type":"stat","title":"Comment-apply errors (24h)","gridPos":{"x":18,"y":4,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(increase(atlantis_cmd_comment_apply_execution_error[24h]))","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
-        {"id":6,"type":"timeseries","title":"Operation errors per minute","gridPos":{"x":0,"y":9,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(atlantis_cmd_autoplan_execution_error[5m]))","legendFormat":"autoplan"},{"refId":"B","expr":"sum(rate(atlantis_cmd_comment_plan_execution_error[5m]))","legendFormat":"comment plan"},{"refId":"C","expr":"sum(rate(atlantis_cmd_comment_apply_execution_error[5m]))","legendFormat":"comment apply"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
-        {"id":7,"type":"timeseries","title":"Operation successes per minute","gridPos":{"x":12,"y":9,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(atlantis_cmd_autoplan_execution_success[5m]))","legendFormat":"autoplan"},{"refId":"B","expr":"sum(rate(atlantis_cmd_comment_apply_execution_success[5m]))","legendFormat":"comment apply"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}}
+        {"id":1,"type":"text","title":"Evidence boundary","gridPos":{"x":0,"y":0,"w":24,"h":4},"options":{"mode":"markdown","content":"These panels use the Atlantis v0.48.1 metric families observed at runtime: `atlantis_builder_execution_*` and `atlantis_project_execution_*`. **No data** means the endpoint is not scraped or the series has not been initialized; it is not a zero."}},
+        {"id":2,"type":"stat","title":"Builder successes (24h)","gridPos":{"x":0,"y":4,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(increase(atlantis_builder_execution_success[24h]))","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":3,"type":"stat","title":"Builder errors (24h)","gridPos":{"x":6,"y":4,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(increase(atlantis_builder_execution_error[24h]))","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":4,"type":"stat","title":"Project execution errors (24h)","gridPos":{"x":12,"y":4,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(increase(atlantis_project_execution_error[24h]))","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":5,"type":"stat","title":"Project execution failures (24h)","gridPos":{"x":18,"y":4,"w":6,"h":5},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(increase(atlantis_project_execution_failure[24h]))","instant":true}],"fieldConfig":{"defaults":{"unit":"short","noValue":"No data","min":0}},"options":{"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none"}},
+        {"id":6,"type":"timeseries","title":"Execution errors per minute","gridPos":{"x":0,"y":9,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(atlantis_builder_execution_error[5m]))","legendFormat":"builder"},{"refId":"B","expr":"sum(rate(atlantis_project_execution_error[5m]))","legendFormat":"project error"},{"refId":"C","expr":"sum(rate(atlantis_project_execution_failure[5m]))","legendFormat":"project failure"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}},
+        {"id":7,"type":"timeseries","title":"Execution successes per minute","gridPos":{"x":12,"y":9,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"refId":"A","expr":"sum(rate(atlantis_builder_execution_success[5m]))","legendFormat":"builder"},{"refId":"B","expr":"sum(rate(atlantis_project_execution_success[5m]))","legendFormat":"project"}],"fieldConfig":{"defaults":{"unit":"ops","noValue":"No data","min":0}},"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","max"]}}}
       ]
     }
 ---
@@ -37,34 +37,34 @@ spec:
     - name: atlantis.v0.48.1
       rules:
         - alert: AtlantisMetricsUnavailable
-          expr: absent(atlantis_cmd_autoplan_execution_success)
+          expr: absent(atlantis_builder_execution_success)
           for: 15m
           labels:
             severity: warning
           annotations:
             summary: Atlantis metrics are unavailable
-            description: No documented Atlantis v0.48.1 autoplan success series has been scraped for 15 minutes; verify endpoint configuration and ServiceMonitor before interpreting operation counters.
-        - alert: AtlantisAutoplanErrors
-          expr: sum(increase(atlantis_cmd_autoplan_execution_error[15m])) > 0
+            description: No stable Atlantis v0.48.1 builder success series has been scraped for 15 minutes; verify endpoint configuration and ServiceMonitor before interpreting operation counters.
+        - alert: AtlantisProjectExecutionErrors
+          expr: sum(increase(atlantis_project_execution_error[15m])) > 0
           for: 5m
           labels:
             severity: warning
           annotations:
-            summary: Atlantis autoplan errors detected
-            description: Atlantis reported one or more autoplan execution errors in the last 15 minutes.
-        - alert: AtlantisCommentPlanErrors
-          expr: sum(increase(atlantis_cmd_comment_plan_execution_error[15m])) > 0
+            summary: Atlantis project execution errors detected
+            description: Atlantis reported one or more project execution errors in the last 15 minutes.
+        - alert: AtlantisProjectExecutionFailures
+          expr: sum(increase(atlantis_project_execution_failure[15m])) > 0
           for: 5m
           labels:
             severity: warning
           annotations:
-            summary: Atlantis comment-plan errors detected
-            description: Atlantis reported one or more comment-triggered plan execution errors in the last 15 minutes.
-        - alert: AtlantisCommentApplyErrors
-          expr: sum(increase(atlantis_cmd_comment_apply_execution_error[15m])) > 0
+            summary: Atlantis project execution failures detected
+            description: Atlantis reported one or more project execution failures in the last 15 minutes.
+        - alert: AtlantisBuilderErrors
+          expr: sum(increase(atlantis_builder_execution_error[15m])) > 0
           for: 5m
           labels:
             severity: critical
           annotations:
-            summary: Atlantis comment-apply errors detected
-            description: Atlantis reported one or more comment-triggered apply execution errors in the last 15 minutes; correlate with the native Atlantis operation before taking action.
+            summary: Atlantis builder errors detected
+            description: Atlantis reported one or more builder execution errors in the last 15 minutes; correlate with the native Atlantis operation before taking action.
