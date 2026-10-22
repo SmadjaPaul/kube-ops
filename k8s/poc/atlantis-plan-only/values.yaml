@@ -119,7 +119,7 @@ repoConfig: |
               grep -Eq 'required_version = "= 1.13.1"' "$DIR/versions.tf"
               grep -Eq 'key[[:space:]]*=[[:space:]]*"atlantis-pilot/terraform.tfstate"' "$DIR/backend.tf"
               grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-atlantis-pilot-tfstate"' "$DIR/backend.tf"
-              grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\\.compat\\.objectstorage\\.eu-paris-1\\.oraclecloud\\.com"' "$DIR/backend.tf"
+              grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
               grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
               if grep -Eq 'REPLACE_WITH_DEDICATED_ATLANTIS_PILOT_' "$DIR/backend.tf"; then
                 echo "pilot backend placeholders are forbidden" >&2
