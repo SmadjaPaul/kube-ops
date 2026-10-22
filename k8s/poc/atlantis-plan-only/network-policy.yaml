@@ -6,8 +6,9 @@ metadata:
 spec:
   description: >-
     Plan-only Atlantis: webhook/UI ingress, DNS, GitHub, the pinned OpenTofu
-    distribution endpoints and the dedicated OCI S3 endpoint only; provider
-    registry and other cloud egress remain denied.
+    distribution endpoints (including the signed GitHub release redirect) and
+    the dedicated OCI S3 endpoint only; provider registry and other cloud
+    egress remain denied.
   endpointSelector:
     matchLabels:
       app: atlantis
@@ -41,6 +42,7 @@ spec:
         - matchName: objects.githubusercontent.com
         - matchName: get.opentofu.org
         - matchName: releases.hashicorp.com
+        - matchName: release-assets.githubusercontent.com
         - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
       toPorts:
         - ports:
