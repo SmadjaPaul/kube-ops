@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: seerr-first-run-bootstrap-v4
+  name: seerr-first-run-bootstrap-v5
   namespace: media
   labels:
     app: jellyseerr
@@ -226,22 +226,36 @@ spec:
                       urllib.request.HTTPCookieProcessor(cookie_jar)
                   )
 
-                  http(
-                      seerr_session,
-                      "POST",
-                      f"{SEERR}/api/v1/auth/jellyfin",
-                      {
-                          "username": JELLYFIN_USER,
-                          "password": bootstrap_password,
-                          "hostname": "jellyfin",
-                          "port": 8096,
-                          "useSsl": False,
-                          "urlBase": "",
-                          "email": SEERR_ADMIN_EMAIL,
-                          "serverType": 2,
-                      },
-                      expected=(200,),
-                  )
+                  auth_payload = {
+                      "username": JELLYFIN_USER,
+                      "password": bootstrap_password,
+                      "hostname": "jellyfin",
+                      "port": 8096,
+                      "useSsl": False,
+                      "urlBase": "",
+                      "email": SEERR_ADMIN_EMAIL,
+                      "serverType": 2,
+                  }
+                  try:
+                      http(
+                          seerr_session,
+                          "POST",
+                          f"{SEERR}/api/v1/auth/jellyfin",
+                          auth_payload,
+                          expected=(200,),
+                      )
+                  except RuntimeError as error:
+                      if "returned HTTP 500" not in str(error):
+                          raise
+                      for key in ("hostname", "port", "useSsl", "urlBase"):
+                          auth_payload.pop(key, None)
+                      http(
+                          seerr_session,
+                          "POST",
+                          f"{SEERR}/api/v1/auth/jellyfin",
+                          auth_payload,
+                          expected=(200,),
+                      )
 
                   sync_result = http(
                       seerr_session,
