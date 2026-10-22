@@ -50,3 +50,25 @@ left the first apply unmergeable; after the corrected hook, merge occurred only
 on the successful no-op apply. A live non-pilot apply command was not executed
 against a production root: ATLANTIS_APPLY_DENIED is PASS for the deployed
 technical policy and NOT_EXECUTED for a production mutation attempt.
+
+## Hetzner admission follow-up — 2026-10-22
+
+The Atlantis runtime remains healthy and unchanged for the qualified pilot:
+Argo reports `infra-atlantis-plan-only` `Synced/Healthy` at revision
+`a3452e542cb0466109f3232b765ef85125cf04bf`, the Atlantis Pod is Ready, and the
+GitHub App and pilot backend ExternalSecrets are `SecretSynced`.
+
+The Hetzner root is still excluded from the live server configuration. No
+Hetzner project mapping, provider ExternalSecret or provider credential has
+been added to Atlantis. The dedicated OCI backend identity has independently
+passed init, native locking, cross-state denial and retained-version recovery
+in `homelab-infra`; its canonical state remains serial `1` with lineage
+`9aa4a593-5e30-9e6c-b0e4-101e1e2fc6df`.
+
+The provider admission is `BLOCKED`: a dedicated Hetzner S3 key and a
+disposable policy-qualified test bucket are not available. The shared
+production `HETZNER_S3_*` credential is intentionally not projected into
+Atlantis. Consequently no Atlantis plan, policy check, apply, lock or
+automerge has been executed for Hetzner, and the root remains
+`pending-operator-admission` in the infrastructure registry. See
+`homelab-infra` PR #173 for the evidence consolidation.
