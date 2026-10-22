@@ -245,6 +245,7 @@ spec:
                       "DefaultRoleName": "media",
                       "ManageUserPolicy": "true",
                       "EnableLibraryAccessManagement": "true",
+                      "ManageLoginButtonBranding": "true",
                   }.items():
                       element = root.find(name)
                       if element is None:
