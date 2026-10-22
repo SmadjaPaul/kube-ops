@@ -39,6 +39,7 @@ defaultTFVersion: "1.13.1"
 
 environment:
   ATLANTIS_ALLOW_COMMANDS: version,plan,apply,policy_check
+  ATLANTIS_DISABLE_APPLY: "false"
   ATLANTIS_CHECKOUT_STRATEGY: merge
   ATLANTIS_RESTRICT_FILE_LIST: "true"
   ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
