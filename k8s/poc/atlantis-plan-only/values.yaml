@@ -136,6 +136,9 @@ repoConfig: |
         path: /etc/atlantis/conftest
         source: local
         approve_count: 1
+  metrics:
+    prometheus:
+      endpoint: /metrics
   workflows:
     atlantis-deny:
       plan:
