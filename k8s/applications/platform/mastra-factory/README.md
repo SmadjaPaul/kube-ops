@@ -176,20 +176,21 @@ creates a project, bucket, policy or key.
   Doppler `infrastructure/prd` by the active ExternalSecret
   `checkpoint-s3-externalsecret.dormant.yaml`; its two credential mappings
   intentionally resolve the existing `HETZNER_S3_*` names for V1.
-- A dedicated Factory key must be tested against the shared bucket before
-  activation. Never probe write/delete permissions on CNPG, Velero or
-  Longhorn objects. A key's default project-wide rights mean the path prefix
-  alone cannot be claimed as a permission boundary.
+- A dedicated Factory key remains a future hardening option. V1 uses the
+  existing shared key and records the effective cross-prefix risk. Never probe
+  write/delete permissions on CNPG, Velero or Longhorn objects. A key's
+  default project-wide rights mean the path prefix alone cannot be claimed as
+  a permission boundary.
 - Before the runtime qualification, check bucket presence, effective shared
   key identity, negative read-only access, positive disposable put/get/list/delete within
   the Factory bucket, complete manifest/sha256, active-claim isolation, and
   bounded cleanup without deleting live references.
-- This PR does **not** enable the ESO, alter workload replica count, enable
-  destructive GC or run any SandboxClaim interruption.
+- This PR enables the checkpoint ExternalSecret through ESO. It does **not**
+  alter workload replica count, enable destructive GC or run any SandboxClaim
+  interruption.
 
 Keep `S3_TRANSPORT=RUNTIME_PASS`, `S3_ISOLATION=RUNTIME_FAIL`,
 `CLAIM_LOSS=NOT_EXECUTED`, `RPO/RTO=UNKNOWN` and `PLT-100=OFF` until the
-external owner has produced authoritative dedicated-key and policy proof, and
-the disposable claim-loss restore has been observed. Do not confuse a passing
-transport fixture with a recovery test. Treat OCI/Argo and the GitHub checks
-as separate evidence boundaries.
+post-merge ESO/Factory state and disposable claim-loss restore have been
+observed. Do not confuse a passing transport fixture with a recovery test.
+Treat OCI/Argo and the GitHub checks as separate evidence boundaries.
