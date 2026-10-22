@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: seerr-first-run-bootstrap-v2
+  name: seerr-first-run-bootstrap-v3
   namespace: media
   labels:
     app: jellyseerr
