@@ -215,9 +215,6 @@ repoConfig: |
               grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
               grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
           - apply
-      policy_check:
-        steps:
-          - policy_check:
       import:
         steps:
           - run: |
