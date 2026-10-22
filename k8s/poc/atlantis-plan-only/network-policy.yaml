@@ -5,9 +5,8 @@ metadata:
   namespace: atlantis-system
 spec:
   description: >-
-    Dormant plan-only Atlantis: webhook/UI ingress, DNS and GitHub egress
-    only; OCI S3 and provider registry destinations require a separate
-    activation PR.
+    Plan-only Atlantis: webhook/UI ingress, DNS, GitHub and the dedicated OCI
+    S3 endpoint only; provider registry and other cloud egress remain denied.
   endpointSelector:
     matchLabels:
       app: atlantis
@@ -31,13 +30,14 @@ spec:
             - port: "53"
               protocol: TCP
     - toFQDNs:
-        # These are the only outbound destinations for the dormant fixture.
-        # Do not add OCI S3 or provider-registry hosts until their exact
-        # activation endpoint, TLS path and disposable identity are reviewed.
+        # These are the only outbound destinations for the activated pilot.
+        # The OCI hostname is the dedicated object-storage endpoint for the
+        # isolated pilot backend; no provider registry is admitted.
         - matchName: api.github.com
         - matchName: github.com
         - matchName: codeload.github.com
         - matchName: objects.githubusercontent.com
+        - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
       toPorts:
         - ports:
             - port: "443"

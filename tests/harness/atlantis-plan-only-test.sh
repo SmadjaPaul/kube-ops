@@ -18,6 +18,12 @@ grep -q 'name: atlantis-github-app' "$rendered"
 grep -q 'key.pem' "$rendered"
 grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
+grep -q 'name: atlantis-pilot-backend' "$rendered"
+grep -q 'AWS_ACCESS_KEY_ID' "$rendered"
+grep -q 'AWS_SECRET_ACCESS_KEY' "$rendered"
+grep -q 'AWS_REGION' "$rendered"
+grep -q 'homelab-atlantis-pilot-tfstate' "$rendered"
+grep -q 'axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com' "$rendered"
 grep -q 'fsGroupChangePolicy: Always' "$rendered"
 if grep -q 'argocd.argoproj.io/sync-options: Force=true,Replace=true' "$rendered" || grep -q 'name: repair-data-ownership' "$rendered" || grep -q 'runAsUser: 0' "$rendered"; then
   echo "Atlantis PVC repair must remain compatible with Pod Security restricted" >&2

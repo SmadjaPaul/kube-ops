@@ -1,13 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# This directory is reconciled by the infrastructure ApplicationSet but remains
-# dormant until the approved PLT-89/PLT-90 activation prerequisites are supplied.
-# The AppProject and ApplicationSet references are intentionally kept explicit;
-# activation still requires operator-provided GitHub App identity and review.
+# This directory is reconciled by the infrastructure ApplicationSet. The
+# Atlantis workload remains plan-only; backend credentials are delivered by
+# the dedicated ExternalSecret below and never include operator credentials.
 resources:
   - namespace.yaml
   - github-app-external-secret.yaml
+  - pilot-backend-external-secret.yaml
   - webhook-route.yaml
   - network-policy.yaml
 
