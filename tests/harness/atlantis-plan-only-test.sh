@@ -78,6 +78,7 @@ grep -q 'name: doppler-cluster' "$rendered"
 grep -q 'name: atlantis-github-repository-safety' "$rendered"
 grep -q 'github-repository-safety.rego:' "$rendered"
 grep -q 'github-atlantis-guard.sh:' "$rendered"
+grep -q 'scripts/architecture-check.sh' "$rendered"
 grep -q 'registry.terraform.io' "$rendered"
 grep -q 'TF_DATA_DIR' "$rendered"
 if grep -q 'subPath: pilot.rego' "$rendered"; then

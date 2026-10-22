@@ -42,7 +42,7 @@ changed=$(git diff --name-only "$base_ref...$HEAD_COMMIT")
 while IFS= read -r path; do
   test -z "$path" && continue
   case "$path" in
-    terraform/atlantis-pilot/*|terraform/github/repositories.auto.tfvars|terraform/github/backend.tf|terraform/github/*.md|.atlantis/plan-only.yaml|.gitignore|docs/*|tests/*) ;;
+    terraform/atlantis-pilot/*|terraform/github/repositories.auto.tfvars|terraform/github/backend.tf|terraform/github/*.md|.atlantis/plan-only.yaml|.gitignore|docs/*|tests/*|scripts/architecture-check.sh) ;;
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
 done <<<"$changed"
