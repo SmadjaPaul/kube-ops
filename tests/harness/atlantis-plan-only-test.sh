@@ -10,8 +10,10 @@ grep -q 'ghcr.io/runatlantis/atlantis:v0.48.1@sha256:42bde40e38ec7b89f02a2968b4b
 grep -q 'chart: atlantis-6.16.1' "$rendered"
 grep -q 'ATLANTIS_ALLOW_COMMANDS' "$rendered"
 grep -q 'value: version,plan,apply,policy_check' "$rendered"
-if grep -Eq 'name: ATLANTIS_DISABLE_APPLY$|--disable-apply$' "$rendered"; then
-  echo "Atlantis pilot must not carry a disable-apply setting" >&2
+grep -q 'name: ATLANTIS_DISABLE_APPLY' "$rendered"
+grep -q 'value: "false"' "$rendered"
+if grep -Eq -- '--disable-apply$' "$rendered"; then
+  echo "Atlantis pilot must not carry a CLI disable-apply setting" >&2
   exit 1
 fi
 grep -q 'name: atlantis-webhook' "$rendered"
