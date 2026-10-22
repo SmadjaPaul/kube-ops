@@ -39,6 +39,7 @@ spec:
         - matchName: raw.githubusercontent.com
         - matchPattern: "*.actions.githubusercontent.com"
         - matchName: registry.opentofu.org
+        - matchName: registry.terraform.io
         - matchName: releases.hashicorp.com
         - matchName: nodejs.org
         - matchName: mise.jdx.dev
