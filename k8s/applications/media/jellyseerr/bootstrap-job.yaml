@@ -30,7 +30,7 @@ spec:
           command: ["python", "-c"]
           args:
             - |
-              import http.cookiejar
+              import http.cookiejar as http_cookiejar
               import json
               import os
               import pathlib
@@ -211,7 +211,7 @@ spec:
                       expected=(204,),
                   )
 
-                  cookie_jar = http.cookiejar.CookieJar()
+                  cookie_jar = http_cookiejar.CookieJar()
                   seerr_session = urllib.request.build_opener(
                       urllib.request.HTTPCookieProcessor(cookie_jar)
                   )
