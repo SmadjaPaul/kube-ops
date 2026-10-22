@@ -5,7 +5,7 @@
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "WORKTREE_HEAD",
+    "revision": "c5125d3cbe784c51eca5be7fba4bee6e4178d9ca",
     "branch": "codex/plt-109-24-activate-existing-hetzner-credentials"
   },
   "tests": [
