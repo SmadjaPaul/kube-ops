@@ -64,6 +64,12 @@ jobs:
       - name: Validate V1 desired state and backup coverage
         run: npm run check
 
+      - name: Validate staged Configarr pilot
+        run: |
+          kustomize build k8s/applications/media/configarr > /tmp/configarr-rendered.yaml
+          kubeconform -summary -ignore-missing-schemas /tmp/configarr-rendered.yaml
+          bash tests/harness/configarr-gitops-contract-test.sh
+
       - name: Validate ARC GitOps contract
         run: bash tests/harness/arc-gitops-contract-test.sh
 
