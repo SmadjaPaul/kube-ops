@@ -18,6 +18,14 @@ if grep -Eq '^[[:space:]]*-[[:space:]]*configarr([[:space:]]|$)' "$main"; then
   echo "CONFIGARR_CONTRACT=FAIL package is prematurely in media root"; exit 1
 fi
 
+# Evaluate safety-critical booleans structurally; textual greps alone can be
+# satisfied by comments or other fields and must not authorize an unsafe run.
+yq -e '.spec.suspend == true' "$cron" >/dev/null
+yq -e '.spec.jobTemplate.spec.template.spec.automountServiceAccountToken == false' "$cron" >/dev/null
+yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name == "DRY_RUN" and .value == "true")) | length == 1' "$cron" >/dev/null
+yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name == "CONFIGARR_ENFORCE_CONFIG_VALIDATION" and .value == "true")) | length == 1' "$cron" >/dev/null
+yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name == "TELEMETRY_ENABLED" and .value == "false")) | length == 1' "$cron" >/dev/null
+
 for expression in   'suspend: true'   'value: "true"'   'name: DRY_RUN'   'name: CONFIGARR_ENFORCE_CONFIG_VALIDATION'   'name: CONFIGARR_DIFF_OUTPUT_FILE'   'name: TELEMETRY_ENABLED'   'automountServiceAccountToken: false'   'concurrencyPolicy: Forbid'   'readOnlyRootFilesystem: true'   'image: ghcr.io/raydak-labs/configarr:1.35.0'; do
   grep -Fq "$expression" "$cron" || { echo "CONFIGARR_CONTRACT=FAIL missing $expression"; exit 1; }
 done
