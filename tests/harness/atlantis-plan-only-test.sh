@@ -18,8 +18,9 @@ grep -q 'name: atlantis-github-app' "$rendered"
 grep -q 'key.pem' "$rendered"
 grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
-if grep -Fq 'argocd.argoproj.io/sync-options: Force=true,Replace=true' "$rendered"; then
-  echo "one-time destructive Argo Force/Replace must not persist in Atlantis desired state" >&2
+grep -q 'fsGroupChangePolicy: Always' "$rendered"
+if grep -q 'argocd.argoproj.io/sync-options: Force=true,Replace=true' "$rendered" || grep -q 'name: repair-data-ownership' "$rendered" || grep -q 'runAsUser: 0' "$rendered"; then
+  echo "Atlantis PVC repair must remain compatible with Pod Security restricted" >&2
   exit 1
 fi
 grep -q 'runAsUser: 100' "$rendered"
