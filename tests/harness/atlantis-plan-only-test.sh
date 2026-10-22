@@ -24,6 +24,8 @@ grep -q 'AWS_SECRET_ACCESS_KEY' "$rendered"
 grep -q 'AWS_REGION' "$rendered"
 grep -q 'homelab-atlantis-pilot-tfstate' "$rendered"
 grep -q 'axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com' "$rendered"
+grep -q 'get.opentofu.org' "$rendered"
+grep -q 'releases.hashicorp.com' "$rendered"
 grep -q 'fsGroupChangePolicy: Always' "$rendered"
 if grep -q 'argocd.argoproj.io/sync-options: Force=true,Replace=true' "$rendered" || grep -q 'name: repair-data-ownership' "$rendered" || grep -q 'runAsUser: 0' "$rendered"; then
   echo "Atlantis PVC repair must remain compatible with Pod Security restricted" >&2
