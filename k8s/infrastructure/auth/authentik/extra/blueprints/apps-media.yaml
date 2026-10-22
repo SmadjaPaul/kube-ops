@@ -396,6 +396,17 @@ entries:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
 
+  # Converge providers created before the authorization-code grant was
+  # declared. The client_id is the stable identity of the existing provider.
+  - id: provider-jellyseerr-grant-type
+    model: authentik_providers_oauth2.oauth2provider
+    state: present
+    identifiers:
+      client_id: jellyseerr
+    attrs:
+      grant_types:
+        - authorization_code
+
   - id: application-jellyseerr
     model: authentik_core.application
     identifiers:
