@@ -42,6 +42,8 @@ spec:
         - matchName: registry.terraform.io
         - matchName: releases.hashicorp.com
         - matchName: nodejs.org
+        # mise verifies Ruby artifact attestations against Sigstore's TUF trust root.
+        - matchName: tuf-repo-cdn.sigstore.dev
         - matchName: mise.jdx.dev
         - matchName: pypi.org
         - matchName: files.pythonhosted.org
