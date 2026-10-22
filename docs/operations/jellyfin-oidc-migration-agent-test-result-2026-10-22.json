@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "jellyfin-oidc-migration-2026-10-22-dccfb0b3",
+  "producedAt": "2026-10-22T18:58:00Z",
+  "actor": { "kind": "agent", "name": "codex-jellyfin-oidc" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "dccfb0b3f446beea87d3d6c547f9ded236ef6503",
+    "branch": "codex/jellyfin-migrate-local-user-20261022"
+  },
+  "tests": [
+    {
+      "id": "jellyfin-oidc-contract",
+      "name": "Jellyfin OIDC local-user migration contract",
+      "command": "bash tests/harness/jellyfin-oidc-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "MigrateLocalUsers is reconciled in the root plugin configuration while provider callback and secret redaction contracts remain valid.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:dccfb0b3" }
+    },
+    {
+      "id": "agent-result-contract",
+      "name": "Machine-readable test result contract",
+      "command": "npm run check:agent-harness",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The versioned receipt contract and non-empty transmission projection pass.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:dccfb0b3" }
+    },
+    {
+      "id": "oidc-user-round-trip",
+      "name": "OIDC user round-trip after local-user migration",
+      "command": "Browser Jellyfin to Authentik to Jellyfin",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "Requires Argo rollout and the authorized interactive identity; the prior runtime failure demonstrated the local-account migration defect.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 3,
+    "executed": 2,
+    "notExecuted": 1,
+    "passed": 2,
+    "unavailable": 1
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@dccfb0b3f446beea87d3d6c547f9ded236ef6503:jellyfin-oidc-migration",
+    "payload": {
+      "resultId": "jellyfin-oidc-migration-2026-10-22-dccfb0b3",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "dccfb0b3f446beea87d3d6c547f9ded236ef6503",
+      "tests": [
+        {
+          "id": "jellyfin-oidc-contract",
+          "name": "Jellyfin OIDC local-user migration contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Static migration contract passed.",
+          "risk": "medium",
+          "expectedCi": "required"
+        },
+        {
+          "id": "agent-result-contract",
+          "name": "Machine-readable test result contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Receipt contract passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "oidc-user-round-trip",
+          "name": "OIDC user round-trip after local-user migration",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "unavailable",
+          "reason": "Requires post-merge rollout and interactive identity.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 3, "executed": 2, "notExecuted": 1 }
+    }
+  }
+}
