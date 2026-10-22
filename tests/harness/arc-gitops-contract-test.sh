@@ -107,7 +107,7 @@ homelab_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.nam
 assert_yq "$homelab_download_policy | .metadata.namespace" 'arc-runners'
 assert_yq "$homelab_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'homelab-infra-ci-arc'
 assert_yq "$homelab_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
-  'api.github.com,api.nuget.org,codeload.github.com,files.pythonhosted.org,github-registry-files.githubusercontent.com,github-releases.githubusercontent.com,github.com,mise.jdx.dev,nodejs.org,objects-origin.githubusercontent.com,objects.githubusercontent.com,pypi.org,raw.githubusercontent.com,registry.npmjs.org,registry.opentofu.org,registry.terraform.io,release-assets.githubusercontent.com,releases.hashicorp.com'
+  'api.github.com,api.nuget.org,codeload.github.com,files.pythonhosted.org,github-registry-files.githubusercontent.com,github-releases.githubusercontent.com,github.com,mise.jdx.dev,nodejs.org,objects-origin.githubusercontent.com,objects.githubusercontent.com,pypi.org,raw.githubusercontent.com,registry.npmjs.org,registry.opentofu.org,registry.terraform.io,release-assets.githubusercontent.com,releases.hashicorp.com,tuf-repo-cdn.sigstore.dev'
 
 runner_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-node-npm-egress")'
 assert_yq "$runner_download_policy | .metadata.namespace" 'arc-runners'
