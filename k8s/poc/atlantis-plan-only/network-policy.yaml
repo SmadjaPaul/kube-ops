@@ -5,8 +5,9 @@ metadata:
   namespace: atlantis-system
 spec:
   description: >-
-    Plan-only Atlantis: webhook/UI ingress, DNS, GitHub and the dedicated OCI
-    S3 endpoint only; provider registry and other cloud egress remain denied.
+    Plan-only Atlantis: webhook/UI ingress, DNS, GitHub, the pinned OpenTofu
+    distribution endpoints and the dedicated OCI S3 endpoint only; provider
+    registry and other cloud egress remain denied.
   endpointSelector:
     matchLabels:
       app: atlantis
@@ -31,12 +32,15 @@ spec:
               protocol: TCP
     - toFQDNs:
         # These are the only outbound destinations for the activated pilot.
-        # The OCI hostname is the dedicated object-storage endpoint for the
-        # isolated pilot backend; no provider registry is admitted.
+        # OpenTofu downloads its pinned toolchain on first start. The OCI
+        # hostname is the dedicated object-storage endpoint for the isolated
+        # pilot backend; no provider registry is admitted.
         - matchName: api.github.com
         - matchName: github.com
         - matchName: codeload.github.com
         - matchName: objects.githubusercontent.com
+        - matchName: get.opentofu.org
+        - matchName: releases.hashicorp.com
         - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
       toPorts:
         - ports:
