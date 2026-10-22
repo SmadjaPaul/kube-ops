@@ -372,6 +372,8 @@ entries:
         ]
 
       client_type: confidential
+      grant_types:
+        - authorization_code
       redirect_uris:
         # Seerr new OIDC implementation. Legacy Jellyseerr callback is retained
         # temporarily so rollback does not require an Authentik change.
