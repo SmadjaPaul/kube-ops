@@ -26,7 +26,7 @@ yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name
 yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name == "CONFIGARR_ENFORCE_CONFIG_VALIDATION" and .value == "true")) | length == 1' "$cron" >/dev/null
 yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name == "TELEMETRY_ENABLED" and .value == "false")) | length == 1' "$cron" >/dev/null
 
-for expression in   'suspend: true'   'value: "true"'   'name: DRY_RUN'   'name: CONFIGARR_ENFORCE_CONFIG_VALIDATION'   'name: CONFIGARR_DIFF_OUTPUT_FILE'   'name: TELEMETRY_ENABLED'   'automountServiceAccountToken: false'   'concurrencyPolicy: Forbid'   'readOnlyRootFilesystem: true'   'image: ghcr.io/raydak-labs/configarr:1.35.0'; do
+for expression in   'suspend: true'   'value: "true"'   'name: DRY_RUN'   'name: CONFIGARR_ENFORCE_CONFIG_VALIDATION'   'name: CONFIGARR_DIFF_OUTPUT_FILE'   'name: TELEMETRY_ENABLED'   'automountServiceAccountToken: false'   'concurrencyPolicy: Forbid'   'readOnlyRootFilesystem: true'   'image: ghcr.io/raydak-labs/configarr:1.35.0@sha256:13ef4d9a6ebc13178c8c74813dd12e11ea7331e186a492d79d938513887b96d4'; do
   grep -Fq "$expression" "$cron" || { echo "CONFIGARR_CONTRACT=FAIL missing $expression"; exit 1; }
 done
 

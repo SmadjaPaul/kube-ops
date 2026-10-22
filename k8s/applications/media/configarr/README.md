@@ -42,7 +42,8 @@ authorized indexer is configured.
    and `APP_PROWLARR_API_KEY`. Establish them from genuine Arr app APIs
    without logging values. Missing keys are BLOCKED; do not generate guesses.
 3. Review the actual Configarr 1.35.0 executable/entrypoint, Linux image
-   digest, UID, cache paths and tag support. Pin the digest before admission.
+   digest, UID, cache paths and tag support. The staged manifest is pinned to
+   the verified multi-architecture digest; re-verify it before activation.
 4. Validate `kustomize build k8s/applications/media/configarr` and
    kubeconform/schema/contract checks. The package must remain absent from
    the media root until an independent review authorizes staged deployment.
