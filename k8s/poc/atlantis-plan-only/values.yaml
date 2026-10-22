@@ -70,7 +70,10 @@ repoConfig: |
       branch: /^main$/
       repo_config_file: .atlantis/plan-only.yaml
       workflow: atlantis-plan-only
-      plan_requirements: [approved, mergeable, undiverged]
+      # Plans are autonomous for this isolated pilot only. Keep the GitHub
+      # mergeability and divergence gates; approval remains mandatory for
+      # every mutation-capable command below.
+      plan_requirements: [mergeable, undiverged]
       apply_requirements: [approved, mergeable, undiverged]
       import_requirements: [approved, mergeable, undiverged]
       repo_locks:
@@ -109,7 +112,6 @@ repoConfig: |
               test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
               test "$PROJECT_NAME" = "atlantis-pilot"
               test -z "$COMMENT_ARGS"
-              test "$ATLANTIS_PR_APPROVED" = "true"
               test "$ATLANTIS_PR_MERGEABLE" = "true"
               test "$HEAD_COMMIT" != ""
               test -f "$DIR/backend.tf"
