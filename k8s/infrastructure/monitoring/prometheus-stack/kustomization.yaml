@@ -7,6 +7,8 @@ resources:
   - grafana-oauth-secret.yaml
   - prometheus-http-route.yaml
   - grafana-catalog.yaml
+  - atlantis-servicemonitor.yaml
+  - atlantis-observability.yaml
   - grafana-resource-efficiency.yaml
 
 helmCharts:

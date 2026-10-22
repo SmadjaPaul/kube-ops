@@ -5,7 +5,7 @@ metadata:
   namespace: atlantis-system
 spec:
   description: >-
-    Plan-only Atlantis: webhook/UI ingress, DNS, GitHub, the pinned OpenTofu
+    Atlantis pilot: webhook/UI ingress and Prometheus scrape, DNS, GitHub, the pinned OpenTofu
     distribution endpoints (including the signed GitHub release redirect) and
     the dedicated OCI S3 endpoint only; provider registry and other cloud
     egress remain denied.
@@ -16,6 +16,15 @@ spec:
   ingress:
     - fromEntities:
         - ingress
+      toPorts:
+        - ports:
+            - port: "4141"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            k8s:app.kubernetes.io/name: prometheus
+            k8s:app.kubernetes.io/instance: kube-prometheus-stack-prometheus
       toPorts:
         - ports:
             - port: "4141"

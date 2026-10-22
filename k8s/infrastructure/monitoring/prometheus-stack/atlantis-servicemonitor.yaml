@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: atlantis-pilot
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: observability
+    prometheus: kube-prometheus-stack
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - atlantis-system
+  selector:
+    matchLabels:
+      app: atlantis
+      release: atlantis-pilot
+  endpoints:
+    - port: atlantis
+      path: /metrics
+      interval: 60s
+      scheme: http
