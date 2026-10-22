@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        atlantis.smadja.dev/config-revision: "2026-10-22-native-policy-v2"
+        atlantis.smadja.dev/config-revision: "2026-10-22-native-policy-v3"
     spec:
       volumes:
         - name: atlantis-home-dir
