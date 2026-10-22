@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "jellyfin-oidc-2026-10-22-a8625f87",
+  "resultId": "jellyfin-oidc-2026-10-22-bb539a25",
   "producedAt": "2026-10-22T16:29:07Z",
   "actor": { "kind": "agent", "name": "codex-jellyfin-oidc" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "a8625f87aa8355103577b4a26dbb71b9b76ad9df",
+    "revision": "bb539a2503bc82f98890301a903f7c9598b28a50",
     "branch": "codex/jellyfin-oidc-gitops-fix"
   },
   "tests": [
@@ -19,7 +19,7 @@
       "reason": "Provider-scoped ServerBaseUrl, v1 ClientSecret projection, canonical callback and browser path checks passed.",
       "risk": "low",
       "expectedCi": "required",
-      "evidence": { "kind": "command", "reference": "local:a8625f87" }
+      "evidence": { "kind": "command", "reference": "local:bb539a25" }
     },
     {
       "id": "repository-check",
@@ -31,7 +31,7 @@
       "reason": "Repository contract, backup, security, Argo, Factory-boundary and recovery checks passed.",
       "risk": "low",
       "expectedCi": "required",
-      "evidence": { "kind": "command", "reference": "local:a8625f87" }
+      "evidence": { "kind": "command", "reference": "local:bb539a25" }
     },
     {
       "id": "full-check",
@@ -43,16 +43,16 @@
       "reason": "Full repository validation including the Jellyfin OIDC contract passed.",
       "risk": "low",
       "expectedCi": "required",
-      "evidence": { "kind": "command", "reference": "local:a8625f87" }
+      "evidence": { "kind": "command", "reference": "local:bb539a25" }
     },
     {
       "id": "kustomize-media-render",
       "name": "Media Kustomize render with Helm",
       "command": "kubectl kustomize --enable-helm k8s/applications/media",
-      "execution": "not-executed",
-      "status": "NOT_EXECUTED",
+      "execution": "executed",
+      "status": "FAILED",
       "classification": "unavailable",
-      "reason": "Local Helm rejects the Kustomize invocation's `helm version -c` compatibility flag; no rendered result is claimed.",
+      "reason": "The command ran but local Helm rejected Kustomize's `helm version -c` compatibility flag; no rendered result is claimed.",
       "risk": "medium",
       "expectedCi": "required",
       "evidence": { "kind": "none" }
@@ -60,7 +60,7 @@
     {
       "id": "jellyfin-oidc-browser-runtime",
       "name": "Browser Jellyfin to Authentik to Jellyfin round-trip",
-      "command": "cd tests/e2e && npm run test:jellyfin",
+      "command": "cd tests/e2e && npx playwright test specs/jellyfin.spec.ts",
       "execution": "not-executed",
       "status": "NOT_EXECUTED",
       "classification": "unavailable",
@@ -73,10 +73,11 @@
   "summary": {
     "outcome": "incomplete",
     "total": 5,
-    "executed": 3,
-    "notExecuted": 2,
+    "executed": 4,
+    "notExecuted": 1,
     "passed": 3,
-    "unavailable": 2
+    "unavailable": 2,
+    "failed": 1
   },
   "transmission": {
     "target": "factory-platform",
@@ -84,9 +85,9 @@
     "schema": "agent-test-result/v1",
     "idempotencyKey": "SmadjaPaul/kube-ops@a8625f87aa8355103577b4a26dbb71b9b76ad9df:jellyfin-oidc",
     "payload": {
-      "resultId": "jellyfin-oidc-2026-10-22-a8625f87",
+      "resultId": "jellyfin-oidc-2026-10-22-bb539a25",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "a8625f87aa8355103577b4a26dbb71b9b76ad9df",
+      "revision": "bb539a2503bc82f98890301a903f7c9598b28a50",
       "tests": [
         {
           "id": "jellyfin-oidc-contract",
@@ -121,10 +122,10 @@
         {
           "id": "kustomize-media-render",
           "name": "Media Kustomize render with Helm",
-          "execution": "not-executed",
-          "status": "NOT_EXECUTED",
+          "execution": "executed",
+          "status": "FAILED",
           "classification": "unavailable",
-          "reason": "Local Helm compatibility unavailable.",
+          "reason": "Local Helm compatibility unavailable after command execution.",
           "risk": "medium",
           "expectedCi": "required"
         },
@@ -139,7 +140,7 @@
           "expectedCi": "required"
         }
       ],
-      "summary": { "outcome": "incomplete", "total": 5, "executed": 3, "notExecuted": 2 }
+      "summary": { "outcome": "incomplete", "total": 5, "executed": 4, "notExecuted": 1 }
     }
   }
 }
