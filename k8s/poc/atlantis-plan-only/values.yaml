@@ -1,11 +1,13 @@
 fullnameOverride: atlantis-pilot
 
-# Plan-only pilot activated after PLT-89/PLT-90 backend qualification. The
+# Isolated pilot activated after PLT-89/PLT-90 backend qualification. The
 # GitHub App is installed only on SmadjaPaul/homelab-infra. Its Atlantis-
 # required permissions are an operator decision: statuses/checks, contents,
 # issues, pull requests and webhooks; administration, members and actions
 # remain read-only and are added only when the selected authorization feature
-# requires them. Secret values are delivered through ESO from Doppler.
+# requires them. Secret values are delivered through ESO from Doppler. Apply
+# is enabled only for this exact server-side pilot mapping and is guarded by
+# the mounted Conftest policy and post-apply state verification.
 orgAllowlist: github.com/SmadjaPaul/homelab-infra
 atlantisUrl: https://atlantis-webhook.smadja.dev
 
@@ -22,20 +24,21 @@ githubApp:
 extraArgs:
   - --gh-app-id=5416988
   - --gh-app-installation-id=173903025
+  - --enable-policy-checks
 vcsSecretName: atlantis-github-app
 
 allowForkPRs: false
 allowDraftPRs: false
 hidePrevPlanComments: true
 hideUnchangedPlanComments: true
-disableApply: true
+disableApply: false
 disableApplyAll: true
 disableRepoLocking: false
 defaultTFDistribution: opentofu
 defaultTFVersion: "1.13.1"
 
 environment:
-  ATLANTIS_ALLOW_COMMANDS: version,plan,policy_check
+  ATLANTIS_ALLOW_COMMANDS: version,plan,apply,policy_check
   ATLANTIS_CHECKOUT_STRATEGY: merge
   ATLANTIS_RESTRICT_FILE_LIST: "true"
   ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
@@ -56,6 +59,17 @@ environmentSecrets:
       name: atlantis-pilot-backend
       key: AWS_REGION
 
+extraVolumes:
+  - name: atlantis-pilot-conftest
+    configMap:
+      name: atlantis-pilot-conftest
+
+extraVolumeMounts:
+  - name: atlantis-pilot-conftest
+    mountPath: /etc/atlantis/conftest/pilot.rego
+    subPath: pilot.rego
+    readOnly: true
+
 repoConfig: |
   repos:
     # Atlantis always has a default repo entry. Keep an explicit server-side
@@ -71,15 +85,47 @@ repoConfig: |
       repo_config_file: .atlantis/plan-only.yaml
       workflow: atlantis-plan-only
       # Plans are autonomous for this isolated pilot only. Keep the GitHub
-      # mergeability and divergence gates; approval remains mandatory for
-      # every mutation-capable command below.
+      # mergeability and divergence gates. The exact apply workflow below is
+      # separately bounded by the native Conftest policy and state verifier.
       plan_requirements: [mergeable, undiverged]
-      apply_requirements: [approved, mergeable, undiverged]
+      apply_requirements: [mergeable, undiverged]
       import_requirements: [approved, mergeable, undiverged]
       repo_locks:
         mode: on_plan
+      post_workflow_hooks:
+        - commands: apply
+          description: Verify the pilot state after Atlantis apply
+          run: |
+            set -eu
+            if test "$COMMAND_HAS_ERRORS" != "false"; then
+              echo failure > "$OUTPUT_STATUS_FILE"
+              exit 1
+            fi
+            test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
+            test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
+            test "$BASE_BRANCH_NAME" = "main"
+            test "$PROJECT_NAME" = "atlantis-pilot"
+            test "$HEAD_COMMIT" != ""
+            test "$DIR" != ""
+            TOFU=/atlantis-data/bin/tofu1.13.1
+            test -x "$TOFU"
+            cd "$DIR"
+            test "$($TOFU workspace show)" = "default"
+            test "$("$TOFU" state list)" = "terraform_data.pilot"
       allowed_overrides: []
       allow_custom_workflows: false
+  policies:
+    owners:
+      # No GitHub identity is authorized to bypass the server-owned pilot
+      # policy. A failing policy must be fixed in code, never approved away.
+      users:
+        - __atlantis_pilot_policy_no_bypass__
+    approve_count: 1
+    policy_sets:
+      - name: atlantis-pilot-bounded-change
+        path: /etc/atlantis/conftest
+        source: local
+        approve_count: 1
   workflows:
     atlantis-deny:
       plan:
@@ -109,10 +155,8 @@ repoConfig: |
               set -eu
               test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
               test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
-              test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
               test "$PROJECT_NAME" = "atlantis-pilot"
               test -z "$COMMENT_ARGS"
-              test "$ATLANTIS_PR_MERGEABLE" = "true"
               test "$HEAD_COMMIT" != ""
               test -f "$DIR/backend.tf"
               test -f "$DIR/main.tf"
@@ -143,17 +187,34 @@ repoConfig: |
       apply:
         steps:
           - run: |
-              echo "plan-only Atlantis: apply is disabled server-side" >&2
-              exit 1
+              set -eu
+              test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
+              test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
+              test "$BASE_BRANCH_NAME" = "main"
+              test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
+              test "$PROJECT_NAME" = "atlantis-pilot"
+              test -z "$COMMENT_ARGS"
+              test "$HEAD_COMMIT" != ""
+              test -f "$DIR/backend.tf"
+              test -f "$DIR/main.tf"
+              grep -Eq 'required_version = "= 1.13.1"' "$DIR/versions.tf"
+              grep -Eq 'key[[:space:]]*=[[:space:]]*"atlantis-pilot/terraform.tfstate"' "$DIR/backend.tf"
+              grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-atlantis-pilot-tfstate"' "$DIR/backend.tf"
+              grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
+              grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
+          - apply
+      policy_check:
+        steps:
+          - policy_check:
       import:
         steps:
           - run: |
-              echo "plan-only Atlantis: import is disabled server-side" >&2
+              echo "Atlantis pilot: import is disabled server-side" >&2
               exit 1
       state_rm:
         steps:
           - run: |
-              echo "plan-only Atlantis: state operations are disabled server-side" >&2
+              echo "Atlantis pilot: state operations are disabled server-side" >&2
               exit 1
 
 service:
