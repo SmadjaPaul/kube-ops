@@ -20,6 +20,14 @@ generatorOptions:
   disableNameSuffixHash: true
 
 patches:
+  - target:
+      version: v1
+      kind: ConfigMap
+      name: atlantis-pilot-conftest
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: atlantis-system
   - path: statefulset-patch.yaml
     target:
       group: apps
