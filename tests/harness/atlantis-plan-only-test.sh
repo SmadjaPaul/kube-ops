@@ -65,6 +65,8 @@ if grep -q 'test "\$ATLANTIS_PR_APPROVED" = "true"' "$rendered"; then
 fi
 grep -q 'path: /etc/atlantis/conftest' "$rendered"
 grep -q 'policy_check: true' "$rendered"
+grep -q 'name: TF_DATA_DIR' "$rendered"
+grep -q '          - show' "$rendered"
 grep -q 'atlantis-pilot-bounded-change' "$rendered"
 grep -q 'Verify the selected state after Atlantis apply' "$rendered"
 grep -q '          - apply' "$rendered"
