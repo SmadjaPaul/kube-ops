@@ -66,8 +66,7 @@ extraVolumes:
 
 extraVolumeMounts:
   - name: atlantis-pilot-conftest
-    mountPath: /etc/atlantis/conftest/pilot.rego
-    subPath: pilot.rego
+    mountPath: /etc/atlantis/conftest
     readOnly: true
 
 repoConfig: |
@@ -84,6 +83,7 @@ repoConfig: |
       branch: /^main$/
       repo_config_file: .atlantis/plan-only.yaml
       workflow: atlantis-plan-only
+      policy_check: true
       # Plans are autonomous for this isolated pilot only. Keep the GitHub
       # mergeability and divergence gates. The exact apply workflow below is
       # separately bounded by the native Conftest policy and state verifier.
@@ -105,11 +105,21 @@ repoConfig: |
             test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
             test "$BASE_BRANCH_NAME" = "main"
             test "$PROJECT_NAME" = "atlantis-pilot"
+            test "$WORKSPACE" = "default"
             test "$HEAD_COMMIT" != ""
             test "$DIR" != ""
             TOFU=/atlantis-data/bin/tofu1.13.1
             test -x "$TOFU"
-            cd "$DIR"
+            if test -f "$DIR/backend.tf" && test -f "$DIR/main.tf"; then
+              PILOT_DIR="$DIR"
+            elif test -f "$DIR/terraform/atlantis-pilot/backend.tf" && test -f "$DIR/terraform/atlantis-pilot/main.tf"; then
+              PILOT_DIR="$DIR/terraform/atlantis-pilot"
+            else
+              echo "Atlantis pilot root is not present at the expected project or checkout path" >&2
+              echo failure > "$OUTPUT_STATUS_FILE"
+              exit 1
+            fi
+            cd "$PILOT_DIR"
             test "$($TOFU workspace show)" = "default"
             test "$("$TOFU" state list)" = "terraform_data.pilot"
       allowed_overrides: []
@@ -156,6 +166,7 @@ repoConfig: |
               test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
               test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
               test "$PROJECT_NAME" = "atlantis-pilot"
+              test "$WORKSPACE" = "default"
               test -z "$COMMENT_ARGS"
               test "$HEAD_COMMIT" != ""
               test -f "$DIR/backend.tf"
@@ -193,6 +204,7 @@ repoConfig: |
               test "$BASE_BRANCH_NAME" = "main"
               test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
               test "$PROJECT_NAME" = "atlantis-pilot"
+              test "$WORKSPACE" = "default"
               test -z "$COMMENT_ARGS"
               test "$HEAD_COMMIT" != ""
               test -f "$DIR/backend.tf"
