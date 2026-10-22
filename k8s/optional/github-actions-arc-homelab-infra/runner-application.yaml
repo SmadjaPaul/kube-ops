@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-arc-homelab-infra-ci
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: applications
+  source:
+    repoURL: ghcr.io/actions/actions-runner-controller-charts
+    chart: gha-runner-scale-set
+    targetRevision: 0.15.0
+    helm:
+      releaseName: homelab-infra-ci-arc
+      valuesObject:
+        githubConfigUrl: https://github.com/SmadjaPaul/homelab-infra
+        # The existing ARC controller secret is used only by the controller;
+        # it is never mounted in the runner container.
+        githubConfigSecret: arc-github-app
+        minRunners: 0
+        maxRunners: 1
+        controllerServiceAccount:
+          namespace: arc-systems
+          name: arc-gha-rs-controller
+        template:
+          spec:
+            automountServiceAccountToken: false
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1001
+              runAsGroup: 1001
+              fsGroup: 1001
+              fsGroupChangePolicy: OnRootMismatch
+            containers:
+              - name: runner
+                image: ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807
+                command: ["/home/runner/run.sh"]
+                resources:
+                  requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}
+                  limits: {cpu: "2", memory: 2Gi, ephemeral-storage: 4Gi}
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities: {drop: ["ALL"]}
+                  seccompProfile: {type: RuntimeDefault}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: arc-runners
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

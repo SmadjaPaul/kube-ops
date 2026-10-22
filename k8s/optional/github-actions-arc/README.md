@@ -7,7 +7,7 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 ## Components
 
 - `arc-systems` namespace: Helm controller, chart-managed service account and cluster RBAC. The 0.15.0 controller render creates `arc-gha-rs-controller`.
-- `arc-runners` namespace: one repository-scoped ephemeral runner scale set; min=0, max=3, no Docker/Kubernetes container mode. The runner pod has a pinned PostgreSQL 18 Alpine sidecar running as UID/GID 70; PostgreSQL is forced to `listen_addresses=localhost`, is reachable only through the pod's localhost network namespace, and disappears with the job pod.
+- `arc-runners` namespace: two repository-scoped ephemeral runner scale sets. `factory-ci-arc` remains min=0/max=3 with its existing PostgreSQL sidecar; `homelab-infra-ci-arc` is a separate min=0/max=1 scale set with no service container. Factory runner manifests are not modified by the homelab addition.
 - ESO secret `arc-github-app`: dedicated GitHub App credentials, provisioned through existing Doppler ClusterSecretStore; keys `APP_GITHUB_ARC_ID`, `APP_GITHUB_ARC_INSTALLATION_ID`, `APP_GITHUB_ARC_PRIVATE_KEY`.
 - Runner pods: non-privileged, no mounted Kubernetes API token, pinned runner image, cpu/memory/ephemeral-storage limits. The optional Cilium policies allow only DNS and the GitHub HTTPS domains required by the pilot.
 
@@ -18,7 +18,7 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 - Runner image `2.338.0`: `sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807`.
 - PostgreSQL image `18-alpine` (multi-architecture index): `sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873`.
 - The official image currently has no OCI `USER` field; the pod therefore sets `runAsUser: 70` and `runAsGroup: 70`, matching the image's Alpine `postgres` account. `PGDATA` remains the image default `/var/lib/postgresql/18/docker` on the pod's disposable container filesystem; no PVC is mounted.
-- For repository-scoped registration, the dedicated GitHub App needs Repository `Administration: Read and write` and `Metadata: Read-only`. Organization `Self-hosted runners: Read and write` is only needed for organization-scoped registration. The Factory GitHub App is never reused.
+- For repository-scoped registration, the dedicated GitHub App needs Repository `Administration: Read and write` and `Metadata: Read-only`. Organization `Self-hosted runners: Read and write` is only needed for organization-scoped registration. The existing ARC App is acceptable only after its installation is restricted to `factory-platform` and `homelab-infra`; the Atlantis, IaC, Factory source-control and Codex Connector Apps are never reused.
 
 ## Blocking gates before activation
 
@@ -26,10 +26,10 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 2. Review AppProjects `applications` and `infrastructure` for permissions to install these namespaced and cluster-scoped resources. CRDs must be installed before the scale set.
 3. Verify Pod Security admission: the *runner* should be restricted. The controller chart might need separately reviewed security permissions.
 4. Inspect Talos node capacity and deployment disruption risk on this single-node cluster. The three-runner setting requires 1.05 CPU/2.3Gi requests and 9 CPU/9Gi limits across three pods; keep the quota and node headroom aligned with those bounds.
-5. Provision a **dedicated** GitHub App installation with the minimal ARC permissions documented upstream. Never reuse the Factory source-control GitHub App or store keys in Git.
+5. Restrict the existing ARC App installation to exactly `factory-platform` and `homelab-infra`, then verify the live permissions and installation ID. If that cannot be done, provision a separate ARC App instead. Never reuse the Factory source-control GitHub App or store keys in Git.
 6. Design/test egress policy for GitHub endpoints and DNS. The controller and listener need GitHub API outbound access. The staged policies are narrow FQDN policies and must be observed in Cilium audit mode before enforcement.
 7. Fully qualify non-privileged runner image and version pinning, chart values, and the behavior of `automountServiceAccountToken: false` with the chosen template.
-8. Confirm a private-repository GitHub workflow with `runs-on: factory-ci-arc` can be scheduled despite the hosted runner billing block. Existing required checks are **not** modified.
+8. After the scale set is live, change only the homelab-infra static workflow to `runs-on: homelab-infra-ci-arc` and confirm the private-repository job can be scheduled despite the Hosted runner billing block. Factory workflows and required checks are **not** modified.
 9. Test one disposable no-secret job, exact SHA check, scale 0→1→0 and verify cleanup/no worktree residue; then discuss service-container support.
 10. Qualify Cilium/Talos isolation: do not run untrusted PR contributions against production until escape and RBAC exposure risks are assessed. Even nonprivileged runners share the Talos kernel.
 

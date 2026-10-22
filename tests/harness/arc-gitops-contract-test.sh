@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 arc_root="$repo_root/k8s/optional/github-actions-arc"
+homelab_arc_root="$repo_root/k8s/optional/github-actions-arc-homelab-infra"
 infrastructure_project="$repo_root/k8s/bootstrap/argocd-root/infrastructure-project.yaml"
 applications_project="$repo_root/k8s/bootstrap/argocd-root/applications-project.yaml"
 rendered="$(mktemp)"
@@ -10,6 +11,8 @@ cleanup() { rm -f "$rendered"; }
 trap cleanup EXIT
 
 kubectl kustomize "$arc_root" >"$rendered"
+printf '\n---\n' >>"$rendered"
+kubectl kustomize "$homelab_arc_root" >>"$rendered"
 
 required_patterns=(
   'name: arc-systems'
@@ -17,6 +20,7 @@ required_patterns=(
   'name: arc-github-app'
   'name: infra-arc-controller'
   'name: apps-arc-factory-ci'
+  'name: apps-arc-homelab-infra-ci'
   'name: arc-runner-bounds'
   'name: arc-systems-github-egress'
   'name: arc-runners-github-egress'
@@ -25,6 +29,7 @@ required_patterns=(
   'name: arc-gha-rs-controller'
   'minRunners: 0'
   'maxRunners: 3'
+  'maxRunners: 1'
   'pod-security.kubernetes.io/enforce: restricted'
   'image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873'
 )
@@ -81,6 +86,29 @@ assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .res
 assert_yq "$runner_values | (.containers | length)" '2'
 assert_yq "$runner_values | ((.volumes // []) | length)" '0'
 
+homelab_runner_values='select(.kind == "Application" and .metadata.name == "apps-arc-homelab-infra-ci") | .spec.source.helm.valuesObject'
+assert_yq "$homelab_runner_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/homelab-infra'
+assert_yq "$homelab_runner_values | .githubConfigSecret" 'arc-github-app'
+assert_yq "$homelab_runner_values | .minRunners" '0'
+assert_yq "$homelab_runner_values | .maxRunners" '1'
+assert_yq "$homelab_runner_values | .template.spec.automountServiceAccountToken" 'false'
+assert_yq "$homelab_runner_values | .template.spec.securityContext.runAsNonRoot" 'true'
+assert_yq "$homelab_runner_values | .template.spec.securityContext.runAsUser" '1001'
+assert_yq "$homelab_runner_values | .template.spec.securityContext.runAsGroup" '1001'
+assert_yq "$homelab_runner_values | .template.spec.securityContext.fsGroup" '1001'
+assert_yq "$homelab_runner_values | .template.spec.containers | length" '1'
+assert_yq "$homelab_runner_values | .template.spec.containers[0].name" 'runner'
+assert_yq "$homelab_runner_values | .template.spec.containers[0].image" \
+  'ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807'
+assert_yq "$homelab_runner_values | .template.spec.containers[0].securityContext.allowPrivilegeEscalation" 'false'
+assert_yq "$homelab_runner_values | .template.spec.containers[0].securityContext.seccompProfile.type" 'RuntimeDefault'
+
+homelab_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-homelab-infra-downloads")'
+assert_yq "$homelab_download_policy | .metadata.namespace" 'arc-runners'
+assert_yq "$homelab_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'homelab-infra-ci-arc'
+assert_yq "$homelab_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
+  'api.github.com,api.nuget.org,codeload.github.com,files.pythonhosted.org,github-registry-files.githubusercontent.com,github-releases.githubusercontent.com,github.com,mise.jdx.dev,objects-origin.githubusercontent.com,objects.githubusercontent.com,pypi.org,raw.githubusercontent.com,registry.npmjs.org,registry.opentofu.org,release-assets.githubusercontent.com,releases.hashicorp.com'
+
 runner_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-node-npm-egress")'
 assert_yq "$runner_download_policy | .metadata.namespace" 'arc-runners'
 assert_yq "$runner_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'factory-ci-arc'
@@ -91,7 +119,7 @@ assert_yq "$runner_download_policy | [.spec.egress[] | select(.toFQDNs[0].matchN
 assert_yq "$runner_download_policy | [.spec.egress[] | select(.toFQDNs[0].matchName == \"extensions.duckdb.org\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" \
   '80/TCP'
 
-[[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "2" ]] || {
+[[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "3" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
   exit 1
 }
