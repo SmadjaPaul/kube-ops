@@ -58,7 +58,9 @@ spec:
 
               config_path = pathlib.Path("/config/plugins/configurations/Jellyfin.Plugin.OIDC.xml")
               client_id_path = pathlib.Path("/run/jellyfin-oidc/client_id")
+              client_secret_path = pathlib.Path("/run/jellyfin-oidc/client_secret")
               server_base_url = "https://jellyfin.smadja.dev"
+              client_secret = escape(client_secret_path.read_text().strip())
               if not config_path.exists():
                   client_id = escape(client_id_path.read_text().strip())
                   config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -70,12 +72,13 @@ spec:
                     <DisplayName>Authentik</DisplayName>
                     <Authority>https://auth.smadja.dev/application/o/jellyfin/</Authority>
                     <ClientId>{client_id}</ClientId>
-                    <ClientSecretFile>/run/jellyfin-oidc/client_secret</ClientSecretFile>
+                    <ClientSecret>{client_secret}</ClientSecret>
                     <Scopes>openid profile email</Scopes>
                     <RoleClaim>groups</RoleClaim>
                     <UsernameClaim>preferred_username</UsernameClaim>
                     <DisplayNameClaim>name</DisplayNameClaim>
                     <Enabled>true</Enabled>
+                    <ServerBaseUrl>{server_base_url}</ServerBaseUrl>
                   </OidcProviderConfig>
                 </Providers>
                 <RoleMappings>
@@ -121,17 +124,39 @@ spec:
                 <ManageUserPolicy>true</ManageUserPolicy>
                 <EnableLibraryAccessManagement>true</EnableLibraryAccessManagement>
                 <ManageLoginButtonBranding>true</ManageLoginButtonBranding>
-                <ServerBaseUrl>{server_base_url}</ServerBaseUrl>
               </PluginConfiguration>\n''')
               else:
                   tree = ET.parse(config_path)
                   root = tree.getroot()
-                  server_base = root.find("ServerBaseUrl")
-                  if server_base is None:
-                      server_base = ET.SubElement(root, "ServerBaseUrl")
-                  if server_base.text != server_base_url:
-                      server_base.text = server_base_url
+                  provider = next(
+                      (
+                          item
+                          for item in root.findall("./Providers/OidcProviderConfig")
+                          if item.findtext("ProviderId") == "authentik"
+                      ),
+                      None,
+                  )
+                  if provider is None:
+                      raise SystemExit("OIDC provider authentik missing from persistent configuration")
+
+                  def set_provider_value(name, value):
+                      element = provider.find(name)
+                      if element is None:
+                          element = ET.SubElement(provider, name)
+                      if element.text != value:
+                          element.text = value
+                          return True
+                      return False
+
+                  changed = set_provider_value("ClientSecret", client_secret)
+                  changed = set_provider_value("ServerBaseUrl", server_base_url) or changed
+                  legacy_server_base = root.find("ServerBaseUrl")
+                  if legacy_server_base is not None:
+                      root.remove(legacy_server_base)
+                      changed = True
+                  if changed:
                       tree.write(config_path, encoding="utf-8", xml_declaration=True)
+              config_path.chmod(0o600)
           securityContext:
             runAsNonRoot: true
             runAsUser: 2501

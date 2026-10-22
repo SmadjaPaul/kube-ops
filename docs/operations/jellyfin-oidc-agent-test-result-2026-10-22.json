@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "jellyfin-oidc-2026-10-22-e3fdc3ee",
+  "producedAt": "2026-10-22T16:29:07Z",
+  "actor": { "kind": "agent", "name": "codex-jellyfin-oidc" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "e3fdc3ee4d7e62acb66d6f404e84323cd4280af4",
+    "branch": "codex/jellyfin-oidc-gitops-fix"
+  },
+  "tests": [
+    {
+      "id": "jellyfin-oidc-contract",
+      "name": "Jellyfin OIDC GitOps contract",
+      "command": "bash tests/harness/jellyfin-oidc-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Provider-scoped ServerBaseUrl, v1 ClientSecret projection, canonical callback and browser path checks passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:e3fdc3ee" }
+    },
+    {
+      "id": "repository-check",
+      "name": "Repository static checks",
+      "command": "npm run check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Repository contract, backup, security, Argo, Factory-boundary and recovery checks passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:e3fdc3ee" }
+    },
+    {
+      "id": "full-check",
+      "name": "Full just check",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Full repository validation including the Jellyfin OIDC contract passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:e3fdc3ee" }
+    },
+    {
+      "id": "kustomize-media-render",
+      "name": "Media Kustomize render with Helm",
+      "command": "kubectl kustomize --enable-helm k8s/applications/media",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "unavailable",
+      "reason": "The command ran but local Helm rejected Kustomize's `helm version -c` compatibility flag; no rendered result is claimed.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "none" }
+    },
+    {
+      "id": "jellyfin-oidc-browser-runtime",
+      "name": "Browser Jellyfin to Authentik to Jellyfin round-trip",
+      "command": "cd tests/e2e && npx playwright test specs/jellyfin.spec.ts",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "Requires the post-merge Argo rollout and an operator-authorized browser identity; runtime evidence is intentionally not inferred from static checks.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 5,
+    "executed": 4,
+    "notExecuted": 1,
+    "passed": 3,
+    "unavailable": 2,
+    "failed": 1
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@e3fdc3ee4d7e62acb66d6f404e84323cd4280af4:jellyfin-oidc",
+    "payload": {
+      "resultId": "jellyfin-oidc-2026-10-22-e3fdc3ee",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "e3fdc3ee4d7e62acb66d6f404e84323cd4280af4",
+      "tests": [
+        {
+          "id": "jellyfin-oidc-contract",
+          "name": "Jellyfin OIDC GitOps contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Static contract passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "repository-check",
+          "name": "Repository static checks",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "npm run check passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "full-check",
+          "name": "Full just check",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "just check passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "kustomize-media-render",
+          "name": "Media Kustomize render with Helm",
+          "execution": "executed",
+          "status": "FAILED",
+          "classification": "unavailable",
+          "reason": "Local Helm compatibility unavailable after command execution.",
+          "risk": "medium",
+          "expectedCi": "required"
+        },
+        {
+          "id": "jellyfin-oidc-browser-runtime",
+          "name": "Browser Jellyfin to Authentik to Jellyfin round-trip",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "unavailable",
+          "reason": "Requires post-merge runtime and browser identity.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 5, "executed": 4, "notExecuted": 1 }
+    }
+  }
+}

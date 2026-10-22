@@ -12,7 +12,7 @@ test('JELLYFIN_SSO_E2E reaches the Jellyfin UI through Authentik', async ({ brow
 
   try {
     const ssoResponse = await page.goto(
-      `${URLs.jellyfin}/sso/Oid/start/authentik`,
+      `${URLs.jellyfin}/sso/OIDC/Start/authentik`,
       { waitUntil: 'domcontentloaded' },
     );
 
