@@ -113,7 +113,6 @@ Certain PVCs and applications are intentionally excluded from automated backups:
 - **Qdrant**: Vector database with replaceable embeddings
 - **OpenHands**: Development/testing tool
 - **VLLM**: AI model embeddings (can be regenerated)
-- **HeadlessX**: Remote desktop (ephemeral sessions)
 - **Unrar**: Temporary processing tool
 - **Media-share**: Handled by separate snapshot strategy
 
