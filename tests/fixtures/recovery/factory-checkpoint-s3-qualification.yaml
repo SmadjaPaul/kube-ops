@@ -13,7 +13,7 @@ spec:
     prefix: factory-checkpoints/v1
     endpoint: https://fsn1.your-objectstorage.com
     sharedBucketReuse: approved-by-v1-decision
-    sharedCredentialReuse: prohibited
+    sharedCredentialReuse: accepted-by-v1-decision
     isolationMode: same-project-dedicated-key-policy-or-explicit-risk
     existingBackupsBucket: smadja-dev-homelab-backups
     prefixIsolation: not-assumed
