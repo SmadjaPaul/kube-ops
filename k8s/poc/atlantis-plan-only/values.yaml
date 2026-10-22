@@ -1,13 +1,10 @@
 fullnameOverride: atlantis-pilot
 
-# Isolated pilot activated after PLT-89/PLT-90 backend qualification. The
-# GitHub App is installed only on SmadjaPaul/homelab-infra. Its Atlantis-
-# required permissions are an operator decision: statuses/checks, contents,
-# issues, pull requests and webhooks; administration, members and actions
-# remain read-only and are added only when the selected authorization feature
-# requires them. Secret values are delivered through ESO from Doppler. Apply
-# is enabled only for this exact server-side pilot mapping and is guarded by
-# the mounted Conftest policy and post-apply state verification.
+# Isolated pilot plus the GitHub as Code admission root after backend and App
+# qualification. The Atlantis GitHub App remains distinct from the GitHub IaC
+# App. Secret values are delivered through ESO from Doppler; the server-owned
+# workflow selects the pilot or GitHub state identity by project. Apply is
+# guarded by the mounted Conftest policies and post-apply state verification.
 orgAllowlist: github.com/SmadjaPaul/homelab-infra
 atlantisUrl: https://atlantis-webhook.smadja.dev
 
@@ -45,6 +42,18 @@ environment:
   ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
   ATLANTIS_DISCARD_APPROVAL_ON_PLAN: "true"
   AWS_EC2_METADATA_DISABLED: "true"
+  # Provider fallback channels are intentionally empty. The GitHub workflow
+  # supplies only TF_VAR_github_app_* from the server-owned secret volume.
+  GITHUB_TOKEN: ""
+  GH_TOKEN: ""
+  TF_VAR_github_token: ""
+  GITHUB_APP_ID: ""
+  GITHUB_APP_INSTALLATION_ID: ""
+  GITHUB_APP_PEM_FILE: ""
+  TF_CLI_ARGS: ""
+  TF_CLI_ARGS_init: ""
+  TF_CLI_ARGS_plan: ""
+  TF_CLI_ARGS_apply: ""
 
 environmentSecrets:
   - name: AWS_ACCESS_KEY_ID
@@ -64,10 +73,31 @@ extraVolumes:
   - name: atlantis-pilot-conftest
     configMap:
       name: atlantis-pilot-conftest
+  - name: atlantis-github-repository-safety
+    configMap:
+      name: atlantis-github-repository-safety
+      defaultMode: 292
+  - name: atlantis-server-admission
+    configMap:
+      name: atlantis-server-admission
+      defaultMode: 365
+  - name: atlantis-github-iac
+    secret:
+      secretName: atlantis-github-iac
+      defaultMode: 256
 
 extraVolumeMounts:
   - name: atlantis-pilot-conftest
     mountPath: /etc/atlantis/conftest
+    readOnly: true
+  - name: atlantis-github-repository-safety
+    mountPath: /etc/atlantis/github-repository-safety
+    readOnly: true
+  - name: atlantis-server-admission
+    mountPath: /etc/atlantis/admission
+    readOnly: true
+  - name: atlantis-github-iac
+    mountPath: /etc/atlantis/github-iac
     readOnly: true
 
 repoConfig: |
@@ -85,6 +115,10 @@ repoConfig: |
       repo_config_file: .atlantis/plan-only.yaml
       workflow: atlantis-plan-only
       policy_check: true
+      pre_workflow_hooks:
+        - commands: plan, apply
+          description: Enforce server-owned GitHub/fixture admission boundary
+          run: /etc/atlantis/admission/github-atlantis-guard.sh
       # Plans are autonomous for this isolated pilot only. Keep the GitHub
       # mergeability and divergence gates. The exact apply workflow below is
       # separately bounded by the native Conftest policy and state verifier.
@@ -95,7 +129,7 @@ repoConfig: |
         mode: on_plan
       post_workflow_hooks:
         - commands: apply
-          description: Verify the pilot state after Atlantis apply
+          description: Verify the selected state after Atlantis apply
           run: |
             set -eu
             if test "$COMMAND_HAS_ERRORS" != "false"; then
@@ -105,6 +139,15 @@ repoConfig: |
             test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
             test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
             test "$BASE_BRANCH_NAME" = "main"
+            if test "$PROJECT_NAME" = "github"; then
+              test "$REPO_REL_DIR" = "terraform/github"
+              TOFU=/atlantis-data/bin/tofu1.12.6
+              test -x "$TOFU"
+              cd "$DIR/terraform/github"
+              test "$($TOFU workspace show)" = "default"
+              "$TOFU" state list | grep -Fx 'github_repository.settings["homelab-infra"]'
+              exit 0
+            fi
             test "$PROJECT_NAME" = "atlantis-pilot"
             test "$HEAD_COMMIT" != ""
             test "$DIR" != ""
@@ -136,6 +179,10 @@ repoConfig: |
         path: /etc/atlantis/conftest
         source: local
         approve_count: 1
+      - name: github-repository-destructive-safety
+        path: /etc/atlantis/github-repository-safety
+        source: local
+        approve_count: 1
   metrics:
     prometheus:
       endpoint: /metrics
@@ -164,8 +211,32 @@ repoConfig: |
     atlantis-plan-only:
       plan:
         steps:
+          - env:
+              name: TF_DATA_DIR
+              command: 'printf "%s/atlantis-tofu-data-%s-%s" "${TMPDIR:-/tmp}" "$PROJECT_NAME" "$PULL_NUM"'
+          - env:
+              name: AWS_ACCESS_KEY_ID
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_ACCESS_KEY_ID; else printf "%s" "$AWS_ACCESS_KEY_ID"; fi'
+          - env:
+              name: AWS_SECRET_ACCESS_KEY
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_SECRET_ACCESS_KEY; else printf "%s" "$AWS_SECRET_ACCESS_KEY"; fi'
+          - env:
+              name: AWS_REGION
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_REGION; else printf "%s" "$AWS_REGION"; fi'
+          - env:
+              name: TF_VAR_github_app_id
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_ID; else printf ""; fi'
+          - env:
+              name: TF_VAR_github_app_installation_id
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_INSTALLATION_ID; else printf ""; fi'
+          - env:
+              name: TF_VAR_github_app_pem_file
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_PRIVATE_KEY; else printf ""; fi'
           - run: |
               set -eu
+              if test "$PROJECT_NAME" = github; then
+                exit 0
+              fi
               test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
               test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
               test "$PROJECT_NAME" = "atlantis-pilot"
@@ -200,8 +271,32 @@ repoConfig: |
           - plan
       apply:
         steps:
+          - env:
+              name: TF_DATA_DIR
+              command: 'printf "%s/atlantis-tofu-data-%s-%s" "${TMPDIR:-/tmp}" "$PROJECT_NAME" "$PULL_NUM"'
+          - env:
+              name: AWS_ACCESS_KEY_ID
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_ACCESS_KEY_ID; else printf "%s" "$AWS_ACCESS_KEY_ID"; fi'
+          - env:
+              name: AWS_SECRET_ACCESS_KEY
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_SECRET_ACCESS_KEY; else printf "%s" "$AWS_SECRET_ACCESS_KEY"; fi'
+          - env:
+              name: AWS_REGION
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_REGION; else printf "%s" "$AWS_REGION"; fi'
+          - env:
+              name: TF_VAR_github_app_id
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_ID; else printf ""; fi'
+          - env:
+              name: TF_VAR_github_app_installation_id
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_INSTALLATION_ID; else printf ""; fi'
+          - env:
+              name: TF_VAR_github_app_pem_file
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_PRIVATE_KEY; else printf ""; fi'
           - run: |
               set -eu
+              if test "$PROJECT_NAME" = github; then
+                exit 0
+              fi
               test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
               test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
               test "$BASE_BRANCH_NAME" = "main"

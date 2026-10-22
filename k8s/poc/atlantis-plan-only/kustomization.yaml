@@ -7,6 +7,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - github-app-external-secret.yaml
+  - github-iac-external-secret.yaml
   - pilot-backend-external-secret.yaml
   - webhook-route.yaml
   - network-policy.yaml
@@ -15,6 +16,12 @@ configMapGenerator:
   - name: atlantis-pilot-conftest
     files:
       - policies/pilot.rego
+  - name: atlantis-github-repository-safety
+    files:
+      - policies/github-repository-safety.rego
+  - name: atlantis-server-admission
+    files:
+      - scripts/github-atlantis-guard.sh
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -24,6 +31,22 @@ patches:
       version: v1
       kind: ConfigMap
       name: atlantis-pilot-conftest
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: atlantis-system
+  - target:
+      version: v1
+      kind: ConfigMap
+      name: atlantis-github-repository-safety
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: atlantis-system
+  - target:
+      version: v1
+      kind: ConfigMap
+      name: atlantis-server-admission
     patch: |-
       - op: add
         path: /metadata/namespace

@@ -5,10 +5,9 @@ metadata:
   namespace: atlantis-system
 spec:
   description: >-
-    Atlantis pilot: webhook/UI ingress and Prometheus scrape, DNS, GitHub, the pinned OpenTofu
-    distribution endpoints (including the signed GitHub release redirect) and
-    the dedicated OCI S3 endpoint only; provider registry and other cloud
-    egress remain denied.
+    Atlantis pilot: webhook/UI ingress and Prometheus scrape, DNS, GitHub, the
+    pinned OpenTofu distribution endpoints, the GitHub provider registries and
+    the dedicated OCI S3 endpoints only.
   endpointSelector:
     matchLabels:
       app: atlantis
@@ -44,12 +43,14 @@ spec:
         # These are the only outbound destinations for the activated pilot.
         # OpenTofu downloads its pinned toolchain on first start. The OCI
         # hostname is the dedicated object-storage endpoint for the isolated
-        # pilot backend; no provider registry is admitted.
+        # pilot or GitHub state backend.
         - matchName: api.github.com
         - matchName: github.com
         - matchName: codeload.github.com
         - matchName: objects.githubusercontent.com
         - matchName: get.opentofu.org
+        - matchName: registry.opentofu.org
+        - matchName: registry.terraform.io
         - matchName: releases.hashicorp.com
         - matchName: release-assets.githubusercontent.com
         - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
