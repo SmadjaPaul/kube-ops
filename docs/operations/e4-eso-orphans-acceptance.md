@@ -1,13 +1,20 @@
 # E4 — ESO, orphans and application acceptance
 
-Evidence collected on 2026-10-08 from the canonical operator kubeconfig.
-This document contains names and statuses only; no Kubernetes Secret or Doppler
-Secret value was read.
+Evidence collected on 2026-10-08 from the canonical operator kubeconfig and
+rechecked on 2026-10-22. This document contains names and statuses only; no
+Kubernetes Secret or Doppler Secret value was read.
+
+The ESO-visible authority is the runtime-domain Doppler project `cluster`,
+config `prd`, exposed through the `doppler-cluster` ClusterSecretStore. The
+bootstrap project `infrastructure/prd` is operator-only and is not read by
+ESO. Provisioning or projecting a missing runtime credential therefore belongs
+to `homelab-infra/terraform/doppler`; this repository must not add a
+placeholder Secret or value.
 
 ## ExternalSecrets blocked by missing Doppler keys
 
-The following key names are absent from `infrastructure/prd` and are also
-reported by ESO as failed remote lookups:
+The following key names are absent from the ESO-visible `cluster/prd` runtime
+domain and are also reported by ESO as failed remote lookups:
 
 | Namespace | ExternalSecret | Missing Doppler key names | Owner role and approval path |
 |---|---|---|---|
@@ -95,8 +102,10 @@ class changes to `UNKNOWN`.
 
 ## Human actions
 
-1. Provision the missing Doppler key names listed above in
-   `infrastructure/prd`; never paste their values into Git or this report.
+1. Provision or project the missing runtime key names listed above through the
+   approved `homelab-infra/terraform/doppler` workflow so they become
+   available in `cluster/prd`; never paste their values into Git or this
+   report.
 2. For Home Assistant, run the external-browser Authentik login/onboarding/
    dashboard acceptance.
 3. For Sure, run the external-browser OIDC login and explicitly approve the
