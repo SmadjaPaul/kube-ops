@@ -147,6 +147,7 @@ def name: .metadata.name;
 def is_drill:
   ((.metadata.labels["backup.smadja.dev/restore-drill"] // "") == "true") or
   ((.metadata.labels["qa.smadja.dev/restore"] // "") == "true") or
+  ((.metadata.labels["recovery.smadja.dev/purpose"] // "") != "") or
   ((ns | test("(^|[-])restore([-]|$)|(^|[-])drill([-]|$)|(^|[-])dr-protect([-]|$)")));
 def is_rebuildable:
   (.metadata.labels["backup.smadja.dev/strategy"] // "") == "rebuildable";

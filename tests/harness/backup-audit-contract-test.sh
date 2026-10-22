@@ -8,11 +8,12 @@ positive_dir="$(mktemp -d)"
 negative_dir="$(mktemp -d)"
 cnpg_negative_dir="$(mktemp -d)"
 longhorn_dir="$(mktemp -d)"
+recovery_label_dir="$(mktemp -d)"
 stale_evidence_dir="$(mktemp -d)"
 policy_dir="$(mktemp -d)"
 stale_policy_dir="$(mktemp -d)"
 tmp_json="$longhorn_dir/mutation.tmp.json"
-trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
+trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
 
 qualification_evidence="$repo_root/docs/operations/dr-restore-evidence-2026-10-20.json"
 jq -e '
@@ -42,6 +43,25 @@ grep -F 'ORPHAN_PVC_COUNT=1' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_GAPS=2' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_LEGACY_GAPS=2' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_UNVERIFIED=0' "$output" >/dev/null
+
+# Explicit recovery-purpose labels classify isolated recovery fixtures as
+# restore residue without guessing from a namespace name or treating them as
+# production backup coverage.
+cp -R "$fixture_dir/." "$recovery_label_dir/"
+jq '.items += [{"metadata":{"namespace":"plt105-recovery-fixture","name":"recovered","labels":{"recovery.smadja.dev/purpose":"plt105-readonly"}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-recovered"},"status":{"phase":"Bound"}}]' \
+  "$recovery_label_dir/pvc.json" >"$tmp_json"
+mv "$tmp_json" "$recovery_label_dir/pvc.json"
+jq '.items += [{"metadata":{"name":"pv-recovered"},"spec":{"claimRef":{"namespace":"plt105-recovery-fixture","name":"recovered"}},"status":{"phase":"Bound"}}]' \
+  "$recovery_label_dir/pv.json" >"$tmp_json"
+mv "$tmp_json" "$recovery_label_dir/pv.json"
+recovery_label_report="$recovery_label_dir/report.json"
+BACKUP_AUDIT_INPUT_DIR="$recovery_label_dir" BACKUP_AUDIT_REPORT_FILE="$recovery_label_report" \
+  bash "$repo_root/scripts/backup-audit.sh" >"$output"
+grep -F 'PRODUCTION_PVC_COVERAGE=PASS (1/1)' "$output" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "plt105-recovery-fixture")] | length == 0' \
+  "$recovery_label_report" >/dev/null
+jq -e '[.restorePVCs[] | select(.namespace == "plt105-recovery-fixture")][0] | .classification == "synthetic/test" and .drill == true' \
+  "$recovery_label_report" >/dev/null
 
 cp -R "$fixture_dir/." "$stale_evidence_dir/"
 jq '.items += [

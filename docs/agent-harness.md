@@ -150,6 +150,11 @@ previous audit, while `BACKUP_AUDIT_GAPS` includes unverified production PVCs,
 CNPG configuration gaps, and restore residue. Missing required Kubernetes APIs
  fail closed rather than becoming an empty successful inventory.
 
+An isolated recovery fixture may carry the explicit
+`recovery.smadja.dev/purpose` label. That label classifies the PVC as
+`synthetic/test` restore residue; it does not establish backup coverage,
+recovery proof, or permission to delete the fixture.
+
 Recovery policy records are supplied through
 `BACKUP_AUDIT_RECOVERY_POLICY_FILE` or, in fixture mode,
 `recovery-policy.json`. The checked-in policy record is UID-bound and contains
