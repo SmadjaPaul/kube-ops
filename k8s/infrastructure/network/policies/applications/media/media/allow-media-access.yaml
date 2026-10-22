@@ -77,6 +77,15 @@ spec:
     - ports:
       - port: "9000"
         protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: media
+    toPorts:
+    - ports:
+      - port: "5055"
+        protocol: TCP
+      - port: "8096"
+        protocol: TCP
   - toCIDR: ["10.0.0.0/8"]
     toPorts:
     - ports:
