@@ -5,7 +5,7 @@
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "1a46a13fa174b986c74db3fa434d20ef2b79d2e0",
+    "revision": "1ed029d1befecd95d3f269a21120838ebc356157",
     "branch": "codex/recovery-consolidation-20261022"
   },
   "tests": [
@@ -153,11 +153,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops:cnpg-sure-restore-qualification-2026-10-22:1a46a13fa174b986c74db3fa434d20ef2b79d2e0",
+    "idempotencyKey": "SmadjaPaul/kube-ops:cnpg-sure-restore-qualification-2026-10-22:1ed029d1befecd95d3f269a21120838ebc356157",
     "payload": {
       "resultId": "cnpg-sure-restore-qualification-2026-10-22",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "1a46a13fa174b986c74db3fa434d20ef2b79d2e0",
+      "revision": "1ed029d1befecd95d3f269a21120838ebc356157",
       "tests": [
         {"id":"cnpg-source-selection","name":"CNPG source and backup pinning","execution":"executed","status":"PASSED","classification":"passed","reason":"Source and completed backup were pinned by metadata-only inspection.","risk":"high","expectedCi":"required"},
         {"id":"cnpg-isolated-network","name":"Isolated recovery namespace and deny-by-default network","execution":"executed","status":"PASSED","classification":"passed","reason":"Negative source, public and cross-namespace probes were blocked.","risk":"high","expectedCi":"required"},
