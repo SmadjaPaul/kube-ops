@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configarr-config
+  namespace: media
+data:
+  config.yml: |
+    # PLT-118: preview-only. The live reconciler is not admitted yet.
+    # Keep quality profiles owned by staged Recyclarr until a single-owner
+    # migration has passed a diff review.
+    telemetry: false
+    sonarr:
+      main:
+        base_url: http://sonarr.media.svc.cluster.local:80
+        api_key: !env SONARR_API_KEY
+        # Experimental Configarr reconciliation: omitted folders can be deleted.
+        # DRY_RUN=true must remain enforced until the preview is approved.
+        root_folders:
+          - /data/media/tv
+    radarr:
+      main:
+        base_url: http://radarr.media.svc.cluster.local:80
+        api_key: !env RADARR_API_KEY
+        root_folders:
+          - /data/media/movies
+    # Prowlarr support is experimental in Configarr 1.35.0.
+    # Only preview application links; no indexer or client is invented.
+    prowlarr:
+      main:
+        base_url: http://prowlarr.media.svc.cluster.local:80
+        api_key: !env PROWLARR_API_KEY
+        applications:
+          data:
+            - name: Radarr
+              type: Radarr
+              sync_level: addOnly
+              fields:
+                prowlarrUrl: http://prowlarr.media.svc.cluster.local:80
+                baseUrl: http://radarr.media.svc.cluster.local:80
+                apiKey: !env RADARR_API_KEY
+                syncCategories: [2000, 2010, 2020, 2030, 2040, 2045, 2050, 2060]
+            - name: Sonarr
+              type: Sonarr
+              sync_level: addOnly
+              fields:
+                prowlarrUrl: http://prowlarr.media.svc.cluster.local:80
+                baseUrl: http://sonarr.media.svc.cluster.local:80
+                apiKey: !env SONARR_API_KEY
+                syncCategories: [5000, 5010, 5020, 5030, 5040, 5045, 5050, 5070]
+          delete_unmanaged:
+            enabled: false
+          # No provider/indexer is configured: do not propagate emptiness.
+          sync_indexers: false

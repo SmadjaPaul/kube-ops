@@ -1,0 +1,98 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: configarr-preview
+  namespace: media
+spec:
+  schedule: "43 4 * * *"
+  timeZone: Europe/Paris
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: configarr-preview
+            app.kubernetes.io/part-of: media
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: configarr
+              # Immutable multi-architecture manifest for Configarr 1.35.0.
+              image: ghcr.io/raydak-labs/configarr:1.35.0@sha256:13ef4d9a6ebc13178c8c74813dd12e11ea7331e186a492d79d938513887b96d4
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: TZ
+                  value: Europe/Paris
+                - name: CONFIG_LOCATION
+                  value: /app/config/config.yml
+                - name: CUSTOM_REPO_ROOT
+                  value: /app/repos
+                - name: DRY_RUN
+                  value: "true"
+                - name: CONFIGARR_DIFF_OUTPUT_FILE
+                  value: /tmp/configarr-diff.json
+                - name: CONFIGARR_ENFORCE_CONFIG_VALIDATION
+                  value: "true"
+                - name: STOP_ON_ERROR
+                  value: "true"
+                - name: TELEMETRY_ENABLED
+                  value: "false"
+                - name: RADARR_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: configarr-arr-api
+                      key: RADARR_API_KEY
+                - name: SONARR_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: configarr-arr-api
+                      key: SONARR_API_KEY
+                - name: PROWLARR_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: configarr-arr-api
+                      key: PROWLARR_API_KEY
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 96Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              volumeMounts:
+                - name: config
+                  mountPath: /app/config
+                  readOnly: true
+                - name: repos
+                  mountPath: /app/repos
+                - name: temp
+                  mountPath: /tmp
+          volumes:
+            - name: config
+              configMap:
+                name: configarr-config
+            - name: repos
+              emptyDir:
+                sizeLimit: 512Mi
+            - name: temp
+              emptyDir:
+                sizeLimit: 128Mi
