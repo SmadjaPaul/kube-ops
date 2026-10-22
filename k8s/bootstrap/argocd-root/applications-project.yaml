@@ -69,8 +69,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: pinepods
       server: https://kubernetes.default.svc
-    - namespace: renovate
-      server: https://kubernetes.default.svc
     - namespace: romm
       server: https://kubernetes.default.svc
     - namespace: searxng

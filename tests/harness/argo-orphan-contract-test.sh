@@ -17,6 +17,11 @@ for project in "${projects[@]}"; do
   }
 done
 
+if yq -e '.spec.destinations[] | select(.namespace == "renovate")' k8s/bootstrap/argocd-root/applications-project.yaml >/dev/null; then
+  echo "ERROR: retired Renovate namespace remains in the applications AppProject" >&2
+  exit 1
+fi
+
 # Never hide a workload kind globally. The Velero maintenance Job exception is
 # name-scoped and is allowed because Kubernetes/Velero creates that exact family.
 if yq -r '.spec.orphanedResources.ignore[]? | [.group // "", .kind, .name // ""] | @tsv' "${projects[@]}" 2>/dev/null |
@@ -29,11 +34,9 @@ fi
 
 cronjobs=(
   k8s/applications/media/recyclarr/cronjob.yaml
-  k8s/applications/catalog/renovate/cronjob.yaml
   k8s/applications/business/invoice-ninja/backup-logical.yaml
 )
 # The list covers existing targeted CronJob retention contracts only.
-# Decommissioned applications must be removed here alongside their manifests.
 for cronjob in "${cronjobs[@]}"; do
   [[ -f "$cronjob" ]] || {
     echo "ERROR: tracked CronJob retention contract points to missing source: $cronjob" >&2

@@ -6,7 +6,6 @@ resources:
   - ntfy
   - searxng
   - stirling-pdf
-  - renovate
   - paperless
   - sure
 
