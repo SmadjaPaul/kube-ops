@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: seerr-first-run-bootstrap-v3
+  name: seerr-first-run-bootstrap-v4
   namespace: media
   labels:
     app: jellyseerr
@@ -45,7 +45,15 @@ spec:
               JELLYFIN_USER = "seerr-service"
               SEERR_ADMIN_EMAIL = "seerr-admin@smadja.invalid"
 
-              def http(opener, method, url, payload=None, headers=None, expected=(200,)):
+              def http(
+                  opener,
+                  method,
+                  url,
+                  payload=None,
+                  headers=None,
+                  expected=(200,),
+                  expected_errors=(),
+              ):
                   request_headers = {"Accept": "application/json"}
                   if headers:
                       request_headers.update(headers)
@@ -61,6 +69,8 @@ spec:
                           status = response.status
                           raw = response.read()
                   except urllib.error.HTTPError as error:
+                      if error.code in expected_errors:
+                          return {"_http_status": error.code}
                       raise RuntimeError(f"{method} {url} returned HTTP {error.code}") from None
                   if status not in expected:
                       raise RuntimeError(f"{method} {url} returned HTTP {status}")
@@ -233,12 +243,15 @@ spec:
                       expected=(200,),
                   )
 
-                  http(
+                  sync_result = http(
                       seerr_session,
                       "POST",
                       f"{SEERR}/api/v1/settings/jellyfin/library/sync",
                       expected=(200,),
+                      expected_errors=(404,),
                   )
+                  if sync_result and sync_result.get("_http_status") == 404:
+                      print("SEERR_LIBRARY_SYNC=NO_SUPPORTED_LIBRARIES")
                   settings = http(
                       seerr_session,
                       "GET",
