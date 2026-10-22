@@ -1,22 +1,22 @@
 # Atlantis OSS v0.48.1 server contract
 
-**Status:** isolated `terraform/atlantis-pilot` activation candidate; runtime
-evidence is recorded only after Argo reconciliation and an Atlantis execution.
+**Status:** isolated `terraform/atlantis-pilot` qualified on 2026-10-22;
+the twelve production roots remain pending individual qualification.
 
 ## Upstream audit
 
 | Control | Candidate configuration | Result |
 | --- | --- | --- |
-| Repository allowlist | `github.com/SmadjaPaul/homelab-infra`; explicit `/.*/` deny rule; forks and drafts disabled | PASS (static; runtime pending) |
+| Repository allowlist | `github.com/SmadjaPaul/homelab-infra`; explicit `/.*/` deny rule; forks and drafts disabled | PASS |
 | Server-side authority | exact repo mapping, `allowed_overrides: []`, `allow_custom_workflows: false` | PASS |
 | Plan admission | `mergeable`, `undiverged`; exact repo/head/root/project/backend/toolchain checks in the native workflow | PASS |
-| Apply admission | only the exact pilot mapping; `disableApplyAll: true`; `mergeable`, `undiverged`; no GitHub `approved` requirement | PASS (static; runtime pending) |
-| Policy check | server `--enable-policy-checks`, local Conftest policy mounted from GitOps ConfigMap, no policy owner able to approve a failure | PASS (static; runtime pending) |
-| Apply scope | native `apply` step consumes Atlantis' saved plan; policy admits only `terraform_data.pilot` create/no-op | PASS (static; runtime pending) |
-| Post-apply verification | server-side apply hook verifies repository, base branch, project, OpenTofu binary, workspace and exact state address | PASS (static; runtime pending) |
-| Locking | Atlantis `repo_locks.mode: on_plan`; OCI backend `use_lockfile = true` | PASS (static; runtime pending) |
+| Apply admission | only the exact pilot mapping; `disableApplyAll: true`; `mergeable`, `undiverged`; no GitHub `approved` requirement | PASS (runtime) |
+| Policy check | server `--enable-policy-checks`, local Conftest policy mounted from GitOps ConfigMap, no policy owner able to approve a failure | PASS (runtime: 12/12) |
+| Apply scope | native `apply` step consumes Atlantis' saved plan; policy admits only `terraform_data.pilot` create/no-op | PASS (runtime) |
+| Post-apply verification | server-side apply hook verifies repository, base branch, project, OpenTofu binary, workspace and exact state address | PASS (runtime) |
+| Locking | Atlantis `repo_locks.mode: on_plan`; OCI backend `use_lockfile = true` | PASS (runtime) |
 | Custom workflows / arguments | PR workflow is not trusted; custom workflows and overrides are disabled; empty comment arguments are required | PASS |
-| Credentials and egress | dedicated ESO secret and OCI egress only; no operator credential; provider registry remains denied | PASS (static; runtime pending) |
+| Credentials and egress | dedicated ESO secret and OCI egress only; no operator credential; provider registry remains denied | PASS (runtime) |
 
 The 12 production roots remain outside this exact repository mapping and retain
 their existing admission boundary. This candidate does not modify their
