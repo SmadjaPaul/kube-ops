@@ -12,7 +12,7 @@ static contract or an Argo revision into runtime proof.
 | `apps-media` Jellyseerr/Seerr | **BLOCKED_EXTERNAL_CREDENTIAL** | Runtime ESO reports the authoritative Doppler key `APP_JELLYSEERR_JELLYFIN_API_KEY` absent; Jellyseerr remains Ready | No placeholder, rotation, duplicate authority or GitOps change |
 | CNPG `sure` RPO boundary | **PASS — RUNTIME, synthetic and bounded** | Native CNPG/Barman backup, named restore point, marker present before the point and absent after it on an isolated target | Record a per-fixture transaction boundary only; do not generalize to the other 13 clusters |
 | CNPG application client | **PASS — RUNTIME, isolated** | PostgreSQL client Job used the target CNPG application Secret by reference and returned the expected marker counts | Client proof is for this synthetic `sure` target only |
-| OpenClaw runtime decommission | **BLOCKED_OWNER** | No instance, Service or route; live operator is Ready but has no current Argo Application or desired manifest owner | No direct delete; owner/source-of-truth decision required |
+| OpenClaw runtime decommission | **BLOCKED_OWNER** | No instance, Service or route; the live operator pod is Running but not Ready with 63 restarts and has no current Argo Application or desired manifest owner | No direct delete; owner/source-of-truth decision required |
 | Historical restore residues | **REVIEW** | Backup audit remains `RESTORE_RESIDUE_COUNT=21`; all listed resources retain unresolved ownership or utility | No deletion; PLT-105 remains intact |
 
 No Factory, Atlantis, Proxmox, OpenTofu state or production CNPG object was
@@ -58,8 +58,9 @@ The live metadata-only inventory found:
 - Invoice Ninja remains active and healthy, while its MCP manifests are
   dormant and excluded from the active Kustomization;
 - `openclaw-operator-system/openclaw-operator` still exists with UID
-  `1a67f709-7ca4-4967-8cf1-2f1be59bb15b`, one replica and one available pod,
-  plus a stale Argo tracking annotation.
+  `1a67f709-7ca4-4967-8cf1-2f1be59bb15b`, one desired replica and a current
+  pod in `Running` phase with readiness `false` and 63 restarts, plus a stale
+  Argo tracking annotation.
 
 This proves absence of an active OpenClaw consumer, but not a safe GitOps
 deletion path: the live deployment is not represented by a current desired
