@@ -84,7 +84,7 @@ extraVolumes:
   - name: atlantis-github-iac
     secret:
       secretName: atlantis-github-iac
-      defaultMode: 256
+      defaultMode: 288
 
 extraVolumeMounts:
   - name: atlantis-pilot-conftest
