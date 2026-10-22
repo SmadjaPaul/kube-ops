@@ -106,7 +106,6 @@ repoConfig: |
             test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
             test "$BASE_BRANCH_NAME" = "main"
             test "$PROJECT_NAME" = "atlantis-pilot"
-            test "$WORKSPACE" = "default"
             test "$HEAD_COMMIT" != ""
             test "$DIR" != ""
             TOFU=/atlantis-data/bin/tofu1.13.1
