@@ -6,14 +6,17 @@ test -f tests/harness/atlantis-dispatch.test.mjs
 test -f docs/contracts/atlantis-mastra-dispatch-v1.md
 test -f docs/contracts/atlantis-runtime-activation-v1.md
 
-# The plan-only pilot is intentionally declared in the infrastructure
-# ApplicationSet. Runtime qualification remains a separate evidence gate.
+# The isolated pilot is intentionally declared in the infrastructure
+# ApplicationSet. Runtime apply qualification remains a separate evidence gate.
 grep -q '^          - path: k8s/poc/atlantis-plan-only$' \
   k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml
 grep -q '^    - namespace: atlantis-system$' \
   k8s/bootstrap/argocd-root/infrastructure-project.yaml
-grep -q '^disableApply: true$' k8s/poc/atlantis-plan-only/values.yaml
+grep -q '^disableApply: false$' k8s/poc/atlantis-plan-only/values.yaml
 grep -q '^disableApplyAll: true$' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'ATLANTIS_ALLOW_COMMANDS: version,plan,apply,policy_check' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'atlantis-pilot-bounded-change' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'path: /etc/atlantis/conftest' k8s/poc/atlantis-plan-only/values.yaml
 grep -q 'version: 6.16.1' k8s/poc/atlantis-plan-only/kustomization.yaml
 grep -q 'v0.48.1@sha256:' k8s/poc/atlantis-plan-only/values.yaml
 

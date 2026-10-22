@@ -1,95 +1,45 @@
 # Atlantis pilot: declared versus runtime
 
-**Evidence date:** 2026-10-21
-**Source revision:** `kube-ops` base `b578b6e81c0e0100e1e1669f32f3be276363b9a8`, qualification PR `bb64e8be077af242b26ad87ccda51e42e6073e0f`
-**Related merged change:** #506 `b678a78e21007564978ed4cceca6bb1955c22209`
-**Status:** plan-only pilot declared in Git; runtime qualification pending
+**Evidence date:** 2026-10-22
+**Status:** activation candidate for `terraform/atlantis-pilot`; runtime
+qualification is intentionally pending the GitOps merge and live execution.
 
-## Runtime observation — 2026-10-16
+## Declared activation
 
-The canonical operator access harness passed against Kubernetes `v1.36.3`.
-The observation was metadata-only and did not read Secret data. The cluster
-reported 22 Argo Applications, all `Synced`; `infra-controllers` was
-`Healthy` at reconciled revision
-`af405362217e2cb75b15cc599306aedc8268c6dc`. This is platform evidence only,
-not Atlantis evidence.
+The infrastructure ApplicationSet reconciles
+`k8s/poc/atlantis-plan-only`. The candidate pins Atlantis `v0.48.1` by digest,
+Helm chart `6.16.1`, OpenTofu `1.13.1`, the dedicated ESO backend secret and
+the dedicated OCI endpoint. It enables the native Conftest policy check and
+the Atlantis apply command only for the exact `homelab-infra` / `main` /
+`terraform/atlantis-pilot` / `default` mapping. `disableApplyAll` remains true.
 
-Atlantis-specific runtime discovery returned:
+The server-side policy is outside the tested PR and is mounted read-only. The
+post-apply hook verifies the exact repository, base branch, project, toolchain,
+workspace and `terraform_data.pilot` state address. Production roots remain
+denied by the catch-all rule and have no apply capability through this mapping.
 
-- namespace `atlantis-system`: **not found**;
-- Argo Application/ApplicationSet matching Atlantis: **none**;
-- Atlantis ExternalSecret, HTTPRoute, pod, Service and PVC: **none**.
+## Runtime gates
 
-Therefore `RECONCILED=NO` and `RUNTIME=NO` for Atlantis. The absence is a
-positive safety result: no GitHub App credential, backend identity, provider
-egress or Atlantis API endpoint is currently active. No plan, lock, provider
-call or apply can be qualified until the declared pilot is reconciled and
-qualified.
-
-The Git declaration is wired into the infrastructure ApplicationSet and
-infrastructure AppProject. PR #632 supplies the GitHub App identity while
-preserving plan-only controls. Its merge is therefore an intentional request
-for Argo reconciliation of the pilot, not an accidental activation. The
-post-merge state must still be classified separately as `RECONCILED` and
-`RUNTIME`; no such evidence is claimed by this document.
-
-## Exact difference
-
-| Surface | Declared in Git | Runtime conclusion |
+| Gate | Status before merge | Required evidence |
 | --- | --- | --- |
-| Namespace and StatefulSet | `k8s/poc/atlantis-plan-only` renders a pinned Atlantis fixture and is declared by the infrastructure ApplicationSet | Runtime reconciliation and workload readiness still require post-merge observation |
-| Image/chart | Atlantis `v0.48.1` with digest and chart `6.16.1` | Static pin only; no pod/image pull evidence |
-| GitHub identity | ExternalSecret references `atlantis-github-app`; PR #632 binds the App ID, installation ID and slug | Secret synchronization and runtime authentication still require post-merge observation; values remain outside Git |
-| Webhook | private route declarations for `/events` and UI | No DNS, Gateway, TLS, signature or delivery evidence |
-| Repository policy | server-side exact allowlist, deny catch-all, plan-only workflow | Not loaded by an Atlantis process |
-| Root selection | only `terraform/atlantis-pilot` is allowed | No privileged root is admitted; the 12 existing roots remain outside the pilot |
-| Backend/provider | placeholder pilot backend; no OCI/provider egress | No pilot state, identity or provider access provisioned; existing OCI states untouched |
-| Apply | `disableApply: true`, `disableApplyAll: true`, workflow apply fails | No apply capability is reconciled or exercised |
-| Mastra dispatch | offline admission contract only | No dispatcher workload, token, receipt database, replay guard or audit sink exists |
-| Evidence | static checks and contracts | No RECONCILED or RUNTIME evidence; `PLAN_SHA` is unset and no privileged plan ran |
+| Static render and security contract | PASS | `tests/harness/atlantis-plan-only-test.sh` |
+| Repository and workflow audit | PASS | `docs/contracts/atlantis-server-config-v0.48.1.md` |
+| Argo Synced/Healthy | NOT_EXECUTED | application status at the activation SHA |
+| ESO credentials available | NOT_EXECUTED | ExternalSecret condition and Pod env names, never values |
+| Backend init and pilot bucket access | NOT_EXECUTED | Atlantis log plus dedicated bucket metadata |
+| Cross-state denial | NOT_EXECUTED | dedicated identity denied on `homelab-tfstate` |
+| Policy verdict | NOT_EXECUTED | Atlantis policy check on the exact SHA |
+| Plan/apply/verification/lock | NOT_EXECUTED | Atlantis comments, logs, saved-plan digest and OCI state metadata |
+| Automerge | NOT_EXECUTED | GitHub merge event after successful plan, policy, apply and hook |
 
-The distinction is intentional. A checked-in manifest is not a deployed
-Atlantis server, and a server that receives a webhook would not by itself
-prove provider, state, lock, identity or post-apply safety.
+`NOT_EXECUTED` is not a functional failure. No runtime gate is promoted to
+PASS until its concrete evidence is collected. No privileged Atlantis apply is
+authorized for any other root.
 
-## Activation delta, pilot only
+## Negative evidence required
 
-An operator-authorized activation must be a separate PR and must include all
-of the following before any privileged plan:
-
-1. Reconcile the already-declared path through the infrastructure
-   ApplicationSet and namespace entry in the infrastructure AppProject, with
-   the exact post-merge revision recorded.
-2. Replace only the GitHub App placeholders through the approved secret
-   delivery path; verify repository installation, webhook signature and private
-   route without exposing values.
-3. Provision a dedicated pilot provider/backend identity and prove its policy
-   cannot read any of the twelve existing state keys. The pilot state key and
-   lock must be recorded without reading or publishing state contents.
-4. Deploy the separately reviewed Mastra dispatcher with a dedicated identity,
-   durable receipt/replay/audit store and no OpenTofu credentials. Prove exact
-   plan artifact digest support; otherwise retain apply disabled.
-5. Qualify Argo reconciliation, webhook authenticity, GitHub admission,
-   provider/registry egress, backend lock contention, budget/change policy and
-   independent post-apply evidence using the negative scenarios in the
-   dispatch contract.
-6. Only then enable pilot plan. A real plan needs a separate operator
-   confirmation of the admitted code SHA, pilot root, identity and backend.
-   Apply remains a later explicit gate under PLT-91 and is not authorized by
-   this document.
-
-The 12 existing roots cannot be activated as a side effect of this pilot PR.
-Each requires its own toolchain, identity, backend, budget, recovery and
-post-apply qualification.
-
-## Evidence classification
-
-- **STATIC:** `npm run check` passes, including the declared plan-only pilot and
-  dispatcher negative tests.
-- **RECONCILED:** not established; no Argo sync evidence was collected.
-- **RUNTIME:** not established; no Atlantis pod, webhook, provider, state or
-  lock operation was performed.
-- **USER/apply:** not applicable; no apply was attempted.
-
-No state, secret value, cloud resource or privileged plan was accessed while
-producing this evidence.
+The qualification run must preserve evidence of rejection for an unadmitted
+root, fork or non-allowlisted repository, stale SHA, changed/expired plan,
+policy violation, delete/replace/import/state mutation, cross-state access,
+concurrent lock, custom workflow, arbitrary comment arguments, broad
+credentials and merge after an uncertain or failed apply hook.

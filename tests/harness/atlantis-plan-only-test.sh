@@ -9,9 +9,11 @@ kustomize build --enable-helm k8s/poc/atlantis-plan-only >"$rendered"
 grep -q 'ghcr.io/runatlantis/atlantis:v0.48.1@sha256:42bde40e38ec7b89f02a2968b4b1b74b990121eb8768d0a7de7caad125344298' "$rendered"
 grep -q 'chart: atlantis-6.16.1' "$rendered"
 grep -q 'ATLANTIS_ALLOW_COMMANDS' "$rendered"
-grep -q 'value: version,plan,policy_check' "$rendered"
-grep -q 'name: ATLANTIS_DISABLE_APPLY' "$rendered"
-grep -q 'value: "true"' "$rendered"
+grep -q 'value: version,plan,apply,policy_check' "$rendered"
+if grep -Eq 'name: ATLANTIS_DISABLE_APPLY$|--disable-apply$' "$rendered"; then
+  echo "Atlantis pilot must not carry a disable-apply setting" >&2
+  exit 1
+fi
 grep -q 'name: atlantis-webhook' "$rendered"
 grep -q 'value: /events' "$rendered"
 grep -q 'name: atlantis-github-app' "$rendered"
@@ -39,6 +41,7 @@ if grep -q 'runAsUser: 1000' "$rendered"; then
 fi
 grep -q -- '- --gh-app-id=5416988' "$rendered"
 grep -q -- '- --gh-app-installation-id=173903025' "$rendered"
+grep -q -- '- --enable-policy-checks' "$rendered"
 if grep -Eq 'name: ATLANTIS_GH_APP_(ID|INSTALLATION_ID)' "$rendered"; then
   echo "GitHub App integer identifiers must be passed as CLI flags" >&2
   exit 1
@@ -52,13 +55,19 @@ grep -q 'workflow: atlantis-deny' "$rendered"
 grep -q 'repo_config_file: .atlantis/plan-only.yaml' "$rendered"
 grep -q 'branch: /^main$/' "$rendered"
 grep -q 'plan_requirements: \[mergeable, undiverged\]' "$rendered"
-grep -q 'apply_requirements: \[approved, mergeable, undiverged\]' "$rendered"
+grep -q 'apply_requirements: \[mergeable, undiverged\]' "$rendered"
 grep -q 'import_requirements: \[approved, mergeable, undiverged\]' "$rendered"
 if grep -q 'test "\$ATLANTIS_PR_APPROVED" = "true"' "$rendered"; then
   echo "plan workflow must not require GitHub approval" >&2
   exit 1
 fi
-grep -q 'plan-only Atlantis: apply is disabled server-side' "$rendered"
+grep -q 'path: /etc/atlantis/conftest' "$rendered"
+grep -q 'atlantis-pilot-bounded-change' "$rendered"
+grep -q 'Verify the pilot state after Atlantis apply' "$rendered"
+grep -q '        - policy_check:' "$rendered"
+grep -q '          - apply' "$rendered"
+grep -q 'name: atlantis-pilot-conftest' "$rendered"
+grep -q 'pilot.rego:' "$rendered"
 grep -q 'allowed_overrides: \[\]' "$rendered"
 grep -q 'allow_custom_workflows: false' "$rendered"
 
@@ -73,9 +82,9 @@ if grep -Eq '(:|@)latest(["[:space:]]|$)|:main(["[:space:]]|$)' "$rendered"; the
   exit 1
 fi
 
-if grep -Eiq 'value:[[:space:]]*infrastructure/prd|name:[[:space:]]*OCI_S3|allowForkPRs:[[:space:]]*true|allowDraftPRs:[[:space:]]*true|disableApply:[[:space:]]*false' "$rendered"; then
+if grep -Eiq 'value:[[:space:]]*infrastructure/prd|name:[[:space:]]*OCI_S3|allowForkPRs:[[:space:]]*true|allowDraftPRs:[[:space:]]*true' "$rendered"; then
   echo "operator secret surface or unsafe PR setting detected" >&2
   exit 1
 fi
 
-echo "Atlantis plan-only manifests: render and security assertions passed"
+echo "Atlantis pilot apply manifests: render and security assertions passed"

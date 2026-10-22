@@ -2,14 +2,22 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # This directory is reconciled by the infrastructure ApplicationSet. The
-# Atlantis workload remains plan-only; backend credentials are delivered by
-# the dedicated ExternalSecret below and never include operator credentials.
+# Atlantis workload is an isolated pilot; backend credentials are delivered
+# by the dedicated ExternalSecret below and never include operator credentials.
 resources:
   - namespace.yaml
   - github-app-external-secret.yaml
   - pilot-backend-external-secret.yaml
   - webhook-route.yaml
   - network-policy.yaml
+
+configMapGenerator:
+  - name: atlantis-pilot-conftest
+    files:
+      - policies/pilot.rego
+
+generatorOptions:
+  disableNameSuffixHash: true
 
 patches:
   - path: statefulset-patch.yaml

@@ -1,67 +1,56 @@
 # Atlantis OSS v0.48.1 server contract
 
-**Status:** dormant source contract; not an activation approval (2026-10-16)
+**Status:** isolated `terraform/atlantis-pilot` activation candidate; runtime
+evidence is recorded only after Argo reconciliation and an Atlantis execution.
 
-The pinned chart/image in `k8s/poc/atlantis-plan-only` is a qualification
-fixture. It is not connected to an Argo ApplicationSet and keeps apply,
-import and state mutation disabled. The server configuration below records the
-properties that a future multi-stack activation must preserve.
+## Upstream audit
 
-## Server-side precedence
+| Control | Candidate configuration | Result |
+| --- | --- | --- |
+| Repository allowlist | `github.com/SmadjaPaul/homelab-infra`; explicit `/.*/` deny rule; forks and drafts disabled | PASS (static; runtime pending) |
+| Server-side authority | exact repo mapping, `allowed_overrides: []`, `allow_custom_workflows: false` | PASS |
+| Plan admission | `mergeable`, `undiverged`; exact repo/head/root/project/backend/toolchain checks in the native workflow | PASS |
+| Apply admission | only the exact pilot mapping; `disableApplyAll: true`; `mergeable`, `undiverged`; no GitHub `approved` requirement | PASS (static; runtime pending) |
+| Policy check | server `--enable-policy-checks`, local Conftest policy mounted from GitOps ConfigMap, no policy owner able to approve a failure | PASS (static; runtime pending) |
+| Apply scope | native `apply` step consumes Atlantis' saved plan; policy admits only `terraform_data.pilot` create/no-op | PASS (static; runtime pending) |
+| Post-apply verification | server-side apply hook verifies repository, base branch, project, OpenTofu binary, workspace and exact state address | PASS (static; runtime pending) |
+| Locking | Atlantis `repo_locks.mode: on_plan`; OCI backend `use_lockfile = true` | PASS (static; runtime pending) |
+| Custom workflows / arguments | PR workflow is not trusted; custom workflows and overrides are disabled; empty comment arguments are required | PASS |
+| Credentials and egress | dedicated ESO secret and OCI egress only; no operator credential; provider registry remains denied | PASS (static; runtime pending) |
 
-Atlantis reads the server-side repository configuration through
-`--repo-config` / `ATLANTIS_REPO_CONFIG`. Server flags take precedence over
-environment variables, which take precedence over the server config file. The
-repository configuration is therefore server-owned; a pull request cannot
-change this precedence or the server flags.
+The 12 production roots remain outside this exact repository mapping and retain
+their existing admission boundary. This candidate does not modify their
+workflows, credentials, states or permissions.
 
-The first repository entry is an explicit `/.*/` deny rule and the exact
-`github.com/SmadjaPaul/homelab-infra` entry follows it. Atlantis applies the
-last matching repository entry. This order is tested from source and rendered
-manifests. `allowed_overrides: []` and `allow_custom_workflows: false` are set
-on both entries. The repository's `repo_config_file` may describe projects,
-but it cannot select a custom workflow or override server-side requirements.
+## Native policy boundary
 
-## Qualification controls
+The policy is stored at
+`k8s/poc/atlantis-plan-only/policies/pilot.rego`, outside the pull request
+being evaluated, and mounted read-only at `/etc/atlantis/conftest`. It rejects
+every changed resource except `terraform_data.pilot`, rejects every pilot
+action except `create` and `no-op`, requires the qualified fixture marker, and
+rejects sensitive outputs. Static workflow checks additionally reject providers,
+modules, data sources, provisioners, forbidden authorities and backend
+substitution before `init` or `plan`.
 
-- repository allowlist is exactly `github.com/SmadjaPaul/homelab-infra`;
-- fork and draft pull requests are disabled;
-- `version`, `plan` and `policy_check` are the only enabled commands in the
-  dormant fixture;
-- the workflow checks the base/head repository, exact project and directory,
-  empty comment arguments, current PR admission state, exact tool version and
-  placeholder backend before `init` or `plan`;
-- the fixture uses `use_lockfile = true`, has no provider/module/data source or
-  provisioner, and cannot reach OCI or a provider registry;
-- apply, import and state operations fail closed in both server flags and the
-  server workflow.
+This is deliberately a native Atlantis policy check. It does not add a second
+Terraform/OpenTofu orchestrator and does not grant the policy an operator
+identity.
 
-The plan workflow's `HEAD_COMMIT` is the immutable pull-request head supplied
-by Atlantis. A future activation must bind any apply to that exact SHA, root,
-workspace, state lineage, toolchain and policy revision and must invalidate it
-when any of those values changes. A normal PR approval is code admission, not
-plan approval.
+## Apply and merge semantics
 
-## Multi-stack activation boundary
+Atlantis OSS v0.48.1 applies the saved plan through the native `apply` command;
+it does not autonomously invoke apply merely because plan succeeded. The
+qualified autonomous path therefore means that an admitted agent invokes
+Atlantis' apply command without a human approval gate, and Atlantis applies the
+saved plan, runs the server-side verification hook, then may automerge only
+after all configured plans and applies succeed. An uncertain or failed hook
+must prevent merge.
 
-The final registry lives in `homelab-infra` and records all roots. This
-repository owns only the Atlantis server deployment and must not duplicate
-OpenTofu state or add Kubernetes/Helm providers. An activation PR must add the
-server-side project/workflow mappings from the registry, exact provider and
-OCI destinations, stack-scoped identities, budget/change policy, independent
-post-apply observation and off-cluster recovery evidence.
-
-Atlantis OSS v0.48.1 does not natively start an apply automatically after a
-successful plan: its native apply path is a comment or authenticated API
-request, and `automerge` merges after plans have already been applied. Therefore
-"autonomous apply without a named human approval" requires a separately
-reviewed authorized API caller or another supported control-plane integration.
-No such caller, token or custom replacement script is created here. Enabling
-`apply_requirements: [mergeable, undiverged]` alone would not create an
-automatic apply and must not be represented as runtime evidence.
-
-References: [server configuration](https://www.runatlantis.io/docs/server-configuration),
-[server-side repo config](https://www.runatlantis.io/docs/server-side-repo-config),
-[custom workflows](https://www.runatlantis.io/docs/custom-workflows),
+References: [server-side repository configuration](https://www.runatlantis.io/docs/server-side-repo-config),
 [command requirements](https://www.runatlantis.io/docs/command-requirements),
+[policy checking](https://www.runatlantis.io/docs/policy-checking),
+[post workflow hooks](https://www.runatlantis.io/docs/post-workflow-hooks),
+[automerging](https://www.runatlantis.io/docs/automerging),
+[locking](https://www.runatlantis.io/docs/locking),
 [security](https://www.runatlantis.io/docs/security).
