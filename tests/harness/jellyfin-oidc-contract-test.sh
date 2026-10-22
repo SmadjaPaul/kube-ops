@@ -9,6 +9,7 @@ e2e="tests/e2e/specs/jellyfin.spec.ts"
 grep -F 'client_secret_path = pathlib.Path("/run/jellyfin-oidc/client_secret")' "$statefulset" >/dev/null
 grep -F 'root.findall("./Providers/OidcProviderConfig")' "$statefulset" >/dev/null
 grep -F 'set_provider_value("ServerBaseUrl", server_base_url)' "$statefulset" >/dev/null
+grep -F 'set_root_value("MigrateLocalUsers", "true")' "$statefulset" >/dev/null
 grep -F 'config_path.chmod(0o600)' "$statefulset" >/dev/null
 
 python3 - "$statefulset" <<'PY'
@@ -23,6 +24,7 @@ provider_block = re.search(
 assert provider_block, "provider XML block missing"
 assert "<ClientSecret>{client_secret}</ClientSecret>" in provider_block.group(0)
 assert "<ServerBaseUrl>{server_base_url}</ServerBaseUrl>" in provider_block.group(0)
+assert "<MigrateLocalUsers>true</MigrateLocalUsers>" in source
 assert "<ServerBaseUrl>{server_base_url}</ServerBaseUrl>" not in source[
     provider_block.end() :
 ]

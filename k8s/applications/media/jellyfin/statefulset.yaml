@@ -120,6 +120,7 @@ spec:
                   </RoleMapping>
                 </RoleMappings>
                 <AutoCreateUsers>true</AutoCreateUsers>
+                <MigrateLocalUsers>true</MigrateLocalUsers>
                 <DefaultRoleName>media</DefaultRoleName>
                 <ManageUserPolicy>true</ManageUserPolicy>
                 <EnableLibraryAccessManagement>true</EnableLibraryAccessManagement>
@@ -139,6 +140,15 @@ spec:
                   if provider is None:
                       raise SystemExit("OIDC provider authentik missing from persistent configuration")
 
+                  def set_root_value(name, value):
+                      element = root.find(name)
+                      if element is None:
+                          element = ET.SubElement(root, name)
+                      if element.text != value:
+                          element.text = value
+                          return True
+                      return False
+
                   def set_provider_value(name, value):
                       element = provider.find(name)
                       if element is None:
@@ -148,7 +158,8 @@ spec:
                           return True
                       return False
 
-                  changed = set_provider_value("ClientSecret", client_secret)
+                  changed = set_root_value("MigrateLocalUsers", "true")
+                  changed = set_provider_value("ClientSecret", client_secret) or changed
                   changed = set_provider_value("ServerBaseUrl", server_base_url) or changed
                   legacy_server_base = root.find("ServerBaseUrl")
                   if legacy_server_base is not None:
