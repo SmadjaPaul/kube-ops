@@ -60,7 +60,45 @@ spec:
               client_id_path = pathlib.Path("/run/jellyfin-oidc/client_id")
               client_secret_path = pathlib.Path("/run/jellyfin-oidc/client_secret")
               server_base_url = "https://jellyfin.smadja.dev"
-              client_secret = escape(client_secret_path.read_text().strip())
+              requested_scopes = "openid profile email groups"
+              managed_role_mappings = {
+                  "media": {
+                      "IsAdmin": "false",
+                      "EnableAllLibraries": "true",
+                      "EnableMediaPlayback": "true",
+                      "EnableRemoteAccess": "true",
+                      "EnableTranscoding": "true",
+                  },
+                  "Jellyfin Users": {
+                      "IsAdmin": "false",
+                      "EnableAllLibraries": "true",
+                      "EnableMediaPlayback": "true",
+                      "EnableRemoteAccess": "true",
+                      "EnableTranscoding": "true",
+                  },
+                  "authentik-admins": {
+                      "IsAdmin": "true",
+                      "EnableAllLibraries": "true",
+                      "EnableMediaPlayback": "true",
+                      "EnableRemoteAccess": "true",
+                      "EnableTranscoding": "true",
+                      "EnableContentDeletion": "true",
+                      "EnableCollectionManagement": "true",
+                      "EnableSubtitleManagement": "true",
+                  },
+                  "Jellyfin Admins": {
+                      "IsAdmin": "true",
+                      "EnableAllLibraries": "true",
+                      "EnableMediaPlayback": "true",
+                      "EnableRemoteAccess": "true",
+                      "EnableTranscoding": "true",
+                      "EnableContentDeletion": "true",
+                      "EnableCollectionManagement": "true",
+                      "EnableSubtitleManagement": "true",
+                  },
+              }
+              client_secret_value = client_secret_path.read_text().strip()
+              client_secret = escape(client_secret_value)
               if not config_path.exists():
                   client_id = escape(client_id_path.read_text().strip())
                   config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -73,7 +111,7 @@ spec:
                     <Authority>https://auth.smadja.dev/application/o/jellyfin/</Authority>
                     <ClientId>{client_id}</ClientId>
                     <ClientSecret>{client_secret}</ClientSecret>
-                    <Scopes>openid profile email</Scopes>
+                    <Scopes>{requested_scopes}</Scopes>
                     <RoleClaim>groups</RoleClaim>
                     <UsernameClaim>preferred_username</UsernameClaim>
                     <DisplayNameClaim>name</DisplayNameClaim>
@@ -159,12 +197,61 @@ spec:
                       return False
 
                   changed = set_root_value("MigrateLocalUsers", "true")
-                  changed = set_provider_value("ClientSecret", client_secret) or changed
+                  changed = set_provider_value("ClientSecret", client_secret_value) or changed
+                  changed = set_provider_value("Scopes", requested_scopes) or changed
+                  changed = set_provider_value("RoleClaim", "groups") or changed
+                  changed = set_provider_value("UsernameClaim", "preferred_username") or changed
                   changed = set_provider_value("ServerBaseUrl", server_base_url) or changed
                   legacy_server_base = root.find("ServerBaseUrl")
                   if legacy_server_base is not None:
                       root.remove(legacy_server_base)
                       changed = True
+
+                  role_mappings = root.find("RoleMappings")
+                  if role_mappings is None:
+                      role_mappings = ET.SubElement(root, "RoleMappings")
+                      changed = True
+                  admin_role_names = {"authentik-admins", "Jellyfin Admins"}
+                  for mapping in role_mappings.findall("RoleMapping"):
+                      role_name = mapping.findtext("RoleName")
+                      if (
+                          mapping.findtext("IsAdmin", "false").lower() == "true"
+                          and role_name not in admin_role_names
+                      ):
+                          raise SystemExit(
+                              f"unmanaged admin RoleMapping is not allowed: {role_name}"
+                          )
+                  for role_name, values in managed_role_mappings.items():
+                      matches = [
+                          item
+                          for item in role_mappings.findall("RoleMapping")
+                          if item.findtext("RoleName") == role_name
+                      ]
+                      if len(matches) > 1:
+                          raise SystemExit(f"duplicate managed RoleMapping: {role_name}")
+                      mapping = matches[0] if matches else ET.SubElement(role_mappings, "RoleMapping")
+                      if not matches:
+                          changed = True
+                      for name, value in {"RoleName": role_name, **values}.items():
+                          element = mapping.find(name)
+                          if element is None:
+                              element = ET.SubElement(mapping, name)
+                          if element.text != value:
+                              element.text = value
+                              changed = True
+
+                  for name, value in {
+                      "AutoCreateUsers": "true",
+                      "DefaultRoleName": "media",
+                      "ManageUserPolicy": "true",
+                      "EnableLibraryAccessManagement": "true",
+                  }.items():
+                      element = root.find(name)
+                      if element is None:
+                          element = ET.SubElement(root, name)
+                      if element.text != value:
+                          element.text = value
+                          changed = True
                   if changed:
                       tree.write(config_path, encoding="utf-8", xml_declaration=True)
               config_path.chmod(0o600)
@@ -260,19 +347,19 @@ spec:
           secret:
             secretName: jellyfin-sso
   volumeClaimTemplates:
-  - metadata:
-      name: config
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "longhorn-fast"
-      resources:
-        requests:
-          storage: 10Gi
-  - metadata:
-      name: cache
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "longhorn-fast"
-      resources:
-        requests:
-          storage: 10Gi
+    - metadata:
+        name: config
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "longhorn-fast"
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: cache
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "longhorn-fast"
+        resources:
+          requests:
+            storage: 10Gi
