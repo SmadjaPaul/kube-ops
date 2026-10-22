@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt-109-plt-24-checkpoint-s3-activation-2026-10-22",
+  "producedAt": "2026-10-22T12:00:00+02:00",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "WORKTREE_HEAD",
+    "branch": "codex/plt-109-24-activate-existing-hetzner-credentials"
+  },
+  "tests": [
+    {
+      "id": "doppler-secret-name-presence",
+      "name": "Factory and shared Hetzner key names present without value disclosure",
+      "command": "doppler secrets --project infrastructure --config prd --only-names",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Five non-secret Factory settings and both existing HETZNER_S3 key names are present; values were not read or printed.",
+      "risk": "high",
+      "expectedCi": "required"
+    },
+    {
+      "id": "clustersecretstore-ready",
+      "name": "Doppler ClusterSecretStore readiness",
+      "command": "canonical kubectl observation of clustersecretstore/doppler-cluster",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "ClusterSecretStore reports Ready=True; Velero ExternalSecret resolves both HETZNER_S3 remote references.",
+      "risk": "high",
+      "expectedCi": "required"
+    },
+    {
+      "id": "factory-eso-activation",
+      "name": "Factory ExternalSecret and Secret reconciliation",
+      "command": "Argo reconciliation after GitOps merge",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "This record is committed before PR merge; live ESO proof is collected separately after reconciliation.",
+      "risk": "high",
+      "expectedCi": "required"
+    },
+    {
+      "id": "s3-disposable-fixture",
+      "name": "Disposable S3 PUT/GET/LIST/manifest/checksum/DELETE",
+      "command": "Factory checkpoint fixture under factory-checkpoints/v1/fixture/",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "Run only after ESO and Factory readiness are observed; never touch CNPG, Velero or Longhorn objects.",
+      "risk": "critical",
+      "expectedCi": "required"
+    },
+    {
+      "id": "claim-loss-restore",
+      "name": "Disposable SandboxClaim disappearance and restore",
+      "command": "approved disposable claim-loss drill",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No claim-loss operation is part of this GitOps PR; RPO/RTO remain UNKNOWN until observed.",
+      "risk": "critical",
+      "expectedCi": "required"
+    },
+    {
+      "id": "gc-safety",
+      "name": "Destructive checkpoint GC",
+      "command": "review desired-state and Factory retention wiring",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "No destructive GC activation is introduced; live-reference protection remains a separate gate.",
+      "risk": "critical",
+      "expectedCi": "required"
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 6,
+    "executed": 3,
+    "notExecuted": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "unavailable": 3,
+    "notApplicable": 0
+  }
+}

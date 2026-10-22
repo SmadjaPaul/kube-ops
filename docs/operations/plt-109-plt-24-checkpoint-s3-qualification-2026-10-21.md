@@ -1,14 +1,17 @@
 # PLT-109 / PLT-24 checkpoint S3 qualification
 
-Status: **prepared, not executed** (2026-10-21).
+Status: **GitOps activation prepared; runtime fixture and claim-loss not executed** (2026-10-22).
 
 ## Current boundary
 
 `factory-platform` `origin/main` contains the Git bundle, manifest,
 checksum, S3 adapter, isolated restore and claim-loss admission path. Its
-static and synthetic evidence is separate from live evidence. `kube-ops`
-currently has only the CNPG/Hetzner credential ExternalSecret in the
-`mastra-factory` namespace; that Secret is not a Factory checkpoint identity.
+static and synthetic evidence is separate from live evidence. `kube-ops` now
+activates the Factory checkpoint ExternalSecret through the existing
+`doppler-cluster` store. The Factory Secret is still absent until Argo
+reconciles the qualified GitOps change. Its two credential fields map
+explicitly to the existing `HETZNER_S3_*` keys; no Secret values are read or
+printed.
 
 The active cluster observes the private Hetzner backup bucket
 `smadja-dev-homelab-backups`, with CNPG prefixes and shared Velero/Longhorn
@@ -25,12 +28,11 @@ new Hetzner project or bucket. Factory object keys use
 rejects a trailing slash.
 
 Hetzner confirms that **every key can access all buckets in its own project by
-default**. Therefore `cnpg-hetzner-credentials` and the shared
-`HETZNER_S3_*` identity are not acceptable Factory credentials. Keep the seven
-`FACTORY_CHECKPOINT_*` names separate and provision a dedicated key in the
-existing project if possible. A prefix in an object name is not proof of IAM
-isolation; a dedicated key is useful only if its effective permissions are
-tested.
+default**. The V1 operator decision accepts temporary reuse of the existing
+shared key to qualify transport quickly, while explicitly recording:
+`IAM_ISOLATION=RUNTIME_FAIL — RISK_ACCEPTED_V1`. The prefix is therefore an
+application namespace only, not an IAM boundary. No least-privilege claim is
+made and no bucket policy is changed.
 
 ### Candidate same-bucket policy
 
@@ -58,10 +60,9 @@ Hetzner policy envelope must be supplied by the external owner:
 
 Do not describe this `Allow` as restrictive until disposable canaries prove
 denial outside the prefix and a read-only list of the shared bucket proves
-the intended boundary. If the same-project key remains project-wide, record
-those actual rights and the residual cross-prefix risk, keep ESO dormant, and
-do not claim prefix isolation. Existing CNPG/Velero/Longhorn access must stay
-untouched.
+the intended boundary. The V1 decision accepts the existing project-wide
+rights as residual risk and keeps `IAM_ISOLATION=RUNTIME_FAIL — RISK_ACCEPTED_V1`.
+Existing CNPG/Velero/Longhorn access must stay untouched.
 
 The Factory adapter uses PutObject, GetObject, ListObjectsV2 and DeleteObject;
 its manifest is the commit point: the bundle is uploaded first, then the
@@ -80,32 +81,29 @@ PASS.
 
 ## Doppler → ESO → Factory wiring
 
-The dormant manifest
+The manifest
 `k8s/applications/platform/mastra-factory/checkpoint-s3-externalsecret.dormant.yaml`
 maps these seven Doppler keys one-to-one into
 `mastra-factory-checkpoint-s3`. The Deployment imports that Secret optionally
-and reloads on change. Because the ExternalSecret is not in the active
-Kustomization, missing credentials or a missing bucket cannot make Argo
-degraded or activate checkpoint S3 accidentally. The Factory parser also
-rejects a partial four-field connection configuration.
+and reloads on change. The checkpoint ExternalSecret is now in the active
+Kustomization; its optional Deployment import still fails closed if the
+provider is temporarily unavailable. The Factory parser also rejects a
+partial four-field connection configuration.
 
-Activation is a separate reviewed change after all of the following are true:
+Activation is a reviewed GitOps change after all of the following are true:
 
-1. `homelab-infra`/Hetzner has supplied a dedicated Factory key for the
-   existing bucket and confirmed its effective policy. Confirm the key cannot
-   list other buckets in the project, and if prefix isolation is claimed,
-   prove list/get/put/delete denial outside the Factory prefix using disposable
-   canaries only.
-2. The seven Doppler keys exist in `infrastructure/prd` (presence only; never
-   print their values).
-3. The dormant ExternalSecret is added to this Kustomization and Argo reports
-   it `Ready`.
+1. The existing HETZNER S3 key names and five non-secret Factory settings are
+   present in Doppler `infrastructure/prd`; values are never printed.
+2. `doppler-cluster` reports `Ready=True` and an existing Velero ExternalSecret
+   proves the two HETZNER remote references resolve through that store.
+3. The checkpoint ExternalSecret is added to this Kustomization and Argo
+   reports it `Ready`.
 4. The Pod environment contains the seven variable names, with no values
    printed, and the application remains healthy.
 
 ## Disposable S3 fixture
 
-Run only with the dedicated key and a unique timestamped capture ID. The
+Run only with the accepted existing key and a unique timestamped capture ID. The
 fixture is `tests/fixtures/recovery/factory-checkpoint-s3-qualification.yaml`.
 The operator must record only object keys, HTTP/S3 status codes, byte counts,
 SHA-256 values of the disposable bundle, and elapsed durations.
@@ -128,7 +126,8 @@ Required sequence:
 
 The fixture is not a Factory runtime checkpoint and cannot promote GC or
 claim-loss recovery. A live run is `NOT_EXECUTED` until all six steps pass
-with the dedicated policy. Do not use a production session, a PLT-105 volume,
+with the accepted shared-key risk recorded. Do not use a production session,
+a PLT-105 volume,
 or the #130/#134 fixture resources. Delete only objects below
 `factory-checkpoints/v1/fixture/`.
 
@@ -174,13 +173,13 @@ negative live-reference protection have been proven in a separate review.
 
 ## Evidence levels
 
-- **STATIC:** dormant ESO mapping, optional Deployment import, fixture and
+- **STATIC:** active ESO mapping, optional Deployment import, fixture and
   candidate policy contract render successfully.
 - **SYNTHETIC:** Factory main's local bundle/manifest/checksum and mock-store
   tests only; no S3 or deployed claim-loss conclusion.
-- **RUNTIME:** disposable S3 transport and binding refusal are `PASS`; effective
-  prefix isolation is `FAIL`; claim-loss remains `NOT_EXECUTED`; RPO/RTO remain
-  `UNKNOWN`.
+- **RUNTIME:** existing disposable S3 transport and binding refusal are `PASS`;
+  effective prefix isolation is `FAIL`; post-merge ESO reconciliation and
+  claim-loss remain `NOT_EXECUTED`; RPO/RTO remain `UNKNOWN`.
 - **USER:** not in scope.
 
 The machine-readable handoff for the static/shared-bucket amendment is

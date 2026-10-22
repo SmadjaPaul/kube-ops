@@ -110,13 +110,13 @@ Do not add the dormant ExternalSecrets before their remoteRef Doppler keys
 exist: missing keys can degrade the Authentik rollout. Existing Factory
 workload references the OIDC Secret as optional for this reason.
 
-## Durable sandbox checkpoint S3 — dormant until shared-bucket rights are proved
+## Durable sandbox checkpoint S3 — V1 enabled with explicit IAM risk
 
 Factory `origin/main` contains the PLT-109/PLT-24 checkpoint implementation.
-It is deliberately disabled when no complete S3 configuration is present. The
-Deployment references `mastra-factory-checkpoint-s3` through an optional
-`envFrom`; the ExternalSecret is kept out of the active Kustomization until
-its prerequisites are complete.
+The V1 GitOps wiring resolves the existing Hetzner credentials through
+Doppler → ESO. The Deployment keeps the checkpoint `envFrom` optional so a
+temporary ESO/provider failure fails closed and disables checkpoint capture;
+it does not substitute another identity.
 
 The required contract is:
 
@@ -126,29 +126,27 @@ The required contract is:
 | `FACTORY_CHECKPOINT_S3_REGION` | `FACTORY_CHECKPOINT_S3_REGION` | `fsn1` |
 | `FACTORY_CHECKPOINT_S3_BUCKET` | `FACTORY_CHECKPOINT_S3_BUCKET` | `smadja-dev-homelab-backups` |
 | `FACTORY_CHECKPOINT_S3_PREFIX` | `FACTORY_CHECKPOINT_S3_PREFIX` | `factory-checkpoints/v1` (no trailing slash) |
-| `FACTORY_CHECKPOINT_S3_ACCESS_KEY_ID` | `FACTORY_CHECKPOINT_S3_ACCESS_KEY_ID` | dedicated key |
-| `FACTORY_CHECKPOINT_S3_SECRET_ACCESS_KEY` | `FACTORY_CHECKPOINT_S3_SECRET_ACCESS_KEY` | dedicated key |
+| `FACTORY_CHECKPOINT_S3_ACCESS_KEY_ID` | `HETZNER_S3_ACCESS_KEY_ID` | existing shared key, V1 risk accepted |
+| `FACTORY_CHECKPOINT_S3_SECRET_ACCESS_KEY` | `HETZNER_S3_SECRET_ACCESS_KEY` | existing shared key, V1 risk accepted |
 | `FACTORY_CHECKPOINT_INTERVAL_SECONDS` | `FACTORY_CHECKPOINT_INTERVAL_SECONDS` | at most `300` |
 
-The checked-in dormant manifest is
-`checkpoint-s3-externalsecret.dormant.yaml`. It must not reuse
-`cnpg-hetzner-credentials` or the shared `HETZNER_S3_*` identity. V1 reuses
-the existing private bucket `smadja-dev-homelab-backups`, already used by
-CNPG, Velero and Longhorn, under the dedicated object prefix
-`factory-checkpoints/v1/`. The Factory config value is the same prefix
-without a trailing slash because Factory rejects that form. No new Hetzner
-project or bucket is created.
+The active manifest remains named
+`checkpoint-s3-externalsecret.dormant.yaml` for continuity with the prior
+qualification work. It explicitly maps the existing shared `HETZNER_S3_*`
+identity; it does not read or copy `cnpg-hetzner-credentials`. V1 reuses the
+existing private bucket `smadja-dev-homelab-backups`, already used by CNPG,
+Velero and Longhorn, under `factory-checkpoints/v1/`. The Factory config value
+is the same prefix without a trailing slash because Factory rejects that form.
+No new Hetzner project or bucket is created.
 
-The Factory Doppler key names remain separate (`FACTORY_CHECKPOINT_S3_*`):
-the existing shared key is not silently copied into Factory. A dedicated key
-in the existing Hetzner project is acceptable only with an explicitly
-validated bucket policy that scopes ListBucket and object actions to the
-Factory prefix. Hetzner keys otherwise access every bucket in their project
-by default; a prefix in the object name is not an IAM boundary. If that
-policy/key combination cannot be proven, record the actual broad rights and
-the residual cross-prefix risk, and keep the ExternalSecret dormant. Never
-probe production backups with write or delete operations; use only a
-read-only list denial and disposable canaries under the Factory prefix.
+`IAM_ISOLATION=RUNTIME_FAIL — RISK_ACCEPTED_V1` is intentionally recorded.
+Hetzner keys otherwise access every bucket in their project by default; a
+prefix in the object name is not an IAM boundary. The shared key's effective
+cross-prefix rights remain a residual risk and are not represented as
+least-privilege isolation. Never probe production backups with write, read or
+delete operations; use only disposable canaries under the Factory prefix.
+Future work may replace this mapping with a dedicated key, but that is not a
+V1 activation prerequisite under the accepted-risk decision.
 
 The qualification contract and controlled claim-loss exercise are recorded in
 `docs/operations/plt-109-plt-24-checkpoint-s3-qualification-2026-10-21.md`.
@@ -158,6 +156,8 @@ the disposable S3 transport and binding-refusal checks passed, but the shared
 key failed effective prefix isolation. The claim-loss drill remains
 `NOT_EXECUTED`; RPO and RTO remain `UNKNOWN`. Destructive checkpoint GC
 remains inactive until live-reference protection is proven.
+ESO activation alone is not runtime checkpoint proof; the post-merge ESO
+reconciliation and a new authenticated Factory cycle remain to be observed.
 
 
 ### Hetzner shared-bucket handoff (PLT-109/24)
@@ -173,15 +173,15 @@ creates a project, bucket, policy or key.
   `https://fsn1.your-objectstorage.com`; prefix:
   `factory-checkpoints/v1/`.
 - The **seven** `FACTORY_CHECKPOINT_*` keys are delivered from
-  Doppler `infrastructure/prd` by the **existing dormant** ExternalSecret
-  `checkpoint-s3-externalsecret.dormant.yaml`; this must remain outside the
-  active Kustomization until the external fixture and isolation checks pass.
+  Doppler `infrastructure/prd` by the active ExternalSecret
+  `checkpoint-s3-externalsecret.dormant.yaml`; its two credential mappings
+  intentionally resolve the existing `HETZNER_S3_*` names for V1.
 - A dedicated Factory key must be tested against the shared bucket before
   activation. Never probe write/delete permissions on CNPG, Velero or
   Longhorn objects. A key's default project-wide rights mean the path prefix
   alone cannot be claimed as a permission boundary.
-- Before a later activation PR, check bucket presence, dedicated key identity,
-  negative read-only access, positive disposable put/get/list/delete within
+- Before the runtime qualification, check bucket presence, effective shared
+  key identity, negative read-only access, positive disposable put/get/list/delete within
   the Factory bucket, complete manifest/sha256, active-claim isolation, and
   bounded cleanup without deleting live references.
 - This PR does **not** enable the ESO, alter workload replica count, enable
