@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: seerr-first-run-bootstrap
+  name: seerr-first-run-bootstrap-v2
   namespace: media
   labels:
     app: jellyseerr
@@ -142,21 +142,62 @@ spec:
                   expected=(200,),
               )
               original_policy = dict(service_user.get("Policy") or {})
+              service_user_was_admin = original_policy.get("IsAdministrator") is True
               elevated_policy = dict(original_policy)
               elevated_policy["IsAdministrator"] = True
               elevated_policy["IsDisabled"] = False
               elevated_policy["IsHidden"] = True
 
-              http(
-                  plain,
-                  "POST",
-                  f"{JELLYFIN}/Users/{user_id}/Policy",
-                  elevated_policy,
-                  headers=jellyfin_headers,
-                  expected=(204,),
-              )
+              restored_policy = dict(original_policy)
+              restored_policy["IsAdministrator"] = False
+
+              def restore_policy():
+                  last_error = None
+                  for attempt in range(3):
+                      try:
+                          http(
+                              plain,
+                              "POST",
+                              f"{JELLYFIN}/Users/{user_id}/Policy",
+                              restored_policy,
+                              headers=jellyfin_headers,
+                              expected=(204,),
+                          )
+                          observed_user = http(
+                              plain,
+                              "GET",
+                              f"{JELLYFIN}/Users/{user_id}",
+                              headers=jellyfin_headers,
+                              expected=(200,),
+                          )
+                          if dict(observed_user.get("Policy") or {}) != restored_policy:
+                              raise RuntimeError("Jellyfin service-user policy was not restored exactly")
+                          return
+                      except Exception as error:
+                          last_error = error
+                          if attempt < 2:
+                              time.sleep(2)
+                  raise RuntimeError("Jellyfin service-user policy restoration failed") from last_error
 
               try:
+                  if service_user_was_admin:
+                      restore_policy()
+                      raise RuntimeError(
+                          "Seerr service user was already an administrator; normalized to non-admin and stopped"
+                      )
+                  try:
+                      http(
+                          plain,
+                          "POST",
+                          f"{JELLYFIN}/Users/{user_id}/Policy",
+                          elevated_policy,
+                          headers=jellyfin_headers,
+                          expected=(204,),
+                      )
+                  except Exception:
+                      restore_policy()
+                      raise
+
                   http(
                       plain,
                       "POST",
@@ -231,17 +272,7 @@ spec:
                   if final_public.get("initialized") is not True:
                       raise RuntimeError("Seerr did not report initialized=true")
               finally:
-                  restored_policy = dict(original_policy)
-                  restored_policy["IsHidden"] = True
-                  restored_policy["IsDisabled"] = False
-                  http(
-                      plain,
-                      "POST",
-                      f"{JELLYFIN}/Users/{user_id}/Policy",
-                      restored_policy,
-                      headers=jellyfin_headers,
-                      expected=(204,),
-                  )
+                  restore_policy()
 
               print(f"SEERR_FIRST_RUN_BOOTSTRAP=PASS LIBRARIES_ENABLED={enabled}")
           securityContext:
