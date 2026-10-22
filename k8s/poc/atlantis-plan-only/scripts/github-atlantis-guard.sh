@@ -14,7 +14,6 @@ test "${BASE_REPO_OWNER:-}/${BASE_REPO_NAME:-}" = "SmadjaPaul/homelab-infra" ||
 test "${HEAD_REPO_OWNER:-}/${HEAD_REPO_NAME:-}" = "$BASE_REPO_OWNER/$BASE_REPO_NAME" ||
   fail "forks are not admitted"
 test "${BASE_BRANCH_NAME:-}" = main || fail "only the main base branch is admitted"
-test "${PROJECT_NAME:-}" != "" || fail "unnamed projects are not admitted"
 test "${HEAD_COMMIT:-}" != "" || fail "an immutable head commit is required"
 test -z "${COMMENT_ARGS:-}" || fail "comment arguments are not admitted"
 
@@ -25,79 +24,41 @@ for fallback in GITHUB_TOKEN GH_TOKEN TF_VAR_github_token GITHUB_APP_ID GITHUB_A
   test -z "${!fallback:-}" || fail "credential fallback $fallback is set"
 done
 
-case "$PROJECT_NAME" in
-  atlantis-pilot)
-    test "$REPO_REL_DIR" = terraform/atlantis-pilot || fail "pilot root mismatch"
-    test -f "$DIR/terraform/atlantis-pilot/backend.tf" || fail "pilot backend is missing"
-    test -f "$DIR/terraform/atlantis-pilot/main.tf" || fail "pilot root is missing"
-    grep -Eq 'required_version = "= 1\.13\.1"' "$DIR/terraform/atlantis-pilot/versions.tf" ||
-      fail "pilot toolchain is not pinned"
-    grep -Eq 'key[[:space:]]*=[[:space:]]*"atlantis-pilot/terraform.tfstate"' "$DIR/terraform/atlantis-pilot/backend.tf" ||
-      fail "pilot state key is not canonical"
-    grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-atlantis-pilot-tfstate"' "$DIR/terraform/atlantis-pilot/backend.tf" ||
-      fail "pilot bucket is not isolated"
-    grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/terraform/atlantis-pilot/backend.tf" ||
-      fail "pilot lockfile is not enabled"
-    if grep -REn '^[[:space:]]*(provider|module|data|provisioner)[[:space:]]' "$DIR/terraform/atlantis-pilot"/*.tf; then
-      fail "pilot contains an external execution surface"
-    fi
-    base_ref="origin/$BASE_BRANCH_NAME"
-    git rev-parse "$base_ref^{commit}" >/dev/null 2>&1 ||
-      fail "base branch ref is unavailable"
-    git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
-      fail "head commit is unavailable"
-    changed=$(git diff --name-only "$base_ref...$HEAD_COMMIT")
-    while IFS= read -r path; do
-      test -z "$path" && continue
-      case "$path" in
-        terraform/atlantis-pilot/*) ;;
-        *) fail "pilot file is outside the fixture allowlist: $path" ;;
-      esac
-    done <<<"$changed"
-    ;;
-  github)
-    test "$REPO_REL_DIR" = terraform/github || fail "GitHub root mismatch"
-    test -f "$DIR/terraform/github/backend.tf" || fail "GitHub backend is missing"
-    test -f "$DIR/terraform/github/provider.tf" || fail "GitHub provider is missing"
-    grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-github-tfstate"' "$DIR/terraform/github/backend.tf" ||
-      fail "GitHub bucket is not isolated"
-    grep -Eq 'key[[:space:]]*=[[:space:]]*"github/terraform.tfstate"' "$DIR/terraform/github/backend.tf" ||
-      fail "GitHub state key is not canonical"
-    grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/terraform/github/backend.tf" ||
-      fail "GitHub native lockfile is not enabled"
-    if grep -Eq 'REPLACE_WITH_DEDICATED_GITHUB_STATE_' "$DIR/terraform/github/backend.tf"; then
-      fail "GitHub backend still contains a placeholder"
-    fi
-    grep -Eq 'version[[:space:]]*=[[:space:]]*"= 6\.13\.0"' "$DIR/terraform/github/versions.tf" ||
-      fail "GitHub provider pin changed without admission"
-    grep -Eq 'app_auth[[:space:]]*\{' "$DIR/terraform/github/provider.tf" ||
-      fail "GitHub provider App authentication is not explicit"
+# Pre-workflow hooks run before Atlantis parses the repository project list, so
+# PROJECT_NAME is intentionally not used here: it is empty for autoplan. Keep
+# this hook as a global server-owned trust boundary and let the later workflow
+# validate PROJECT_NAME/REPO_REL_DIR for the selected project.
+base_ref="origin/$BASE_BRANCH_NAME"
+git rev-parse "$base_ref^{commit}" >/dev/null 2>&1 ||
+  fail "base branch ref is unavailable"
+git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
+  fail "head commit is unavailable"
 
-    # The only mutable input admitted to the privileged provider is the
-    # repository settings data file. Provider code, backends, modules, data
-    # sources, provisioners and workflows are trusted from the base branch.
-    base_ref="origin/$BASE_BRANCH_NAME"
-    git rev-parse "$base_ref^{commit}" >/dev/null 2>&1 ||
-      fail "base branch ref is unavailable"
-    git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
-      fail "head commit is unavailable"
-    changed=$(git diff --name-only "$base_ref...$HEAD_COMMIT")
-    while IFS= read -r path; do
-      test -z "$path" && continue
-      test "$path" = terraform/github/repositories.auto.tfvars ||
-        fail "file is outside the GitHub data-only allowlist: $path"
-    done <<<"$changed"
-    test -f "$DIR/terraform/github/repositories.auto.tfvars" ||
-      fail "GitHub settings input is missing"
-    test -n "${AWS_ACCESS_KEY_ID:-}" || fail "GitHub state identity is missing"
-    test -n "${AWS_SECRET_ACCESS_KEY:-}" || fail "GitHub state identity is missing"
-    test -n "${TF_VAR_github_app_id:-}" || fail "GitHub App identity is missing"
-    test -n "${TF_VAR_github_app_installation_id:-}" || fail "GitHub App installation is missing"
-    test -n "${TF_VAR_github_app_pem_file:-}" || fail "GitHub App key is missing"
-    ;;
-  *)
-    fail "unknown project $PROJECT_NAME"
-    ;;
-esac
+# Only the disposable pilot, the immutable GitHub admission files, and
+# documentation/static tests may differ in a PR that reaches this server. In
+# particular, no provider, module, data source, provisioner, workflow, or
+# arbitrary Terraform file can be introduced alongside an admin plan.
+changed=$(git diff --name-only "$base_ref...$HEAD_COMMIT")
+while IFS= read -r path; do
+  test -z "$path" && continue
+  case "$path" in
+    terraform/atlantis-pilot/*|terraform/github/repositories.auto.tfvars|terraform/github/backend.tf|.atlantis/plan-only.yaml|.gitignore|docs/*|tests/*) ;;
+    *) fail "file is outside the server admission allowlist: $path" ;;
+  esac
+done <<<"$changed"
 
-echo "Atlantis admission accepted: project=$PROJECT_NAME base=$BASE_REPO_OWNER/$BASE_REPO_NAME head=$HEAD_COMMIT"
+test -f "$DIR/terraform/github/backend.tf" || fail "GitHub backend is missing"
+test "$(git hash-object "$DIR/terraform/github/backend.tf")" = "63d68a69487cf768e662ed0b1c4d8ae93f3bcd19" ||
+  fail "GitHub backend is not the server-admitted canonical file"
+test -f "$DIR/.atlantis/plan-only.yaml" || fail "server project registry is missing"
+test "$(git hash-object "$DIR/.atlantis/plan-only.yaml")" = "fc66d3b6d8c59581cf3f771b33766d1ebcb042a3" ||
+  fail "server project registry changed outside admission"
+test -f "$DIR/terraform/github/provider.tf" || fail "GitHub provider is missing"
+grep -Eq 'version[[:space:]]*=[[:space:]]*"= 6\.13\.0"' "$DIR/terraform/github/versions.tf" ||
+  fail "GitHub provider pin changed without admission"
+grep -Eq 'app_auth[[:space:]]*\{' "$DIR/terraform/github/provider.tf" ||
+  fail "GitHub provider App authentication is not explicit"
+test -f "$DIR/terraform/github/repositories.auto.tfvars" ||
+  fail "GitHub settings input is missing"
+
+echo "Atlantis admission accepted: server-owned diff boundary base=$BASE_REPO_OWNER/$BASE_REPO_NAME head=$HEAD_COMMIT"
