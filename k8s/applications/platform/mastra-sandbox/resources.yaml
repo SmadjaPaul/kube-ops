@@ -72,7 +72,7 @@ spec:
         - name: sandboxd
           # Staged only: gVisor and the full SandboxClaim path must pass before
           # this directory is referenced by the parent kustomization.
-          image: ghcr.io/smadjapaul/mastra-sandboxd@sha256:22906dc31b9ef7d2a46f6eff816b380301311bce5eacdc56df2b7eb8140614c0
+          image: ghcr.io/smadjapaul/mastra-sandboxd@sha256:92975c43d1616e64c7abc06f030335ebbdefa9d125eb4f3c92931c6e68755513
           command:
             - /usr/local/bin/sandboxd
             - --root-dir=/workspace
