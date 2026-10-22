@@ -142,12 +142,14 @@ spec:
                   expected=(200,),
               )
               original_policy = dict(service_user.get("Policy") or {})
+              service_user_was_admin = original_policy.get("IsAdministrator") is True
               elevated_policy = dict(original_policy)
               elevated_policy["IsAdministrator"] = True
               elevated_policy["IsDisabled"] = False
               elevated_policy["IsHidden"] = True
 
               restored_policy = dict(original_policy)
+              restored_policy["IsAdministrator"] = False
 
               def restore_policy():
                   last_error = None
@@ -178,6 +180,11 @@ spec:
                   raise RuntimeError("Jellyfin service-user policy restoration failed") from last_error
 
               try:
+                  if service_user_was_admin:
+                      restore_policy()
+                      raise RuntimeError(
+                          "Seerr service user was already an administrator; normalized to non-admin and stopped"
+                      )
                   try:
                       http(
                           plain,
