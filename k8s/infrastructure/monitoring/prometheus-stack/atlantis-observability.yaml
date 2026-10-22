@@ -31,6 +31,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: observability
     prometheus: kube-prometheus-stack
+    release: kube-prometheus-stack
 spec:
   groups:
     - name: atlantis.v0.48.1
