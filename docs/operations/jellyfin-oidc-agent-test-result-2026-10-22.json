@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "jellyfin-oidc-2026-10-22-bb539a25",
+  "resultId": "jellyfin-oidc-2026-10-22-e3fdc3ee",
   "producedAt": "2026-10-22T16:29:07Z",
   "actor": { "kind": "agent", "name": "codex-jellyfin-oidc" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "bb539a2503bc82f98890301a903f7c9598b28a50",
+    "revision": "e3fdc3ee4d7e62acb66d6f404e84323cd4280af4",
     "branch": "codex/jellyfin-oidc-gitops-fix"
   },
   "tests": [
@@ -19,7 +19,7 @@
       "reason": "Provider-scoped ServerBaseUrl, v1 ClientSecret projection, canonical callback and browser path checks passed.",
       "risk": "low",
       "expectedCi": "required",
-      "evidence": { "kind": "command", "reference": "local:bb539a25" }
+      "evidence": { "kind": "command", "reference": "local:e3fdc3ee" }
     },
     {
       "id": "repository-check",
@@ -31,7 +31,7 @@
       "reason": "Repository contract, backup, security, Argo, Factory-boundary and recovery checks passed.",
       "risk": "low",
       "expectedCi": "required",
-      "evidence": { "kind": "command", "reference": "local:bb539a25" }
+      "evidence": { "kind": "command", "reference": "local:e3fdc3ee" }
     },
     {
       "id": "full-check",
@@ -43,7 +43,7 @@
       "reason": "Full repository validation including the Jellyfin OIDC contract passed.",
       "risk": "low",
       "expectedCi": "required",
-      "evidence": { "kind": "command", "reference": "local:bb539a25" }
+      "evidence": { "kind": "command", "reference": "local:e3fdc3ee" }
     },
     {
       "id": "kustomize-media-render",
@@ -83,11 +83,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@a8625f87aa8355103577b4a26dbb71b9b76ad9df:jellyfin-oidc",
+    "idempotencyKey": "SmadjaPaul/kube-ops@e3fdc3ee4d7e62acb66d6f404e84323cd4280af4:jellyfin-oidc",
     "payload": {
-      "resultId": "jellyfin-oidc-2026-10-22-bb539a25",
+      "resultId": "jellyfin-oidc-2026-10-22-e3fdc3ee",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "bb539a2503bc82f98890301a903f7c9598b28a50",
+      "revision": "e3fdc3ee4d7e62acb66d6f404e84323cd4280af4",
       "tests": [
         {
           "id": "jellyfin-oidc-contract",
