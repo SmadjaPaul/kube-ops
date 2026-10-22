@@ -44,10 +44,10 @@ jobs:
             if [ -n "${{ github.event.inputs.image }}" ]; then
               # Build specific image from input
               IMAGE_NAME="${{ github.event.inputs.image }}"
-              if [ -d "images/$IMAGE_NAME" ]; then
+              if [ -f "images/$IMAGE_NAME/Dockerfile" ]; then
                 JSON=$(echo "$IMAGE_NAME" | jq -R . | jq -s .)
               else
-                echo "Error: Image directory 'images/$IMAGE_NAME' not found"
+                echo "Error: Dockerfile 'images/$IMAGE_NAME/Dockerfile' not found"
                 exit 1
               fi
             else
@@ -63,7 +63,10 @@ jobs:
             CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}" "origin/${{ github.head_ref }}" -- 'images/*')
             # Get image directories from changed non-Markdown files
             IMAGES=$(echo "$CHANGED" | grep -v -E '\.(md|MD)$' | grep -v '^$' | \
-              xargs -n1 dirname | sed 's|images/||' | sort -u | grep -v '^$' || true)
+              xargs -n1 dirname | sed 's|images/||' | grep -v '^$' | \
+              while IFS= read -r image; do
+                [ -f "images/$image/Dockerfile" ] && printf '%s\n' "$image"
+              done | sort -u || true)
             if [ -n "$IMAGES" ]; then
               JSON=$(printf '%s\n' "$IMAGES" | jq -R . | jq -s .)
             else
@@ -75,7 +78,10 @@ jobs:
             CHANGED=$(git diff --name-only "$BEFORE_REF" "${{ github.sha }}" -- 'images/*')
             # Get image directories from changed non-Markdown files
             IMAGES=$(echo "$CHANGED" | grep -v -E '\.(md|MD)$' | grep -v '^$' | \
-              xargs -n1 dirname | sed 's|images/||' | sort -u | grep -v '^$' || true)
+              xargs -n1 dirname | sed 's|images/||' | grep -v '^$' | \
+              while IFS= read -r image; do
+                [ -f "images/$image/Dockerfile" ] && printf '%s\n' "$image"
+              done | sort -u || true)
             if [ -n "$IMAGES" ]; then
               JSON=$(printf '%s\n' "$IMAGES" | jq -R . | jq -s .)
             else
