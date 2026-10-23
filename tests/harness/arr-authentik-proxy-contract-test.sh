@@ -7,12 +7,19 @@ pol=k8s/infrastructure/network/policies/applications/media/media/allow-media-acc
 for app in radarr sonarr prowlarr; do
   route="k8s/applications/media/arr/$app/http-route.yaml"
   sts="k8s/applications/media/arr/$app/statefulset.yaml"
-  yq -e '.spec.rules | all(.backendRefs | all(.name == "ak-outpost-proxy-outpost" and .namespace == "auth" and .port == 9000))' "$route" >/dev/null
+  test "$(yq -r '.spec.rules[0].backendRefs[0].name' "$route")" = "ak-outpost-proxy-outpost"
+  test "$(yq -r '.spec.rules[0].backendRefs[0].namespace' "$route")" = "auth"
+  test "$(yq -r '.spec.rules[0].backendRefs[0].port' "$route")" = "9000"
+  test "$(yq -r '.spec.rules | length' "$route")" = "1"
   if grep -Fq "${app^^}__AUTH__METHOD" "$sts"; then echo "FAIL: premature External auth rollout for $app"; exit 1; fi
   grep -Fq "name: k8s.smadja.dev/services-media/$app-proxy" "$auth"
   grep -Fq "internal_host: http://$app.media.svc.cluster.local:80" "$auth"
   grep -Fq "[name, \"k8s.smadja.dev/services-media/$app-proxy\"]" "$outpost"
 done
-yq -e '.spec.ingress[0].toPorts[0].ports | all(.port != "7878" and .port != "8989" and .port != "9696")' "$pol" >/dev/null
+for port in 7878 8989 9696; do
+  if yq -r '.spec.ingress[0].toPorts[0].ports[].port' "$pol" | grep -Fxq "$port"; then
+    echo "FAIL: host/Gateway Arr bypass port $port still admitted"; exit 1
+  fi
+done
 grep -Fq "name: allow-media-to-arr-proxy-outpost" "$grant"
 echo "ARR_AUTHENTIK_PROXY_STATIC=PASS (PHASE A ONLY; NO EXTERNAL AUTH ADMITTED)"
