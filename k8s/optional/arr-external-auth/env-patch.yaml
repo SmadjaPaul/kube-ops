@@ -1,0 +1,31 @@
+# PHASE B ONLY. DO NOT import before Authentik proxy+routes+network proof.
+# This is NOT a manifest consumed by any active Kustomization.
+# The following JSON6902 patch snippets must be adapted to the live base/patch
+# before admission. They intentionally do not mutate any StatefulSet today.
+- target:
+    kind: StatefulSet
+    name: radarr
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env
+      value:
+        - name: RADARR__AUTH__METHOD
+          value: External
+- target:
+    kind: StatefulSet
+    name: sonarr
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env
+      value:
+        - name: SONARR__AUTH__METHOD
+          value: External
+- target:
+    kind: StatefulSet
+    name: prowlarr
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env
+      value:
+        - name: PROWLARR__AUTH__METHOD
+          value: External
