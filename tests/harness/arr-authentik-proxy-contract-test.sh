@@ -27,4 +27,5 @@ for port in 7878 8989 9696; do
   fi
 done
 grep -Fq "name: allow-media-to-arr-proxy-outpost" "$grant"
+grep -Fq "k8s:app.kubernetes.io/name: authentik-outpost-proxy" "$pol"
 echo "ARR_AUTHENTIK_PROXY_STATIC=PASS (PHASE A ONLY; NO EXTERNAL AUTH ADMITTED)"

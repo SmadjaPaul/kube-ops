@@ -57,7 +57,7 @@ spec:
   - fromEndpoints:
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: auth
-        app.kubernetes.io/name: authentik-outpost
+        k8s:app.kubernetes.io/name: authentik-outpost-proxy
     toPorts:
     - ports:
       - port: "7878"
