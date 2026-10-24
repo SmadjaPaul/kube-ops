@@ -70,7 +70,8 @@ while IFS= read -r path; do
     terraform/oracle-cloud/modules/object-storage/README.md|\
     terraform/proxmox/modules/talos/README.md|\
     .atlantis/plan-only.yaml|.atlantis/policies/google-cloud-build-bootstrap/main.rego|\
-    .gitignore|.justfile|docs/*|tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
+    .github/workflows/static-ci.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
+    tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
 done <<<"$changed"
