@@ -34,15 +34,17 @@ git rev-parse "$base_ref^{commit}" >/dev/null 2>&1 ||
 git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
   fail "head commit is unavailable"
 
-# Only the disposable pilot, the immutable GitHub admission files, and
-# documentation/static tests may differ in a PR that reaches this server. In
-# particular, no provider, module, data source, provisioner, workflow, or
-# arbitrary Terraform file can be introduced alongside an admin plan.
+# Only the disposable pilot, immutable GitHub admission files, documentation,
+# static tests, and generated OpenTofu module documentation may differ in a PR
+# that reaches this server. In particular, no provider, resource, data source,
+# provisioner, workflow, or arbitrary Terraform file can be introduced
+# alongside an admin plan. The one variables.tf exception is a documentation
+# description-only source for a generated README and is intentionally exact.
 changed=$(git diff --name-only "$base_ref...$HEAD_COMMIT")
 while IFS= read -r path; do
   test -z "$path" && continue
   case "$path" in
-    terraform/atlantis-pilot/*|terraform/github/repositories.auto.tfvars|terraform/github/backend.tf|terraform/github/*.md|.atlantis/plan-only.yaml|.gitignore|docs/*|tests/*|scripts/architecture-check.sh) ;;
+    terraform/atlantis-pilot/*|terraform/github/repositories.auto.tfvars|terraform/github/backend.tf|terraform/github/*.md|terraform/*/modules/*/README.md|terraform/cloudflare/modules/security-headers/variables.tf|.atlantis/plan-only.yaml|.gitignore|docs/*|tests/*|scripts/architecture-check.sh) ;;
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
 done <<<"$changed"
