@@ -70,6 +70,9 @@ jobs:
           kubeconform -summary -ignore-missing-schemas /tmp/configarr-rendered.yaml
           bash tests/harness/configarr-gitops-contract-test.sh
 
+      - name: Validate Arr Authentik proxy first-run contract
+        run: bash tests/harness/arr-authentik-proxy-contract-test.sh
+
       - name: Validate bounded Prowlarr-to-Arr egress
         run: |
           kustomize build k8s/infrastructure/network/policies/applications/media/media > /tmp/media-policies.yaml

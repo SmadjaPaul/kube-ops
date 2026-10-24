@@ -5,6 +5,14 @@ version: 1
 metadata:
   name: Outposts
 entries:
+  # File-based blueprints are discovered/applied in unspecified order.
+  # Official meta model ensures the proxy providers are present before
+  # this outpost resolves them via !Find (no best-effort ordering guesses).
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Apps - Media
+      required: true
   # Native OIDC is the default. Keep a single managed proxy outpost only for
   # applications that cannot consume OIDC directly.
   - model: authentik_outposts.outpost
@@ -22,6 +30,18 @@ entries:
         - !Find [
             authentik_core.provider,
             [name, "k8s.smadja.dev/services-frigate"],
+          ]
+        - !Find [
+            authentik_core.provider,
+            [name, "k8s.smadja.dev/services-media/radarr-proxy"],
+          ]
+        - !Find [
+            authentik_core.provider,
+            [name, "k8s.smadja.dev/services-media/sonarr-proxy"],
+          ]
+        - !Find [
+            authentik_core.provider,
+            [name, "k8s.smadja.dev/services-media/prowlarr-proxy"],
           ]
       config:
         log_level: info

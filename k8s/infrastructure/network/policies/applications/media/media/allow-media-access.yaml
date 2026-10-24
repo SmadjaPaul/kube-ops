@@ -23,10 +23,6 @@ spec:
         protocol: TCP
       - port: "8983"
         protocol: TCP
-      - port: "7878"
-        protocol: TCP
-      - port: "9696"
-        protocol: TCP
       - port: "8686"
         protocol: TCP
       - port: "6767"
@@ -36,8 +32,6 @@ spec:
       - port: "9000"
         protocol: TCP
       - port: "8000"
-        protocol: TCP
-      - port: "8989"
         protocol: TCP
   - fromEndpoints:
     - matchLabels:
@@ -57,6 +51,20 @@ spec:
       - port: "8096"
         protocol: TCP
       - port: "5055"
+        protocol: TCP
+  # Authentik Proxy Outpost is admitted to the app listeners,
+  # but gateway/host do not get direct unauthenticated access.
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: auth
+        k8s:app.kubernetes.io/name: authentik-outpost-proxy
+    toPorts:
+    - ports:
+      - port: "7878"
+        protocol: TCP
+      - port: "8989"
+        protocol: TCP
+      - port: "9696"
         protocol: TCP
   egress:
   - toEndpoints:
