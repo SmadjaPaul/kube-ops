@@ -1,0 +1,31 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: prowlarr-to-arr
+  namespace: media
+  labels:
+    policy-type: media-audit
+spec:
+  description: >-
+    Permit Prowlarr to test and synchronize only the Radarr and Sonarr
+    application APIs on native pod ports. No indexer or downloader egress.
+  endpointSelector:
+    matchLabels:
+      app: prowlarr
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app: radarr
+      toPorts:
+        - ports:
+            - port: "7878"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app: sonarr
+      toPorts:
+        - ports:
+            - port: "8989"
+              protocol: TCP
