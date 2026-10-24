@@ -4,6 +4,7 @@ auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-media.yaml
 outpost=k8s/infrastructure/auth/authentik/extra/blueprints/outposts.yaml
 grant=k8s/infrastructure/auth/authentik/referencegrant.yaml
 pol=k8s/infrastructure/network/policies/applications/media/media/allow-media-access.yaml
+prowlarr_pol=k8s/infrastructure/network/policies/applications/media/media/allow-prowlarr-to-arr.yaml
 for app in radarr sonarr prowlarr; do
   route="k8s/applications/media/arr/$app/http-route.yaml"
   sts="k8s/applications/media/arr/$app/statefulset.yaml"
@@ -28,4 +29,8 @@ for port in 7878 8989 9696; do
 done
 grep -Fq "name: allow-media-to-arr-proxy-outpost" "$grant"
 grep -Fq "k8s:app.kubernetes.io/name: authentik-outpost-proxy" "$pol"
+grep -Fq "name: prowlarr-to-arr" "$prowlarr_pol"
+grep -Fq 'app: prowlarr' "$prowlarr_pol"
+grep -Fq 'port: "7878"' "$prowlarr_pol"
+grep -Fq 'port: "8989"' "$prowlarr_pol"
 echo "ARR_AUTHENTIK_PROXY_STATIC=PASS (PHASE A ONLY; NO EXTERNAL AUTH ADMITTED)"
