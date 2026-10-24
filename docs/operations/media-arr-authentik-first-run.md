@@ -23,7 +23,8 @@ Official references:
 
 - Three Authentik proxy-mode providers, not fake OAuth2 callbacks.
 - Reuse existing Proxy Outpost (including Frigate provider).
-- Restrict Arr app authorization to authentik-admins; no blanket Media Users.
+- Restrict Arr app authorization to authentik-admins and explicitly retire
+  the old Media Users policy bindings (policy engine mode is `any`).
 - Three LAN HTTPRoutes forward exclusively to auth/ak-outpost-proxy-outpost:9000.
 - Add named auth namespace ReferenceGrant for the media HTTPRoutes.
 - Remove direct host/Gateway ingress grants for TCP 7878/8989/9696.
@@ -32,8 +33,9 @@ Official references:
 - App auth remains as it was: the first-run form MAY remain until Phase B.
 
 Do not merge this PR until Authentik blueprint composition has been reviewed:
-the outposts blueprint references newly created proxy providers and may need
-an additional reconciliation if the blueprints apply in an arbitrary order.
+the outposts blueprint now uses the upstream `metaapplyblueprint` model to
+apply `Apps - Media` first. Runtime must still verify its required target
+resolves and the outpost refreshes successfully.
 The prior OAuth2 provider objects are intentionally retained for now to avoid
 destructive cleanup; inspect drift and references after deployment.
 

@@ -157,6 +157,15 @@ entries:
       order: 1
 
   # radarr: Authentik Proxy, not OIDC in the Servarr process.
+  # Reconcile removal of the old policy binding: under policy_engine_mode=any
+  # leaving Media Users alongside authentik-admins grants both groups access.
+  - id: prowlarr_retire_media_users_policy_binding
+    model: authentik_policies.policybinding
+    state: absent
+    identifiers:
+      target: !KeyOf application-prowlarr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+  
   - id: provider-radarr
     model: authentik_providers_proxy.proxyprovider
     state: present
@@ -192,6 +201,15 @@ entries:
       order: 1
 
   # sonarr: Authentik Proxy, not OIDC in the Servarr process.
+  # Reconcile removal of the old policy binding: under policy_engine_mode=any
+  # leaving Media Users alongside authentik-admins grants both groups access.
+  - id: radarr_retire_media_users_policy_binding
+    model: authentik_policies.policybinding
+    state: absent
+    identifiers:
+      target: !KeyOf application-radarr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+  
   - id: provider-sonarr
     model: authentik_providers_proxy.proxyprovider
     state: present
@@ -226,6 +244,15 @@ entries:
     attrs:
       order: 1
 
+  # Reconcile removal of the old policy binding: under policy_engine_mode=any
+  # leaving Media Users alongside authentik-admins grants both groups access.
+  - id: sonarr_retire_media_users_policy_binding
+    model: authentik_policies.policybinding
+    state: absent
+    identifiers:
+      target: !KeyOf application-sonarr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+  
   - id: provider-sabnzbd
     model: authentik_providers_oauth2.oauth2provider
     identifiers:

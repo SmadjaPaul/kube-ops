@@ -21,6 +21,8 @@ for app in radarr sonarr prowlarr; do
   esac
   grep -Fq "internal_host: http://$app.media.svc.cluster.local:$port" "$auth"
   grep -Fq "[name, \"k8s.smadja.dev/services-media/$app-proxy\"]" "$outpost"
+  # Enforce migration of the prior Media Users binding (policy_engine_mode=any).
+  grep -Fq "id: ${app}_retire_media_users_policy_binding" "$auth"
 done
 for port in 7878 8989 9696; do
   if yq -r '.spec.ingress[0].toPorts[0].ports[].port' "$pol" | grep -Fxq "$port"; then
@@ -33,4 +35,13 @@ grep -Fq "name: prowlarr-to-arr" "$prowlarr_pol"
 grep -Fq 'app: prowlarr' "$prowlarr_pol"
 grep -Fq 'port: "7878"' "$prowlarr_pol"
 grep -Fq 'port: "8989"' "$prowlarr_pol"
+grep -Fq "model: authentik_blueprints.metaapplyblueprint" "$outpost"
+grep -Fq "name: Apps - Media" "$outpost"
+grep -Fq "required: true" "$outpost"
+for app in radarr sonarr prowlarr; do
+  # Extract and structurally test the complete removal entry, not a comment.
+  yq -e 'true' "$auth" >/dev/null 2>&1 || true # Authentik YAML custom tags aren't parsed by standard yq
+  grep -A5 "id: ${app}_retire_media_users_policy_binding" "$auth" |
+    grep -Fq "state: absent" || { echo "MISSING_LEGACY_BINDING_RETIREMENT=$app" >&2; exit 1; }
+done
 echo "ARR_AUTHENTIK_PROXY_STATIC=PASS (PHASE A ONLY; NO EXTERNAL AUTH ADMITTED)"
