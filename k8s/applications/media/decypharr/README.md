@@ -15,6 +15,11 @@ No runtime mutation is performed by the PR itself.
 - `default_download_action=download`, `mount.type=none`: actual local
   downloads into `/data/decypharr-downloads`, not STRM/FUSE/SYS_ADMIN.
 - `use_auth=true`. Qualify initial admin setup and QBitTorrent compatibility.
+- `DECYPHARR_USE_AUTH=true` is explicit. v2.5 stores the admin bcrypt record and
+  generated API token in the persistent `/app/auth.json`; this PR does not
+  invent or inject an operator credential. The first authenticated setup is a
+  separate runtime gate and must be completed through the native setup flow
+  before merge/admission.
 - Cilium allows only Radarr/Sonarr -> Decypharr 8282 and Decypharr
   -> Arr APIs / TorBox HTTPS. No public ingress route.
 - Existing SABnzbd preserved until a completed legal fixture import + playback.

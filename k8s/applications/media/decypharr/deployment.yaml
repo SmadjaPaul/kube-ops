@@ -53,6 +53,12 @@ spec:
             - name: PGID
               value: "2501"
             # Pinned Decypharr v2.5 requires DECYPHARR_ prefix.
+            - name: DECYPHARR_PORT
+              value: "8282"
+            - name: DECYPHARR_USE_AUTH
+              value: "true"
+            - name: DECYPHARR_DOWNLOAD_FOLDER
+              value: /data/decypharr-downloads
             - name: DECYPHARR_DEBRIDS__0__NAME
               value: TorBox
             - name: DECYPHARR_DEBRIDS__0__PROVIDER

@@ -21,7 +21,7 @@ data:
       "folder_naming": "filename",
       "max_active_downloads": 2,
       "debrids": [],
-    "categories": ["radarr", "sonarr"],
+      "categories": ["radarr", "sonarr"],
       "arrs": [],
       "queue_cleanup": {
         "rules": [

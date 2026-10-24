@@ -17,6 +17,9 @@ grep -Fq 'APP_SONARR_API_KEY' "$secret"
 grep -Fq 'DECYPHARR_DEBRIDS__0__API_KEY' "$deploy"
 grep -Fq 'DECYPHARR_ARRS__0__TOKEN' "$deploy"
 grep -Fq 'DECYPHARR_ARRS__1__TOKEN' "$deploy"
+grep -Fq 'DECYPHARR_PORT' "$deploy"
+grep -Fq 'DECYPHARR_USE_AUTH' "$deploy"
+grep -Fq 'DECYPHARR_DOWNLOAD_FOLDER' "$deploy"
 grep -Fq '"default_download_action": "download"' "$cfg"
 grep -Fq '"type": "none"' "$cfg"
 grep -Fq '"use_auth": true' "$cfg"
@@ -29,4 +32,14 @@ grep -Fq 'enabled: false' "$configarr"
 grep -Fq 'sync_indexers: false' "$configarr"
 yq -e '.spec.suspend == true' "$cron" >/dev/null
 yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name == "DRY_RUN" and .value == "true")) | length == 1' "$cron" >/dev/null
+python3 - "$cfg" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+lines = Path(sys.argv[1]).read_text().splitlines()
+start = lines.index("  config.json: |") + 1
+payload = "\n".join(line[4:] for line in lines[start:])
+json.loads(payload)
+PY
 echo "DECYPHARR_TORBOX_STAGED=PASS (STATIC_ONLY)"
