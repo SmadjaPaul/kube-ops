@@ -33,9 +33,9 @@ done
 for key in APP_RADARR_API_KEY APP_SONARR_API_KEY APP_PROWLARR_API_KEY; do
   grep -Fq "$key" "$secret" || { echo "CONFIGARR_CONTRACT=FAIL missing $key"; exit 1; }
 done
-for app in radarr sonarr prowlarr; do
-  grep -Fq "$app.media.svc.cluster.local:80" "$cfg" || { echo "CONFIGARR_CONTRACT=FAIL $app"; exit 1; }
-done
+grep -Fq 'sonarr.media.svc.cluster.local:8989' "$cfg" || { echo "CONFIGARR_CONTRACT=FAIL sonarr service port"; exit 1; }
+grep -Fq 'radarr.media.svc.cluster.local:7878' "$cfg" || { echo "CONFIGARR_CONTRACT=FAIL radarr service port"; exit 1; }
+grep -Fq 'prowlarr.media.svc.cluster.local:9696' "$cfg" || { echo "CONFIGARR_CONTRACT=FAIL prowlarr service port"; exit 1; }
 grep -Fq 'delete_unmanaged:' "$cfg"
 grep -Fq 'enabled: false' "$cfg"
 grep -Fq 'sync_indexers: false' "$cfg"
