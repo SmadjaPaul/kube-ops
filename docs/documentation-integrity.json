@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "scope": {
+    "agent_router": "tracked AGENTS.md files",
+    "public_documents": "website/docs Markdown and MDX files changed by the revision"
+  },
+  "semantic_boundary": "The checks prove references and disclosure patterns only; they do not prove prose truth, Argo reconciliation, runtime health, or user acceptance.",
+  "retired_reference_policy": {
+    "platforms": ["Flux", "home-ops"],
+    "iam": ["Bitwarden", "bitwarden-backend"],
+    "historical_exception": "A line explicitly marked historical, legacy, retired, no longer, old, do not, or never remains a finding candidate for human review rather than an automatic deletion."
+  }
+}

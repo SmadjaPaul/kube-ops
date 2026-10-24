@@ -97,3 +97,12 @@ argo-orphan-compare BASELINE OUTPUT:
 [doc('List curated browser USER-level tests')]
 e2e-list:
     cd tests/e2e && npm run list
+
+[doc('Run offline documentation integrity checks and negative fixtures')]
+docs-check:
+    node scripts/check-documentation-integrity.mjs
+    node --test tests/harness/documentation-integrity-test.mjs
+
+[doc('Build the Docusaurus site with broken links rejected by configuration')]
+docs-build:
+    cd website && npm run build

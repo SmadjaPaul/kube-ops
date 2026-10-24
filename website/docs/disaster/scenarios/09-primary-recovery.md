@@ -472,7 +472,7 @@ Please update this guide if:
 ### Backup Documentation
 
 - Main disaster recovery guide: [Disaster Recovery Overview](../disaster-recovery.md)
-- All recovery scenarios: [Scenarios Index](../disaster-recovery.md#scenarios)
+- All recovery scenarios: [Scenarios Index](../scenarios/index.md)
 
 ### Video Tutorials (if created)
 

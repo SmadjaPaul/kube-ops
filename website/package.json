@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@docusaurus/core": "3.10.1",
-    "@docusaurus/plugin-sitemap": "^3.8.1",
+    "@docusaurus/plugin-sitemap": "3.10.1",
     "@docusaurus/preset-classic": "3.10.1",
     "@easyops-cn/docusaurus-search-local": "^0.55.0",
     "@mdx-js/react": "^3.0.0",
@@ -40,7 +40,7 @@
     "remark-lint-no-dead-urls": "2.0.1",
     "remark-lint-no-empty-sections": "4.0.0",
     "remark-lint-no-undefined-references": "5.0.2",
-    "typescript": "~7.0.0",
+    "typescript": "~5.8.3",
     "unist-util-visit": "5.1.0"
   },
   "browserslist": {

@@ -62,7 +62,7 @@ The `bootstrap/volumes` Terraform module exists only for migrating pre-existing 
 
 ## Bootstrap Configuration
 
-The Proxmox CSI bootstrap is owned by `homelab-infra`. `kube-ops` must not contain a `tofu/` tree; the runtime token reaches Kubernetes via ESO from the `cluster/prd` Doppler store. The chart values rendered by kube-ops live at [`k8s/infrastructure/storage/proxmox-csi/`](../../../k8s/infrastructure/storage/proxmox-csi/).
+The Proxmox CSI bootstrap is owned by `homelab-infra`. `kube-ops` must not contain a `tofu/` tree; the runtime token reaches Kubernetes via ESO from the `cluster/prd` Doppler store. The chart values rendered by kube-ops live at [`k8s/infrastructure/storage/proxmox-csi/`](https://github.com/SmadjaPaul/kube-ops/tree/main/k8s/infrastructure/storage/proxmox-csi).
 
 ### Proxmox CSI Plugin Setup
 
@@ -183,7 +183,7 @@ allowVolumeExpansion: true
 
 ## Volume Binding Mode
 
-The `proxmox-csi` StorageClass uses `volumeBindingMode: WaitForFirstConsumer` so the volume is provisioned on the same node that schedules the consuming pod. This matches the value rendered by [`k8s/infrastructure/storage/proxmox-csi/values.yaml`](../../../k8s/infrastructure/storage/proxmox-csi/values.yaml) and is enforced by `scripts/check-v1-active-contract.sh`.
+The `proxmox-csi` StorageClass uses `volumeBindingMode: WaitForFirstConsumer` so the volume is provisioned on the same node that schedules the consuming pod. This matches the value rendered by [`k8s/infrastructure/storage/proxmox-csi/values.yaml`](https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/infrastructure/storage/proxmox-csi/values.yaml) and is enforced by `scripts/check-v1-active-contract.sh`.
 
 Longhorn uses its own StorageClasses (`longhorn-fast`, `longhorn-bulk`); their binding mode is governed by Longhorn itself, not by this chart.
 

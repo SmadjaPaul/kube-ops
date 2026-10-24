@@ -1,0 +1,62 @@
+name: Documentation integrity
+
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'docs/**'
+      - 'website/**'
+      - 'scripts/check-documentation-integrity.mjs'
+      - 'tests/harness/documentation-integrity-test.mjs'
+      - '.justfile'
+      - 'package.json'
+      - '.github/workflows/documentation-integrity.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - 'docs/**'
+      - 'website/**'
+      - 'scripts/check-documentation-integrity.mjs'
+      - 'tests/harness/documentation-integrity-test.mjs'
+      - '.justfile'
+      - 'package.json'
+      - '.github/workflows/documentation-integrity.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    name: Offline integrity and Docusaurus build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.0'
+
+      - name: Run offline documentation checks
+        run: npm run check:documentation
+
+      - name: Check changed public-documentation disclosure boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base='${{ github.event.pull_request.base.sha }}'
+          else
+            base='${{ github.event.before }}'
+          fi
+          node scripts/check-documentation-integrity.mjs --changed-from "$base"
+
+      - name: Install website dependencies without generating a lockfile
+        working-directory: website
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Build Docusaurus and reject broken links
+        working-directory: website
+        run: npm run build

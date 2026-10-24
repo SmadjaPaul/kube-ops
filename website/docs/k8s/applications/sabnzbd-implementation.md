@@ -10,7 +10,7 @@ The image builds SABnzbd from the official release tarball in a Python virtual e
 
 ## Configuration
 
-`sabnzbd-env-config` ships baseline defaults that avoid secrets. `sabnzbd-secrets` pulls API keys and Usenet credentials from Bitwarden. Update either and redeploy to apply changes without manual edits.
+`sabnzbd-env-config` ships baseline defaults that avoid secrets. `sabnzbd-secrets` pulls API keys and Usenet credentials through the repository's Doppler-backed External Secrets flow. Update either and let Argo CD reconcile the change without manual edits.
 
 ## Storage
 
@@ -22,7 +22,7 @@ The image builds SABnzbd from the official release tarball in a Python virtual e
 
 ## Upgrades
 
-Bump the `SAB_VERSION` build argument or push a `sabnzbd-x.y.z` tag. The image build workflow publishes new tags, and Flux or ArgoCD roll them out. Existing PVCs keep their configs, and environment variables still take precedence.
+Bump the `SAB_VERSION` build argument or push a `sabnzbd-x.y.z` tag. The image build workflow publishes new tags, and Argo CD rolls them out. Existing PVCs keep their configs, and environment variables still take precedence.
 
 ## Debug
 

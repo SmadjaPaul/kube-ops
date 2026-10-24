@@ -13,12 +13,12 @@ This document outlines the core infrastructure controllers deployed in the Kuber
 ### Node feature discovery
 
 - **Purpose**: Hardware feature and system configuration detection
-- **Further Reading**: [GPU Support in Kubernetes](controllers/gpu-support.md)
+- **Further Reading**: [GPU passthrough and node support](../tofu/gpu-passthrough.md)
 
 ### NVIDIA GPU operator
 
 - **Purpose**: Automates management of GPU-enabled NVIDIA software components for GPU-enabled nodes
-- **Further Reading**: [GPU Support in Kubernetes](controllers/gpu-support.md)
+- **Further Reading**: [GPU passthrough and node support](../tofu/gpu-passthrough.md)
 
 ### ArgoCD
 
@@ -45,7 +45,7 @@ This document outlines the core infrastructure controllers deployed in the Kuber
 - **Purpose**: Secrets management
 - **Version**: Latest stable (automated by Renovate)
 - **Features**:
-  - Bitwarden integration
+  - Doppler-backed External Secrets integration
   - Secrets rotation
   - Secure key distribution
   - Cross-namespace secrets
