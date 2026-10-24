@@ -135,7 +135,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: agentgateway
-          image: cr.agentgateway.dev/agentgateway@sha256:9d3e6044ddcdc0878b1787f77bd401252b95e22684203fb5e874c4c42d2ed90c
+          image: cr.agentgateway.dev/agentgateway@sha256:2a8ab6e70cc18c74cbe4cacdb435fe24f1b413e0f95bb2b6972961a46c4d63a1
           args: ["-f", "/config/config.yaml"]
           workingDir: /data
           envFrom:
