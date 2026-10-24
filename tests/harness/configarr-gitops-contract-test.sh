@@ -42,8 +42,18 @@ grep -Fq 'sync_indexers: false' "$cfg"
 grep -Fq 'DRY_RUN=true' "$package/README.md"
 grep -Fq 'app.kubernetes.io/name: configarr-preview' "$net"
 
-if grep -Eq '^(.*password:|.*api_key:[[:space:]]*["\x27]?[A-Za-z0-9_-]{16,})' "$cfg"; then
-  echo "CONFIGARR_CONTRACT=FAIL inline credential-like value"; exit 1
+# A password must never be committed literally. The two known Decypharr
+# qBittorrent-compatible clients intentionally use Kubernetes-injected env.
+if grep -E '^[[:space:]]*password:' "$cfg" |
+   grep -Ev '^[[:space:]]*password:[[:space:]]*!env (RADARR_API_KEY|SONARR_API_KEY)[[:space:]]*$' |
+   grep -q .; then
+  echo "CONFIGARR_CONTRACT=FAIL password is not an approved !env reference"; exit 1
+fi
+test "$(grep -Ec '^[[:space:]]*password:[[:space:]]*!env (RADARR_API_KEY|SONARR_API_KEY)[[:space:]]*$' "$cfg")" -eq 2 || {
+  echo "CONFIGARR_CONTRACT=FAIL expected two Decypharr env secret references"; exit 1
+}
+if grep -Eq '^[[:space:]]*api_key:[[:space:]]*["\x27]?[A-Za-z0-9_-]{16,}' "$cfg"; then
+  echo "CONFIGARR_CONTRACT=FAIL literal API credential"; exit 1
 fi
 
 echo "CONFIGARR_GITOPS_CONTRACT=PASS (STATIC ONLY; NO RUNTIME ADMISSION)"
