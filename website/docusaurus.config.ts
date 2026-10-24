@@ -14,6 +14,7 @@ const config: Config = {
   projectName: 'kube-ops',
 
   onBrokenLinks: 'throw',
+  onBrokenAnchors: 'throw',
   markdown: {
     hooks: {
       onBrokenMarkdownLinks: 'throw',

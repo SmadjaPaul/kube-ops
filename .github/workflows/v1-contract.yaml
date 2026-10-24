@@ -73,5 +73,8 @@ jobs:
       - name: Validate ARC GitOps contract
         run: bash tests/harness/arc-gitops-contract-test.sh
 
+      - name: Validate GitHub Atlantis admission boundary
+        run: bash tests/harness/github-atlantis-guard-test.sh
+
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh

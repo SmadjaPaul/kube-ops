@@ -177,9 +177,9 @@ User-generated data must never use this exemption.
 ## Multi-agent capability model
 
 The repository keeps shared operational knowledge in `.agents/skills/*`.
-Paperclip role files define delegation and authority, not a second copy of
-Kubernetes/GitOps runbooks. The canonical role matrix is
-`k8s/applications/ai/paperclip/company/CAPABILITIES.md`.
+Paperclip's former role-file matrix is not a kube-ops contract and was removed
+with the local operator scaffolding. Use the tracked skills and `AGENTS.md`
+authority/evidence rules; do not follow an untracked or missing role file.
 
 A prompt is not a security boundary. The target enforcement layers are:
 

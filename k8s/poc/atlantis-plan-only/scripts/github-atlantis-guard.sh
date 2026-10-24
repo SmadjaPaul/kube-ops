@@ -34,15 +34,39 @@ git rev-parse "$base_ref^{commit}" >/dev/null 2>&1 ||
 git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
   fail "head commit is unavailable"
 
-# Only the disposable pilot, the immutable GitHub admission files, and
-# documentation/static tests may differ in a PR that reaches this server. In
-# particular, no provider, module, data source, provisioner, workflow, or
-# arbitrary Terraform file can be introduced alongside an admin plan.
+# Only the disposable pilot, immutable GitHub admission files, documentation,
+# static tests, and the exact generated OpenTofu module README files currently
+# qualified by the homelab-infra documentation contract may differ in a PR that
+# reaches this server. In particular, no provider, resource, data source,
+# provisioner, workflow, or arbitrary Terraform file can be introduced
+# alongside an admin plan. Keep this list literal: a broad Bash glob would
+# silently admit nested or newly introduced module paths.
 changed=$(git diff --name-only "$base_ref...$HEAD_COMMIT")
 while IFS= read -r path; do
   test -z "$path" && continue
   case "$path" in
-    terraform/atlantis-pilot/*|terraform/github/repositories.auto.tfvars|terraform/github/backend.tf|terraform/github/*.md|.atlantis/plan-only.yaml|.gitignore|docs/*|tests/*|scripts/architecture-check.sh) ;;
+    terraform/atlantis-pilot/*|terraform/github/repositories.auto.tfvars|terraform/github/backend.tf|terraform/github/*.md|\
+    terraform/cloudflare/modules/access/README.md|\
+    terraform/cloudflare/modules/comet-cache-rules/README.md|\
+    terraform/cloudflare/modules/dns/README.md|\
+    terraform/cloudflare/modules/email_routing/README.md|\
+    terraform/cloudflare/modules/global_config/README.md|\
+    terraform/cloudflare/modules/legacy-dns/README.md|\
+    terraform/cloudflare/modules/rate-limit/README.md|\
+    terraform/cloudflare/modules/security-headers/README.md|\
+    terraform/cloudflare/modules/security/README.md|\
+    terraform/cloudflare/modules/tunnel/README.md|\
+    terraform/cloudflare/modules/waf-managed-rules/README.md|\
+    terraform/migadu/modules/aliases/README.md|\
+    terraform/migadu/modules/identities/README.md|\
+    terraform/migadu/modules/mailboxes/README.md|\
+    terraform/netbird/modules/global_config/README.md|\
+    terraform/oracle-cloud/modules/admin/README.md|\
+    terraform/oracle-cloud/modules/monitoring/README.md|\
+    terraform/oracle-cloud/modules/network/README.md|\
+    terraform/oracle-cloud/modules/object-storage/README.md|\
+    terraform/proxmox/modules/talos/README.md|\
+    .atlantis/plan-only.yaml|.gitignore|docs/*|tests/*|scripts/architecture-check.sh) ;;
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
 done <<<"$changed"

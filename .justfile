@@ -32,6 +32,7 @@ check:
     bash tests/harness/affected-tests-test.sh
     bash tests/harness/runtime-smoke-test.sh
     bash tests/harness/argo-orphan-contract-test.sh
+    bash tests/harness/github-atlantis-guard-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
     bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh
@@ -97,3 +98,12 @@ argo-orphan-compare BASELINE OUTPUT:
 [doc('List curated browser USER-level tests')]
 e2e-list:
     cd tests/e2e && npm run list
+
+[doc('Run offline documentation integrity checks and negative fixtures')]
+docs-check:
+    node scripts/check-documentation-integrity.mjs
+    node --test tests/harness/documentation-integrity-test.mjs
+
+[doc('Build the Docusaurus site with broken links rejected by configuration')]
+docs-build:
+    cd website && npm run build
