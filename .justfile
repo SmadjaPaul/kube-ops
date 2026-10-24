@@ -41,6 +41,7 @@ check:
     bash tests/harness/arc-gitops-contract-test.sh
     bash tests/harness/invoice-backup-test.sh
     bash tests/harness/runtime-inventory-test.sh
+    bash tests/harness/arr-sabnzbd-egress-contract-test.sh
     bash tests/harness/longhorn-servicemonitor-contract-test.sh
     bash tests/harness/longhorn-offsite-pvc-contract-test.sh
     bash tests/harness/longhorn-tier-restore-runbook-test.sh

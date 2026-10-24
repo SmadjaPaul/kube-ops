@@ -1,0 +1,27 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arr-to-sabnzbd
+  namespace: media
+  labels:
+    policy-type: media-audit
+spec:
+  description: >-
+    Permit only Radarr and Sonarr to reach the SABnzbd native API listener
+    on the headless Service endpoint port. No external provider egress.
+  endpointSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - radarr
+          - sonarr
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app: sabnzbd
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
