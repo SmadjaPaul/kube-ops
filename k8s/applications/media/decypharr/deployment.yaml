@@ -52,6 +52,34 @@ spec:
               value: "2501"
             - name: PGID
               value: "2501"
+            # Pinned Decypharr v2.5 requires DECYPHARR_ prefix.
+            - name: DECYPHARR_DEBRIDS__0__NAME
+              value: TorBox
+            - name: DECYPHARR_DEBRIDS__0__PROVIDER
+              value: torbox
+            - name: DECYPHARR_DEBRIDS__0__API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: decypharr-api
+                  key: TORBOX_API_KEY
+            - name: DECYPHARR_ARRS__0__NAME
+              value: Radarr
+            - name: DECYPHARR_ARRS__0__HOST
+              value: http://radarr.media.svc.cluster.local:7878
+            - name: DECYPHARR_ARRS__0__TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: decypharr-api
+                  key: RADARR_API_KEY
+            - name: DECYPHARR_ARRS__1__NAME
+              value: Sonarr
+            - name: DECYPHARR_ARRS__1__HOST
+              value: http://sonarr.media.svc.cluster.local:8989
+            - name: DECYPHARR_ARRS__1__TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: decypharr-api
+                  key: SONARR_API_KEY
           ports:
             - name: http
               containerPort: 8282

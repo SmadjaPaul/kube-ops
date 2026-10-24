@@ -4,6 +4,7 @@ resources:
 - allow-media-access.yaml
 - allow-prowlarr-to-arr.yaml
 - allow-arr-to-prowlarr.yaml
+- allow-arr-to-decypharr.yaml
 namespace: media
 labels:
 - pairs:

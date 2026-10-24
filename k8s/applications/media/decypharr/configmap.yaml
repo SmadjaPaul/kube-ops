@@ -11,22 +11,23 @@ data:
       "url_base": "",
       "app_url": "http://decypharr.media.svc.cluster.local:8282",
       "log_level": "info",
-      "use_auth": false,
+      "use_auth": true,
       "enable_webdav_auth": false,
       "mount": {
         "type": "none"
       },
       "download_folder": "/data/decypharr-downloads",
-      "default_download_action": "strm",
+      "default_download_action": "download",
       "folder_naming": "filename",
-      "max_active_downloads": 5,
+      "max_active_downloads": 2,
       "debrids": [],
+    "categories": ["radarr", "sonarr"],
       "arrs": [],
       "queue_cleanup": {
         "rules": [
-          {"id": "failed_download", "action": "blacklist_research"},
-          {"id": "no_eligible_files", "action": "blacklist_research"},
-          {"id": "file_empty", "action": "blacklist_research"}
+          {"id": "failed_download", "action": ""},
+          {"id": "no_eligible_files", "action": ""},
+          {"id": "file_empty", "action": ""}
         ]
       },
       "repair": {

@@ -11,6 +11,7 @@ resources:
 - jellyseerr
 - jellyseerr-secrets.yaml
 - sabnzbd
+- decypharr
 - immich
 - audiobookshelf
 - audiobookrequest

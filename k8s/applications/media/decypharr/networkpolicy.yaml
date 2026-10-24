@@ -7,10 +7,15 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: decypharr
+  description: "Decypharr pilot: only Arr APIs and TorBox HTTPS, no P2P ingress"
   ingress:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: media
+            app: radarr
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app: sonarr
       toPorts:
         - ports:
             - port: "8282"
@@ -26,11 +31,25 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app: radarr
+      toPorts:
+        - ports:
+            - port: "7878"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app: sonarr
+      toPorts:
+        - ports:
+            - port: "8989"
+              protocol: TCP
     - toEntities:
         - world
       toPorts:
         - ports:
             - port: "443"
-              protocol: TCP
-            - port: "563"
               protocol: TCP
