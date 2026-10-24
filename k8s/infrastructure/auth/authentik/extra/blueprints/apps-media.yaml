@@ -1,0 +1,529 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+# prettier-ignore-start
+# eslint-disable
+---
+version: 1
+metadata:
+  name: Apps - Media
+entries:
+  - id: provider-bazarr
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: k8s.smadja.dev/services-media/bazarr
+    attrs:
+      authorization_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-authorization-implicit-consent"],
+        ]
+      signing_key:
+        !Find [
+          authentik_crypto.certificatekeypair,
+          [name, "authentik Self-signed Certificate"],
+        ]
+      invalidation_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-invalidation-flow"],
+        ]
+
+      client_type: confidential
+      client_id: !Env BAZARR_CLIENT_ID
+      client_secret: !Env BAZARR_CLIENT_SECRET
+      redirect_uris:
+        - url: https://bazarr.smadja.dev/oauth2/callback
+          matching_mode: strict
+
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      refresh_token_validity: days=30
+
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+  - id: application-bazarr
+    model: authentik_core.application
+    identifiers:
+      slug: bazarr
+    attrs:
+      name: Bazarr
+      group: Media
+      meta_launch_url: https://bazarr.smadja.dev
+      description: Subtitles
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bazarr.png
+      provider: !KeyOf provider-bazarr
+      policy_engine_mode: any
+  - id: bazarr_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-bazarr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+    attrs:
+      order: 1
+
+  - id: provider-lidarr
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: k8s.smadja.dev/services-media/lidarr
+    attrs:
+      authorization_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-authorization-implicit-consent"],
+        ]
+      signing_key:
+        !Find [
+          authentik_crypto.certificatekeypair,
+          [name, "authentik Self-signed Certificate"],
+        ]
+      invalidation_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-invalidation-flow"],
+        ]
+
+      client_type: confidential
+      client_id: !Env LIDARR_CLIENT_ID
+      client_secret: !Env LIDARR_CLIENT_SECRET
+      redirect_uris:
+        - url: https://lidarr.smadja.dev/oauth2/callback
+          matching_mode: strict
+
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      refresh_token_validity: days=30
+
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+  - id: application-lidarr
+    model: authentik_core.application
+    identifiers:
+      slug: lidarr
+    attrs:
+      name: Lidarr
+      group: Media
+      meta_launch_url: https://lidarr.smadja.dev
+      description: Music
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/lidarr.png
+      provider: !KeyOf provider-lidarr
+      policy_engine_mode: any
+  - id: lidarr_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-lidarr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+    attrs:
+      order: 1
+
+  # prowlarr: Authentik Proxy, not OIDC in the Servarr process.
+  - id: provider-prowlarr
+    model: authentik_providers_proxy.proxyprovider
+    state: present
+    identifiers:
+      name: k8s.smadja.dev/services-media/prowlarr-proxy
+    attrs:
+      mode: proxy
+      external_host: https://prowlarr.smadja.dev
+      internal_host: http://prowlarr.media.svc.cluster.local:9696
+      authorization_flow:
+        !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow:
+        !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      skip_path_regex: ""
+  - id: application-prowlarr
+    model: authentik_core.application
+    identifiers:
+      slug: prowlarr
+    attrs:
+      name: Prowlarr
+      group: Media
+      meta_launch_url: https://prowlarr.smadja.dev
+      description: Index management
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/prowlarr.png
+      provider: !KeyOf provider-prowlarr
+      policy_engine_mode: any
+  - id: prowlarr_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-prowlarr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 1
+
+  # radarr: Authentik Proxy, not OIDC in the Servarr process.
+  # Reconcile removal of the old policy binding: under policy_engine_mode=any
+  # leaving Media Users alongside authentik-admins grants both groups access.
+  - id: prowlarr_retire_media_users_policy_binding
+    model: authentik_policies.policybinding
+    state: absent
+    identifiers:
+      target: !KeyOf application-prowlarr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+  
+  - id: provider-radarr
+    model: authentik_providers_proxy.proxyprovider
+    state: present
+    identifiers:
+      name: k8s.smadja.dev/services-media/radarr-proxy
+    attrs:
+      mode: proxy
+      external_host: https://radarr.smadja.dev
+      internal_host: http://radarr.media.svc.cluster.local:7878
+      authorization_flow:
+        !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow:
+        !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      skip_path_regex: ""
+  - id: application-radarr
+    model: authentik_core.application
+    identifiers:
+      slug: radarr
+    attrs:
+      name: Radarr
+      group: Media
+      meta_launch_url: https://radarr.smadja.dev
+      description: Movies
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/radarr.png
+      provider: !KeyOf provider-radarr
+      policy_engine_mode: any
+  - id: radarr_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-radarr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 1
+
+  # sonarr: Authentik Proxy, not OIDC in the Servarr process.
+  # Reconcile removal of the old policy binding: under policy_engine_mode=any
+  # leaving Media Users alongside authentik-admins grants both groups access.
+  - id: radarr_retire_media_users_policy_binding
+    model: authentik_policies.policybinding
+    state: absent
+    identifiers:
+      target: !KeyOf application-radarr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+  
+  - id: provider-sonarr
+    model: authentik_providers_proxy.proxyprovider
+    state: present
+    identifiers:
+      name: k8s.smadja.dev/services-media/sonarr-proxy
+    attrs:
+      mode: proxy
+      external_host: https://sonarr.smadja.dev
+      internal_host: http://sonarr.media.svc.cluster.local:8989
+      authorization_flow:
+        !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow:
+        !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      skip_path_regex: ""
+  - id: application-sonarr
+    model: authentik_core.application
+    identifiers:
+      slug: sonarr
+    attrs:
+      name: Sonarr
+      group: Media
+      meta_launch_url: https://sonarr.smadja.dev
+      description: TV shows
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sonarr.png
+      provider: !KeyOf provider-sonarr
+      policy_engine_mode: any
+  - id: sonarr_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-sonarr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 1
+
+  # Reconcile removal of the old policy binding: under policy_engine_mode=any
+  # leaving Media Users alongside authentik-admins grants both groups access.
+  - id: sonarr_retire_media_users_policy_binding
+    model: authentik_policies.policybinding
+    state: absent
+    identifiers:
+      target: !KeyOf application-sonarr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+  
+  - id: provider-sabnzbd
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: k8s.smadja.dev/services-media/sabnzbd
+    attrs:
+      authorization_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-authorization-implicit-consent"],
+        ]
+      signing_key:
+        !Find [
+          authentik_crypto.certificatekeypair,
+          [name, "authentik Self-signed Certificate"],
+        ]
+      invalidation_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-invalidation-flow"],
+        ]
+
+      client_type: confidential
+      client_id: !Env SABNZBD_CLIENT_ID
+      client_secret: !Env SABNZBD_CLIENT_SECRET
+      redirect_uris:
+        - url: https://sabnzbd.smadja.dev/oauth2/callback
+          matching_mode: strict
+
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      refresh_token_validity: days=30
+
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+  - id: application-sabnzbd
+    model: authentik_core.application
+    identifiers:
+      slug: sabnzbd
+    attrs:
+      name: SABnzbd
+      group: Media
+      meta_launch_url: https://sabnzbd.smadja.dev
+      description: Usenet management
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sabnzbd.png
+      provider: !KeyOf provider-sabnzbd
+      policy_engine_mode: any
+  - id: sabnzbd_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-sabnzbd
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+    attrs:
+      order: 1
+
+
+  - id: provider-jellyseerr
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: k8s.smadja.dev/services-media/jellyseerr
+    attrs:
+      authorization_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-authorization-implicit-consent"],
+        ]
+      signing_key:
+        !Find [
+          authentik_crypto.certificatekeypair,
+          [name, "authentik Self-signed Certificate"],
+        ]
+      invalidation_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-invalidation-flow"],
+        ]
+
+      client_type: confidential
+      grant_types:
+        - authorization_code
+      redirect_uris:
+        # Seerr new OIDC implementation. Legacy Jellyseerr callback is retained
+        # temporarily so rollback does not require an Authentik change.
+        - url: https://seerr.smadja.dev/login
+          matching_mode: strict
+        - url: https://seerr.smadja.dev/profile/settings/linked-accounts
+          matching_mode: strict
+        - url: https://jellyseerr.smadja.dev/login?provider=authentik&callback=true
+          matching_mode: strict
+      client_id: !Env JELLYSEERR_CLIENT_ID
+      client_secret: !Env JELLYSEERR_CLIENT_SECRET
+
+      access_code_validity: minutes=1
+      access_token_validity: hours=1
+      refresh_token_validity: days=30
+
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+
+  # Converge providers created before the authorization-code grant was
+  # declared. The client_id is the stable identity of the existing provider.
+  - id: provider-jellyseerr-grant-type
+    model: authentik_providers_oauth2.oauth2provider
+    state: present
+    identifiers:
+      client_id: jellyseerr
+    attrs:
+      grant_types:
+        - authorization_code
+
+  - id: application-jellyseerr
+    model: authentik_core.application
+    identifiers:
+      slug: jellyseerr
+    attrs:
+      name: Seerr
+      group: Media
+      meta_launch_url: https://seerr.smadja.dev
+      meta_description: Requêtes de contenu
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/seerr.png
+      provider: !KeyOf provider-jellyseerr
+      policy_engine_mode: any
+
+  - id: jellyseerr_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-jellyseerr
+      group: !Find [authentik_core.group, [name, "Media Users"]]
+    attrs:
+      order: 1
+
+  - id: provider-audiobookshelf
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: k8s.smadja.dev/services-media/audiobookshelf
+    attrs:
+      authorization_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-authorization-implicit-consent"],
+        ]
+      signing_key:
+        !Find [
+          authentik_crypto.certificatekeypair,
+          [name, "authentik Self-signed Certificate"],
+        ]
+      invalidation_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, "default-provider-invalidation-flow"],
+        ]
+      client_type: confidential
+      grant_types:
+        - authorization_code
+      client_id: !Env AUDIOBOOKSHELF_CLIENT_ID
+      client_secret: !Env AUDIOBOOKSHELF_CLIENT_SECRET
+      redirect_uris:
+        - url: https://audiobookshelf.smadja.dev/audiobookshelf/auth/openid/callback
+          matching_mode: strict
+        - url: audiobookshelf://oauth
+          matching_mode: strict
+        - url: https://audiobookshelf.smadja.dev/auth/openid/mobile-redirect
+          matching_mode: strict
+        - url: https://audiobookshelf.smadja.dev/auth/openid/callback
+          matching_mode: strict
+      access_code_validity: minutes=1
+      access_token_validity: hours=1
+      refresh_token_validity: days=30
+      issuer_mode: per_provider
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+
+  - id: application-audiobookshelf
+    model: authentik_core.application
+    identifiers:
+      slug: audiobookshelf
+    attrs:
+      name: Audiobookshelf
+      group: Media
+      meta_launch_url: https://audiobookshelf.smadja.dev
+      meta_description: Audiobook and podcast management
+      icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/audiobookshelf.png
+      provider: !KeyOf provider-audiobookshelf
+      policy_engine_mode: any
+
+  - id: audiobookshelf_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-audiobookshelf
+      group: !Find [authentik_core.group, [name, "audiobookshelf users"]]
+    attrs:
+      order: 1
+
+  - id: audiobookshelf_admins_policy_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-audiobookshelf
+      group: !Find [authentik_core.group, [name, "audiobookshelf admins"]]
+    attrs:
+      order: 2
+
+  - id: application-bazarr_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-bazarr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+  - id: application-lidarr_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-lidarr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+  - id: application-prowlarr_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-prowlarr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+  - id: application-radarr_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-radarr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+  - id: application-sonarr_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-sonarr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+  - id: application-sabnzbd_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-sabnzbd
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+  - id: application-jellyseerr_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-jellyseerr
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+  - id: application-audiobookshelf_operator_admin_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf application-audiobookshelf
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 100
+
+
