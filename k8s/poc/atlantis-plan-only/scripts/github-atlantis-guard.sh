@@ -40,7 +40,10 @@ git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
 # reaches this server. In particular, no provider, resource, data source,
 # provisioner, workflow, or arbitrary Terraform file can be introduced
 # alongside an admin plan. Keep this list literal: a broad Bash glob would
-# silently admit nested or newly introduced module paths.
+# silently admit nested or newly introduced module paths. The three
+# google-cloud-build bootstrap paths are admitted individually so the
+# server-side envelope and wrapper can bind their exact contents later; this
+# does not admit the root to Atlantis or enable apply.
 changed=$(git diff --name-only "$base_ref...$HEAD_COMMIT")
 while IFS= read -r path; do
   test -z "$path" && continue
@@ -66,7 +69,8 @@ while IFS= read -r path; do
     terraform/oracle-cloud/modules/network/README.md|\
     terraform/oracle-cloud/modules/object-storage/README.md|\
     terraform/proxmox/modules/talos/README.md|\
-    .atlantis/plan-only.yaml|.gitignore|docs/*|tests/*|scripts/architecture-check.sh) ;;
+    .atlantis/plan-only.yaml|.atlantis/policies/google-cloud-build-bootstrap/main.rego|\
+    .gitignore|.justfile|docs/*|tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
 done <<<"$changed"

@@ -63,6 +63,18 @@ run_case() {
       printf '%s\n' '# generated documentation' >"$fixture/terraform/cloudflare/modules/access/README.md"
       printf '%s\n' 'description = "changed"' >"$fixture/terraform/cloudflare/modules/security-headers/variables.tf"
       ;;
+    bootstrap-policy-path-allowed)
+      mkdir -p "$fixture/.atlantis/policies/google-cloud-build-bootstrap"
+      printf '%s\n' 'package main' >"$fixture/.atlantis/policies/google-cloud-build-bootstrap/main.rego"
+      ;;
+    bootstrap-policy-sibling-denied)
+      mkdir -p "$fixture/.atlantis/policies/other"
+      printf '%s\n' 'package main' >"$fixture/.atlantis/policies/other/main.rego"
+      change_path=.atlantis/policies/other/main.rego
+      ;;
+    bootstrap-script-path-allowed)
+      printf '%s\n' '# reviewed bootstrap executor' >"$fixture/scripts/live-tofu.sh"
+      ;;
     *)
       echo "unknown guard test case: $name" >&2
       return 1
@@ -108,5 +120,8 @@ run_case default-true-to-false-denied deny terraform/cloudflare/modules/security
 run_case provider-denied deny terraform/cloudflare/modules/security-headers/provider.tf
 run_case readme-nested-denied deny terraform/cloudflare/modules/access/nested/README.md
 run_case mixed-readme-and-terraform-denied deny terraform/cloudflare/modules/security-headers/variables.tf
+run_case bootstrap-policy-path-allowed pass .atlantis/policies/google-cloud-build-bootstrap/main.rego
+run_case bootstrap-policy-sibling-denied deny .atlantis/policies/other/main.rego
+run_case bootstrap-script-path-allowed pass scripts/live-tofu.sh
 
 printf 'GUARD_TEST=PASS all admission fixtures\n'
