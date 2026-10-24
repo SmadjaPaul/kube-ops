@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-media-v2.yaml
-outpost=k8s/infrastructure/auth/authentik/extra/blueprints/outposts-v2.yaml
+auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-media.yaml
+outpost=k8s/infrastructure/auth/authentik/extra/blueprints/outposts.yaml
 grant=k8s/infrastructure/auth/authentik/referencegrant.yaml
 pol=k8s/infrastructure/network/policies/applications/media/media/allow-media-access.yaml
 prowlarr_pol=k8s/infrastructure/network/policies/applications/media/media/allow-prowlarr-to-arr.yaml
@@ -36,7 +36,7 @@ grep -Fq 'app: prowlarr' "$prowlarr_pol"
 grep -Fq 'port: "7878"' "$prowlarr_pol"
 grep -Fq 'port: "8989"' "$prowlarr_pol"
 grep -Fq "model: authentik_blueprints.metaapplyblueprint" "$outpost"
-grep -Fq "name: Apps - Media v2" "$outpost"
+grep -Fq "name: Apps - Media" "$outpost"
 grep -Fq "required: true" "$outpost"
 for app in radarr sonarr prowlarr; do
   # Extract and structurally test the complete removal entry, not a comment.
