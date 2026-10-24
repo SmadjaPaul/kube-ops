@@ -75,6 +75,25 @@ run_case() {
     bootstrap-script-path-allowed)
       printf '%s\n' '# reviewed bootstrap executor' >"$fixture/scripts/live-tofu.sh"
       ;;
+    ci-workflow-path-allowed)
+      mkdir -p "$fixture/.github/workflows"
+      printf '%s\n' 'name: static-ci' >"$fixture/.github/workflows/static-ci.yml"
+      ;;
+    ci-workflow-sibling-denied)
+      mkdir -p "$fixture/.github/workflows"
+      printf '%s\n' 'name: other' >"$fixture/.github/workflows/other.yml"
+      change_path=.github/workflows/other.yml
+      ;;
+    mise-lock-path-allowed)
+      printf '%s\n' '# locked toolchain' >"$fixture/mise.lock"
+      ;;
+    mise-config-path-allowed)
+      printf '%s\n' '[tools]' >"$fixture/mise.toml"
+      ;;
+    mise-config-sibling-denied)
+      printf '%s\n' '[tools]' >"$fixture/mise.local.toml"
+      change_path=mise.local.toml
+      ;;
     *)
       echo "unknown guard test case: $name" >&2
       return 1
@@ -123,5 +142,10 @@ run_case mixed-readme-and-terraform-denied deny terraform/cloudflare/modules/sec
 run_case bootstrap-policy-path-allowed pass .atlantis/policies/google-cloud-build-bootstrap/main.rego
 run_case bootstrap-policy-sibling-denied deny .atlantis/policies/other/main.rego
 run_case bootstrap-script-path-allowed pass scripts/live-tofu.sh
+run_case ci-workflow-path-allowed pass .github/workflows/static-ci.yml
+run_case ci-workflow-sibling-denied deny .github/workflows/other.yml
+run_case mise-lock-path-allowed pass mise.lock
+run_case mise-config-path-allowed pass mise.toml
+run_case mise-config-sibling-denied deny mise.local.toml
 
 printf 'GUARD_TEST=PASS all admission fixtures\n'
