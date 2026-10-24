@@ -40,6 +40,7 @@ check:
     bash tests/harness/mastra-factory-promotion-test.sh
     bash tests/harness/arc-gitops-contract-test.sh
     bash tests/harness/invoice-backup-test.sh
+    bash tests/harness/decypharr-torbox-staged-test.sh
     bash tests/harness/runtime-inventory-test.sh
     bash tests/harness/longhorn-servicemonitor-contract-test.sh
     bash tests/harness/longhorn-offsite-pvc-contract-test.sh

@@ -5,7 +5,7 @@ metadata:
   namespace: media
 data:
   config.yml: |
-    # PLT-118: preview-only. The live reconciler is not admitted yet.
+    # PLT-118: preview-only; the CronJob remains suspended and DRY_RUN=true.
     # Keep quality profiles owned by staged Recyclarr until a single-owner
     # migration has passed a diff review.
     telemetry: false
@@ -17,12 +17,52 @@ data:
         # DRY_RUN=true must remain enforced until the preview is approved.
         root_folders:
           - /data/media/tv
+        # Decypharr emulates qBittorrent; do not start downloads in preview.
+        download_clients:
+          data:
+            - name: Decypharr-TorBox
+              type: qbittorrent
+              enable: true
+              priority: 1
+              remove_completed_downloads: true
+              remove_failed_downloads: false
+              fields:
+                host: decypharr.media.svc.cluster.local
+                port: 8282
+                use_ssl: false
+                url_base: /
+                username: http://sonarr.media.svc.cluster.local:8989
+                password: !env SONARR_API_KEY
+                tv_category: sonarr
+          update_password: false
+          delete_unmanaged:
+            enabled: false
     radarr:
       main:
         base_url: http://radarr.media.svc.cluster.local:7878
         api_key: !env RADARR_API_KEY
         root_folders:
           - /data/media/movies
+        # Decypharr emulates qBittorrent; do not start downloads in preview.
+        download_clients:
+          data:
+            - name: Decypharr-TorBox
+              type: qbittorrent
+              enable: true
+              priority: 1
+              remove_completed_downloads: true
+              remove_failed_downloads: false
+              fields:
+                host: decypharr.media.svc.cluster.local
+                port: 8282
+                use_ssl: false
+                url_base: /
+                username: http://radarr.media.svc.cluster.local:7878
+                password: !env RADARR_API_KEY
+                movie_category: radarr
+          update_password: false
+          delete_unmanaged:
+            enabled: false
     # Prowlarr support is experimental in Configarr 1.35.0.
     # Only preview application links; no indexer or client is invented.
     prowlarr:

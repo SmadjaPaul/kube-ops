@@ -1,8 +1,8 @@
 # PLT-118 — Configarr 1.35.0, staged preview
 
-This is an **unactivated** Configarr package. It is deliberately **not** listed
-in `k8s/applications/media/kustomization.yaml`. No Argo or PVC mutation follows
-from merging this package. Even after the package is explicitly imported,
+This is an **activated but suspended** Configarr preview package. It is listed
+in `k8s/applications/media/kustomization.yaml`. Merging config-only changes
+will reconcile ConfigMaps; however
 `CronJob/configarr-preview` remains `suspend: true` and `DRY_RUN=true`.
 
 ## Why
@@ -71,3 +71,10 @@ does not change existing Jellyfin SSO or PVC data.
 - https://configarr.de/docs/configuration/experimental-support/
 - https://configarr.de/docs/configuration/environment-variables/
 - https://configarr.de/docs/configuration/general/
+
+## TorBox / Decypharr pilot
+
+- Staged qBittorrent-compatible download_clients point at `decypharr:8282`.
+- Username = per-Arr API URL, password = per-Arr native API token (`!env`).
+- Native client changes remain dry-run only; do not unsuspend CronJob.
+- `delete_unmanaged.enabled=false`; no indexers are generated.

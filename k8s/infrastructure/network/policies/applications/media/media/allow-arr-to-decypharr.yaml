@@ -1,0 +1,25 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arr-to-decypharr
+  namespace: media
+  labels:
+    policy-type: media-audit
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - radarr
+          - sonarr
+  description: "Only Radarr/Sonarr to Decypharr QBitTorrent-compatible API"
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: decypharr
+      toPorts:
+        - ports:
+            - port: "8282"
+              protocol: TCP
