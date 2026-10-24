@@ -28,5 +28,5 @@ grep -Fq 'delete_unmanaged:' "$configarr"
 grep -Fq 'enabled: false' "$configarr"
 grep -Fq 'sync_indexers: false' "$configarr"
 yq -e '.spec.suspend == true' "$cron" >/dev/null
-yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | any(.name == "DRY_RUN" and .value == "true")' "$cron" >/dev/null
+yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name == "DRY_RUN" and .value == "true")) | length == 1' "$cron" >/dev/null
 echo "DECYPHARR_TORBOX_STAGED=PASS (STATIC_ONLY)"
