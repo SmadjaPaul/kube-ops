@@ -5,9 +5,9 @@
 ---
 version: 1
 metadata:
-  # Versioned source path forces Authentik to discover a fresh instance after
-  # the prior ConfigMap update left the existing instance unapplied.
-  name: Apps - Media v2
+  name: Apps - Media
+  labels:
+    authentik.smadja.dev/reconcile: "2026-10-24-media-proxy"
 entries:
   - id: provider-bazarr
     model: authentik_providers_oauth2.oauth2provider
