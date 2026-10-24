@@ -14,9 +14,9 @@ for file in "$main" "$cron" "$cfg" "$secret" "$net" "$package/kustomization.yaml
   test -s "$file" || { echo "CONFIGARR_CONTRACT=FAIL missing $file"; exit 1; }
 done
 
-if grep -Eq '^[[:space:]]*-[[:space:]]*configarr([[:space:]]|$)' "$main"; then
-  echo "CONFIGARR_CONTRACT=FAIL package is prematurely in media root"; exit 1
-fi
+grep -Eq '^[[:space:]]*-[[:space:]]*configarr([[:space:]]|$)' "$main" || {
+  echo "CONFIGARR_CONTRACT=FAIL package is not admitted to media root"; exit 1;
+}
 
 # Evaluate safety-critical booleans structurally; textual greps alone can be
 # satisfied by comments or other fields and must not authorize an unsafe run.
