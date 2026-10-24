@@ -18,11 +18,11 @@
     "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh"
   },
   "devDependencies": {
-    "@commitlint/config-conventional": "^21.0.2",
-    "@commitlint/cli": "^21.0.2"
+    "@commitlint/config-conventional": "21.2.4",
+    "@commitlint/cli": "21.2.4"
   },
   "engines": {
-    "node": ">=20.18.1",
-    "npm": ">=10.0.0"
+    "node": "v26.12.1",
+    "npm": "12.2.1"
   }
 }
