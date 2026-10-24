@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - allow-media-access.yaml
 - allow-prowlarr-to-arr.yaml
+- allow-arr-to-prowlarr.yaml
 namespace: media
 labels:
 - pairs:

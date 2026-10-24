@@ -1,0 +1,28 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arr-to-prowlarr
+  namespace: media
+  labels:
+    policy-type: media-audit
+spec:
+  description: >-
+    Permit Radarr and Sonarr to reach the Prowlarr Newznab/API listener
+    during Prowlarr application validation and later indexer synchronization.
+    Does not admit other media pods or external destinations.
+  endpointSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - radarr
+          - sonarr
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app: prowlarr
+      toPorts:
+        - ports:
+            - port: "9696"
+              protocol: TCP

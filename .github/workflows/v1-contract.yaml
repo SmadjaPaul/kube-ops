@@ -76,6 +76,12 @@ jobs:
           kubeconform -summary -ignore-missing-schemas /tmp/media-policies.yaml
           bash tests/harness/prowlarr-arr-egress-contract-test.sh
 
+      - name: Validate bounded Arr-to-Prowlarr return egress
+        run: |
+          kustomize build k8s/infrastructure/network/policies/applications/media/media > /tmp/media-policies.yaml
+          kubeconform -summary -ignore-missing-schemas /tmp/media-policies.yaml
+          bash tests/harness/arr-prowlarr-reverse-egress-contract-test.sh
+
       - name: Validate ARC GitOps contract
         run: bash tests/harness/arc-gitops-contract-test.sh
 
