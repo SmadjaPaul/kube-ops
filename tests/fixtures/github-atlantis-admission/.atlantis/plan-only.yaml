@@ -1,0 +1,28 @@
+version: 3
+automerge: true
+
+projects:
+  - name: atlantis-pilot
+    dir: terraform/atlantis-pilot
+    workspace: default
+    terraform_distribution: opentofu
+    terraform_version: "1.13.1"
+    autoplan:
+      enabled: true
+      when_modified:
+        - "*.tf"
+        - "**/*.tf"
+        - ".terraform.lock.hcl"
+  - name: github
+    dir: terraform/github
+    workspace: default
+    terraform_distribution: opentofu
+    terraform_version: "1.12.6"
+    autoplan:
+      enabled: true
+      when_modified:
+        - "*.tf"
+        - "**/*.tf"
+        - "*.tfvars"
+        - "**/*.tfvars"
+        - ".terraform.lock.hcl"

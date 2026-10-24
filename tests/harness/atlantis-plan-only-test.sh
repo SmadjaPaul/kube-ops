@@ -79,7 +79,11 @@ grep -q 'name: atlantis-github-repository-safety' "$rendered"
 grep -q 'github-repository-safety.rego:' "$rendered"
 grep -q 'github-atlantis-guard.sh:' "$rendered"
 grep -q 'scripts/architecture-check.sh' "$rendered"
-grep -q 'terraform/\*/modules/\*/README.md' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
+grep -q 'terraform/cloudflare/modules/access/README.md' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
+if grep -Eq 'terraform/\*/modules/\*/README\.md|security-headers/variables\.tf' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh; then
+  echo "Atlantis GitHub admission must not carry a broad README glob or Terraform source exception" >&2
+  exit 1
+fi
 grep -q 'registry.terraform.io' "$rendered"
 grep -q 'TF_DATA_DIR' "$rendered"
 if grep -q 'subPath: pilot.rego' "$rendered"; then

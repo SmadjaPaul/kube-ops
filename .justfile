@@ -32,6 +32,7 @@ check:
     bash tests/harness/affected-tests-test.sh
     bash tests/harness/runtime-smoke-test.sh
     bash tests/harness/argo-orphan-contract-test.sh
+    bash tests/harness/github-atlantis-guard-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
     bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh
