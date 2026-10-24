@@ -20,7 +20,7 @@ configMapGenerator:
       - ./blueprints/apps-home-assistant.yaml
       - ./blueprints/apps-immich.yaml
       - ./blueprints/apps-jellyfin.yaml
-      - ./blueprints/apps-media.yaml
+      - ./blueprints/apps-media-v2.yaml
       - ./blueprints/apps-openwebui.yaml
       - ./blueprints/apps-litellm.yaml
       - ./blueprints/apps-karakeep.yaml
@@ -47,7 +47,7 @@ configMapGenerator:
       - ./blueprints/authentication.yaml
       - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml
       - ./blueprints/oauth-scopes.yaml
-      - ./blueprints/outposts.yaml    # Human users enroll through short-lived Authentik invitations; no human
+      - ./blueprints/outposts-v2.yaml    # Human users enroll through short-lived Authentik invitations; no human
       # password or invitation token is stored in Git/Doppler. notifications.yaml
       # stays excluded until its optional Slack webhook exists.
       - ./blueprints/apps-talos-bluegreen.yaml
