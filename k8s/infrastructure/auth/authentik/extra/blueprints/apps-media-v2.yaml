@@ -54,12 +54,12 @@ entries:
       meta_launch_url: https://bazarr.smadja.dev
       description: Subtitles
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bazarr.png
-      provider: !KeyOf provider-bazarr
+      provider: !Find [authentik_core.provider, [name, "k8s.smadja.dev/services-media/bazarr"]]
       policy_engine_mode: any
   - id: bazarr_policy_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-bazarr
+      target: !Find [authentik_core.application, [slug, "bazarr"]]
       group: !Find [authentik_core.group, [name, "Media Users"]]
     attrs:
       order: 1
@@ -111,12 +111,12 @@ entries:
       meta_launch_url: https://lidarr.smadja.dev
       description: Music
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/lidarr.png
-      provider: !KeyOf provider-lidarr
+      provider: !Find [authentik_core.provider, [name, "k8s.smadja.dev/services-media/lidarr"]]
       policy_engine_mode: any
   - id: lidarr_policy_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-lidarr
+      target: !Find [authentik_core.application, [slug, "lidarr"]]
       group: !Find [authentik_core.group, [name, "Media Users"]]
     attrs:
       order: 1
@@ -146,16 +146,8 @@ entries:
       meta_launch_url: https://prowlarr.smadja.dev
       description: Index management
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/prowlarr.png
-      provider: !KeyOf provider-prowlarr
+      provider: !Find [authentik_core.provider, [name, "k8s.smadja.dev/services-media/prowlarr-proxy"]]
       policy_engine_mode: any
-  - id: prowlarr_policy_binding
-    model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf application-prowlarr
-      group: !Find [authentik_core.group, [name, "authentik-admins"]]
-    attrs:
-      order: 1
-
   # radarr: Authentik Proxy, not OIDC in the Servarr process.
   # Reconcile removal of the old policy binding: under policy_engine_mode=any
   # leaving Media Users alongside authentik-admins grants both groups access.
@@ -163,7 +155,7 @@ entries:
     model: authentik_policies.policybinding
     state: absent
     identifiers:
-      target: !KeyOf application-prowlarr
+      target: !Find [authentik_core.application, [slug, "prowlarr"]]
       group: !Find [authentik_core.group, [name, "Media Users"]]
   
   - id: provider-radarr
@@ -190,16 +182,8 @@ entries:
       meta_launch_url: https://radarr.smadja.dev
       description: Movies
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/radarr.png
-      provider: !KeyOf provider-radarr
+      provider: !Find [authentik_core.provider, [name, "k8s.smadja.dev/services-media/radarr-proxy"]]
       policy_engine_mode: any
-  - id: radarr_policy_binding
-    model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf application-radarr
-      group: !Find [authentik_core.group, [name, "authentik-admins"]]
-    attrs:
-      order: 1
-
   # sonarr: Authentik Proxy, not OIDC in the Servarr process.
   # Reconcile removal of the old policy binding: under policy_engine_mode=any
   # leaving Media Users alongside authentik-admins grants both groups access.
@@ -207,7 +191,7 @@ entries:
     model: authentik_policies.policybinding
     state: absent
     identifiers:
-      target: !KeyOf application-radarr
+      target: !Find [authentik_core.application, [slug, "radarr"]]
       group: !Find [authentik_core.group, [name, "Media Users"]]
   
   - id: provider-sonarr
@@ -234,23 +218,15 @@ entries:
       meta_launch_url: https://sonarr.smadja.dev
       description: TV shows
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sonarr.png
-      provider: !KeyOf provider-sonarr
+      provider: !Find [authentik_core.provider, [name, "k8s.smadja.dev/services-media/sonarr-proxy"]]
       policy_engine_mode: any
-  - id: sonarr_policy_binding
-    model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf application-sonarr
-      group: !Find [authentik_core.group, [name, "authentik-admins"]]
-    attrs:
-      order: 1
-
   # Reconcile removal of the old policy binding: under policy_engine_mode=any
   # leaving Media Users alongside authentik-admins grants both groups access.
   - id: sonarr_retire_media_users_policy_binding
     model: authentik_policies.policybinding
     state: absent
     identifiers:
-      target: !KeyOf application-sonarr
+      target: !Find [authentik_core.application, [slug, "sonarr"]]
       group: !Find [authentik_core.group, [name, "Media Users"]]
   
   - id: provider-sabnzbd
@@ -300,12 +276,12 @@ entries:
       meta_launch_url: https://sabnzbd.smadja.dev
       description: Usenet management
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sabnzbd.png
-      provider: !KeyOf provider-sabnzbd
+      provider: !Find [authentik_core.provider, [name, "k8s.smadja.dev/services-media/sabnzbd"]]
       policy_engine_mode: any
   - id: sabnzbd_policy_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-sabnzbd
+      target: !Find [authentik_core.application, [slug, "sabnzbd"]]
       group: !Find [authentik_core.group, [name, "Media Users"]]
     attrs:
       order: 1
@@ -378,13 +354,13 @@ entries:
       meta_launch_url: https://seerr.smadja.dev
       meta_description: Requêtes de contenu
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/seerr.png
-      provider: !KeyOf provider-jellyseerr
+      provider: !Find [authentik_core.provider, [name, "k8s.smadja.dev/services-media/jellyseerr"]]
       policy_engine_mode: any
 
   - id: jellyseerr_policy_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-jellyseerr
+      target: !Find [authentik_core.application, [slug, "jellyseerr"]]
       group: !Find [authentik_core.group, [name, "Media Users"]]
     attrs:
       order: 1
@@ -443,13 +419,13 @@ entries:
       meta_launch_url: https://audiobookshelf.smadja.dev
       meta_description: Audiobook and podcast management
       icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/audiobookshelf.png
-      provider: !KeyOf provider-audiobookshelf
+      provider: !Find [authentik_core.provider, [name, "k8s.smadja.dev/services-media/audiobookshelf"]]
       policy_engine_mode: any
 
   - id: audiobookshelf_policy_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-audiobookshelf
+      target: !Find [authentik_core.application, [slug, "audiobookshelf"]]
       group: !Find [authentik_core.group, [name, "audiobookshelf users"]]
     attrs:
       order: 1
@@ -457,7 +433,7 @@ entries:
   - id: audiobookshelf_admins_policy_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-audiobookshelf
+      target: !Find [authentik_core.application, [slug, "audiobookshelf"]]
       group: !Find [authentik_core.group, [name, "audiobookshelf admins"]]
     attrs:
       order: 2
@@ -465,7 +441,7 @@ entries:
   - id: application-bazarr_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-bazarr
+      target: !Find [authentik_core.application, [slug, "bazarr"]]
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100
@@ -473,7 +449,7 @@ entries:
   - id: application-lidarr_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-lidarr
+      target: !Find [authentik_core.application, [slug, "lidarr"]]
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100
@@ -481,7 +457,7 @@ entries:
   - id: application-prowlarr_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-prowlarr
+      target: !Find [authentik_core.application, [slug, "prowlarr"]]
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100
@@ -489,7 +465,7 @@ entries:
   - id: application-radarr_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-radarr
+      target: !Find [authentik_core.application, [slug, "radarr"]]
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100
@@ -497,7 +473,7 @@ entries:
   - id: application-sonarr_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-sonarr
+      target: !Find [authentik_core.application, [slug, "sonarr"]]
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100
@@ -505,7 +481,7 @@ entries:
   - id: application-sabnzbd_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-sabnzbd
+      target: !Find [authentik_core.application, [slug, "sabnzbd"]]
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100
@@ -513,7 +489,7 @@ entries:
   - id: application-jellyseerr_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-jellyseerr
+      target: !Find [authentik_core.application, [slug, "jellyseerr"]]
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100
@@ -521,7 +497,7 @@ entries:
   - id: application-audiobookshelf_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
-      target: !KeyOf application-audiobookshelf
+      target: !Find [authentik_core.application, [slug, "audiobookshelf"]]
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100
