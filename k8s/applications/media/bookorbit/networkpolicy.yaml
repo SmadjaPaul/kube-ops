@@ -27,6 +27,16 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
+    # Staged only: BookOrbit may talk to an internal debrid client only
+    # after its application root and matching Decypharr ingress are admitted.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: decypharr
+      toPorts:
+        - ports:
+            - port: "8282"
+              protocol: TCP
     - toFQDNs:
         - matchName: auth.smadja.dev
       toPorts:

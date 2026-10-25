@@ -1,67 +1,74 @@
-# BookOrbit V1 — staged
+# BookOrbit — staged application, NOT deployed by Media root
 
-This package is intentionally **not** referenced by
-`k8s/applications/media/kustomization.yaml` yet.
+Updated staged candidate: **BookOrbit v3.5.0** (published 2026-10-20).
+The default Media root intentionally does not include `- bookorbit`.
+A dedicated admission PR, image digest and runtime tests are mandatory.
 
-Activation is a one-line root change after all gates below pass:
+## Upstream-verified features
 
-- homelab-infra BookOrbit secrets are merged and applied to `cluster/prd`;
-- `bookorbit-runtime` ExternalSecret is Ready;
-- CloudNativePG 1.29+ is healthy;
-- PostgreSQL 18 standard image exposes `uuid-ossp`, `pg_trgm`, `unaccent`,
-  and `vector`;
-- the shared media PVC is healthy and writable by UID/GID 2501;
-- Cilium render validates;
-- backup ObjectStore credentials are Ready.
+- Books / comics / audiobooks in user libraries. Requests is labelled Beta:
+  user requests -> human moderation -> enabled permitted source -> download
+  client -> Book Dock -> library. There are no bundled indexers/sources.
+- Torrent download clients include qBittorrent. BookOrbit 3.2.0 source
+  (reconfirmed before 3.5.0 upgrade) sends POST to `/api/v2/auth/login`
+  WITHOUT category, then calls other endpoints with a SID cookie. This
+  matches the **known Sonarr ↔ Decypharr v2.5 category-auth incompatibility**.
+  Do not assume it works solely because qBittorrent `/app/version` is 200.
+- BookOrbit demands a path mapping even for shared filesystems.
+  Both applications mount `media-share` at `/data`, so choose:
+  `/data/decypharr-downloads -> /data/decypharr-downloads`.
+- Book Dock staging: `BOOK_DOCK_PATH=/data/book-dock`, library:
+  `/data/media/books`. Parent `/data` on same filesystem => hardlinks
+  possible, but only a real hardlink test can prove it.
+- `BOOK_REQUEST_ENCRYPTION_KEY` is mandatory to store client credentials
+  securely; it already has an ESO **key-name** contract, not a proven value.
+- SSO Authentik staged blueprint is intentionally not imported. Bootstrap a
+  local admin first, configure browser OIDC, verify claims and superuser login,
+  and only then consider `DISABLE_LOCAL_AUTH=true`.
+- Metadata, book indexer and Prowlarr egress are NOT opened yet. A deliberate
+  narrow policy change is required when an authorized source is selected.
+- NetworkPolicy adds *only a dormant BookOrbit egress* to Decypharr 8282,
+  while the Decypharr ingress policy currently DOES NOT authorize BookOrbit.
+  Admit matching ingress only after auth regression tests are green.
+- No category changes after import or calls to `setCategory`: v2.5 and
+  v2.7 implement it with a null filter, risking mutation of the entire queue.
+- Existing SABnzbd, audiobook app, Jellyfin libraries, PVCs and live
+  Decypharr state remain unchanged by this staging PR.
 
-The package uses BookOrbit 3.2.0, PostgreSQL 18 via CloudNativePG, the existing
-Barman Cloud plugin, and the shared media PVC. Local auth remains enabled during
-bootstrap. OIDC is configured only after the first administrator is created and
-a real Authentik flow is verified; do not set `DISABLE_LOCAL_AUTH=true` before
-that proof.
+## Admission gates
 
-BookOrbit keeps its own application state on the dedicated PVC at `/appdata`
-via `APP_DATA_PATH`. The full shared `media-share` PVC is mounted at `/data`,
-the same path used by the download clients and the rest of the media stack.
-The library picker is bounded to `/data/media/books`.
+1. Resolve + pin immutable image digest for v3.5.0, check upgrade-specific
+   API, health route, extension/Postgres dependencies and supported CPU arch.
+2. Verify CNPG 1.29+, PostgreSQL 18 `uuid-ossp`, `pg_trgm`,
+   `unaccent`, `vector` and Barman Cloud backup ObjectStore, with
+   real restore probe or report it NOT_EXECUTED.
+3. Provision/qualify (names only) Doppler `cluster/prd` ESO BookOrbit keys,
+   CNPG app secret and ingress/tls; no plaintext secrets.
+4. Render inactive Kustomize folder and run offline V1 checks. A separate
+   exact-SHA PR imports BookOrbit to Media root, after explicit go gate.
+5. Bootstrap local superuser, hardening, Authentik/OIDC browser test with
+   user/admin isolation and recovery login before disabling local.
+6. Qualify Decypharr no-category qBittorrent login for a **dedicated
+   BookOrbit identity** without bypassing `use_auth=true`. Verify protected
+   `/api/v2/torrents/info?category=bookorbit` not just `/app/version`.
+   Do not send BookOrbit credentials as argv, logs or PR content.
+7. Cilium BookOrbit->Decypharr 8282 and explicit Decypharr ingress
+   from BookOrbit only; prove allow/deny with runtime tests.
+8. Confirm configured category `bookorbit`, file ownership + identity path
+   mapping + hardlink test. Keep automated searching off and queue
+   non-destructive until safe, authorized source exists.
+9. End-to-end with freely redistributable fixture: request, approve, search
+   using authorized indexer/source, TorBox cloud completion, file on shared
+   PVC, Book Dock import, metadata and reader. No content speculation.
+10. Update Linear with STATIC/RECONCILED/RUNTIME per gate.
 
-Keeping the whole shared claim at the same `/data` mount preserves the
-possibility of identity path mappings and hardlinks for BookOrbit request
-imports instead of silently copying across filesystems. BookOrbit should own
-the books subtree, while Audiobookshelf remains the primary audiobook playback
-service.
+## Sources
 
-
-## OIDC staging
-
-An Authentik blueprint is staged at
-`k8s/infrastructure/auth/authentik/extra/blueprints/apps-bookorbit.yaml`.
-It is intentionally not loaded by the active Authentik bundle yet.
-
-BookOrbit's browser redirect URI is:
-
-`https://bookorbit.smadja.dev/oauth2-callback`
-
-Activation order remains:
-
-1. bootstrap the first local administrator;
-2. provision `APP_BOOKORBIT_OAUTH_CLIENT_SECRET` in Doppler;
-3. expose it to Authentik as `BOOKORBIT_CLIENT_SECRET`;
-4. load the staged Authentik blueprint;
-5. configure the Authentik issuer/client in BookOrbit's admin OIDC settings;
-6. link and prove at least one active superuser via OIDC;
-7. only then consider `DISABLE_LOCAL_AUTH=true`.
-
-The staged blueprint does not by itself configure BookOrbit's internal OIDC
-provider record; that is intentionally deferred until bootstrap has succeeded.
-
-
-## Network gate
-
-The staged Cilium policy allows only DNS, the BookOrbit PostgreSQL cluster, and
-`auth.smadja.dev:443` for OIDC discovery/token exchange.
-
-Metadata providers, indexers and download-client egress are intentionally not
-opened yet. Qualify the exact runtime destinations first, then add bounded
-service/FQDN rules before enabling those features. Do not solve this by granting
-unrestricted Internet egress to BookOrbit.
+- https://bookorbit.app/installation/
+- https://bookorbit.app/book-requests/
+- https://bookorbit.app/oidc
+- https://github.com/bookorbit/bookorbit/releases/tag/v3.5.0
+- https://github.com/bookorbit/bookorbit/blob/v3.2.0/server/src/modules/book-request/download-clients/adapters/qbittorrent.adapter.ts
+- https://github.com/nourez/klusty-krab-home-lab/pull/57
+- https://github.com/bookorbit/bookorbit/issues/1805
+- https://github.com/sirrobot01/decypharr/blob/v2.5/pkg/server/qbit/http.go
