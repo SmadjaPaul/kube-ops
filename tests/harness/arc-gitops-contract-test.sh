@@ -119,6 +119,20 @@ assert_yq "$runner_download_policy | [.spec.egress[] | select(.toFQDNs[0].matchN
 assert_yq "$runner_download_policy | [.spec.egress[] | select(.toFQDNs[0].matchName == \"extensions.duckdb.org\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" \
   '80/TCP'
 
+factory_sts_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-factory-sts-egress")'
+assert_yq "$factory_sts_policy | .metadata.namespace" 'arc-runners'
+assert_yq "$factory_sts_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'factory-ci-arc'
+assert_yq "$factory_sts_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
+  'sts.googleapis.com'
+assert_yq "$factory_sts_policy | [.spec.egress[]?.toFQDNs[]?.matchPattern] | length" '0'
+assert_yq "$factory_sts_policy | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toCIDRSet[]?, .spec.egress[]?.toEntities[]?] | length" '0'
+assert_yq "$factory_sts_policy | [.spec.egress[]?.toEndpoints[]?.matchLabels.\"k8s:io.kubernetes.pod.namespace\"] | unique | join(\",\")" \
+  'kube-system'
+assert_yq "$factory_sts_policy | [.spec.egress[]?.toPorts[]?.rules.dns[]?.matchName] | unique | join(\",\")" \
+  'sts.googleapis.com'
+assert_yq "$factory_sts_policy | [.spec.egress[] | select(.toFQDNs[0].matchName == \"sts.googleapis.com\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" \
+  '443/TCP'
+
 [[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "3" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
   exit 1
