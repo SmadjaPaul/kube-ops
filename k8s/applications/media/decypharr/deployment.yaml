@@ -33,6 +33,18 @@ spec:
               if [ ! -f /app/config.json ]; then
                 cp /seed/config.json /app/config.json
               fi
+              if grep -q '"provider"[[:space:]]*:[[:space:]]*"torbox"' /app/config.json \
+                && ! grep -q '"download_links_refresh_interval"' /app/config.json; then
+                awk '{
+                  print
+                  if ($0 ~ /"provider"[[:space:]]*:[[:space:]]*"torbox"/) {
+                    print "          \"torrents_refresh_interval\": \"15s\",";
+                    print "          \"download_links_refresh_interval\": \"5m\",";
+                    print "          \"auto_expire_links_after\": \"3d\",";
+                  }
+                }' /app/config.json > /app/config.json.tmp
+                mv /app/config.json.tmp /app/config.json
+              fi
               chown -R 2501:2501 /app
               chmod 755 /app
               chmod 775 /app/logs /app/cache
