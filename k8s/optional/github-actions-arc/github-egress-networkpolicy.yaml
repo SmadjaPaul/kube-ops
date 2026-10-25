@@ -111,6 +111,8 @@ spec:
     - toFQDNs:
         # setup-node downloads the pinned Node distribution from this host.
         - matchName: nodejs.org
+        # setup-gcloud downloads the pinned Cloud SDK archive from this host.
+        - matchName: dl.google.com
         # setup-python downloads the pinned interpreter from GitHub release assets.
         - matchName: release-assets.githubusercontent.com
         - matchName: raw.githubusercontent.com
