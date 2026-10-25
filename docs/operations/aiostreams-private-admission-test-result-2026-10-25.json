@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "aiostreams-private-admission-2026-10-25-ecc4d4d2",
+  "resultId": "aiostreams-private-admission-2026-10-25-6b1c6b14",
   "producedAt": "2026-10-25T23:00:00+01:00",
   "actor": { "kind": "agent", "name": "codex" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "ecc4d4d2e",
+    "revision": "6b1c6b145dbc593b178896f4cec37fde78379a8d",
     "branch": "codex/aiostreams-runtime-qualification"
   },
   "tests": [
@@ -52,7 +52,7 @@
       "execution": "executed",
       "status": "PASSED",
       "classification": "passed",
-      "reason": "The complete deterministic repository gate and direct AIOStreams harnesses passed.",
+      "reason": "The staged AIOStreams contract and direct AIOStreams harnesses passed; full Media-root rendering was not claimed because the local environment lacks the independent Helm dependency.",
       "risk": "low",
       "expectedCi": "required",
       "evidence": { "kind": "command", "reference": "D_RECOVERY_CONTRACT_TEST=PASS" }
@@ -82,11 +82,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@ecc4d4d2e:aiostreams-private-admission",
+    "idempotencyKey": "SmadjaPaul/kube-ops@6b1c6b145dbc593b178896f4cec37fde78379a8d:aiostreams-private-admission",
     "payload": {
-      "resultId": "aiostreams-private-admission-2026-10-25-ecc4d4d2",
+      "resultId": "aiostreams-private-admission-2026-10-25-6b1c6b14",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "ecc4d4d2e",
+      "revision": "6b1c6b145dbc593b178896f4cec37fde78379a8d",
       "tests": [
         {
           "id": "repository-check",
@@ -94,7 +94,7 @@
           "execution": "executed",
           "status": "PASSED",
           "classification": "passed",
-          "reason": "The complete deterministic repository gate passed.",
+          "reason": "The staged AIOStreams contract and direct AIOStreams harnesses passed; full Media-root rendering is not claimed in this local environment.",
           "risk": "low",
           "expectedCi": "required"
         }
