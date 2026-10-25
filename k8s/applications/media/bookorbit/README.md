@@ -4,6 +4,32 @@ Updated staged candidate: **BookOrbit v3.5.0** (published 2026-10-20).
 The default Media root intentionally does not include `- bookorbit`.
 A dedicated admission PR, image digest and runtime tests are mandatory.
 
+## Current qualification boundary (2026-10-25)
+
+- **STATIC PASS:** the v3.5.0 image is digest-pinned, the workload is
+  non-root, the inactive package renders, and the staged contract passes.
+- **RECONCILED/RUNTIME:** not applicable yet. `bookorbit` is not imported by
+  the Media root and no BookOrbit Deployment, PVC, CNPG Cluster,
+  ExternalSecret, ObjectStore or HTTPRoute is present in the cluster.
+- **CNPG baseline:** the cluster currently runs CloudNativePG 1.29.1 and the
+  Barman Cloud plugin v0.11.0; BookOrbit PostgreSQL health, extension
+  availability and backup status remain unexecuted until admission.
+- **PVC backup gate:** `bookorbit-data` needs an explicit Velero/Kopia
+  filesystem-backup schedule and a restore probe in the admission change.
+  The current media schedules do not provide a BookOrbit-specific selector.
+- **Identity gate:** the staged Barman manifest still references the shared
+  `HETZNER_S3_*` keys. This is not accepted as a minimal BookOrbit identity;
+  a dedicated, prefix-scoped credential must be provisioned and qualified in
+  `homelab-infra` before admission. No secret value belongs in this repo.
+- **Path gate:** upstream v3.5 creates `APP_DATA_PATH` and its Book Dock
+  directory at startup. The configured `/data/book-dock` path is therefore
+  a runtime check, not a reason to mutate the shared media-layout job.
+
+The admission PR must sequence the dedicated backup identity, PVC backup and
+restore proof, ESO readiness, CNPG health/extensions, and only then the
+Argo import. Decypharr ingress remains closed until the dedicated
+no-category authentication and protected category requests are proven.
+
 ## Upstream-verified features
 
 - Books / comics / audiobooks in user libraries. Requests is labelled Beta:
