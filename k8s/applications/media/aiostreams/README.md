@@ -133,6 +133,43 @@ ExternalSecret intentionally contains only `APP_AIOSTREAMS_SECRET_KEY` and
 blueprint until local login, provider discovery, exact claims, empty default
 permissions and local-login fallback are tested without printing secret values.
 
+## Static qualification for PLT-121 (no cluster access)
+
+- The current `networkpolicy.yaml` allows only UDP/TCP 53 to CoreDNS. All other
+  pod egress is refused, including TCP 443. This is intentional while the app
+  is staged; it is not a runnable admission policy.
+- Upstream v2.37.0 has these baseline outbound dependencies when its default
+  metadata and mapping features run: `v3.sg.media-imdb.com`,
+  `v3-cinemeta.strem.io`, `skyhook.sonarr.tv`, `raw.githubusercontent.com`,
+  and `services.sonarr.tv`. `search-api.torbox.app` is conditional on selecting
+  the TorBox Search addon. `stremthru.13377001.xyz` is conditional on using the
+  built-in StremThru/debrid path. OIDC adds the configured issuer, expected to
+  be `auth.smadja.dev` for this deployment. User-selected addons, indexers,
+  debrid services and direct media URLs are not statically enumerable and must
+  be an explicit, reviewed FQDN matrix; never replace this with `world:443`.
+- Direct video remains a client-side requirement. The pod must not receive
+  TorBox media bytes, and the upstream image still exposes `/api/v1/proxy/*`;
+  the two proxy environment overrides are guards, not proof. Admission needs
+  redacted URL and packet/HTTP evidence for direct playback, HLS/range,
+  subtitles, thumbnails and fallback paths.
+- The checked-in SQLite harness proves only synthetic `.backup`/`.restore`,
+  `integrity_check` and sentinel preservation. A real isolated drill must
+  quiesce the single writer, include WAL state, restore to a new PVC with the
+  same `SECRET_KEY`, run migrations and verify a synthetic login/config
+  sentinel. No production PVC may be deleted or reinitialized.
+- `apps-aiostreams.yaml` is not in the active Authentik bundle. Before enabling
+  it, configure `AIOSTREAMS_OIDC_SCOPES=openid profile email groups`, verify the
+  exact groups claim, keep `AIOSTREAMS_OIDC_DEFAULT_PERMISSIONS` empty, map only
+  `authentik-admins=admin`, and retain the local-login fallback. OIDC protects
+  dashboard/configuration access; it is not TV/Quick Connect SSO. The current
+  `AIOSTREAMS_AUTH` contains only the operator secret and does not qualify
+  family profiles or cross-user isolation.
+- The current `http-route.yaml` binds both `internal` and `external` Gateways.
+  Therefore it is not a private canary if imported as-is. A private canary
+  admission must use an internal-only route (or a separately reviewed private
+  overlay), keep the media root import absent, and add the external parent only
+  after access-control, Cloudflare and direct-video evidence are accepted.
+
 Public references:
 - https://github.com/Viren070/AIOStreams/releases/tag/v2.37.0
 - https://github.com/Viren070/AIOStreams/blob/v2.37.0/compose.yaml
