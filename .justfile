@@ -43,6 +43,7 @@ check:
     bash tests/harness/decypharr-torbox-staged-test.sh
     bash tests/harness/aiostreams-staged-contract-test.sh
     bash tests/harness/aiostreams-sqlite-restore-test.sh
+    bash tests/harness/aiostreams-oidc-dormant-contract-test.sh
     bash tests/harness/runtime-inventory-test.sh
     bash tests/harness/longhorn-servicemonitor-contract-test.sh
     bash tests/harness/longhorn-offsite-pvc-contract-test.sh
