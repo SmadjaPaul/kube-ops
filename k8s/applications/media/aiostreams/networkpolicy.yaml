@@ -1,0 +1,33 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: aiostreams-runtime
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: aiostreams
+  description: "AIOStreams metadata/control only; no media proxy permitted by config or E2E acceptance"
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    # This application is deliberately STAGED and is not in the media root.
+    # Keep external egress closed until a follow-up admission change records
+    # the exact addon, metadata, indexer, debrid and OIDC FQDNs actually used.
+    # In particular, never replace this with world:443: AIOStreams accepts
+    # user-supplied addon URLs and contains a built-in media proxy route.

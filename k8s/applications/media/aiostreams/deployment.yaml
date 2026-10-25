@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiostreams
+  namespace: media
+  labels:
+    app.kubernetes.io/name: aiostreams
+  annotations:
+    secret.reloader.stakater.com/reload: aiostreams-bootstrap
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aiostreams
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aiostreams
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2501
+        runAsGroup: 2501
+        fsGroup: 2501
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: aiostreams
+          # Stable release verified against upstream tags (2026-10-23).
+          # Gate: resolve and PIN immutable OCI digest before root admission.
+          image: ghcr.io/viren070/aiostreams:v2.37.0@sha256:bcfd8580695a50c8f464578a0e25af065f3bd17eac35ed82a733a18342ca9718
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: TZ
+              value: Europe/Paris
+            - name: PORT
+              value: "3000"
+            - name: BASE_URL
+              value: https://aiostreams.smadja.dev
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aiostreams-bootstrap
+                  key: SECRET_KEY
+            - name: AIOSTREAMS_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: aiostreams-bootstrap
+                  key: AIOSTREAMS_AUTH
+            - name: AIOSTREAMS_AUTH_REQUIRED
+              value: "true"
+            # OIDC is enabled only after Authentik provider and login tests.
+            # Its login covers dashboard/configuration, not Stremio/TV clients.
+            - name: AIOSTREAMS_OIDC_ENABLED
+              value: "false"
+            - name: AIOSTREAMS_OIDC_ALLOW_LOCAL_LOGIN
+              value: "true"
+            # Forbid this instance acting as a media proxy for user configs.
+            # This does NOT prove upstream addons cannot proxy: E2E required.
+            - name: FORCE_PROXY_ENABLED
+              value: "false"
+            - name: DEFAULT_PROXY_ENABLED
+              value: "false"
+            - name: SHARES_FUSE_ENABLED
+              value: "false"
+            - name: DISK_CACHE_DIR
+              value: /tmp/aiostreams-cache
+          ports:
+            - name: http
+              containerPort: 3000
+          startupProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            periodSeconds: 30
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: temp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: aiostreams-data
+        - name: temp
+          emptyDir:
+            sizeLimit: 2Gi
