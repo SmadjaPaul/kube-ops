@@ -1,8 +1,8 @@
-# AIOStreams v2.37.0 — family control plane (STAGED, not deployed)
+# AIOStreams v2.37.0 — family control plane (PRIVATE ADMISSION)
 
-**No Media root import in this PR.** The application does not exist in cluster
-unless a subsequent, reviewed PR adds `- aiostreams` to
-`k8s/applications/media/kustomization.yaml`.
+This admission adds the package to the Media root with an internal-only
+`Gateway/internal` route. It does not add a public Gateway parent, Cloudflare
+route, or blanket external egress.
 
 ## Non-negotiable architecture
 
@@ -77,7 +77,7 @@ unless a subsequent, reviewed PR adds `- aiostreams` to
 
 ## Audit evidence and admission blockers
 
-- The PR pins the multi-architecture image index to
+- The admission pins the multi-architecture image index to
   `sha256:bcfd8580695a50c8f464578a0e25af065f3bd17eac35ed82a733a18342ca9718`;
   its Linux/amd64 child manifest is
   `sha256:c1dd8ef7d5db9dbddbf829545e18e9ab6e5eef09ebb705924c9db89729d47dfd`.
@@ -103,7 +103,7 @@ unless a subsequent, reviewed PR adds `- aiostreams` to
   records the returned direct URL host and packet/HTTP evidence showing no
   AIOStreams, Gateway or Cloudflare media bytes, including HLS/range,
   subtitles, thumbnails and fallback paths.
-- The staged `HTTPRoute` attaches only to `gateway/internal`. Private
+- The admitted `HTTPRoute` attaches only to `gateway/internal`. Private
   ExternalDNS therefore derives `aiostreams.smadja.dev` for the UniFi LAN/VPN
   DNS path and points it at the internal Gateway VIP. It is not watched by the
   public ExternalDNS path, and Cloudflare's wildcard/tunnel cannot reach this
@@ -142,9 +142,10 @@ permissions and local-login fallback are tested without printing secret values.
 
 ## Static qualification for PLT-121 (no cluster access)
 
-- The current `networkpolicy.yaml` allows only UDP/TCP 53 to CoreDNS. All other
-  pod egress is refused, including TCP 443. This is intentional while the app
-  is staged; it is not a runnable admission policy.
+- The admitted `networkpolicy.yaml` allows only UDP/TCP 53 to CoreDNS. All other
+  pod egress is refused, including TCP 443. This is intentional for this
+  control-plane-only admission; it is not an external-addon functionality
+  policy.
 - Upstream v2.37.0 has these baseline outbound dependencies when its default
   metadata and mapping features run: `v3.sg.media-imdb.com`,
   `v3-cinemeta.strem.io`, `skyhook.sonarr.tv`, `raw.githubusercontent.com`,
