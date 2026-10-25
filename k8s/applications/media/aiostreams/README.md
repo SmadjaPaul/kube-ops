@@ -60,7 +60,17 @@ unless a subsequent, reviewed PR adds `- aiostreams` to
    destination/IP, home ingress bytes, gateway and Cloudflare logs: no
    media bytes via Cloudflare/AIOStreams, including HLS/range requests,
    subtitles, thumbnails and transcoding fallback. Reject if ambiguous.
-8. OIDC follow-up after provider setup + local fallback verified;
+8. The *inactive* Authentik blueprint is staged at
+   `k8s/infrastructure/auth/authentik/extra/blueprints/apps-aiostreams.yaml`
+   with the verified `/api/v1/auth/oidc/callback` redirect. To enable it:
+   provision `APP_AIOSTREAMS_OIDC_CLIENT_SECRET` to the Authentik environment
+   as `AIOSTREAMS_CLIENT_SECRET`; wire `AIOSTREAMS_OIDC_CLIENT_ID`,
+   `AIOSTREAMS_OIDC_CLIENT_SECRET`, `AIOSTREAMS_OIDC_ISSUER`,
+   `AIOSTREAMS_OIDC_GROUP_PERMISSIONS=authentik-admins=admin`, and
+   `AIOSTREAMS_OIDC_DEFAULT_PERMISSIONS` empty in AIOStreams after
+   validating actual claims, keeping the local admin fallback.
+   Do not admit the blueprint before credentials and test evidence.
+   OIDC follow-up after provider setup + local fallback verified;
    no unsupported promise of TV SSO.
 9. Confirm written TorBox multi-household rights; do not share one API key
    among households absent vendor authorization.
