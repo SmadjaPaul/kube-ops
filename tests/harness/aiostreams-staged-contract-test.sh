@@ -16,6 +16,12 @@ grep -Fq "AIOSTREAMS_AUTH_REQUIRED" "$pkg/deployment.yaml"
 grep -Fq "AIOSTREAMS_OIDC_ENABLED" "$pkg/deployment.yaml"
 grep -Fq "mountPath: /app/data" "$pkg/deployment.yaml"
 grep -Fq "port: \"3000\"" "$pkg/networkpolicy.yaml"
-! grep -Eq 'privileged: true|SYS_ADMIN|mountPropagation:' "$pkg/deployment.yaml"
-! grep -Eq 'api.?key:[[:space:]]+[a-zA-Z0-9]{16,}' "$pkg"/*.yaml
+if grep -Eq 'privileged: true|SYS_ADMIN|mountPropagation:' "$pkg/deployment.yaml"; then
+  echo "AIOSTREAMS_STAGE=FAIL: privileged capability or mount propagation detected" >&2
+  exit 1
+fi
+if grep -Eq 'api.?key:[[:space:]]+[a-zA-Z0-9]{16,}' "$pkg"/*.yaml; then
+  echo "AIOSTREAMS_STAGE=FAIL: inline API key detected" >&2
+  exit 1
+fi
 echo "AIOSTREAMS_STAGED=PASS (STATIC_ONLY; NO IMAGE OR RUNTIME PROOF)"

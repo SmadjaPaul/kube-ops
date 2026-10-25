@@ -29,7 +29,7 @@ spec:
         - name: aiostreams
           # Stable release verified against upstream tags (2026-10-23).
           # Gate: resolve and PIN immutable OCI digest before root admission.
-          image: ghcr.io/viren070/aiostreams:v2.37.0
+          image: ghcr.io/viren070/aiostreams:v2.37.0@sha256:bcfd8580695a50c8f464578a0e25af065f3bd17eac35ed82a733a18342ca9718
           imagePullPolicy: IfNotPresent
           env:
             - name: NODE_ENV
