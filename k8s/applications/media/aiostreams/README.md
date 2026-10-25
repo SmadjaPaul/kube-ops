@@ -141,7 +141,8 @@ permissions and local-login fallback are tested without printing secret values.
 - Upstream v2.37.0 has these baseline outbound dependencies when its default
   metadata and mapping features run: `v3.sg.media-imdb.com`,
   `v3-cinemeta.strem.io`, `skyhook.sonarr.tv`, `raw.githubusercontent.com`,
-  and `services.sonarr.tv`. `search-api.torbox.app` is conditional on selecting
+  `github.com` (release-hosted mapping datasets), and `services.sonarr.tv`.
+  `search-api.torbox.app` is conditional on selecting
   the TorBox Search addon. `stremthru.13377001.xyz` is conditional on using the
   built-in StremThru/debrid path. OIDC adds the configured issuer, expected to
   be `auth.smadja.dev` for this deployment. User-selected addons, indexers,
