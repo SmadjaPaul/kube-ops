@@ -103,6 +103,13 @@ unless a subsequent, reviewed PR adds `- aiostreams` to
   records the returned direct URL host and packet/HTTP evidence showing no
   AIOStreams, Gateway or Cloudflare media bytes, including HLS/range,
   subtitles, thumbnails and fallback paths.
+- The staged `HTTPRoute` attaches only to `gateway/internal`. Private
+  ExternalDNS therefore derives `aiostreams.smadja.dev` for the UniFi LAN/VPN
+  DNS path and points it at the internal Gateway VIP. It is not watched by the
+  public ExternalDNS path, and Cloudflare's wildcard/tunnel cannot reach this
+  route because it has no `gateway/external` parent. No per-application
+  Cloudflare DNS record or tunnel ingress is introduced. This remains an
+  internal canary until a separate admission review accepts public access.
 
 ## Synthetic SQLite backup/restore qualification
 
@@ -165,11 +172,9 @@ permissions and local-login fallback are tested without printing secret values.
   dashboard/configuration access; it is not TV/Quick Connect SSO. The current
   `AIOSTREAMS_AUTH` contains only the operator secret and does not qualify
   family profiles or cross-user isolation.
-- The current `http-route.yaml` binds both `internal` and `external` Gateways.
-  Therefore it is not a private canary if imported as-is. A private canary
-  admission must use an internal-only route (or a separately reviewed private
-  overlay), keep the media root import absent, and add the external parent only
-  after access-control, Cloudflare and direct-video evidence are accepted.
+- The current `http-route.yaml` is internal-only. Keep the media root import
+  absent, and add the external parent only after access-control, Cloudflare and
+  direct-video evidence are accepted.
 
 Public references:
 - https://github.com/Viren070/AIOStreams/releases/tag/v2.37.0
