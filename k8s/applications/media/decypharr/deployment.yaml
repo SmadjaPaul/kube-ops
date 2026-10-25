@@ -90,6 +90,9 @@ spec:
             - name: http
               containerPort: 8282
           securityContext:
+            runAsUser: 2501
+            runAsGroup: 2501
+            runAsNonRoot: true
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
