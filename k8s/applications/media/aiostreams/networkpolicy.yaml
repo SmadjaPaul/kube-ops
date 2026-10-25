@@ -26,11 +26,8 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-    # External addon/metadata/TorBox lookups. Tighten by observed FQDNs after
-    # exact addon selection; no video delivery is authorized via this Pod.
-    - toEntities:
-        - world
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
+    # This application is deliberately STAGED and is not in the media root.
+    # Keep external egress closed until a follow-up admission change records
+    # the exact addon, metadata, indexer, debrid and OIDC FQDNs actually used.
+    # In particular, never replace this with world:443: AIOStreams accepts
+    # user-supplied addon URLs and contains a built-in media proxy route.

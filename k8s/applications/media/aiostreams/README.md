@@ -75,6 +75,64 @@ unless a subsequent, reviewed PR adds `- aiostreams` to
 9. Confirm written TorBox multi-household rights; do not share one API key
    among households absent vendor authorization.
 
+## Audit evidence and admission blockers
+
+- The PR pins the multi-architecture image index to
+  `sha256:bcfd8580695a50c8f464578a0e25af065f3bd17eac35ed82a733a18342ca9718`;
+  its Linux/amd64 child manifest is
+  `sha256:c1dd8ef7d5db9dbddbf829545e18e9ab6e5eef09ebb705924c9db89729d47dfd`.
+  The exact image config declares UID 0, so the pod-level UID/GID 2501,
+  `runAsNonRoot`, dropped capabilities and read-only root filesystem are
+  mandatory runtime controls. They must be rechecked when the digest changes.
+- The exact image exposes `/api/v1/health`; all three probes use that path on
+  named port 3000. A local image test confirmed the UID override can write only
+  the mounted `/app/data` and `/tmp` paths; it is not cluster or application
+  readiness proof.
+- The staged policy permits DNS only. It intentionally has no `world:443` rule.
+  A later admission PR must add Cilium `toFQDNs` from a reviewed matrix, not a
+  guess: the upstream image has built-in metadata hosts such as
+  `v3-cinemeta.strem.io` and `skyhook.sonarr.tv`, TorBox search uses
+  `search-api.torbox.app`, OIDC would use `auth.smadja.dev`, and user-selected
+  addons/indexers/debrid services add their own hostnames. The manifests in this
+  PR select none of those, so no external FQDN is currently authorized.
+- `FORCE_PROXY_ENABLED=false`, `DEFAULT_PROXY_ENABLED=false`, no proxy URL or
+  proxy credentials are supplied, and `SHARES_FUSE_ENABLED=false`. This is a
+  configuration guard, not proof of no video proxy: the exact upstream image
+  still implements `/api/v1/proxy/*` and accepts per-user proxy settings.
+  Admission remains blocked until a synthetic, non-production playback test
+  records the returned direct URL host and packet/HTTP evidence showing no
+  AIOStreams, Gateway or Cloudflare media bytes, including HLS/range,
+  subtitles, thumbnails and fallback paths.
+
+## Synthetic SQLite backup/restore qualification
+
+The checked-in `tests/harness/aiostreams-sqlite-restore-test.sh` creates a
+temporary SQLite database with a synthetic sentinel, runs SQLite `.backup`,
+restores it into a second temporary file, and checks `integrity_check` plus the
+sentinel. It never reads a PVC or production data. This qualifies the mechanics
+only; it does not claim application recovery.
+
+The eventual isolated drill must use a new namespace, new PVC and synthetic
+configuration. Quiesce the AIOStreams writer, create a consistent `.backup`
+from `/app/data/db.sqlite` (including any WAL state), restore into the new PVC,
+run the exact image with the same `SECRET_KEY`, check migrations and the health
+probe, then verify a synthetic login/config sentinel. Never delete or
+reinitialize the production PVC. Record source/backup/restore timestamps,
+SQLite integrity output, image digest and the isolated namespace in the test
+result; destroy only the isolated drill resources after evidence is retained.
+
+## Authentik and secret contract
+
+The Authentik blueprint is staged but excluded from the active blueprint
+bundle. Its strict callback is
+`https://aiostreams.smadja.dev/api/v1/auth/oidc/callback`; it consumes the
+environment-backed `AIOSTREAMS_CLIENT_SECRET` and grants only the existing
+`authentik-admins` group. The workload currently has OIDC disabled and its
+ExternalSecret intentionally contains only `APP_AIOSTREAMS_SECRET_KEY` and
+`APP_AIOSTREAMS_OPERATOR_AUTH`. Do not add the OIDC secret or admit the
+blueprint until local login, provider discovery, exact claims, empty default
+permissions and local-login fallback are tested without printing secret values.
+
 Public references:
 - https://github.com/Viren070/AIOStreams/releases/tag/v2.37.0
 - https://github.com/Viren070/AIOStreams/blob/v2.37.0/compose.yaml
