@@ -3,10 +3,7 @@ set -euo pipefail
 root=k8s/applications/media
 pkg="$root/aiostreams"
 grep -Fxq -- '- configarr' "$root/kustomization.yaml"
-if grep -Fxq -- '- aiostreams' "$root/kustomization.yaml"; then
-  echo "AIOSTREAMS_STAGE=FAIL: activation before operator admission"
-  exit 1
-fi
+grep -Fxq -- '- aiostreams' "$root/kustomization.yaml"
 grep -Fq "APP_AIOSTREAMS_SECRET_KEY" "$pkg/external-secret.yaml"
 grep -Fq "APP_AIOSTREAMS_OPERATOR_AUTH" "$pkg/external-secret.yaml"
 grep -Fq "ghcr.io/viren070/aiostreams:v2.37.0" "$pkg/deployment.yaml"
@@ -49,4 +46,4 @@ if grep -Eq 'api.?key:[[:space:]]+[a-zA-Z0-9]{16,}' "$pkg"/*.yaml; then
   echo "AIOSTREAMS_STAGE=FAIL: inline API key detected" >&2
   exit 1
 fi
-echo "AIOSTREAMS_STAGED=PASS (STATIC_ONLY; NO IMAGE OR RUNTIME PROOF)"
+echo "AIOSTREAMS_PRIVATE_ADMISSION=PASS (STATIC_ONLY; NO IMAGE OR RUNTIME PROOF)"

@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "aiostreams-private-admission-2026-10-25-ecc4d4d2",
+  "producedAt": "2026-10-25T23:00:00+01:00",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "ecc4d4d2e",
+    "branch": "codex/aiostreams-runtime-qualification"
+  },
+  "tests": [
+    {
+      "id": "aiostreams-static-contract",
+      "name": "AIOStreams private admission static contract",
+      "command": "bash tests/harness/aiostreams-staged-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Exact digest, internal route, non-root controls, secret references and closed external egress passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "AIOSTREAMS_PRIVATE_ADMISSION=PASS" }
+    },
+    {
+      "id": "aiostreams-runtime-qualification",
+      "name": "AIOStreams disposable runtime qualification",
+      "command": "docker run exact digest; stop/restart; SQLite backup/restore; same-key and wrong-key probes",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Container-only test used disposable volumes and synthetic credentials; IPv4/IPv6 listeners, startup grace, migrations, restore and encryption negative test passed.",
+      "risk": "medium",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "manual", "reference": "exact digest; restored_users=1; restored_migrations=49; wrong_key_manifest_http=500; final_correct_key_manifest_http=200" }
+    },
+    {
+      "id": "aiostreams-synthetic-sqlite",
+      "name": "AIOStreams synthetic SQLite restore contract",
+      "command": "bash tests/harness/aiostreams-sqlite-restore-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Synthetic backup, restore, integrity check and sentinel preservation passed without production data.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "AIOSTREAMS_SQLITE_RESTORE_SYNTHETIC=PASS" }
+    },
+    {
+      "id": "repository-check",
+      "name": "full repository check",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The complete deterministic repository gate and direct AIOStreams harnesses passed.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "D_RECOVERY_CONTRACT_TEST=PASS" }
+    },
+    {
+      "id": "kubernetes-mutation",
+      "name": "Kubernetes apply or restart",
+      "command": "not run by design",
+      "execution": "not-executed",
+      "status": "NOT_APPLICABLE",
+      "classification": "not-applicable",
+      "reason": "User explicitly prohibited Kubernetes mutation and production cluster access.",
+      "risk": "none",
+      "expectedCi": "not-expected",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "passed",
+    "total": 5,
+    "executed": 4,
+    "notExecuted": 1,
+    "passed": 4,
+    "notApplicable": 1
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@ecc4d4d2e:aiostreams-private-admission",
+    "payload": {
+      "resultId": "aiostreams-private-admission-2026-10-25-ecc4d4d2",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "ecc4d4d2e",
+      "tests": [
+        {
+          "id": "repository-check",
+          "name": "full repository check",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The complete deterministic repository gate passed.",
+          "risk": "low",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "passed", "total": 5, "executed": 4, "notExecuted": 1 }
+    }
+  }
+}
