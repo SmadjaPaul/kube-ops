@@ -17,10 +17,15 @@ A dedicated admission PR, image digest and runtime tests are mandatory.
 - **PVC backup gate:** `bookorbit-data` needs an explicit Velero/Kopia
   filesystem-backup schedule and a restore probe in the admission change.
   The current media schedules do not provide a BookOrbit-specific selector.
-- **Identity gate:** the staged Barman manifest still references the shared
-  `HETZNER_S3_*` keys. This is not accepted as a minimal BookOrbit identity;
-  a dedicated, prefix-scoped credential must be provisioned and qualified in
-  `homelab-infra` before admission. No secret value belongs in this repo.
+- **Identity gate:** the staged Barman manifest requires
+  `APP_BOOKORBIT_CNPG_S3_ACCESS_KEY_ID` and
+  `APP_BOOKORBIT_CNPG_S3_SECRET_ACCESS_KEY`. These names are a contract for a
+  dedicated, prefix-scoped credential that must be provisioned and qualified
+  in `homelab-infra` before admission; the shared `HETZNER_S3_*` identity is
+  explicitly forbidden. No secret value belongs in this repo.
+- **Private admission:** the staged HTTPRoute attaches only to
+  `Gateway/internal`. Adding `Gateway/external` is a separate reviewed
+  exposure decision and is not part of BookOrbit admission.
 - **Path gate:** upstream v3.5 creates `APP_DATA_PATH` and its Book Dock
   directory at startup. The configured `/data/book-dock` path is therefore
   a runtime check, not a reason to mutate the shared media-layout job.
@@ -29,6 +34,38 @@ The admission PR must sequence the dedicated backup identity, PVC backup and
 restore proof, ESO readiness, CNPG health/extensions, and only then the
 Argo import. Decypharr ingress remains closed until the dedicated
 no-category authentication and protected category requests are proven.
+
+## Private restore/admission procedure (prepared, not executed)
+
+The following evidence is required before a separate admission PR may import
+this directory into the Media root. It is intentionally a runbook contract;
+this staged PR performs no Kubernetes mutation and no credentialed probe.
+
+1. **Static:** run `kustomize build k8s/applications/media/bookorbit`, the
+   staged contract, and `just check`. Confirm that the root still omits
+   `bookorbit`, the route has only `Gateway/internal`, and `backup.yaml` has
+   only the two dedicated BookOrbit CNPG key names.
+2. **ESO/CNPG readiness:** with the canonical operator access harness, verify
+   only metadata/status: `doppler-cluster` Ready, both dedicated remote key
+   names present, `bookorbit-runtime` and the CNPG credential Secret Ready,
+   CNPG healthy, PostgreSQL 18 extensions installed, WAL archiving active,
+   ObjectStore healthy, and a completed ScheduledBackup. Never print Secret
+   values or use the shared `HETZNER_S3_*` keys as a fallback.
+3. **CNPG restore probe:** restore the newest completed BookOrbit Barman
+   backup into an isolated, disposable namespace/cluster using the same
+   dedicated identity and `cnpg` recovery procedure. Verify the cluster is
+   Ready, the `bookorbit` database opens, all four required extensions exist,
+   and a sentinel row/checksum matches. Record RPO/RTO and delete only the
+   disposable restore after evidence capture.
+4. **PVC restore probe:** create a disposable Velero/Kopia filesystem backup
+   of `bookorbit-data`, restore it to a new claim with a distinct name, and
+   verify a sentinel file, UID/GID 2501 ownership, `/appdata` readability,
+   and the `/data/book-dock` plus `/data/media/books` path contract. Do not
+   delete or reinitialize the production claim.
+5. **Private admission:** add only `- bookorbit` to the Media root in a
+   separate exact-SHA PR after the preceding gates pass. Keep Decypharr
+   ingress, external HTTPRoute attachment, indexer/source egress and automatic
+   searching disabled until their independent tests pass.
 
 ## Upstream-verified features
 

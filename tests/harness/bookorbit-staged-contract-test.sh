@@ -23,6 +23,17 @@ assert_contains 'APP_BOOKORBIT_JWT_SECRET' "$pkg/external-secret.yaml"
 assert_contains 'port: "8282"' "$pkg/networkpolicy.yaml"
 assert_contains 'bookorbit-postgresql' "$pkg/database.yaml"
 assert_contains 'bookorbit-postgresql-weekly' "$pkg/backup.yaml"
+assert_contains 'APP_BOOKORBIT_CNPG_S3_ACCESS_KEY_ID' "$pkg/backup.yaml"
+assert_contains 'APP_BOOKORBIT_CNPG_S3_SECRET_ACCESS_KEY' "$pkg/backup.yaml"
+if grep -Eq 'HETZNER_S3_(ACCESS_KEY_ID|SECRET_ACCESS_KEY)' "$pkg/backup.yaml"; then
+  echo "BOOKORBIT_STAGE=FAIL: shared Hetzner S3 identity is not allowed" >&2
+  exit 1
+fi
+if grep -Fq -- 'name: external' "$pkg/app.yaml"; then
+  echo "BOOKORBIT_STAGE=FAIL: staged admission must remain private" >&2
+  exit 1
+fi
+assert_contains 'name: internal' "$pkg/app.yaml"
 assert_contains 'OIDC' "$pkg/README.md"
 assert_contains 'setCategory' "$pkg/README.md"
 echo "BOOKORBIT_STAGED=PASS (STATIC_ONLY; NO RUNTIME PROOF)"
