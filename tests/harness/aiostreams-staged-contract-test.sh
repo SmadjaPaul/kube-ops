@@ -15,6 +15,11 @@ grep -Fq "FORCE_PROXY_ENABLED" "$pkg/deployment.yaml"
 grep -Fq "AIOSTREAMS_AUTH_REQUIRED" "$pkg/deployment.yaml"
 grep -Fq "AIOSTREAMS_OIDC_ENABLED" "$pkg/deployment.yaml"
 grep -Fq "mountPath: /app/data" "$pkg/deployment.yaml"
+grep -Fq "runAsNonRoot: true" "$pkg/deployment.yaml"
+grep -Fq "runAsUser: 2501" "$pkg/deployment.yaml"
+grep -Fq "runAsGroup: 2501" "$pkg/deployment.yaml"
+grep -Fq "readOnlyRootFilesystem: true" "$pkg/deployment.yaml"
+grep -Fq "path: /api/v1/health" "$pkg/deployment.yaml"
 grep -Fq "port: \"3000\"" "$pkg/networkpolicy.yaml"
 if grep -Eq 'privileged: true|SYS_ADMIN|mountPropagation:' "$pkg/deployment.yaml"; then
   echo "AIOSTREAMS_STAGE=FAIL: privileged capability or mount propagation detected" >&2
