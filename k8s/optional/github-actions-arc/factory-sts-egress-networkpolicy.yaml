@@ -1,0 +1,35 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-factory-sts-egress
+  namespace: arc-runners
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "Allow only Factory ARC runners to reach Google Security Token Service"
+  endpointSelector:
+    matchLabels:
+      k8s:actions.github.com/scale-set-name: factory-ci-arc
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchName: sts.googleapis.com
+    - toFQDNs:
+        - matchName: sts.googleapis.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
