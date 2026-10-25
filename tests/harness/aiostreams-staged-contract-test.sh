@@ -22,6 +22,11 @@ grep -Fq "runAsGroup: 2501" "$pkg/deployment.yaml"
 grep -Fq "readOnlyRootFilesystem: true" "$pkg/deployment.yaml"
 grep -Fq "path: /api/v1/health" "$pkg/deployment.yaml"
 grep -Fq "port: \"3000\"" "$pkg/networkpolicy.yaml"
+grep -Fq -- '- name: internal' "$pkg/http-route.yaml"
+if grep -Fq -- '- name: external' "$pkg/http-route.yaml"; then
+  echo "AIOSTREAMS_STAGE=FAIL: staged route must not attach to Gateway/external" >&2
+  exit 1
+fi
 if grep -Eq 'toEntities:[[:space:]]*$|-[[:space:]]+world([[:space:]]|$)' "$pkg/networkpolicy.yaml"; then
   echo "AIOSTREAMS_STAGE=FAIL: staged workload must not have blanket world egress" >&2
   exit 1
