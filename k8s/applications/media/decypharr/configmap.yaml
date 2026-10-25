@@ -20,7 +20,16 @@ data:
       "default_download_action": "download",
       "folder_naming": "filename",
       "max_active_downloads": 2,
-      "debrids": [],
+      "debrids": [
+        {
+          "name": "TorBox",
+          "provider": "torbox",
+          "download_uncached": false,
+          "torrents_refresh_interval": "15s",
+          "download_links_refresh_interval": "5m",
+          "auto_expire_links_after": "3d"
+        }
+      ],
       "categories": ["radarr", "sonarr"],
       "arrs": [],
       "queue_cleanup": {
