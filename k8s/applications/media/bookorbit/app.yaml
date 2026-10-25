@@ -42,7 +42,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: bookorbit
-          image: ghcr.io/bookorbit/bookorbit:3.2.0
+          image: ghcr.io/bookorbit/bookorbit:3.5.0@sha256:1534bc7d696179141875b0298ea7916be4469eb2eb9250347873eaaa9728b5a8
           imagePullPolicy: IfNotPresent
           env:
             - name: NODE_ENV
@@ -63,6 +63,8 @@ spec:
               value: "false"
             - name: APP_DATA_PATH
               value: /appdata
+            - name: BOOK_DOCK_PATH
+              value: /data/book-dock
             - name: LIBRARY_BROWSE_ROOT
               value: /data/media/books
             - name: POSTGRES_HOST
@@ -185,8 +187,6 @@ metadata:
   namespace: media
 spec:
   parentRefs:
-    - name: external
-      namespace: gateway
     - name: internal
       namespace: gateway
   hostnames:

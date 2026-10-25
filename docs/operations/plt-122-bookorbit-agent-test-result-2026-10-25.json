@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt-122-bookorbit-2026-10-25-b8792040",
+  "producedAt": "2026-10-25T22:00:00+02:00",
+  "actor": { "kind": "agent", "name": "codex-agent-c" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "b87920401e6ba27182bca1959aae16cc8001c8b8",
+    "branch": "codex/bookorbit-qualification"
+  },
+  "tests": [
+    {
+      "id": "bookorbit-static-contract",
+      "name": "BookOrbit staged contract",
+      "command": "bash tests/harness/bookorbit-staged-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The package remains dormant, private-only, digest-pinned and bound to dedicated CNPG credential names.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:PASS" }
+    },
+    {
+      "id": "bookorbit-kustomize-render",
+      "name": "BookOrbit Kustomize render",
+      "command": "kustomize build k8s/applications/media/bookorbit",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The inactive BookOrbit package renders without a cluster or credentials.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:PASS" }
+    },
+    {
+      "id": "repository-check",
+      "name": "kube-ops static check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All deterministic repository contracts passed, including the BookOrbit staged contract.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:PASS" }
+    },
+    {
+      "id": "cnpg-pvc-restore",
+      "name": "CNPG Barman and PVC isolated restore",
+      "command": "approved operator restore procedure from the BookOrbit admission runbook",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "Requires the live cluster, a completed BookOrbit backup, dedicated S3 credentials and operator approval; no Kubernetes or credentialed action was authorized.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    },
+    {
+      "id": "private-runtime-admission",
+      "name": "Private ESO/CNPG/runtime admission",
+      "command": "canonical operator access and post-Argo runtime qualification",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "BookOrbit remains dormant and no credentials, apply, Argo import, Decypharr ingress or public exposure change was authorized.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 5,
+    "executed": 3,
+    "notExecuted": 2,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "unavailable": 2,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@b87920401e6ba27182bca1959aae16cc8001c8b8:plt-122-bookorbit",
+    "payload": {
+      "resultId": "plt-122-bookorbit-2026-10-25-b8792040",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "b87920401e6ba27182bca1959aae16cc8001c8b8",
+      "tests": [
+        {
+          "id": "bookorbit-static-contract",
+          "name": "BookOrbit staged contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Dormant private-only contract passed.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "bookorbit-kustomize-render",
+          "name": "BookOrbit Kustomize render",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Inactive package rendered.",
+          "risk": "medium",
+          "expectedCi": "required"
+        },
+        {
+          "id": "repository-check",
+          "name": "kube-ops static check suite",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Deterministic checks passed.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "cnpg-pvc-restore",
+          "name": "CNPG Barman and PVC isolated restore",
+          "execution": "not-executed",
+          "status": "BLOCKED",
+          "classification": "unavailable",
+          "reason": "Requires authorized live credentials and cluster.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "private-runtime-admission",
+          "name": "Private ESO/CNPG/runtime admission",
+          "execution": "not-executed",
+          "status": "BLOCKED",
+          "classification": "unavailable",
+          "reason": "Application remains dormant by scope.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 5, "executed": 3, "notExecuted": 2 }
+    }
+  }
+}
