@@ -10,3 +10,4 @@ resources:
   - runner-quota.yaml
   - github-egress-networkpolicy.yaml
   - factory-sts-egress-networkpolicy.yaml
+  - factory-gcp-credentials-egress-networkpolicy.yaml
