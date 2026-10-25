@@ -33,6 +33,9 @@ spec:
               if [ ! -f /app/config.json ]; then
                 cp /seed/config.json /app/config.json
               fi
+              if grep -q '"debrids"[[:space:]]*:[[:space:]]*\[\]' /app/config.json; then
+                sed -i 's/"debrids"[[:space:]]*:[[:space:]]*\[\]/"debrids": [{"name":"TorBox","provider":"torbox","download_uncached":false,"torrents_refresh_interval":"15s","download_links_refresh_interval":"5m","auto_expire_links_after":"3d"}]/' /app/config.json
+              fi
               if grep -q '"provider"[[:space:]]*:[[:space:]]*"torbox"' /app/config.json \
                 && ! grep -q '"download_links_refresh_interval"' /app/config.json; then
                 awk '{
