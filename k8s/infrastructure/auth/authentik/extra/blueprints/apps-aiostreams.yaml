@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
-# STAGED ONLY: do not import into active Authentik blueprint bundle until
-# APP_AIOSTREAMS_OIDC_CLIENT_SECRET exists and AIOStreams local login passes.
+# ACTIVE private AIOStreams OIDC blueprint. Client secret is injected from
+# Doppler/ESO, never committed. Admission to public routes remains separate.
 ---
 version: 1
 metadata:
