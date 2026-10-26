@@ -16,7 +16,11 @@ Audiobookshelf was retired and would need a *new* deployment) with
 Calibre-Web Automated for ebooks, and Kavita/Komga for comics/manga.
 Chaptarr is an optional acquisition-manager candidate, *not* a reading UI.
 Choose based on actual user workflows, French-language metadata, OIDC,
-backups, maintainer continuity and a disposable fixture test. No new reader
+backups, maintainer continuity and a disposable fixture test. In addition,
+BookOrbit upstream explicitly marks network/distributed filesystems unsupported
+(https://github.com/bookorbit/bookorbit#unsupported-storage-configurations):
+qualify the actual Longhorn mount semantics before asserting compatibility;
+do not equate a block-backed PVC with a tested supported local filesystem. No new reader
 may be admitted by silently reusing BookOrbit secrets or existing PVCs.
 
 **Gate:** changing the Media root to include `bookorbit` requires an explicit
