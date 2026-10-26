@@ -70,7 +70,12 @@ while IFS= read -r path; do
     terraform/oracle-cloud/modules/object-storage/README.md|\
     terraform/proxmox/modules/talos/README.md|\
     .atlantis/plan-only.yaml|.atlantis/policies/google-cloud-build-bootstrap/main.rego|\
+    terraform/google-cloud-build/README.md|\
+    terraform/google-cloud-build/evidence-bucket.tf|\
+    terraform/google-cloud-build/main.tf|\
     .github/workflows/static-ci.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
+    tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
+    tests/google-cloud-build-bootstrap-policy.sh|\
     tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
@@ -91,5 +96,37 @@ grep -Eq 'app_auth[[:space:]]*\{' "$DIR/terraform/github/provider.tf" ||
   fail "GitHub provider App authentication is not explicit"
 test -f "$DIR/terraform/github/repositories.auto.tfvars" ||
   fail "GitHub settings input is missing"
+
+# Security-sensitive files from the one-time Factory admission are not
+# admitted by pathname alone. The server-owned policy pins the exact PR head
+# and content digests reviewed for this admission. Any amended PR, even at the
+# same paths, requires a new server-owned admission update.
+admitted_factory_head="54774b1924663761b608624bb993bd025d02e38d"
+admit_factory_security_file() {
+  local path=$1 expected_hash=$2
+  test "$HEAD_COMMIT" = "$admitted_factory_head" ||
+    fail "Factory security path requires the server-admitted head: $path"
+  test "$(git hash-object "$DIR/$path")" = "$expected_hash" ||
+    fail "Factory security path content is not server-admitted: $path"
+}
+
+path_changed() {
+  local expected=$1 path
+  while IFS= read -r path; do
+    test "$path" = "$expected" && return 0
+  done <<<"$changed"
+  return 1
+}
+
+if path_changed .atlantis/policies/google-cloud-build-bootstrap/main.rego; then
+  admit_factory_security_file \
+    .atlantis/policies/google-cloud-build-bootstrap/main.rego \
+    29e96dc002d1430ab77d0d8e5fe21c04439cd8e1
+fi
+if path_changed scripts/live-tofu.sh; then
+  admit_factory_security_file \
+    scripts/live-tofu.sh \
+    74914cb0407e4669dc8511a8e8ccc4c61aa99f57
+fi
 
 echo "Atlantis admission accepted: server-owned diff boundary base=$BASE_REPO_OWNER/$BASE_REPO_NAME head=$HEAD_COMMIT"
