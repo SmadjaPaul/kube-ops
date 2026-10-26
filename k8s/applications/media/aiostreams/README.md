@@ -36,8 +36,9 @@ route, or blanket external egress.
 - `FORCE_PROXY_ENABLED=false` and `DEFAULT_PROXY_ENABLED=false` locked
   overrides. No `DEFAULT_SERVICE_CREDENTIALS` / `FORCED_SERVICE_CREDENTIALS`
   or TorBox master key exposed to ~30 people or in per-user manifests.
-- OIDC is OFF until Authentik provider registration and post-bootstrap checks.
-  It protects the *admin/configure* experience, **not** Smart-TV/Quick Connect.
+- OIDC is active for the private dashboard/configuration route after the
+  Authentik provider and post-bootstrap checks. It protects the
+  *admin/configure* experience, **not** Smart-TV/Quick Connect.
   Use `AIOSTREAMS_OIDC_DEFAULT_PERMISSIONS` deny-by-default; map group
   `authentik-admins` to admin only in a reviewed follow-up.
 - No extra PostgreSQL/Redis, no elevated capability, no port forwarding.
@@ -62,18 +63,14 @@ route, or blanket external egress.
    destination/IP, home ingress bytes, gateway and Cloudflare logs: no
    media bytes via Cloudflare/AIOStreams, including HLS/range requests,
    subtitles, thumbnails and transcoding fallback. Reject if ambiguous.
-8. The *inactive* Authentik blueprint is staged at
+8. The active Authentik blueprint is at
    `k8s/infrastructure/auth/authentik/extra/blueprints/apps-aiostreams.yaml`
-   with the verified `/api/v1/auth/oidc/callback` redirect. To enable it:
-   provision `APP_AIOSTREAMS_OIDC_CLIENT_SECRET` to the Authentik environment
-   as `AIOSTREAMS_CLIENT_SECRET`; wire `AIOSTREAMS_OIDC_CLIENT_ID`,
-   `AIOSTREAMS_OIDC_CLIENT_SECRET`, `AIOSTREAMS_OIDC_ISSUER`,
-   `AIOSTREAMS_OIDC_GROUP_PERMISSIONS=authentik-admins=admin`, and
-   `AIOSTREAMS_OIDC_DEFAULT_PERMISSIONS` empty in AIOStreams after
-   validating actual claims, keeping the local admin fallback.
-   Do not admit the blueprint before credentials and test evidence.
-   OIDC follow-up after provider setup + local fallback verified;
-   no unsupported promise of TV SSO.
+   with the verified `/api/v1/auth/oidc/callback` redirect. The existing
+   projection supplies the client secret to Authentik and AIOStreams;
+   provider discovery and blueprint status are runtime-qualified. Keep
+   `AIOSTREAMS_OIDC_GROUP_PERMISSIONS=authentik-admins=admin`, an empty
+   default-permissions mapping, and the local admin fallback. OIDC does not
+   provide TV SSO.
 9. Confirm written TorBox multi-household rights; do not share one API key
    among households absent vendor authorization.
 
@@ -90,7 +87,7 @@ route, or blanket external egress.
   named port 3000. A local image test confirmed the UID override can write only
   the mounted `/app/data` and `/tmp` paths; it is not cluster or application
   readiness proof.
-- The staged policy permits DNS only. It intentionally has no `world:443` rule.
+- The active policy permits DNS and the Authentik issuer only. It intentionally has no `world:443` rule.
   A later admission PR must add Cilium `toFQDNs` from a reviewed matrix, not a
   guess: the upstream image has built-in metadata hosts such as
   `v3-cinemeta.strem.io` and `skyhook.sonarr.tv`, TorBox search uses
@@ -132,8 +129,8 @@ result; destroy only the isolated drill resources after evidence is retained.
 
 ## Authentik and secret contract
 
-The Authentik blueprint is staged but excluded from the active blueprint
-bundle. Its strict callback is
+The Authentik blueprint is included in the active blueprint bundle. Its
+strict callback is
 `https://aiostreams.smadja.dev/api/v1/auth/oidc/callback`; it consumes the
 environment-backed `AIOSTREAMS_CLIENT_SECRET` and grants only the existing
 `authentik-admins` group. The workload currently has OIDC disabled and its
@@ -142,7 +139,7 @@ ExternalSecret intentionally contains only `APP_AIOSTREAMS_SECRET_KEY` and
 blueprint until local login, provider discovery, exact claims, empty default
 permissions and local-login fallback are tested without printing secret values.
 
-## Static qualification for PLT-121 (no cluster access)
+## Runtime qualification for PLT-121
 
 - The admitted `networkpolicy.yaml` allows only UDP/TCP 53 to CoreDNS. All other
   pod egress is refused, including TCP 443. This is intentional for this
@@ -168,13 +165,13 @@ permissions and local-login fallback are tested without printing secret values.
   quiesce the single writer, include WAL state, restore to a new PVC with the
   same `SECRET_KEY`, run migrations and verify a synthetic login/config
   sentinel. No production PVC may be deleted or reinitialized.
-- `apps-aiostreams.yaml` is not in the active Authentik bundle. Before enabling
-  it, configure `AIOSTREAMS_OIDC_SCOPES=openid profile email groups`, verify the
-  exact groups claim, keep `AIOSTREAMS_OIDC_DEFAULT_PERMISSIONS` empty, map only
-  `authentik-admins=admin`, and retain the local-login fallback. OIDC protects
-  dashboard/configuration access; it is not TV/Quick Connect SSO. The current
-  `AIOSTREAMS_AUTH` contains only the operator secret and does not qualify
-  family profiles or cross-user isolation.
+- `apps-aiostreams.yaml` is in the active Authentik bundle. The runtime
+  provider discovery returned the per-provider issuer, and the deployment
+  keeps `AIOSTREAMS_OIDC_SCOPES=openid profile email groups`, an empty default
+  permissions mapping, only `authentik-admins=admin`, and the local-login
+  fallback. OIDC protects dashboard/configuration access; it is not
+  TV/Quick Connect SSO. User-level isolation and non-admin denial remain
+  explicit browser-test gates.
 - The current `http-route.yaml` is internal-only, and the Media root DOES
   already import this application. Keep the external parent absent until
   access-control, Cloudflare and direct-video evidence are accepted.

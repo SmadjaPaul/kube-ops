@@ -1,8 +1,8 @@
-# AIOStreams + Authentik OIDC — staged admission runbook
+# AIOStreams + Authentik OIDC — active private runbook
 
-**STATUS: NOT ADMITTED.** All three *dormant* Kubernetes files in this
-PR are **not** loaded by the active Kustomize roots. The existing Media
-root remains unchanged. Merging this preparation PR does not enable OIDC.
+**STATUS: ACTIVE / PRIVATE.** The provider, blueprint, ExternalSecrets and
+deployment wiring are loaded by the active roots. OIDC is enabled for the
+private AIOStreams route; public exposure remains out of scope.
 
 ## Verified contracts
 
@@ -23,7 +23,8 @@ root remains unchanged. Merging this preparation PR does not enable OIDC.
   via `APP_AIOSTREAMS_OPERATOR_AUTH`. Set `AIOSTREAMS_OIDC_LINK_BY_USERNAME=false`,
   `AIOSTREAMS_OIDC_USERNAME_CLAIM=sub`, and `USERNAME_PREFIX=sso:`.
   Never log or disclose the recovery account.
-- The SSO flag currently remains **false** in the live Deployment.
+- The SSO flag is enabled in the live Deployment. Keep the local recovery
+  login available and verify it after every auth change.
 - Current network policy allows only DNS. OIDC needs HTTPS to
   `auth.smadja.dev` through the **internal** Gateway or an equivalent
   issuer-valid path; qualify Cilium selectors/FQDN, DNS, TLS and the
@@ -33,22 +34,23 @@ root remains unchanged. Merging this preparation PR does not enable OIDC.
 
 ## Two-sided secret wiring
 
-The same existing Doppler **name**, not a plaintext value:
+The same existing Doppler **name**, not a plaintext value, is projected by
+both active ExternalSecrets:
 
 `APP_AIOSTREAMS_OIDC_CLIENT_SECRET` in `cluster/prd`
 
-* Authentik: dormant `authentik-blueprint-aiostreams-oidc` ExternalSecret
+* Authentik: active `authentik-blueprint-aiostreams-oidc` ExternalSecret
   -> K8s Secret in `auth` with env key `AIOSTREAMS_CLIENT_SECRET`
   -> Authentik `global.envFrom` and optional worker reloader annotation.
-* AIOStreams: dormant `aiostreams-oidc` ExternalSecret
+* AIOStreams: active `aiostreams-oidc` ExternalSecret
   -> K8s Secret in `media` with env key
   `AIOSTREAMS_OIDC_CLIENT_SECRET` -> Deployment env.
 
 Existing blueprint `extra/blueprints/apps-aiostreams.yaml` already
 references `!Env AIOSTREAMS_CLIENT_SECRET` and has a strict callback.
-It is currently **excluded** from the active ConfigMap generator.
-Do not import it before its environment key is available to the
-Authentik worker; a failed blueprint parse is not a successful provider.
+It is included in the active ConfigMap generator. Keep its environment key
+available to the Authentik worker; a failed blueprint parse is not a
+successful provider.
 
 ## Prerequisites and sequence
 
@@ -60,16 +62,12 @@ Authentik worker; a failed blueprint parse is not a successful provider.
 2. Qualify the exact Authentik issuer over HTTPS from the intended
    AIOStreams network path: check successful `.well-known`, matching
    JSON `issuer`, token endpoint, TLS and DNS. Never log tokens.
-3. Provision `APP_AIOSTREAMS_OIDC_CLIENT_SECRET` once; do not replace
-   existing values. Admit the TWO dormant ExternalSecrets in their
-   respective Kustomizations; verify readiness without reading values.
-4. Add `authentik-blueprint-aiostreams-oidc` to Authentik `global.envFrom`
-   and worker reloader. Add `apps-aiostreams.yaml` to the active
-   Authentik blueprint ConfigMap. Reconcile and inspect blueprint status.
-5. Only after successful provider creation, add the dormant deployment
-   patch and the reviewed minimal Cilium rule to an admission PR. Confirm
-   patch actually overrides existing OIDC_ENABLED=false in the final
-   Kustomize render (otherwise OIDC remains disabled).
+3. The existing `APP_AIOSTREAMS_OIDC_CLIENT_SECRET` projection is active;
+   verify readiness without reading values.
+4. The Authentik blueprint and provider are active. Reconcile and inspect
+   blueprint status after changes.
+5. The deployment patch and minimal Cilium rule are active. Confirm the
+   final render keeps the issuer and callback exact.
 6. Test one admin SSO login and negative tests: `family` without mapping,
    missing group claim, wrong callback, wrong issuer, invalid secret,
    disabled identity and username collision. Keep local fallback working.
