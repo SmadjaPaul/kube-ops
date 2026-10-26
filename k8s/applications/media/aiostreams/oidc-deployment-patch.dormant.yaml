@@ -1,0 +1,48 @@
+# DORMANT strategic-merge patch. Do NOT add to the active Kustomize root
+# before AIOSTREAMS bootstrap ESO, provider and both OIDC secrets are Ready.
+# Verify issuer via actual discovery; Authentik per-application issuer mode
+# gives https://auth.smadja.dev/application/o/aiostreams/ by default.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiostreams
+  namespace: media
+  annotations:
+    secret.reloader.stakater.com/reload: aiostreams-bootstrap,aiostreams-oidc
+spec:
+  template:
+    spec:
+      containers:
+        - name: aiostreams
+          env:
+            - name: AIOSTREAMS_OIDC_ENABLED
+              value: "true"
+            - name: AIOSTREAMS_OIDC_ISSUER
+              value: https://auth.smadja.dev/application/o/aiostreams/
+            - name: AIOSTREAMS_OIDC_CLIENT_ID
+              value: aiostreams
+            - name: AIOSTREAMS_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aiostreams-oidc
+                  key: AIOSTREAMS_OIDC_CLIENT_SECRET
+            - name: AIOSTREAMS_OIDC_SCOPES
+              value: "openid profile email groups"
+            - name: AIOSTREAMS_OIDC_USERNAME_CLAIM
+              value: sub
+            - name: AIOSTREAMS_OIDC_USERNAME_PREFIX
+              value: "sso:"
+            - name: AIOSTREAMS_OIDC_LINK_BY_USERNAME
+              value: "false"
+            - name: AIOSTREAMS_OIDC_GROUPS_CLAIM
+              value: groups
+            - name: AIOSTREAMS_OIDC_GROUP_PERMISSIONS
+              value: authentik-admins=admin
+            - name: AIOSTREAMS_OIDC_DEFAULT_PERMISSIONS
+              value: ""
+            - name: AIOSTREAMS_OIDC_ALLOW_LOCAL_LOGIN
+              value: "true"
+            - name: AIOSTREAMS_OIDC_AUTO_REDIRECT
+              value: "false"
+            - name: AIOSTREAMS_AUTH_REQUIRED
+              value: "true"

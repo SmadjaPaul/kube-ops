@@ -7,8 +7,9 @@ route, or blanket external egress.
 ## Non-negotiable architecture
 
 - Only catalogue, Stremio/Jellyfin-compatible control APIs, account dashboard,
-  metadata and subtitle requests may flow through the Cloudflare/Gateway route
-  `https://aiostreams.smadja.dev`.
+  metadata and subtitle requests may flow through the **internal** Gateway
+  at `https://aiostreams.smadja.dev`. Public Cloudflare access is not yet
+  admitted and requires a separate review.
 - Videos: TorBox HTTPS **directly to each household device**. No AIOStreams
   media proxy, MediaFlow, StremThru proxy, FUSE mount, Jellyfin local proxy or
   Cloudflare-Tunnel video relay. This is a hypothesis until packet/URL E2E passes.
@@ -50,8 +51,9 @@ route, or blanket external egress.
 2. Create only two secret values in Doppler without logging: cryptographic
    AIOSTREAMS_SECRET_KEY and high-entropy OPERATOR_AUTH; ESO Ready.
 3. Render and run existing GitOps CI; single-pod ingress/egress tests.
-4. Enable Media root in a **separate** PR after successful review and
-   explicit source-of-truth check. No manual kubectl apply.
+4. Media root import has already been admitted by PR #740; this canary
+   is internal-only and blocked until ESO bootstrap becomes Ready. Keep
+   OIDC and public exposure separately gated. No manual kubectl apply.
 5. Native AIOStreams: first operator login; create first config through UI,
    selected addon and TorBox credentials approved by vendor account policy.
 6. Prove two independent profiles, no cross-user history leakage, TV login
@@ -173,9 +175,9 @@ permissions and local-login fallback are tested without printing secret values.
   dashboard/configuration access; it is not TV/Quick Connect SSO. The current
   `AIOSTREAMS_AUTH` contains only the operator secret and does not qualify
   family profiles or cross-user isolation.
-- The current `http-route.yaml` is internal-only. Keep the media root import
-  absent, and add the external parent only after access-control, Cloudflare and
-  direct-video evidence are accepted.
+- The current `http-route.yaml` is internal-only, and the Media root DOES
+  already import this application. Keep the external parent absent until
+  access-control, Cloudflare and direct-video evidence are accepted.
 
 Public references:
 - https://github.com/Viren070/AIOStreams/releases/tag/v2.37.0
