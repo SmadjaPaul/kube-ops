@@ -11,3 +11,4 @@ resources:
   - github-egress-networkpolicy.yaml
   - factory-sts-egress-networkpolicy.yaml
   - factory-gcp-credentials-egress-networkpolicy.yaml
+  - factory-gcs-egress-networkpolicy.yaml
