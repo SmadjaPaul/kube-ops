@@ -6,15 +6,17 @@ metadata:
   labels:
     policy-type: media-audit
 spec:
-  # Match all legacy Media endpoints EXCEPT AIOStreams. Cilium allow rules
-  # are additive: this global policy otherwise bypasses the AIOStreams
-  # DNS + auth.smadja.dev:443 workload-specific allowlist.
+  # Exclude AIOStreams and dormant RDT-Client from the broad legacy policy.
+  # Cilium allow policies are additive: a narrower workload-specific policy
+  # cannot undo broad world:443/563 grants from this policy.
+  # Keep RDT excluded before its eventual admission (currently staged only).
   endpointSelector:
     matchExpressions:
       - key: app.kubernetes.io/name
         operator: NotIn
         values:
           - aiostreams
+          - rdt-client
   description: "Allow media applications access"
   ingress:
   - fromEntities:
