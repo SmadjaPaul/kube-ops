@@ -71,7 +71,12 @@ grep -q 'atlantis-pilot-bounded-change' "$rendered"
 grep -q 'Verify the selected state after Atlantis apply' "$rendered"
 grep -q '          - apply' "$rendered"
 grep -q 'init -input=false -reconfigure' "$rendered"
-grep -q 'CHECKOUT_ROOT="$(pwd -P)"' k8s/poc/atlantis-plan-only/values.yaml
+post_hook="$(sed -n '/^      post_workflow_hooks:/,/^      allowed_overrides:/p' k8s/poc/atlantis-plan-only/values.yaml | sed '/^[[:space:]]*#/d')"
+grep -q 'CHECKOUT_ROOT="\$DIR"' <<<"$post_hook"
+if grep -q 'REPO_REL_DIR' <<<"$post_hook"; then
+  echo "Atlantis post-workflow hooks must not use workflow-only REPO_REL_DIR" >&2
+  exit 1
+fi
 grep -q 'PROJECT_DIR="$CHECKOUT_ROOT/terraform/github"' k8s/poc/atlantis-plan-only/values.yaml
 grep -q 'PILOT_DIR="$CHECKOUT_ROOT/terraform/atlantis-pilot"' k8s/poc/atlantis-plan-only/values.yaml
 if grep -q 'CHECKOUT_ROOT/\$REPO_REL_DIR' k8s/poc/atlantis-plan-only/values.yaml; then

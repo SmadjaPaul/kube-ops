@@ -37,6 +37,15 @@ This is deliberately a native Atlantis policy check. It does not add a second
 Terraform/OpenTofu orchestrator and does not grant the policy an operator
 identity.
 
+## Post-workflow hook environment
+
+The server-owned `post_workflow_hooks` run outside the custom workflow steps.
+Their supported built-ins include `DIR` (the absolute checkout root),
+`PROJECT_NAME`, `HEAD_COMMIT`, `COMMAND_NAME`, `COMMAND_HAS_ERRORS` and
+`OUTPUT_STATUS_FILE`. `REPO_REL_DIR` is a custom-workflow variable and must
+not be referenced by a post-workflow hook. The pilot hook therefore selects
+one of its fixed, server-owned project paths below `DIR` from `PROJECT_NAME`.
+
 ## Apply and merge semantics
 
 Atlantis OSS v0.48.1 applies the saved plan through the native `apply` command;
