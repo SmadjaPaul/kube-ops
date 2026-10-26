@@ -4,6 +4,7 @@ import rego.v1
 
 allowed_address := "terraform_data.pilot"
 allowed_marker := "atlantis-plan-only-fixture-v1"
+allowed_pilot_actions := {"create", "update", "no-op"}
 
 github_settings_address(address) if {
   startswith(address, "github_repository.settings[")
@@ -15,6 +16,14 @@ deny contains msg if {
   not github_settings_address(change.address)
   change.change.actions != ["no-op"]
   msg := sprintf("resource %q is not admitted by the Atlantis pilot policy", [change.address])
+}
+
+deny contains msg if {
+  some change in input.resource_changes
+  change.address == allowed_address
+  some action in change.change.actions
+  not action in allowed_pilot_actions
+  msg := sprintf("action %q on %q is not admitted by the Atlantis pilot policy", [action, change.address])
 }
 
 deny contains msg if {
