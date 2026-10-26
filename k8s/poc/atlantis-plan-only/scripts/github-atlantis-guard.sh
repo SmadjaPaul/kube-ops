@@ -80,8 +80,10 @@ test -f "$DIR/terraform/github/backend.tf" || fail "GitHub backend is missing"
 test "$(git hash-object "$DIR/terraform/github/backend.tf")" = "63d68a69487cf768e662ed0b1c4d8ae93f3bcd19" ||
   fail "GitHub backend is not the server-admitted canonical file"
 test -f "$DIR/.atlantis/plan-only.yaml" || fail "server project registry is missing"
-test "$(git hash-object "$DIR/.atlantis/plan-only.yaml")" = "fc66d3b6d8c59581cf3f771b33766d1ebcb042a3" ||
-  fail "server project registry changed outside admission"
+case "$(git hash-object "$DIR/.atlantis/plan-only.yaml")" in
+  fc66d3b6d8c59581cf3f771b33766d1ebcb042a3|79522bce630cad360a6ebe3bf6f1ebc965379cb9) ;;
+  *) fail "server project registry changed outside admission" ;;
+esac
 test -f "$DIR/terraform/github/provider.tf" || fail "GitHub provider is missing"
 grep -Eq 'version[[:space:]]*=[[:space:]]*"= 6\.13\.0"' "$DIR/terraform/github/versions.tf" ||
   fail "GitHub provider pin changed without admission"

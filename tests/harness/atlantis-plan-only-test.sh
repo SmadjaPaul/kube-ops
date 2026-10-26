@@ -71,6 +71,13 @@ grep -q 'atlantis-pilot-bounded-change' "$rendered"
 grep -q 'Verify the selected state after Atlantis apply' "$rendered"
 grep -q '          - apply' "$rendered"
 grep -q 'init -input=false -reconfigure' "$rendered"
+grep -q 'CHECKOUT_ROOT="$(pwd -P)"' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'PROJECT_DIR="$CHECKOUT_ROOT/$REPO_REL_DIR"' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'PILOT_DIR="$CHECKOUT_ROOT/$REPO_REL_DIR"' k8s/poc/atlantis-plan-only/values.yaml
+if grep -q 'cd "$DIR/terraform/' k8s/poc/atlantis-plan-only/values.yaml; then
+  echo "Atlantis post-apply hook must resolve from the actual checkout root" >&2
+  exit 1
+fi
 grep -q 'name: atlantis-pilot-conftest' "$rendered"
 grep -q 'pilot.rego:' "$rendered"
 grep -q 'allowed_pilot_actions' k8s/poc/atlantis-plan-only/policies/pilot.rego
@@ -81,6 +88,8 @@ grep -q 'name: doppler-cluster' "$rendered"
 grep -q 'name: atlantis-github-repository-safety' "$rendered"
 grep -q 'github-repository-safety.rego:' "$rendered"
 grep -q 'github-atlantis-guard.sh:' "$rendered"
+grep -q 'fc66d3b6d8c59581cf3f771b33766d1ebcb042a3' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
+grep -q '79522bce630cad360a6ebe3bf6f1ebc965379cb9' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q 'scripts/architecture-check.sh' "$rendered"
 grep -q 'terraform/cloudflare/modules/access/README.md' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 if grep -Eq 'terraform/\*/modules/\*/README\.md|security-headers/variables\.tf' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh; then
