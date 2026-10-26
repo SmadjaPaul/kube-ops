@@ -14,6 +14,11 @@ entries:
       identifiers:
         name: Apps - Media
       required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: Apps - AIOStreams
+      required: true
   # Native OIDC is the default. Keep a single managed proxy outpost only for
   # applications that cannot consume OIDC directly.
   - model: authentik_outposts.outpost
