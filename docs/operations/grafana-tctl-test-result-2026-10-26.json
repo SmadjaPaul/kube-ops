@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "grafana-tctl-2026-10-26-3daf32f9",
-  "producedAt": "2026-10-26T12:40:28Z",
+  "resultId": "grafana-tctl-2026-10-26-a3ee1966",
+  "producedAt": "2026-10-26T12:45:39Z",
   "actor": { "kind": "agent", "name": "codex" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "3daf32f95f9a586645391eb29c6eee1183f14a47",
+    "revision": "a3ee1966b71ec17c1517fe64780fe11ea0295d56",
     "branch": "codex/restore-grafana-tctl"
   },
   "tests": [
@@ -79,7 +79,7 @@
       "reason": "GitHub checks completed successfully for the final PR revision.",
       "risk": "low",
       "expectedCi": "required",
-      "evidence": { "kind": "github", "reference": "validate and Offline integrity and Docusaurus build succeeded for 3daf32f95f9a586645391eb29c6eee1183f14a47" }
+      "evidence": { "kind": "github", "reference": "validate and Offline integrity and Docusaurus build succeeded for a3ee1966b71ec17c1517fe64780fe11ea0295d56" }
     },
     {
       "id": "argo-reconciliation",
@@ -107,11 +107,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@2e4b4c86153ba6493e9a54f3362655d6dd17462b8:grafana-tctl",
+    "idempotencyKey": "SmadjaPaul/kube-ops@a3ee1966b71ec17c1517fe64780fe11ea0295d56:grafana-tctl",
     "payload": {
-      "resultId": "grafana-tctl-2026-10-26-3daf32f9",
+      "resultId": "grafana-tctl-2026-10-26-a3ee1966",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "3daf32f95f9a586645391eb29c6eee1183f14a47",
+      "revision": "a3ee1966b71ec17c1517fe64780fe11ea0295d56",
       "tests": [
         {
           "id": "grafana-dashboard-contract",
