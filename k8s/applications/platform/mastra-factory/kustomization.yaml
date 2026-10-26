@@ -6,7 +6,6 @@ resources:
   - secrets.yaml
   - linear-external-secret.yaml
   - registry-externalsecret.yaml
-  - oidc-external-secret.dormant.yaml
   - matrix-externalsecret.yaml
   - checkpoint-s3-externalsecret.dormant.yaml
   - database-s3-credentials.yaml
