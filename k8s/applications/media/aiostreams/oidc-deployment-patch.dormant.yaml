@@ -1,6 +1,6 @@
-# Active strategic-merge patch. The legacy filename is retained to avoid an
-# unnecessary resource rename; this file is loaded by the active root.
-# before AIOSTREAMS bootstrap ESO, provider and both OIDC secrets are Ready.
+# Active strategic-merge patch. The legacy `.dormant` suffix is retained to
+# avoid a resource rename; the active Media root loads it. Provider and both
+# OIDC ExternalSecrets have already passed private admission.
 # Verify issuer via actual discovery; Authentik per-application issuer mode
 # gives https://auth.smadja.dev/application/o/aiostreams/ by default.
 apiVersion: apps/v1
