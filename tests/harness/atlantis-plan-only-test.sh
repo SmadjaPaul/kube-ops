@@ -73,6 +73,8 @@ grep -q '          - apply' "$rendered"
 grep -q 'init -input=false -reconfigure' "$rendered"
 grep -q 'name: atlantis-pilot-conftest' "$rendered"
 grep -q 'pilot.rego:' "$rendered"
+grep -q 'allowed_pilot_actions' k8s/poc/atlantis-plan-only/policies/pilot.rego
+grep -q 'not action in allowed_pilot_actions' k8s/poc/atlantis-plan-only/policies/pilot.rego
 grep -q 'name: atlantis-github-iac' "$rendered"
 grep -q 'kind: ClusterSecretStore' "$rendered"
 grep -q 'name: doppler-cluster' "$rendered"
