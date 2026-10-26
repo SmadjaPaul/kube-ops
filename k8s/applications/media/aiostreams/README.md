@@ -90,13 +90,15 @@ route, or blanket external egress.
   named port 3000. A local image test confirmed the UID override can write only
   the mounted `/app/data` and `/tmp` paths; it is not cluster or application
   readiness proof.
-- The active policy permits DNS and narrowly scoped Authentik issuer connectivity only. It intentionally has no `world:443` rule.
+- The active policy permits DNS, narrowly scoped Authentik issuer access,
+  TorBox API/Search and Cinemeta over TCP/443 only. It has no `world:443` rule.
   A later admission PR must add Cilium `toFQDNs` from a reviewed matrix, not a
   guess: the upstream image has built-in metadata hosts such as
   `v3-cinemeta.strem.io` and `skyhook.sonarr.tv`, TorBox search uses
   `search-api.torbox.app`, OIDC uses `auth.smadja.dev`, and user-selected
-  addons/indexers/debrid services add their own hostnames. The active media
-  policy still allows no external metadata/TorBox Search FQDN.
+  addons/indexers/debrid services add their own hostnames. The policy now
+  authorizes **only** the three named video-control FQDNs above; other
+  metadata/addon FQDNs require separately reviewed admission.
 - `FORCE_PROXY_ENABLED=false`, `DEFAULT_PROXY_ENABLED=false`, no proxy URL or
   proxy credentials are supplied, and `SHARES_FUSE_ENABLED=false`. This is a
   configuration guard, not proof of no video proxy: the exact upstream image
@@ -163,14 +165,17 @@ refresh on changes. Never expose per-user manifest URLs in logs.
 A usable video release requires a non-admin playback profile, metadata results,
 an authorized TorBox/CDN stream actually playing on the client, and observed
 network proof that no media bytes cross AIOStreams, Gateway or Cloudflare.
-Add egress only for inspected addon/API FQDNs, never `world:443` or a proxy.
+Additional egress requires observed addon/API FQDNs, never `world:443` or a proxy.
+The current candidate allowlist does **not** qualify runtime E2E; check
+Cilium/Hubble positive and negative flows after GitOps reconciliation.
 
 ## Runtime qualification for PLT-121
 
-- Active egress allows CoreDNS plus narrowly scoped Authentik issuer traffic
-  (FQDN HTTPS, internal Gateway VIP HTTPS, Authentik backend TCP 9000). Public
-  TorBox Search/metadata addon HTTPS is still denied until exact destinations
-  are qualified and reviewed. This does not constitute a functional video E2E.
+- Active egress allows CoreDNS, narrowly scoped Authentik issuer access and
+  three reviewed control-plane hosts over HTTPS: `api.torbox.app`,
+  `search-api.torbox.app`, `v3-cinemeta.strem.io`. These are **candidate**
+  dependencies, pending reconciled runtime allow/deny proof; other addon
+  metadata hosts remain denied. No CDN/media egress is granted to the Pod.
 - Upstream v2.37.0 has these baseline outbound dependencies when its default
   metadata and mapping features run: `v3.sg.media-imdb.com`,
   `v3-cinemeta.strem.io`, `skyhook.sonarr.tv`, `raw.githubusercontent.com`,
