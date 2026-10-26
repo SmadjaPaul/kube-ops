@@ -14,7 +14,7 @@ if (( $# > 0 )); then
 fi
 (( $# <= 1 )) || { echo "PVC_CLEANUP=BLOCKED too many arguments" >&2; exit 2; }
 if [[ "$mode" == delete ]]; then
-  if [[ ! -v ALLOW_EMPTY_MEDIA_PVC_DELETION ]] || [[ "$ALLOW_EMPTY_MEDIA_PVC_DELETION" != yes ]]; then
+  if [[ "${ALLOW_EMPTY_MEDIA_PVC_DELETION:-}" != yes ]]; then
     echo "PVC_CLEANUP=BLOCKED approval guard missing" >&2
     exit 2
   fi
