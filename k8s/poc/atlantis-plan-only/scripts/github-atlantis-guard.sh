@@ -40,10 +40,10 @@ git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
 # reaches this server. In particular, no provider, resource, data source,
 # provisioner, workflow, or arbitrary Terraform file can be introduced
 # alongside an admin plan. Keep this list literal: a broad Bash glob would
-# silently admit nested or newly introduced module paths. The three
-# google-cloud-build bootstrap paths are admitted individually so the
-# server-side envelope and wrapper can bind their exact contents later; this
-# does not admit the root to Atlantis or enable apply.
+# silently admit nested or newly introduced module paths. The exact
+# google-cloud-build bootstrap files are admitted individually so the
+# server-side envelope and wrapper can bind their contents later; this does
+# not admit the root to Atlantis or enable apply.
 changed=$(git diff --name-only "$base_ref...$HEAD_COMMIT")
 while IFS= read -r path; do
   test -z "$path" && continue
@@ -72,7 +72,10 @@ while IFS= read -r path; do
     .atlantis/plan-only.yaml|.atlantis/policies/google-cloud-build-bootstrap/main.rego|\
     terraform/google-cloud-build/README.md|\
     terraform/google-cloud-build/evidence-bucket.tf|\
+    terraform/google-cloud-build/github-identity.tf|\
+    terraform/google-cloud-build/imports.tf|\
     terraform/google-cloud-build/main.tf|\
+    terraform/google-cloud-build/variables.tf|\
     .github/workflows/static-ci.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
     tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
     tests/google-cloud-build-bootstrap-policy.sh|\
