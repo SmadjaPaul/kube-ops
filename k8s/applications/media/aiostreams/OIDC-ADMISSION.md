@@ -25,11 +25,12 @@ private AIOStreams route; public exposure remains out of scope.
   Never log or disclose the recovery account.
 - The SSO flag is enabled in the live Deployment. Keep the local recovery
   login available and verify it after every auth change.
-- Current network policy allows only DNS. OIDC needs HTTPS to
-  `auth.smadja.dev` through the **internal** Gateway or an equivalent
-  issuer-valid path; qualify Cilium selectors/FQDN, DNS, TLS and the
-  exact Service/Endpoint before admission. Do NOT add `world:443`.
-  Test OIDC discovery, code exchange, userinfo and JWKS as relevant.
+- Active network policy permits DNS and scoped OIDC issuer access via
+  `auth.smadja.dev`, internal Gateway VIP and Authentik backend. The issuer
+  and private admin login were runtime-qualified; preserve the positive and
+  negative Cilium checks. Do NOT add `world:443`. The video PR proposes a
+  three-host TorBox/Cinemeta control-plane FQDN allowlist; it is NOT a
+  successful runtime test and does NOT authorize media/CDN proxying.
 - The private AIOStreams route is `Gateway/internal` only. Keep it so.
 
 ## Two-sided secret wiring

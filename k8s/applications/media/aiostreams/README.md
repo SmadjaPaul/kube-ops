@@ -1,7 +1,7 @@
-# AIOStreams v2.37.0 — family control plane (PRIVATE ADMISSION)
+# AIOStreams v2.37.0 — native video app (PRIVATE ROUTE)
 
-This admission adds the package to the Media root with an internal-only
-`Gateway/internal` route. It does not add a public Gateway parent, Cloudflare
+The Media root already deploys AIOStreams with an internal-only
+`Gateway/internal` route. There is no public Gateway parent, Cloudflare
 route, or blanket external egress.
 
 ## Non-negotiable architecture
@@ -45,18 +45,21 @@ route, or blanket external egress.
 - Cloudflare controls/routes/DNS must be reviewed separately before opening
   the host to external families, especially access control and cache policy.
 
-## Gates to deploy
+## Functional gates (after private deployment)
 
-1. Resolve image digest and validate exact image behaviour, licensing,
-   database SQLite storage and persistence (incl. backup/restore).
-2. Create only two secret values in Doppler without logging: cryptographic
-   AIOSTREAMS_SECRET_KEY and high-entropy OPERATOR_AUTH; ESO Ready.
-3. Render and run existing GitOps CI; single-pod ingress/egress tests.
-4. Media root import has already been admitted by PR #740; this canary
-   is internal-only and blocked until ESO bootstrap becomes Ready. Keep
-   OIDC and public exposure separately gated. No manual kubectl apply.
-5. Native AIOStreams: first operator login; create first config through UI,
-   selected addon and TorBox credentials approved by vendor account policy.
+1. Keep the exact pinned OCI digest, non-root runtime and persistent SQLite
+   volume. Requalify on image upgrades.
+2. Check the **existing** three Doppler/ESO secret names (bootstrap key,
+   operator recovery auth and OIDC client secret) for Ready status; never
+   inspect or print values.
+3. Render GitOps, run contracts, and preserve scoped positive/negative
+   ingress/egress tests.
+4. Media root import and Authentik OIDC are already active on the internal route;
+   admin login, issuer discovery and SQLite backup/restore were runtime-qualified.
+   Keep public access gated separately. No manual kubectl apply.
+5. The operator has created a personal configuration and supplied TorBox in
+   the UI. This is **not** proof that a TorBox source resolves or plays. Use
+   the native browser app to qualify the actual catalog/stream path.
 6. Prove two independent profiles, no cross-user history leakage, TV login
    where supported, basic functionality before distributing any invite.
 7. Capture **redacted network proof**: actual playback URL hostname, TLS
@@ -87,13 +90,15 @@ route, or blanket external egress.
   named port 3000. A local image test confirmed the UID override can write only
   the mounted `/app/data` and `/tmp` paths; it is not cluster or application
   readiness proof.
-- The active policy permits DNS and the Authentik issuer only. It intentionally has no `world:443` rule.
+- The active policy permits DNS, narrowly scoped Authentik issuer access,
+  TorBox API/Search and Cinemeta over TCP/443 only. It has no `world:443` rule.
   A later admission PR must add Cilium `toFQDNs` from a reviewed matrix, not a
   guess: the upstream image has built-in metadata hosts such as
   `v3-cinemeta.strem.io` and `skyhook.sonarr.tv`, TorBox search uses
-  `search-api.torbox.app`, OIDC would use `auth.smadja.dev`, and user-selected
-  addons/indexers/debrid services add their own hostnames. The manifests in this
-  PR select none of those, so no external FQDN is currently authorized.
+  `search-api.torbox.app`, OIDC uses `auth.smadja.dev`, and user-selected
+  addons/indexers/debrid services add their own hostnames. The policy now
+  authorizes **only** the three named video-control FQDNs above; other
+  metadata/addon FQDNs require separately reviewed admission.
 - `FORCE_PROXY_ENABLED=false`, `DEFAULT_PROXY_ENABLED=false`, no proxy URL or
   proxy credentials are supplied, and `SHARES_FUSE_ENABLED=false`. This is a
   configuration guard, not proof of no video proxy: the exact upstream image
@@ -133,18 +138,44 @@ The Authentik blueprint is included in the active blueprint bundle. Its
 strict callback is
 `https://aiostreams.smadja.dev/api/v1/auth/oidc/callback`; it consumes the
 environment-backed `AIOSTREAMS_CLIENT_SECRET` and grants only the existing
-`authentik-admins` group. The workload currently has OIDC disabled and its
-ExternalSecret intentionally contains only `APP_AIOSTREAMS_SECRET_KEY` and
-`APP_AIOSTREAMS_OPERATOR_AUTH`. Do not add the OIDC secret or admit the
-blueprint until local login, provider discovery, exact claims, empty default
-permissions and local-login fallback are tested without printing secret values.
+`authentik-admins` group. The base `deployment.yaml` still declares OIDC
+`false`, but the **active** `oidc-deployment-patch.dormant.yaml` overrides it to
+`true`, with the additional active `aiostreams-oidc` ExternalSecret. The `.dormant`
+suffix is a legacy filename, not the resource state. Admin SSO, issuer discovery
+and the local fallback login were qualified; recheck after auth changes without
+logging secrets. OIDC does not provision playback profiles.
+
+## Native AIOStreams web app — selected user experience
+
+The end-user UI is the **native AIOStreams app**, not Stremio Web. From the
+existing personal configuration, select **Save & Install → AIOStreams app →
+Open in browser**. See https://docs.aiostreams.viren070.me/apps/.
+The operator's Authentik OIDC login does not provision a playback profile:
+qualify the separate sign-in, PIN, isolation and TV Quick Connect.
+
+`/stremio/*` provides AIOStreams' still-used addon and manifest protocol.
+It is **not dead Stremio client code** and must remain even if Stremio Web is
+not offered. No Stremio client workload is imported into the Media root.
+
+AIOMetadata is optional as an upstream **Custom Addon**; it is not a required
+Kubernetes service. Upstream warns that nesting its stable manifest behind
+AIOStreams adds a hop and caching: qualify metadata freshness and catalog
+refresh on changes. Never expose per-user manifest URLs in logs.
+
+A usable video release requires a non-admin playback profile, metadata results,
+an authorized TorBox/CDN stream actually playing on the client, and observed
+network proof that no media bytes cross AIOStreams, Gateway or Cloudflare.
+Additional egress requires observed addon/API FQDNs, never `world:443` or a proxy.
+The current candidate allowlist does **not** qualify runtime E2E; check
+Cilium/Hubble positive and negative flows after GitOps reconciliation.
 
 ## Runtime qualification for PLT-121
 
-- The admitted `networkpolicy.yaml` allows only UDP/TCP 53 to CoreDNS. All other
-  pod egress is refused, including TCP 443. This is intentional for this
-  control-plane-only admission; it is not an external-addon functionality
-  policy.
+- Active egress allows CoreDNS, narrowly scoped Authentik issuer access and
+  three reviewed control-plane hosts over HTTPS: `api.torbox.app`,
+  `search-api.torbox.app`, `v3-cinemeta.strem.io`. These are **candidate**
+  dependencies, pending reconciled runtime allow/deny proof; other addon
+  metadata hosts remain denied. No CDN/media egress is granted to the Pod.
 - Upstream v2.37.0 has these baseline outbound dependencies when its default
   metadata and mapping features run: `v3.sg.media-imdb.com`,
   `v3-cinemeta.strem.io`, `skyhook.sonarr.tv`, `raw.githubusercontent.com`,
@@ -160,11 +191,11 @@ permissions and local-login fallback are tested without printing secret values.
   the two proxy environment overrides are guards, not proof. Admission needs
   redacted URL and packet/HTTP evidence for direct playback, HLS/range,
   subtitles, thumbnails and fallback paths.
-- The checked-in SQLite harness proves only synthetic `.backup`/`.restore`,
-  `integrity_check` and sentinel preservation. A real isolated drill must
-  quiesce the single writer, include WAL state, restore to a new PVC with the
-  same `SECRET_KEY`, run migrations and verify a synthetic login/config
-  sentinel. No production PVC may be deleted or reinitialized.
+- The synthetic SQLite harness proves DB mechanics. Separately, the completed
+  Velero backup `aiostreams-qual-20261026` captured the real data PVC and an
+  isolated restore passed SQLite `integrity_check=ok` (PR #759). This is volume
+  backup/restore proof, **not** a full authenticated app recovery test. Never
+  delete or reinitialize the source PVC.
 - `apps-aiostreams.yaml` is in the active Authentik bundle. The runtime
   provider discovery returned the per-provider issuer, and the deployment
   keeps `AIOSTREAMS_OIDC_SCOPES=openid profile email groups`, an empty default
