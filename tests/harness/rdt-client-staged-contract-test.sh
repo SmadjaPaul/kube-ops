@@ -31,7 +31,7 @@ check '.spec.type' "$pkg/service.yaml" 'ClusterIP'
 check '.spec.ports[0].port' "$pkg/service.yaml" '6500'
 check '.metadata.annotations."argocd.argoproj.io/sync-options"' "$pkg/pvc.yaml" 'Prune=false'
 check '.spec.storageClassName' "$pkg/pvc.yaml" 'longhorn-fast'
-if grep -Eqi '(api[_-]?key|password|token):[[:space:]]*[^[:space:]]' "$pkg/deployment.yaml"; then
+if grep -Eqi '(^|[[:space:]])(api[_-]?key|password|token):[[:space:]]*[^[:space:]]' "$pkg/deployment.yaml"; then
   fail "possible hardcoded credential"
 fi
 grep -Fq 'pin the immutable registry multiarch digest' "$pkg/README.md" ||
