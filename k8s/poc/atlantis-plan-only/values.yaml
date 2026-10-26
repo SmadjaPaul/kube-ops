@@ -132,6 +132,9 @@ repoConfig: |
           description: Verify the selected state after Atlantis apply
           run: |
             set -eu
+            # Atlantis post-workflow hooks receive DIR as the absolute checkout
+            # root. REPO_REL_DIR is a custom-workflow variable and is not part
+            # of the post-hook environment contract.
             if test "$COMMAND_HAS_ERRORS" != "false"; then
               echo failure > "$OUTPUT_STATUS_FILE"
               exit 1
@@ -139,10 +142,9 @@ repoConfig: |
             test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
             test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
             test "$BASE_BRANCH_NAME" = "main"
-            CHECKOUT_ROOT="$(pwd -P)"
+            CHECKOUT_ROOT="$DIR"
             test -d "$CHECKOUT_ROOT"
             if test "$PROJECT_NAME" = "github"; then
-              test "$REPO_REL_DIR" = "terraform/github"
               TOFU=/atlantis-data/bin/tofu1.12.6
               test -x "$TOFU"
               PROJECT_DIR="$CHECKOUT_ROOT/terraform/github"
@@ -155,7 +157,6 @@ repoConfig: |
             fi
             test "$PROJECT_NAME" = "atlantis-pilot"
             test "$HEAD_COMMIT" != ""
-            test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
             TOFU=/atlantis-data/bin/tofu1.13.1
             test -x "$TOFU"
             PILOT_DIR="$CHECKOUT_ROOT/terraform/atlantis-pilot"
