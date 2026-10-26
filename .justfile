@@ -49,6 +49,7 @@ check:
     bash tests/harness/longhorn-offsite-pvc-contract-test.sh
     bash tests/harness/longhorn-tier-restore-runbook-test.sh
     bash tests/harness/bookorbit-staged-contract-test.sh
+    bash tests/harness/media-retired-contract-test.sh
     bash tests/harness/d-recovery-contract-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]

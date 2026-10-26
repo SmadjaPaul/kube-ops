@@ -13,8 +13,6 @@ resources:
   - daily-prowlarr.yaml
   - daily-lidarr.yaml
   - daily-bazarr.yaml
-  - daily-sabnzbd.yaml
-  - daily-audiobookshelf.yaml
   - daily-audiobookrequest.yaml
   - daily-jellyseerr.yaml
   - daily-karakeep.yaml
