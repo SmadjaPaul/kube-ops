@@ -20,7 +20,7 @@ check '.spec.endpointSelector.matchExpressions[0].values[0]' "$global" aiostream
 check '.spec.endpointSelector.matchExpressions[0].values[1]' "$global" rdt-client
 check '.spec.template.metadata.labels."app.kubernetes.io/name"' "$deployment" aiostreams
 check '.spec.endpointSelector.matchLabels."app.kubernetes.io/name"' "$specific" aiostreams
-check '.spec.egress | length' "$specific" 4
+check '.spec.egress | length' "$specific" 5
 check '.spec.egress[1].toFQDNs[0].matchName' "$specific" auth.smadja.dev
 check '.spec.egress[1].toPorts[0].ports[0].port' "$specific" 443
 check '.spec.egress[2].toCIDRSet[0].cidr' "$specific" 10.0.20.192/32
@@ -29,5 +29,16 @@ check '.spec.egress[3].toEndpoints[0].matchLabels."k8s:io.kubernetes.pod.namespa
 check '.spec.egress[3].toEndpoints[0].matchLabels."app.kubernetes.io/name"' "$specific" authentik
 check '.spec.egress[3].toEndpoints[0].matchLabels."app.kubernetes.io/component"' "$specific" server
 check '.spec.egress[3].toPorts[0].ports[0].port' "$specific" 9000
+# Strict native-video control-plane FQDN admission. Order and exact set
+# intentionally contractual: no media CDN, wildcard FQDN or blanket world egress.
+check '.spec.egress[4].toFQDNs | length' "$specific" 3
+check '.spec.egress[4].toFQDNs[0].matchName' "$specific" api.torbox.app
+check '.spec.egress[4].toFQDNs[1].matchName' "$specific" search-api.torbox.app
+check '.spec.egress[4].toFQDNs[2].matchName' "$specific" v3-cinemeta.strem.io
+check '.spec.egress[4].toPorts[0].ports | length' "$specific" 1
+check '.spec.egress[4].toPorts[0].ports[0].port' "$specific" 443
+check '.spec.egress[4].toPorts[0].ports[0].protocol' "$specific" TCP
+! grep -Eq 'matchPattern:|world|0\.0\.0\.0/0' "$specific"
+
 ! grep -Eq '^[[:space:]]*(-[[:space:]]*world([[:space:]]|$)|toEntities:|toCIDR:)' "$specific"
 echo 'AIOSTREAMS_EGRESS_STATIC=PASS; RUNTIME_DENY=NOT_EXECUTED'
