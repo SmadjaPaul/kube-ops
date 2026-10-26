@@ -71,6 +71,10 @@ spec:
               value: "false"
             - name: DISK_CACHE_DIR
               value: /tmp/aiostreams-cache
+            # Anime datasets are optional; disabling their bootstrap sync
+            # preserves the strict no-Internet egress contract.
+            - name: ANIME_DB_LEVEL_OF_DETAIL
+              value: none
           ports:
             - name: http
               containerPort: 3000
