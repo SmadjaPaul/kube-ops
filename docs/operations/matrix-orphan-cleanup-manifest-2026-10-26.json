@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "dr-cleanup-manifest/v2",
+  "run": "matrix-restore-p0-20261020-cleanup-20261026",
+  "liveDeletionAuthorized": false,
+  "authorizationStatus": "PENDING_NOMINATIVE_AUTHORIZATION_AND_OLD_NAMESPACE_UID_PROOF",
+  "cleanupScript": {"sha256": "a306a0fefc63c4b01e61e2ed136aa098c2d4fc0d2d5a1b8005a10a038c8bdf27"},
+  "inventory": {
+    "file": "docs/operations/matrix-orphan-cleanup-inventory-2026-10-26.json",
+    "sha256": "ad559f14766f2bafb8ac5ff1ec8b90db0da6a265d452ee532c7d0e892995acb8"
+  },
+  "namespaces": [],
+  "absentNamespaces": [{"name":"matrix-restore-p0-20261020","uid":null,"evidenceFile":"docs/operations/matrix-orphan-cleanup-inventory-2026-10-26.json","evidenceSha256":"ad559f14766f2bafb8ac5ff1ec8b90db0da6a265d452ee532c7d0e892995acb8"}],
+  "configMaps": [],
+  "pvs": [
+    {"name":"pvc-43bb5790-6105-4c5c-b6cf-a0127f99183a","uid":"14b4e6b1-8b1f-4627-b128-3d2f6262f402","claimRef":{"namespace":"matrix-restore-p0-20261020","name":"matrix-synapse-restore-1","uid":"43bb5790-6105-4c5c-b6cf-a0127f99183a"},"volumeHandle":"pvc-43bb5790-6105-4c5c-b6cf-a0127f99183a","volumeName":"pvc-43bb5790-6105-4c5c-b6cf-a0127f99183a","volumeUid":"c9a0ff49-4145-45b5-90a3-7033ca2d0a38","volumeNamespace":"longhorn-system","volumePvcName":"matrix-synapse-restore-1","allowAbsentClaim":true,"requireReleasedDetached":true},
+    {"name":"pvc-5b5cd7c2-913f-4723-98da-a33ad44a9d29","uid":"8afbbfbf-1e42-47b2-a56f-b1f8c3c5249b","claimRef":{"namespace":"matrix-restore-p0-20261020","name":"matrix-mas-restore-1-wal","uid":"5b5cd7c2-913f-4723-98da-a33ad44a9d29"},"volumeHandle":"pvc-5b5cd7c2-913f-4723-98da-a33ad44a9d29","volumeName":"pvc-5b5cd7c2-913f-4723-98da-a33ad44a9d29","volumeUid":"6a673371-1925-46ca-ad2a-1be4870f1b43","volumeNamespace":"longhorn-system","volumePvcName":"matrix-mas-restore-1-wal","allowAbsentClaim":true,"requireReleasedDetached":true},
+    {"name":"pvc-bc64967a-bbe6-49e2-969e-d970ddb9bab0","uid":"909845fa-0d7f-49d4-a1a3-fb922d2d9474","claimRef":{"namespace":"matrix-restore-p0-20261020","name":"matrix-mas-restore-1","uid":"bc64967a-bbe6-49e2-969e-d970ddb9bab0"},"volumeHandle":"pvc-bc64967a-bbe6-49e2-969e-d970ddb9bab0","volumeName":"pvc-bc64967a-bbe6-49e2-969e-d970ddb9bab0","volumeUid":"546bc8e3-5e78-4376-aa7c-6d3876639491","volumeNamespace":"longhorn-system","volumePvcName":"matrix-mas-restore-1","allowAbsentClaim":true,"requireReleasedDetached":true},
+    {"name":"pvc-c1e9bce7-9604-4ec6-8cf6-2860356a289c","uid":"5219a7b0-f909-40f2-adda-e773c221eace","claimRef":{"namespace":"matrix-restore-p0-20261020","name":"matrix-synapse-restore-1-wal","uid":"c1e9bce7-9602-4453-b528-2b8122a59e2d"},"volumeHandle":"pvc-c1e9bce7-9604-4ec6-8cf6-2860356a289c","volumeName":"pvc-c1e9bce7-9604-4ec6-8cf6-2860356a289c","volumeUid":"1c59908b-7602-4453-b528-2b8122a59e2d","volumeNamespace":"longhorn-system","volumePvcName":"matrix-synapse-restore-1-wal","allowAbsentClaim":true,"requireReleasedDetached":true}
+  ],
+  "preserve": [
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"backup-e2f1d18ba525470f","uid":"73bc57a1-9259-4af5-9771-e83189638e45"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"backup-fc0a3b9edbd34f07","uid":"a772b44b-dc88-4da9-a64f-775ca6e15baf"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"backup-5058ab19cb0744b0","uid":"d3818069-bac6-48c7-b777-1869a9ac135e"},
+    {"kind":"backups.longhorn.io","namespace":"longhorn-system","name":"backup-11a14d4e293e4981","uid":"1fd0f596-5334-4339-b91a-52a1deeaee72"}
+  ]
+}

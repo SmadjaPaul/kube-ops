@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "aiostreams-backup-restore-2026-10-26",
+  "producedAt": "2026-10-26T10:36:31Z",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "b8c51cf967e62f4099b12d4d2ac21cf9fed2961f+working-tree",
+    "branch": "codex/matrix-aiostreams-backup"
+  },
+  "tests": [
+    {
+      "id": "sqlite-synthetic-contract",
+      "name": "SQLite backup/restore mechanics",
+      "command": "bash tests/harness/aiostreams-sqlite-restore-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Synthetic database only; integrity, sentinel and reopen all passed without production data.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "AIOSTREAMS_SQLITE_RESTORE_SYNTHETIC=PASS (NO_PRODUCTION_DATA)" }
+    },
+    {
+      "id": "velero-kopia-backup",
+      "name": "Production PVC backup",
+      "command": "targeted Velero/Kopia backup aiostreams-kopia-20261026",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The Backup remained Queued and produced zero PodVolumeBackups while scheduled Matrix backup work was active; no completed production backup exists.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": { "kind": "manual", "reference": "docs/operations/aiostreams-backup-restore-runbook-2026-10-26.md" }
+    },
+    {
+      "id": "sqlite-real-restore",
+      "name": "Restored SQLite integrity",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No completed production PodVolumeBackup was available to restore into an isolated PVC.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": { "kind": "none", "reference": "blocked by velero-kopia-backup" }
+    },
+    {
+      "id": "aiostreams-application-restore",
+      "name": "AIOStreams application restore",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The isolated application restore was not attempted because the production backup was not completed.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": { "kind": "none", "reference": "blocked by velero-kopia-backup" }
+    },
+    {
+      "id": "production-health",
+      "name": "Production AIOStreams health after drill",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The Pod was transiently NotReady during external fetch timeouts, then recovered to Ready=True at 2026-10-26T10:33:25Z with Deployment 1/1 and restart count 0; no data mutation was observed.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": { "kind": "manual", "reference": "docs/operations/aiostreams-backup-restore-runbook-2026-10-26.md" }
+    }
+  ],
+  "summary": { "outcome": "incomplete", "total": 5, "executed": 3, "notExecuted": 2, "passed": 2, "failed": 1, "skipped": 0, "unavailable": 2, "notApplicable": 0 },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@b8c51cf967e62f4099b12d4d2ac21cf9fed2961f+working-tree:aiostreams-backup-restore",
+    "payload": {
+      "resultId": "aiostreams-backup-restore-2026-10-26",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "b8c51cf967e62f4099b12d4d2ac21cf9fed2961f+working-tree",
+      "tests": [
+        { "id": "sqlite-synthetic-contract", "name": "SQLite backup/restore mechanics", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Synthetic SQLite integrity and reopen passed.", "risk": "low", "expectedCi": "required" },
+        { "id": "velero-kopia-backup", "name": "Production PVC backup", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Velero remained Queued with zero PVBs.", "risk": "high", "expectedCi": "optional" },
+        { "id": "sqlite-real-restore", "name": "Restored SQLite integrity", "execution": "not-executed", "status": "BLOCKED", "classification": "unavailable", "reason": "No completed production PVB was available.", "risk": "high", "expectedCi": "optional" },
+        { "id": "aiostreams-application-restore", "name": "AIOStreams application restore", "execution": "not-executed", "status": "BLOCKED", "classification": "unavailable", "reason": "Blocked by the missing completed production backup.", "risk": "high", "expectedCi": "optional" },
+        { "id": "production-health", "name": "Production AIOStreams health after drill", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Pod recovered to Ready=True at 2026-10-26T10:33:25Z with Deployment 1/1.", "risk": "high", "expectedCi": "optional" }
+      ],
+      "summary": { "outcome": "incomplete", "total": 5, "executed": 3, "notExecuted": 2 }
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "dr-cleanup-live-inventory/v2",
+  "capturedAt": "2026-10-26T10:07:44Z",
+  "target": "matrix-restore-p0-20261020",
+  "namespaceIdentity": {
+    "name": "matrix-restore-p0-20261020",
+    "uid": null,
+    "status": "ABSENT",
+    "durableProofStatus": "BLOCKED_MISSING_OLD_NAMESPACE_UID"
+  },
+  "currentReferences": {
+    "namespace": false,
+    "pvc": false,
+    "pod": false,
+    "deployment": false,
+    "statefulSet": false,
+    "job": false,
+    "volumeAttachment": false,
+    "argoApplicationReference": false
+  },
+  "pvs": [
+    {
+      "name": "pvc-43bb5790-6105-4c5c-b6cf-a0127f99183a",
+      "uid": "14b4e6b1-8b1f-4627-b128-3d2f6262f402",
+      "phase": "Released",
+      "claimRef": {"namespace": "matrix-restore-p0-20261020", "name": "matrix-synapse-restore-1", "uid": "43bb5790-6105-4c5c-b6cf-a0127f99183a"},
+      "csi": {"driver": "driver.longhorn.io", "volumeHandle": "pvc-43bb5790-6105-4c5c-b6cf-a0127f99183a"},
+      "reclaimPolicy": "Retain",
+      "longhorn": {"name": "pvc-43bb5790-6105-4c5c-b6cf-a0127f99183a", "uid": "c9a0ff49-4145-45b5-90a3-7033ca2d0a38", "state": "detached", "namespace": "matrix-restore-p0-20261020", "pvcName": "matrix-synapse-restore-1"}
+    },
+    {
+      "name": "pvc-5b5cd7c2-913f-4723-98da-a33ad44a9d29",
+      "uid": "8afbbfbf-1e42-47b2-a56f-b1f8c3c5249b",
+      "phase": "Released",
+      "claimRef": {"namespace": "matrix-restore-p0-20261020", "name": "matrix-mas-restore-1-wal", "uid": "5b5cd7c2-913f-4723-98da-a33ad44a9d29"},
+      "csi": {"driver": "driver.longhorn.io", "volumeHandle": "pvc-5b5cd7c2-913f-4723-98da-a33ad44a9d29"},
+      "reclaimPolicy": "Retain",
+      "longhorn": {"name": "pvc-5b5cd7c2-913f-4723-98da-a33ad44a9d29", "uid": "6a673371-1925-46ca-ad2a-1be4870f1b43", "state": "detached", "namespace": "matrix-restore-p0-20261020", "pvcName": "matrix-mas-restore-1-wal"}
+    },
+    {
+      "name": "pvc-bc64967a-bbe6-49e2-969e-d970ddb9bab0",
+      "uid": "909845fa-0d7f-49d4-a1a3-fb922d2d9474",
+      "phase": "Released",
+      "claimRef": {"namespace": "matrix-restore-p0-20261020", "name": "matrix-mas-restore-1", "uid": "bc64967a-bbe6-49e2-969e-d970ddb9bab0"},
+      "csi": {"driver": "driver.longhorn.io", "volumeHandle": "pvc-bc64967a-bbe6-49e2-969e-d970ddb9bab0"},
+      "reclaimPolicy": "Retain",
+      "longhorn": {"name": "pvc-bc64967a-bbe6-49e2-969e-d970ddb9bab0", "uid": "546bc8e3-5e78-4376-aa7c-6d3876639491", "state": "detached", "namespace": "matrix-restore-p0-20261020", "pvcName": "matrix-mas-restore-1"}
+    },
+    {
+      "name": "pvc-c1e9bce7-9604-4ec6-8cf6-2860356a289c",
+      "uid": "5219a7b0-f909-40f2-adda-e773c221eace",
+      "phase": "Released",
+      "claimRef": {"namespace": "matrix-restore-p0-20261020", "name": "matrix-synapse-restore-1-wal", "uid": "c1e9bce7-9602-4453-b528-2b8122a59e2d"},
+      "csi": {"driver": "driver.longhorn.io", "volumeHandle": "pvc-c1e9bce7-9604-4ec6-8cf6-2860356a289c"},
+      "reclaimPolicy": "Retain",
+      "longhorn": {"name": "pvc-c1e9bce7-9604-4ec6-8cf6-2860356a289c", "uid": "1c59908b-7602-4453-b528-2b8122a59e2d", "state": "detached", "namespace": "matrix-restore-p0-20261020", "pvcName": "matrix-synapse-restore-1-wal"}
+    }
+  ],
+  "preservedBackups": [
+    {"volume": "pvc-43bb5790-6105-4c5c-b6cf-a0127f99183a", "name": "backup-e2f1d18ba525470f", "uid": "73bc57a1-9259-4af5-9771-e83189638e45", "state": "Completed"},
+    {"volume": "pvc-5b5cd7c2-913f-4723-98da-a33ad44a9d29", "name": "backup-fc0a3b9edbd34f07", "uid": "a772b44b-dc88-4da9-a64f-775ca6e15baf", "state": "Completed"},
+    {"volume": "pvc-bc64967a-bbe6-49e2-969e-d970ddb9bab0", "name": "backup-5058ab19cb0744b0", "uid": "d3818069-bac6-48c7-b777-1869a9ac135e", "state": "Completed"},
+    {"volume": "pvc-c1e9bce7-9604-4ec6-8cf6-2860356a289c", "name": "backup-11a14d4e293e4981", "uid": "1fd0f596-5334-4339-b91a-52a1deeaee72", "state": "Completed"}
+  ],
+  "qualification": {
+    "classification": "ORPHAN_STORAGE_CONFIRMED",
+    "namespaceDeletion": "NOT_IN_SCOPE",
+    "destructiveAuthorization": "PENDING_NOMINATIVE_AUTHORIZATION_AND_OLD_NAMESPACE_UID_PROOF",
+    "protectedScopes": ["17 historical Invoice/OpenClaw PVCs", "3 dr-protect PVCs", "PLT-105", "old Authentik", "Factory", "Mastra"]
+  }
+}

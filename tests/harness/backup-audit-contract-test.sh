@@ -70,7 +70,8 @@ mv "$tmp_json" "$longhorn_dir/longhorn-recurringjobs.json"
 jq '.items=[{"metadata":{"name":"backup-invoice-storage"},"status":{"state":"Completed","volumeName":"pv-invoice-storage"}}]' \
   "$longhorn_dir/longhorn-backups.json" >"$tmp_json"
 mv "$tmp_json" "$longhorn_dir/longhorn-backups.json"
-jq '.items=[
+fresh_evidence_now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+jq --arg produced_at "$fresh_evidence_now" '.producedAt=$produced_at | .maxAgeSeconds=86400 | .items=[
   {"kind":"Velero/Kopia","status":"PASS","accepted":true},
   {"kind":"CNPG/Barman","status":"PASS","accepted":true}
 ]' "$longhorn_dir/restore-evidence.json" >"$tmp_json"

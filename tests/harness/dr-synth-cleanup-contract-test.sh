@@ -77,6 +77,14 @@ custom_identity="$(make_manifest custom_identity '.identityLabels = {"backup.sma
 rc="$(run_cleanup custom_identity "$custom_identity" "" custom-identity-label --dry-run)"
 [[ "$rc" == 0 ]]
 
+absent_namespace="$(make_manifest absent_namespace '.namespaces = [] | .absentNamespaces = [{name:"dr-synth-test-src",uid:"11111111-1111-4111-8111-111111111111",evidenceFile:"tests/fixtures/dr-cleanup/namespace-evidence.json",evidenceSha256:"__EVIDENCE_SHA__"}] | .pvs[0].allowAbsentClaim = true | .pvs[0].requireReleasedDetached = true')"
+evidence_sha="$(sha256sum "$fixture/namespace-evidence.json" | awk '{print $1}')"
+jq --arg sha "$evidence_sha" '.absentNamespaces[0].evidenceSha256 = $sha' "$absent_namespace" >"$absent_namespace.tmp"
+mv "$absent_namespace.tmp" "$absent_namespace"
+rc="$(run_cleanup absent_namespace "$absent_namespace" "" namespace-absent --dry-run)"
+[[ "$rc" == 0 ]]
+grep -F 'absent; durable-identity' "$tmp/out-absent_namespace/report.jsonl" >/dev/null
+
 wrong_claim="$(make_manifest wrong_claim '.pvs[0].claimRef.name = "unexpected"')"
 rc="$(run_cleanup wrong_claim "$wrong_claim" "" "" --dry-run)"
 expect_nonzero "$rc" "unexpected claimRef"
@@ -125,7 +133,7 @@ set -e
 expect_nonzero "$rc" "ambiguous absent resource on resume"
 grep -F 'absent without matching journal deletion' "$interrupt_out/resume.stderr" >/dev/null
 
-jq -cn '{ts:"test",run:"dr-synth-test",action:"deleted",kind:"namespace",namespace:"",name:"dr-synth-test-src",uid:"ns-src",detail:"independent-revalidation"}' >>"$interrupt_out/journal.jsonl"
+jq -cn '{ts:"test",run:"dr-synth-test",action:"deleted",kind:"namespace",namespace:"",name:"dr-synth-test-src",uid:"11111111-1111-4111-8111-111111111111",detail:"independent-revalidation"}' >>"$interrupt_out/journal.jsonl"
 rc="$(run_cleanup interrupt "$manifest" "$sha" "" --apply --resume)"
 [[ "$rc" == 0 ]]
 

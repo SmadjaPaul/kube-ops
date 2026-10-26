@@ -70,7 +70,9 @@ expected_script_sha="$(jq -er '.cleanupScript.sha256' "$manifest")" || die "mani
 [[ -s "$inventory_file" ]] || die "inventory missing: $inventory_file"
 [[ "$(sha256_file "$inventory_file")" == "$inventory_sha" ]] || die "inventory digest mismatch"
 [[ "$script_sha" == "$expected_script_sha" ]] || die "cleanup script digest mismatch"
-[[ "$(jq -r '.namespaces|length' "$manifest")" -gt 0 ]] || die "empty namespace plan"
+namespace_count="$(jq -r '(.namespaces // []) | length' "$manifest")"
+absent_namespace_count="$(jq -r '(.absentNamespaces // []) | length' "$manifest")"
+(( namespace_count + absent_namespace_count > 0 )) || die "empty namespace plan"
 
 mkdir -p "$(dirname "$journal")" "$(dirname "$report")" "$metadata_dir"
 touch "$journal" "$report"
@@ -143,7 +145,7 @@ write_metadata_snapshot() {
 }
 
 preflight_namespace() {
-  local row name uid json rc
+  local row name uid json rc evidence_file evidence_sha error_file
   while IFS= read -r row; do
     name="$(jq -r '.name' <<<"$row")"; uid="$(jq -r '.uid' <<<"$row")"
     if json="$(assert_identity namespace '' "$name" "$uid")"; then :; else
@@ -152,6 +154,29 @@ preflight_namespace() {
     assert_run_label "$json" namespace '' "$name"
     log_event verified namespace '' "$name" "$uid" "run-label"
   done < <(jq -c '.namespaces[]' "$manifest")
+
+  while IFS= read -r row; do
+    name="$(jq -r '.name' <<<"$row")"; uid="$(jq -r '.uid' <<<"$row")"
+    [[ "$uid" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] || \
+      die "absent namespace UID proof missing or invalid: $name"
+    evidence_file="$(jq -r '.evidenceFile' <<<"$row")"; evidence_sha="$(jq -r '.evidenceSha256' <<<"$row")"
+    [[ -s "$evidence_file" ]] || die "absent namespace evidence missing: $evidence_file"
+    [[ "$(sha256_file "$evidence_file")" == "$evidence_sha" ]] || die "absent namespace evidence digest mismatch: $name"
+    jq -e --arg name "$name" --arg uid "$uid" \
+      '.namespaceIdentity.name == $name and .namespaceIdentity.uid == $uid' \
+      "$evidence_file" >/dev/null || die "absent namespace durable identity mismatch: $name"
+    error_file="$(mktemp)"
+    if json="$(get_json namespace '' "$name" 2>"$error_file")"; then
+      rm -f "$error_file"
+      die "namespace exists; homonym or recreation must be reviewed: $name"
+    fi
+    if ! grep -Eiq 'NotFound|not found' "$error_file"; then
+      cat "$error_file" >&2; rm -f "$error_file"
+      die "namespace absence cannot be verified: $name"
+    fi
+    rm -f "$error_file"
+    log_event verified namespace '' "$name" "$uid" "absent; durable-identity=$evidence_file"
+  done < <(jq -c '.absentNamespaces[]?' "$manifest")
 }
 
 preflight_configmaps() {
@@ -167,7 +192,7 @@ preflight_configmaps() {
 }
 
 preflight_storage() {
-  local row pv pvuid ns pvc pvcuid handle json volume vuid volume_ns volume_pvc attachments refs rc
+  local row pv pvuid ns pvc pvcuid handle json volume vuid volume_ns volume_pvc attachments refs pods argo rc error_file
   while IFS= read -r row; do
     pv="$(jq -r '.name' <<<"$row")"; pvuid="$(jq -r '.uid' <<<"$row")"
     ns="$(jq -r '.claimRef.namespace' <<<"$row")"; pvc="$(jq -r '.claimRef.name' <<<"$row")"
@@ -180,13 +205,30 @@ preflight_storage() {
     [[ "$(jq -r '.spec.claimRef.name // ""' <<<"$json")" == "$pvc" ]] || die "PV claim name mismatch: $pv"
     [[ "$(jq -r '.spec.claimRef.uid // ""' <<<"$json")" == "$pvcuid" ]] || die "PV claim UID mismatch: $pv"
     [[ "$(jq -r '.spec.csi.volumeHandle // ""' <<<"$json")" == "$handle" ]] || die "PV volumeHandle mismatch: $pv"
+    if [[ "$(jq -r '.requireReleasedDetached // false' <<<"$row")" == true ]]; then
+      [[ "$(jq -r '.status.phase // ""' <<<"$json")" == Released ]] || die "PV is not Released: $pv"
+    fi
     log_event verified pv '' "$pv" "$pvuid" "claimRef=$ns/$pvc volumeHandle=$handle"
 
-    if json="$(assert_identity pvc "$ns" "$pvc" "$pvcuid")"; then :; else
+    if [[ "$(jq -r '.allowAbsentClaim // false' <<<"$row")" == true ]]; then
+      error_file="$(mktemp)"
+      if json="$(get_json pvc "$ns" "$pvc" 2>"$error_file")"; then
+        rm -f "$error_file"
+        die "PVC claim exists; absent-claim exception is no longer valid: $ns/$pvc"
+      fi
+      if ! grep -Eiq 'NotFound|not found' "$error_file"; then
+        cat "$error_file" >&2; rm -f "$error_file"
+        die "PVC absence cannot be verified: $ns/$pvc"
+      fi
+      rm -f "$error_file"
+      log_event verified pvc "$ns" "$pvc" "$pvcuid" "absent claimRef; durable UID=$pvcuid"
+    elif json="$(assert_identity pvc "$ns" "$pvc" "$pvcuid")"; then :; else
       rc=$?; (( rc == 3 )) && continue; return "$rc"
     fi
-    [[ "$(jq -r '.spec.volumeName // ""' <<<"$json")" == "$pv" ]] || die "PVC volumeName mismatch: $ns/$pvc"
-    log_event verified pvc "$ns" "$pvc" "$pvcuid" "volumeName=$pv"
+    if [[ "$(jq -r '.allowAbsentClaim // false' <<<"$row")" != true ]]; then
+      [[ "$(jq -r '.spec.volumeName // ""' <<<"$json")" == "$pv" ]] || die "PVC volumeName mismatch: $ns/$pvc"
+      log_event verified pvc "$ns" "$pvc" "$pvcuid" "volumeName=$pv"
+    fi
 
     volume="$(jq -r '.volumeName' <<<"$row")"; vuid="$(jq -r '.volumeUid' <<<"$row")"
     volume_ns="$(jq -r '.volumeNamespace' <<<"$row")"; volume_pvc="$(jq -r '.volumePvcName' <<<"$row")"
@@ -196,16 +238,34 @@ preflight_storage() {
     [[ "$(jq -r '.status.kubernetesStatus.namespace // ""' <<<"$json")" == "$ns" ]] || die "Longhorn namespace mismatch: $volume"
     [[ "$(jq -r '.status.kubernetesStatus.pvcName // ""' <<<"$json")" == "$volume_pvc" ]] || die "Longhorn PVC mismatch: $volume"
     [[ "$volume_pvc" == "$pvc" ]] || die "manifest Longhorn/PVC mismatch: $volume"
+    if [[ "$(jq -r '.requireReleasedDetached // false' <<<"$row")" == true ]]; then
+      [[ "$(jq -r '.status.state // ""' <<<"$json")" == detached ]] || die "Longhorn volume is not Detached: $volume"
+    fi
     log_event verified volumes.longhorn.io "$volume_ns" "$volume" "$vuid" "exclusive=$ns/$pvc"
 
     attachments="$(kube get volumeattachments.storage.k8s.io -o json)" || die "cannot inspect VolumeAttachments"
     if jq -e --arg pv "$pv" 'any(.items[]?; .spec.source.persistentVolumeName == $pv)' <<<"$attachments" >/dev/null; then
+      if [[ "$(jq -r '.requireReleasedDetached // false' <<<"$row")" == true ]]; then
+        die "planned orphan still has a VolumeAttachment: $pv"
+      fi
       log_event verified volumeattachment '' "$pv" "$pvuid" "attachment belongs to planned target; deletion remains blocked until detached"
     fi
     refs="$(kube get pvc -A -o json)" || die "cannot inspect PVC references"
     if jq -e --arg pv "$pv" --arg ns "$ns" --arg pvc "$pvc" \
       'any(.items[]; .spec.volumeName == $pv and (.metadata.namespace != $ns or .metadata.name != $pvc))' <<<"$refs" >/dev/null; then
       die "PV has another PVC reference: $pv"
+    fi
+    if [[ "$(jq -r '.requireReleasedDetached // false' <<<"$row")" == true ]]; then
+      pods="$(kube get pods -A -o json)" || die "cannot inspect Pod references"
+      if jq -e --arg ns "$ns" --arg pvc "$pvc" \
+        'any(.items[]?; .metadata.namespace == $ns and any(.spec.volumes[]?.persistentVolumeClaim.claimName?; . == $pvc))' \
+        <<<"$pods" >/dev/null; then
+        die "planned orphan still has a Pod reference: $ns/$pvc"
+      fi
+      argo="$(kube get applications.argoproj.io -A -o json)" || die "cannot inspect Argo references"
+      if jq -e --arg ns "$ns" 'any(.items[]?; tostring | contains($ns))' <<<"$argo" >/dev/null; then
+        die "planned orphan still has an Argo reference: $ns"
+      fi
     fi
   done < <(jq -c '.pvs[]' "$manifest")
 }

@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "matrix-orphan-cleanup-2026-10-26",
+  "producedAt": "2026-10-26T10:36:31Z",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "b8c51cf967e62f4099b12d4d2ac21cf9fed2961f+working-tree",
+    "branch": "codex/matrix-aiostreams-backup"
+  },
+  "tests": [
+    {
+      "id": "fresh-live-inventory",
+      "name": "Fresh Matrix PV/Longhorn identity inventory",
+      "command": "canonical kube inventory captured 2026-10-26T10:07:44Z",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Four exact PV UIDs, CSI handles, Longhorn UIDs and Released/Detached states were rechecked; namespace, PVC, Pod, controller, VolumeAttachment and Argo references were absent.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": { "kind": "manual", "reference": "docs/operations/matrix-orphan-cleanup-inventory-2026-10-26.json" }
+    },
+    {
+      "id": "absent-namespace-identity-gate",
+      "name": "Absent namespace durable UID gate",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The namespace is absent but no durable old namespace UID proof is present; the nominative manifest blocks before any Kubernetes deletion planning.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "manual", "reference": "docs/operations/matrix-orphan-cleanup-inventory-2026-10-26.json" }
+    },
+    {
+      "id": "cleanup-safety-contract",
+      "name": "Cleanup engine safety contract",
+      "command": "bash tests/harness/dr-synth-cleanup-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The harness passed, including synthetic absent-namespace proof acceptance, namespace recreation rejection, absent claim checks, Released/Detached checks and preservation gates.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "dr-synth-cleanup safety contract: PASS" }
+    },
+    {
+      "id": "matrix-live-dry-run",
+      "name": "Matrix live dry-run",
+      "command": "scripts/dr-synth-cleanup.sh --dry-run --manifest docs/operations/matrix-orphan-cleanup-manifest-2026-10-26.json",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "Blocked exactly at absent namespace UID proof validation; no deletion, force operation or finalizer change was attempted.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": { "kind": "manual", "reference": "authorization pending; deletions=0" }
+    }
+  ],
+  "summary": { "outcome": "incomplete", "total": 4, "executed": 4, "notExecuted": 0, "passed": 2, "failed": 2, "skipped": 0, "unavailable": 0, "notApplicable": 0 },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@b8c51cf967e62f4099b12d4d2ac21cf9fed2961f+working-tree:matrix-orphan-cleanup",
+    "payload": {
+      "resultId": "matrix-orphan-cleanup-2026-10-26",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "b8c51cf967e62f4099b12d4d2ac21cf9fed2961f+working-tree",
+      "tests": [
+        { "id": "fresh-live-inventory", "name": "Fresh Matrix PV/Longhorn identity inventory", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Exact identities and no current references were confirmed.", "risk": "medium", "expectedCi": "optional" },
+        { "id": "absent-namespace-identity-gate", "name": "Absent namespace durable UID gate", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Durable old namespace UID proof is missing.", "risk": "high", "expectedCi": "required" },
+        { "id": "cleanup-safety-contract", "name": "Cleanup engine safety contract", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Synthetic absent namespace, absent claim, Released/Detached and preservation gates passed.", "risk": "low", "expectedCi": "required" },
+        { "id": "matrix-live-dry-run", "name": "Matrix live dry-run", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Blocked by missing durable namespace UID proof; no deletion occurred.", "risk": "high", "expectedCi": "optional" }
+      ],
+      "summary": { "outcome": "incomplete", "total": 4, "executed": 4, "notExecuted": 0 }
+    }
+  }
+}

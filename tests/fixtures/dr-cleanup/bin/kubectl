@@ -45,24 +45,33 @@ if [[ "$cmd" == get ]]; then
     jq -n '{items:[]}'
     exit 0
   fi
+  if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == namespace-absent && "$resource" == namespace && "$name" == dr-synth-test-src ]]; then
+    printf 'Error from server (NotFound): namespaces "%s" not found\n' "$name" >&2
+    exit 1
+  fi
+  if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == namespace-absent && "$resource" == pvc && "$name" == data ]]; then
+    printf 'Error from server (NotFound): persistentvolumeclaims "%s" not found\n' "$name" >&2
+    exit 1
+  fi
   if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == namespace-recreated && "$resource" == namespace && "$name" == dr-synth-test-src ]]; then
     jq -n '{apiVersion:"v1",kind:"Namespace",metadata:{name:"dr-synth-test-src",uid:"recreated",labels:{"dr.smadja.dev/run":"dr-synth-test"}}}'
     exit 0
   fi
   if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == custom-identity-label && "$resource" == namespace ]]; then
-    jq -n --arg uid "$([[ "$name" == dr-synth-test-src ]] && echo ns-src || echo ns-tgt)" --arg name "$name" '{apiVersion:"v1",kind:"Namespace",metadata:{name:$name,uid:$uid,labels:{"backup.smadja.dev/purpose":"pvc-restore-proof"}}}'
+    jq -n --arg uid "$([[ "$name" == dr-synth-test-src ]] && echo 11111111-1111-4111-8111-111111111111 || echo 22222222-2222-4222-8222-222222222222)" --arg name "$name" '{apiVersion:"v1",kind:"Namespace",metadata:{name:$name,uid:$uid,labels:{"backup.smadja.dev/purpose":"pvc-restore-proof"}}}'
     exit 0
   fi
   if deleted "$resource" "$ns" "$name"; then exit 1; fi
   case "$resource/$name" in
     namespace/dr-synth-test-src|namespace/dr-synth-test-tgt)
-      uid=$([[ "$name" == dr-synth-test-src ]] && echo ns-src || echo ns-tgt)
+      uid=$([[ "$name" == dr-synth-test-src ]] && echo 11111111-1111-4111-8111-111111111111 || echo 22222222-2222-4222-8222-222222222222)
       jq -n --arg uid "$uid" --arg name "$name" '{apiVersion:"v1",kind:"Namespace",metadata:{name:$name,uid:$uid,labels:{"dr.smadja.dev/run":"dr-synth-test"}}}' ;;
     configmap/dr-synth-test-modifier)
       jq -n '{apiVersion:"v1",kind:"ConfigMap",metadata:{name:"dr-synth-test-modifier",namespace:"velero",uid:"cm-1",labels:{"dr.smadja.dev/run":"dr-synth-test"}}}' ;;
     pv/pvc-pv-1)
       phase=Bound
       [[ -e "$state/namespace-deleted" ]] && phase=Released
+      [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == namespace-absent ]] && phase=Released
       if [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == pv-delayed && -e "$state/namespace-deleted" ]]; then
         count=0
         [[ -s "$state/pv-reads" ]] && count="$(cat "$state/pv-reads")"
@@ -76,6 +85,7 @@ if [[ "$cmd" == get ]]; then
     volumes.longhorn.io/pvc-pv-1)
       state_value=attached
       [[ -e "$state/pv-deleted" ]] && state_value=detached
+      [[ "${DR_CLEANUP_FIXTURE_CASE:-}" == namespace-absent ]] && state_value=detached
       jq -n --arg state "$state_value" '{apiVersion:"longhorn.io/v1beta2",kind:"Volume",metadata:{name:"pvc-pv-1",uid:"lh-1"},status:{state:$state,robustness:"healthy",kubernetesStatus:{namespace:"dr-synth-test-src",pvcName:"data"}}}' ;;
     backups.velero.io/dr-synth-test-backup)
       jq -n '{apiVersion:"velero.io/v1",kind:"Backup",metadata:{name:"dr-synth-test-backup",namespace:"velero",uid:"backup-1"}}' ;;

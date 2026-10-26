@@ -44,6 +44,26 @@ still identify the expected PVC and become detached within the bounded
 timeout. No force deletion, wildcard, finalizer removal or automatic
 ignore-not-found behavior is used.
 
+### Absent namespace and released orphan storage
+
+An orphan-storage manifest may use `absentNamespaces` only for a namespace
+whose old UID is present in a SHA-256-pinned durable evidence file. The tool
+then requires a Kubernetes `NotFound` response; an existing namespace with
+the same name is always a block, regardless of its UID. This is a per-manifest
+exception, not a global identity bypass. A PV row must separately opt into
+`allowAbsentClaim` and `requireReleasedDetached`; the latter also rechecks
+the Released PV phase, Detached Longhorn state, Pod/VolumeAttachment/PVC
+references and Argo Application references before a dry-run can pass.
+
+The Matrix qualification at
+`docs/operations/matrix-orphan-cleanup-manifest-2026-10-26.json` carries an
+explicitly blocked `absentNamespaces` row with a null UID: the live namespace
+is absent, but the old namespace UID was not found in a durable repository
+proof. The cleanup engine rejects that row before any deletion planning. The
+four PV and Longhorn identities are recorded for review; no deletion is
+authorized until the missing proof and the nominative authorization are
+added.
+
 A failed run leaves its journal. A retry requires --resume and the same
 manifest digest. An absent object is accepted only when the journal records a
 successful deletion of the same UID. An interruption before that record

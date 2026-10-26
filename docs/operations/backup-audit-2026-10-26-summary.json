@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "backup-audit-summary/v1",
+  "capturedAt": "2026-10-26T10:36:31Z",
+  "command": "just backup-audit",
+  "source": "canonical kube access via Doppler operator distribution",
+  "before": {
+    "productionPVC": { "total": 53, "covered": 52, "unverified": 1 },
+    "productionRecovery": { "protected": 52, "unprotected": 1 },
+    "restoreResidueCount": 20,
+    "orphanPVCCount": 0,
+    "backupAuditGaps": 21,
+    "legacyAuditGaps": 20,
+    "unverifiedPVC": "media/aiostreams-data"
+  },
+  "after": {
+    "productionPVC": { "total": 53, "covered": 51, "unverified": 1 },
+    "productionRecovery": { "protected": 51, "unprotected": 2 },
+    "restoreResidueCount": 20,
+    "orphanPVCCount": 0,
+    "backupAuditGaps": 22,
+    "legacyAuditGaps": 21,
+    "unverifiedPVC": "media/aiostreams-data",
+    "additionalUnprotectedScope": "plt105-recovery-20261020/plt105-recovery-pvc"
+  },
+  "aioStreams": {
+    "namespace": "media",
+    "pvc": "aiostreams-data",
+    "uid": "fca592e3-de5c-4843-ac8f-b8a914cd4b93",
+    "backupConfigured": true,
+    "completedPVB": false,
+    "longhornBackupCompleted": false,
+    "recoveryStatus": "UNPROTECTED",
+    "restoreVerified": false,
+    "applicationRecoveryVerified": false
+  },
+  "matrix": {
+    "restoreResidueCount": 20,
+    "orphanPVCCount": 0,
+    "fourTargetChainsDeleted": 0,
+    "reason": "cleanup blocked by missing durable old namespace UID proof and nominative authorization"
+  },
+  "interpretation": {
+    "restoreResidueCountIsNotOrphanPVCCount": true,
+    "coverageGapsAreNotDRResidues": true,
+    "productionDataWasNotDeleted": true
+  }
+}
