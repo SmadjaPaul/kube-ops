@@ -37,7 +37,7 @@ grep -Fq 'matchName: search-api.torbox.app' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: v3-cinemeta.strem.io' "$pkg/networkpolicy.yaml"
 grep -Fq 'https://aiostreams.smadja.dev/api/v1/auth/oidc/callback' \
   k8s/infrastructure/auth/authentik/extra/blueprints/apps-aiostreams.yaml
-grep -Fq 'APP_AIOSTREAMS_OIDC_CLIENT_SECRET' "$pkg/README.md"
+grep -Fq 'APP_AIOSTREAMS_OIDC_CLIENT_SECRET' "$pkg/oidc-external-secret.dormant.yaml"
 grep -Fq 'production data' "$pkg/README.md"
 if grep -Eq 'AIOSTREAMS_CLIENT_SECRET:[[:space:]]*[A-Za-z0-9]' \
   k8s/infrastructure/auth/authentik/extra/blueprints/apps-aiostreams.yaml; then
