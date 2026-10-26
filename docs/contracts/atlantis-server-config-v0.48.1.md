@@ -45,9 +45,6 @@ Their supported built-ins include `DIR` (the absolute checkout root),
 `OUTPUT_STATUS_FILE`. `REPO_REL_DIR` is a custom-workflow variable and must
 not be referenced by a post-workflow hook. The pilot hook therefore selects
 one of its fixed, server-owned project paths below `DIR` from `PROJECT_NAME`.
-The pilot repository mapping also sets `automerge: false` server-side so a
-qualification PR remains open for replay and merge-gate evidence; this does
-not grant or generalize apply rights to production roots.
 
 ## Apply and merge semantics
 
