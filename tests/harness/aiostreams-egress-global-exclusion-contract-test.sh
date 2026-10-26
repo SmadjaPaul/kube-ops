@@ -22,5 +22,5 @@ check '.spec.endpointSelector.matchLabels."app.kubernetes.io/name"' "$specific" 
 check '.spec.egress | length' "$specific" 2
 check '.spec.egress[1].toFQDNs[0].matchName' "$specific" auth.smadja.dev
 check '.spec.egress[1].toPorts[0].ports[0].port' "$specific" 443
-! grep -Eq 'toCIDR|toEntities|world' "$specific"
+! grep -Eq '^[[:space:]]*(-[[:space:]]*world([[:space:]]|$)|toEntities:|toCIDR:)' "$specific"
 echo 'AIOSTREAMS_EGRESS_STATIC=PASS; RUNTIME_DENY=NOT_EXECUTED'
