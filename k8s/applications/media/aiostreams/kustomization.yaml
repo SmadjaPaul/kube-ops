@@ -4,6 +4,7 @@ namespace: media
 resources:
   - pvc.yaml
   - external-secret.yaml
+  - oidc-external-secret.dormant.yaml
   - deployment.yaml
   - service.yaml
   - http-route.yaml
