@@ -1,0 +1,26 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-aiostreams
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: aiostreams
+spec:
+  # Keep this outside the busy 02:00 Media burst so the node-agent can
+  # produce a completed PodVolumeBackup for the SQLite PVC.
+  schedule: "15 5 * * *"
+  template:
+    includedNamespaces:
+      - media
+    orLabelSelectors:
+      - matchLabels:
+          app.kubernetes.io/name: aiostreams
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h
