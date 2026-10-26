@@ -32,6 +32,25 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # The issuer resolves to Gateway/internal on the cluster DNS view.  Cilium
+    # Gateway hairpin traffic needs the VIP and the routed Authentik backend
+    # explicitly allowed; keep both destinations bounded and do not grant
+    # world:443.  This mirrors the already-qualified Matrix MAS workaround.
+    - toCIDRSet:
+        - cidr: 10.0.20.192/32
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: TCP
     # This application is active in the private media root. Keep external
     # egress closed until a follow-up admission change records the exact
     # addon, metadata, indexer and debrid FQDNs actually used.

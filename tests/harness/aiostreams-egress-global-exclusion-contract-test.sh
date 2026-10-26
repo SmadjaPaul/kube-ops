@@ -19,8 +19,14 @@ check '.spec.endpointSelector.matchExpressions[0].values | length' "$global" 1
 check '.spec.endpointSelector.matchExpressions[0].values[0]' "$global" aiostreams
 check '.spec.template.metadata.labels."app.kubernetes.io/name"' "$deployment" aiostreams
 check '.spec.endpointSelector.matchLabels."app.kubernetes.io/name"' "$specific" aiostreams
-check '.spec.egress | length' "$specific" 2
+check '.spec.egress | length' "$specific" 4
 check '.spec.egress[1].toFQDNs[0].matchName' "$specific" auth.smadja.dev
 check '.spec.egress[1].toPorts[0].ports[0].port' "$specific" 443
+check '.spec.egress[2].toCIDRSet[0].cidr' "$specific" 10.0.20.192/32
+check '.spec.egress[2].toPorts[0].ports[0].port' "$specific" 443
+check '.spec.egress[3].toEndpoints[0].matchLabels."k8s:io.kubernetes.pod.namespace"' "$specific" auth
+check '.spec.egress[3].toEndpoints[0].matchLabels."app.kubernetes.io/name"' "$specific" authentik
+check '.spec.egress[3].toEndpoints[0].matchLabels."app.kubernetes.io/component"' "$specific" server
+check '.spec.egress[3].toPorts[0].ports[0].port' "$specific" 9000
 ! grep -Eq '^[[:space:]]*(-[[:space:]]*world([[:space:]]|$)|toEntities:|toCIDR:)' "$specific"
 echo 'AIOSTREAMS_EGRESS_STATIC=PASS; RUNTIME_DENY=NOT_EXECUTED'
