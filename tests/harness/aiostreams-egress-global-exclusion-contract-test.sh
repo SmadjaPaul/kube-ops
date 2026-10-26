@@ -38,7 +38,8 @@ check '.spec.egress[4].toFQDNs[2].matchName' "$specific" v3-cinemeta.strem.io
 check '.spec.egress[4].toPorts[0].ports | length' "$specific" 1
 check '.spec.egress[4].toPorts[0].ports[0].port' "$specific" 443
 check '.spec.egress[4].toPorts[0].ports[0].protocol' "$specific" TCP
-! grep -Eq 'matchPattern:|world|0\.0\.0\.0/0' "$specific"
+# Match only active YAML fields, not explanatory comments containing "world:443".
+! grep -Eq '^[[:space:]]*(-[[:space:]]+world([[:space:]]|$)|toEntities:|matchPattern:|toCIDR:|toCIDRSet:[[:space:]]*\[[^]]*0\.0\.0\.0/0)' "$specific"
 
 ! grep -Eq '^[[:space:]]*(-[[:space:]]*world([[:space:]]|$)|toEntities:|toCIDR:)' "$specific"
 echo 'AIOSTREAMS_EGRESS_STATIC=PASS; RUNTIME_DENY=NOT_EXECUTED'
