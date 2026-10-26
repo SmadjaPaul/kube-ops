@@ -26,6 +26,12 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
+    - toFQDNs:
+        - matchName: auth.smadja.dev
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     # This application is deliberately STAGED and is not in the media root.
     # Keep external egress closed until a follow-up admission change records
     # the exact addon, metadata, indexer, debrid and OIDC FQDNs actually used.
