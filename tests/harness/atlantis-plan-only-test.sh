@@ -88,6 +88,8 @@ grep -q 'name: doppler-cluster' "$rendered"
 grep -q 'name: atlantis-github-repository-safety' "$rendered"
 grep -q 'github-repository-safety.rego:' "$rendered"
 grep -q 'github-atlantis-guard.sh:' "$rendered"
+grep -q 'fc66d3b6d8c59581cf3f771b33766d1ebcb042a3' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
+grep -q '79522bce630cad360a6ebe3bf6f1ebc965379cb9' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q 'scripts/architecture-check.sh' "$rendered"
 grep -q 'terraform/cloudflare/modules/access/README.md' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 if grep -Eq 'terraform/\*/modules/\*/README\.md|security-headers/variables\.tf' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh; then
