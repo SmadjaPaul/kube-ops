@@ -1,7 +1,7 @@
 # AIOStreams v2.37.0 — native video app (PRIVATE ROUTE)
 
-This admission adds the package to the Media root with an internal-only
-`Gateway/internal` route. It does not add a public Gateway parent, Cloudflare
+The Media root already deploys AIOStreams with an internal-only
+`Gateway/internal` route. There is no public Gateway parent, Cloudflare
 route, or blanket external egress.
 
 ## Non-negotiable architecture
@@ -47,16 +47,19 @@ route, or blanket external egress.
 
 ## Functional gates (after private deployment)
 
-1. Resolve image digest and validate exact image behaviour, licensing,
-   database SQLite storage and persistence (incl. backup/restore).
-2. Create only two secret values in Doppler without logging: cryptographic
-   AIOSTREAMS_SECRET_KEY and high-entropy OPERATOR_AUTH; ESO Ready.
-3. Render and run existing GitOps CI; single-pod ingress/egress tests.
+1. Keep the exact pinned OCI digest, non-root runtime and persistent SQLite
+   volume. Requalify on image upgrades.
+2. Check the **existing** three Doppler/ESO secret names (bootstrap key,
+   operator recovery auth and OIDC client secret) for Ready status; never
+   inspect or print values.
+3. Render GitOps, run contracts, and preserve scoped positive/negative
+   ingress/egress tests.
 4. Media root import and Authentik OIDC are already active on the internal route;
    admin login, issuer discovery and SQLite backup/restore were runtime-qualified.
    Keep public access gated separately. No manual kubectl apply.
-5. Native AIOStreams: first operator login; create first config through UI,
-   selected addon and TorBox credentials approved by vendor account policy.
+5. The operator has created a personal configuration and supplied TorBox in
+   the UI. This is **not** proof that a TorBox source resolves or plays. Use
+   the native browser app to qualify the actual catalog/stream path.
 6. Prove two independent profiles, no cross-user history leakage, TV login
    where supported, basic functionality before distributing any invite.
 7. Capture **redacted network proof**: actual playback URL hostname, TLS
@@ -91,9 +94,9 @@ route, or blanket external egress.
   A later admission PR must add Cilium `toFQDNs` from a reviewed matrix, not a
   guess: the upstream image has built-in metadata hosts such as
   `v3-cinemeta.strem.io` and `skyhook.sonarr.tv`, TorBox search uses
-  `search-api.torbox.app`, OIDC would use `auth.smadja.dev`, and user-selected
-  addons/indexers/debrid services add their own hostnames. The manifests in this
-  PR select none of those, so no external FQDN is currently authorized.
+  `search-api.torbox.app`, OIDC uses `auth.smadja.dev`, and user-selected
+  addons/indexers/debrid services add their own hostnames. The active media
+  policy still allows no external metadata/TorBox Search FQDN.
 - `FORCE_PROXY_ENABLED=false`, `DEFAULT_PROXY_ENABLED=false`, no proxy URL or
   proxy credentials are supplied, and `SHARES_FUSE_ENABLED=false`. This is a
   configuration guard, not proof of no video proxy: the exact upstream image
