@@ -15,7 +15,7 @@ bridge development is required as a production architecture choice.
 | Local playback | Jellyfin + media-share | Keep active |
 | Music automation | Lidarr; Jellyfin for playback | Keep; qualify Lidarr/downloader contract separately |
 | Music client | Eclipse | Optional client evaluation; no custom plugin/server |
-| Ebooks/comics/manga/audiobooks | BookOrbit | Remains staged; CNPG/S3/OIDC/restore and qBit adapter gates remain |
+| Ebooks/comics/manga/audiobooks | Former Audiobookshelf + AudiobookRequest; candidates Calibre-Web Automated, Kavita/Komga, Chaptarr | BookOrbit ADMISSION_PAUSED as of 2026-10-27; assess alternatives before any CNPG/S3 apply |
 | Retro games | RomM | Keep existing workload |
 | Video virtual FS | Riven, Zurg, CatBox model | No Kubernetes FUSE / privileged mount in this pilot |
 

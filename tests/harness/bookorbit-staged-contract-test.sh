@@ -35,5 +35,7 @@ if grep -Fq -- 'name: external' "$pkg/app.yaml"; then
 fi
 assert_contains 'name: internal' "$pkg/app.yaml"
 assert_contains 'OIDC' "$pkg/README.md"
+assert_contains 'ADMISSION_PAUSED' "$pkg/README.md"
+assert_contains 'new architecture decision' "$pkg/README.md"
 assert_contains 'setCategory' "$pkg/README.md"
 echo "BOOKORBIT_STAGED=PASS (STATIC_ONLY; NO RUNTIME PROOF)"
