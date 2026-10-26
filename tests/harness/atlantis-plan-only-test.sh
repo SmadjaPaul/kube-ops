@@ -72,8 +72,12 @@ grep -q 'Verify the selected state after Atlantis apply' "$rendered"
 grep -q '          - apply' "$rendered"
 grep -q 'init -input=false -reconfigure' "$rendered"
 grep -q 'CHECKOUT_ROOT="$(pwd -P)"' k8s/poc/atlantis-plan-only/values.yaml
-grep -q 'PROJECT_DIR="$CHECKOUT_ROOT/$REPO_REL_DIR"' k8s/poc/atlantis-plan-only/values.yaml
-grep -q 'PILOT_DIR="$CHECKOUT_ROOT/$REPO_REL_DIR"' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'PROJECT_DIR="$CHECKOUT_ROOT/terraform/github"' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'PILOT_DIR="$CHECKOUT_ROOT/terraform/atlantis-pilot"' k8s/poc/atlantis-plan-only/values.yaml
+if grep -q 'CHECKOUT_ROOT/\$REPO_REL_DIR' k8s/poc/atlantis-plan-only/values.yaml; then
+  echo "Atlantis post-workflow hooks must not depend on an unexported REPO_REL_DIR" >&2
+  exit 1
+fi
 if grep -q 'cd "$DIR/terraform/' k8s/poc/atlantis-plan-only/values.yaml; then
   echo "Atlantis post-apply hook must resolve from the actual checkout root" >&2
   exit 1

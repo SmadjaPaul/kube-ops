@@ -145,7 +145,7 @@ repoConfig: |
               test "$REPO_REL_DIR" = "terraform/github"
               TOFU=/atlantis-data/bin/tofu1.12.6
               test -x "$TOFU"
-              PROJECT_DIR="$CHECKOUT_ROOT/$REPO_REL_DIR"
+              PROJECT_DIR="$CHECKOUT_ROOT/terraform/github"
               test -f "$PROJECT_DIR/backend.tf"
               cd "$PROJECT_DIR"
               "$TOFU" init -input=false -reconfigure
@@ -158,7 +158,7 @@ repoConfig: |
             test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
             TOFU=/atlantis-data/bin/tofu1.13.1
             test -x "$TOFU"
-            PILOT_DIR="$CHECKOUT_ROOT/$REPO_REL_DIR"
+            PILOT_DIR="$CHECKOUT_ROOT/terraform/atlantis-pilot"
             test -f "$PILOT_DIR/backend.tf" || {
               echo "Atlantis pilot backend is not present at the expected checkout path" >&2
               echo failure > "$OUTPUT_STATUS_FILE"
