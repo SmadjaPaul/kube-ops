@@ -1,0 +1,150 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "grafana-tctl-2026-10-26-a3ee1966",
+  "producedAt": "2026-10-26T12:45:39Z",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "a3ee1966b71ec17c1517fe64780fe11ea0295d56",
+    "branch": "codex/restore-grafana-tctl"
+  },
+  "tests": [
+    {
+      "id": "grafana-dashboard-contract",
+      "name": "Grafana dashboard catalogue contract",
+      "command": "bash tests/harness/grafana-dashboard-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The curated catalogue contains 11 dashboards with stable UIDs, required folders and valid panel metadata.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "grafana dashboard contract: PASS (11 dashboards, stable UIDs, required folders and metadata)" }
+    },
+    {
+      "id": "git-diff-check",
+      "name": "Git whitespace and patch integrity",
+      "command": "git diff --check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The Grafana dashboard and documentation patch contains no whitespace errors.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "exit 0" }
+    },
+    {
+      "id": "grafana-tctl-contract",
+      "name": "Grafana Tctl panel non-regression contract",
+      "command": "bash tests/harness/grafana-tctl-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The exact k10temp selector is present in current, evolution and 24-hour maximum panels, and no fan RPM query is introduced.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "grafana Tctl contract: PASS (exact sensor, current/evolution/max panels, no fan RPM)" }
+    },
+    {
+      "id": "repository-check",
+      "name": "Repository deterministic checks",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The composite check reached the unrelated aiostreams staged contract and failed because its README assertion requires APP_AIOSTREAMS_OIDC_CLIENT_SECRET while the current README explicitly documents that the OIDC secret is not admitted. Grafana and all checks before that point passed.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "error: Recipe check failed on line 45; aiostreams-staged-contract-test.sh" }
+    },
+    {
+      "id": "aiostreams-baseline-contract",
+      "name": "Unrelated aiostreams staged contract",
+      "command": "bash tests/harness/aiostreams-staged-contract-test.sh",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The baseline contract exits at the README assertion for APP_AIOSTREAMS_OIDC_CLIENT_SECRET; no aiostreams files are changed by this PR.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "bash -x: grep -Fq APP_AIOSTREAMS_OIDC_CLIENT_SECRET k8s/applications/media/aiostreams/README.md" }
+    },
+    {
+      "id": "github-ci",
+      "name": "GitHub CI and review",
+      "command": "GitHub pull request checks",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "GitHub checks completed successfully for the final PR revision.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "github", "reference": "validate and Offline integrity and Docusaurus build succeeded for a3ee1966b71ec17c1517fe64780fe11ea0295d56" }
+    },
+    {
+      "id": "argo-reconciliation",
+      "name": "Post-merge Argo reconciliation and live Grafana proof",
+      "command": "just status-app infra-monitoring",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "The PR is intentionally not merged and no deployment or live desired-state change was authorized.",
+      "risk": "high",
+      "expectedCi": "expected",
+      "evidence": { "kind": "none" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 7,
+    "executed": 6,
+    "notExecuted": 1,
+    "passed": 4,
+    "failed": 2,
+    "unavailable": 2
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@a3ee1966b71ec17c1517fe64780fe11ea0295d56:grafana-tctl",
+    "payload": {
+      "resultId": "grafana-tctl-2026-10-26-a3ee1966",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "a3ee1966b71ec17c1517fe64780fe11ea0295d56",
+      "tests": [
+        {
+          "id": "grafana-dashboard-contract",
+          "name": "Grafana dashboard catalogue contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The curated catalogue contains 11 dashboards with stable UIDs, required folders and valid panel metadata.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "grafana-tctl-contract",
+          "name": "Grafana Tctl panel non-regression contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The exact Tctl selector and all three panels are protected.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "repository-check",
+          "name": "Repository deterministic checks",
+          "execution": "executed",
+          "status": "FAILED",
+          "classification": "failed",
+          "reason": "The composite check is blocked by an unrelated aiostreams README assertion.",
+          "risk": "medium",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 7, "executed": 6, "notExecuted": 1 }
+    }
+  }
+}

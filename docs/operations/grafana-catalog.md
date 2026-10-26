@@ -107,12 +107,14 @@ advanced diagnostic view, not another landing page.
 ## Evidence gaps kept visible
 
 The live Prometheus target `proxmox-host` is `up=1` and provides CPU modes,
-iowait, load, memory and physical disk counters. The current scrape returned no
-`node_hwmon_temp_celsius`, `node_hwmon_fan_rpm`, ZFS, native Longhorn, Velero or
-Kopia metric series. The dashboards therefore show this as an explicit coverage
-gap rather than displaying a fabricated zero. Adding thermal, SMART, ZFS or
-backup-object-store metrics belongs in the owning `homelab-infra` exporter or
-backup work, with its own security and cost review.
+iowait, load, memory, physical disk counters and `node_hwmon_temp_celsius`.
+The physical CPU temperature is the k10temp Tctl sensor selected by
+`chip="pci0000:00_0000:00:18_3",sensor="temp1"`; the Host & Hardware dashboard
+shows its current value, 24-hour maximum and evolution. The scrape still
+returns no `node_hwmon_fan_rpm`, ZFS, native Longhorn, Velero or Kopia metric
+series. Those remain explicit coverage gaps rather than fabricated zeros.
+Adding fan, SMART, ZFS or backup-object-store metrics belongs in the owning
+`homelab-infra` exporter or backup work, with its own security and cost review.
 
 Likewise, the live factory exporter provides the metrics used by Factory
 Operations, Factory Performance, dbt V2 Operations and Data Quality. It does
