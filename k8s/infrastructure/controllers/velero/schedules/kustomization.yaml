@@ -39,3 +39,4 @@ resources:
   - daily-atlantis.yaml
   - daily-factory-platform.yaml
   - daily-matrix.yaml
+  - daily-aiostreams.yaml
