@@ -8,7 +8,7 @@ grep -Fxq -- '- media-share-pvc.yaml' "$m"
 grep -Fxq -- '- decypharr' "$m"
 grep -Fxq -- '- aiostreams' "$m"
 grep -Fxq -- '- audiobookrequest' "$m"
-grep -Fxq -- '- daily-audiobookrequest.yaml' "$v"
+grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"
 script=scripts/media-retired-pvc-cleanup.sh
 bash -n "$script"
 grep -Fq 'ALLOW_EMPTY_MEDIA_PVC_DELETION' "$script"
