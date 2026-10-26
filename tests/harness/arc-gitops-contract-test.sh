@@ -150,14 +150,26 @@ assert_yq "$factory_gcp_credentials_policy | [.spec.egress[] | select(.toFQDNs[0
 factory_gcs_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-factory-gcs-egress")'
 assert_yq "$factory_gcs_policy | .metadata.namespace" 'arc-runners'
 assert_yq "$factory_gcs_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'factory-ci-arc'
+assert_yq "$factory_gcs_policy | .spec | has(\"enableDefaultDeny\")" 'false'
+assert_yq "$factory_gcs_policy | .spec.egress | length" '2'
+assert_yq "$factory_gcs_policy | [.spec.egress[] | select(has(\"toEndpoints\"))] | length" '1'
+assert_yq "$factory_gcs_policy | [.spec.egress[] | select(has(\"toFQDNs\"))] | length" '1'
 assert_yq "$factory_gcs_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
   'storage.googleapis.com'
 assert_yq "$factory_gcs_policy | [.spec.egress[]?.toFQDNs[]?.matchPattern] | length" '0'
 assert_yq "$factory_gcs_policy | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toCIDRSet[]?, .spec.egress[]?.toEntities[]?] | length" '0'
 assert_yq "$factory_gcs_policy | [.spec.egress[]?.toEndpoints[]?.matchLabels.\"k8s:io.kubernetes.pod.namespace\"] | unique | join(\",\")" \
   'kube-system'
+assert_yq "$factory_gcs_policy | .spec.egress[0].toEndpoints | length" '1'
+assert_yq "$factory_gcs_policy | .spec.egress[0].toEndpoints[0].matchLabels.\"k8s:k8s-app\"" 'kube-dns'
+assert_yq "$factory_gcs_policy | .spec.egress[0].toPorts | length" '1'
+assert_yq "$factory_gcs_policy | [.spec.egress[0].toPorts[0].ports[] | (.port + \"/\" + .protocol)] | sort | join(\",\")" \
+  '53/TCP,53/UDP'
 assert_yq "$factory_gcs_policy | [.spec.egress[]?.toPorts[]?.rules.dns[]?.matchName] | unique | join(\",\")" \
   'storage.googleapis.com'
+assert_yq "$factory_gcs_policy | .spec.egress[0].toPorts[0].rules.dns | length" '1'
+assert_yq "$factory_gcs_policy | .spec.egress[1].toFQDNs | length" '1'
+assert_yq "$factory_gcs_policy | .spec.egress[1].toPorts | length" '1'
 assert_yq "$factory_gcs_policy | [.spec.egress[] | select(.toFQDNs[0].matchName == \"storage.googleapis.com\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" \
   '443/TCP'
 
