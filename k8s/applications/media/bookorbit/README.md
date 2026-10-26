@@ -1,4 +1,27 @@
-# BookOrbit — staged application, NOT deployed by Media root
+# BookOrbit — ADMISSION_PAUSED; staged only, NOT deployed
+
+**Decision hold (2026-10-27, PLT-122):** Do not promote this candidate or
+provision BookOrbit-specific S3 credentials, CNPG databases, or secrets while
+the reading stack is reassessed. This is a reversible *pause*, not an
+authorization to delete the staged manifests or any persistent data.
+
+The maintainer has publicly acknowledged previously creating BookLore
+(https://www.reddit.com/r/selfhosted/comments/1w9h1b4/). Its governance history
+and upstream support are evaluation risks; allegations about software
+quality are not equivalent to a demonstrated vulnerability.
+
+Before resuming admission, compare the former Audiobookshelf +
+AudiobookRequest workflow (AudiobookRequest remains in the active Media root;
+Audiobookshelf was retired and would need a *new* deployment) with
+Calibre-Web Automated for ebooks, and Kavita/Komga for comics/manga.
+Chaptarr is an optional acquisition-manager candidate, *not* a reading UI.
+Choose based on actual user workflows, French-language metadata, OIDC,
+backups, maintainer continuity and a disposable fixture test. No new reader
+may be admitted by silently reusing BookOrbit secrets or existing PVCs.
+
+**Gate:** changing the Media root to include `bookorbit` requires an explicit
+new architecture decision and a separate reviewed admission PR. Retain all
+static safety contracts in the meantime.
 
 Updated staged candidate: **BookOrbit v3.5.0** (published 2026-10-20).
 The default Media root intentionally does not include `- bookorbit`.
