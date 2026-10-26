@@ -26,8 +26,10 @@ reclaim policy. No claim is deleted by the staging PR alone.
 3. Merge after independent review and reconcile through Argo CD.
 4. Confirm apps-media Synced/Healthy and that BOTH legacy StatefulSets,
    Services, routes, Pods and Velero Schedules no longer exist.
-5. Run the dry-run-only PVC cleanup script from the canonical operator access.
-6. Run its explicit guarded delete mode for these exact seven claims only.
+5. Preview with: bash scripts/media-retired-pvc-cleanup.sh
+   This checks canonical operator access, Argo/Velero prune and live Pod mounts.
+6. Delete ONLY after preview using:
+   ALLOW_EMPTY_MEDIA_PVC_DELETION=yes bash scripts/media-retired-pvc-cleanup.sh --execute
 7. Verify no Pod references a target claim; verify their deletion and check
    media-share remains Bound, with Jellyfin/Decypharr/Arr unaffected.
 8. Re-run runtime-smoke, backup-audit and orphan inventory and report findings.
