@@ -56,6 +56,14 @@ saved plan, runs the server-side verification hook, then may automerge only
 after all configured plans and applies succeed. An uncertain or failed hook
 must prevent merge.
 
+The server-side `Repo` schema in v0.48.1 has no `automerge` field; adding one
+crashes Atlantis during repository-config parsing. Automerge is controlled by
+the server flag and the repository's own Atlantis config, with an explicit
+repository declaration taking precedence. The pilot contract must therefore
+not invent a server-side `automerge` key; a qualification that must remain
+open needs a supported command-level `--auto-merge-disabled` control or a
+separately admitted repository-config change.
+
 References: [server-side repository configuration](https://www.runatlantis.io/docs/server-side-repo-config),
 [command requirements](https://www.runatlantis.io/docs/command-requirements),
 [policy checking](https://www.runatlantis.io/docs/policy-checking),

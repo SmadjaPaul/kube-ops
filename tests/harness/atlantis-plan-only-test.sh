@@ -71,6 +71,10 @@ grep -q 'atlantis-pilot-bounded-change' "$rendered"
 grep -q 'Verify the selected state after Atlantis apply' "$rendered"
 grep -q '          - apply' "$rendered"
 grep -q 'init -input=false -reconfigure' "$rendered"
+if grep -Eq '^      automerge:' k8s/poc/atlantis-plan-only/values.yaml; then
+  echo "Atlantis v0.48.1 server-side Repo does not support automerge" >&2
+  exit 1
+fi
 post_hook="$(sed -n '/^      post_workflow_hooks:/,/^      allowed_overrides:/p' k8s/poc/atlantis-plan-only/values.yaml | sed '/^[[:space:]]*#/d')"
 grep -q 'CHECKOUT_ROOT="\$DIR"' <<<"$post_hook"
 if grep -q 'REPO_REL_DIR' <<<"$post_hook"; then
