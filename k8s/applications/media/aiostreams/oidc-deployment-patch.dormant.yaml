@@ -1,4 +1,5 @@
-# DORMANT strategic-merge patch. Do NOT add to the active Kustomize root
+# Active strategic-merge patch. The legacy filename is retained to avoid an
+# unnecessary resource rename; this file is loaded by the active root.
 # before AIOSTREAMS bootstrap ESO, provider and both OIDC secrets are Ready.
 # Verify issuer via actual discovery; Authentik per-application issuer mode
 # gives https://auth.smadja.dev/application/o/aiostreams/ by default.
