@@ -51,8 +51,17 @@ spec:
         - ports:
             - port: "9000"
               protocol: TCP
-    # This application is active in the private media root. Keep external
-    # egress closed until a follow-up admission change records the exact
-    # addon, metadata, indexer and debrid FQDNs actually used.
-    # In particular, never replace this with world:443: AIOStreams accepts
-    # user-supplied addon URLs and contains a built-in media proxy route.
+    # PLT-121: minimal metadata + TorBox control-plane endpoints for the
+    # native AIOStreams web app. TorBox's public API base is api.torbox.app;
+    # TorBox Search is search-api.torbox.app. Cinemeta supplies a basic
+    # catalog fallback. This does not permit media bytes / CDN egress.
+    # Extra AIOMetadata/custom-addon hosts require a separate observed FQDN
+    # admission; do NOT add broad world:443 or a video proxy.
+    - toFQDNs:
+        - matchName: api.torbox.app
+        - matchName: search-api.torbox.app
+        - matchName: v3-cinemeta.strem.io
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
