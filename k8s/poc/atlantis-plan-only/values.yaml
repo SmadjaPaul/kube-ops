@@ -122,6 +122,8 @@ repoConfig: |
       # Plans are autonomous for this isolated pilot only. Keep the GitHub
       # mergeability and divergence gates. The exact apply workflow below is
       # separately bounded by the native Conftest policy and state verifier.
+      # Keep pilot PRs open while replay and merge-gate evidence is collected.
+      automerge: false
       plan_requirements: [mergeable, undiverged]
       apply_requirements: [mergeable, undiverged]
       import_requirements: [approved, mergeable, undiverged]
