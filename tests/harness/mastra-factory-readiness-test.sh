@@ -4,6 +4,12 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 manifest="$repo_root/k8s/applications/platform/mastra-factory/deployment.yaml"
+kustomization="$repo_root/k8s/applications/platform/mastra-factory/kustomization.yaml"
+
+if yq -e '.resources[] | select(. == "oidc-external-secret.dormant.yaml")' "$kustomization" >/dev/null 2>&1; then
+  printf 'ASSERTION_FAILED dormant Authentik OIDC ExternalSecret must not be active\n' >&2
+  exit 1
+fi
 
 path="$(yq -r '.spec.template.spec.containers[0].readinessProbe.httpGet.path // ""' "$manifest")"
 port="$(yq -r '.spec.template.spec.containers[0].readinessProbe.httpGet.port // ""' "$manifest")"
