@@ -6,7 +6,15 @@ metadata:
   labels:
     policy-type: media-audit
 spec:
-  endpointSelector: {}
+  # Match all legacy Media endpoints EXCEPT AIOStreams. Cilium allow rules
+  # are additive: this global policy otherwise bypasses the AIOStreams
+  # DNS + auth.smadja.dev:443 workload-specific allowlist.
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values:
+          - aiostreams
   description: "Allow media applications access"
   ingress:
   - fromEntities:
