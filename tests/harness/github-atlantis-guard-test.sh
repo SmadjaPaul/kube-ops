@@ -83,14 +83,17 @@ run_case() {
       printf '%s\n' '# operator command surface' >"$fixture/.justfile"
       printf '%s\n' '# Factory bootstrap' >"$fixture/terraform/google-cloud-build/README.md"
       printf '%s\n' 'resource "google_storage_bucket" "evidence" {}' >"$fixture/terraform/google-cloud-build/evidence-bucket.tf"
+      printf '%s\n' 'resource "google_service_account" "github" {}' >"$fixture/terraform/google-cloud-build/github-identity.tf"
+      printf '%s\n' 'import {}' >"$fixture/terraform/google-cloud-build/imports.tf"
       printf '%s\n' 'resource "google_project_service" "cloudbuild" {}' >"$fixture/terraform/google-cloud-build/main.tf"
+      printf '%s\n' 'variable "bootstrap" {}' >"$fixture/terraform/google-cloud-build/variables.tf"
       printf '%s\n' '{}' >"$fixture/tests/fixtures/google-cloud-build-bootstrap/valid.template.json"
       printf '%s\n' '# policy contract' >"$fixture/tests/google-cloud-build-bootstrap-policy.sh"
       ;;
     factory-neighbor-denied)
       mkdir -p "$fixture/terraform/google-cloud-build"
-      printf '%s\n' 'resource "google_storage_bucket" "unexpected" {}' >"$fixture/terraform/google-cloud-build/variables.tf"
-      change_path=terraform/google-cloud-build/variables.tf
+      printf '%s\n' 'resource "google_storage_bucket" "unexpected" {}' >"$fixture/terraform/google-cloud-build/unrelated.tf"
+      change_path=terraform/google-cloud-build/unrelated.tf
       ;;
     factory-nested-readme-denied)
       mkdir -p "$fixture/terraform/google-cloud-build/nested"
