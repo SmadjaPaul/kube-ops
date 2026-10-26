@@ -9,3 +9,5 @@ resources:
   - service.yaml
   - http-route.yaml
   - networkpolicy.yaml
+patchesStrategicMerge:
+  - oidc-deployment-patch.dormant.yaml
