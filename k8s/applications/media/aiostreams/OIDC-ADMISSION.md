@@ -28,8 +28,9 @@ private AIOStreams route; public exposure remains out of scope.
 - Active network policy permits DNS and scoped OIDC issuer access via
   `auth.smadja.dev`, internal Gateway VIP and Authentik backend. The issuer
   and private admin login were runtime-qualified; preserve the positive and
-  negative Cilium checks. Do NOT add `world:443`. Addons/TorBox still need
-  separately justified FQDN allow rules and direct-video E2E proof.
+  negative Cilium checks. Do NOT add `world:443`. The video PR proposes a
+  three-host TorBox/Cinemeta control-plane FQDN allowlist; it is NOT a
+  successful runtime test and does NOT authorize media/CDN proxying.
 - The private AIOStreams route is `Gateway/internal` only. Keep it so.
 
 ## Two-sided secret wiring
