@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "grafana-tctl-2026-10-26-deb48684",
+  "resultId": "grafana-tctl-2026-10-26-2e4b4c86",
   "producedAt": "2026-10-26T12:10:00Z",
   "actor": { "kind": "agent", "name": "codex" },
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "deb48684c6dbf618efc3d3b8ce64dd488270ff3a",
+    "revision": "2e4b4c86153ba6493e9a54f3362655d6dd17462b8",
     "branch": "codex/restore-grafana-tctl"
   },
   "tests": [
@@ -32,6 +32,18 @@
       "risk": "low",
       "expectedCi": "required",
       "evidence": { "kind": "command", "reference": "exit 0" }
+    },
+    {
+      "id": "grafana-tctl-contract",
+      "name": "Grafana Tctl panel non-regression contract",
+      "command": "bash tests/harness/grafana-tctl-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The exact k10temp selector is present in current, evolution and 24-hour maximum panels, and no fan RPM query is introduced.",
+      "risk": "low",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "grafana Tctl contract: PASS (exact sensor, current/evolution/max panels, no fan RPM)" }
     },
     {
       "id": "repository-check",
@@ -84,10 +96,10 @@
   ],
   "summary": {
     "outcome": "incomplete",
-    "total": 6,
-    "executed": 4,
+    "total": 7,
+    "executed": 5,
     "notExecuted": 2,
-    "passed": 2,
+    "passed": 3,
     "failed": 2,
     "unavailable": 2
   },
@@ -95,11 +107,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@deb48684c6dbf618efc3d3b8ce64dd488270ff3a:grafana-tctl",
+    "idempotencyKey": "SmadjaPaul/kube-ops@2e4b4c86153ba6493e9a54f3362655d6dd17462b8:grafana-tctl",
     "payload": {
-      "resultId": "grafana-tctl-2026-10-26-deb48684",
+      "resultId": "grafana-tctl-2026-10-26-2e4b4c86",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "deb48684c6dbf618efc3d3b8ce64dd488270ff3a",
+      "revision": "2e4b4c86153ba6493e9a54f3362655d6dd17462b8",
       "tests": [
         {
           "id": "grafana-dashboard-contract",
@@ -108,6 +120,16 @@
           "status": "PASSED",
           "classification": "passed",
           "reason": "The curated catalogue contains 11 dashboards with stable UIDs, required folders and valid panel metadata.",
+          "risk": "low",
+          "expectedCi": "required"
+        },
+        {
+          "id": "grafana-tctl-contract",
+          "name": "Grafana Tctl panel non-regression contract",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The exact Tctl selector and all three panels are protected.",
           "risk": "low",
           "expectedCi": "required"
         },
@@ -122,7 +144,7 @@
           "expectedCi": "required"
         }
       ],
-      "summary": { "outcome": "incomplete", "total": 6, "executed": 4, "notExecuted": 2 }
+      "summary": { "outcome": "incomplete", "total": 7, "executed": 5, "notExecuted": 2 }
     }
   }
 }
