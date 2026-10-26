@@ -18,7 +18,7 @@ check() {
   fail "network policy must be qualified with live TorBox CDN evidence before admission"
 check '.spec.replicas' "$pkg/deployment.yaml" '1'
 check '.spec.template.spec.automountServiceAccountToken' "$pkg/deployment.yaml" 'false'
-check '.spec.template.spec.containers[0].image' "$pkg/deployment.yaml" 'rogerfar/rdtclient:2.0.142'
+check '.spec.template.spec.containers[0].image' "$pkg/deployment.yaml" 'rogerfar/rdtclient:2.0.143'
 check '.spec.template.spec.containers[0].env[] | select(.name == "SKIP_CHOWN") | .value' "$pkg/deployment.yaml" 'true'
 check '.spec.template.spec.containers[0].env[] | select(.name == "PUID") | .value' "$pkg/deployment.yaml" '2501'
 check '.spec.template.spec.containers[0].env[] | select(.name == "PGID") | .value' "$pkg/deployment.yaml" '2501'

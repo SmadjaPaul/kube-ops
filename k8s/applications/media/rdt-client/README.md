@@ -11,7 +11,7 @@ This does not replace AIOStreams/Stremio's remote playback path.
 
 ## Contract
 
-- Official Docker Hub image: rogerfar/rdtclient:2.0.142. The reference is
+- Official Docker Hub image: rogerfar/rdtclient:2.0.143. The reference is
   intentionally tag-only in this dormant candidate. Admission MUST resolve
   and pin the immutable registry multiarch digest, scan both architectures
   and verify image compatibility before importing the root.

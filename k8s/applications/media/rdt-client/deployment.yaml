@@ -41,7 +41,7 @@ spec:
         - name: rdt-client
           # Official stable release (2026-10-26). PIN the registry-resolved
           # multi-arch digest and verify the image before active root admission.
-          image: rogerfar/rdtclient:2.0.142
+          image: rogerfar/rdtclient:2.0.143
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
