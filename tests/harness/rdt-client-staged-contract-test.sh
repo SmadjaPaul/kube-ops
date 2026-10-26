@@ -34,7 +34,7 @@ check '.spec.storageClassName' "$pkg/pvc.yaml" 'longhorn-fast'
 if grep -Eqi '(api[_-]?key|password|token):[[:space:]]*[^[:space:]]' "$pkg/deployment.yaml"; then
   fail "possible hardcoded credential"
 fi
-grep -Fq 'Pin the registry-resolved' "$pkg/README.md" ||
+grep -Fq 'pin the immutable registry multiarch digest' "$pkg/README.md" ||
   fail 'missing immutable image admission gate'
 grep -Fq 'media-access' "$pkg/README.md" ||
   fail 'missing Cilium bypass admission gate'
