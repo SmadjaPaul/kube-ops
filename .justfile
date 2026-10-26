@@ -25,6 +25,7 @@ check:
     npm run check
     bash tests/harness/jellyfin-oidc-contract-test.sh
     bash tests/harness/grafana-dashboard-contract-test.sh
+    bash tests/harness/grafana-tctl-contract-test.sh
     bash tests/harness/backup-audit-contract-test.sh
     bash tests/harness/dr-synth-cleanup-contract-test.sh
     bash tests/harness/atlantis-plan-only-test.sh
