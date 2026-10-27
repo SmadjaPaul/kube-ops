@@ -12,7 +12,7 @@ grep -Eq '^[[:space:]]*-[[:space:]]+polyfin[[:space:]]*$' k8s/applications/media
 }
 
 eq() {
-  got="$(yq -r "$1" "$2")"
+  got="$(yq -r "$1" "$2" | head -n 1)"
   [[ "$got" == "$3" ]] || { echo "POLYFIN_STATIC=FAIL $2 $1 got=$got want=$3" >&2; exit 1; }
 }
 eq '.spec.parentRefs | length' "$root/http-route.yaml" '1'
@@ -35,6 +35,15 @@ eq '.spec.plugins[0].parameters.barmanObjectName' "$root/cluster.yaml" polyfin-h
 eq '.spec.egress[1].toEndpoints[0].matchLabels."cnpg.io/cluster"' "$root/networkpolicy.yaml" polyfin-db
 eq '.spec.egress[2].toCIDRSet[0].cidr' "$root/networkpolicy.yaml" 10.0.20.192/32
 eq '.spec.egress[2].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" 443
+yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.endpointSelector.matchLabels."cnpg.io/cluster"' "$root/networkpolicy.yaml" | grep -Fx polyfin-db >/dev/null || {
+  echo 'POLYFIN_STATIC=FAIL CNPG ingress policy target mismatch' >&2; exit 1
+}
+yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[0].fromEndpoints[0].matchLabels."app.kubernetes.io/name"' "$root/networkpolicy.yaml" | grep -Fx polyfin >/dev/null || {
+  echo 'POLYFIN_STATIC=FAIL CNPG ingress source mismatch' >&2; exit 1
+}
+yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[0].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" | grep -Fx 5432 >/dev/null || {
+  echo 'POLYFIN_STATIC=FAIL CNPG ingress port mismatch' >&2; exit 1
+}
 eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3'
 [[ "$(jq -r '.image.repository + ":" + .image.tag + "@" + .image.digest' .github/polyfin/private-pilot-admission.json)" == "ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3" ]] || {
   echo 'POLYFIN_STATIC=FAIL admission digest mismatch' >&2; exit 1

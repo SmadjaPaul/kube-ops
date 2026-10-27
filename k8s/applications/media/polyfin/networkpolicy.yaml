@@ -62,3 +62,23 @@ spec:
               protocol: TCP
 # This allowlist deliberately blocks unknown IPTV, Eclipse and TorBox-CDN
 # traffic until Codex observes, scopes and validates the requested flows.
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polyfin-db-access
+  namespace: media
+spec:
+  description: "Allow only the Polyfin pilot to reach its CNPG primary on PostgreSQL."
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: polyfin-db
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: polyfin
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
