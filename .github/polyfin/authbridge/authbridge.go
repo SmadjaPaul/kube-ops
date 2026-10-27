@@ -81,10 +81,13 @@ func newAuthentikBridge(store bridgeStore, serverID, origin, checkURL, startURL,
  var raw map[string]string
  if json.Unmarshal([]byte(mapping), &raw) != nil || len(raw) == 0 { return nil, errors.New("explicit Authentik UID → Polyfin ID map required") }
  ids := make(map[string]accounts.ID, len(raw))
+ seenAccounts := make(map[accounts.ID]bool, len(raw))
  for uid, value := range raw {
   if uid == "" || strings.TrimSpace(uid) != uid { return nil, errors.New("empty/invalid Authentik UID in map") }
   id, err := accounts.ParseID(value)
   if err != nil { return nil, errors.New("invalid Polyfin account ID in mapping") }
+  if seenAccounts[id] { return nil, errors.New("two Authentik users cannot share one Polyfin account") }
+  seenAccounts[id] = true
   ids[uid] = id
  }
  return &authentikBridge{store: store, serverID: serverID, origin: origin, checkURL: checkURL,
