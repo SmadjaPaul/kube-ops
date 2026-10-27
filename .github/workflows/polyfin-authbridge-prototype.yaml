@@ -51,6 +51,7 @@ jobs:
           gofmt -w cmd/polyfin/authbridge.go cmd/polyfin/authbridge_test.go
           go test ./cmd/polyfin -run '^TestBridge' -count=1 -v
           go vet ./cmd/polyfin
+          node --check ../.github/polyfin/authbridge/web-login.js
 
       - name: No deployment or admission changes
         run: |
