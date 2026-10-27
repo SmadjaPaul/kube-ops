@@ -39,5 +39,6 @@ if not original.startswith("package main\n") and "package main" not in original[
     raise SystemExit("FAIL: unexpected Polyfin entrypoint")
 main.write_text(original.replace(before, after, 1).replace(ending_before, ending_after, 1))
 shutil.copyfile(ROOT / "authbridge.go", bridge)
+shutil.copyfile(ROOT / "authbridge_test.go", TARGET / "cmd/polyfin/authbridge_test.go")
 web.write_text(web_original + "\n\n" + frontend)
-print("PASS: one native-session backend file + one narrow main.go hook + one web button")
+print("PASS: native-session bridge, focused tests, narrow main.go hook and web login button")
