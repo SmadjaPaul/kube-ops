@@ -19,13 +19,27 @@ yq -e '
   ([.spec.template.spec.containers[] | select(.name == "factory") |
     .image | test("^ghcr\\.io/smadjapaul/mastra-factory@sha256:[0-9a-f]{64}$")] | all) and
   ([.spec.template.spec.containers[] | select(.name == "factory") |
-    .readinessProbe.httpGet.path == "/health"] | all)
+    .readinessProbe.httpGet.path == "/health"] | all) and
+  ([.spec.template.spec.containers[] | select(.name == "factory") |
+    .env[] | select(.name == "DATABASE_URL") |
+    (.valueFrom.secretKeyRef.name == "mastra-factory-postgresql-app" and
+     .valueFrom.secretKeyRef.key == "uri")] | all)
 ' "$deployment" >/dev/null
 yq -e '
   (.kind == "CiliumNetworkPolicy") and
   (.metadata.name == "mastra-factory") and
   (.metadata.namespace == "mastra-factory") and
-  (.spec.endpointSelector.matchLabels."app.kubernetes.io/name" == "mastra-factory")
+  (.spec.endpointSelector.matchLabels."app.kubernetes.io/name" == "mastra-factory") and
+  ([.spec.ingress[]?.toPorts[]?.ports[]? |
+    select(.port == "4111" and .protocol == "TCP")] | length > 0) and
+  ([.spec.egress[]? |
+    select(
+      ([.toEndpoints[]?.matchLabels? |
+        select(."k8s:io.kubernetes.pod.namespace" == "mastra-factory" and
+               ."cnpg.io/cluster" == "mastra-factory-postgresql")] | length > 0) and
+      ([.toPorts[]?.ports[]? |
+        select(.port == "5432" and .protocol == "TCP")] | length > 0)
+    )] | length > 0)
 ' "$network_policy" >/dev/null
 test -s "$policy"
 grep -Fq 'single' "$policy"
