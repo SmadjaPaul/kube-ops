@@ -10,6 +10,8 @@ yq -e '
   (.metadata.namespace == "mastra-factory") and
   (.spec.replicas == 1) and
   (.spec.strategy.type == "Recreate") and
+  (.metadata.annotations."factory-platform.dev/source-sha" |
+    test("^[0-9a-f]{40}$")) and
   (([.spec.template.spec.containers[] | select(.name == "factory")] | length) == 1) and
   ([.spec.template.spec.containers[] | select(.name == "factory") |
     .image | test("^ghcr\\.io/smadjapaul/mastra-factory@sha256:[0-9a-f]{64}$")] | all) and
