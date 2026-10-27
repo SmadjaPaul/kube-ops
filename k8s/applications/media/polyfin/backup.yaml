@@ -57,3 +57,19 @@ spec:
     name: barman-cloud.cloudnative-pg.io
     parameters:
       barmanObjectName: polyfin-hetzner-store
+---
+# One-shot evidence backup for the private pilot; the weekly schedule remains
+# the steady-state policy after this qualification completes.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: polyfin-postgresql-qualification-20261027
+  namespace: media
+spec:
+  cluster:
+    name: polyfin-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: polyfin-hetzner-store
