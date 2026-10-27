@@ -65,12 +65,12 @@ func newAuthentikBridge(store bridgeStore, serverID, origin, checkURL, startURL,
  }
  internal, err := url.Parse(checkURL)
  if err != nil || internal.Hostname() == "" || internal.Path != "/outpost.goauthentik.io/auth/nginx" || internal.RawQuery != "" ||
-  !(internal.Scheme == "https" || internal.Scheme == "http" && strings.HasSuffix(internal.Hostname(), ".svc.cluster.local")) {
+  !(internal.Scheme == "https" && internal.Hostname() == "auth.smadja.dev" || internal.Scheme == "http" && strings.HasSuffix(internal.Hostname(), ".svc.cluster.local")) {
   return nil, errors.New("Outpost check URL must have fixed nginx-auth path and a trusted HTTPS or cluster-service host")
  }
  start, err := url.Parse(startURL)
  if err != nil || start.Scheme != "https" || start.Host != "tv.smadja.dev" ||
-  start.Path != "/outpost.goauthentik.io/start" || !strings.HasPrefix(start.Query().Get("rd"), origin+bridgePrefix) {
+  start.Path != "/outpost.goauthentik.io/start" || start.Query().Get("rd") != origin+bridgePrefix {
   return nil, errors.New("start URL must use same-origin Authentik Outpost with a fixed return to Polyfin")
  }
  var raw map[string]string
