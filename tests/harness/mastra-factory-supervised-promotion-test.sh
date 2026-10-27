@@ -23,6 +23,10 @@ yq -e '
   ([.spec.template.spec.containers[] | select(.name == "factory") |
     .env[] | select(.name == "DATABASE_URL") |
     (.valueFrom.secretKeyRef.name == "mastra-factory-postgresql-app" and
+     .valueFrom.secretKeyRef.key == "uri")] | length == 1) and
+  ([.spec.template.spec.containers[] | select(.name == "factory") |
+    .env[] | select(.name == "DATABASE_URL") |
+    (.valueFrom.secretKeyRef.name == "mastra-factory-postgresql-app" and
      .valueFrom.secretKeyRef.key == "uri")] | all)
 ' "$deployment" >/dev/null
 yq -e '
@@ -30,6 +34,7 @@ yq -e '
   (.metadata.name == "mastra-factory") and
   (.metadata.namespace == "mastra-factory") and
   (.spec.endpointSelector.matchLabels."app.kubernetes.io/name" == "mastra-factory") and
+  ([.spec.ingress[]?.fromEntities[]?] | sort == ["host", "ingress", "remote-node"]) and
   ([.spec.ingress[]?.toPorts[]?.ports[]? |
     select(.port == "4111" and .protocol == "TCP")] | length > 0) and
   ([.spec.egress[]? |
