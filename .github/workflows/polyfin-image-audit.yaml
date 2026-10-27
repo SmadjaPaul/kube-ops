@@ -1,0 +1,92 @@
+name: Polyfin OCI vulnerability evidence
+
+on:
+  pull_request:
+    paths:
+      - 'k8s/applications/media/polyfin/deployment.yaml'
+      - '.github/workflows/polyfin-image-audit.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy:
+    name: Pinned upstream image / linux-amd64
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read pinned image from GitOps
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="$(sed -nE 's/^[[:space:]]*image:[[:space:]]*(ghcr\.io\/moodiness\/polyfin:[^[:space:]]+)$/\1/p' k8s/applications/media/polyfin/deployment.yaml)"
+          if [[ ! "$image" =~ ^ghcr\.io/moodiness/polyfin:[0-9]+\.[0-9]+\.[0-9]+@sha256:[a-f0-9]{64}$ ]]; then
+            echo 'Expected exactly one Polyfin image pinned to an immutable sha256 digest' >&2
+            exit 1
+          fi
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+      - name: Capture complete Trivy HIGH/CRITICAL findings (non-gating scan)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ steps.target.outputs.image }}
+          version: v0.76.1
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '0'
+          format: json
+          output: polyfin-trivy.json
+          timeout: 15m
+        env:
+          TRIVY_PLATFORM: linux/amd64
+
+      - name: Classify all findings by package and fixed version
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s polyfin-trivy.json
+          jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL") | [$target, .VulnerabilityID, .PkgName, .InstalledVersion, (.FixedVersion // "UNFIXED"), .Severity, (.Status // "UNKNOWN")] | @tsv' polyfin-trivy.json > polyfin-findings.tsv
+          count="$(wc -l < polyfin-findings.tsv | tr -d ' ')"
+          {
+            echo '## Polyfin OCI audit — NOT an admission approval'
+            echo 'Target: `linux/amd64`; scanner: Trivy v0.76.1; OS and application libraries, unfixed included.'
+            echo ''
+            echo "HIGH/CRITICAL findings: **$count**."
+            echo ''
+            echo 'Fields: target, CVE/GHSA, package, installed version, fixed version, severity, status.'
+            echo '~~~text'
+            cat polyfin-findings.tsv
+            echo '~~~'
+            echo ''
+            echo 'Provenance/SBOM signatures and runtime reachability are **not** verified by this job.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "POLYFIN_TRIVY_FINDINGS=$count"
+
+      - name: Upload exact Trivy evidence for investigation
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: polyfin-oci-trivy-amd64
+          path: |
+            polyfin-trivy.json
+            polyfin-findings.tsv
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce OCI vulnerability gate (after preserving evidence)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f polyfin-findings.tsv
+          count="$(wc -l < polyfin-findings.tsv | tr -d ' ')"
+          if (( count > 0 )); then
+            echo "::error::Polyfin OCI image has $count HIGH/CRITICAL findings; admission remains blocked"
+            exit 1
+          fi
