@@ -64,6 +64,9 @@ jobs:
       - name: Validate V1 desired state and backup coverage
         run: npm run check
 
+      - name: Validate Factory supervised promotion contract
+        run: bash tests/harness/mastra-factory-supervised-promotion-test.sh
+
       - name: Validate staged Configarr pilot
         run: |
           kustomize build k8s/applications/media/configarr > /tmp/configarr-rendered.yaml
