@@ -19,6 +19,12 @@ eq '.spec.parentRefs | length' "$root/http-route.yaml" '1'
 eq '.spec.parentRefs[0].name' "$root/http-route.yaml" internal
 eq '.spec.hostnames[0]' "$root/http-route.yaml" tv.smadja.dev
 eq '.spec.template.spec.automountServiceAccountToken' "$root/deployment.yaml" false
+# The existing Cilium egress permits only 10.0.20.192:443 for AIOStreams.
+# Bind this hostname inside Polyfin alone; do not use public Cloudflare AAAA.
+eq '.spec.template.spec.hostAliases | length' "$root/deployment.yaml" 1
+eq '.spec.template.spec.hostAliases[0].ip' "$root/deployment.yaml" 10.0.20.192
+eq '.spec.template.spec.hostAliases[0].hostnames | length' "$root/deployment.yaml" 1
+eq '.spec.template.spec.hostAliases[0].hostnames[0]' "$root/deployment.yaml" aiostreams.smadja.dev
 eq '.spec.template.spec.containers[0].readinessProbe.httpGet.path' "$root/deployment.yaml" /readyz
 eq '.spec.template.spec.containers[0].livenessProbe.httpGet.path' "$root/deployment.yaml" /healthz
 eq '.spec.template.spec.containers[0].resources.requests.memory' "$root/deployment.yaml" 512Mi
