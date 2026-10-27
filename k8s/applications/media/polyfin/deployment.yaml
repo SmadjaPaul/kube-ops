@@ -28,9 +28,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: polyfin
-          # STAGED ONLY: Codex must pin a verified release AND sha256 digest
-          # before admitting this Kustomization to apps-media.
-          image: ghcr.io/moodiness/polyfin:0.45.0
+          # Private pilot admission is bound to the signed downstream digest and expires 2026-11-26.
+          image: ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

@@ -1,7 +1,149 @@
-# Polyfin — family media pilot (dormant)
+# Polyfin — family media pilot (private LAN/VPN)
 
-Status: **STAGED / NOT DEPLOYED**. The parent media Kustomization does not
-reference this folder. Do not enable until all admission gates below pass.
+Status: **PRIVATE PILOT ADMITTED / PENDING ARGO RECONCILIATION**. The parent
+media Kustomization enables this folder only through the reviewed PR #781.
+There is no external HTTPRoute or Cloudflare Tunnel.
+
+The temporary risk acceptance is machine-checked by
+`.github/polyfin/private-pilot-admission.json` and
+`scripts/polyfin-admission-check.sh`. It is bound to the exact signed
+downstream digest, linux/amd64, the internal Gateway, and expires at
+`2026-11-26T23:59:59Z`. It accepts only the 17 CVEs in that file; a new CVE,
+digest, platform or perimeter change fails admission. `CVE-2026-6653` remains
+an individual CRITICAL entry and is not hidden from Trivy.
+
+Current admission result (2026-10-27): the signed downstream `0.50.0` candidate
+is pinned by immutable digest. A reproducible Trivy 0.76.1 scan of
+`linux/amd64` on workflow run
+[`40558560121`](https://github.com/SmadjaPaul/kube-ops/actions/runs/40558560121)
+reports **61 HIGH/CRITICAL affected-package occurrences, 23 distinct CVEs,
+including one CRITICAL**; six distinct CVEs have published fixes. The original
+operator scan reported six HIGH, apparently using a narrower or
+fixed-vulnerabilities-only filter: its exact command needs comparison.
+Do not confuse the number of package occurrences with distinct CVEs.
+The downstream Cosign signature, SBOM and provenance were independently
+verified. The whole Trivy JSON and TSV are attached as GitHub Actions artifact
+`polyfin-downstream-candidate-01dfcfa30e78aaf6f28115180d8c90fb61cfc334`.
+
+## Historical upstream vulnerability baseline — 2026-10-27
+
+Exact target:
+`ghcr.io/moodiness/polyfin:0.50.0@sha256:b544e75ae8f028214d6dd1ea7fd55094b75211c081a41d7c6afe0917637cc719`
+on `linux/amd64`; Trivy **v0.76.1**, Debian **13.7**, OS + library,
+`HIGH,CRITICAL`, `ignore-unfixed=false`. CI keeps an immutable workflow
+artifact for 14 days and **fails deliberately** when severe findings exist.
+The scanner and date matter; reruns against newer advisories may differ.
+
+| Group | Occurrences | Unique CVEs | Fixable unique CVEs |
+| --- | ---: | ---: | ---: |
+| Debian OS packages | 57 | 19 | 2 |
+| Go standard library in Polyfin binary | 4 | 4 | 4 |
+| **Total** | **61** | **23** | **6** |
+
+**First upstream patch candidate (not a signed or validated image):**
+- Rebuild Polyfin using patched Go **1.27.3** instead of upstream
+  `golang:1.27.1-alpine`: four vulnerabilities in `stdlib`
+  (`CVE-2026-111943`, `CVE-2026-78667`, `CVE-2026-78669`,
+  `CVE-2026-97031`). Pin the updated Go base image by digest.
+- Apply current Debian Trixie security updates in the *final runtime
+  stage* (not merely the build stage): fixes published for
+  `CVE-2026-103111` (`libpcre2-8-0`) and
+  `CVE-2026-84782` (`libssl3t64`, `openssl-provider-legacy`).
+- After patching: rebuild/publish with signed provenance, SBOM and
+  verified OCI digest; rescan the exact `linux/amd64` candidate.
+  Never assert that rebuilding from the same source automatically fixes
+  unfixed Debian packages or authenticates the publisher.
+
+The minimal downstream patch is recorded in
+`.github/polyfin/Dockerfile.v0.50.0.patch` and applies only to the exact
+upstream commit `e2cf9f08ac60400fdab20726671fa2e08fd09e1e`. The manual
+workflow `.github/workflows/polyfin-downstream-build.yaml` rebuilds that
+source for `linux/amd64`, emits an SPDX SBOM and BuildKit/GitHub provenance,
+signs and verifies the immutable digest with Cosign, then rescans it. It
+publishes evidence but fails closed while any HIGH/CRITICAL finding remains;
+it does not change the Polyfin deployment image.
+
+## Approved downstream candidate
+
+The approved private-pilot image is:
+
+`ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3`
+
+Its exact `linux/amd64` Trivy result is 54 HIGH/CRITICAL occurrences across
+17 residual CVEs after the six correctable CVEs were eliminated. The full
+candidate evidence is the GitHub Actions artifact
+`polyfin-downstream-candidate-01dfcfa30e78aaf6f28115180d8c90fb61cfc334` from
+workflow run 40564826453. Cosign identity, GitHub SLSA provenance and the
+SPDX SBOM are recorded in the PR evidence. The admission policy does not
+hide these findings; it only authorizes this exact digest until its expiry.
+
+**Other findings:** 17 remaining unique Debian CVEs have no fixed-version
+entry in the scanner, including Trivy **CRITICAL `CVE-2026-6653`**
+(`libxml2`, a malformed-XML denial-of-service scenario). Debian's
+Trixie tracker describes it as `no-dsa` / minor; that is *not* a
+proof of non-reachability in Polyfin, especially with XMLTV, image
+processing, subtitles and FFmpeg/Tesseract dependencies. Need concrete
+runtime linkage and reachable-input analysis before considering any
+limited internal-pilot risk acceptance. Never bypass Trivy silently,
+suppress whole package families, or relax all media/network gates.
+
+### Residual CVE reachability assessment
+
+This is a reachability review, not a waiver. The local downstream image was
+built for `linux/amd64`; `/polyfin` is a static Go binary, while FFmpeg and
+Tesseract are separate child processes. The container runs as UID 65532 with a
+readonly root filesystem and no extra capabilities.
+
+| CVE group | Component(s) | Evidence from the image/application | Disposition |
+| --- | --- | --- | --- |
+| `CVE-2025-69720` | ncurses / `libtinfo6` | `infocmp` is present but Polyfin does not invoke it; network input cannot reach that CLI directly. | Residual, no waiver |
+| `CVE-2026-16742` | systemd / `libsystemd0`, `libudev1` | No systemd init or `systemd-homed` service is started; Polyfin is nonroot. | Residual, no waiver |
+| `CVE-2026-54369` | `libacl1` | Loaded transitively by the optional Tesseract toolchain; no evidence that Polyfin reaches the vulnerable ACL pathname APIs. | Residual, runtime/vendor proof required |
+| `CVE-2026-6653`, `74860`, `86138`, `86139`, `86140`, `86142`, `86143`, `86144` | `libxml2` | Tesseract's native dependency tree loads `libxml2`; Polyfin's own XML decoding uses Go `encoding/xml`. XMLTV and subtitle inputs are potentially untrusted, but the vulnerable libxml2 call paths were not proven. | **CRITICAL/HIGH residual, blocks admission** |
+| `CVE-2026-76642`, `78408`, `78409`, `78410` | util-linux | `mount`/`nsenter` are present as base-image helpers but are not invoked by Polyfin; UID 65532 has no mount capability. | Residual, no waiver |
+| `CVE-2026-88806` | libX11 | Present through optional graphics dependencies; no X server is configured and baseline FFmpeg linkage does not load it. | Residual, optional GPU path proof required |
+| `CVE-2026-9538` | `perl-base` | Perl is present in the base image but is not an application entrypoint or child process. | Residual, no waiver |
+
+Debian records several of these as Trixie `no-dsa`/minor while fixing them in
+unstable, including [ncurses](https://security-tracker.debian.org/tracker/CVE-2025-69720),
+[util-linux](https://security-tracker.debian.org/tracker/CVE-2026-76642) and
+[libxml2](https://security-tracker.debian.org/tracker/CVE-2026-6653). That is a
+vendor prioritization, not evidence that the vulnerable code is unreachable in
+this application. No temporary exception is applied automatically.
+
+**Remaining gates:** verified source-to-image provenance; published
+image integrity/signature or signed and auditable downstream build;
+specific CVE remediation + justified treatment of any remaining
+findings; user authorizes any documented temporary risk acceptance;
+successful backup restore; actual runtime device/direct-play tests.
+Public route and Polyfin admission remain OFF.
+
+## Outstanding security evidence for v0.50.0
+
+- Preserve the **exact Trivy JSON** from the pinned OCI index and the
+  `linux/amd64` workload image; list all HIGH/CRITICAL IDs, component, installed
+  and fixed version, Debian/Go/FFmpeg origin, exploitability and reachability.
+  A count of 6 HIGH alone is not enough to choose a safe remediation.
+- Upstream `v0.50.0` uses `docker/build-push-action` with
+  `provenance: mode=max` and `sbom: true` in
+  `.github/workflows/ci.yml`, but has no Cosign signing step there.
+  BuildKit **unsigned** provenance and SBOM are useful to audit but are not
+  equivalent to a verified publisher signature. Confirm the OCI attestations
+  refer to the pinned digest and repository/commit; never claim Cosign PASS.
+- Prefer an upstream patched and signed release. If unavailable, consider a
+  separately reviewed, **reproducible minimal downstream image rebuild** from
+  the exact tagged source with patched dependencies, Trivy/SBOM/provenance,
+  user-controlled signing and a pinned immutable digest. It is an explicit
+  maintenance trade-off, NOT permission to turn off the admission gate.
+- This draft's CI does not run the security gate or prove runtime. Keep Argo
+  Polyfin admission OFF until the candidate image passes the approved policy.
+- `polyfin-db` now declares `spec.plugins` with `isWALArchiver: true`, bound to
+  `polyfin-hetzner-store`. Verify that the Barman CNPG-I operator exists in the
+  cluster and inspect WAL archival status, a successful backup AND a restore
+  before reporting backup operational.
+- The configured AIOStreams HTTPS manifest uses split DNS / internal Gateway
+  `10.0.20.192:443`; direct Pod-to-Pod access to `aiostreams:3000`
+  is not allowed by AIOStreams ingress. Test Cilium VIP hairpin at runtime.
 
 This is the upstream [Polyfin](https://github.com/moodiness/polyfin) Jellyfin
 API server. Existing AIOStreams (TorBox, Comet, Meteor, AIOMetadata, Cinemeta)

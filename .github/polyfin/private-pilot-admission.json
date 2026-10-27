@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "polyfin-private-pilot-admission/v1",
+  "approval": {
+    "type": "explicit-operator-risk-acceptance",
+    "scope": "Polyfin private LAN/VPN pilot only",
+    "expiresAt": "2026-11-26T23:59:59Z",
+    "revocation": "Revoke immediately when an upstream or Debian fix is available, the digest changes, the network perimeter changes, or a new unapproved finding appears."
+  },
+  "image": {
+    "repository": "ghcr.io/smadjapaul/polyfin-downstream",
+    "tag": "0.50.0-patched-01dfcfa30e78-run40564826453-attempt1",
+    "digest": "sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3",
+    "platform": "linux/amd64",
+    "upstreamTag": "v0.50.0",
+    "upstreamCommit": "e2cf9f08ac60400fdab20726671fa2e08fd09e1e",
+    "sbomSha256": "8707a88a2ab947635937559809a874c1fe99bd2758f19025e261f44dd0e822e8"
+  },
+  "perimeter": {
+    "hostname": "tv.smadja.dev",
+    "gateway": "internal",
+    "lanVpnOnly": true,
+    "cloudflarePublicRoute": false,
+    "networkPolicy": "k8s/applications/media/polyfin/networkpolicy.yaml",
+    "controls": [
+      "Internal Gateway only; no external HTTPRoute or Cloudflare Tunnel",
+      "Cilium egress allowlist only; no world:443",
+      "Non-root UID 65532, read-only root filesystem, no capabilities, no service-account token",
+      "IPTV, Eclipse and unknown media hosts remain disabled until separately qualified",
+      "The CRITICAL libxml2 finding remains separately identifiable and is not hidden"
+    ]
+  },
+  "mustBeAbsent": [
+    "CVE-2026-103111",
+    "CVE-2026-111943",
+    "CVE-2026-78667",
+    "CVE-2026-78669",
+    "CVE-2026-84782",
+    "CVE-2026-97031"
+  ],
+  "acceptedFindings": [
+    {
+      "id": "CVE-2025-69720",
+      "severity": "HIGH",
+      "packages": ["libtinfo6", "ncurses-base", "ncurses-bin"],
+      "installedVersions": ["6.5+20250216-2"],
+      "rationale": "The image contains ncurses helpers, but Polyfin does not invoke infocmp or another ncurses CLI from network-controlled input.",
+      "controls": ["Non-root process", "No shell or ncurses entrypoint exposed", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-16742",
+      "severity": "HIGH",
+      "packages": ["libsystemd0", "libudev1"],
+      "installedVersions": ["257.13-1~deb13u1"],
+      "rationale": "No systemd init, systemd-homed service or udev management path is started by the container.",
+      "controls": ["Non-root process", "No host PID/IPC/network namespace", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-54369",
+      "severity": "HIGH",
+      "packages": ["libacl1"],
+      "installedVersions": ["2.3.2-2+b1"],
+      "rationale": "libacl1 is transitively present in the optional native toolchain; no reachable Polyfin request path to vulnerable ACL pathname APIs was demonstrated.",
+      "controls": ["Non-root process", "Read-only root filesystem", "No arbitrary command execution path", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-6653",
+      "severity": "CRITICAL",
+      "packages": ["libxml2"],
+      "installedVersions": ["2.12.7+dfsg+really2.9.14-2.1+deb13u3"],
+      "rationale": "This is a separately accepted CRITICAL residual. Polyfin's own XML decoding uses Go encoding/xml; libxml2 is present through native dependencies, but vulnerable call-path reachability from XMLTV, subtitles or media processing is not proven.",
+      "controls": ["Private LAN/VPN only", "No public IPTV source admitted", "Cilium egress allowlist", "No world:443", "Separate review required before IPTV/XMLTV enablement"]
+    },
+    {
+      "id": "CVE-2026-74860",
+      "severity": "HIGH",
+      "packages": ["libxml2"],
+      "installedVersions": ["2.12.7+dfsg+really2.9.14-2.1+deb13u3"],
+      "rationale": "Same libxml2 native dependency path as the separately tracked CRITICAL finding; no reachable vulnerable call path was proven.",
+      "controls": ["Private LAN/VPN only", "Cilium egress allowlist", "No unqualified IPTV/XMLTV source"]
+    },
+    {
+      "id": "CVE-2026-86138",
+      "severity": "HIGH",
+      "packages": ["libxml2"],
+      "installedVersions": ["2.12.7+dfsg+really2.9.14-2.1+deb13u3"],
+      "rationale": "Same libxml2 native dependency path as the separately tracked CRITICAL finding; no reachable vulnerable call path was proven.",
+      "controls": ["Private LAN/VPN only", "Cilium egress allowlist", "No unqualified IPTV/XMLTV source"]
+    },
+    {
+      "id": "CVE-2026-86139",
+      "severity": "HIGH",
+      "packages": ["libxml2"],
+      "installedVersions": ["2.12.7+dfsg+really2.9.14-2.1+deb13u3"],
+      "rationale": "Same libxml2 native dependency path as the separately tracked CRITICAL finding; no reachable vulnerable call path was proven.",
+      "controls": ["Private LAN/VPN only", "Cilium egress allowlist", "No unqualified IPTV/XMLTV source"]
+    },
+    {
+      "id": "CVE-2026-86140",
+      "severity": "HIGH",
+      "packages": ["libxml2"],
+      "installedVersions": ["2.12.7+dfsg+really2.9.14-2.1+deb13u3"],
+      "rationale": "Same libxml2 native dependency path as the separately tracked CRITICAL finding; no reachable vulnerable call path was proven.",
+      "controls": ["Private LAN/VPN only", "Cilium egress allowlist", "No unqualified IPTV/XMLTV source"]
+    },
+    {
+      "id": "CVE-2026-86142",
+      "severity": "HIGH",
+      "packages": ["libxml2"],
+      "installedVersions": ["2.12.7+dfsg+really2.9.14-2.1+deb13u3"],
+      "rationale": "Same libxml2 native dependency path as the separately tracked CRITICAL finding; no reachable vulnerable call path was proven.",
+      "controls": ["Private LAN/VPN only", "Cilium egress allowlist", "No unqualified IPTV/XMLTV source"]
+    },
+    {
+      "id": "CVE-2026-86143",
+      "severity": "HIGH",
+      "packages": ["libxml2"],
+      "installedVersions": ["2.12.7+dfsg+really2.9.14-2.1+deb13u3"],
+      "rationale": "Same libxml2 native dependency path as the separately tracked CRITICAL finding; no reachable vulnerable call path was proven.",
+      "controls": ["Private LAN/VPN only", "Cilium egress allowlist", "No unqualified IPTV/XMLTV source"]
+    },
+    {
+      "id": "CVE-2026-86144",
+      "severity": "HIGH",
+      "packages": ["libxml2"],
+      "installedVersions": ["2.12.7+dfsg+really2.9.14-2.1+deb13u3"],
+      "rationale": "Same libxml2 native dependency path as the separately tracked CRITICAL finding; no reachable vulnerable call path was proven.",
+      "controls": ["Private LAN/VPN only", "Cilium egress allowlist", "No unqualified IPTV/XMLTV source"]
+    },
+    {
+      "id": "CVE-2026-76642",
+      "severity": "HIGH",
+      "packages": ["bsdutils", "libblkid1", "liblastlog2-2", "libmount1", "libsmartcols1", "libuuid1", "login", "mount", "util-linux"],
+      "installedVersions": ["2.41.5-0+deb13u1", "1:4.16.0-2+really2.41.5-0+deb13u1"],
+      "rationale": "The base image contains util-linux helpers, but Polyfin does not invoke mount, nsenter or login and the non-root pod has no mount capability.",
+      "controls": ["Non-root process", "All capabilities dropped", "No privileged namespace access", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-78408",
+      "severity": "HIGH",
+      "packages": ["bsdutils", "libblkid1", "liblastlog2-2", "libmount1", "libsmartcols1", "libuuid1", "login", "mount", "util-linux"],
+      "installedVersions": ["2.41.5-0+deb13u1", "1:4.16.0-2+really2.41.5-0+deb13u1"],
+      "rationale": "Same util-linux helper path as CVE-2026-76642; no application entrypoint reaches the affected tools.",
+      "controls": ["Non-root process", "All capabilities dropped", "No privileged namespace access", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-78409",
+      "severity": "HIGH",
+      "packages": ["bsdutils", "libblkid1", "liblastlog2-2", "libmount1", "libsmartcols1", "libuuid1", "login", "mount", "util-linux"],
+      "installedVersions": ["2.41.5-0+deb13u1", "1:4.16.0-2+really2.41.5-0+deb13u1"],
+      "rationale": "Same util-linux helper path as CVE-2026-76642; no application entrypoint reaches the affected tools.",
+      "controls": ["Non-root process", "All capabilities dropped", "No privileged namespace access", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-78410",
+      "severity": "HIGH",
+      "packages": ["bsdutils", "libblkid1", "liblastlog2-2", "libmount1", "libsmartcols1", "libuuid1", "login", "mount", "util-linux"],
+      "installedVersions": ["2.41.5-0+deb13u1", "1:4.16.0-2+really2.41.5-0+deb13u1"],
+      "rationale": "Same util-linux helper path as CVE-2026-76642; no application entrypoint reaches the affected tools.",
+      "controls": ["Non-root process", "All capabilities dropped", "No privileged namespace access", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-88806",
+      "severity": "HIGH",
+      "packages": ["libx11-6", "libx11-data", "libx11-xcb1"],
+      "installedVersions": ["2:1.8.12-1"],
+      "rationale": "The image contains optional graphics dependencies, but no X server is configured and baseline FFmpeg linkage does not load libX11 for the pilot path.",
+      "controls": ["No X server", "No display socket or host device mounted", "Cilium egress allowlist", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-9538",
+      "severity": "HIGH",
+      "packages": ["perl-base"],
+      "installedVersions": ["5.40.1-6+deb13u1"],
+      "rationale": "Perl is a base-image utility and is not an application entrypoint or Polyfin child process.",
+      "controls": ["Non-root process", "No shell or Perl entrypoint exposed", "Private LAN/VPN perimeter"]
+    }
+  ]
+}

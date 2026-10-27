@@ -11,6 +11,13 @@ spec:
     initdb:
       database: polyfin
       owner: polyfin
+  # Barman plugin activation is required: ObjectStore + ScheduledBackup alone
+  # do not enable WAL archiving or base backups on this Cluster.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: polyfin-hetzner-store
   storage:
     storageClass: longhorn-fast
     size: 5Gi

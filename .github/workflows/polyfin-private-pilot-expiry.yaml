@@ -1,0 +1,37 @@
+name: Polyfin private pilot admission expiry
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  expiry:
+    name: Check temporary CVE acceptance expiry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Fail after expiry and warn before review window
+        shell: bash
+        run: |
+          set -euo pipefail
+          policy=.github/polyfin/private-pilot-admission.json
+          expires="$(jq -er '.approval.expiresAt' "$policy")"
+          now="$(date -u +%s)"
+          expiry="$(date -u -d "$expires" +%s)"
+          remaining_days="$(( (expiry - now) / 86400 ))"
+          echo "POLYFIN_ADMISSION_EXPIRES_AT=$expires"
+          echo "POLYFIN_ADMISSION_REMAINING_DAYS=$remaining_days"
+          if (( now >= expiry )); then
+            echo '::error::Polyfin private pilot CVE acceptance is expired; remove the admission or renew it by reviewed change.'
+            exit 1
+          fi
+          if (( remaining_days <= 7 )); then
+            echo "::warning::Polyfin private pilot CVE acceptance expires in $remaining_days day(s); review upstream fixes and revoke or renew explicitly."
+          fi
