@@ -10,5 +10,6 @@ resources:
   - service.yaml
   - http-route.yaml
   - networkpolicy.yaml
+  - restore-qualification.yaml
 # Activation remains separate from ../kustomization.yaml until the upstream
 # image security gate and runtime admission checks pass.

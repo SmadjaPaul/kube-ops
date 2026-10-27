@@ -1,0 +1,68 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: polyfin-db-restore-20261027
+  namespace: media
+  labels:
+    backup.smadja.dev/qualification: polyfin-cnpg-restore
+    backup.smadja.dev/source-backup-id: "20261027T213232"
+spec:
+  instances: 1
+  bootstrap:
+    recovery:
+      source: polyfin-db-source
+      recoveryTarget:
+        backupID: "20261027T213232"
+  externalClusters:
+    - name: polyfin-db-source
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: polyfin-hetzner-store
+          serverName: polyfin-db
+  storage:
+    storageClass: longhorn-fast
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polyfin-db-restore-qualification
+  namespace: media
+spec:
+  description: "Isolate the disposable CNPG restore and permit only operator health checks, DNS and the pinned backup endpoint."
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: polyfin-db-restore-20261027
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+            app.kubernetes.io/name: cloudnative-pg
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: fsn1.your-objectstorage.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
