@@ -51,6 +51,24 @@ but does **not** own Factory accounts. The previously staged Factory-specific
 OIDC blueprint has been removed because it was dormant and not selected.
 No active Authentik blueprint or secret is modified.
 
+## Release qualification: supervised V1
+
+For application-only image revisions, the required release path is now
+**static/CI + supply-chain evidence + supervised GitOps promotion +
+post-deployment checks**, not a mandatory full isolated Better Auth/CNPG
+clone. An isolated smoke that cannot boot without production secrets is
+not a PASS; record the missing proof and use the bounded supervised
+promotion gate when its risk classification permits.
+
+The policy, required exclusions (DB/auth/lifecycle/destructive changes),
+single-dispatcher guarantee, operator checkpoints, observed health,
+and GitOps rollback procedure are in
+`docs/operations/mastra-factory-supervised-promotion-v1.md`.
+
+This policy does **not** make rollback automatic, does not grant an
+exception to CI/review, and does not authorize a parallel Factory.
+The first rollout using it requires active operator supervision.
+
 ## Deployment / rollback
 
 Keep all image changes pinned to an immutable GHCR digest, through a targeted
