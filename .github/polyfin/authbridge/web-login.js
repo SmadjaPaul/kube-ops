@@ -3,7 +3,18 @@
 // issuance always happen on the Polyfin backend.
 ;(() => {
   const id = 'polyfin-authentik-login';
+  let available = false;
+  // Only display SSO when the bridge endpoint is really active.
+  // On the stock upstream image it does not exist (404).
+  fetch('/polyfin-sso/status', { credentials: 'same-origin', cache: 'no-store' })
+    .then((response) => {
+      available = response.status === 204;
+      if (available) show();
+    })
+    .catch(() => {});
+
   function show() {
+    if (!available) return;
     // jellyfin-web is a SPA. Restrict the button to a password login form,
     // not arbitrary password fields on settings/account pages.
     if (!/^#\/(?:login|signin)(?:\?|\/|$)/i.test(location.hash)) return;
