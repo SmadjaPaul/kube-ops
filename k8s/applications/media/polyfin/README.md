@@ -150,6 +150,45 @@ API server. Existing AIOStreams (TorBox, Comet, Meteor, AIOMetadata, Cinemeta)
 and Jellyfin (local music) stay running unchanged. Polyfin adds individual
 viewer accounts, invitations, playlists/history, Live TV and Eclipse sources.
 
+## AIOStreams endpoint: scoped DNS correction (27 October 2026)
+
+The existing Polyfin egress policy permits exactly `10.0.20.192:443`
+for HTTPS access to the AIOStreams manifest. The configured manifest uses
+`https://aiostreams.smadja.dev/…/manifest.json`, but public Cloudflare
+AAAA DNS answers can cause a Pod to select an unreachable external IPv6
+address instead of the internal Cilium Gateway.
+
+The Deployment now sets a **Pod-scoped Kubernetes `hostAliases` entry**:
+`aiostreams.smadja.dev → 10.0.20.192`. This does not affect other Pods
+or public DNS; TLS continues to validate the original hostname/SNI.
+No new egress or public route is added. The trade-off is an explicit
+coupling to the cluster's internal Gateway VIP: keep this entry synchronized
+if the VIP changes, and prefer a proven centralized split-DNS design if the
+same issue arises repeatedly across workloads.
+
+**Runtime acceptance (NOT EXECUTED by this GitOps patch):**
+1. Confirm the internal AIOStreams HTTPRoute is `Accepted=True` and
+   presents the expected TLS certificate on `10.0.20.192:443`.
+2. After reconciliation, verify Polyfin Pod `/etc/hosts` maps the exact
+   hostname to the Gateway VIP; don't print the configured manifest path.
+3. Fetch the **already-configured** AIOStreams manifest from inside the
+   Polyfin network namespace with the existing confidential URL. Assert
+   HTTP 200, `Content-Type: application/json`, and JSON manifest fields
+   `id/name/version/resources`, without exposing its UUID/token.
+4. Confirm Hubble shows allowed traffic only to `10.0.20.192:443` and
+   no Cloudflare IPv6. Ensure the AIOStreams Pod sees the normal Gateway
+   ingress, without expanding ingress rules.
+5. Reuse the server-wide AIOStreams source in Polyfin; test one public
+   metadata catalog and a title's stream descriptors. Direct CDN playback
+   still requires separate client-side evidence, not a server-side relay.
+6. If Cloudflare still appears, inspect the exact resolver and HTTP client
+   behavior rather than adding `world:443`. Restore the previous
+   Deployment if this workaround fails.
+7. AIOMetadata `invalid_manifest` is a distinct case: inspect the
+   **sanitized response** of its real `/manifest.json` for required
+   fields. Never invent an API URL, replace the upstream addon with a
+   fake manifest, or leak query/path authentication data.
+
 ## Intended topology
 
 - `tv.smadja.dev` routes to Polyfin on port 8096 through the **internal**
