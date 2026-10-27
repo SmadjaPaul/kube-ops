@@ -51,6 +51,11 @@ func withAuthentikBridge(next http.Handler, store *accounts.Store, serverID stri
   os.Getenv("POLYFIN_AUTHBRIDGE_IDENTITIES"))
  if err != nil { panic("Polyfin Authentik bridge configuration invalid: " + err.Error()) }
  mux := http.NewServeMux()
+ mux.HandleFunc("GET /polyfin-sso/status", func(w http.ResponseWriter, r *http.Request) {
+  bridgeHeaders(w)
+  if r.Host != "tv.smadja.dev" { http.NotFound(w,r); return }
+  w.WriteHeader(http.StatusNoContent)
+ })
  mux.Handle("GET "+bridgePrefix, http.HandlerFunc(b.page))
  mux.Handle("POST "+bridgePrefix, http.HandlerFunc(b.exchange))
  mux.Handle("/", next)
