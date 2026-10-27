@@ -6,7 +6,7 @@ metadata:
   labels:
     policy-type: media-audit
 spec:
-  # Exclude AIOStreams and dormant RDT-Client from the broad legacy policy.
+  # Exclude AIOStreams, Polyfin and dormant RDT-Client from the broad legacy policy.
   # Cilium allow policies are additive: a narrower workload-specific policy
   # cannot undo broad world:443/563 grants from this policy.
   # Keep RDT excluded before its eventual admission (currently staged only).
@@ -17,6 +17,7 @@ spec:
         values:
           - aiostreams
           - rdt-client
+          - polyfin
   description: "Allow media applications access"
   ingress:
   - fromEntities:

@@ -1,0 +1,24 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: polyfin-db
+  namespace: media
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  instances: 1
+  bootstrap:
+    initdb:
+      database: polyfin
+      owner: polyfin
+  storage:
+    storageClass: longhorn-fast
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+# CNPG auto-generates polyfin-db-app (uri key).
+# Confirm S3 backup/restore before activating this pilot.

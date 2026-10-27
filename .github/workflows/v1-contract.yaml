@@ -73,6 +73,12 @@ jobs:
           kubeconform -summary -ignore-missing-schemas /tmp/configarr-rendered.yaml
           bash tests/harness/configarr-gitops-contract-test.sh
 
+      - name: Validate dormant Polyfin private pilot
+        run: |
+          kustomize build k8s/applications/media/polyfin > /tmp/polyfin-rendered.yaml
+          kubeconform -summary -ignore-missing-schemas /tmp/polyfin-rendered.yaml
+          bash tests/harness/polyfin-private-pilot-contract-test.sh
+
       - name: Validate Arr Authentik proxy first-run contract
         run: bash tests/harness/arr-authentik-proxy-contract-test.sh
 

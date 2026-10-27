@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: polyfin
+  namespace: media
+  labels:
+    app.kubernetes.io/name: polyfin
+spec:
+  selector:
+    app.kubernetes.io/name: polyfin
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
