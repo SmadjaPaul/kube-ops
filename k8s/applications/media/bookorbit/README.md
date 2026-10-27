@@ -27,6 +27,23 @@ may be admitted by silently reusing BookOrbit secrets or existing PVCs.
 new architecture decision and a separate reviewed admission PR. Retain all
 static safety contracts in the meantime.
 
+> **PLT-122 — ON HOLD (2026-10-27): maintainer trust/governance review.**
+> BookOrbit was **never imported into the active Media root**. Do not create
+> BookOrbit credentials, dedicated S3 identity, CNPG cluster or runtime resources,
+> and do not begin an admission PR while the application choice is under review.
+> This is a pause, **not** permission to delete staging, shared data or any PVC.
+> A future selection requires an explicit go decision and an independent supply-
+> chain/maintainer-risk review. The video AIOStreams work (PLT-121) is independent.
+>
+> Context: The BookOrbit maintainer publicly confirmed having maintained
+> BookLore; its temporary repository deletion in March 2026 caused concern
+> about continuity. Do not conflate project governance risk with a demonstrated
+> malware issue. References:
+> https://www.reddit.com/r/selfhosted/comments/1w9h1b4/bookorbit_v290_automated_book_requests_from/
+> https://www.reddit.com/r/selfhosted/comments/1rvmpnv/booklore_is_gone/
+> https://selfh.st/weekly/2026-09-18/
+
+
 Updated staged candidate: **BookOrbit v3.5.0** (published 2026-10-20).
 The default Media root intentionally does not include `- bookorbit`.
 A dedicated admission PR, image digest and runtime tests are mandatory.
