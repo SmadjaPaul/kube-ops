@@ -96,7 +96,8 @@ route, or blanket external egress.
   current matrix covers `api.torbox.app`, `search-api.torbox.app`,
   `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`, `remuxdb.1632022.xyz`,
   `comet.feels.legal`, `meteorfortheweebs.midnightignite.me`,
-  `stremthru.13377001.xyz` and `opensubtitles.stremio.homes`; additional
+  `stremthru.13377001.xyz`, `opensubtitles.stremio.homes` and the selected
+  public AIOMetadata instance at `aiometadata.streetle.dev`; additional
   user-selected addons/indexers/debrid services require separately reviewed
   FQDN admission.
 - `FORCE_PROXY_ENABLED=false`, `DEFAULT_PROXY_ENABLED=false`, no proxy URL or
@@ -175,8 +176,9 @@ Cilium/Hubble positive and negative flows after GitOps reconciliation.
   the reviewed control-plane hosts over HTTPS: `api.torbox.app`,
   `search-api.torbox.app`, `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`,
   `remuxdb.1632022.xyz`, `comet.feels.legal`,
-  `meteorfortheweebs.midnightignite.me`, `stremthru.13377001.xyz` and
-  `opensubtitles.stremio.homes`. These are control-plane dependencies only;
+  `meteorfortheweebs.midnightignite.me`, `stremthru.13377001.xyz`,
+  `opensubtitles.stremio.homes` and `aiometadata.streetle.dev`. These are
+  control-plane dependencies only;
   no CDN/media egress is granted to the Pod.
 - Upstream v2.37.0 has these baseline outbound dependencies when its default
   metadata and mapping features run: `v3.sg.media-imdb.com`,
