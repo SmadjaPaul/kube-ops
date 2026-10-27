@@ -51,13 +51,13 @@ data:
                 - name: canary-daily-tokens
                   limit:
                     unit: Tokens
-                    # Factory canary ceiling: 5M tokens per rolling 24h.
-                    # This is an explicitly approved, bounded pilot ceiling;
-                    # keep enforcement fail-closed and review actual usage
-                    # before admitting another run.
+                    # Transitional candidate only: 1B tokens per rolling 24h.
+                    # This is not an approval to activate or to incur PAYG
+                    # charges; merge/Argo promotion stays separately gated
+                    # until the subscription-key identity is proven.
                     # Keep enforcement fail-closed; per-request usage is
                     # emitted through Agentgateway GenAI/OTel telemetry.
-                    amount: 5000000
+                    amount: 1000000000
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
@@ -124,7 +124,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: gpt-researcher-routing-v1
+        checksum/agentgateway-runtime: minimax-budget-candidate-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
