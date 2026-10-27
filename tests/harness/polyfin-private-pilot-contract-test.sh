@@ -21,6 +21,8 @@ eq '.spec.hostnames[0]' "$root/http-route.yaml" tv.smadja.dev
 eq '.spec.template.spec.automountServiceAccountToken' "$root/deployment.yaml" false
 eq '.spec.template.spec.containers[0].readinessProbe.httpGet.path' "$root/deployment.yaml" /readyz
 eq '.spec.template.spec.containers[0].livenessProbe.httpGet.path' "$root/deployment.yaml" /healthz
+eq '.spec.template.spec.containers[0].resources.requests.memory' "$root/deployment.yaml" 512Mi
+eq '.spec.template.spec.containers[0].resources.limits.memory' "$root/deployment.yaml" 2Gi
 eq '.spec.endpointSelector.matchLabels."app.kubernetes.io/name"' "$root/networkpolicy.yaml" polyfin
 eq '.spec.egress | length' "$root/networkpolicy.yaml" 4
 eq '.spec.endpointSelector.matchExpressions[0].values | length' "$global" 3
