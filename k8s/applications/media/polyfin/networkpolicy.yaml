@@ -1,0 +1,62 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polyfin-pilot
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: polyfin
+  description: "Private pilot, scoped control traffic only"
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            cnpg.io/cluster: polyfin-db
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: aiostreams
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: aiometadata.streetle.dev
+        - matchName: v3-cinemeta.strem.io
+        - matchName: api.torbox.app
+        - matchName: search-api.torbox.app
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+# This allowlist deliberately blocks unknown IPTV, Eclipse and TorBox-CDN
+# traffic until Codex observes, scopes and validates the requested flows.
