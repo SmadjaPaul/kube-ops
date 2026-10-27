@@ -32,6 +32,7 @@ eq '.spec.plugins | length' "$root/cluster.yaml" 1
 eq '.spec.plugins[0].name' "$root/cluster.yaml" barman-cloud.cloudnative-pg.io
 eq '.spec.plugins[0].isWALArchiver' "$root/cluster.yaml" true
 eq '.spec.plugins[0].parameters.barmanObjectName' "$root/cluster.yaml" polyfin-hetzner-store
+eq '.spec.egress[1].toEndpoints[0].matchLabels."k8s:cnpg.io/cluster"' "$root/networkpolicy.yaml" polyfin-db
 eq '.spec.egress[2].toCIDRSet[0].cidr' "$root/networkpolicy.yaml" 10.0.20.192/32
 eq '.spec.egress[2].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" 443
 eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3'
