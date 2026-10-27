@@ -23,16 +23,16 @@ read, so the Subscription Key class and billing boundary are **not proven**.
 MiniMax's Subscription Key and standard API key are distinct credentials;
 therefore route isolation alone cannot authorize removal of billing risk.
 
-## Transitional candidate
+## Runtime boundary
 
-The GitOps candidate raises only the `factory-canary` token ceiling to
-`1,000,000,000` over `rolling: 24h`. It is a temporary fail-closed ceiling,
-not a provider quota translation, not a pay-as-you-go authorization, and not
-active until this PR is explicitly approved, merged, reconciled by Argo, and
-the subscription identity has been verified by the operator.
+This PR does not change the `factory-canary` Agentgateway ceiling. The
+existing fail-closed `5,000,000` tokens / rolling `24h` budget remains in the
+desired state until a separate operator-approved change proves the credential
+billing boundary. A high ceiling must not be used as a substitute for that
+proof.
 
-No Secret, database, provider quota, PLT-124 state, or PLT-100 intake is
-changed by preparing this PR. No LLM call or OCI build is part of
+No Secret, database, provider quota, PLT-124 state, PLT-100 intake, or active
+Agentgateway budget is changed by this PR. No LLM call or OCI build is part of
 qualification.
 
 ## Activation gates
@@ -48,7 +48,7 @@ agentgateway/agentgateway-runtime:MINIMAX_API_KEY
   <- Doppler cluster/prd:APP_MINIMAX_TOKEN_PLAN_API_KEY
 ```
 
-Until those gates pass, this PR remains a draft and no Argo promotion is
+Until those gates pass, no runtime budget change or Argo promotion is
 authorized. MiniMax 5-hour and weekly windows remain provider-owned; they are
 not reconstructed from Agentgateway counters or percentages.
 
@@ -60,6 +60,6 @@ reviewed as one atomic GitOps change. Rollback is a Git revert followed by the
 normal Argo reconciliation; it does not modify credentials, provider state, or
 database state.
 
-The candidate has no approval to resume PLT-124, activate PLT-100, dispatch a
+This PR has no approval to resume PLT-124, activate PLT-100, dispatch a
 Factory run, or start a build. After an explicit promotion GO, the next
 Factory priority remains the single-concurrency Linear → Mastra → PR pilot.

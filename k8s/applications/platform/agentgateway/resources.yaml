@@ -51,13 +51,12 @@ data:
                 - name: canary-daily-tokens
                   limit:
                     unit: Tokens
-                    # Transitional candidate only: 1B tokens per rolling 24h.
-                    # This is not an approval to activate or to incur PAYG
-                    # charges; merge/Argo promotion stays separately gated
-                    # until the subscription-key identity is proven.
+                    # Existing fail-closed factory canary ceiling: 5M tokens
+                    # per rolling 24h. Any change requires separate operator
+                    # approval after the credential billing boundary is proven.
                     # Keep enforcement fail-closed; per-request usage is
                     # emitted through Agentgateway GenAI/OTel telemetry.
-                    amount: 1000000000
+                    amount: 5000000
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
@@ -124,7 +123,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: minimax-budget-candidate-v1
+        checksum/agentgateway-runtime: gpt-researcher-routing-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
