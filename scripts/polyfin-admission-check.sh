@@ -30,13 +30,15 @@ to_epoch() {
 }
 
 repository="$(jq -er '.image.repository' "$policy")"
+tag="$(jq -er '.image.tag' "$policy")"
 digest="$(jq -er '.image.digest' "$policy")"
 platform="$(jq -er '.image.platform' "$policy")"
 expires="$(jq -er '.approval.expiresAt' "$policy")"
 
 [[ "$platform" == "linux/amd64" ]] || { echo "POLYFIN_ADMISSION=FAIL platform=$platform" >&2; exit 1; }
-[[ "$image" == "$repository@$digest" ]] || {
-  echo "POLYFIN_ADMISSION=FAIL image=$image expected=$repository@$digest" >&2
+expected_image="$repository:$tag@$digest"
+[[ "$image" == "$expected_image" ]] || {
+  echo "POLYFIN_ADMISSION=FAIL image=$image expected=$expected_image" >&2
   exit 1
 }
 

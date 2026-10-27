@@ -8,6 +8,7 @@
   },
   "image": {
     "repository": "ghcr.io/smadjapaul/polyfin-downstream",
+    "tag": "0.50.0-patched-01dfcfa30e78-run40564826453-attempt1",
     "digest": "sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3",
     "platform": "linux/amd64",
     "upstreamTag": "v0.50.0",

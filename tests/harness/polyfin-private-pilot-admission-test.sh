@@ -3,7 +3,7 @@ set -euo pipefail
 
 policy=.github/polyfin/private-pilot-admission.json
 checker=scripts/polyfin-admission-check.sh
-image="$(jq -er '.image.repository + "@" + .image.digest' "$policy")"
+image="$(jq -er '.image.repository + ":" + .image.tag + "@" + .image.digest' "$policy")"
 tmpdir="$(mktemp -d /tmp/polyfin-admission-test.XXXXXX)"
 trap 'rm -rf "$tmpdir"' EXIT
 
