@@ -30,6 +30,8 @@ jq -e '
 ' "$qualification_evidence" >/dev/null
 
 cp -R "$fixture_dir/." "$positive_dir/"
+jq '.producedAt = (now | todateiso8601)' "$positive_dir/restore-evidence.json" >"$tmp_json"
+mv "$tmp_json" "$positive_dir/restore-evidence.json"
 BACKUP_AUDIT_INPUT_DIR="$positive_dir" bash "$repo_root/scripts/backup-audit.sh" >"$output"
 test ! -e "$fixture_dir/report.json"
 test ! -e "$positive_dir/report.json"
@@ -76,6 +78,8 @@ jq -e '[.restorePVCs[] | select(.namespace == "dr-protect-20261020-immich")][0].
   "$stale_evidence_dir/report.json" >/dev/null
 
 cp -R "$fixture_dir/." "$longhorn_dir/"
+jq '.producedAt = (now | todateiso8601)' "$longhorn_dir/restore-evidence.json" >"$tmp_json"
+mv "$tmp_json" "$longhorn_dir/restore-evidence.json"
 jq '.items=[]' "$longhorn_dir/pvbs.json" >"$tmp_json"
 mv "$tmp_json" "$longhorn_dir/pvbs.json"
 jq '.items=[{"metadata":{"name":"pv-invoice-storage"},"status":{"kubernetesStatus":{"namespace":"invoice-ninja","pvcName":"storage"}}}]' \
