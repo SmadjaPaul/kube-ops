@@ -55,7 +55,14 @@ jobs:
       - name: No deployment or admission changes
         run: |
           set -euo pipefail
-          if git diff --name-only origin/main...HEAD | grep -Eq '^k8s/|private-pilot-admission.json|polyfin-downstream-build.yaml'; then
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            base="$(jq -r '.pull_request.base.sha' "$GITHUB_EVENT_PATH")"
+            git fetch --no-tags --depth=1 origin "$base"
+            changed="$(git diff --name-only "$base" HEAD)"
+          else
+            changed="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          fi
+          if grep -Eq '^k8s/|private-pilot-admission.json|polyfin-downstream-build.yaml' <<< "$changed"; then
             echo 'SSO prototype must not modify live GitOps or CVE admission' >&2
             exit 1
           fi
