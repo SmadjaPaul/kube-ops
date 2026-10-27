@@ -51,16 +51,21 @@ spec:
         - ports:
             - port: "9000"
               protocol: TCP
-    # PLT-121: minimal metadata + TorBox control-plane endpoints for the
-    # native AIOStreams web app. TorBox's public API base is api.torbox.app;
-    # TorBox Search is search-api.torbox.app. Cinemeta supplies a basic
-    # catalog fallback. This does not permit media bytes / CDN egress.
-    # Extra AIOMetadata/custom-addon hosts require a separate observed FQDN
-    # admission; do NOT add broad world:443 or a video proxy.
+    # PLT-121: explicit metadata, addon and TorBox control-plane endpoints
+    # observed for the native video profile. These hosts are used to fetch
+    # metadata or stream descriptors; they do not permit media bytes / CDN
+    # egress. Extra AIOMetadata/custom-addon hosts require a separate observed
+    # FQDN admission; do NOT add broad world:443 or a video proxy.
     - toFQDNs:
         - matchName: api.torbox.app
         - matchName: search-api.torbox.app
         - matchName: v3-cinemeta.strem.io
+        - matchName: v3.sg.media-imdb.com
+        - matchName: remuxdb.1632022.xyz
+        - matchName: comet.feels.legal
+        - matchName: meteorfortheweebs.midnightignite.me
+        - matchName: stremthru.13377001.xyz
+        - matchName: opensubtitles.stremio.homes
       toPorts:
         - ports:
             - port: "443"

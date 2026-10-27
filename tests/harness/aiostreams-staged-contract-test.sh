@@ -30,11 +30,18 @@ if grep -Eq 'toEntities:[[:space:]]*$|-[[:space:]]+world([[:space:]]|$)' "$pkg/n
   echo "AIOSTREAMS_STAGE=FAIL: staged workload must not have blanket world egress" >&2
   exit 1
 fi
-# The active private app now has a minimal three-FQDN control-plane allowlist.
-# Stronger endpoint/port assertions are enforced by the scoped egress contract.
+# The active private app now has an explicit metadata/addon control-plane
+# FQDN allowlist. Stronger endpoint/port assertions are enforced by the scoped
+# egress contract.
 grep -Fq 'matchName: api.torbox.app' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: search-api.torbox.app' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: v3-cinemeta.strem.io' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: v3.sg.media-imdb.com' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: remuxdb.1632022.xyz' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: comet.feels.legal' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: meteorfortheweebs.midnightignite.me' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: stremthru.13377001.xyz' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: opensubtitles.stremio.homes' "$pkg/networkpolicy.yaml"
 grep -Fq 'https://aiostreams.smadja.dev/api/v1/auth/oidc/callback' \
   k8s/infrastructure/auth/authentik/extra/blueprints/apps-aiostreams.yaml
 grep -Fq 'APP_AIOSTREAMS_OIDC_CLIENT_SECRET' "$pkg/oidc-external-secret.dormant.yaml"
