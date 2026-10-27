@@ -26,6 +26,12 @@ eq '.spec.endpointSelector.matchExpressions[0].values[2]' "$global" polyfin
 eq '.spec.data[0].remoteRef.key' "$root/external-secret.yaml" APP_POLYFIN_SECRET_KEY
 eq '.spec.bootstrap.initdb.database' "$root/cluster.yaml" polyfin
 eq '.spec.storage.storageClass' "$root/cluster.yaml" longhorn-fast
+eq '.spec.plugins | length' "$root/cluster.yaml" 1
+eq '.spec.plugins[0].name' "$root/cluster.yaml" barman-cloud.cloudnative-pg.io
+eq '.spec.plugins[0].isWALArchiver' "$root/cluster.yaml" true
+eq '.spec.plugins[0].parameters.barmanObjectName' "$root/cluster.yaml" polyfin-hetzner-store
+eq '.spec.egress[2].toCIDRSet[0].cidr' "$root/networkpolicy.yaml" 10.0.20.192/32
+eq '.spec.egress[2].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" 443
 eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/moodiness/polyfin:0.50.0@sha256:b544e75ae8f028214d6dd1ea7fd55094b75211c081a41d7c6afe0917637cc719'
 ! grep -Eq '^[[:space:]]*-[[:space:]]+name:[[:space:]]+external[[:space:]]*$' "$root/http-route.yaml"
 ! grep -Eq '^[[:space:]]*toEntities:|^[[:space:]]*matchPattern:|^[[:space:]]*toCIDR:|0\.0\.0\.0/0|^[[:space:]]*-[[:space:]]+world' "$root/networkpolicy.yaml"
