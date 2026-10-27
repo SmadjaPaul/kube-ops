@@ -56,6 +56,10 @@ spec:
         - matchName: v3-cinemeta.strem.io
         - matchName: api.torbox.app
         - matchName: search-api.torbox.app
+        # Anime identifier maps are fetched from the pinned upstream GitHub
+        # repository; keep this exact HTTPS FQDN allowlisted instead of
+        # granting arbitrary Internet egress.
+        - matchName: raw.githubusercontent.com
       toPorts:
         - ports:
             - port: "443"

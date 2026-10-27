@@ -43,6 +43,9 @@ eq '.spec.plugins[0].parameters.barmanObjectName' "$root/cluster.yaml" polyfin-h
 eq '.spec.egress[1].toEndpoints[0].matchLabels."cnpg.io/cluster"' "$root/networkpolicy.yaml" polyfin-db
 eq '.spec.egress[2].toCIDRSet[0].cidr' "$root/networkpolicy.yaml" 10.0.20.192/32
 eq '.spec.egress[2].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" 443
+yq -r '.spec.egress[].toFQDNs[]?.matchName' "$root/networkpolicy.yaml" | grep -Fx raw.githubusercontent.com >/dev/null || {
+  echo 'POLYFIN_STATIC=FAIL anime mapping dependency is not explicitly allowlisted' >&2; exit 1
+}
 yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.endpointSelector.matchLabels."cnpg.io/cluster"' "$root/networkpolicy.yaml" | grep -Fx polyfin-db >/dev/null || {
   echo 'POLYFIN_STATIC=FAIL CNPG ingress policy target mismatch' >&2; exit 1
 }
