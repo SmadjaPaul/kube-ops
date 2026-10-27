@@ -26,6 +26,7 @@ eq '.spec.endpointSelector.matchExpressions[0].values[2]' "$global" polyfin
 eq '.spec.data[0].remoteRef.key' "$root/external-secret.yaml" APP_POLYFIN_SECRET_KEY
 eq '.spec.bootstrap.initdb.database' "$root/cluster.yaml" polyfin
 eq '.spec.storage.storageClass' "$root/cluster.yaml" longhorn-fast
+eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/moodiness/polyfin:0.50.0@sha256:b544e75ae8f028214d6dd1ea7fd55094b75211c081a41d7c6afe0917637cc719'
 ! grep -Eq '^[[:space:]]*-[[:space:]]+name:[[:space:]]+external[[:space:]]*$' "$root/http-route.yaml"
 ! grep -Eq '^[[:space:]]*toEntities:|^[[:space:]]*matchPattern:|^[[:space:]]*toCIDR:|0\.0\.0\.0/0|^[[:space:]]*-[[:space:]]+world' "$root/networkpolicy.yaml"
-echo 'POLYFIN_STATIC=PASS; RUNTIME=NOT_EXECUTED; OCI_DIGEST=NOT_VERIFIED'
+echo 'POLYFIN_STATIC=PASS; RUNTIME=NOT_EXECUTED; OCI_SECURITY=NOT_EXECUTED'

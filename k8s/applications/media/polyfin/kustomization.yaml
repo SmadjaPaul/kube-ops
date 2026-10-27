@@ -3,11 +3,12 @@ kind: Kustomization
 namespace: media
 resources:
   - cluster.yaml
+  - backup.yaml
   - external-secret.yaml
   - pvc.yaml
   - deployment.yaml
   - service.yaml
   - http-route.yaml
   - networkpolicy.yaml
-# STAGED: this root stays absent from ../kustomization.yaml until Codex
-# qualifies pinned OCI digest, Doppler, backups and traffic isolation.
+# Activation remains separate from ../kustomization.yaml until the upstream
+# image security gate and runtime admission checks pass.

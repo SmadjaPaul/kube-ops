@@ -3,6 +3,13 @@
 Status: **STAGED / NOT DEPLOYED**. The parent media Kustomization does not
 reference this folder. Do not enable until all admission gates below pass.
 
+Current admission result (2026-10-27): the upstream stable `0.50.0` image is
+pinned by digest, but the security gate is **BLOCKED**. The image scan reports
+six unresolved HIGH vulnerabilities (including fixes published for the
+affected packages), and no verifiable Cosign signature was found for the
+published digest. Keep the parent admission absent until a patched, verifiable
+upstream image is available.
+
 This is the upstream [Polyfin](https://github.com/moodiness/polyfin) Jellyfin
 API server. Existing AIOStreams (TorBox, Comet, Meteor, AIOMetadata, Cinemeta)
 and Jellyfin (local music) stay running unchanged. Polyfin adds individual
