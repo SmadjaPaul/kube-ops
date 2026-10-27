@@ -51,10 +51,9 @@ data:
                 - name: canary-daily-tokens
                   limit:
                     unit: Tokens
-                    # Factory canary ceiling: 5M tokens per rolling 24h.
-                    # This is an explicitly approved, bounded pilot ceiling;
-                    # keep enforcement fail-closed and review actual usage
-                    # before admitting another run.
+                    # Existing fail-closed factory canary ceiling: 5M tokens
+                    # per rolling 24h. Any change requires separate operator
+                    # approval after the credential billing boundary is proven.
                     # Keep enforcement fail-closed; per-request usage is
                     # emitted through Agentgateway GenAI/OTel telemetry.
                     amount: 5000000
