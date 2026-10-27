@@ -26,11 +26,11 @@ private AIOStreams route; public exposure remains out of scope.
 - The SSO flag is enabled in the live Deployment. Keep the local recovery
   login available and verify it after every auth change.
 - Active network policy permits DNS and scoped OIDC issuer access via
-  `auth.smadja.dev`, internal Gateway VIP and Authentik backend. The issuer
-  and private admin login were runtime-qualified; preserve the positive and
-  negative Cilium checks. Do NOT add `world:443`. The video PR proposes a
-  three-host TorBox/Cinemeta control-plane FQDN allowlist; it is NOT a
-  successful runtime test and does NOT authorize media/CDN proxying.
+  `auth.smadja.dev`, internal Gateway VIP and Authentik backend, plus the
+  reviewed AIOStreams metadata/addon/TorBox control-plane FQDN matrix from
+  PR #773. The issuer and private admin login were runtime-qualified;
+  preserve the positive and negative Cilium checks. Do NOT add `world:443`.
+  The matrix does not authorize media/CDN proxying.
 - The private AIOStreams route is `Gateway/internal` only. Keep it so.
 
 ## Two-sided secret wiring
