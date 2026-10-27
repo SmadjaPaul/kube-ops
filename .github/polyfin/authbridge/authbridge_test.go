@@ -109,3 +109,12 @@ func TestBridgeConfigurationFailsClosed(t *testing.T){
   if b,err:=newAuthentikBridge(a,"server",bad.origin,bad.check,bad.start,bad.mapping);err==nil {t.Fatalf("accepted unsafe config: %#v",b)}
  }
 }
+
+func TestBridgeIsFullyDisabledWithoutEnableFlag(t *testing.T){
+ t.Setenv("POLYFIN_AUTHBRIDGE_ENABLED","")
+ handler:=withAuthentikBridge(http.NotFoundHandler(),nil,"")
+ request:=httptest.NewRequest("GET","https://tv.smadja.dev/polyfin-sso/status",nil)
+ response:=httptest.NewRecorder()
+ handler.ServeHTTP(response,request)
+ if response.Code!=http.StatusNotFound {t.Fatalf("disabled bridge responded %d",response.Code)}
+}
