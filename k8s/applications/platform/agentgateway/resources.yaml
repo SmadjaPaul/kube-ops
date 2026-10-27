@@ -44,22 +44,9 @@ data:
               allowedModels:
                 - factory/fast
                 - factory/code
-              # Token budget works even when the custom MiniMax model has no
-              # verified USD entry in the agentgateway price catalog.
-              # Per-key USD budgets require measured nonzero catalog costs.
-              budgets:
-                - name: canary-daily-tokens
-                  limit:
-                    unit: Tokens
-                    # Existing fail-closed factory canary ceiling: 5M tokens
-                    # per rolling 24h. Any change requires separate operator
-                    # approval after the credential billing boundary is proven.
-                    # Keep enforcement fail-closed; per-request usage is
-                    # emitted through Agentgateway GenAI/OTel telemetry.
-                    amount: 5000000
-                  window:
-                    rolling: 24h
-                  onBudgetExceeded: Block
+              # MiniMax Token Plan owns the 5-hour and weekly quota windows.
+              # Mastra retains per-run budgets, concurrency and bounded retry.
+              # No PAYG fallback is configured for these routes.
             - key: "$GPT_RESEARCHER_API_KEY"
               metadata:
                 name: gpt-researcher

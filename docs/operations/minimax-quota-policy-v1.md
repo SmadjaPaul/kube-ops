@@ -1,6 +1,6 @@
 # MiniMax route policy v1
 
-Status: **prepared, not active**.
+Status: **ready for GitOps promotion**.
 
 This change removes the adaptive quota controller from the proposal. MiniMax
 remains the provider-side authority for its subscription windows; Agentgateway
@@ -25,19 +25,21 @@ therefore route isolation alone cannot authorize removal of billing risk.
 
 ## Runtime boundary
 
-This PR does not change the `factory-canary` Agentgateway ceiling. The
-existing fail-closed `5,000,000` tokens / rolling `24h` budget remains in the
-desired state until a separate operator-approved change proves the credential
-billing boundary. A high ceiling must not be used as a substitute for that
-proof.
+The qualified `sk-cp` Subscription Key is now the credential behind the
+existing `MINIMAX_API_KEY` reference. This change removes only the local
+`5,000,000` tokens / rolling `24h` Agentgateway ceiling for `factory/fast` and
+`factory/code`; MiniMax remains the quota authority for the 5-hour and weekly
+windows. Mastra still owns per-run budgets, concurrency, timeouts and bounded
+retries.
 
-No Secret, database, provider quota, PLT-124 state, PLT-100 intake, or active
-Agentgateway budget is changed by this PR. No LLM call or OCI build is part of
-qualification.
+No Secret, database, provider quota, PLT-124 state or PLT-100 intake is
+changed by this PR. The existing Agentgateway route budget is intentionally
+removed only for the two qualified Factory routes; `factory/research` remains
+outside this scope.
 
 ## Activation gates
 
-Before promotion, the operator must verify that the existing
+Before promotion, the operator must retain the proof that the existing
 `APP_MINIMAX_TOKEN_PLAN_API_KEY` is a MiniMax Subscription Key and that no
 fallback provider or PAYG credential is reachable from `factory/fast` or
 `factory/code`. The current ExternalSecret mapping remains:
