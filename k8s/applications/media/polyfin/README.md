@@ -44,6 +44,15 @@ The scanner and date matter; reruns against newer advisories may differ.
   Never assert that rebuilding from the same source automatically fixes
   unfixed Debian packages or authenticates the publisher.
 
+The minimal downstream patch is recorded in
+`.github/polyfin/Dockerfile.v0.50.0.patch` and applies only to the exact
+upstream commit `e2cf9f08ac60400fdab20726671fa2e08fd09e1e`. The manual
+workflow `.github/workflows/polyfin-downstream-build.yaml` rebuilds that
+source for `linux/amd64`, emits an SPDX SBOM and BuildKit/GitHub provenance,
+signs and verifies the immutable digest with Cosign, then rescans it. It
+publishes evidence but fails closed while any HIGH/CRITICAL finding remains;
+it does not change the Polyfin deployment image.
+
 **Other findings:** 17 remaining unique Debian CVEs have no fixed-version
 entry in the scanner, including Trivy **CRITICAL `CVE-2026-6653`**
 (`libxml2`, a malformed-XML denial-of-service scenario). Debian's
@@ -53,6 +62,30 @@ processing, subtitles and FFmpeg/Tesseract dependencies. Need concrete
 runtime linkage and reachable-input analysis before considering any
 limited internal-pilot risk acceptance. Never bypass Trivy silently,
 suppress whole package families, or relax all media/network gates.
+
+### Residual CVE reachability assessment
+
+This is a reachability review, not a waiver. The local downstream image was
+built for `linux/amd64`; `/polyfin` is a static Go binary, while FFmpeg and
+Tesseract are separate child processes. The container runs as UID 65532 with a
+readonly root filesystem and no extra capabilities.
+
+| CVE group | Component(s) | Evidence from the image/application | Disposition |
+| --- | --- | --- | --- |
+| `CVE-2025-69720` | ncurses / `libtinfo6` | `infocmp` is present but Polyfin does not invoke it; network input cannot reach that CLI directly. | Residual, no waiver |
+| `CVE-2026-16742` | systemd / `libsystemd0`, `libudev1` | No systemd init or `systemd-homed` service is started; Polyfin is nonroot. | Residual, no waiver |
+| `CVE-2026-54369` | `libacl1` | Loaded transitively by the optional Tesseract toolchain; no evidence that Polyfin reaches the vulnerable ACL pathname APIs. | Residual, runtime/vendor proof required |
+| `CVE-2026-6653`, `74860`, `86138`, `86139`, `86140`, `86142`, `86143`, `86144` | `libxml2` | Tesseract's native dependency tree loads `libxml2`; Polyfin's own XML decoding uses Go `encoding/xml`. XMLTV and subtitle inputs are potentially untrusted, but the vulnerable libxml2 call paths were not proven. | **CRITICAL/HIGH residual, blocks admission** |
+| `CVE-2026-76642`, `78408`, `78409`, `78410` | util-linux | `mount`/`nsenter` are present as base-image helpers but are not invoked by Polyfin; UID 65532 has no mount capability. | Residual, no waiver |
+| `CVE-2026-88806` | libX11 | Present through optional graphics dependencies; no X server is configured and baseline FFmpeg linkage does not load it. | Residual, optional GPU path proof required |
+| `CVE-2026-9538` | `perl-base` | Perl is present in the base image but is not an application entrypoint or child process. | Residual, no waiver |
+
+Debian records several of these as Trixie `no-dsa`/minor while fixing them in
+unstable, including [ncurses](https://security-tracker.debian.org/tracker/CVE-2025-69720),
+[util-linux](https://security-tracker.debian.org/tracker/CVE-2026-76642) and
+[libxml2](https://security-tracker.debian.org/tracker/CVE-2026-6653). That is a
+vendor prioritization, not evidence that the vulnerable code is unreachable in
+this application. No temporary exception is applied automatically.
 
 **Remaining gates:** verified source-to-image provenance; published
 image integrity/signature or signed and auditable downstream build;

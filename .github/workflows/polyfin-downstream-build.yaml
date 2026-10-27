@@ -1,0 +1,198 @@
+name: Polyfin downstream candidate build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build-scan-sign:
+    name: Build, scan and sign Polyfin downstream candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      UPSTREAM_REPOSITORY: https://github.com/moodiness/polyfin.git
+      UPSTREAM_TAG: v0.50.0
+      UPSTREAM_COMMIT: e2cf9f08ac60400fdab20726671fa2e08fd09e1e
+      PATCH_FILE: .github/polyfin/Dockerfile.v0.50.0.patch
+    steps:
+      - name: Check out the GitOps repository
+        uses: actions/checkout@v7
+
+      - name: Check out the exact upstream source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout "$UPSTREAM_REPOSITORY" upstream
+          git -C upstream checkout --quiet --detach "$UPSTREAM_COMMIT"
+          test "$(git -C upstream rev-parse HEAD)" = "$UPSTREAM_COMMIT"
+          test "$(git -C upstream describe --tags --exact-match)" = "$UPSTREAM_TAG"
+
+      - name: Apply and verify the minimal downstream Dockerfile patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C upstream apply --check "$GITHUB_WORKSPACE/$PATCH_FILE"
+          git -C upstream apply "$GITHUB_WORKSPACE/$PATCH_FILE"
+          test "$(git -C upstream diff --numstat -- Dockerfile | awk '{print $1 ":" $2}')" = "5:2"
+          git -C upstream diff --check
+          printf 'PATCH_SHA256=%s\n' "$(sha256sum "$PATCH_FILE" | awk '{print $1}')"
+
+      - name: Derive immutable candidate reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          repository="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/polyfin-downstream"
+          tag="0.50.0-patched-${GITHUB_SHA::12}"
+          {
+            echo "IMAGE_REPOSITORY=$repository"
+            echo "IMAGE_TAG=$tag"
+            echo "IMAGE_REF=$repository:$tag"
+          } >> "$GITHUB_ENV"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish the linux/amd64 candidate
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: upstream
+          file: upstream/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE_REF }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Generate an explicit SPDX SBOM for the immutable digest
+        uses: anchore/sbom-action@cee1b8e05ae5b2593a75e197229729eabaa9f8ec # v0.20.2
+        with:
+          image: ${{ env.IMAGE_REPOSITORY }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: polyfin-sbom.spdx.json
+          upload-artifact: false
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+
+      - name: Sign and verify the immutable candidate digest
+        shell: bash
+        env:
+          COSIGN_YES: "true"
+        run: |
+          set -euo pipefail
+          digest='${{ steps.build.outputs.digest }}'
+          cosign sign "$IMAGE_REPOSITORY@$digest"
+          cosign verify \
+            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/polyfin-downstream-build.yaml@${GITHUB_REF}" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            "$IMAGE_REPOSITORY@$digest" > polyfin-cosign-verify.json
+
+      - name: Publish GitHub build provenance for the digest
+        uses: actions/attest-build-provenance@bd77c077858b8d561b7a36cbe48ef4cc642ca39d # v2.2.2
+        with:
+          subject-name: ${{ env.IMAGE_REPOSITORY }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Scan the exact candidate digest with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE_REPOSITORY }}@${{ steps.build.outputs.digest }}
+          version: v0.76.1
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '0'
+          format: json
+          output: polyfin-candidate-trivy.json
+          timeout: 15m
+        env:
+          TRIVY_PLATFORM: linux/amd64
+
+      - name: Classify remediation and residual risk
+        id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL") | [$target, .VulnerabilityID, .PkgName, .InstalledVersion, (.FixedVersion // "UNFIXED"), .Severity, (.Status // "UNKNOWN")] | @tsv' polyfin-candidate-trivy.json > polyfin-candidate-findings.tsv
+          fixable=$'CVE-2026-103111\nCVE-2026-111943\nCVE-2026-78667\nCVE-2026-78669\nCVE-2026-84782\nCVE-2026-97031'
+          : > polyfin-remediation.tsv
+          while IFS= read -r cve; do
+            if grep -Fq $'\t'"$cve"$'\t' polyfin-candidate-findings.tsv; then
+              printf '%s\tRESIDUAL\n' "$cve" >> polyfin-remediation.tsv
+            else
+              printf '%s\tELIMINATED\n' "$cve" >> polyfin-remediation.tsv
+            fi
+          done <<< "$fixable"
+          unique="$(cut -f2 polyfin-candidate-findings.tsv | sort -u | sed '/^$/d' | wc -l | tr -d ' ')"
+          occurrences="$(wc -l < polyfin-candidate-findings.tsv | tr -d ' ')"
+          eliminated="$(grep -c $'\tELIMINATED$' polyfin-remediation.tsv || true)"
+          {
+            echo '## Polyfin downstream candidate security result'
+            echo "Candidate: \`$IMAGE_REPOSITORY@${{ steps.build.outputs.digest }}\`"
+            echo 'Target: linux/amd64; Trivy v0.76.1; OS and library; unfixed findings included.'
+            echo "HIGH/CRITICAL occurrences: **$occurrences**; unique CVEs: **$unique**."
+            echo "Correctable CVEs eliminated: **$eliminated/6**."
+            echo ''
+            echo 'Per-CVE remediation:'
+            echo '~~~text'
+            cat polyfin-remediation.tsv
+            echo '~~~'
+            echo ''
+            echo 'Residual findings are not waived by this workflow.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          jq -n \
+            --arg source "$UPSTREAM_COMMIT" \
+            --arg tag "$UPSTREAM_TAG" \
+            --arg patch "$(sha256sum "$PATCH_FILE" | awk '{print $1}')" \
+            --arg image "$IMAGE_REPOSITORY" \
+            --arg digest '${{ steps.build.outputs.digest }}' \
+            --arg sbom "$(sha256sum polyfin-sbom.spdx.json | awk '{print $1}')" \
+            --argjson occurrences "$occurrences" \
+            --argjson uniqueCves "$unique" \
+            --argjson eliminated "$eliminated" \
+            '{upstreamTag:$tag,upstreamCommit:$source,dockerfilePatchSha256:$patch,image:$image,digest:$digest,sbomSha256:$sbom,trivy:"0.76.1",platform:"linux/amd64",highCriticalOccurrences:$occurrences,uniqueCves:$uniqueCves,correctableCvesEliminated:$eliminated,admission:"NO-GO-until-residual-risk-approved"}' \
+            > polyfin-candidate-metadata.json
+
+      - name: Upload candidate evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: polyfin-downstream-candidate-${{ github.sha }}
+          path: |
+            polyfin-candidate-metadata.json
+            polyfin-sbom.spdx.json
+            polyfin-cosign-verify.json
+            polyfin-candidate-trivy.json
+            polyfin-candidate-findings.tsv
+            polyfin-remediation.tsv
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Keep admission blocked while residual severe findings exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -q $'\tRESIDUAL$' polyfin-remediation.tsv; then
+            echo '::error::At least one of the six targeted CVEs remains in the candidate; admission is NO-GO'
+            exit 1
+          fi
+          if [[ -s polyfin-candidate-findings.tsv ]]; then
+            echo '::error::Residual HIGH/CRITICAL findings remain; no waiver is applied'
+            exit 1
+          fi
