@@ -18,6 +18,14 @@ spec:
         app.kubernetes.io/name: polyfin
     spec:
       automountServiceAccountToken: false
+      # Scoped split-DNS fix: the configured AIOStreams manifest uses this
+      # HTTPS hostname, while its public AAAA resolves to Cloudflare.
+      # Route only Polyfin's requests through the existing internal
+      # Cilium Gateway. TLS SNI/hostname validation remains unchanged.
+      hostAliases:
+        - ip: "10.0.20.192"
+          hostnames:
+            - aiostreams.smadja.dev
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
