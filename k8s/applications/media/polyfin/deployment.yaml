@@ -28,9 +28,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: polyfin
-          # Verified upstream release metadata: Polyfin 0.50.0.
-          # Activation remains blocked until the image security gate passes.
-          image: ghcr.io/moodiness/polyfin:0.50.0@sha256:b544e75ae8f028214d6dd1ea7fd55094b75211c081a41d7c6afe0917637cc719
+          # Private pilot admission is bound to the signed downstream digest and expires 2026-11-26.
+          image: ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

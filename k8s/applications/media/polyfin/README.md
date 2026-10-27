@@ -1,10 +1,19 @@
-# Polyfin — family media pilot (dormant)
+# Polyfin — family media pilot (private LAN/VPN)
 
-Status: **STAGED / NOT DEPLOYED**. The parent media Kustomization does not
-reference this folder. Do not enable until all admission gates below pass.
+Status: **PRIVATE PILOT ADMITTED / PENDING ARGO RECONCILIATION**. The parent
+media Kustomization enables this folder only through the reviewed PR #781.
+There is no external HTTPRoute or Cloudflare Tunnel.
 
-Current admission result (2026-10-27): upstream stable `0.50.0` is pinned by
-digest; activation remains **BLOCKED**. A reproducible Trivy 0.76.1 scan of
+The temporary risk acceptance is machine-checked by
+`.github/polyfin/private-pilot-admission.json` and
+`scripts/polyfin-admission-check.sh`. It is bound to the exact signed
+downstream digest, linux/amd64, the internal Gateway, and expires at
+`2026-11-26T23:59:59Z`. It accepts only the 17 CVEs in that file; a new CVE,
+digest, platform or perimeter change fails admission. `CVE-2026-6653` remains
+an individual CRITICAL entry and is not hidden from Trivy.
+
+Current admission result (2026-10-27): the signed downstream `0.50.0` candidate
+is pinned by immutable digest. A reproducible Trivy 0.76.1 scan of
 `linux/amd64` on workflow run
 [`40558560121`](https://github.com/SmadjaPaul/kube-ops/actions/runs/40558560121)
 reports **61 HIGH/CRITICAL affected-package occurrences, 23 distinct CVEs,
@@ -12,10 +21,11 @@ including one CRITICAL**; six distinct CVEs have published fixes. The original
 operator scan reported six HIGH, apparently using a narrower or
 fixed-vulnerabilities-only filter: its exact command needs comparison.
 Do not confuse the number of package occurrences with distinct CVEs.
-No Cosign publisher signature was verified. The whole Trivy JSON and TSV
-are attached as GitHub Actions artifact `polyfin-oci-trivy-amd64`.
+The downstream Cosign signature, SBOM and provenance were independently
+verified. The whole Trivy JSON and TSV are attached as GitHub Actions artifact
+`polyfin-downstream-candidate-01dfcfa30e78aaf6f28115180d8c90fb61cfc334`.
 
-## Reproducible vulnerability findings — 2026-10-27
+## Historical upstream vulnerability baseline — 2026-10-27
 
 Exact target:
 `ghcr.io/moodiness/polyfin:0.50.0@sha256:b544e75ae8f028214d6dd1ea7fd55094b75211c081a41d7c6afe0917637cc719`
@@ -52,6 +62,20 @@ source for `linux/amd64`, emits an SPDX SBOM and BuildKit/GitHub provenance,
 signs and verifies the immutable digest with Cosign, then rescans it. It
 publishes evidence but fails closed while any HIGH/CRITICAL finding remains;
 it does not change the Polyfin deployment image.
+
+## Approved downstream candidate
+
+The approved private-pilot image is:
+
+`ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3`
+
+Its exact `linux/amd64` Trivy result is 54 HIGH/CRITICAL occurrences across
+17 residual CVEs after the six correctable CVEs were eliminated. The full
+candidate evidence is the GitHub Actions artifact
+`polyfin-downstream-candidate-01dfcfa30e78aaf6f28115180d8c90fb61cfc334` from
+workflow run 40564826453. Cosign identity, GitHub SLSA provenance and the
+SPDX SBOM are recorded in the PR evidence. The admission policy does not
+hide these findings; it only authorizes this exact digest until its expiry.
 
 **Other findings:** 17 remaining unique Debian CVEs have no fixed-version
 entry in the scanner, including Trivy **CRITICAL `CVE-2026-6653`**

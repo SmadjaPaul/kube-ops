@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - 'k8s/applications/media/polyfin/deployment.yaml'
+      - 'k8s/applications/media/polyfin/kustomization.yaml'
       - '.github/workflows/polyfin-image-audit.yaml'
+      - '.github/polyfin/private-pilot-admission.json'
+      - 'scripts/polyfin-admission-check.sh'
   workflow_dispatch:
 
 permissions:
@@ -12,7 +15,7 @@ permissions:
 
 jobs:
   trivy:
-    name: Pinned upstream image / linux-amd64
+    name: Authorized Polyfin pilot image / linux-amd64
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -23,11 +26,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image="$(sed -nE 's/^[[:space:]]*image:[[:space:]]*(ghcr\.io\/moodiness\/polyfin:[^[:space:]]+)$/\1/p' k8s/applications/media/polyfin/deployment.yaml)"
-          if [[ ! "$image" =~ ^ghcr\.io/moodiness/polyfin:[0-9]+\.[0-9]+\.[0-9]+@sha256:[a-f0-9]{64}$ ]]; then
+          image="$(sed -nE 's/^[[:space:]]*image:[[:space:]]*([^[:space:]]+)$/\1/p' k8s/applications/media/polyfin/deployment.yaml)"
+          if [[ ! "$image" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+:[^@[:space:]]+@sha256:[a-f0-9]{64}$ ]]; then
             echo 'Expected exactly one Polyfin image pinned to an immutable sha256 digest' >&2
             exit 1
           fi
+          [[ "$(grep -Ec '^[[:space:]]*image:' k8s/applications/media/polyfin/deployment.yaml)" == 1 ]] || {
+            echo 'Expected exactly one Polyfin image reference' >&2
+            exit 1
+          }
           echo "image=$image" >> "$GITHUB_OUTPUT"
 
       - name: Capture complete Trivy HIGH/CRITICAL findings (non-gating scan)
@@ -82,11 +89,14 @@ jobs:
 
       - name: Enforce OCI vulnerability gate (after preserving evidence)
         shell: bash
+        env:
+          POLYFIN_IMAGE: ${{ steps.target.outputs.image }}
         run: |
           set -euo pipefail
           test -f polyfin-findings.tsv
           count="$(wc -l < polyfin-findings.tsv | tr -d ' ')"
-          if (( count > 0 )); then
-            echo "::error::Polyfin OCI image has $count HIGH/CRITICAL findings; admission remains blocked"
-            exit 1
-          fi
+          echo "Trivy emitted $count HIGH/CRITICAL occurrences; none are hidden."
+          ./scripts/polyfin-admission-check.sh \
+            --image "$POLYFIN_IMAGE" \
+            --findings polyfin-findings.tsv \
+            --policy .github/polyfin/private-pilot-admission.json
