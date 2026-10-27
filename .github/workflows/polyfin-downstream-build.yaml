@@ -1,16 +1,50 @@
 name: Polyfin downstream candidate build
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/polyfin-downstream-build.yaml'
+      - '.github/polyfin/Dockerfile.v0.50.0.patch'
   workflow_dispatch:
 
+# Pull requests only validate the upstream patch. They cannot publish images.
 permissions:
   contents: read
-  packages: write
-  id-token: write
-  attestations: write
 
 jobs:
+  verify-source-patch:
+    name: Verify exact upstream tag and minimal patch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out GitOps source (read-only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Verify upstream commit and Dockerfile-only patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout https://github.com/moodiness/polyfin.git upstream
+          git -C upstream checkout --quiet --detach e2cf9f08ac60400fdab20726671fa2e08fd09e1e
+          test "$(git -C upstream rev-parse HEAD)" = e2cf9f08ac60400fdab20726671fa2e08fd09e1e
+          test "$(git -C upstream describe --tags --exact-match)" = v0.50.0
+          git -C upstream apply --check "$GITHUB_WORKSPACE/.github/polyfin/Dockerfile.v0.50.0.patch"
+          git -C upstream apply "$GITHUB_WORKSPACE/.github/polyfin/Dockerfile.v0.50.0.patch"
+          git -C upstream diff --check
+          test "$(git -C upstream diff --name-only)" = Dockerfile
+          test "$(git -C upstream diff --numstat -- Dockerfile | awk '{print $1 ":" $2}')" = "5:2"
+
   build-scan-sign:
+    if: github.event_name == 'workflow_dispatch'
+    needs: verify-source-patch
+    # Publishing is strictly manual and restricted to a trusted default-branch
+    # workflow. The candidate is quarantined and is NEVER promoted here.
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     name: Build, scan and sign Polyfin downstream candidate
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -21,7 +55,9 @@ jobs:
       PATCH_FILE: .github/polyfin/Dockerfile.v0.50.0.patch
     steps:
       - name: Check out the GitOps repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Check out the exact upstream source commit
         shell: bash
@@ -47,7 +83,8 @@ jobs:
         run: |
           set -euo pipefail
           repository="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/polyfin-downstream"
-          tag="0.50.0-patched-${GITHUB_SHA::12}"
+          # Each manual attempt gets a unique non-overwritten tag.
+          tag="0.50.0-patched-${GITHUB_SHA::12}-run${GITHUB_RUN_ID}-attempt${GITHUB_RUN_ATTEMPT}"
           {
             echo "IMAGE_REPOSITORY=$repository"
             echo "IMAGE_TAG=$tag"
@@ -58,7 +95,7 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Log in to GHCR
-        uses: docker/login-action@v4.6.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -66,7 +103,7 @@ jobs:
 
       - name: Build and publish the linux/amd64 candidate
         id: build
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: upstream
           file: upstream/Dockerfile
