@@ -35,7 +35,7 @@ spec:
               protocol: TCP
     - toEndpoints:
         - matchLabels:
-            k8s:cnpg.io/cluster: polyfin-db
+            cnpg.io/cluster: polyfin-db
             k8s:io.kubernetes.pod.namespace: media
       toPorts:
         - ports:
