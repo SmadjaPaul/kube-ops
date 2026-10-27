@@ -18,10 +18,14 @@ There is no alternate provider or PAYG fallback configured for these routes.
 The `factory/research` route is a separate identity and is outside this
 candidate.
 
-The binding is static evidence only. The credential value is intentionally not
-read, so the Subscription Key class and billing boundary are **not proven**.
-MiniMax's Subscription Key and standard API key are distinct credentials;
-therefore route isolation alone cannot authorize removal of billing risk.
+An authenticated, ephemeral qualification of the existing Doppler key returned
+the non-secret `sk-cp` Token Plan prefix and `HTTPS 200` from
+`https://www.minimax.io/v1/token_plan/remains`. The JSON schema returned
+`model_remains`, interval/weekly counters, remaining percentages and reset
+timestamps, with `base_resp.status_code=0`. The key value was never persisted
+or displayed. MiniMax's Subscription Key and standard API key are distinct
+credentials; this observation therefore closes the credential-class gate
+without reconstructing provider quotas from Agentgateway counters.
 
 ## Runtime boundary
 
@@ -39,9 +43,9 @@ outside this scope.
 
 ## Activation gates
 
-Before promotion, the operator must retain the proof that the existing
-`APP_MINIMAX_TOKEN_PLAN_API_KEY` is a MiniMax Subscription Key and that no
-fallback provider or PAYG credential is reachable from `factory/fast` or
+The credential-class gate is qualified. The existing
+`APP_MINIMAX_TOKEN_PLAN_API_KEY` is a MiniMax Subscription Key, and no fallback
+provider or PAYG credential is reachable from `factory/fast` or
 `factory/code`. The current ExternalSecret mapping remains:
 
 ```text
@@ -50,9 +54,9 @@ agentgateway/agentgateway-runtime:MINIMAX_API_KEY
   <- Doppler cluster/prd:APP_MINIMAX_TOKEN_PLAN_API_KEY
 ```
 
-Until those gates pass, no runtime budget change or Argo promotion is
-authorized. MiniMax 5-hour and weekly windows remain provider-owned; they are
-not reconstructed from Agentgateway counters or percentages.
+The remaining promotion gates are the PR checks, review, Argo reconciliation
+and runtime health. MiniMax 5-hour and weekly windows remain provider-owned;
+they are not reconstructed from Agentgateway counters or percentages.
 
 ## Validation and rollback
 
