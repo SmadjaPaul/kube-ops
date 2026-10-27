@@ -90,15 +90,15 @@ route, or blanket external egress.
   named port 3000. A local image test confirmed the UID override can write only
   the mounted `/app/data` and `/tmp` paths; it is not cluster or application
   readiness proof.
-- The active policy permits DNS, narrowly scoped Authentik issuer access,
-  TorBox API/Search and Cinemeta over TCP/443 only. It has no `world:443` rule.
-  A later admission PR must add Cilium `toFQDNs` from a reviewed matrix, not a
-  guess: the upstream image has built-in metadata hosts such as
-  `v3-cinemeta.strem.io` and `skyhook.sonarr.tv`, TorBox search uses
-  `search-api.torbox.app`, OIDC uses `auth.smadja.dev`, and user-selected
-  addons/indexers/debrid services add their own hostnames. The policy now
-  authorizes **only** the three named video-control FQDNs above; other
-  metadata/addon FQDNs require separately reviewed admission.
+- The active policy permits DNS, narrowly scoped Authentik issuer access and
+  the reviewed metadata/addon/TorBox control-plane FQDN matrix over TCP/443.
+  It has no `world:443` rule and does not authorize media/CDN bytes. The
+  current matrix covers `api.torbox.app`, `search-api.torbox.app`,
+  `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`, `remuxdb.1632022.xyz`,
+  `comet.feels.legal`, `meteorfortheweebs.midnightignite.me`,
+  `stremthru.13377001.xyz` and `opensubtitles.stremio.homes`; additional
+  user-selected addons/indexers/debrid services require separately reviewed
+  FQDN admission.
 - `FORCE_PROXY_ENABLED=false`, `DEFAULT_PROXY_ENABLED=false`, no proxy URL or
   proxy credentials are supplied, and `SHARES_FUSE_ENABLED=false`. This is a
   configuration guard, not proof of no video proxy: the exact upstream image
@@ -172,10 +172,12 @@ Cilium/Hubble positive and negative flows after GitOps reconciliation.
 ## Runtime qualification for PLT-121
 
 - Active egress allows CoreDNS, narrowly scoped Authentik issuer access and
-  three reviewed control-plane hosts over HTTPS: `api.torbox.app`,
-  `search-api.torbox.app`, `v3-cinemeta.strem.io`. These are **candidate**
-  dependencies, pending reconciled runtime allow/deny proof; other addon
-  metadata hosts remain denied. No CDN/media egress is granted to the Pod.
+  the reviewed control-plane hosts over HTTPS: `api.torbox.app`,
+  `search-api.torbox.app`, `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`,
+  `remuxdb.1632022.xyz`, `comet.feels.legal`,
+  `meteorfortheweebs.midnightignite.me`, `stremthru.13377001.xyz` and
+  `opensubtitles.stremio.homes`. These are control-plane dependencies only;
+  no CDN/media egress is granted to the Pod.
 - Upstream v2.37.0 has these baseline outbound dependencies when its default
   metadata and mapping features run: `v3.sg.media-imdb.com`,
   `v3-cinemeta.strem.io`, `skyhook.sonarr.tv`, `raw.githubusercontent.com`,
