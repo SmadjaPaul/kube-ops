@@ -6,6 +6,8 @@ network_policy="$root/k8s/applications/platform/mastra-factory/networkpolicy.yam
 policy="$root/docs/operations/mastra-factory-supervised-promotion-v1.md"
 readme="$root/k8s/applications/platform/mastra-factory/README.md"
 command -v yq >/dev/null || { echo 'yq required' >&2; exit 127; }
+test "$(shasum -a 256 "$network_policy" | awk '{print $1}')" = \
+  'c0a41620b6dc628d7f38e1bafcb998e7d7c896295b47403afa1844b026c08457'
 yq -e '
   (.kind == "Deployment") and
   (.metadata.name == "mastra-factory") and
