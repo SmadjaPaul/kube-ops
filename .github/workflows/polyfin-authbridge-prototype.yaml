@@ -1,0 +1,61 @@
+name: Polyfin Authentik native-session bridge prototype
+
+on:
+  pull_request:
+    paths:
+      - '.github/polyfin/authbridge/**'
+      - '.github/workflows/polyfin-authbridge-prototype.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-overlay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Clone pinned upstream source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout https://github.com/moodiness/polyfin.git upstream
+          git -C upstream checkout --quiet --detach e2cf9f08ac60400fdab20726671fa2e08fd09e1e
+          test "$(git -C upstream rev-parse HEAD)" = e2cf9f08ac60400fdab20726671fa2e08fd09e1e
+          test "$(git -C upstream describe --tags --exact-match)" = v0.50.0
+
+      - name: Overlay only the native-session bridge and frontend button
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/polyfin/authbridge/apply.py upstream
+          test "$(git -C upstream diff --name-only)" = "$(printf 'cmd/polyfin/main.go\ninternal/server/webclient.js')"
+          test -f upstream/cmd/polyfin/authbridge.go
+          test -f upstream/cmd/polyfin/authbridge_test.go
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+
+      - name: Format and verify minimal Go bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream
+          gofmt -w cmd/polyfin/authbridge.go cmd/polyfin/authbridge_test.go
+          go test ./cmd/polyfin -run '^TestBridge' -count=1 -v
+          go vet ./cmd/polyfin
+
+      - name: No deployment or admission changes
+        run: |
+          set -euo pipefail
+          if git diff --name-only origin/main...HEAD | grep -Eq '^k8s/|private-pilot-admission.json|polyfin-downstream-build.yaml'; then
+            echo 'SSO prototype must not modify live GitOps or CVE admission' >&2
+            exit 1
+          fi
