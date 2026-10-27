@@ -95,6 +95,15 @@ serviceMonitor:
         release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
+    - name: aiostreams-ui
+      url: https://aiostreams.smadja.dev/api/v1/health
+      module: http_ui
+      additionalMetricsRelabels:
+        v1_user_ready: "true"
+      labels:
+        release: kube-prometheus-stack
+        qa_level: l2
+        v1_user_ready: "true"
     - name: authentik-argocd-discovery
       url: https://auth.smadja.dev/application/o/argocd/.well-known/openid-configuration
       module: http_oidc
