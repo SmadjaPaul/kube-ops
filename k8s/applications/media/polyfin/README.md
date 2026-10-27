@@ -182,6 +182,44 @@ recording intentionally moves bytes through the server. Therefore:
   publish until remote IPTV *cannot* use the server as video relay.
 - No P2P torrenting, WireGuard, inbound UDP discovery or DLNA in this pilot.
 
+## Authentik OIDC status — explicitly blocked upstream
+
+Polyfin SSO is **not configured**. This is intentional: upstream issue
+[#217](https://github.com/moodiness/polyfin/issues/217) remains open in the
+`Later` milestone, with no linked implementation branch or pull request. The
+latest released Polyfin version used by this pilot is `0.50.0`; upstream's
+current Silo capability contract still advertises both OAuth and external sign
+in as unsupported, and the deployed web login remains the native username /
+password flow.
+
+Do not add an Authentik provider, client secret, callback URL, Cilium egress
+exception or web-only button until Polyfin has a real server-side callback.
+There is no valid redirect URI to register today. An Authentik reverse-proxy
+outpost would only front the page and would not create a Polyfin/Jellyfin
+session, so it is not an acceptable substitute.
+
+The minimum maintainable implementation belongs upstream and must be treated
+as a new Polyfin image, not as a Kubernetes overlay. It requires:
+
+1. server-side Authorization Code + PKCE routes with `state`, `nonce`, one-use
+   expiry and replay protection;
+2. discovery/JWKS validation with exact issuer, audience and expiration checks;
+3. an encrypted provider configuration and a stable `(issuer, sub)` identity
+   table, with explicit linking of the existing administrator and a local
+   break-glass account;
+4. creation of a normal Polyfin/Jellyfin session, logout and revocation
+   semantics, plus authorization/group mapping;
+5. web and admin-client integration, Quick Connect compatibility and tests for
+   denied groups, account isolation and session invalidation; and
+6. a new signed image with SBOM, provenance, vulnerability scan and a new
+   immutable admission record. The current temporary CVE acceptance is bound
+   to the existing digest and must not transfer to that image.
+
+Until those upstream contracts exist and a real end-to-end login is proven,
+the acceptance state is `OIDC=NOT_EXECUTED`, while native Polyfin login and
+Quick Connect remain unchanged. No Authentik secret is read or added by this
+pilot.
+
 ## Codex activation checklist
 
 1. Inspect current upstream release and published multiarchitecture image.
