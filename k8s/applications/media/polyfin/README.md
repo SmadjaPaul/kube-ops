@@ -3,12 +3,63 @@
 Status: **STAGED / NOT DEPLOYED**. The parent media Kustomization does not
 reference this folder. Do not enable until all admission gates below pass.
 
-Current admission result (2026-10-27): the upstream stable `0.50.0` image is
-pinned by digest, but the security gate is **BLOCKED**. The image scan reports
-six unresolved HIGH vulnerabilities (including fixes published for the
-affected packages), and no verifiable Cosign signature was found for the
-published digest. Keep the parent admission absent until a patched, verifiable
-upstream image is available.
+Current admission result (2026-10-27): upstream stable `0.50.0` is pinned by
+digest; activation remains **BLOCKED**. A reproducible Trivy 0.76.1 scan of
+`linux/amd64` on workflow run
+[`40558560121`](https://github.com/SmadjaPaul/kube-ops/actions/runs/40558560121)
+reports **61 HIGH/CRITICAL affected-package occurrences, 23 distinct CVEs,
+including one CRITICAL**; six distinct CVEs have published fixes. The original
+operator scan reported six HIGH, apparently using a narrower or
+fixed-vulnerabilities-only filter: its exact command needs comparison.
+Do not confuse the number of package occurrences with distinct CVEs.
+No Cosign publisher signature was verified. The whole Trivy JSON and TSV
+are attached as GitHub Actions artifact `polyfin-oci-trivy-amd64`.
+
+## Reproducible vulnerability findings — 2026-10-27
+
+Exact target:
+`ghcr.io/moodiness/polyfin:0.50.0@sha256:b544e75ae8f028214d6dd1ea7fd55094b75211c081a41d7c6afe0917637cc719`
+on `linux/amd64`; Trivy **v0.76.1**, Debian **13.7**, OS + library,
+`HIGH,CRITICAL`, `ignore-unfixed=false`. CI keeps an immutable workflow
+artifact for 14 days and **fails deliberately** when severe findings exist.
+The scanner and date matter; reruns against newer advisories may differ.
+
+| Group | Occurrences | Unique CVEs | Fixable unique CVEs |
+| --- | ---: | ---: | ---: |
+| Debian OS packages | 57 | 19 | 2 |
+| Go standard library in Polyfin binary | 4 | 4 | 4 |
+| **Total** | **61** | **23** | **6** |
+
+**First upstream patch candidate (not a signed or validated image):**
+- Rebuild Polyfin using patched Go **1.27.3** instead of upstream
+  `golang:1.27.1-alpine`: four vulnerabilities in `stdlib`
+  (`CVE-2026-111943`, `CVE-2026-78667`, `CVE-2026-78669`,
+  `CVE-2026-97031`). Pin the updated Go base image by digest.
+- Apply current Debian Trixie security updates in the *final runtime
+  stage* (not merely the build stage): fixes published for
+  `CVE-2026-103111` (`libpcre2-8-0`) and
+  `CVE-2026-84782` (`libssl3t64`, `openssl-provider-legacy`).
+- After patching: rebuild/publish with signed provenance, SBOM and
+  verified OCI digest; rescan the exact `linux/amd64` candidate.
+  Never assert that rebuilding from the same source automatically fixes
+  unfixed Debian packages or authenticates the publisher.
+
+**Other findings:** 17 remaining unique Debian CVEs have no fixed-version
+entry in the scanner, including Trivy **CRITICAL `CVE-2026-6653`**
+(`libxml2`, a malformed-XML denial-of-service scenario). Debian's
+Trixie tracker describes it as `no-dsa` / minor; that is *not* a
+proof of non-reachability in Polyfin, especially with XMLTV, image
+processing, subtitles and FFmpeg/Tesseract dependencies. Need concrete
+runtime linkage and reachable-input analysis before considering any
+limited internal-pilot risk acceptance. Never bypass Trivy silently,
+suppress whole package families, or relax all media/network gates.
+
+**Remaining gates:** verified source-to-image provenance; published
+image integrity/signature or signed and auditable downstream build;
+specific CVE remediation + justified treatment of any remaining
+findings; user authorizes any documented temporary risk acceptance;
+successful backup restore; actual runtime device/direct-play tests.
+Public route and Polyfin admission remain OFF.
 
 ## Outstanding security evidence for v0.50.0
 
