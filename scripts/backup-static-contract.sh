@@ -60,7 +60,8 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
     {
       namespace:(.metadata.namespace//"default"),
       name:.metadata.name,
-      wal:any(.spec.plugins[]?; .isWALArchiver==true)
+      wal:any(.spec.plugins[]?; .isWALArchiver==true),
+      drill:(.metadata.labels["backup.smadja.dev/restore-drill"]=="true")
     }
   ] as $clusters |
   [$docs[] |
@@ -85,9 +86,10 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
     missingCNPG:[
       $clusters[] as $c |
       select(
-        ($c.wal|not) or
+        ($c.drill|not) and
+        (($c.wal|not) or
         (any($backups[]?; .namespace==$c.namespace and .cluster==$c.name)|not) or
-        (any($stores[]?; .namespace==$c.namespace)|not)
+        (any($stores[]?; .namespace==$c.namespace)|not))
       ) |
       $c
     ]
