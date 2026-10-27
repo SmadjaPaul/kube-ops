@@ -41,13 +41,15 @@ spec:
         - ports:
             - port: "5432"
               protocol: TCP
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: media
-            app.kubernetes.io/name: aiostreams
+    # The configured AIOStreams manifest and its child endpoints use
+    # https://aiostreams.smadja.dev, resolved internally via the Cilium
+    # Gateway VIP. The direct AIOStreams Pod ingress policy does NOT admit
+    # Polyfin, so do not pretend that port 3000 traffic would work.
+    - toCIDRSet:
+        - cidr: 10.0.20.192/32
       toPorts:
         - ports:
-            - port: "3000"
+            - port: "443"
               protocol: TCP
     - toFQDNs:
         - matchName: aiometadata.streetle.dev
