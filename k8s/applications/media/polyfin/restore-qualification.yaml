@@ -5,6 +5,7 @@ metadata:
   namespace: media
   labels:
     backup.smadja.dev/qualification: polyfin-cnpg-restore
+    backup.smadja.dev/restore-drill: "true"
     backup.smadja.dev/source-backup-id: "20261027T213232"
 spec:
   instances: 1
