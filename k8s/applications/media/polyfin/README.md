@@ -10,6 +10,33 @@ affected packages), and no verifiable Cosign signature was found for the
 published digest. Keep the parent admission absent until a patched, verifiable
 upstream image is available.
 
+## Outstanding security evidence for v0.50.0
+
+- Preserve the **exact Trivy JSON** from the pinned OCI index and the
+  `linux/amd64` workload image; list all HIGH/CRITICAL IDs, component, installed
+  and fixed version, Debian/Go/FFmpeg origin, exploitability and reachability.
+  A count of 6 HIGH alone is not enough to choose a safe remediation.
+- Upstream `v0.50.0` uses `docker/build-push-action` with
+  `provenance: mode=max` and `sbom: true` in
+  `.github/workflows/ci.yml`, but has no Cosign signing step there.
+  BuildKit **unsigned** provenance and SBOM are useful to audit but are not
+  equivalent to a verified publisher signature. Confirm the OCI attestations
+  refer to the pinned digest and repository/commit; never claim Cosign PASS.
+- Prefer an upstream patched and signed release. If unavailable, consider a
+  separately reviewed, **reproducible minimal downstream image rebuild** from
+  the exact tagged source with patched dependencies, Trivy/SBOM/provenance,
+  user-controlled signing and a pinned immutable digest. It is an explicit
+  maintenance trade-off, NOT permission to turn off the admission gate.
+- This draft's CI does not run the security gate or prove runtime. Keep Argo
+  Polyfin admission OFF until the candidate image passes the approved policy.
+- `polyfin-db` now declares `spec.plugins` with `isWALArchiver: true`, bound to
+  `polyfin-hetzner-store`. Verify that the Barman CNPG-I operator exists in the
+  cluster and inspect WAL archival status, a successful backup AND a restore
+  before reporting backup operational.
+- The configured AIOStreams HTTPS manifest uses split DNS / internal Gateway
+  `10.0.20.192:443`; direct Pod-to-Pod access to `aiostreams:3000`
+  is not allowed by AIOStreams ingress. Test Cilium VIP hairpin at runtime.
+
 This is the upstream [Polyfin](https://github.com/moodiness/polyfin) Jellyfin
 API server. Existing AIOStreams (TorBox, Comet, Meteor, AIOMetadata, Cinemeta)
 and Jellyfin (local music) stay running unchanged. Polyfin adds individual
