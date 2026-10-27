@@ -46,6 +46,12 @@ yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[0].fromEndp
 yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[0].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" | grep -Fx 5432 >/dev/null || {
   echo 'POLYFIN_STATIC=FAIL CNPG ingress port mismatch' >&2; exit 1
 }
+yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[1].fromEndpoints[0].matchLabels."app.kubernetes.io/name"' "$root/networkpolicy.yaml" | grep -Fx cloudnative-pg >/dev/null || {
+  echo 'POLYFIN_STATIC=FAIL CNPG operator source mismatch' >&2; exit 1
+}
+yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[1].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" | grep -Fx 8000 >/dev/null || {
+  echo 'POLYFIN_STATIC=FAIL CNPG status port mismatch' >&2; exit 1
+}
 eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3'
 [[ "$(jq -r '.image.repository + ":" + .image.tag + "@" + .image.digest' .github/polyfin/private-pilot-admission.json)" == "ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3" ]] || {
   echo 'POLYFIN_STATIC=FAIL admission digest mismatch' >&2; exit 1
