@@ -35,11 +35,12 @@ yq -e '
   (.metadata.namespace == "mastra-factory") and
   (.spec.endpointSelector.matchLabels."app.kubernetes.io/name" == "mastra-factory") and
   ([.spec.ingress[].fromEntities[]] | length == 3) and
-  ([.spec.ingress[].fromEntities[]] | .[0] == "host") and
-  ([.spec.ingress[].fromEntities[]] | .[1] == "remote-node") and
-  ([.spec.ingress[].fromEntities[]] | .[2] == "ingress") and
+  ([.spec.ingress[].fromEntities[]] | contains(["host"])) and
+  ([.spec.ingress[].fromEntities[]] | contains(["remote-node"])) and
+  ([.spec.ingress[].fromEntities[]] | contains(["ingress"])) and
   ([.spec.ingress[]?.toPorts[]?.ports[]? |
     select(.port == "4111" and .protocol == "TCP")] | length > 0) and
+  (.spec.egress | length == 12) and
   ([.spec.egress[]? |
     select(
       ([.toEndpoints[]?.matchLabels? |
