@@ -40,6 +40,7 @@ check:
     bash tests/harness/mastra-sandbox-tmp-contract-test.sh
     bash tests/harness/mastra-factory-promotion-test.sh
     bash tests/harness/arc-gitops-contract-test.sh
+    bash tests/harness/minimax-quota-regulation-contract-test.sh
     bash tests/harness/invoice-backup-test.sh
     bash tests/harness/decypharr-torbox-staged-test.sh
     bash tests/harness/rdt-client-staged-contract-test.sh
@@ -69,6 +70,7 @@ check-affected:
     bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh
     bash tests/harness/mastra-sandbox-tmp-contract-test.sh
     bash tests/harness/mastra-factory-promotion-test.sh
+    bash tests/harness/minimax-quota-regulation-contract-test.sh
     npm run check:agent-harness
     bash scripts/affected-tests.sh
 
