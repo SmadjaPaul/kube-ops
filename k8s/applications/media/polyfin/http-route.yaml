@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: polyfin
+  namespace: media
+spec:
+  # No external Gateway or Cloudflare. LAN/VPN pilot only.
+  parentRefs:
+    - name: internal
+      namespace: gateway
+  hostnames:
+    - tv.smadja.dev
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: polyfin
+          port: 80
