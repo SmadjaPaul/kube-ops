@@ -70,3 +70,12 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # The Cilium Gateway LoadBalancer VIP is classified as world traffic on
+    # this cluster. Keep the service rule above for endpoint-aware paths, and
+    # explicitly admit the observed private VIP used by split-horizon DNS.
+    - toCIDRSet:
+        - cidr: 10.0.20.192/32
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
