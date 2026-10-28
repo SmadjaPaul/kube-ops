@@ -46,8 +46,12 @@ spec:
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
             # Bootstrap delivery capability only; Linear admission remains off.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
-            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
+            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_QUALIFIED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_IN_FLIGHT, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_MAX_ATTEMPTS, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_MAX_TOKENS, value: "50000"}
+            - {name: MASTRACODE_AUTONOMOUS_MAX_COST_USD, value: "1"}
             - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
             # Research stays explicitly disabled until a reviewed image
             # containing the lifecycle routes is promoted.
