@@ -52,6 +52,7 @@ while IFS= read -r path; do
     terraform/aiostreams/backend.tf|terraform/aiostreams/main.tf|terraform/aiostreams/variables.tf|\
     terraform/aiostreams/versions.tf|terraform/aiostreams/.terraform.lock.hcl|\
     terraform/aiostreams/README.md|terraform/aiostreams/terraform.tfvars.example|\
+    terraform/doppler/aiostreams-atlantis-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend-variables.tf|\
     terraform/cloudflare/modules/access/README.md|\
@@ -94,7 +95,7 @@ test "$(git hash-object "$DIR/terraform/github/backend.tf")" = "63d68a69487cf768
   fail "GitHub backend is not the server-admitted canonical file"
 test -f "$DIR/.atlantis/plan-only.yaml" || fail "server project registry is missing"
 case "$(git hash-object "$DIR/.atlantis/plan-only.yaml")" in
-  fc66d3b6d8c59581cf3f771b33766d1ebcb042a3|79522bce630cad360a6ebe3bf6f1ebc965379cb9) ;;
+  fc66d3b6d8c59581cf3f771b33766d1ebcb042a3|79522bce630cad360a6ebe3bf6f1ebc965379cb9|37cf4ab1d01f0228a305d54f458e7a9c51930127) ;;
   *) fail "server project registry changed outside admission" ;;
 esac
 test -f "$DIR/terraform/github/provider.tf" || fail "GitHub provider is missing"

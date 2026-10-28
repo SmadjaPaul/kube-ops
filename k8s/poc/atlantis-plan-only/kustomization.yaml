@@ -9,6 +9,7 @@ resources:
   - github-app-external-secret.yaml
   - github-iac-external-secret.yaml
   - pilot-backend-external-secret.yaml
+  - aiostreams-provider-external-secret.yaml
   - webhook-route.yaml
   - network-policy.yaml
 

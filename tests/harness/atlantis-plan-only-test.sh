@@ -23,6 +23,10 @@ grep -q 'key.pem' "$rendered"
 grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
 grep -q 'name: atlantis-pilot-backend' "$rendered"
+grep -q 'name: atlantis-aiostreams-provider' "$rendered"
+grep -q 'ATLANTIS_AIOSTREAMS_S3_ACCESS_KEY_ID' "$rendered"
+grep -q 'APP_AIOSTREAMS_TERRAFORM_PASSWORD' "$rendered"
+grep -q 'APP_TORBOX_API_KEY' "$rendered"
 grep -q 'AWS_ACCESS_KEY_ID' "$rendered"
 grep -q 'AWS_SECRET_ACCESS_KEY' "$rendered"
 grep -q 'AWS_REGION' "$rendered"
@@ -79,6 +83,8 @@ if grep -q 'REPO_REL_DIR' <<<"$post_hook"; then
 fi
 grep -q 'PROJECT_DIR="$CHECKOUT_ROOT/terraform/github"' k8s/poc/atlantis-plan-only/values.yaml
 grep -q 'PILOT_DIR="$CHECKOUT_ROOT/terraform/atlantis-pilot"' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'PROJECT_DIR="$CHECKOUT_ROOT/terraform/aiostreams"' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'aiostreams_configuration.family' k8s/poc/atlantis-plan-only/values.yaml
 if grep -q 'CHECKOUT_ROOT/\$REPO_REL_DIR' k8s/poc/atlantis-plan-only/values.yaml; then
   echo "Atlantis post-workflow hooks must not depend on an unexported REPO_REL_DIR" >&2
   exit 1
@@ -91,6 +97,8 @@ grep -q 'name: atlantis-pilot-conftest' "$rendered"
 grep -q 'pilot.rego:' "$rendered"
 grep -q 'allowed_pilot_actions' k8s/poc/atlantis-plan-only/policies/pilot.rego
 grep -q 'not action in allowed_pilot_actions' k8s/poc/atlantis-plan-only/policies/pilot.rego
+grep -q 'allowed_aiostreams_actions' k8s/poc/atlantis-plan-only/policies/pilot.rego
+grep -q 'not action in allowed_aiostreams_actions' k8s/poc/atlantis-plan-only/policies/pilot.rego
 grep -q 'name: atlantis-github-iac' "$rendered"
 grep -q 'kind: ClusterSecretStore' "$rendered"
 grep -q 'name: doppler-cluster' "$rendered"
@@ -99,6 +107,7 @@ grep -q 'github-repository-safety.rego:' "$rendered"
 grep -q 'github-atlantis-guard.sh:' "$rendered"
 grep -q 'fc66d3b6d8c59581cf3f771b33766d1ebcb042a3' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q '79522bce630cad360a6ebe3bf6f1ebc965379cb9' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
+grep -q '37cf4ab1d01f0228a305d54f458e7a9c51930127' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q 'scripts/architecture-check.sh' "$rendered"
 grep -q 'terraform/cloudflare/modules/access/README.md' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 if grep -Eq 'terraform/\*/modules/\*/README\.md|security-headers/variables\.tf' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh; then
