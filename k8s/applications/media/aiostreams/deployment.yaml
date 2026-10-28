@@ -55,6 +55,10 @@ spec:
                   key: AIOSTREAMS_AUTH
             - name: AIOSTREAMS_AUTH_REQUIRED
               value: "true"
+            # Family users still authenticate with the shared configuration
+            # password; PINs only protect profile switching.
+            - name: JELLYFIN_PIN_SIGN_IN
+              value: "false"
             # OIDC is enabled only after Authentik provider and login tests.
             # Its login covers dashboard/configuration, not Stremio/TV clients.
             - name: AIOSTREAMS_OIDC_ENABLED
