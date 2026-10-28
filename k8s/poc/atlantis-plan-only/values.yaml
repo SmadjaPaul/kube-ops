@@ -391,7 +391,11 @@ repoConfig: |
                 test "$($TOFU workspace show)" = "default"
                 "$TOFU" state list | grep -Fx 'aiostreams_configuration.family'
                 state=$($TOFU state pull)
-                if printf '%s' "$state" | grep -Eiq 'password_wo|credentials_json_wo|APP_AIOSTREAMS_TERRAFORM_PASSWORD|APP_TORBOX_API_KEY|apiKey'; then
+                # OpenTofu keeps write-only attributes as explicit nulls in state.
+                # Strip those markers, then reject any remaining credential field
+                # or value without printing the state contents.
+                state_without_write_only_nulls=$(printf '%s' "$state" | sed -E 's/"(password_wo|credentials_json_wo)"[[:space:]]*:[[:space:]]*null//g')
+                if printf '%s' "$state_without_write_only_nulls" | grep -Eiq 'password_wo|credentials_json_wo|APP_AIOSTREAMS_TERRAFORM_PASSWORD|APP_TORBOX_API_KEY|apiKey'; then
                   echo "AIOStreams state contains a write-only credential field" >&2
                   exit 1
                 fi

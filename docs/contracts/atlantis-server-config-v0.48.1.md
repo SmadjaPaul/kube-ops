@@ -41,6 +41,10 @@ identity.
 
 The verification is an explicit `run` step after native `apply` in the server-owned apply workflow. It runs before Atlantis can automerge. `DIR` is the project checkout directory within the workflow; the verifier resolves the root from its fixed two-level `terraform/<project>` location. No `post_workflow_hooks` dependency remains. Failure of the verifier fails the apply workflow, rather than producing a misleading after-merge status.
 
+For the AIOStreams root, the verifier permits the provider's explicit `null`
+write-only state markers and fails only if a credential field or value remains
+non-null or is emitted under an alternate secret name.
+
 ## Apply and merge semantics
 
 Atlantis OSS v0.48.1 applies the saved plan through the native `apply` command;
