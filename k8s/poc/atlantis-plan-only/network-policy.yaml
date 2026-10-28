@@ -54,7 +54,6 @@ spec:
         - matchName: releases.hashicorp.com
         - matchName: release-assets.githubusercontent.com
         - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
-        - matchName: aiostreams.smadja.dev
       toPorts:
         - ports:
             - port: "443"
@@ -73,6 +72,8 @@ spec:
     # The Cilium Gateway LoadBalancer VIP is classified as world traffic on
     # this cluster. Keep the service rule above for endpoint-aware paths, and
     # explicitly admit the observed private VIP used by split-horizon DNS.
+    # Keep the AIOStreams hostname out of toFQDNs so this path stays L3/L4 and
+    # does not get merged into the FQDN proxy rule above.
     - toCIDRSet:
         - cidr: 10.0.20.192/32
       toPorts:
