@@ -15,6 +15,15 @@ spec:
         - ports:
             - port: "3000"
               protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: atlantis-system
+            k8s:app: atlantis
+            k8s:release: atlantis-pilot
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
