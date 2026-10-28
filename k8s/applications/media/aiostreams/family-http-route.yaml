@@ -12,7 +12,7 @@ spec:
   rules:
     - matches:
         - path:
-            type: PathExact
+            type: Exact
             value: /
       filters:
         - type: RequestRedirect
