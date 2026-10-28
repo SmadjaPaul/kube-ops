@@ -46,7 +46,7 @@ spec:
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
             # Bootstrap delivery capability only; Linear admission remains off.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
-            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
             - {name: MASTRACODE_AUTONOMOUS_QUALIFIED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_IN_FLIGHT, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_ATTEMPTS, value: "1"}
