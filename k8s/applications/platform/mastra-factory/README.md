@@ -33,6 +33,12 @@ Those are **deployment** checks, not Factory Issue→PR E2E proof.
    `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_CLIENT_ID`,
    `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_SLUG`, `GITHUB_APP_WEBHOOK_SECRET`.
    Do not ship a partial group or expose secrets in Git.
+   A separate `smadja-factory-reviewer` App is injected through the same
+   ExternalSecret as `GITHUB_REVIEWER_APP_*`. It has Contents read-only, Pull
+   requests read/write and Metadata read-only, is limited to the selected
+   repositories, is not registered as a second Mastra provider integration,
+   and has no webhook secret. Its private key and OAuth client secret remain
+   Doppler-only.
 4. Upstream Factory documents that GitHub App installation tokens can fail
    for `gh` inside sandboxes. **Do not give agents a persistent classic PAT.**
    Verify scoped installation tokens with Git HTTPS/REST or a narrow, audited
