@@ -16,7 +16,8 @@
     "sbomSha256": "8707a88a2ab947635937559809a874c1fe99bd2758f19025e261f44dd0e822e8"
   },
   "perimeter": {
-    "hostname": "tv.smadja.dev",
+    "hostname": null,
+    "routeStatus": "disabled",
     "gateway": "internal",
     "lanVpnOnly": true,
     "cloudflarePublicRoute": false,

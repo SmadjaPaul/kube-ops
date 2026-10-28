@@ -15,9 +15,9 @@ eq() {
   got="$(yq -r "$1" "$2" | head -n 1)"
   [[ "$got" == "$3" ]] || { echo "POLYFIN_STATIC=FAIL $2 $1 got=$got want=$3" >&2; exit 1; }
 }
-eq '.spec.parentRefs | length' "$root/http-route.yaml" '1'
-eq '.spec.parentRefs[0].name' "$root/http-route.yaml" internal
-eq '.spec.hostnames[0]' "$root/http-route.yaml" tv.smadja.dev
+! grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/kustomization.yaml"
+jq -e '.perimeter.hostname == null and .perimeter.routeStatus == "disabled"' \
+  .github/polyfin/private-pilot-admission.json >/dev/null
 eq '.spec.template.spec.automountServiceAccountToken' "$root/deployment.yaml" false
 # The existing Cilium egress permits only 10.0.20.192:443 for AIOStreams.
 # Bind this hostname inside Polyfin alone; do not use public Cloudflare AAAA.

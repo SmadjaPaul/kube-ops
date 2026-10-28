@@ -1,7 +1,9 @@
 # Polyfin — family media pilot (private LAN/VPN)
 
-Status: **PRIVATE PILOT ADMITTED / PENDING ARGO RECONCILIATION**. The parent
-media Kustomization enables this folder only through the reviewed PR #781.
+Status: **PRIVATE PILOT ADMITTED / ROUTE DISABLED**. The parent media
+Kustomization still keeps the workload and its data resources staged, but its
+Gateway HTTPRoute is intentionally disabled. `tv.smadja.dev` is reserved for
+the native AIOStreams family player; this change does not delete Polyfin data.
 There is no external HTTPRoute or Cloudflare Tunnel.
 
 The temporary risk acceptance is machine-checked by
@@ -191,9 +193,9 @@ same issue arises repeatedly across workloads.
 
 ## Intended topology
 
-- `tv.smadja.dev` routes to Polyfin on port 8096 through the **internal**
-  Cilium Gateway; split DNS resolves to `10.0.20.192`. This is a LAN/VPN-only
-  pilot. No external HTTPRoute, Tunnel, public DNS or Cloudflare Access.
+- No active HTTPRoute exposes Polyfin. `tv.smadja.dev` is owned by the native
+  AIOStreams route; the Polyfin workload remains unreachable through the
+  Gateway until a separate reviewed hostname and admission decision exists.
 - App: one Pod (nonroot UID 65532, readonly rootfs), `/data` on Longhorn.
 - Database: separate single-instance CNPG `polyfin-db`, with app credentials
   auto-generated in Secret `polyfin-db-app` (field `uri`).

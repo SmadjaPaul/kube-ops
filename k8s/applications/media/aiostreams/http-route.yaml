@@ -9,6 +9,7 @@ spec:
       namespace: gateway
   hostnames:
     - aiostreams.smadja.dev
+    - tv.smadja.dev
   rules:
     - backendRefs:
         - name: aiostreams

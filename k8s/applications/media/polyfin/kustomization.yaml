@@ -8,7 +8,6 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
-  - http-route.yaml
   - networkpolicy.yaml
 # Activation remains separate from ../kustomization.yaml until the upstream
 # image security gate and runtime admission checks pass.
