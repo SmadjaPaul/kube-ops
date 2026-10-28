@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
   annotations:
-    factory-platform.dev/source-sha: 08df15ff9709ff4a36c01658f3fa61866d4bdade
+    factory-platform.dev/source-sha: 7c41d6f5841f67ce291c85abeb85534e30f4c1fc
 spec:
   replicas: 1 # Keep one dispatcher until cross-replica sandbox claim locking is qualified.
   strategy: {type: Recreate}
@@ -30,7 +30,7 @@ spec:
       containers:
         - name: factory
           # Rollback digest: sha256:e9a1ed3a0a7c8db301d1a2fb150f9055abaa929bf2639a3e0a2cc5f90703ffbb
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:71b9ae48b6f4778014caaaa36237df12eedcf411e22b46d74a78a04acb011f14
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:d2db7e7fcb3526a52dd0d94d6d2fbd344105ce55951c642be49dd6fb94f79b79
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
