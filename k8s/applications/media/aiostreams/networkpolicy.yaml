@@ -74,7 +74,7 @@ spec:
         - matchName: comet.feels.legal
         - matchName: meteorfortheweebs.midnightignite.me
         - matchName: stremthru.13377001.xyz
-        - matchName: opensubtitles.stremio.homes
+        - matchName: opensubtitles-v3.strem.io
         - matchName: aiometadata.streetle.dev
       toPorts:
         - ports:
