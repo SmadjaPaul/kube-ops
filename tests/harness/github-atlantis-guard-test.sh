@@ -119,6 +119,15 @@ run_case() {
       printf '%s\n' '[tools]' >"$fixture/mise.local.toml"
       change_path=mise.local.toml
       ;;
+    aiostreams-lockfile-allowed)
+      mkdir -p "$fixture/terraform/aiostreams"
+      printf '%s\n' '# generated provider lock' >"$fixture/terraform/aiostreams/.terraform.lock.hcl"
+      ;;
+    aiostreams-nested-denied)
+      mkdir -p "$fixture/terraform/aiostreams/nested"
+      printf '%s\n' 'resource "terraform_data" "unexpected" {}' >"$fixture/terraform/aiostreams/nested/main.tf"
+      change_path=terraform/aiostreams/nested/main.tf
+      ;;
     *)
       echo "unknown guard test case: $name" >&2
       return 1
@@ -126,6 +135,9 @@ run_case() {
   esac
 
   git -C "$fixture" add -A
+  if test -f "$fixture/terraform/aiostreams/.terraform.lock.hcl"; then
+    git -C "$fixture" add -f terraform/aiostreams/.terraform.lock.hcl
+  fi
   git -C "$fixture" commit -qm "$name"
   head="$(git -C "$fixture" rev-parse HEAD)"
   set +e
@@ -175,6 +187,8 @@ run_case ci-workflow-sibling-denied deny .github/workflows/other.yml
 run_case mise-lock-path-allowed pass mise.lock
 run_case mise-config-path-allowed pass mise.toml
 run_case mise-config-sibling-denied deny mise.local.toml
+run_case aiostreams-lockfile-allowed pass terraform/aiostreams/.terraform.lock.hcl
+run_case aiostreams-nested-denied deny terraform/aiostreams/nested/main.tf
 
 run_security_pin_cases() {
   local fixture guard_copy head policy_hash executor_hash status output
