@@ -109,8 +109,11 @@ route, or blanket external egress.
   AIOStreams, Gateway or Cloudflare media bytes, including HLS/range,
   subtitles, thumbnails and fallback paths.
 - The admitted `HTTPRoute` attaches only to `gateway/internal`. Private
-  ExternalDNS therefore derives `aiostreams.smadja.dev` for the UniFi LAN/VPN
-  DNS path and points it at the internal Gateway VIP. It is not watched by the
+  ExternalDNS therefore derives `aiostreams.smadja.dev` and `tv.smadja.dev`
+  for the UniFi LAN/VPN DNS path and points both names at the internal Gateway
+  VIP. The native AIOStreams profile alias `tv` is served by the same
+  AIOStreams instance; it does not change the configuration UUID or password.
+  It is not watched by the
   public ExternalDNS path, and Cloudflare's wildcard/tunnel cannot reach this
   route because it has no `gateway/external` parent. No per-application
   Cloudflare DNS record or tunnel ingress is introduced. This remains an
