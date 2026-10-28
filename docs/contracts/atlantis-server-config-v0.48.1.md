@@ -13,7 +13,7 @@ the twelve production roots remain pending individual qualification.
 | Apply admission | only the exact pilot mapping; `disableApplyAll: true`; `mergeable`, `undiverged`; no GitHub `approved` requirement | PASS (runtime) |
 | Policy check | server `--enable-policy-checks`, local Conftest policy mounted from GitOps ConfigMap, no policy owner able to approve a failure | PASS (runtime: 12/12) |
 | Apply scope | native `apply` step consumes Atlantis' saved plan; policy admits only `terraform_data.pilot` create/no-op | PASS (runtime) |
-| Post-apply verification | server-side apply hook verifies repository, base branch, project, OpenTofu binary, workspace and exact state address | PASS (runtime) |
+| Post-apply verification | server-owned apply workflow step verifies repository, base branch, project, OpenTofu binary, workspace and exact state address | PASS (runtime) |
 | Locking | Atlantis `repo_locks.mode: on_plan`; OCI backend `use_lockfile = true` | PASS (runtime) |
 | Custom workflows / arguments | PR workflow is not trusted; custom workflows and overrides are disabled; empty comment arguments are required | PASS |
 | Credentials and egress | dedicated ESO secret and OCI egress only; no operator credential; provider registry remains denied | PASS (runtime) |
@@ -37,14 +37,9 @@ This is deliberately a native Atlantis policy check. It does not add a second
 Terraform/OpenTofu orchestrator and does not grant the policy an operator
 identity.
 
-## Post-workflow hook environment
+## Post-apply verification environment
 
-The server-owned `post_workflow_hooks` run outside the custom workflow steps.
-Their supported built-ins include `DIR` (the absolute checkout root),
-`PROJECT_NAME`, `HEAD_COMMIT`, `COMMAND_NAME`, `COMMAND_HAS_ERRORS` and
-`OUTPUT_STATUS_FILE`. `REPO_REL_DIR` is a custom-workflow variable and must
-not be referenced by a post-workflow hook. The pilot hook therefore selects
-one of its fixed, server-owned project paths below `DIR` from `PROJECT_NAME`.
+The verification is an explicit `run` step after native `apply` in the server-owned apply workflow. It runs before Atlantis can automerge. `DIR` is the project checkout directory within the workflow; the verifier resolves the root from its fixed two-level `terraform/<project>` location. No `post_workflow_hooks` dependency remains. Failure of the verifier fails the apply workflow, rather than producing a misleading after-merge status.
 
 ## Apply and merge semantics
 
@@ -52,7 +47,7 @@ Atlantis OSS v0.48.1 applies the saved plan through the native `apply` command;
 it does not autonomously invoke apply merely because plan succeeded. The
 qualified autonomous path therefore means that an admitted agent invokes
 Atlantis' apply command without a human approval gate, and Atlantis applies the
-saved plan, runs the server-side verification hook, then may automerge only
+saved plan, runs the blocking server-side verification step, then may automerge only
 after all configured plans and applies succeed. An uncertain or failed hook
 must prevent merge.
 
