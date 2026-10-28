@@ -8,6 +8,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - http-route.yaml
+  - family-http-route.yaml
   - networkpolicy.yaml
 patchesStrategicMerge:
   - oidc-deployment-patch.dormant.yaml
