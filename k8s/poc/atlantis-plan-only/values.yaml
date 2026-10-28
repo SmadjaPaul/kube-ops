@@ -267,6 +267,9 @@ repoConfig: |
               name: AIOSTREAMS_PASSWORD
               command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AIOSTREAMS_PASSWORD; else printf ""; fi'
           - env:
+              name: AIOSTREAMS_OPERATOR_AUTH
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AIOSTREAMS_OPERATOR_AUTH; else printf ""; fi'
+          - env:
               name: TF_VAR_torbox_api_key
               command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_torbox_api_key; else printf ""; fi'
           - env:
@@ -364,6 +367,9 @@ repoConfig: |
           - env:
               name: AIOSTREAMS_PASSWORD
               command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AIOSTREAMS_PASSWORD; else printf ""; fi'
+          - env:
+              name: AIOSTREAMS_OPERATOR_AUTH
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AIOSTREAMS_OPERATOR_AUTH; else printf ""; fi'
           - env:
               name: TF_VAR_torbox_api_key
               command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_torbox_api_key; else printf ""; fi'
