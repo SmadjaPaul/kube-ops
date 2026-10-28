@@ -59,3 +59,14 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # Private application names resolve to the shared Cilium internal Gateway
+    # service inside the cluster. Keep this service-specific rather than
+    # opening unrestricted cluster egress.
+    - toServices:
+        - k8sService:
+            serviceName: cilium-gateway-internal
+            namespace: gateway
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
