@@ -25,7 +25,13 @@ grep -Fq "path: /api/v1/health" "$pkg/deployment.yaml"
 grep -Fq "port: \"3000\"" "$pkg/networkpolicy.yaml"
 grep -Fq -- '- name: internal' "$pkg/http-route.yaml"
 grep -Fxq 'aiostreams.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/http-route.yaml")
-grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/http-route.yaml")
+if grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/http-route.yaml"); then
+  echo "AIOSTREAMS_STAGE=FAIL: family hostname must use its dedicated route" >&2
+  exit 1
+fi
+grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/family-http-route.yaml")
+grep -Fxq '/jellyfin/u/tv/web/' <(yq -r '.spec.rules[0].filters[0].requestRedirect.path.replaceFullPath' "$pkg/family-http-route.yaml")
+grep -Fxq '302' <(yq -r '.spec.rules[0].filters[0].requestRedirect.statusCode' "$pkg/family-http-route.yaml")
 if grep -Fq -- '- name: external' "$pkg/http-route.yaml"; then
   echo "AIOSTREAMS_STAGE=FAIL: staged route must not attach to Gateway/external" >&2
   exit 1
