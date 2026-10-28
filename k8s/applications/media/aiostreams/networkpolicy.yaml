@@ -76,6 +76,8 @@ spec:
         - matchName: stremthru.13377001.xyz
         - matchName: opensubtitles-v3.strem.io
         - matchName: aiometadata.streetle.dev
+        - matchName: tmdb.elfhosted.com
+        - matchName: 1fe84bc728af-stremio-anime-catalogs.baby-beamup.club
       toPorts:
         - ports:
             - port: "443"
