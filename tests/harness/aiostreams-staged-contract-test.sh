@@ -33,6 +33,12 @@ grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/family-http-route.ya
 grep -Fxq 'Exact' <(yq -r '.spec.rules[0].matches[0].path.type' "$pkg/family-http-route.yaml")
 grep -Fxq '/jellyfin/u/tv/web/' <(yq -r '.spec.rules[0].filters[0].requestRedirect.path.replaceFullPath' "$pkg/family-http-route.yaml")
 grep -Fxq '302' <(yq -r '.spec.rules[0].filters[0].requestRedirect.statusCode' "$pkg/family-http-route.yaml")
+family_parent_contract='([.spec.parentRefs[].name] | contains(["internal", "external"]))'
+yq -e "$family_parent_contract" "$pkg/family-http-route.yaml" >/dev/null
+if yq 'del(.spec.parentRefs[] | select(.name == "external"))' "$pkg/family-http-route.yaml" | yq -e "$family_parent_contract" >/dev/null 2>&1; then
+  echo "AIOSTREAMS_STAGE=FAIL: family route contract accepts a missing external parent" >&2
+  exit 1
+fi
 if grep -Fq -- '- name: external' "$pkg/http-route.yaml"; then
   echo "AIOSTREAMS_STAGE=FAIL: staged route must not attach to Gateway/external" >&2
   exit 1
