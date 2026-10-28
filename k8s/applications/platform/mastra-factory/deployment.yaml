@@ -37,6 +37,9 @@ spec:
               containerPort: 4111
           env:
             - {name: NODE_ENV, value: production}
+            # Keep long tool-heavy reviewer sessions below the default V8
+            # heap ceiling while leaving headroom under the 2Gi container cap.
+            - {name: NODE_OPTIONS, value: "--max-old-space-size=1536"}
             - {name: PORT, value: "4111"}
             - {name: FACTORY_SANDBOX_PROVIDER, value: kubernetes}
             - {name: FACTORY_KUBERNETES_NAMESPACE, value: mastra-sandbox}
