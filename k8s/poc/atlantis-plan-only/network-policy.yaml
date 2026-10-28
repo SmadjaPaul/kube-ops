@@ -76,7 +76,3 @@ spec:
     # does not get merged into the FQDN proxy rule above.
     - toCIDRSet:
         - cidr: 10.0.20.192/32
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
