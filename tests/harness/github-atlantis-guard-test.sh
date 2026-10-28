@@ -119,6 +119,25 @@ run_case() {
       printf '%s\n' '[tools]' >"$fixture/mise.local.toml"
       change_path=mise.local.toml
       ;;
+    aiostreams-lockfile-allowed)
+      mkdir -p "$fixture/terraform/aiostreams"
+      printf '%s\n' '# generated provider lock' >"$fixture/terraform/aiostreams/.terraform.lock.hcl"
+      ;;
+    aiostreams-nested-denied)
+      mkdir -p "$fixture/terraform/aiostreams/nested"
+      printf '%s\n' 'resource "terraform_data" "unexpected" {}' >"$fixture/terraform/aiostreams/nested/main.tf"
+      change_path=terraform/aiostreams/nested/main.tf
+      ;;
+    aiostreams-backend-files-allowed)
+      mkdir -p "$fixture/terraform/oracle-cloud"
+      printf '%s\n' 'resource "oci_objectstorage_bucket" "aiostreams_state" {}' >"$fixture/terraform/oracle-cloud/aiostreams-state-backend.tf"
+      printf '%s\n' 'variable "enable_aiostreams_state_backend" {}' >"$fixture/terraform/oracle-cloud/aiostreams-state-backend-variables.tf"
+      ;;
+    aiostreams-shared-oracle-file-denied)
+      mkdir -p "$fixture/terraform/oracle-cloud"
+      printf '%s\n' 'variable "unexpected" {}' >"$fixture/terraform/oracle-cloud/variables.tf"
+      change_path=terraform/oracle-cloud/variables.tf
+      ;;
     *)
       echo "unknown guard test case: $name" >&2
       return 1
@@ -126,6 +145,9 @@ run_case() {
   esac
 
   git -C "$fixture" add -A
+  if test -f "$fixture/terraform/aiostreams/.terraform.lock.hcl"; then
+    git -C "$fixture" add -f terraform/aiostreams/.terraform.lock.hcl
+  fi
   git -C "$fixture" commit -qm "$name"
   head="$(git -C "$fixture" rev-parse HEAD)"
   set +e
@@ -175,6 +197,10 @@ run_case ci-workflow-sibling-denied deny .github/workflows/other.yml
 run_case mise-lock-path-allowed pass mise.lock
 run_case mise-config-path-allowed pass mise.toml
 run_case mise-config-sibling-denied deny mise.local.toml
+run_case aiostreams-lockfile-allowed pass terraform/aiostreams/.terraform.lock.hcl
+run_case aiostreams-nested-denied deny terraform/aiostreams/nested/main.tf
+run_case aiostreams-backend-files-allowed pass terraform/oracle-cloud/aiostreams-state-backend.tf
+run_case aiostreams-shared-oracle-file-denied deny terraform/oracle-cloud/variables.tf
 
 run_security_pin_cases() {
   local fixture guard_copy head policy_hash executor_hash status output
