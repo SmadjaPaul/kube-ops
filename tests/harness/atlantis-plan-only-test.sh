@@ -72,7 +72,7 @@ grep -q 'policy_check: true' "$rendered"
 grep -q 'name: TF_DATA_DIR' "$rendered"
 grep -q '          - show' "$rendered"
 grep -q 'atlantis-pilot-bounded-change' "$rendered"
-grep -q 'Verify the selected state after Atlantis apply' "$rendered"
+grep -q 'Verify before Atlantis may automerge' "$rendered"
 grep -q '          - apply' "$rendered"
 grep -q 'init -input=false -reconfigure' "$rendered"
 # State verification must be an apply-workflow run step, never a post-hook.
