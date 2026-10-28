@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
   annotations:
-    factory-platform.dev/source-sha: e1346d21adad4f9c0ca748e6dad60b5105db7192
+    factory-platform.dev/source-sha: 43831a2271108d90082997e1943ba076b0cfd76a
 spec:
   replicas: 1 # Keep one dispatcher until cross-replica sandbox claim locking is qualified.
   strategy: {type: Recreate}
@@ -30,7 +30,7 @@ spec:
       containers:
         - name: factory
           # Rollback digest: sha256:97cc974e0d6242fd7bcc127af45ae70850960e8f3fb68300be6644d620bfbc9e
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:485b26ced101875dc1631a0666e47412ec5c6d336efab0f581ffa0d357020746
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:17d32b15d3c9a18ff41bc2952cd6021b14d5dea22faaa7931969ac68291b560b
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -44,6 +44,10 @@ spec:
             - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
             - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
+            # Bootstrap delivery capability only; Linear admission remains off.
+            - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
+            - {name: MASTRACODE_AUTONOMOUS_MAX_IN_FLIGHT, value: "1"}
             - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
             # Research stays explicitly disabled until a reviewed image
             # containing the lifecycle routes is promoted.
