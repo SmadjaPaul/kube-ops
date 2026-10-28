@@ -105,5 +105,8 @@ jobs:
       - name: Validate GitHub Atlantis admission boundary
         run: bash tests/harness/github-atlantis-guard-test.sh
 
+      - name: Validate Atlantis pre-automerge state verification
+        run: bash tests/harness/atlantis-plan-only-test.sh
+
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh

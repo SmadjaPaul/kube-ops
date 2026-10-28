@@ -72,27 +72,29 @@ grep -q 'policy_check: true' "$rendered"
 grep -q 'name: TF_DATA_DIR' "$rendered"
 grep -q '          - show' "$rendered"
 grep -q 'atlantis-pilot-bounded-change' "$rendered"
-grep -q 'Verify the selected state after Atlantis apply' "$rendered"
+grep -q 'Verify before Atlantis may automerge' "$rendered"
 grep -q '          - apply' "$rendered"
 grep -q 'init -input=false -reconfigure' "$rendered"
-post_hook="$(sed -n '/^      post_workflow_hooks:/,/^      allowed_overrides:/p' k8s/poc/atlantis-plan-only/values.yaml | sed '/^[[:space:]]*#/d')"
-grep -q 'CHECKOUT_ROOT="\$DIR"' <<<"$post_hook"
-if grep -q 'REPO_REL_DIR' <<<"$post_hook"; then
-  echo "Atlantis post-workflow hooks must not use workflow-only REPO_REL_DIR" >&2
+# State verification must be an apply-workflow run step, never a post-hook.
+if grep -q 'post_workflow_hooks:' k8s/poc/atlantis-plan-only/values.yaml; then
+  echo "state verification must run before automerge" >&2
   exit 1
 fi
-grep -q 'PROJECT_DIR="$CHECKOUT_ROOT/terraform/github"' k8s/poc/atlantis-plan-only/values.yaml
-grep -q 'PILOT_DIR="$CHECKOUT_ROOT/terraform/atlantis-pilot"' k8s/poc/atlantis-plan-only/values.yaml
-grep -q 'PROJECT_DIR="$CHECKOUT_ROOT/terraform/aiostreams"' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'CHECKOUT_ROOT="$(cd "$DIR/../.." && pwd)"' k8s/poc/atlantis-plan-only/values.yaml
 grep -q 'aiostreams_configuration.family' k8s/poc/atlantis-plan-only/values.yaml
-if grep -q 'CHECKOUT_ROOT/\$REPO_REL_DIR' k8s/poc/atlantis-plan-only/values.yaml; then
-  echo "Atlantis post-workflow hooks must not depend on an unexported REPO_REL_DIR" >&2
-  exit 1
-fi
-if grep -q 'cd "$DIR/terraform/' k8s/poc/atlantis-plan-only/values.yaml; then
-  echo "Atlantis post-apply hook must resolve from the actual checkout root" >&2
-  exit 1
-fi
+grep -q 'Verify before Atlantis may automerge' k8s/poc/atlantis-plan-only/values.yaml
+# Native apply must precede the state check.
+python3 - <<'PY'
+from pathlib import Path
+s=Path("k8s/poc/atlantis-plan-only/values.yaml").read_text()
+a=s.index("    atlantis-plan-only:")
+b=s.index("      import:",a)
+apply=s[s.index("      apply:",a):b]
+assert apply.index("          - apply\n") < apply.index("Verify before Atlantis may automerge")
+assert "state list" in apply
+assert "COMMAND_HAS_ERRORS" not in apply
+assert "OUTPUT_STATUS_FILE" not in apply
+PY
 grep -q 'name: atlantis-pilot-conftest' "$rendered"
 grep -q 'pilot.rego:' "$rendered"
 grep -q 'allowed_pilot_actions' k8s/poc/atlantis-plan-only/policies/pilot.rego
@@ -122,6 +124,77 @@ if grep -q 'subPath: pilot.rego' "$rendered"; then
 fi
 grep -q 'allowed_overrides: \[\]' "$rendered"
 grep -q 'allow_custom_workflows: false' "$rendered"
+
+# Execute the exact server-owned AIOStreams verifier against isolated fake state.
+# The positive fixture contains the null write-only markers emitted by OpenTofu;
+# the negative fixture contains a non-null credential and must fail closed.
+fixture_root="$(mktemp -d)"
+verify_start="$(grep -n '^          # Verify before Atlantis may automerge' k8s/poc/atlantis-plan-only/values.yaml | cut -d: -f1)"
+verify_end="$(grep -n '^      import:' k8s/poc/atlantis-plan-only/values.yaml | awk -F: -v start="$verify_start" '$1 > start { print $1; exit }')"
+verify_source="$fixture_root/verify.sh"
+sed -n "$((verify_start + 1)),$((verify_end - 1))p" k8s/poc/atlantis-plan-only/values.yaml |
+  sed '1d;s/^              //' >"$verify_source"
+
+run_verifier_case() {
+  local name="$1"
+  local state="$2"
+  local expected_status="$3"
+  local case_root="$fixture_root/$name"
+  local fake_bin="$case_root/bin"
+  local project_dir="$case_root/repo/terraform/aiostreams"
+  local transformed="$case_root/verify.sh"
+  mkdir -p "$fake_bin" "$project_dir"
+  : >"$project_dir/backend.tf"
+  : >"$project_dir/main.tf"
+  printf '%s' "$state" >"$case_root/state.json"
+  cat >"$fake_bin/tofu1.13.1" <<'EOF'
+#!/usr/bin/env bash
+set -eu
+case "$1" in
+  init) exit 0 ;;
+  workspace) test "${2:-}" = show; printf 'default\n' ;;
+  state)
+    case "${2:-}" in
+      list) printf 'aiostreams_configuration.family\n' ;;
+      pull) cat "$FAKE_STATE_FILE" ;;
+      *) exit 2 ;;
+    esac
+    ;;
+  *) exit 2 ;;
+esac
+EOF
+  chmod +x "$fake_bin/tofu1.13.1"
+  sed \
+    -e "s#TOFU=/atlantis-data/bin/tofu1.13.1#TOFU=$fake_bin/tofu1.13.1#g" \
+    -e '/export AWS_ACCESS_KEY_ID=/d' \
+    -e '/export AWS_SECRET_ACCESS_KEY=/d' \
+    -e '/export AWS_REGION=/d' \
+    -e '/export AIOSTREAMS_PASSWORD=/d' \
+    "$verify_source" >"$transformed"
+  chmod +x "$transformed"
+  set +e
+  (
+    export DIR="$project_dir"
+    export PROJECT_NAME=aiostreams
+    export HEAD_COMMIT=fixture
+    export FAKE_STATE_FILE="$case_root/state.json"
+    export PATH="$fake_bin:$PATH"
+    bash "$transformed"
+  ) >"$case_root/output" 2>&1
+  local actual_status="$?"
+  set -e
+  test "$actual_status" = "$expected_status" || {
+    cat "$case_root/output" >&2
+    echo "unexpected verifier status for $name: $actual_status" >&2
+    exit 1
+  }
+}
+
+run_verifier_case positive \
+  '{"password_wo":null,"credentials_json_wo":null,"resources":[]}' 0
+run_verifier_case negative \
+  '{"password_wo":"unexpected-value","credentials_json_wo":null}' 1
+rm -rf "$fixture_root"
 
 deny_line="$(grep -n '^    - id: /\.\*/' k8s/poc/atlantis-plan-only/values.yaml | head -1 | cut -d: -f1)"
 exact_line="$(grep -n '^    - id: github.com/SmadjaPaul/homelab-infra' k8s/poc/atlantis-plan-only/values.yaml | head -1 | cut -d: -f1)"
