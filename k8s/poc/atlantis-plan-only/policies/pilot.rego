@@ -5,17 +5,31 @@ import rego.v1
 allowed_address := "terraform_data.pilot"
 allowed_marker := "atlantis-plan-only-fixture-v1"
 allowed_pilot_actions := {"create", "update", "no-op"}
+allowed_aiostreams_actions := {"create", "update", "no-op"}
 
 github_settings_address(address) if {
   startswith(address, "github_repository.settings[")
+}
+
+aiostreams_family_address(address) if {
+  address == "aiostreams_configuration.family"
 }
 
 deny contains msg if {
   some change in input.resource_changes
   change.address != allowed_address
   not github_settings_address(change.address)
+  not aiostreams_family_address(change.address)
   change.change.actions != ["no-op"]
   msg := sprintf("resource %q is not admitted by the Atlantis pilot policy", [change.address])
+}
+
+deny contains msg if {
+  some change in input.resource_changes
+  aiostreams_family_address(change.address)
+  some action in change.change.actions
+  not action in allowed_aiostreams_actions
+  msg := sprintf("action %q on %q is not admitted by the AIOStreams policy", [action, change.address])
 }
 
 deny contains msg if {

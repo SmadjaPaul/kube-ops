@@ -1,10 +1,11 @@
 fullnameOverride: atlantis-pilot
 
-# Isolated pilot plus the GitHub as Code admission root after backend and App
-# qualification. The Atlantis GitHub App remains distinct from the GitHub IaC
-# App. Secret values are delivered through ESO from Doppler; the server-owned
-# workflow selects the pilot or GitHub state identity by project. Apply is
-# guarded by the mounted Conftest policies and post-apply state verification.
+# Isolated pilot plus the GitHub as Code and AIOStreams admission roots after
+# their backend and identity qualification. The Atlantis GitHub App remains
+# distinct from the GitHub IaC App. Secret values are delivered through ESO
+# from Doppler; the server-owned workflow selects the state and provider
+# identity by project. Apply is guarded by the mounted Conftest policies and
+# post-apply state verification.
 orgAllowlist: github.com/SmadjaPaul/homelab-infra
 atlantisUrl: https://atlantis-webhook.smadja.dev
 
@@ -85,6 +86,10 @@ extraVolumes:
     secret:
       secretName: atlantis-github-iac
       defaultMode: 288
+  - name: atlantis-aiostreams-provider
+    secret:
+      secretName: atlantis-aiostreams-provider
+      defaultMode: 288
 
 extraVolumeMounts:
   - name: atlantis-pilot-conftest
@@ -98,6 +103,9 @@ extraVolumeMounts:
     readOnly: true
   - name: atlantis-github-iac
     mountPath: /etc/atlantis/github-iac
+    readOnly: true
+  - name: atlantis-aiostreams-provider
+    mountPath: /etc/atlantis/aiostreams-provider
     readOnly: true
 
 repoConfig: |
@@ -153,6 +161,26 @@ repoConfig: |
               "$TOFU" init -input=false -reconfigure
               test "$($TOFU workspace show)" = "default"
               "$TOFU" state list | grep -Fx 'github_repository.settings["homelab-infra"]'
+              exit 0
+            fi
+            if test "$PROJECT_NAME" = "aiostreams"; then
+              TOFU=/atlantis-data/bin/tofu1.13.1
+              test -x "$TOFU"
+              export AWS_ACCESS_KEY_ID="$(cat /etc/atlantis/aiostreams-provider/AWS_ACCESS_KEY_ID)"
+              export AWS_SECRET_ACCESS_KEY="$(cat /etc/atlantis/aiostreams-provider/AWS_SECRET_ACCESS_KEY)"
+              export AWS_REGION="$(cat /etc/atlantis/aiostreams-provider/AWS_REGION)"
+              export AIOSTREAMS_PASSWORD="$(cat /etc/atlantis/aiostreams-provider/AIOSTREAMS_PASSWORD)"
+              PROJECT_DIR="$CHECKOUT_ROOT/terraform/aiostreams"
+              test -f "$PROJECT_DIR/backend.tf"
+              cd "$PROJECT_DIR"
+              "$TOFU" init -input=false -reconfigure
+              test "$($TOFU workspace show)" = "default"
+              "$TOFU" state list | grep -Fx 'aiostreams_configuration.family'
+              state=$($TOFU state pull)
+              if printf '%s' "$state" | grep -Eiq 'password_wo|credentials_json_wo|APP_AIOSTREAMS_TERRAFORM_PASSWORD|APP_TORBOX_API_KEY|apiKey'; then
+                echo "AIOStreams state contains a write-only credential field" >&2
+                exit 1
+              fi
               exit 0
             fi
             test "$PROJECT_NAME" = "atlantis-pilot"
@@ -225,13 +253,22 @@ repoConfig: |
               command: 'printf "%s/atlantis-tofu-data-%s-%s" "${TMPDIR:-/tmp}" "$PROJECT_NAME" "$PULL_NUM"'
           - env:
               name: AWS_ACCESS_KEY_ID
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_ACCESS_KEY_ID; else printf "%s" "$AWS_ACCESS_KEY_ID"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_ACCESS_KEY_ID; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_ACCESS_KEY_ID; else printf "%s" "$AWS_ACCESS_KEY_ID"; fi'
           - env:
               name: AWS_SECRET_ACCESS_KEY
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_SECRET_ACCESS_KEY; else printf "%s" "$AWS_SECRET_ACCESS_KEY"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_SECRET_ACCESS_KEY; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_SECRET_ACCESS_KEY; else printf "%s" "$AWS_SECRET_ACCESS_KEY"; fi'
           - env:
               name: AWS_REGION
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_REGION; else printf "%s" "$AWS_REGION"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_REGION; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_REGION; else printf "%s" "$AWS_REGION"; fi'
+          - env:
+              name: TF_VAR_aiostreams_password
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_aiostreams_password; else printf ""; fi'
+          - env:
+              name: AIOSTREAMS_PASSWORD
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AIOSTREAMS_PASSWORD; else printf ""; fi'
+          - env:
+              name: TF_VAR_torbox_api_key
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_torbox_api_key; else printf ""; fi'
           - env:
               name: TF_VAR_github_app_id
               command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_ID; else printf ""; fi'
@@ -244,6 +281,28 @@ repoConfig: |
           - run: |
               set -eu
               if test "$PROJECT_NAME" = github; then
+                exit 0
+              fi
+              if test "$PROJECT_NAME" = aiostreams; then
+                test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
+                test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
+                test "$REPO_REL_DIR" = "terraform/aiostreams"
+                test "$WORKSPACE" = "default"
+                test -z "$COMMENT_ARGS"
+                test "$HEAD_COMMIT" != ""
+                test -f "$DIR/backend.tf"
+                test -f "$DIR/main.tf"
+                grep -Eq 'source[[:space:]]*=[[:space:]]*"registry\.terraform\.io/SmadjaPaul/aiostreams"' "$DIR/versions.tf"
+                grep -Eq 'version[[:space:]]*=[[:space:]]*"~> 0\.1"' "$DIR/versions.tf"
+                grep -Eq 'key[[:space:]]*=[[:space:]]*"aiostreams/terraform\.tfstate"' "$DIR/backend.tf"
+                grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-aiostreams-tfstate"' "$DIR/backend.tf"
+                grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
+                grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
+                grep -Eq 'resource[[:space:]]+"aiostreams_configuration"[[:space:]]+"family"' "$DIR/main.tf"
+                if grep -REiq 'REPLACE_WITH_DEDICATED|DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|kubernetes|helm|local-exec|remote-exec' "$DIR"/*.tf; then
+                  echo "an unqualified backend, infrastructure authority, or execution escape hatch is forbidden" >&2
+                  exit 1
+                fi
                 exit 0
               fi
               test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
@@ -292,13 +351,22 @@ repoConfig: |
               command: 'printf "%s/atlantis-tofu-data-%s-%s" "${TMPDIR:-/tmp}" "$PROJECT_NAME" "$PULL_NUM"'
           - env:
               name: AWS_ACCESS_KEY_ID
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_ACCESS_KEY_ID; else printf "%s" "$AWS_ACCESS_KEY_ID"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_ACCESS_KEY_ID; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_ACCESS_KEY_ID; else printf "%s" "$AWS_ACCESS_KEY_ID"; fi'
           - env:
               name: AWS_SECRET_ACCESS_KEY
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_SECRET_ACCESS_KEY; else printf "%s" "$AWS_SECRET_ACCESS_KEY"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_SECRET_ACCESS_KEY; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_SECRET_ACCESS_KEY; else printf "%s" "$AWS_SECRET_ACCESS_KEY"; fi'
           - env:
               name: AWS_REGION
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_REGION; else printf "%s" "$AWS_REGION"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_REGION; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_REGION; else printf "%s" "$AWS_REGION"; fi'
+          - env:
+              name: TF_VAR_aiostreams_password
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_aiostreams_password; else printf ""; fi'
+          - env:
+              name: AIOSTREAMS_PASSWORD
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AIOSTREAMS_PASSWORD; else printf ""; fi'
+          - env:
+              name: TF_VAR_torbox_api_key
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_torbox_api_key; else printf ""; fi'
           - env:
               name: TF_VAR_github_app_id
               command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_ID; else printf ""; fi'
@@ -311,6 +379,30 @@ repoConfig: |
           - run: |
               set -eu
               if test "$PROJECT_NAME" = github; then
+                exit 0
+              fi
+              if test "$PROJECT_NAME" = aiostreams; then
+                test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
+                test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
+                test "$BASE_BRANCH_NAME" = "main"
+                test "$REPO_REL_DIR" = "terraform/aiostreams"
+                test "$PROJECT_NAME" = "aiostreams"
+                test "$WORKSPACE" = "default"
+                test -z "$COMMENT_ARGS"
+                test "$HEAD_COMMIT" != ""
+                test -f "$DIR/backend.tf"
+                test -f "$DIR/main.tf"
+                grep -Eq 'source[[:space:]]*=[[:space:]]*"registry\.terraform\.io/SmadjaPaul/aiostreams"' "$DIR/versions.tf"
+                grep -Eq 'version[[:space:]]*=[[:space:]]*"~> 0\.1"' "$DIR/versions.tf"
+                grep -Eq 'key[[:space:]]*=[[:space:]]*"aiostreams/terraform\.tfstate"' "$DIR/backend.tf"
+                grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-aiostreams-tfstate"' "$DIR/backend.tf"
+                grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
+                grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
+                grep -Eq 'resource[[:space:]]+"aiostreams_configuration"[[:space:]]+"family"' "$DIR/main.tf"
+                if grep -REiq 'REPLACE_WITH_DEDICATED|DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|kubernetes|helm|local-exec|remote-exec' "$DIR"/*.tf; then
+                  echo "an unqualified backend, infrastructure authority, or execution escape hatch is forbidden" >&2
+                  exit 1
+                fi
                 exit 0
               fi
               test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"

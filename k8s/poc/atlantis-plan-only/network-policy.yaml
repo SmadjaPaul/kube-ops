@@ -54,6 +54,7 @@ spec:
         - matchName: releases.hashicorp.com
         - matchName: release-assets.githubusercontent.com
         - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
+        - matchName: aiostreams.smadja.dev
       toPorts:
         - ports:
             - port: "443"
