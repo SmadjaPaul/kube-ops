@@ -52,6 +52,8 @@ while IFS= read -r path; do
     terraform/aiostreams/backend.tf|terraform/aiostreams/main.tf|terraform/aiostreams/variables.tf|\
     terraform/aiostreams/versions.tf|terraform/aiostreams/.terraform.lock.hcl|\
     terraform/aiostreams/README.md|terraform/aiostreams/terraform.tfvars.example|\
+    terraform/oracle-cloud/aiostreams-state-backend.tf|\
+    terraform/oracle-cloud/aiostreams-state-backend-variables.tf|\
     terraform/cloudflare/modules/access/README.md|\
     terraform/cloudflare/modules/comet-cache-rules/README.md|\
     terraform/cloudflare/modules/dns/README.md|\

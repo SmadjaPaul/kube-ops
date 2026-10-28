@@ -128,6 +128,16 @@ run_case() {
       printf '%s\n' 'resource "terraform_data" "unexpected" {}' >"$fixture/terraform/aiostreams/nested/main.tf"
       change_path=terraform/aiostreams/nested/main.tf
       ;;
+    aiostreams-backend-files-allowed)
+      mkdir -p "$fixture/terraform/oracle-cloud"
+      printf '%s\n' 'resource "oci_objectstorage_bucket" "aiostreams_state" {}' >"$fixture/terraform/oracle-cloud/aiostreams-state-backend.tf"
+      printf '%s\n' 'variable "enable_aiostreams_state_backend" {}' >"$fixture/terraform/oracle-cloud/aiostreams-state-backend-variables.tf"
+      ;;
+    aiostreams-shared-oracle-file-denied)
+      mkdir -p "$fixture/terraform/oracle-cloud"
+      printf '%s\n' 'variable "unexpected" {}' >"$fixture/terraform/oracle-cloud/variables.tf"
+      change_path=terraform/oracle-cloud/variables.tf
+      ;;
     *)
       echo "unknown guard test case: $name" >&2
       return 1
@@ -189,6 +199,8 @@ run_case mise-config-path-allowed pass mise.toml
 run_case mise-config-sibling-denied deny mise.local.toml
 run_case aiostreams-lockfile-allowed pass terraform/aiostreams/.terraform.lock.hcl
 run_case aiostreams-nested-denied deny terraform/aiostreams/nested/main.tf
+run_case aiostreams-backend-files-allowed pass terraform/oracle-cloud/aiostreams-state-backend.tf
+run_case aiostreams-shared-oracle-file-denied deny terraform/oracle-cloud/variables.tf
 
 run_security_pin_cases() {
   local fixture guard_copy head policy_hash executor_hash status output
