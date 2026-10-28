@@ -58,21 +58,13 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
-    # Private application names resolve to the shared Cilium internal Gateway
-    # service inside the cluster. Keep this service-specific rather than
-    # opening unrestricted cluster egress.
-    - toServices:
-        - k8sService:
-            serviceName: cilium-gateway-internal
-            namespace: gateway
+    # Use the in-cluster AIOStreams Service directly. The Service port 80 is
+    # translated by Kubernetes/Cilium to the workload's named port 3000.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            k8s:app.kubernetes.io/name: aiostreams
       toPorts:
         - ports:
-            - port: "443"
+            - port: "3000"
               protocol: TCP
-    # The Cilium Gateway LoadBalancer VIP is classified as world traffic on
-    # this cluster. Keep the service rule above for endpoint-aware paths, and
-    # explicitly admit the observed private VIP used by split-horizon DNS.
-    # Keep the AIOStreams hostname out of toFQDNs so this path stays L3/L4 and
-    # does not get merged into the FQDN proxy rule above.
-    - toCIDRSet:
-        - cidr: 10.0.20.192/32
