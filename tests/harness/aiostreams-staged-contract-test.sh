@@ -11,6 +11,8 @@ grep -Fq 'ghcr.io/viren070/aiostreams:v2.37.0@sha256:bcfd8580695a50c8f464578a0e2
 grep -Fq 'value: "false"' "$pkg/deployment.yaml"
 grep -Fq "FORCE_PROXY_ENABLED" "$pkg/deployment.yaml"
 grep -Fq "AIOSTREAMS_AUTH_REQUIRED" "$pkg/deployment.yaml"
+grep -Fq "name: JELLYFIN_PIN_SIGN_IN" "$pkg/deployment.yaml"
+grep -A1 -F "name: JELLYFIN_PIN_SIGN_IN" "$pkg/deployment.yaml" | grep -Fq 'value: "false"'
 grep -Fq "AIOSTREAMS_OIDC_ENABLED" "$pkg/deployment.yaml"
 grep -Fq "name: ANIME_DB_LEVEL_OF_DETAIL" "$pkg/deployment.yaml"
 grep -Fq "value: none" "$pkg/deployment.yaml"

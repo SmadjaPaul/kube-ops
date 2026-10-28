@@ -157,6 +157,12 @@ Open in browser**. See https://docs.aiostreams.viren070.me/apps/.
 The operator's Authentik OIDC login does not provision a playback profile:
 qualify the separate sign-in, PIN, isolation and TV Quick Connect.
 
+The family configuration uses native per-profile PIN hashes. `JELLYFIN_PIN_SIGN_IN`
+is explicitly disabled, so a PIN cannot authenticate publicly without the
+shared configuration password. AIOStreams v2.37.0 does not expose a native
+self-service PIN-change endpoint; profile PIN changes remain configuration
+edits and must not be added as a custom API.
+
 `/stremio/*` provides AIOStreams' still-used addon and manifest protocol.
 It is **not dead Stremio client code** and must remain even if Stremio Web is
 not offered. No Stremio client workload is imported into the Media root.
