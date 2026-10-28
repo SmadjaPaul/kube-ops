@@ -4,7 +4,6 @@ resources:
 - default-deny-audit.yaml
 - allow-cluster-essentials.yaml
 - allow-gateway-http.yaml
-- allow-aiostreams-gateway-egress.yaml
 - allow-matrix-mas-oidc-egress.yaml
 labels:
 - pairs:
