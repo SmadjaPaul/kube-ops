@@ -7,10 +7,11 @@ The PLT-103 native Factory session was evicted while `npm ci` used `/tmp`:
 
 The `SandboxTemplate/mastra-code` now sets the `tmp` `emptyDir.sizeLimit`
 to **1Gi** (was 256Mi); the `workspace` remains a separate **2Gi**
-`longhorn-fast` PVC. No runtimeClass, sandboxd image, permissions, network
-egress or warm-pool replica count is changed. This is a **disk emptyDir**
-resource limit, not an increase to the sandbox's memory limit or a claim that
-npm always fits.
+`longhorn-fast` PVC. No runtimeClass, sandboxd image, permissions or warm-pool
+replica count is changed. Sandbox egress remains FQDN-scoped and limited to
+the GitHub transport and npm registry required by the development harness.
+This is a **disk emptyDir** resource limit, not an increase to the sandbox's
+memory limit or a claim that npm always fits.
 
 Acceptance after reviewed GitOps promotion:
 1. Check that the reconciled `SandboxTemplate` has `tmp.sizeLimit=1Gi`.
@@ -77,11 +78,14 @@ Outstanding release gates:
 - verify Agent Sandbox CRDs and v1beta1 compatibility, Cilium endpoint labels,
   sandboxd root relative filesystem, in-cluster-service DNS and pod network;
 - verify ServiceAccount privileges scoped to this namespace, without cluster-admin;
-- add Factory-only egress to Kubernetes API and sandboxd REST/gRPC;
+- qualify the existing Factory-only Kubernetes API/sandboxd access and the
+  newly scoped GitHub/npm egress from the actual claim;
 - load one test repository, inject one ephemeral LiteLLM key through per-process
   env, create PR, kill session, revoke key and delete SandboxClaim/PVC;
 - validate suspend/resume, expiry, duplicate claims and idempotent cleanup.
 
-Network egress from untrusted sandboxes is explicitly denied until deliberate
-FQDN/endpoint policy is reviewed. This will block git clone and npm install
-during first runs; do not loosen network policy globally.
+Network egress from untrusted sandboxes is not world-open: the policy allows
+only kube-dns plus HTTPS to the explicit GitHub transport and npm registry
+FQDNs listed in `resources.yaml`. This is the minimum path needed to unblock
+workspace checkout and dependency installation; it still requires live
+qualification from a real disposable claim.
