@@ -138,4 +138,30 @@ spec:
         - ports:
             - {port: "8080", protocol: TCP}
             - {port: "9090", protocol: TCP}
-  egress: [] # No exfiltration path until per-repo network allowlist is reviewed.
+  # Workspace preparation and the standard development harness use short-lived
+  # GitHub credentials for the repository checkout. Keep the sandbox default
+  # deny, but allow only the DNS and HTTPS destinations needed for GitHub
+  # transport and the pinned Node dependency registry. This is deliberately
+  # narrower than world egress and does not expose Kubernetes credentials.
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - {matchName: github.com}
+        - {matchName: api.github.com}
+        - {matchName: codeload.github.com}
+        - {matchName: objects.githubusercontent.com}
+        - {matchName: release-assets.githubusercontent.com}
+        - {matchName: registry.npmjs.org}
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
