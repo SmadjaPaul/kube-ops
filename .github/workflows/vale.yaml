@@ -21,13 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
       - name: Get changed Markdown files
         id: changed
-        uses: tj-actions/changed-files@v47
+        uses: tj-actions/changed-files@v47.0.6
         with:
           files: |
             website/docs/**/*.md
