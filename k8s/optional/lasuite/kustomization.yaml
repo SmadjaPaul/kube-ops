@@ -6,4 +6,7 @@ resources:
   - databases.yaml
   - secrets.yaml
   - apps.yaml
+  - office-app.yaml
+  - office-secret.yaml
   - routes.yaml
+  - office-route.yaml
