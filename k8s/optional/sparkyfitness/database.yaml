@@ -10,7 +10,15 @@ spec:
   bootstrap:
     initdb:
       database: sparkyfitness
-      owner: sparky
+      owner: sparky_admin
+  # Upstream bootstrap creates a separate RLS app user at first startup.
+  # CNPG maintains the database owner's password in the -app Secret.
+  managed:
+    roles:
+      - name: sparky_admin
+        ensure: present
+        login: true
+        createrole: true
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
