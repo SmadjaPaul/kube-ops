@@ -7,7 +7,7 @@ policy="$root/docs/operations/mastra-factory-supervised-promotion-v1.md"
 readme="$root/k8s/applications/platform/mastra-factory/README.md"
 command -v yq >/dev/null || { echo 'yq required' >&2; exit 127; }
 test "$(shasum -a 256 "$network_policy" | awk '{print $1}')" = \
-  'c0a41620b6dc628d7f38e1bafcb998e7d7c896295b47403afa1844b026c08457'
+  'b3edbafc2423e0d755f5bcb7ff84e284a609b13e35da6e93a974575f2aec59ea'
 yq -e '
   (.kind == "Deployment") and
   (.metadata.name == "mastra-factory") and
@@ -42,7 +42,9 @@ yq -e '
   ([.spec.ingress[].fromEntities[]] | contains(["ingress"])) and
   ([.spec.ingress[]?.toPorts[]?.ports[]? |
     select(.port == "4111" and .protocol == "TCP")] | length > 0) and
-  (.spec.egress | length == 12) and
+  (.spec.egress | length == 11) and
+  ([.spec.egress[]?.toFQDNs[]?.matchName] | contains(["fsn1.your-objectstorage.com"])) and
+  ([.spec.egress[]?.toCIDRSet[]?.cidr] | length == 0) and
   ([.spec.egress[]? |
     select(
       ([.toEndpoints[]?.matchLabels? |
@@ -52,6 +54,13 @@ yq -e '
         select(.port == "5432" and .protocol == "TCP")] | length > 0)
     )] | length > 0)
 ' "$network_policy" >/dev/null
+ yq -e '
+  [.spec.template.spec.containers[] | select(.name == "factory") |
+   .env[]? | select(.name | test("^(MASTRA_RESEARCH|RESEARCH_)"))] | length == 0
+' "$deployment" >/dev/null
+yq -e '
+  [.spec.data[]? | select(.secretKey == "RESEARCH_LLM_API_KEY")] | length == 0
+' "$root/k8s/applications/platform/mastra-factory/secrets.yaml" >/dev/null
 test -s "$policy"
 grep -Fq 'single' "$policy"
 grep -Fq 'GitOps' "$policy"

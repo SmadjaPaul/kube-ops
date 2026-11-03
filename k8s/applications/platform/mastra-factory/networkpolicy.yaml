@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {policy-type: platform-audit}
 spec:
-  description: "Internal ingress and bounded backend access; Research may fetch public HTTPS only after its application-level SSRF and redirect checks."
+  description: "Internal ingress and destination-scoped backend access for Factory runtime and historical S3 checkpoints."
   endpointSelector:
     matchLabels: {app.kubernetes.io/name: mastra-factory}
   ingress:
@@ -60,13 +60,6 @@ spec:
             - {port: "4000", protocol: TCP}
     - toEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: searxng
-            app.kubernetes.io/name: searxng
-      toPorts:
-        - ports:
-            - {port: "8080", protocol: TCP}
-    - toEndpoints:
-        - matchLabels:
             k8s:io.kubernetes.pod.namespace: monitoring
             app.kubernetes.io/name: alloy
       toPorts:
@@ -100,36 +93,9 @@ spec:
       toPorts:
         - ports:
             - {port: "9000", protocol: TCP}
-    # Research page fetches are restricted to public HTTPS destinations here.
-    # The application independently rejects private/reserved DNS answers,
-    # literal private addresses and unsafe redirects; this rule does not grant
-    # access to cluster, node, RFC1918, link-local or other reserved ranges.
-    - toCIDRSet:
-        - cidr: 0.0.0.0/0
-          except:
-            - 0.0.0.0/8
-            - 10.0.0.0/8
-            - 100.64.0.0/10
-            - 127.0.0.0/8
-            - 169.254.0.0/16
-            - 172.16.0.0/12
-            - 192.0.0.0/24
-            - 192.0.2.0/24
-            - 192.168.0.0/16
-            - 198.18.0.0/15
-            - 198.51.100.0/24
-            - 203.0.113.0/24
-            - 224.0.0.0/4
-            - 240.0.0.0/4
-        - cidr: ::/0
-          except:
-            - ::/128
-            - ::1/128
-            - ::ffff:0:0/96
-            - 2001:db8::/32
-            - fc00::/7
-            - fe80::/10
-            - ff00::/8
+    # Retained only for checkpoint objects in the existing S3-compatible store.
+    - toFQDNs:
+        - {matchName: fsn1.your-objectstorage.com}
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
