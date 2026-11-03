@@ -8,6 +8,7 @@ resources:
   - node-homeops.yaml
   - storageclasses.yaml
   - sandbox-storageclass.yaml
+  - workspace-storageclass.yaml
   - backup-credentials.yaml
   - recurring-job.yaml
   - recurring-job-default-group.yaml

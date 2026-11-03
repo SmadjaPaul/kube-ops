@@ -1,0 +1,19 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-workspace
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+# Retain detached Factory workspaces until the durable-state contract proves
+# that their useful state is pushed and no unpersisted artifacts remain.
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  numberOfReplicas: "1"
+  fsType: ext4
+  dataEngine: v1
+  dataLocality: best-effort
+  # Keep workspace scheduling off the fast tier's exhausted budget.
+  diskSelector: bulk
