@@ -91,7 +91,9 @@ spec:
                 key: REDIS
             COLLABORATION_BACKEND_BASE_URL: http://personal-docs-backend:80
             COLLABORATION_SERVER_ORIGIN: https://docs.smadja.dev
-        docSpec: {enabled: true, replicas: 1}
+        yProvider: {replicas: 0}
+        jwtKeys: {enabled: true}
+        docSpec: {enabled: true, replicas: 1, image: {repository: ghcr.io/docspec/api, tag: "1.21.4"}}
         ingress: {enabled: false}
         ingressCollaborationWS: {enabled: false}
         ingressCollaborationApi: {enabled: false}
