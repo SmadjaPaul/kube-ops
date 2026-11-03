@@ -18,11 +18,10 @@ second controller.
   `cd0761d5001baaf293460cd382ee318744d6b249`
 
 The upstream ClusterRole is retained because it is the controller's
-reconciler contract. Paperclip's server identity is not granted these
+reconciler contract. No application control-plane identity is granted these
 controller permissions by this package. The release serves and stores
 `agents.x-k8s.io/v1beta1` plus the extension API needed by the staged Mastra
 resources.
 
-This controller is infrastructure only. It does not activate Paperclip's
-instance-global Kubernetes execution mode, create a tenant, create a
-Sandbox, or grant Paperclip control-plane RBAC.
+This controller is infrastructure only. It does not create a tenant, create a
+Sandbox, or grant application control-plane RBAC.

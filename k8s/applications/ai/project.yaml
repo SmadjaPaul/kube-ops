@@ -11,8 +11,6 @@ spec:
       server: '*'
     - namespace: 'opencode'
       server: '*'
-    - namespace: 'paperclip'
-      server: '*'
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'

@@ -46,8 +46,10 @@ test('inventory walks the actual main-compatible repository roots', { skip: !hav
     'the active catalog must include Mealie');
   assert.ok(report.dormantApplicationDirs.includes('k8s/applications/ai/perplexica'),
     'retired Perplexica should not be treated as an active application');
-  assert.ok(report.dormantApplicationDirs.includes('k8s/applications/web/babybuddy'),
-    'dormant BabyBuddy should not be treated as active');
+  assert.ok(!report.activeKustomizationDirs.some(path => path.includes('/babybuddy')),
+    'removed BabyBuddy must not be active');
+  assert.ok(!report.dormantApplicationDirs.some(path => path.includes('/babybuddy')),
+    'removed BabyBuddy must not remain as a dormant candidate');
   assert.ok(report.missingRoots.some(x => x.path === 'k8s/applications/restore'),
     'missing Argo restore root must remain visible until reconciled');
   assert.ok(!report.declaredHostnames.includes('frigate.smadja.dev'),

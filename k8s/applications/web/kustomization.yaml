@@ -5,6 +5,3 @@ resources:
   - project.yaml
   - pinepods
   - trilium
-
-# Intentionally disabled from the V1 active catalog:
-# - babybuddy: removed from the current household scope.

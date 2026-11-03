@@ -180,10 +180,6 @@ spec:
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
     - fromEndpoints:
-        - matchLabels: {k8s:io.kubernetes.pod.namespace: paperclip}
-      toPorts:
-        - ports: [{port: "4000", protocol: TCP}]
-    - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: gpt-researcher
             app.kubernetes.io/name: gpt-researcher
