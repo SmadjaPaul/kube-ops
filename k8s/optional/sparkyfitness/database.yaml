@@ -1,0 +1,27 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: sparkyfitness-db
+  namespace: wellness
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  instances: 1
+  bootstrap:
+    initdb:
+      database: sparkyfitness
+      owner: sparky
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: sparkyfitness-hetzner-store
+  storage:
+    storageClass: longhorn-fast
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi

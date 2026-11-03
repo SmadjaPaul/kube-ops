@@ -1,0 +1,91 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: personal-sparkyfitness
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  project: applications
+  source:
+    repoURL: https://github.com/CodeWithCJ/SparkyFitness.git
+    targetRevision: v1.11.0
+    path: helm/chart
+    helm:
+      releaseName: sparkyfitness
+      valuesObject:
+        global:
+          storageClass: longhorn-fast
+        postgresql:
+          enabled: false
+        externalDatabase:
+          host: sparkyfitness-db-rw.wellness.svc.cluster.local
+          port: 5432
+          database: sparkyfitness
+          auth:
+            existingSecret: sparkyfitness-db-app
+        config:
+          timezone: Europe/Paris
+          frontendUrl: https://fitness.smadja.dev
+          disableSignup: true
+          forceEmailLogin: true
+          oidc:
+            enabled: true
+            providerSlug: authentik
+            providerName: Authentik
+            issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness/
+            scope: "openid email profile"
+            autoRegister: true
+            secrets:
+              existingSecret: sparkyfitness-oidc
+        server:
+          replicas: 1
+          image:
+            tag: v1.11.0
+          secrets:
+            generate: false
+            existingSecret: sparkyfitness-runtime
+          appDatabase:
+            existingSecret: sparkyfitness-appdb
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          persistence:
+            backup:
+              size: 1Gi
+              storageClass: longhorn-fast
+            uploads:
+              size: 2Gi
+              storageClass: longhorn-fast
+        frontend:
+          replicas: 1
+          image:
+            tag: v1.11.0
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+        networkPolicy:
+          enabled: false
+        ingress:
+          enabled: false
+        httpRoute:
+          enabled: true
+          hostname: fitness.smadja.dev
+          parentRef:
+            name: internal
+            namespace: gateway
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wellness
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
