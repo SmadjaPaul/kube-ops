@@ -15,9 +15,82 @@ spec:
       releaseName: personal-docs
       valuesObject:
         image: {repository: lasuite/impress-backend, tag: v6.0.4}
-        backend: {replicas: 1, celery: {replicas: 1}}
-        frontend: {replicas: 1, image: {repository: lasuite/impress-frontend, tag: v6.0.4}}
-        yhub: {replicas: 1, worker: {enabled: true, replicas: 1}, image: {repository: lasuite/impress-yhub, tag: v6.0.4}}
+        backend:
+          replicas: 1
+          celery: {replicas: 1}
+          envVars:
+            DJANGO_CONFIGURATION: Production
+            DJANGO_SETTINGS_MODULE: impress.settings
+            DJANGO_ALLOWED_HOSTS: docs.smadja.dev
+            DJANGO_CSRF_TRUSTED_ORIGINS: https://docs.smadja.dev
+            DJANGO_SECRET_KEY:
+              secretKeyRef:
+                name: lasuite-docs-runtime
+                key: DJANGO_SECRET_KEY
+            OIDC_OP_AUTHORIZATION_ENDPOINT: https://auth.smadja.dev/application/o/authorize/
+            OIDC_OP_TOKEN_ENDPOINT: https://auth.smadja.dev/application/o/token/
+            OIDC_OP_USER_ENDPOINT: https://auth.smadja.dev/application/o/userinfo/
+            OIDC_OP_JWKS_ENDPOINT: https://auth.smadja.dev/application/o/docs/jwks/
+            OIDC_RP_CLIENT_ID:
+              secretKeyRef:
+                name: lasuite-docs-runtime
+                key: OIDC_RP_CLIENT_ID
+            OIDC_RP_CLIENT_SECRET:
+              secretKeyRef:
+                name: lasuite-docs-runtime
+                key: OIDC_RP_CLIENT_SECRET
+            OIDC_RP_SCOPES: "openid email profile"
+            OIDC_RP_SIGN_ALGO: RS256
+            LOGIN_REDIRECT_URL: https://docs.smadja.dev
+            LOGOUT_REDIRECT_URL: https://docs.smadja.dev
+            DB_HOST: lasuite-docs-db-rw.lasuite.svc.cluster.local
+            DB_NAME: docs
+            DB_USER: docs
+            DB_PASSWORD:
+              secretKeyRef:
+                name: lasuite-docs-db-app
+                key: password
+            DB_PORT: "5432"
+            REDIS_URL:
+              secretKeyRef:
+                name: lasuite-docs-runtime
+                key: REDIS_URL
+            DJANGO_CELERY_BROKER_URL:
+              secretKeyRef:
+                name: lasuite-docs-runtime
+                key: DJANGO_CELERY_BROKER_URL
+            AWS_S3_ENDPOINT_URL: https://fsn1.your-objectstorage.com
+            AWS_STORAGE_BUCKET_NAME: lasuite-docs-media
+            AWS_S3_ACCESS_KEY_ID:
+              secretKeyRef:
+                name: lasuite-docs-runtime
+                key: AWS_S3_ACCESS_KEY_ID
+            AWS_S3_SECRET_ACCESS_KEY:
+              secretKeyRef:
+                name: lasuite-docs-runtime
+                key: AWS_S3_SECRET_ACCESS_KEY
+            YHUB_API_BASE_URL: http://personal-docs-yhub:443
+            STORAGES_STATICFILES_BACKEND: servestatic.storage.CompressedManifestStaticFilesStorage
+        frontend:
+          replicas: 1
+          image: {repository: lasuite/impress-frontend, tag: v6.0.4}
+          envVars:
+            NEXT_PUBLIC_API_ORIGIN: https://docs.smadja.dev
+        yhub:
+          replicas: 1
+          worker: {enabled: true, replicas: 1}
+          image: {repository: lasuite/impress-yhub, tag: v6.0.4}
+          envVars:
+            POSTGRES:
+              secretKeyRef:
+                name: lasuite-yhub-runtime
+                key: POSTGRES
+            REDIS:
+              secretKeyRef:
+                name: lasuite-yhub-runtime
+                key: REDIS
+            COLLABORATION_BACKEND_BASE_URL: http://personal-docs-backend:80
+            COLLABORATION_SERVER_ORIGIN: https://docs.smadja.dev
         docSpec: {enabled: true, replicas: 1}
         ingress: {enabled: false}
         ingressCollaborationWS: {enabled: false}
@@ -47,7 +120,63 @@ spec:
       releaseName: personal-drive
       valuesObject:
         image: {repository: lasuite/drive-backend, tag: v0.25.3}
-        backend: {replicas: 1, celery: {replicas: 1}, celeryBeat: {replicas: 1}}
+        backend:
+          replicas: 1
+          celery: {replicas: 1}
+          celeryBeat: {replicas: 1}
+          envVars:
+            DJANGO_CONFIGURATION: Production
+            DJANGO_SETTINGS_MODULE: drive.settings
+            DJANGO_ALLOWED_HOSTS: drive.smadja.dev
+            DJANGO_CSRF_TRUSTED_ORIGINS: https://drive.smadja.dev
+            DJANGO_SECRET_KEY:
+              secretKeyRef:
+                name: lasuite-drive-runtime
+                key: DJANGO_SECRET_KEY
+            OIDC_OP_AUTHORIZATION_ENDPOINT: https://auth.smadja.dev/application/o/authorize/
+            OIDC_OP_TOKEN_ENDPOINT: https://auth.smadja.dev/application/o/token/
+            OIDC_OP_USER_ENDPOINT: https://auth.smadja.dev/application/o/userinfo/
+            OIDC_OP_JWKS_ENDPOINT: https://auth.smadja.dev/application/o/drive/jwks/
+            OIDC_RP_CLIENT_ID:
+              secretKeyRef:
+                name: lasuite-drive-runtime
+                key: OIDC_RP_CLIENT_ID
+            OIDC_RP_CLIENT_SECRET:
+              secretKeyRef:
+                name: lasuite-drive-runtime
+                key: OIDC_RP_CLIENT_SECRET
+            OIDC_RP_SCOPES: "openid email profile"
+            OIDC_RP_SIGN_ALGO: RS256
+            LOGIN_REDIRECT_URL: https://drive.smadja.dev
+            LOGOUT_REDIRECT_URL: https://drive.smadja.dev
+            DB_HOST: lasuite-drive-db-rw.lasuite.svc.cluster.local
+            DB_NAME: drive
+            DB_USER: drive
+            DB_PASSWORD:
+              secretKeyRef:
+                name: lasuite-drive-db-app
+                key: password
+            DB_PORT: "5432"
+            REDIS_URL:
+              secretKeyRef:
+                name: lasuite-drive-runtime
+                key: REDIS_URL
+            DJANGO_CELERY_BROKER_URL:
+              secretKeyRef:
+                name: lasuite-drive-runtime
+                key: DJANGO_CELERY_BROKER_URL
+            AWS_S3_ENDPOINT_URL: https://fsn1.your-objectstorage.com
+            AWS_STORAGE_BUCKET_NAME: lasuite-drive-media
+            AWS_S3_ACCESS_KEY_ID:
+              secretKeyRef:
+                name: lasuite-drive-runtime
+                key: AWS_S3_ACCESS_KEY_ID
+            AWS_S3_SECRET_ACCESS_KEY:
+              secretKeyRef:
+                name: lasuite-drive-runtime
+                key: AWS_S3_SECRET_ACCESS_KEY
+            MEDIA_BASE_URL: https://drive.smadja.dev
+            EXTERNAL_API: '{"items":{"enabled":true,"actions":["list","retrieve","children","upload_ended"]},"item_access":{"enabled":false,"actions":[]},"item_invitation":{"enabled":false,"actions":[]},"users":{"enabled":true,"actions":["get_me"]}}'
         frontend: {replicas: 1, image: {repository: lasuite/drive-frontend, tag: v0.25.3}}
         ingress: {enabled: false}
         ingressAdmin: {enabled: false}
