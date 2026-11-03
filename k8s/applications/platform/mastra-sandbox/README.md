@@ -7,11 +7,16 @@ The PLT-103 native Factory session was evicted while `npm ci` used `/tmp`:
 
 The `SandboxTemplate/mastra-code` now sets the `tmp` `emptyDir.sizeLimit`
 to **1Gi** (was 256Mi); the `workspace` remains a separate **2Gi**
-`longhorn-fast` PVC. No runtimeClass, sandboxd image, permissions or warm-pool
-replica count is changed. Sandbox egress remains FQDN-scoped and limited to
-the GitHub transport and npm registry required by the development harness.
-This is a **disk emptyDir** resource limit, not an increase to the sandbox's
-memory limit or a claim that npm always fits.
+`longhorn-workspace` PVC. This dedicated class uses the bulk disk tier so sandbox
+workspace scheduling does not consume the fast tier's nearly exhausted
+over-provisioning budget. It retains volumes when claims disappear, preserving
+the existing fail-safe behavior for unpushed work. Existing classes are left
+unchanged because Kubernetes storage-class parameters are immutable. No
+runtimeClass, sandboxd image, permissions or warm-pool replica count is changed.
+Sandbox egress remains FQDN-scoped and limited to the GitHub transport and npm
+registry required by the development harness. This is a **disk emptyDir**
+resource limit, not an increase to the sandbox's memory limit or a claim that
+npm always fits.
 
 Acceptance after reviewed GitOps promotion:
 1. Check that the reconciled `SandboxTemplate` has `tmp.sizeLimit=1Gi`.

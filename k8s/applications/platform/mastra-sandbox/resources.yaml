@@ -106,7 +106,7 @@ spec:
         name: workspace
       spec:
         accessModes: [ReadWriteOnce]
-        storageClassName: longhorn-fast
+        storageClassName: longhorn-workspace
         resources:
           requests: {storage: 2Gi}
 ---
