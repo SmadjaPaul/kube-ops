@@ -15,7 +15,7 @@ if grep -Fxq -- '- bookorbit' "$root/kustomization.yaml"; then
   echo "BOOKORBIT_STAGE=FAIL: not yet admitted"
   exit 1
 fi
-assert_contains 'ghcr.io/bookorbit/bookorbit:3.5.0@sha256:1534bc7d696179141875b0298ea7916be4469eb2eb9250347873eaaa9728b5a8' "$pkg/app.yaml"
+assert_contains 'ghcr.io/bookorbit/bookorbit:3.6.0@sha256:bbb5da52e96dbbff1dd36f55454f9845e6cde264b4b3428a3ea783124a4ca62e' "$pkg/app.yaml"
 assert_contains 'value: /data/book-dock' "$pkg/app.yaml"
 assert_contains 'value: /data/media/books' "$pkg/app.yaml"
 assert_contains 'APP_BOOKORBIT_BOOK_REQUEST_ENCRYPTION_KEY' "$pkg/external-secret.yaml"

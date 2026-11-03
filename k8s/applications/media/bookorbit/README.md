@@ -27,7 +27,7 @@ may be admitted by silently reusing BookOrbit secrets or existing PVCs.
 new architecture decision and a separate reviewed admission PR. Retain all
 static safety contracts in the meantime.
 
-Updated staged candidate: **BookOrbit v3.5.0** (published 2026-10-20).
+Updated staged candidate: **BookOrbit v3.6.0** (published 2026-10-28).
 The default Media root intentionally does not include `- bookorbit`.
 A dedicated admission PR, image digest and runtime tests are mandatory.
 
@@ -162,3 +162,11 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
 - https://github.com/nourez/klusty-krab-home-lab/pull/57
 - https://github.com/bookorbit/bookorbit/issues/1805
 - https://github.com/sirrobot01/decypharr/blob/v2.5/pkg/server/qbit/http.go
+
+
+## Upstream v3.6.0 candidate — staged only
+
+The pinned BookOrbit image was updated to `ghcr.io/bookorbit/bookorbit:3.6.0@sha256:bbb5da52e96dbbff1dd36f55454f9845e6cde264b4b3428a3ea783124a4ca62e` (upstream release 2026-10-28).
+The Media application root still excludes BookOrbit; the existing pause, separate
+CNPG/S3 credentials, Velero/Kopia PVC restore, OIDC and filesystem compatibility
+gates remain in force. No migration or live rollout is authorized by this change.
