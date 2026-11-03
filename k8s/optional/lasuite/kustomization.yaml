@@ -9,4 +9,4 @@ resources:
   - office-app.yaml
   - office-secret.yaml
   - routes.yaml
-  - office-route.yaml
+  # office-route.yaml intentionally excluded: /cool/adminws and metrics need authenticated denial.
