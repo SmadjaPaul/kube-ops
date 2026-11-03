@@ -79,11 +79,17 @@ metadata:
   annotations:
     qa.smadja.dev/path: /.well-known/matrix/client
     qa.smadja.dev/expected-status: "200"
+    # Public apex is Cloudflare/website-owned; never let private ExternalDNS
+    # derive an apex UniFi record from this (dual-Gateway) HTTPRoute.
+    # The separate matrix-synapse HTTPRoute already owns matrix.smadja.dev.
+    external-dns.kubernetes.io/gateway-hostname-source: annotation-only
 spec:
   parentRefs:
     - {name: internal, namespace: gateway}
     - {name: external, namespace: gateway}
-  hostnames: [smadja.dev]
+  # Serve a second upstream origin for the public website Worker to proxy.
+  # Preserve the apex route for existing LAN/edge clients until DNS ownership is reconciled.
+  hostnames: [smadja.dev, matrix.smadja.dev]
   rules:
     - matches:
         - path: {type: PathPrefix, value: /.well-known/matrix}
