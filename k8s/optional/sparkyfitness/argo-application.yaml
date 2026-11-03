@@ -34,8 +34,10 @@ spec:
             providerSlug: authentik
             providerName: Authentik
             issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness/
-            scope: "openid email profile"
+            scope: "openid email profile groups"
+            adminGroup: authentik-admins
             autoRegister: true
+            autoRedirect: false
             secrets:
               existingSecret: sparkyfitness-oidc
         server:
@@ -46,6 +48,7 @@ spec:
             generate: false
             existingSecret: sparkyfitness-runtime
           appDatabase:
+            username: sparky_app
             existingSecret: sparkyfitness-appdb
           resources:
             requests:
