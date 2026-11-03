@@ -9,7 +9,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - tv.smadja.dev
+    - media.smadja.dev
   rules:
     - matches:
         - path:

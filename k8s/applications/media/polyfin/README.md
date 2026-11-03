@@ -327,3 +327,29 @@ Upstream docs:
 [Playback](https://github.com/moodiness/polyfin/blob/main/docs/playback.md),
 [IPTV](https://github.com/moodiness/polyfin/blob/main/docs/iptv.md),
 [Music/addons](https://github.com/moodiness/polyfin/blob/main/docs/addons-and-libraries.md).
+
+
+## v0.59.0 upstream migration candidate (not admitted)
+
+The original Authentik bridge PR #797 was closed and not merged. Polyfin
+upstream shipped OpenID Connect in v0.55.0, so no downstream auth bridge
+should be resurrected. The next candidate is official
+`ghcr.io/moodiness/polyfin:0.59.0@sha256:613dbcf3c87f1079f028e1ecce0dd04d3b28f3543187d0c5068d32b22c7c6ad3`,
+pinned in `k8s/optional/polyfin-v059/kustomization.yaml`. This overlay is
+NOT referenced by the Argo application roots; the live 0.50.0 image and its
+digest-specific temporary risk admission remain untouched.
+
+`media.smadja.dev` is the future private Polyfin hostname. The staged
+`http-route.yaml` remains excluded; `tv.smadja.dev` belongs to
+AIOStreams. The new route must not be attached without a separate security,
+DNS/TLS and user-journey review. Enabling `Gateway/external` is outside
+this migration.
+
+Promotion prerequisites: sign/verify the exact image and provenance,
+Trivy scan linux/amd64 including unfixed findings, review any CVEs without
+transferring the 0.50 digest waiver, backup and restore the Polyfin CNPG
+database before its 0.59 schema migration, qualify upstream Authentik OIDC
+(issuer/sub mapping, provisioning, log out, Quick Connect), validate Jellyfin
+web/mobile plus AIOStreams/Eclipse network dependencies, then introduce the
+route and image into the admitted root in a dedicated PR. A new image does not
+inherit the 2026-11-26 private-pilot exception.
