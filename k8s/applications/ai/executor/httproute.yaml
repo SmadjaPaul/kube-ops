@@ -3,6 +3,8 @@ kind: HTTPRoute
 metadata:
   name: executor
   namespace: executor
+  annotations:
+    qa.smadja.dev/disabled-statefulset: executor
 spec:
   parentRefs:
     - name: internal
