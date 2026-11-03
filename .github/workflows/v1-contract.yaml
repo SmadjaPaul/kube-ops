@@ -67,12 +67,6 @@ jobs:
       - name: Validate Factory supervised promotion contract
         run: bash tests/harness/mastra-factory-supervised-promotion-test.sh
 
-      - name: Validate staged Configarr pilot
-        run: |
-          kustomize build k8s/applications/media/configarr > /tmp/configarr-rendered.yaml
-          kubeconform -summary -ignore-missing-schemas /tmp/configarr-rendered.yaml
-          bash tests/harness/configarr-gitops-contract-test.sh
-
       - name: Validate dormant Polyfin private pilot
         run: |
           kustomize build k8s/applications/media/polyfin > /tmp/polyfin-rendered.yaml

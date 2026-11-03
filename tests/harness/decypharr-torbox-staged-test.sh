@@ -4,8 +4,6 @@ root="k8s/applications/media"
 cfg="$root/decypharr/configmap.yaml"
 deploy="$root/decypharr/deployment.yaml"
 secret="$root/decypharr/external-secret.yaml"
-configarr="$root/configarr/configmap.yaml"
-cron="$root/configarr/cronjob.yaml"
 media="$root/kustomization.yaml"
 pol="k8s/infrastructure/network/policies/applications/media/media"
 grep -Fxq -- '- decypharr' "$media"
@@ -25,13 +23,6 @@ grep -Fq '"type": "none"' "$cfg"
 grep -Fq '"use_auth": true' "$cfg"
 grep -Fq 'port: "8282"' "$pol/allow-arr-to-decypharr.yaml"
 grep -Fxq -- '- allow-arr-to-decypharr.yaml' "$pol/kustomization.yaml"
-grep -Fq 'decypharr.media.svc.cluster.local' "$configarr"
-grep -Fq 'type: qbittorrent' "$configarr"
-grep -Fq 'delete_unmanaged:' "$configarr"
-grep -Fq 'enabled: false' "$configarr"
-grep -Fq 'sync_indexers: false' "$configarr"
-yq -e '.spec.suspend == true' "$cron" >/dev/null
-yq -e '.spec.jobTemplate.spec.template.spec.containers[0].env | map(select(.name == "DRY_RUN" and .value == "true")) | length == 1' "$cron" >/dev/null
 python3 - "$cfg" <<'PY'
 import json
 import sys

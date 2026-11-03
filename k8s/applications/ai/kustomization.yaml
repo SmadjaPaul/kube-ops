@@ -7,7 +7,6 @@ resources:
 - opencode
 - gpt-researcher
 - executor
-- paperclip
 
 # Intentionally disabled from the V1 active catalog:
 # - perplexica: decommissioned in favor of Mastra research tools.

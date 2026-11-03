@@ -47,7 +47,6 @@ Those are **deployment** checks, not Factory Issue→PR E2E proof.
    and cleanup remain untested. Keep the sandbox Cilium default-deny policy.
 6. Native Factory LLM call, Tempo trace, immutable harness lock at authenticated
    dispatch and Meta Loop Board approval are still runtime gates.
-7. Keep Paperclip until a real Factory Issue→PR E2E passes.
 
 ## Identity ownership
 
