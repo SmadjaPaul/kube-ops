@@ -36,7 +36,10 @@ spec:
             issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness/
             scope: "openid email profile groups"
             adminGroup: authentik-admins
-            autoRegister: true
+            # The upstream user.create.before hook blocks all registrations when
+            # disableSignup is true, INCLUDING OIDC auto-registration.
+            # Pre-provision family accounts and link SSO before closed admission.
+            autoRegister: false
             autoRedirect: false
             secrets:
               existingSecret: sparkyfitness-oidc
@@ -47,6 +50,12 @@ spec:
           secrets:
             generate: false
             existingSecret: sparkyfitness-runtime
+          extraEnv:
+            SPARKY_FITNESS_ADMIN_EMAIL:
+              valueFrom:
+                secretKeyRef:
+                  name: sparkyfitness-runtime
+                  key: SPARKY_FITNESS_ADMIN_EMAIL
           appDatabase:
             username: sparky_app
             existingSecret: sparkyfitness-appdb
