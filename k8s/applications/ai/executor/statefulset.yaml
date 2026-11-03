@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/component: server
 spec:
   serviceName: executor
-  replicas: 1
+  replicas: 0
   podManagementPolicy: OrderedReady
   updateStrategy:
     type: RollingUpdate
