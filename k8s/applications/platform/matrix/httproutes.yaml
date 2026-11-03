@@ -83,7 +83,9 @@ spec:
   parentRefs:
     - {name: internal, namespace: gateway}
     - {name: external, namespace: gateway}
-  hostnames: [smadja.dev]
+  # Serve a second upstream origin for the public website Worker to proxy.
+  # Preserve the apex route for existing LAN/edge clients until DNS ownership is reconciled.
+  hostnames: [smadja.dev, matrix.smadja.dev]
   rules:
     - matches:
         - path: {type: PathPrefix, value: /.well-known/matrix}
