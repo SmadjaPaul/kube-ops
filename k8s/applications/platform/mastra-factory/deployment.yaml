@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
   annotations:
-    factory-platform.dev/source-sha: 3593e63c46da4e8ea3f2a752b3dfa35a9aa51b10
+    factory-platform.dev/source-sha: 286d859e0fa92cf3d1c6dc1706a405f1e29b69a9
 spec:
   replicas: 1 # Keep one dispatcher until cross-replica sandbox claim locking is qualified.
   strategy: {type: Recreate}
@@ -29,8 +29,8 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: factory
-          # Rollback digest: sha256:97cc974e0d6242fd7bcc127af45ae70850960e8f3fb68300be6644d620bfbc9e
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:a4a57ac4eb2be1628a0bf8697ea43f31c4d96027a8d5c75c16e5bb83495b97e2
+          # Rollback digest: sha256:a4a57ac4eb2be1628a0bf8697ea43f31c4d96027a8d5c75c16e5bb83495b97e2
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:8615686c27525a55fd34f0443790b9d751aea738b298f38294c15cfeda67113c
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -49,7 +49,7 @@ spec:
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
             # Bounded canary: one explicitly qualified autonomous admission.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
-            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
             - {name: MASTRACODE_AUTONOMOUS_QUALIFIED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_IN_FLIGHT, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_ATTEMPTS, value: "1"}
