@@ -108,7 +108,10 @@ kubeStateMetrics:
 
 kubelet:
   serviceMonitor:
-    cAdvisorInterval: 15s
+    # cAdvisor is the largest accepted scrape source (~1,396 samples/s).
+    # 30s preserves the existing metric families and 5m rule/dashboard
+    # windows while halving cAdvisor's scrape frequency.
+    cAdvisorInterval: 30s
 
 prometheusOperator:
   resources:
