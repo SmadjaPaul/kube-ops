@@ -22,7 +22,6 @@ data:
         totalEvents: { sql: 'total_events', type: 'max' },
         githubPullRequests: { sql: 'github_pull_requests', type: 'max' },
         githubWorkflowRuns: { sql: 'github_workflow_runs', type: 'max' },
-        paperclipRuns: { sql: 'paperclip_runs', type: 'max' },
         ciSuccessRate: { sql: 'ci_success_rate', type: 'max' },
         humanInterventions: { sql: 'human_interventions', type: 'max' }
       },
