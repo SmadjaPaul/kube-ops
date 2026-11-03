@@ -7,7 +7,7 @@ policy="$root/docs/operations/mastra-factory-supervised-promotion-v1.md"
 readme="$root/k8s/applications/platform/mastra-factory/README.md"
 command -v yq >/dev/null || { echo 'yq required' >&2; exit 127; }
 test "$(shasum -a 256 "$network_policy" | awk '{print $1}')" = \
-  'b3edbafc2423e0d755f5bcb7ff84e284a609b13e35da6e93a974575f2aec59ea'
+  'ef85320702470b08853dd932803d2206f45bbc5a492c1da71b6f765d6823de4d'
 yq -e '
   (.kind == "Deployment") and
   (.metadata.name == "mastra-factory") and
@@ -43,7 +43,8 @@ yq -e '
   ([.spec.ingress[]?.toPorts[]?.ports[]? |
     select(.port == "4111" and .protocol == "TCP")] | length > 0) and
   (.spec.egress | length == 11) and
-  ([.spec.egress[]?.toFQDNs[]?.matchName] | contains(["fsn1.your-objectstorage.com"])) and
+  ([.spec.egress[]?.toFQDNs[]?.matchName] |
+    contains(["api.github.com", "github.com", "api.linear.app", "auth.smadja.dev", "fsn1.your-objectstorage.com"])) and
   ([.spec.egress[]?.toCIDRSet[]?.cidr] | length == 0) and
   ([.spec.egress[]? |
     select(
