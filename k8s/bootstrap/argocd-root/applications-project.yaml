@@ -41,8 +41,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: karakeep
       server: https://kubernetes.default.svc
-    - namespace: listmonk
-      server: https://kubernetes.default.svc
     - namespace: mastra-factory
       server: https://kubernetes.default.svc
     - namespace: mastra-sandbox
@@ -61,10 +59,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: opencode
       server: https://kubernetes.default.svc
-    - namespace: paperclip
-      server: https://kubernetes.default.svc
-    - namespace: paperclip-exec-h3
-      server: https://kubernetes.default.svc
     - namespace: paperless
       server: https://kubernetes.default.svc
     - namespace: pinepods
@@ -78,8 +72,6 @@ spec:
     - namespace: sure
       server: https://kubernetes.default.svc
     - namespace: trilium
-      server: https://kubernetes.default.svc
-    - namespace: twenty
       server: https://kubernetes.default.svc
     - namespace: vikunja
       server: https://kubernetes.default.svc

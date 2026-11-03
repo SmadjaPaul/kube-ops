@@ -9,7 +9,7 @@ resources:
   - mysql.yaml
   - redis.yaml
   - deployment.yaml
-  # Retired OpenClaw/Paperclip MCP is intentionally absent until Mastra consumer,
+  # Retired OpenClaw MCP is intentionally absent until a Mastra consumer,
   # authenticating bearer token and least-privilege NetworkPolicy are qualified.
   - service-route.yaml
   - networkpolicy.yaml

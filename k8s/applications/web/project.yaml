@@ -11,8 +11,6 @@ spec:
       server: '*'
     - namespace: 'web'
       server: '*'
-    - namespace: 'babybuddy'
-      server: '*'
     - namespace: 'pinepods'
       server: '*'
     - namespace: 'tmail'

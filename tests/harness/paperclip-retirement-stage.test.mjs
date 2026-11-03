@@ -21,13 +21,14 @@ test('Paperclip local CLI/agent scaffolding is retired from Git', () => {
   assert.match(pkg.scripts.check, /check:argocd-roots/);
 });
 
-test('Paperclip server and operator GitOps roots are retired before data prune', () => {
-  assert.equal(exists('k8s/applications/ai/paperclip/instance.yaml'), false);
-  assert.equal(exists('k8s/applications/ai/paperclip/runtime-config.yaml'), false);
-  assert.equal(exists('k8s/applications/ai/paperclip/externalsecret.yaml'), false);
-  assert.equal(exists('k8s/applications/ai/paperclip/admin-bootstrap-secret.yaml'), false);
-  assert.ok(exists('k8s/applications/ai/paperclip/database.yaml'));
-  assert.ok(exists('k8s/applications/ai/paperclip/database-scheduled-backup.yaml'));
+test('Paperclip server, data and monitoring roots are fully retired', () => {
+  assert.equal(exists('k8s/applications/ai/paperclip/kustomization.yaml'), false);
+  assert.equal(exists('k8s/infrastructure/controllers/velero/schedules/daily-paperclip.yaml'), false);
+  assert.doesNotMatch(read('k8s/infrastructure/monitoring/blackbox/values.yaml'), /paperclip/i);
+  assert.doesNotMatch(read('k8s/infrastructure/monitoring/blackbox/networkpolicy.yaml'), /paperclip/i);
+  assert.doesNotMatch(read('k8s/infrastructure/network/policies/auth/allow-authentik-access.yaml'), /paperclip/i);
+  assert.doesNotMatch(read('k8s/applications/platform/agentgateway/resources.yaml'), /paperclip/i);
+  assert.doesNotMatch(read('k8s/applications/ai/executor/networkpolicy.yaml'), /paperclip/i);
   assert.equal(exists('k8s/infrastructure/controllers/paperclip-operator/application.yaml'), false);
   assert.equal(exists('k8s/infrastructure/controllers/paperclip-operator/kustomization.yaml'), false);
   assert.equal(read('k8s/infrastructure/controllers/vpa/recommendations.yaml').includes('paperclip.inc/v1alpha1'), false);
@@ -36,8 +37,7 @@ test('Paperclip server and operator GitOps roots are retired before data prune',
   assert.equal(read('k8s/infrastructure/controllers/project.yaml').includes('paperclip-operator-system'), false);
   assert.equal(read('k8s/bootstrap/argocd-root/infrastructure-project.yaml').includes('paperclip-operator-system'), false);
   assert.equal(exists('k8s/infrastructure/controllers/paperclip-operator-namespace.yaml'), false);
-  assert.ok(exists('k8s/infrastructure/controllers/velero/schedules/daily-paperclip.yaml'));
-  assert.match(read('k8s/applications/ai/kustomization.yaml'), /^- paperclip\s*$/m);
+  assert.doesNotMatch(read('k8s/applications/ai/kustomization.yaml'), /^- paperclip\s*$/m);
 });
 
 test('Docusaurus remains independent of the retired Paperclip scaffolding', () => {

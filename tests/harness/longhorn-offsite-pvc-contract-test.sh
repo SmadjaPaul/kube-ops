@@ -43,8 +43,6 @@ grep -F 'storage: 1Gi' "$immich_pvc" >/dev/null
 
 for file in \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
-  "$repo_root/k8s/applications/business/retained/listmonk/storage.yaml" \
-  "$repo_root/k8s/applications/business/retained/twenty/storage.yaml" \
   "$repo_root/k8s/poc/atlantis-plan-only/pvc-backup-patch.yaml" \
   "$repo_root/k8s/applications/business/invoice-ninja/storage.yaml" \
   "$repo_root/k8s/applications/catalog/sure/storage.yaml"; do
@@ -54,9 +52,7 @@ done
 
 ! rg -n 'storageClassName:|resources:|dataStorage:|numberOfReplicas:|defaultDataPath:' \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
-  "$repo_root/k8s/applications/business/retained/listmonk/storage.yaml" \
-  "$repo_root/k8s/applications/business/retained/twenty/storage.yaml" \
   "$repo_root/k8s/poc/atlantis-plan-only/pvc-backup-patch.yaml" \
-  | rg 'pvc-backup-patch|agentgateway-state|listmonk-uploads|twenty-storage|atlantis-pilot-data' >/dev/null
+  | rg 'pvc-backup-patch|agentgateway-state|atlantis-pilot-data' >/dev/null
 
 printf '%s\n' 'LONGHORN_OFFSITE_PVC_CONTRACT=PASS'

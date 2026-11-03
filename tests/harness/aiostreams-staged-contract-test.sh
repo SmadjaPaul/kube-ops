@@ -2,7 +2,6 @@
 set -euo pipefail
 root=k8s/applications/media
 pkg="$root/aiostreams"
-grep -Fxq -- '- configarr' "$root/kustomization.yaml"
 grep -Fxq -- '- aiostreams' "$root/kustomization.yaml"
 grep -Fq "APP_AIOSTREAMS_SECRET_KEY" "$pkg/external-secret.yaml"
 grep -Fq "APP_AIOSTREAMS_OPERATOR_AUTH" "$pkg/external-secret.yaml"

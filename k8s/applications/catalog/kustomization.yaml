@@ -8,8 +8,3 @@ resources:
   - stirling-pdf
   - paperless
   - sure
-
-# Intentionally disabled from the V1 active catalog:
-# - actual-budget: superseded by Sure evaluation.
-# - dawarich: deferred until a concrete location-history use case exists.
-# - metabase: deferred until a concrete analytics use case exists.
