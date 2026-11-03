@@ -30,7 +30,8 @@ spec:
             OIDC_OP_AUTHORIZATION_ENDPOINT: https://auth.smadja.dev/application/o/authorize/
             OIDC_OP_TOKEN_ENDPOINT: https://auth.smadja.dev/application/o/token/
             OIDC_OP_USER_ENDPOINT: https://auth.smadja.dev/application/o/userinfo/
-            OIDC_OP_JWKS_ENDPOINT: https://auth.smadja.dev/application/o/docs/jwks/
+            OIDC_OP_JWKS_ENDPOINT: https://auth.smadja.dev/application/o/lasuite-docs/jwks/
+            OIDC_OP_LOGOUT_ENDPOINT: https://auth.smadja.dev/application/o/lasuite-docs/end-session/
             OIDC_RP_CLIENT_ID:
               secretKeyRef:
                 name: lasuite-docs-runtime
@@ -138,7 +139,8 @@ spec:
             OIDC_OP_AUTHORIZATION_ENDPOINT: https://auth.smadja.dev/application/o/authorize/
             OIDC_OP_TOKEN_ENDPOINT: https://auth.smadja.dev/application/o/token/
             OIDC_OP_USER_ENDPOINT: https://auth.smadja.dev/application/o/userinfo/
-            OIDC_OP_JWKS_ENDPOINT: https://auth.smadja.dev/application/o/drive/jwks/
+            OIDC_OP_JWKS_ENDPOINT: https://auth.smadja.dev/application/o/lasuite-drive/jwks/
+            OIDC_OP_LOGOUT_ENDPOINT: https://auth.smadja.dev/application/o/lasuite-drive/end-session/
             OIDC_RP_CLIENT_ID:
               secretKeyRef:
                 name: lasuite-drive-runtime
@@ -178,6 +180,9 @@ spec:
                 name: lasuite-drive-runtime
                 key: AWS_S3_SECRET_ACCESS_KEY
             MEDIA_BASE_URL: https://drive.smadja.dev
+            WOPI_CLIENTS: "collabora"
+            WOPI_COLLABORA_DISCOVERY_URL: https://office.smadja.dev/hosting/discovery
+            WOPI_SRC_BASE_URL: https://drive.smadja.dev
             EXTERNAL_API: '{"items":{"enabled":true,"actions":["list","retrieve","children","upload_ended"]},"item_access":{"enabled":false,"actions":[]},"item_invitation":{"enabled":false,"actions":[]},"users":{"enabled":true,"actions":["get_me"]}}'
         frontend: {replicas: 1, image: {repository: lasuite/drive-frontend, tag: v0.25.3}}
         ingress: {enabled: false}
