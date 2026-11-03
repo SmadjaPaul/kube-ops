@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: personal-docs
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  project: applications
+  source:
+    repoURL: https://github.com/suitenumerique/docs.git
+    targetRevision: v6.0.4
+    path: src/helm/impress
+    helm:
+      releaseName: personal-docs
+      valuesObject:
+        image: {repository: lasuite/impress-backend, tag: v6.0.4}
+        backend: {replicas: 1, celery: {replicas: 1}}
+        frontend: {replicas: 1, image: {repository: lasuite/impress-frontend, tag: v6.0.4}}
+        yhub: {replicas: 1, worker: {enabled: true, replicas: 1}, image: {repository: lasuite/impress-yhub, tag: v6.0.4}}
+        docSpec: {enabled: true, replicas: 1}
+        ingress: {enabled: false}
+        ingressCollaborationWS: {enabled: false}
+        ingressCollaborationApi: {enabled: false}
+        ingressMedia: {enabled: false}
+        ingressAdmin: {enabled: false}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: lasuite
+  syncPolicy:
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: personal-drive
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  project: applications
+  source:
+    repoURL: https://github.com/suitenumerique/drive.git
+    targetRevision: v0.25.3
+    path: src/helm/drive
+    helm:
+      releaseName: personal-drive
+      valuesObject:
+        image: {repository: lasuite/drive-backend, tag: v0.25.3}
+        backend: {replicas: 1, celery: {replicas: 1}, celeryBeat: {replicas: 1}}
+        frontend: {replicas: 1, image: {repository: lasuite/drive-frontend, tag: v0.25.3}}
+        ingress: {enabled: false}
+        ingressAdmin: {enabled: false}
+        ingressMedia: {enabled: false}
+        ingressMediaPreview: {enabled: false}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: lasuite
+  syncPolicy:
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
