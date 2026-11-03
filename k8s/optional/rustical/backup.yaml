@@ -1,0 +1,17 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-rustical
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: rustical
+spec:
+  schedule: "15 2 * * *"
+  template:
+    includedNamespaces: [rustical]
+    includedResources: ["*"]
+    excludedResources: [events, storageclasses.storage.k8s.io]
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h
