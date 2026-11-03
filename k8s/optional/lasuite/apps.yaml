@@ -182,6 +182,7 @@ spec:
             MEDIA_BASE_URL: https://drive.smadja.dev
             WOPI_CLIENTS: "collabora"
             WOPI_COLLABORA_DISCOVERY_URL: https://office.smadja.dev/hosting/discovery
+            WOPI_COLLABORA_OPTIONS: '{"SupportsRename": false}'
             WOPI_SRC_BASE_URL: https://drive.smadja.dev
             EXTERNAL_API: '{"items":{"enabled":true,"actions":["list","retrieve","children","upload_ended"]},"item_access":{"enabled":false,"actions":[]},"item_invitation":{"enabled":false,"actions":[]},"users":{"enabled":true,"actions":["get_me"]}}'
         frontend: {replicas: 1, image: {repository: lasuite/drive-frontend, tag: v0.25.3}}
