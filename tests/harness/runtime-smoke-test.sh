@@ -10,34 +10,404 @@ cat >"$tmp/routes.json" <<'JSON'
 {
   "items": [
     {
-      "metadata": {"namespace": "smoke", "name": "active-healthy", "ownerReferences": [{"apiVersion": "openclaw.rocks/v1alpha1", "kind": "OpenClawInstance", "uid": "active-healthy"}]},
-      "spec": {"parentRefs": [{"name": "internal"}], "hostnames": ["active-healthy.example.test"], "rules": [{"backendRefs": [{"name": "active-healthy"}]}]},
-      "status": {"parents": [{"parentRef": {"name": "internal"}, "conditions": [{"type": "Accepted", "status": "True"}, {"type": "ResolvedRefs", "status": "True"}]}]}
+      "metadata": {
+        "namespace": "smoke",
+        "name": "active-healthy",
+        "ownerReferences": [
+          {
+            "apiVersion": "openclaw.rocks/v1alpha1",
+            "kind": "OpenClawInstance",
+            "uid": "active-healthy"
+          }
+        ]
+      },
+      "spec": {
+        "parentRefs": [
+          {
+            "name": "internal"
+          }
+        ],
+        "hostnames": [
+          "active-healthy.example.test"
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "name": "active-healthy"
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "parents": [
+          {
+            "parentRef": {
+              "name": "internal"
+            },
+            "conditions": [
+              {
+                "type": "Accepted",
+                "status": "True"
+              },
+              {
+                "type": "ResolvedRefs",
+                "status": "True"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
-      "metadata": {"namespace": "smoke", "name": "active-no-endpoint", "ownerReferences": [{"apiVersion": "openclaw.rocks/v1alpha1", "kind": "OpenClawInstance", "uid": "active-no-endpoint"}]},
-      "spec": {"parentRefs": [{"name": "internal"}], "hostnames": ["active-no-endpoint.example.test"], "rules": [{"backendRefs": [{"name": "active-no-endpoint"}]}]},
-      "status": {"parents": [{"parentRef": {"name": "internal"}, "conditions": [{"type": "Accepted", "status": "True"}, {"type": "ResolvedRefs", "status": "True"}]}]}
+      "metadata": {
+        "namespace": "smoke",
+        "name": "active-no-endpoint",
+        "ownerReferences": [
+          {
+            "apiVersion": "openclaw.rocks/v1alpha1",
+            "kind": "OpenClawInstance",
+            "uid": "active-no-endpoint"
+          }
+        ]
+      },
+      "spec": {
+        "parentRefs": [
+          {
+            "name": "internal"
+          }
+        ],
+        "hostnames": [
+          "active-no-endpoint.example.test"
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "name": "active-no-endpoint"
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "parents": [
+          {
+            "parentRef": {
+              "name": "internal"
+            },
+            "conditions": [
+              {
+                "type": "Accepted",
+                "status": "True"
+              },
+              {
+                "type": "ResolvedRefs",
+                "status": "True"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
-      "metadata": {"namespace": "smoke", "name": "suspended-by-spec", "ownerReferences": [{"apiVersion": "openclaw.rocks/v1alpha1", "kind": "OpenClawInstance", "uid": "suspended-by-spec"}]},
-      "spec": {"parentRefs": [{"name": "internal"}], "hostnames": ["suspended-by-spec.example.test"], "rules": [{"backendRefs": [{"name": "suspended-by-spec"}]}]},
-      "status": {"parents": [{"parentRef": {"name": "internal"}, "conditions": [{"type": "Accepted", "status": "True"}, {"type": "ResolvedRefs", "status": "True"}]}]}
+      "metadata": {
+        "namespace": "smoke",
+        "name": "suspended-by-spec",
+        "ownerReferences": [
+          {
+            "apiVersion": "openclaw.rocks/v1alpha1",
+            "kind": "OpenClawInstance",
+            "uid": "suspended-by-spec"
+          }
+        ]
+      },
+      "spec": {
+        "parentRefs": [
+          {
+            "name": "internal"
+          }
+        ],
+        "hostnames": [
+          "suspended-by-spec.example.test"
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "name": "suspended-by-spec"
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "parents": [
+          {
+            "parentRef": {
+              "name": "internal"
+            },
+            "conditions": [
+              {
+                "type": "Accepted",
+                "status": "True"
+              },
+              {
+                "type": "ResolvedRefs",
+                "status": "True"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
-      "metadata": {"namespace": "smoke", "name": "suspended-by-phase", "ownerReferences": [{"apiVersion": "openclaw.rocks/v1alpha1", "kind": "OpenClawInstance", "uid": "suspended-by-phase"}]},
-      "spec": {"parentRefs": [{"name": "internal"}], "hostnames": ["suspended-by-phase.example.test"], "rules": [{"backendRefs": [{"name": "suspended-by-phase"}]}]},
-      "status": {"parents": [{"parentRef": {"name": "internal"}, "conditions": [{"type": "Accepted", "status": "True"}, {"type": "ResolvedRefs", "status": "True"}]}]}
+      "metadata": {
+        "namespace": "smoke",
+        "name": "suspended-by-phase",
+        "ownerReferences": [
+          {
+            "apiVersion": "openclaw.rocks/v1alpha1",
+            "kind": "OpenClawInstance",
+            "uid": "suspended-by-phase"
+          }
+        ]
+      },
+      "spec": {
+        "parentRefs": [
+          {
+            "name": "internal"
+          }
+        ],
+        "hostnames": [
+          "suspended-by-phase.example.test"
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "name": "suspended-by-phase"
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "parents": [
+          {
+            "parentRef": {
+              "name": "internal"
+            },
+            "conditions": [
+              {
+                "type": "Accepted",
+                "status": "True"
+              },
+              {
+                "type": "ResolvedRefs",
+                "status": "True"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
-      "metadata": {"namespace": "smoke", "name": "absent-indeterminate", "ownerReferences": [{"apiVersion": "openclaw.rocks/v1alpha1", "kind": "OpenClawInstance", "uid": "missing"}]},
-      "spec": {"parentRefs": [{"name": "internal"}], "hostnames": ["absent-indeterminate.example.test"], "rules": [{"backendRefs": [{"name": "absent-indeterminate"}]}]},
-      "status": {"parents": [{"parentRef": {"name": "internal"}, "conditions": [{"type": "Accepted", "status": "True"}, {"type": "ResolvedRefs", "status": "True"}]}]}
+      "metadata": {
+        "namespace": "smoke",
+        "name": "absent-indeterminate",
+        "ownerReferences": [
+          {
+            "apiVersion": "openclaw.rocks/v1alpha1",
+            "kind": "OpenClawInstance",
+            "uid": "missing"
+          }
+        ]
+      },
+      "spec": {
+        "parentRefs": [
+          {
+            "name": "internal"
+          }
+        ],
+        "hostnames": [
+          "absent-indeterminate.example.test"
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "name": "absent-indeterminate"
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "parents": [
+          {
+            "parentRef": {
+              "name": "internal"
+            },
+            "conditions": [
+              {
+                "type": "Accepted",
+                "status": "True"
+              },
+              {
+                "type": "ResolvedRefs",
+                "status": "True"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
-      "metadata": {"namespace": "smoke", "name": "resumed", "ownerReferences": [{"apiVersion": "openclaw.rocks/v1alpha1", "kind": "OpenClawInstance", "uid": "resumed"}]},
-      "spec": {"parentRefs": [{"name": "internal"}], "hostnames": ["resumed.example.test"], "rules": [{"backendRefs": [{"name": "resumed"}]}]},
-      "status": {"parents": [{"parentRef": {"name": "internal"}, "conditions": [{"type": "Accepted", "status": "True"}, {"type": "ResolvedRefs", "status": "True"}]}]}
+      "metadata": {
+        "namespace": "smoke",
+        "name": "resumed",
+        "ownerReferences": [
+          {
+            "apiVersion": "openclaw.rocks/v1alpha1",
+            "kind": "OpenClawInstance",
+            "uid": "resumed"
+          }
+        ]
+      },
+      "spec": {
+        "parentRefs": [
+          {
+            "name": "internal"
+          }
+        ],
+        "hostnames": [
+          "resumed.example.test"
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "name": "resumed"
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "parents": [
+          {
+            "parentRef": {
+              "name": "internal"
+            },
+            "conditions": [
+              {
+                "type": "Accepted",
+                "status": "True"
+              },
+              {
+                "type": "ResolvedRefs",
+                "status": "True"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "namespace": "smoke",
+        "name": "executor-zero",
+        "annotations": {
+          "qa.smadja.dev/disabled-statefulset": "executor-zero"
+        }
+      },
+      "spec": {
+        "parentRefs": [
+          {
+            "name": "internal"
+          }
+        ],
+        "hostnames": [
+          "executor-zero.example.test"
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "name": "executor-zero"
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "parents": [
+          {
+            "parentRef": {
+              "name": "internal"
+            },
+            "conditions": [
+              {
+                "type": "Accepted",
+                "status": "True"
+              },
+              {
+                "type": "ResolvedRefs",
+                "status": "True"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "namespace": "smoke",
+        "name": "executor-resumed",
+        "annotations": {
+          "qa.smadja.dev/disabled-statefulset": "executor-resumed"
+        }
+      },
+      "spec": {
+        "parentRefs": [
+          {
+            "name": "internal"
+          }
+        ],
+        "hostnames": [
+          "executor-resumed.example.test"
+        ],
+        "rules": [
+          {
+            "backendRefs": [
+              {
+                "name": "executor-resumed"
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "parents": [
+          {
+            "parentRef": {
+              "name": "internal"
+            },
+            "conditions": [
+              {
+                "type": "Accepted",
+                "status": "True"
+              },
+              {
+                "type": "ResolvedRefs",
+                "status": "True"
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
@@ -90,6 +460,12 @@ case "$args" in
     ;;
   *'get httproutes.gateway.networking.k8s.io -A -o json'*)
     cat "$SMOKE_FIXTURE_DIR/routes.json"
+    ;;
+  *'get statefulset executor-zero -n smoke -o json'*)
+    printf '%s\n' '{"metadata":{"generation":3},"spec":{"replicas":0},"status":{"observedGeneration":3,"replicas":0,"readyReplicas":0}}'
+    ;;
+  *'get statefulset executor-resumed -n smoke -o json'*)
+    printf '%s\n' '{"metadata":{"generation":4},"spec":{"replicas":1},"status":{"observedGeneration":4,"replicas":1,"readyReplicas":0}}'
     ;;
   *'get endpointslices.discovery.k8s.io'*)
     service="${args##*kubernetes.io/service-name=}"
@@ -154,19 +530,25 @@ else
 fi
 
 [[ "$status" -ne 0 ]] || { printf 'expected active failures in fixture\n%s\n' "$output" >&2; exit 1; }
-[[ "$output" == *'RUNTIME_SMOKE_TESTED=4'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
-[[ "$output" == *'RUNTIME_SMOKE_FAILURES=2'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
-[[ "$output" == *'RUNTIME_SMOKE_SKIPPED_DISABLED_BY_DESIGN=2'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
+[[ "$output" == *'RUNTIME_SMOKE_TESTED=5'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
+[[ "$output" == *'RUNTIME_SMOKE_FAILURES=3'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
+[[ "$output" == *'RUNTIME_SMOKE_SKIPPED_DISABLED_BY_DESIGN=3'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
 
 report="$tmp/artifacts/results.jsonl"
-[[ "$(jq -s 'length' "$report")" == 6 ]] || exit 1
+[[ "$(jq -s 'length' "$report")" == 8 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.result == "PASS")] | length' "$report")" == 2 ]] || exit 1
-[[ "$(jq -s '[.[] | select(.result == "FAIL")] | length' "$report")" == 2 ]] || exit 1
-[[ "$(jq -s '[.[] | select(.result == "SKIPPED_DISABLED_BY_DESIGN")] | length' "$report")" == 2 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.result == "FAIL")] | length' "$report")" == 3 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.result == "SKIPPED_DISABLED_BY_DESIGN")] | length' "$report")" == 3 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "active-no-endpoint" and .result == "FAIL" and (.reasons | contains("no-ready-endpoint")))] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "absent-indeterminate" and .result == "FAIL")] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "resumed" and .result == "PASS")] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "active-healthy" and .result == "PASS" and .kedaManaged == true and .httpAttempts == 2)] | length' "$report")" == 1 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.route == "executor-zero" and .result == "SKIPPED_DISABLED_BY_DESIGN" and .reasons == "statefulset-zero-replicas")] | length' "$report")" == 1 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.route == "executor-resumed" and .result == "FAIL")] | length' "$report")" == 1 ]] || exit 1
+if grep -q 'executor-zero' "$tmp/curl.log"; then
+  printf 'zero-scaled executor route must not be probed\n' >&2
+  exit 1
+fi
 if grep -q 'suspended-by-' "$tmp/curl.log"; then
   printf 'suspended routes must not be probed\n' >&2
   exit 1

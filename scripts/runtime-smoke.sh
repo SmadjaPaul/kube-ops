@@ -15,6 +15,19 @@ if ! openclaw_instances="$(kubectl get openclawinstances.openclaw.rocks -A -o js
   openclaw_instances='{"items":[]}'
 fi
 
+# Verify an explicitly annotated StatefulSet is fully reconciled to zero.
+# Missing API/RBAC access, stale generations, or active replicas fail closed.
+route_disabled_by_zero_scaled_statefulset() {
+  local route="$1" ns name statefulset
+  ns="$(jq -r '.metadata.namespace' <<<"$route")"
+  name="$(jq -r '.metadata.annotations["qa.smadja.dev/disabled-statefulset"] // empty' <<<"$route")"
+  [[ -n "$name" && "$name" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]] || return 1
+  statefulset="$(kubectl get statefulset "$name" -n "$ns" -o json 2>/dev/null)" || return 1
+  jq -e '.spec.replicas == 0 and (.status.replicas // 0) == 0 and
+    (.status.readyReplicas // 0) == 0 and
+    (.status.observedGeneration // 0) >= (.metadata.generation // 1)' <<<"$statefulset" >/dev/null
+}
+
 route_disabled_by_design() {
   local route="$1"
   jq -e --argjson instances "$openclaw_instances" '
@@ -108,8 +121,14 @@ while IFS= read -r route; do
 
   endpoint_count=0
   route_is_disabled_by_design=false
+  disabled_reason=""
   if route_disabled_by_design "$route"; then
     route_is_disabled_by_design=true
+    disabled_reason="openclaw-suspended"
+    skipped_disabled_by_design=$((skipped_disabled_by_design + 1))
+  elif route_disabled_by_zero_scaled_statefulset "$route"; then
+    route_is_disabled_by_design=true
+    disabled_reason="statefulset-zero-replicas"
     skipped_disabled_by_design=$((skipped_disabled_by_design + 1))
   else
     backend_refs="$(jq '[.spec.rules[]?.backendRefs[]? | select((.kind // "Service")=="Service")] | length' <<<"$route")"
@@ -128,7 +147,7 @@ while IFS= read -r route; do
       jq -nc \
         --arg namespace "$ns" --arg route "$name" --arg host "$host" \
         --arg accepted "$accepted" --arg resolvedRefs "$refs" \
-        --arg result SKIPPED_DISABLED_BY_DESIGN --arg reason disabled-by-design \
+        --arg result SKIPPED_DISABLED_BY_DESIGN --arg reason "$disabled_reason" \
         --argjson readyEndpoints "$endpoint_count" \
         '{namespace:$namespace,route:$route,host:$host,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),readyEndpoints:$readyEndpoints,result:$result,reasons:$reason,disabledByDesign:true}' \
         | tee -a "$report"
