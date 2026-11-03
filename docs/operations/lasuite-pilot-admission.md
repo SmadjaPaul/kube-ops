@@ -29,9 +29,17 @@ Required before adding this to a live root:
    external collaboration APIs before claiming functionality.
 8. Qualify WOPI/Collabora separately: Office editing is NOT included in this
    candidate. Do not enable an unpinned or unscanned Collabora image.
-9. Verify the Docs ↔ Drive workflows, and a delegated Mastra OAuth token
+9. Collabora CODE is now staged through the official Helm chart 1.3.7
+   with CODE tag 26.04.5.2.1 and a single replica, but the WOPI trust
+   relationship is NOT configured in Drive. The admin and RSA proof keys must
+   be provisioned as separate Doppler secrets and their contents verified.
+   Test restricted pod security, browser WebSockets, WOPI host allowlist,
+   document editing and CSP. The example internal route includes /cool/adminws
+   and /cool/getMetrics, so MUST NOT be admitted without an explicit Gateway
+   deny/auth layer. Never attach it to Gateway/external as-is.
+10. Verify the Docs ↔ Drive workflows, and a delegated Mastra OAuth token
    limited to a user or folder, including revocation and audit.
-10. Restore from an independent backup, measure CPU/RAM/IO, and run the
+11. Restore from an independent backup, measure CPU/RAM/IO, and run the
     actual browser and mobile user journey before Argo admission.
 
 No Factory, Longhorn cleanup, AIOStreams, Polyfin or live application roots
