@@ -65,9 +65,12 @@ spec:
       toPorts:
         - ports:
             - {port: "4318", protocol: TCP}
+    # Native GitHub and Linear APIs: retain exact HTTPS egress after
+    # removing Research's broad public-HTTPS destination rule.
     - toFQDNs:
         - {matchName: api.github.com}
         - {matchName: github.com}
+        - {matchName: api.linear.app}
       toPorts:
         - ports:
             - {port: "443", protocol: TCP}
