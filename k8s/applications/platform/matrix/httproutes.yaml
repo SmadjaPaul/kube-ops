@@ -79,6 +79,10 @@ metadata:
   annotations:
     qa.smadja.dev/path: /.well-known/matrix/client
     qa.smadja.dev/expected-status: "200"
+    # Public apex is Cloudflare/website-owned; never let private ExternalDNS
+    # derive an apex UniFi record from this (dual-Gateway) HTTPRoute.
+    # The separate matrix-synapse HTTPRoute already owns matrix.smadja.dev.
+    external-dns.kubernetes.io/gateway-hostname-source: annotation-only
 spec:
   parentRefs:
     - {name: internal, namespace: gateway}
