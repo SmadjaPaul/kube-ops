@@ -31,7 +31,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: rustical
-          image: ghcr.io/lennart-k/rustical:v0.18.0
+          image: ghcr.io/lennart-k/rustical:0.18.0@sha256:33ec65f695eeed3fafb15270f274a89f7201d2bb3ffe3369e1be1a94e04af880
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
