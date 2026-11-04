@@ -99,3 +99,5 @@ jobs:
 
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh
+      - name: PLT-131 negative canary
+        run: exit 1
