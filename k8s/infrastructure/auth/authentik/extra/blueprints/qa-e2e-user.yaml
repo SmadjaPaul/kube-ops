@@ -33,7 +33,7 @@ entries:
       username: e2e-user-secondary
       name: E2E Secondary User
       email: e2e-user-secondary@smadja.dev
-      is_active: true
+      is_active: false
       password: !Env E2E_SECOND_USER_PASSWORD
       groups:
         - !Find [authentik_core.group, [name, "family"]]
