@@ -131,6 +131,31 @@
       "schedule": [
         "before 10am on monday"
       ]
+    },
+    {
+      "description": "PLT-128 narrow pilot: root npm devDependencies patch/minor, SemVer >=1, mature releases, CI required",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "package.json"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchPackageNames": [
+        "@commitlint/cli",
+        "@commitlint/config-conventional"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "matchCurrentVersion": "!/^0\\./",
+      "minimumReleaseAge": "14 days",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
     }
   ],
   "kubernetes": {
@@ -139,5 +164,6 @@
       "/k8s/.+\\.yml$/"
     ]
   },
-  "platformAutomerge": false
+  "platformAutomerge": false,
+  "ignoreTests": false
 }
