@@ -30,3 +30,21 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # The issuer resolves to Gateway/internal on the cluster DNS view. Allow
+    # only the internal Gateway VIP and the Authentik server backend required
+    # for the OIDC discovery and authorization path.
+    - toCIDRSet:
+        - cidr: 10.0.20.192/32
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: TCP
