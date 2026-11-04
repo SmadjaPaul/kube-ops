@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateManifestURL, inspectManifest, inspectStream } from './polyfin-nebula-pilot.mjs';
+import { validateManifestURL, inspectManifest, inspectStream, sessionCookie } from './polyfin-nebula-pilot.mjs';
 
 const good = 'https://nebula.eclipsemusic.app/private-token/manifest.json';
 test('accepts an HTTPS tokenized URL without printing it', () => {
@@ -41,4 +41,11 @@ test('shows CDN host and format, never signed path or query', () => {
     format:'flac',quality:'lossless',expiring:true});
   assert.equal(JSON.stringify(info).includes('private'), false);
   assert.equal(JSON.stringify(info).includes('secret-file'), false);
+});
+
+test('extracts only the official native Polyfin session cookie', () => {
+  assert.equal(sessionCookie('polyfin_session=OpaqueSecret123; Path=/admin; HttpOnly; Secure; SameSite=Strict'),
+    'polyfin_session=OpaqueSecret123');
+  for (const header of [null, '', 'other_cookie=123; Path=/admin',
+    'polyfin_session=bad\nX-Other: true']) assert.throws(() => sessionCookie(header));
 });
