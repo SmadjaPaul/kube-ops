@@ -27,13 +27,13 @@ may be admitted by silently reusing BookOrbit secrets or existing PVCs.
 new architecture decision and a separate reviewed admission PR. Retain all
 static safety contracts in the meantime.
 
-Updated staged candidate: **BookOrbit v3.5.0** (published 2026-10-20).
+Updated staged candidate: **BookOrbit v3.6.0** (published 2026-10-28).
 The default Media root intentionally does not include `- bookorbit`.
 A dedicated admission PR, image digest and runtime tests are mandatory.
 
 ## Current qualification boundary (2026-10-25)
 
-- **STATIC PASS:** the v3.5.0 image is digest-pinned, the workload is
+- **STATIC PASS:** the v3.6.0 image is digest-pinned, the workload is
   non-root, the inactive package renders, and the staged contract passes.
 - **RECONCILED/RUNTIME:** not applicable yet. `bookorbit` is not imported by
   the Media root and no BookOrbit Deployment, PVC, CNPG Cluster,
@@ -53,7 +53,7 @@ A dedicated admission PR, image digest and runtime tests are mandatory.
 - **Private admission:** the staged HTTPRoute attaches only to
   `Gateway/internal`. Adding `Gateway/external` is a separate reviewed
   exposure decision and is not part of BookOrbit admission.
-- **Path gate:** upstream v3.5 creates `APP_DATA_PATH` and its Book Dock
+- **Path gate:** upstream v3.6 creates `APP_DATA_PATH` and its Book Dock
   directory at startup. The configured `/data/book-dock` path is therefore
   a runtime check, not a reason to mutate the shared media-layout job.
 
@@ -127,7 +127,7 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
 
 ## Admission gates
 
-1. Resolve + pin immutable image digest for v3.5.0, check upgrade-specific
+1. Resolve + pin immutable image digest for v3.6.0, check upgrade-specific
    API, health route, extension/Postgres dependencies and supported CPU arch.
 2. Verify CNPG 1.29+, PostgreSQL 18 `uuid-ossp`, `pg_trgm`,
    `unaccent`, `vector` and Barman Cloud backup ObjectStore, with
@@ -157,8 +157,16 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
 - https://bookorbit.app/installation/
 - https://bookorbit.app/book-requests/
 - https://bookorbit.app/oidc
-- https://github.com/bookorbit/bookorbit/releases/tag/v3.5.0
+- https://github.com/bookorbit/bookorbit/releases/tag/v3.6.0
 - https://github.com/bookorbit/bookorbit/blob/v3.2.0/server/src/modules/book-request/download-clients/adapters/qbittorrent.adapter.ts
 - https://github.com/nourez/klusty-krab-home-lab/pull/57
 - https://github.com/bookorbit/bookorbit/issues/1805
 - https://github.com/sirrobot01/decypharr/blob/v2.5/pkg/server/qbit/http.go
+
+
+## Upstream v3.6.0 candidate — staged only
+
+The pinned BookOrbit image was updated to `ghcr.io/bookorbit/bookorbit:3.6.0@sha256:bbb5da52e96dbbff1dd36f55454f9845e6cde264b4b3428a3ea783124a4ca62e` (upstream release 2026-10-28).
+The Media application root still excludes BookOrbit; the existing pause, separate
+CNPG/S3 credentials, Velero/Kopia PVC restore, OIDC and filesystem compatibility
+gates remain in force. No migration or live rollout is authorized by this change.
