@@ -1,0 +1,219 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "lasuite-e2e-2026-11-04-5de03e71",
+  "producedAt": "2026-11-04T09:44:02Z",
+  "actor": {"kind": "agent", "name": "lasuite-e2e"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "5de03e710c840cdbdc907428b37efad68ad6e275",
+    "branch": "agent/lasuite-e2e-20261104"
+  },
+  "tests": [
+    {
+      "id": "lasuite-drive-default-values",
+      "name": "Drive chart worker defaults",
+      "command": "git diff --check; remove partial backend.celeryWorkers override",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The partial override was the identified nil-pointer cause; upstream worker defaults remain authoritative.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "commit:5de03e710c840cdbdc907428b37efad68ad6e275"}
+    },
+    {
+      "id": "lasuite-docs-helm-render",
+      "name": "Docs Helm render",
+      "command": "helm template personal-docs docs/src/helm/impress -n lasuite",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "25 rendered resources passed kubeconform strict validation for Kubernetes 1.36.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kubeconform:25-valid-0-invalid"}
+    },
+    {
+      "id": "lasuite-drive-helm-render",
+      "name": "Drive Helm render",
+      "command": "helm template personal-drive drive/src/helm/drive -n lasuite",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "13 rendered resources passed kubeconform strict validation after the worker-default correction.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kubeconform:13-valid-0-invalid"}
+    },
+    {
+      "id": "lasuite-collabora-helm-render",
+      "name": "Collabora Helm render",
+      "command": "helm template personal-office collabora-online-1.3.7 -n lasuite",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "3 rendered resources passed kubeconform strict validation; no runtime admission was attempted.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kubeconform:3-valid-0-invalid"}
+    },
+    {
+      "id": "lasuite-kustomize-render",
+      "name": "La Suite candidate Kustomize render",
+      "command": "kustomize build --enable-helm k8s/optional/lasuite",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The dormant candidate rendered 14 resources; kubeconform found 1 valid resource and skipped 13 schemas that are CRD-backed.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kubeconform:1-valid-0-invalid-13-skipped"}
+    },
+    {
+      "id": "lasuite-doppler-reference-coverage",
+      "name": "La Suite runtime key availability",
+      "command": "doppler secrets get <expected-key> --project cluster --config prd >/dev/null",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "8 of 18 referenced key names are present; 10 required names are absent. Values were redirected and never inspected.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "Doppler name-only existence checks"}
+    },
+    {
+      "id": "lasuite-runtime-admission",
+      "name": "La Suite Argo admission",
+      "command": "kubectl get namespace lasuite; kubectl -n argocd get applications",
+      "execution": "not-executed",
+      "status": "NOT_APPLICABLE",
+      "classification": "not-applicable",
+      "reason": "The candidate is intentionally outside every active ApplicationSet; no runtime mutation was authorized for this agent.",
+      "risk": "high",
+      "expectedCi": "not-expected",
+      "evidence": {"kind": "command", "reference": "namespace=ABSENT; personal-docs/drive/office Applications=ABSENT"}
+    },
+    {
+      "id": "lasuite-runtime-dependencies",
+      "name": "CNPG Valkey S3 and NetworkPolicy runtime dependencies",
+      "command": "kubectl get clusters,objectstores,externalsecrets,networkpolicies -A",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "No lasuite namespace, CNPG clusters, ObjectStores, ExternalSecrets, services, Valkey resources or NetworkPolicies exist in the live cluster.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "canonical kube-preflight; all La Suite runtime queries empty"}
+    },
+    {
+      "id": "lasuite-wopi-runtime",
+      "name": "Drive WOPI and Collabora trust",
+      "command": "WOPI integration and restricted browser/WebSocket journey",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "WOPI proof material is not provisioned and Collabora remains intentionally unadmitted until trust and route security are qualified.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none"}
+    },
+    {
+      "id": "lasuite-restore",
+      "name": "Docs and Drive independent restore",
+      "command": "restore isolated CNPG, Valkey and S3 application state",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No admitted workload, backup artifact or isolated restore target exists; no data was created.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none"}
+    },
+    {
+      "id": "lasuite-user-journey",
+      "name": "Docs and Drive OIDC user journey",
+      "command": "two-user OIDC, upload/download and cross-user isolation",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No active provider or application endpoint exists; user data and credentials were not used.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 11,
+    "executed": 7,
+    "notExecuted": 4,
+    "passed": 5,
+    "failed": 2,
+    "notApplicable": 1,
+    "unavailable": 3
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@5de03e710c840cdbdc907428b37efad68ad6e275:lasuite-e2e",
+    "payload": {
+      "resultId": "lasuite-e2e-2026-11-04-5de03e71",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "5de03e710c840cdbdc907428b37efad68ad6e275",
+      "tests": [
+        {
+          "id": "lasuite-drive-default-values",
+          "name": "Drive chart worker defaults",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Partial worker override removed.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "lasuite-docs-helm-render",
+          "name": "Docs Helm render",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "25 resources valid.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "lasuite-drive-helm-render",
+          "name": "Drive Helm render",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "13 resources valid.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "lasuite-collabora-helm-render",
+          "name": "Collabora Helm render",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "3 resources valid.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "lasuite-runtime-dependencies",
+          "name": "Runtime dependency inventory",
+          "execution": "executed",
+          "status": "FAILED",
+          "classification": "failed",
+          "reason": "La Suite is not admitted and dependencies are absent.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "incomplete", "total": 11, "executed": 7, "notExecuted": 4}
+    }
+  }
+}
