@@ -171,6 +171,9 @@
       ],
       "matchCurrentVersion": "!/^0\\./",
       "minimumReleaseAge": "14 days",
+      "schedule": [
+        "at any time"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
