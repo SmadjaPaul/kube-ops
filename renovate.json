@@ -199,8 +199,10 @@
       "rangeStrategy": "bump"
     },
     {
-      "description": "PLT-131 Remark tooling automerge candidate; keep this change in draft until commitlint is proven",
+      "description": "PLT-131 Remark tooling discovery enabled; automerge held pending required documentation gate",
       "enabled": true,
+      "automerge": false,
+      "platformAutomerge": false,
       "groupName": "PLT-131 Remark tooling automerge pilot",
       "matchManagers": [
         "npm"
