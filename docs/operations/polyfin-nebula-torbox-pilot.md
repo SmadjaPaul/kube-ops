@@ -34,7 +34,7 @@ if TorBox provides that capability, and review the access scope.
 - \`scripts/polyfin-nebula-pilot.mjs\` validates the actual manifest and
   offers an explicitly authorized \`--apply\` using an existing Polyfin
   administrative session. It never prints the tokenized URL or admin cookie.
-- \`tests/harness/polyfin-nebula-pilot.test.mjs\` exercises offline
+- \`scripts/polyfin-nebula-pilot.test.mjs\` exercises offline
   protocol and secret-redaction cases.
 
 ## Activation procedure (operator/Codex; after Argo reconciles)
