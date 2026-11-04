@@ -11,6 +11,14 @@ resources:
   - atlantis-observability.yaml
   - grafana-resource-efficiency.yaml
 
+patches:
+  - path: kube-apiserver-cardinality-patch.json
+    target:
+      group: monitoring.coreos.com
+      version: v1
+      kind: ServiceMonitor
+      name: kube-prometheus-stack-apiserver
+
 helmCharts:
   - name: kube-prometheus-stack
     repo: https://prometheus-community.github.io/helm-charts
