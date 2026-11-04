@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rustical
+  namespace: rustical
+  labels:
+    app.kubernetes.io/name: rustical
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rustical
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rustical
+    spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: rustical
+          image: ghcr.io/lennart-k/rustical:0.18.0@sha256:33ec65f695eeed3fafb15270f274a89f7201d2bb3ffe3369e1be1a94e04af880
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 4000
+          env:
+            - name: RUSTICAL_OIDC__NAME
+              value: Authentik
+            - name: RUSTICAL_OIDC__ISSUER
+              value: https://auth.smadja.dev/application/o/rustical/
+            - name: RUSTICAL_OIDC__CLAIM_USERID
+              value: sub
+            - name: RUSTICAL_OIDC__SCOPES
+              value: '["openid", "profile", "email", "groups"]'
+            - name: RUSTICAL_OIDC__ALLOW_SIGN_UP
+              value: "true"
+            - name: RUSTICAL_FRONTEND__ALLOW_PASSWORD_LOGIN
+              value: "true"
+          envFrom:
+            - secretRef:
+                name: rustical-oidc
+          livenessProbe:
+            exec:
+              command: ["/usr/local/bin/rustical", "health"]
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command: ["/usr/local/bin/rustical", "health"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: state
+              mountPath: /var/lib/rustical
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: rustical-data
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

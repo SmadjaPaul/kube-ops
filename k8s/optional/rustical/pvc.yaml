@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rustical-data
+  namespace: rustical
+  labels:
+    app.kubernetes.io/name: rustical
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 1Gi
