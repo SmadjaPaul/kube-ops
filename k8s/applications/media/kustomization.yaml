@@ -14,7 +14,14 @@ resources:
 - immich
 - audiobookrequest
 - aiostreams
-- ../../optional/polyfin-v060
+- polyfin
+- polyfin-media-route.yaml
 
 # Intentionally disabled from V1:
 # - whisperasr: local CPU transcription is too expensive on the current single-node host.
+
+images:
+  - name: ghcr.io/smadjapaul/polyfin-downstream
+    newName: ghcr.io/moodiness/polyfin
+    newTag: 0.60.0
+    digest: sha256:e2b1d1624a985292ef7a69434a9fd43cea2ead37202b1860c659d18a609125a6

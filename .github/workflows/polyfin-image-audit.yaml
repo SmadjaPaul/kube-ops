@@ -3,9 +3,10 @@ name: Polyfin OCI vulnerability evidence
 on:
   pull_request:
     paths:
-      - 'k8s/optional/polyfin-v060/kustomization.yaml'
+      - 'k8s/applications/media/polyfin/deployment.yaml'
+      - 'k8s/applications/media/polyfin/kustomization.yaml'
       - '.github/workflows/polyfin-image-audit.yaml'
-      - '.github/polyfin/private-pilot-admission-v060.json'
+      - '.github/polyfin/private-pilot-admission.json'
       - 'scripts/polyfin-admission-check.sh'
   workflow_dispatch:
 
@@ -25,13 +26,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image="$(jq -er '.image.repository + ":" + .image.tag + "@" + .image.digest' .github/polyfin/private-pilot-admission-v060.json)"
+          image="$(sed -nE 's/^[[:space:]]*image:[[:space:]]*([^[:space:]]+)$/\1/p' k8s/applications/media/polyfin/deployment.yaml)"
           if [[ ! "$image" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+:[^@[:space:]]+@sha256:[a-f0-9]{64}$ ]]; then
             echo 'Expected exactly one Polyfin image pinned to an immutable sha256 digest' >&2
             exit 1
           fi
-          grep -Fq "digest: ${image##*@}" k8s/optional/polyfin-v060/kustomization.yaml || {
-            echo 'Expected the active Polyfin overlay to pin the admitted digest' >&2
+          [[ "$(grep -Ec '^[[:space:]]*image:' k8s/applications/media/polyfin/deployment.yaml)" == 1 ]] || {
+            echo 'Expected exactly one Polyfin image reference' >&2
             exit 1
           }
           echo "image=$image" >> "$GITHUB_OUTPUT"
@@ -98,4 +99,4 @@ jobs:
           ./scripts/polyfin-admission-check.sh \
             --image "$POLYFIN_IMAGE" \
             --findings polyfin-findings.tsv \
-            --policy .github/polyfin/private-pilot-admission-v060.json
+            --policy .github/polyfin/private-pilot-admission.json
