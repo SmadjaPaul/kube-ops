@@ -68,6 +68,12 @@ if TorBox provides that capability, and review the access scope.
    yields Polyfin's synthesized **My music** library, not necessarily
    rich albums and artists. Check enabled library count before reporting PASS.
 8. Read one already-cached authorized track and one uncached track.
+   For each, provide its ID only through `POLYFIN_NEBULA_TRACK_ID_FILE` and run
+   `POLYFIN_RESOLVE_TRACK=YES node scripts/polyfin-nebula-pilot.mjs --resolve-track`.
+   This calls Nebula's native `/stream/{id}` and prints only latency, CDN
+   hostname and audio metadata; no signed URL or track ID. **This may
+   initiate TorBox caching and consume quota**: execute it only for tracks
+   the operator has authorized, never automatically in CI.
    **Do not automatically invoke an uncached track in CI:** Nebula may
    initiate TorBox caching. The upstream Polyfin v0.60 client gives
    addon calls a 15-second timeout. Record warm/cold latency, status and
