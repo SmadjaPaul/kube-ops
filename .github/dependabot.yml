@@ -26,29 +26,39 @@ enable-beta-ecosystems: true # Likely needed for the Helm package-ecosystem
 updates:
   # --- Node.js / npm dependencies ---
   - package-ecosystem: 'npm'
+    # Renovate owns routine version PRs; keep Dependabot security updates available.
+    open-pull-requests-limit: 0
     directory: '/' # Location of package.json
     schedule:
       interval: 'daily' # Check for updates every weekday
 
   # --- Terraform dependencies ---
   - package-ecosystem: 'terraform'
+    # Renovate owns routine version PRs; keep Dependabot security updates available.
+    open-pull-requests-limit: 0
     directory: '/' # Scan the entire repo for Terraform files
     schedule:
       interval: 'daily'
 
   # --- Docker image dependencies ---
   - package-ecosystem: 'docker'
+    # Renovate owns routine version PRs; keep Dependabot security updates available.
+    open-pull-requests-limit: 0
     directory: '/k8s/' # Update to scan a single directory for Docker dependencies
     schedule:
       interval: 'daily'
   # --- GitHub Actions dependencies ---
   - package-ecosystem: 'github-actions'
+    # Renovate owns routine version PRs; keep Dependabot security updates available.
+    open-pull-requests-limit: 0
     directory: '/' # Root directory required; Dependabot automatically checks .github/workflows
     schedule:
       interval: 'daily'
 
   # --- Helm Chart dependencies ---
   - package-ecosystem: 'helm'
+    # Renovate owns routine version PRs; keep Dependabot security updates available.
+    open-pull-requests-limit: 0
     directory: '/'
     schedule:
       interval: 'daily'
