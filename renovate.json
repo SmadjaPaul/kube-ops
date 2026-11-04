@@ -143,6 +143,10 @@
       "matchDepTypes": [
         "devDependencies"
       ],
+      "matchPackageNames": [
+        "@commitlint/cli",
+        "@commitlint/config-conventional"
+      ],
       "matchUpdateTypes": [
         "patch",
         "minor"
