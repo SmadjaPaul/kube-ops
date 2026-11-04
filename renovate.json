@@ -133,7 +133,25 @@
       ]
     },
     {
+      "description": "PLT-128 preserve semver ranges for the commitlint pilot",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "package.json"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchPackageNames": [
+        "@commitlint/cli",
+        "@commitlint/config-conventional"
+      ],
+      "rangeStrategy": "auto"
+    },
+    {
       "description": "PLT-128 narrow pilot: root npm devDependencies patch/minor, SemVer >=1, mature releases, CI required",
+      "groupName": "PLT-128 commitlint pilot",
       "matchManagers": [
         "npm"
       ],
