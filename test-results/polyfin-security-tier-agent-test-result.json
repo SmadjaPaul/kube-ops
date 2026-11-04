@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "polyfin-security-tier-v060-2026-11-04",
+  "producedAt": "2026-11-04T17:00:00+01:00",
+  "actor": {"kind": "agent", "name": "Codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "c5b7e9ba5bac8e3e0aaa9350133b002967f48b46",
+    "branch": "codex/polyfin-v059-pr"
+  },
+  "tests": [
+    {"id":"tier-negative-harness","name":"T2/T3 bounded admission negatives and T1 strictness","command":"bash scripts/polyfin-admission-check.sh --self-test","execution":"executed","status":"passed","classification":"passed","reason":"Residual HIGH and explicitly accepted CRITICAL pass; active/reachable grave, expiry, external route, privilege drift and strict T1 cases fail.","risk":"low","expectedCi":"required"},
+    {"id":"legacy-admission-harness","name":"Legacy strict Polyfin admission contract","command":"bash tests/harness/polyfin-private-pilot-admission-test.sh","execution":"executed","status":"passed","classification":"passed","reason":"Existing digest mismatch, new CVE and expiry negatives remain enforced.","risk":"low","expectedCi":"required"},
+    {"id":"polyfin-static-contract","name":"Existing Polyfin private pilot static contract","command":"bash tests/harness/polyfin-private-pilot-contract-test.sh","execution":"executed","status":"passed","classification":"passed","reason":"Active 0.50 contract remains unchanged.","risk":"low","expectedCi":"required"},
+    {"id":"candidate-scan-admission","name":"Exact v0.60 scan and T2 verdict","command":"Trivy exact linux/amd64 scan plus scripts/polyfin-admission-check.sh","execution":"executed","status":"passed","classification":"passed","reason":"27 CVE IDs retained as complete evidence; 21 affected residual findings admitted only under the expiring bounded T2 policy; fixed findings remain visible.","risk":"high","expectedCi":"required"},
+    {"id":"repository-check","name":"Repository static checks","command":"just check","execution":"executed","status":"passed","classification":"passed","reason":"All repository checks completed successfully; existing warning output did not fail the check.","risk":"low","expectedCi":"required"},
+    {"id":"polyfin-migration","name":"0.50 to 0.60 migration on isolated restored copy","command":"Disposable PostgreSQL/CNPG restore and Polyfin 0.60 startup","execution":"not-executed","status":"unavailable","classification":"unavailable","reason":"No disposable restore target exists; active media/polyfin-db was not touched.","risk":"high","expectedCi":"not-expected"},
+    {"id":"polyfin-restore","name":"Independent Polyfin restore proof","command":"Restore synthetic dataset and verify through application","execution":"not-executed","status":"unavailable","classification":"unavailable","reason":"Blocked by missing disposable restore target.","risk":"high","expectedCi":"not-expected"},
+    {"id":"polyfin-oidc-user","name":"Polyfin OIDC and user journey","command":"Candidate Authentik/ESO admission and two-user synthetic test","execution":"not-executed","status":"unavailable","classification":"unavailable","reason":"Candidate remains unadmitted until migration and restore gates pass.","risk":"high","expectedCi":"not-expected"}
+  ],
+  "summary": {"outcome":"incomplete","total":8,"executed":5,"notExecuted":3,"passed":5,"failed":0,"skipped":0,"unavailable":3,"notApplicable":0},
+  "transmission": {
+    "target":"factory-platform",
+    "eventType":"agent.test.result",
+    "schema":"agent-test-result/v1",
+    "idempotencyKey":"SmadjaPaul/kube-ops@c5b7e9ba5bac8e3e0aaa9350133b002967f48b46:polyfin-security-tier-v060",
+    "payload": {"resultId":"polyfin-security-tier-v060-2026-11-04","repository":"SmadjaPaul/kube-ops","revision":"c5b7e9ba5bac8e3e0aaa9350133b002967f48b46","tests":[],"summary":{"outcome":"incomplete","total":8,"executed":5,"notExecuted":3}}
+  }
+}

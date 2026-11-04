@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "polyfin-private-pilot-admission/v2",
+  "securityTier": "T2",
+  "admission": {
+    "mode": "risk-accepted",
+    "type": "explicit-operator-risk-acceptance",
+    "scope": "Polyfin 0.60 private LAN/VPN pilot only",
+    "expiresAt": "2026-12-04T23:59:59Z",
+    "revocation": "Revoke on a digest, perimeter, privilege or fixed-version change; re-evaluate before renewal."
+  },
+  "image": {
+    "repository": "ghcr.io/moodiness/polyfin",
+    "tag": "0.60.0",
+    "digest": "sha256:e2b1d1624a985292ef7a69434a9fd43cea2ead37202b1860c659d18a609125a6",
+    "platform": "linux/amd64",
+    "upstreamTag": "v0.60.0",
+    "upstreamCommit": "7bb8e81"
+  },
+  "perimeter": {
+    "publicExposure": false,
+    "externalRoute": false,
+    "networkPolicyMaintained": true,
+    "credentialsIsolated": true,
+    "unauthorizedPrivileges": false,
+    "controls": [
+      "Internal Gateway/LAN-VPN pilot only",
+      "No Cloudflare route and no new public hostname",
+      "Cilium egress allowlist remains authoritative",
+      "IPTV/XMLTV and unknown media hosts remain disabled"
+    ]
+  },
+  "workload": {
+    "nonRoot": true,
+    "readOnlyRootFilesystem": true,
+    "serviceAccountToken": false,
+    "allCapabilitiesDropped": true
+  },
+  "scan": {
+    "scanner": "Trivy",
+    "severity": ["HIGH", "CRITICAL"],
+    "ignoreUnfixed": false,
+    "platform": "linux/amd64",
+    "completeEvidenceRequired": true,
+    "cosignRequiredForPromotion": true
+  },
+  "mustBeAbsent": [
+    "CVE-2026-103111",
+    "CVE-2026-111943",
+    "CVE-2026-78667",
+    "CVE-2026-78669",
+    "CVE-2026-84782",
+    "CVE-2026-97031"
+  ],
+  "blockedFindings": [],
+  "riskRegister": [
+    {"id":"CVE-2025-69720","severity":"HIGH","disposition":"temporary-residual","rationale":"Base ncurses helpers are not an application entrypoint."},
+    {"id":"CVE-2026-113351","severity":"HIGH","disposition":"temporary-residual","rationale":"libexpat remains in the image; no reachable grave exploit path is demonstrated for the private pilot."},
+    {"id":"CVE-2026-117610","severity":"HIGH","disposition":"temporary-residual","rationale":"libexpat remains in the image; no reachable grave exploit path is demonstrated for the private pilot."},
+    {"id":"CVE-2026-118370","severity":"HIGH","disposition":"temporary-residual","rationale":"libexpat remains in the image; no reachable grave exploit path is demonstrated for the private pilot."},
+    {"id":"CVE-2026-119373","severity":"HIGH","disposition":"temporary-residual","rationale":"SQLite library finding is retained in the complete scan and reviewed for the pilot path."},
+    {"id":"CVE-2026-16742","severity":"HIGH","disposition":"temporary-residual","rationale":"No systemd init or host namespace access is granted."},
+    {"id":"CVE-2026-54369","severity":"HIGH","disposition":"temporary-residual","rationale":"Native ACL dependency is retained; no reachable vulnerable pathname operation is demonstrated."},
+    {"id":"CVE-2026-6653","severity":"CRITICAL","disposition":"temporary-risk-acceptance","rationale":"Explicitly tracked CRITICAL residual. Private perimeter, non-root execution, no IPTV/XMLTV admission and no demonstrated reachable vulnerable libxml2 call path; absence of exploit proof is not treated as proof of safety."},
+    {"id":"CVE-2026-74860","severity":"HIGH","disposition":"temporary-residual","rationale":"Same native libxml2 dependency path as the separately tracked CRITICAL; no reachable vulnerable path demonstrated."},
+    {"id":"CVE-2026-76642","severity":"HIGH","disposition":"temporary-residual","rationale":"util-linux helpers are not invoked and the workload has no mount capability."},
+    {"id":"CVE-2026-78408","severity":"HIGH","disposition":"temporary-residual","rationale":"util-linux helper path is not an application entrypoint."},
+    {"id":"CVE-2026-78409","severity":"HIGH","disposition":"temporary-residual","rationale":"util-linux helper path is not an application entrypoint."},
+    {"id":"CVE-2026-78410","severity":"HIGH","disposition":"temporary-residual","rationale":"util-linux helper path is not an application entrypoint."},
+    {"id":"CVE-2026-86138","severity":"HIGH","disposition":"temporary-residual","rationale":"Same native libxml2 dependency path as the separately tracked CRITICAL; no reachable vulnerable path demonstrated."},
+    {"id":"CVE-2026-86139","severity":"HIGH","disposition":"temporary-residual","rationale":"Same native libxml2 dependency path as the separately tracked CRITICAL; no reachable vulnerable path demonstrated."},
+    {"id":"CVE-2026-86140","severity":"HIGH","disposition":"temporary-residual","rationale":"Same native libxml2 dependency path as the separately tracked CRITICAL; no reachable vulnerable path demonstrated."},
+    {"id":"CVE-2026-86142","severity":"HIGH","disposition":"temporary-residual","rationale":"Same native libxml2 dependency path as the separately tracked CRITICAL; no reachable vulnerable path demonstrated."},
+    {"id":"CVE-2026-86143","severity":"HIGH","disposition":"temporary-residual","rationale":"Same native libxml2 dependency path as the separately tracked CRITICAL; no reachable vulnerable path demonstrated."},
+    {"id":"CVE-2026-86144","severity":"HIGH","disposition":"temporary-residual","rationale":"Same native libxml2 dependency path as the separately tracked CRITICAL; no reachable vulnerable path demonstrated."},
+    {"id":"CVE-2026-88806","severity":"HIGH","disposition":"temporary-residual","rationale":"Optional graphics dependency; no X server, display socket or host device is exposed."},
+    {"id":"CVE-2026-9538","severity":"HIGH","disposition":"temporary-residual","rationale":"Perl is a base-image utility and not an application entrypoint."},
+    {"id":"CVE-2026-103111","severity":"HIGH","disposition":"fixed-required","rationale":"Must not reappear after the published fix."},
+    {"id":"CVE-2026-111943","severity":"HIGH","disposition":"fixed-required","rationale":"Must not reappear after the published fix."},
+    {"id":"CVE-2026-78667","severity":"HIGH","disposition":"fixed-required","rationale":"Must not reappear after the published fix."},
+    {"id":"CVE-2026-78669","severity":"HIGH","disposition":"fixed-required","rationale":"Must not reappear after the published fix."},
+    {"id":"CVE-2026-84782","severity":"HIGH","disposition":"fixed-required","rationale":"Must not reappear after the published fix."},
+    {"id":"CVE-2026-97031","severity":"HIGH","disposition":"fixed-required","rationale":"Must not reappear after the published fix."}
+  ]
+}

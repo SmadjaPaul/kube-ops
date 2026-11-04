@@ -1,5 +1,9 @@
 {
   "schemaVersion": "polyfin-private-pilot-admission/v1",
+  "securityTier": "T2",
+  "admission": {
+    "mode": "risk-accepted"
+  },
   "approval": {
     "type": "explicit-operator-risk-acceptance",
     "scope": "Polyfin private LAN/VPN pilot only",
@@ -22,6 +26,11 @@
     "lanVpnOnly": true,
     "cloudflarePublicRoute": false,
     "networkPolicy": "k8s/applications/media/polyfin/networkpolicy.yaml",
+    "publicExposure": false,
+    "externalRoute": false,
+    "networkPolicyMaintained": true,
+    "credentialsIsolated": true,
+    "unauthorizedPrivileges": false,
     "controls": [
       "Internal Gateway only; no external HTTPRoute or Cloudflare Tunnel",
       "Cilium egress allowlist only; no world:443",
@@ -37,6 +46,19 @@
     "CVE-2026-78669",
     "CVE-2026-84782",
     "CVE-2026-97031"
+  ],
+  "workload": {
+    "nonRoot": true,
+    "readOnlyRootFilesystem": true,
+    "serviceAccountToken": false,
+    "allCapabilitiesDropped": true
+  },
+  "blockedFindings": [],
+  "t2ResidualFindings": [
+    {"id":"CVE-2026-113351","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
+    {"id":"CVE-2026-117610","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
+    {"id":"CVE-2026-118370","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
+    {"id":"CVE-2026-119373","severity":"HIGH","rationale":"Residual SQLite library finding retained in complete evidence; no reachable grave exploit path demonstrated for the private pilot."}
   ],
   "acceptedFindings": [
     {
