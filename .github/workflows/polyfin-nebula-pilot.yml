@@ -1,0 +1,29 @@
+name: Polyfin Nebula pilot contract
+on:
+  pull_request:
+    paths:
+      - scripts/polyfin-nebula-pilot.mjs
+      - tests/harness/polyfin-nebula-pilot.test.mjs
+      - k8s/optional/polyfin-nebula/**
+      - k8s/applications/media/polyfin/networkpolicy.yaml
+      - docs/operations/polyfin-nebula-torbox-pilot.md
+      - .github/workflows/polyfin-nebula-pilot.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/polyfin-nebula-pilot.mjs
+      - tests/harness/polyfin-nebula-pilot.test.mjs
+      - .github/workflows/polyfin-nebula-pilot.yml
+permissions:
+  contents: read
+jobs:
+  nebula-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline Eclipse protocol and secret tests
+        run: node --test tests/harness/polyfin-nebula-pilot.test.mjs

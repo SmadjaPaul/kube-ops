@@ -59,6 +59,10 @@ spec:
         # SoundCloud Eclipse addon manifest; stream/CDN hosts remain
         # separately scoped after the addon returns a concrete URL.
         - matchName: sc.eclipsemusic.app
+        # Nebula is a TorBox-backed Eclipse music addon. This is only its
+        # reviewed public control-plane host, not blanket TorBox/CDN egress.
+        # Verify the tokenized install URL host before importing the addon.
+        - matchName: nebula.eclipsemusic.app
         # Anime identifier maps are fetched from the pinned upstream GitHub
         # repository; keep this exact HTTPS FQDN allowlisted instead of
         # granting arbitrary Internet egress.
