@@ -25,6 +25,10 @@ test('requires Eclipse music search and stream, permits no catalog rows', () => 
   assert.throws(() => inspectManifest({id:'x',name:'x',version:'1',
     resources:['search','stream'],contentType:'audiobook'}));
 });
+test('accepts Eclipse resource objects like upstream Polyfin', () => {
+  assert.equal(inspectManifest({id:'x',name:'x',version:'1',
+    resources:[{name:'search'}, {name:'stream'}]}).search, true);
+});
 test('counts only supported catalog types', () => {
   assert.equal(inspectManifest({id:'x',name:'x',version:'1',
     resources:['search','stream','catalog'],
