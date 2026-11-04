@@ -147,7 +147,7 @@
         "@commitlint/cli",
         "@commitlint/config-conventional"
       ],
-      "rangeStrategy": "auto"
+      "rangeStrategy": "bump"
     },
     {
       "description": "PLT-128 narrow pilot: root npm devDependencies patch/minor, SemVer >=1, mature releases, CI required",
