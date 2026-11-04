@@ -29,7 +29,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: factory
-          # Rollback digest: sha256:a4a57ac4eb2be1628a0bf8697ea43f31c4d96027a8d5c75c16e5bb83495b97e2
+          # Rollback digest: sha256:e7482fde895bc19218031e6275ec538e954c65a2da2bb1ddd69988c5347a8cc5
           image: ghcr.io/smadjapaul/mastra-factory@sha256:c3afb1dc7e6023e8aa482eae37879305ad413e4b61d19e5e15286cb19a44d083
           imagePullPolicy: IfNotPresent
           ports:
