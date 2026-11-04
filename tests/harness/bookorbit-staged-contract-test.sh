@@ -2,6 +2,8 @@
 set -euo pipefail
 root=k8s/applications/media
 pkg="$root/bookorbit"
+oidc_blueprint=k8s/optional/bookorbit-authentik-blueprint.staged.yaml
+oidc_secret=k8s/optional/bookorbit-authentik-secret.staged.yaml
 assert_contains() {
   local needle=$1
   local file=$2
@@ -38,4 +40,14 @@ assert_contains 'OIDC' "$pkg/README.md"
 assert_contains 'ADMISSION_PAUSED' "$pkg/README.md"
 assert_contains 'new architecture decision' "$pkg/README.md"
 assert_contains 'setCategory' "$pkg/README.md"
+assert_contains 'client_id: bookorbit' "$oidc_blueprint"
+assert_contains 'client_secret: !Env BOOKORBIT_CLIENT_SECRET' "$oidc_blueprint"
+assert_contains 'https://bookorbit.smadja.dev/oauth2-callback' "$oidc_blueprint"
+assert_contains 'bookorbit://oauth2-callback' "$oidc_blueprint"
+assert_contains 'APP_BOOKORBIT_OIDC_CLIENT_SECRET' "$oidc_secret"
+if grep -Eq 'client_id: bookorbit-v36-staged|APP_BOOKORBIT_OAUTH_CLIENT_SECRET' \
+  "$oidc_blueprint" "$oidc_secret"; then
+  echo "BOOKORBIT_STAGE=FAIL: staged OIDC contract is not canonical" >&2
+  exit 1
+fi
 echo "BOOKORBIT_STAGED=PASS (STATIC_ONLY; NO RUNTIME PROOF)"
