@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: media
+# NOT imported by Argo. v0.59.0 is a candidate pending exact digest scans,
+# backup/restore of the 0.50 database, OIDC and egress runtime qualification.
+resources:
+  - ../../applications/media/polyfin
+images:
+  - name: ghcr.io/smadjapaul/polyfin-downstream
+    newName: ghcr.io/moodiness/polyfin
+    newTag: 0.59.0
+    digest: sha256:613dbcf3c87f1079f028e1ecce0dd04d3b28f3543187d0c5068d32b22c7c6ad3
