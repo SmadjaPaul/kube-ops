@@ -47,13 +47,11 @@ spec:
             - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
             - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
-            # Native-first migration stage 0: block new custom Linear admission.
-            # Delivery-only history remains readable until the old Work Item/run states are safely retired.
-            # IMPORTANT: pending starts and leases require an independent pre-merge runtime preflight.
+            # Single-ticket PLT-126 canary; both labels are unique to this issue.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
-            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
-            # Retained for historical PLT-125 audit; inert while autonomous admission is OFF.
-            - {name: MASTRACODE_AUTONOMOUS_DEPENDENCIES_READY_LABEL, value: "factory-canary-plt125-dependencies-ready"}
+            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_READY_LABEL, value: "factory-canary-v1-e2e-2026-11-04-ready"}
+            - {name: MASTRACODE_AUTONOMOUS_DEPENDENCIES_READY_LABEL, value: "factory-canary-v1-e2e-2026-11-04-dependencies-ready"}
             - {name: MASTRACODE_AUTONOMOUS_QUALIFIED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_IN_FLIGHT, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_ATTEMPTS, value: "1"}
