@@ -20,6 +20,8 @@ permissions:
 
 jobs:
   validate:
+    # Stable, unique check-run name for eventual GitHub branch protection.
+    name: v1-contract
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
