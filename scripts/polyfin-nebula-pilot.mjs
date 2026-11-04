@@ -78,7 +78,7 @@ async function fetchJSON(url, init = {}) {
 
 export async function run() {
   const apply = process.argv.includes('--apply');
-  if (process.argv.some(arg => !['--apply'].includes(arg.slice(2)) && arg.startsWith('--'))) fail('UNKNOWN_FLAG');
+  if (process.argv.slice(2).some(arg => arg !== '--apply')) fail('UNKNOWN_FLAG');
   const manifestURL = validateManifestURL(await loadSecretFile('POLYFIN_NEBULA_URL_FILE'));
   const manifest = await fetchJSON(manifestURL);
   const summary = inspectManifest(manifest);
