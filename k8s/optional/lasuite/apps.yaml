@@ -125,9 +125,6 @@ spec:
         image: {repository: lasuite/drive-backend, tag: v0.25.3}
         backend:
           replicas: 1
-          celeryWorkers:
-            - name: default
-              replicas: 1
           celeryBeat: {replicas: 1}
           envVars:
             DJANGO_CONFIGURATION: Production
