@@ -26,3 +26,19 @@ images:
     newName: ghcr.io/moodiness/polyfin
     newTag: 0.60.0
     digest: sha256:e2b1d1624a985292ef7a69434a9fd43cea2ead37202b1860c659d18a609125a6
+# Keep Polyfin's Authentik OIDC discovery on the same private HTTPS Gateway
+# as its existing AIOStreams addon. This Pod-scoped /etc/hosts override
+# avoids Cloudflare/split-DNS drift without broadening the Cilium egress.
+# TLS still validates the original hostname; the Gateway VIP is already
+# authorized by Polyfin's existing egress policy (10.0.20.192/32:443).
+# Active media overlay only; historical Polyfin pilot gate remains unchanged.
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: polyfin
+    patch: |-
+      - op: add
+        path: /spec/template/spec/hostAliases/0/hostnames/-
+        value: auth.smadja.dev
