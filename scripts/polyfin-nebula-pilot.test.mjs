@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateManifestURL, inspectManifest, inspectStream, sessionCookie } from './polyfin-nebula-pilot.mjs';
+import { validateManifestURL, inspectManifest, inspectStream, sessionCookie, selectSearchTrack } from './polyfin-nebula-pilot.mjs';
 
 const good = 'https://nebula.eclipsemusic.app/private-token/manifest.json';
 test('accepts an HTTPS tokenized URL without printing it', () => {
@@ -41,6 +41,16 @@ test('shows CDN host and format, never signed path or query', () => {
     format:'flac',quality:'lossless',expiring:true});
   assert.equal(JSON.stringify(info).includes('private'), false);
   assert.equal(JSON.stringify(info).includes('secret-file'), false);
+});
+
+test('selects the exact Eclipse track and rejects Polyfin-shaped or ambiguous rows', () => {
+  const track = selectSearchTrack({tracks: [
+    {id:'wrong', title:'One More Time', artist:'Other Artist'},
+    {id:'eclipse-raw-id', title:'One More Time', artist:'Daft Punk'},
+  ]}, {title:'One More Time', artist:'Daft Punk'});
+  assert.deepEqual(track, {id:'eclipse-raw-id', title:'One More Time', artist:'Daft Punk'});
+  assert.throws(() => selectSearchTrack({tracks:[{id:'polyfin-uuid',Name:'One More Time'}]},
+    {title:'One More Time', artist:'Daft Punk'}), /SEARCH_TRACK_NOT_FOUND/);
 });
 
 test('extracts only the official native Polyfin session cookie', () => {
