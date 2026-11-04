@@ -20,6 +20,7 @@ spec:
       hostNetwork: false
       hostPID: false
       hostIPC: false
+      enableServiceLinks: false
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
