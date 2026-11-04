@@ -176,25 +176,16 @@
       "platformAutomerge": true
     },
     {
-      "description": "PLT-128 preparatory docs tooling pilot; remain disabled until commitlint automerge is proven",
-      "enabled": false,
+      "description": "PLT-128 preserve ranges for static documentation tooling",
+      "enabled": true,
       "matchManagers": [
         "npm"
       ],
       "matchFileNames": [
         "website/package.json"
       ],
-      "matchDepTypes": [
-        "dependencies",
-        "devDependencies"
-      ],
+      "matchDepTypes": ["devDependencies"],
       "matchPackageNames": [
-        "@docusaurus/core",
-        "@docusaurus/module-type-aliases",
-        "@docusaurus/plugin-sitemap",
-        "@docusaurus/preset-classic",
-        "@docusaurus/tsconfig",
-        "@docusaurus/types",
         "remark",
         "remark-cli",
         "remark-frontmatter",
@@ -202,15 +193,81 @@
         "remark-lint-no-dead-urls",
         "remark-lint-no-empty-sections",
         "remark-lint-no-undefined-references",
-        "typescript",
         "unist-util-visit"
       ],
       "rangeStrategy": "bump"
     },
     {
-      "description": "PLT-128 preparatory docs tooling pilot; remain disabled until commitlint automerge is proven",
-      "enabled": false,
-      "groupName": "PLT-128 documentation tooling pilot",
+      "description": "PLT-128 static documentation tooling: PRs enabled, automerge held for qualification",
+      "enabled": true,
+      "groupName": "PLT-128 Remark documentation tooling",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": [
+        "remark",
+        "remark-cli",
+        "remark-frontmatter",
+        "remark-lint",
+        "remark-lint-no-dead-urls",
+        "remark-lint-no-empty-sections",
+        "remark-lint-no-undefined-references",
+        "unist-util-visit"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "matchCurrentVersion": "!/^0\\./",
+      "minimumReleaseAge": "14 days",
+      "automerge": false,
+      "platformAutomerge": false
+    },
+    {
+      "description": "PLT-128 preserve ranges for the documentation TypeScript toolchain",
+      "enabled": true,
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "PLT-128 TypeScript docs toolchain: PRs enabled, automerge held for qualification",
+      "enabled": true,
+      "groupName": "PLT-128 TypeScript documentation toolchain",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "matchCurrentVersion": "!/^0\\./",
+      "minimumReleaseAge": "14 days",
+      "automerge": false,
+      "platformAutomerge": false
+    },
+    {
+      "description": "PLT-128 preserve ranges for Docusaurus runtime and plugins",
+      "enabled": true,
       "matchManagers": [
         "npm"
       ],
@@ -227,16 +284,31 @@
         "@docusaurus/plugin-sitemap",
         "@docusaurus/preset-classic",
         "@docusaurus/tsconfig",
-        "@docusaurus/types",
-        "remark",
-        "remark-cli",
-        "remark-frontmatter",
-        "remark-lint",
-        "remark-lint-no-dead-urls",
-        "remark-lint-no-empty-sections",
-        "remark-lint-no-undefined-references",
-        "typescript",
-        "unist-util-visit"
+        "@docusaurus/types"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "PLT-128 Docusaurus runtime: PRs enabled, fusion contrôlée",
+      "enabled": true,
+      "groupName": "PLT-128 Docusaurus runtime and plugins",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": [
+        "dependencies",
+        "devDependencies"
+      ],
+      "matchPackageNames": [
+        "@docusaurus/core",
+        "@docusaurus/module-type-aliases",
+        "@docusaurus/plugin-sitemap",
+        "@docusaurus/preset-classic",
+        "@docusaurus/tsconfig",
+        "@docusaurus/types"
       ],
       "matchUpdateTypes": [
         "patch",
