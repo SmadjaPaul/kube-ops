@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: personal-office
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  project: applications
+  source:
+    repoURL: https://collaboraonline.github.io/online/
+    chart: collabora-online
+    targetRevision: 1.3.7
+    helm:
+      releaseName: personal-office
+      valuesObject:
+        fullnameOverride: personal-office
+        image: {repository: docker.io/collabora/code, tag: 26.04.5.2.1, pullPolicy: IfNotPresent}
+        replicaCount: 1
+        autoscaling: {enabled: false}
+        ingress: {enabled: false}
+        collabora:
+          server_name: office.smadja.dev:443
+          extra_params: "--o:ssl.enable=false --o:ssl.termination=true"
+          aliasgroups:
+            - host: "https://drive.smadja.dev:443"
+          existingSecret:
+            enabled: true
+            secretName: lasuite-office-admin
+            usernameKey: username
+            passwordKey: password
+          proofKeysSecretRef: lasuite-office-proof
+          proofKeyGeneration: {enabled: false}
+        resources:
+          requests: {cpu: 200m, memory: 1Gi}
+          limits: {cpu: "2", memory: 3Gi}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: lasuite
+  syncPolicy:
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

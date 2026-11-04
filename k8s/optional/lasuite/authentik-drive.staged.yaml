@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# STAGED / NOT IMPORTED into active Authentik. Callback follows La Suite
+# django-lasuite oidc_login URLs. Verify real redirect in browser before import.
+version: 1
+metadata:
+  name: Apps - La Suite Drive
+entries:
+  - id: lasuite_drive_provider
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: k8s.smadja.dev/personal/lasuite-drive
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      client_type: confidential
+      grant_types: [authorization_code]
+      client_id: lasuite-drive
+      client_secret: !Env LASUITE_DRIVE_OIDC_CLIENT_SECRET
+      redirect_uris:
+        - {url: https://drive.smadja.dev/api/v1.0/callback/, matching_mode: strict}
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+  - id: lasuite_drive_app
+    model: authentik_core.application
+    identifiers: {slug: lasuite-drive}
+    attrs:
+      name: La Suite Drive
+      group: Personal
+      meta_launch_url: https://drive.smadja.dev
+      provider: !KeyOf lasuite_drive_provider
+      policy_engine_mode: any
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf lasuite_drive_app, group: !Find [authentik_core.group, [name, "family"]]}
+    attrs: {order: 10}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf lasuite_drive_app, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
+    attrs: {order: 100}

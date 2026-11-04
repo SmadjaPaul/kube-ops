@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Candidate outside every Argo ApplicationSet import. No runtime changes.
+resources:
+  - namespace.yaml
+  - databases.yaml
+  - secrets.yaml
+  - apps.yaml
+  - office-app.yaml
+  - office-secret.yaml
+  - routes.yaml
+  # office-route.yaml intentionally excluded: /cool/adminws and metrics need authenticated denial.

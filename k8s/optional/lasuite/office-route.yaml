@@ -1,0 +1,11 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: lasuite-office
+  namespace: lasuite
+spec:
+  parentRefs: [{name: internal, namespace: gateway}]
+  hostnames: [office.smadja.dev]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /}}]
+      backendRefs: [{name: personal-office, port: 9980}]
