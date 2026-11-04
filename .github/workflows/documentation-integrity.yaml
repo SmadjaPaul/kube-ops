@@ -49,7 +49,7 @@ jobs:
                 relevant=true
                 ;;
             esac
-          done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          done <<< "$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
           echo "documentation_relevant=$relevant" >> "$GITHUB_OUTPUT"
           if [[ "$relevant" == true ]]; then
             echo 'DOCS_REQUIRED_CLASSIFICATION=documentation-change'
