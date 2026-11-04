@@ -199,9 +199,9 @@
       "rangeStrategy": "bump"
     },
     {
-      "description": "PLT-128 static documentation tooling: PRs enabled, automerge held for qualification",
+      "description": "PLT-131 Remark tooling automerge candidate; keep this change in draft until commitlint is proven",
       "enabled": true,
-      "groupName": "PLT-128 Remark documentation tooling",
+      "groupName": "PLT-131 Remark tooling automerge pilot",
       "matchManagers": [
         "npm"
       ],
@@ -225,8 +225,9 @@
       ],
       "matchCurrentVersion": "!/^0\\./",
       "minimumReleaseAge": "14 days",
-      "automerge": false,
-      "platformAutomerge": false
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
     },
     {
       "description": "PLT-128 preserve ranges for the documentation TypeScript toolchain",
