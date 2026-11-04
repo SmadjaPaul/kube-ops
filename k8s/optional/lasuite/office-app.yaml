@@ -20,7 +20,7 @@ spec:
         autoscaling: {enabled: false}
         ingress: {enabled: false}
         collabora:
-          server_name: office.smadja.dev
+          server_name: office.smadja.dev:443
           extra_params: "--o:ssl.enable=false --o:ssl.termination=true"
           aliasgroups:
             - host: "https://drive.smadja.dev:443"
