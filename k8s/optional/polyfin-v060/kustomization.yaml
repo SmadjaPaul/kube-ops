@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: media
+resources:
+  - ../../applications/media/polyfin
+  - media-http-route.yaml
+images:
+  - name: ghcr.io/smadjapaul/polyfin-downstream
+    newName: ghcr.io/moodiness/polyfin
+    newTag: 0.60.0
+    digest: sha256:e2b1d1624a985292ef7a69434a9fd43cea2ead37202b1860c659d18a609125a6
