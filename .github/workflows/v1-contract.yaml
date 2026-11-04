@@ -1,4 +1,5 @@
 name: V1 Contract
+# PLT-131: workflow-integrity becomes required after its bootstrap PR.
 
 on:
   # Always run this CI on every PR so a required check cannot be skipped by
