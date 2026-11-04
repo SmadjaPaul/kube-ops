@@ -148,6 +148,7 @@ def is_drill:
   ((.metadata.labels["backup.smadja.dev/restore-drill"] // "") == "true") or
   ((.metadata.labels["qa.smadja.dev/restore"] // "") == "true") or
   ((.metadata.labels["recovery.smadja.dev/purpose"] // "") != "") or
+  ((.metadata.labels["restore.smadja.dev/purpose"] // "") != "") or
   ((ns | test("(^|[-])restore([-]|$)|(^|[-])drill([-]|$)|(^|[-])dr-protect([-]|$)")));
 def is_rebuildable:
   (.metadata.labels["backup.smadja.dev/strategy"] // "") == "rebuildable";
@@ -342,6 +343,8 @@ def recurring_backup_for($lhvolume):
 ([items($cnpg)[] | . as $cluster | {
   namespace:ns,
   cluster:name,
+  drill:is_drill,
+  classification:(if is_drill then "synthetic/test" else "production" end),
   walArchiver:cnpg_wal,
   scheduledBackup:cnpg_scheduled_backup_for($cluster),
   completedBackup:cnpg_backup_for($cluster),
@@ -349,6 +352,8 @@ def recurring_backup_for($lhvolume):
   objectStoreName:cnpg_store_name($cluster),
   scheduledObjectStoreName:cnpg_scheduled_store_name($cluster)
 }]) as $cnpg_inventory |
+($cnpg_inventory | map(select(.drill | not))) as $production_cnpg_inventory |
+($cnpg_inventory | map(select(.drill))) as $recovery_cnpg_inventory |
 (restore_statuses) as $restores |
 ($restores | map(select(.cnpg))) as $cnpg_restores |
 ($restores | map(select(.drill))) as $drill_restores |
@@ -379,11 +384,15 @@ def recurring_backup_for($lhvolume):
     unprotected:($recovery_counts.UNPROTECTED // 0)
   },
   cnpgConfiguration:{
-    total:($cnpg_inventory|length),
-    covered:([ $cnpg_inventory[] | select(.walArchiver and .scheduledBackup and .completedBackup and .objectStore and
+    total:($production_cnpg_inventory|length),
+    covered:([ $production_cnpg_inventory[] | select(.walArchiver and .scheduledBackup and .completedBackup and .objectStore and
       .objectStoreName == .scheduledObjectStoreName) ]|length),
-    uncovered:([ $cnpg_inventory[] | select((.walArchiver and .scheduledBackup and .completedBackup and .objectStore and
+    uncovered:([ $production_cnpg_inventory[] | select((.walArchiver and .scheduledBackup and .completedBackup and .objectStore and
       .objectStoreName == .scheduledObjectStoreName)|not) ])
+  },
+  cnpgRecoveryClusters:{
+    total:($recovery_cnpg_inventory|length),
+    names:($recovery_cnpg_inventory | map(.namespace + "/" + .cluster))
   },
   cnpgRestoreProof:{
     completed:([ $cnpg_restores[] | select((.phase == "Completed" or .phase == "complete") and .accepted) ]|length),
