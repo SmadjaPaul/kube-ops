@@ -1,0 +1,142 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "bookorbit-phase3-2026-11-04-560d9da7",
+  "producedAt": "2026-11-04T09:53:51+01:00",
+  "actor": {"kind": "agent", "name": "BOOKORBIT"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "560d9da7c11a8785927071f850f9e6d9c80df2ac",
+    "branch": "agent/bookorbit-prep-20261104"
+  },
+  "tests": [
+    {
+      "id": "bookorbit-staged-contract",
+      "name": "BookOrbit dormant package and OIDC contract",
+      "command": "bash tests/harness/bookorbit-staged-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The package remains excluded from the Media root, private-only, digest-pinned, uses dedicated CNPG key names, and carries canonical web and iOS OIDC callbacks.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "BOOKORBIT_STAGED=PASS"}
+    },
+    {
+      "id": "bookorbit-kustomize-render",
+      "name": "BookOrbit Kustomize render",
+      "command": "kustomize build k8s/applications/media/bookorbit",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The inactive package renders without cluster mutation or credential output.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "11 rendered resources"}
+    },
+    {
+      "id": "repository-check",
+      "name": "kube-ops static check suite",
+      "command": "mise exec -- just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All repository checks passed, including backup, Argo-root, resource-efficiency and agent-harness contracts.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "check suite exit 0"}
+    },
+    {
+      "id": "bookorbit-doppler-key-names",
+      "name": "BookOrbit Doppler key-name audit",
+      "command": "doppler secrets get <expected-key> --project cluster --config prd --plain >/dev/null",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Six application/OIDC key names were present; the two dedicated CNPG S3 key names were absent. Values were redirected and never inspected.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "six PRESENT; two dedicated CNPG S3 keys ABSENT_OR_UNREADABLE"}
+    },
+    {
+      "id": "bookorbit-live-dormancy",
+      "name": "BookOrbit live-resource absence guard",
+      "command": "canonical kube-preflight; read-only kubectl metadata/status queries",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "No BookOrbit Deployment, PVC, CNPG Cluster, runtime ExternalSecret, Authentik ExternalSecret or HTTPRoute exists; dormant admission is preserved.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "all six live resource counts 0; Kubernetes v1.36.3"}
+    },
+    {
+      "id": "bookorbit-s3-least-privilege",
+      "name": "Dedicated Hetzner S3 identity and policy qualification",
+      "command": "operator creates/qualifies a separate Hetzner key and bucket policy without shared HETZNER_S3 fallback",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The current Hetzner key is project-wide by default and the dedicated APP_BOOKORBIT_CNPG_S3_* names are absent. Admission requires a separate project or an explicit key-allowlisting bucket policy, then operator-only Doppler publication.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    },
+    {
+      "id": "bookorbit-cnpg-pvc-restore",
+      "name": "Synthetic CNPG and PVC restore",
+      "command": "approved isolated CNPG/Barman and Velero/Kopia restore procedure",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No BookOrbit workload or completed BookOrbit backup exists, and the dedicated S3 identity is not qualified. No Kubernetes apply/delete/patch/restart was performed.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    },
+    {
+      "id": "bookorbit-web-ios-user",
+      "name": "Synthetic library web and iOS user journey",
+      "command": "admitted disposable BookOrbit; two-user OIDC; synthetic library; web and iOS login",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The package is intentionally dormant pending architecture admission, dedicated backup identity and restore proof. No user credentials or production data were accessed.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 8,
+    "executed": 5,
+    "notExecuted": 3,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "unavailable": 3,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@560d9da7c11a8785927071f850f9e6d9c80df2ac:bookorbit-phase3",
+    "payload": {
+      "resultId": "bookorbit-phase3-2026-11-04-560d9da7",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "560d9da7c11a8785927071f850f9e6d9c80df2ac",
+      "tests": [
+        {"id":"bookorbit-staged-contract","name":"BookOrbit dormant package and OIDC contract","execution":"executed","status":"PASSED","classification":"passed","reason":"Dormant private-only package and canonical OIDC callbacks passed.","risk":"high","expectedCi":"required"},
+        {"id":"bookorbit-kustomize-render","name":"BookOrbit Kustomize render","execution":"executed","status":"PASSED","classification":"passed","reason":"Inactive package rendered.","risk":"medium","expectedCi":"required"},
+        {"id":"repository-check","name":"kube-ops static check suite","execution":"executed","status":"PASSED","classification":"passed","reason":"Repository static checks passed.","risk":"high","expectedCi":"required"},
+        {"id":"bookorbit-doppler-key-names","name":"BookOrbit Doppler key-name audit","execution":"executed","status":"PASSED","classification":"passed","reason":"Six app/OIDC names present; dedicated CNPG S3 names absent; values not inspected.","risk":"high","expectedCi":"required"},
+        {"id":"bookorbit-live-dormancy","name":"BookOrbit live-resource absence guard","execution":"executed","status":"PASSED","classification":"passed","reason":"All BookOrbit live resource counts were zero.","risk":"high","expectedCi":"required"},
+        {"id":"bookorbit-s3-least-privilege","name":"Dedicated Hetzner S3 identity and policy qualification","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"Dedicated S3 identity/policy is missing.","risk":"high","expectedCi":"required"},
+        {"id":"bookorbit-cnpg-pvc-restore","name":"Synthetic CNPG and PVC restore","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"No admitted workload or BookOrbit backup exists.","risk":"high","expectedCi":"required"},
+        {"id":"bookorbit-web-ios-user","name":"Synthetic library web and iOS user journey","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"Dormant admission and approved user credentials are missing.","risk":"high","expectedCi":"required"}
+      ],
+      "summary": {"outcome":"incomplete","total":8,"executed":5,"notExecuted":3,"passed":5,"failed":0,"skipped":0,"unavailable":3,"notApplicable":0}
+    }
+  }
+}
