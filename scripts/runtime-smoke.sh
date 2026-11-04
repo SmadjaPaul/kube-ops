@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for cmd in kubectl jq curl dig; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
+for cmd in kubectl jq curl dig python3; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
 source "$(dirname "$0")/lib/kube-preflight.sh"
 require_kube_access
 
@@ -83,7 +83,7 @@ keda_managed_host() {
 }
 
 probe_http() {
-  local host="$1" path="$2" attempts=0 max_attempts=1 code
+  local host="$1" path="$2" dns_source="${3:-gateway}" attempts=0 max_attempts=1 code
   if keda_managed_host "$host"; then
     max_attempts=$((keda_wake_retries + 1))
   fi
@@ -91,7 +91,12 @@ probe_http() {
   while (( attempts < max_attempts )); do
     attempts=$((attempts + 1))
     code=''
-    if ! code="$(curl --silent --show-error --output /dev/null --max-time 15 \
+    if [[ "$dns_source" == annotation-only ]]; then
+      if ! code="$(curl --silent --show-error --output /dev/null --max-time 15 \
+        --write-out '%{http_code}' "https://${host}${path}" 2>/dev/null)"; then
+        code=000
+      fi
+    elif ! code="$(curl --silent --show-error --output /dev/null --max-time 15 \
       --resolve "${host}:443:${INTERNAL_VIP}" \
       --write-out '%{http_code}' "https://${host}${path}" 2>/dev/null)"; then
       code=000
@@ -118,6 +123,7 @@ while IFS= read -r route; do
   refs="$(jq -r 'all(.status.parents[]? | select(.parentRef.name=="internal"); any(.conditions[]?; .type=="ResolvedRefs" and .status=="True"))' <<<"$route")"
   path="$(jq -r '.metadata.annotations["qa.smadja.dev/path"] // "/"' <<<"$route")"
   expected="$(jq -r '.metadata.annotations["qa.smadja.dev/expected-status"] // "200,204,301,302,303,307,308,401,403"' <<<"$route")"
+  dns_source="$(jq -r '.metadata.annotations["external-dns.kubernetes.io/gateway-hostname-source"] // "gateway"' <<<"$route")"
 
   endpoint_count=0
   route_is_disabled_by_design=false
@@ -156,9 +162,28 @@ while IFS= read -r route; do
     tested=$((tested + 1))
     dns_answers="$(dig @"$DNS_SERVER" +short A "$host" | paste -sd, -)"
     dns_ok=false
-    if tr ',' '\n' <<<"$dns_answers" | grep -qx "$INTERNAL_VIP"; then dns_ok=true; fi
+    probe_dns_source="gateway"
+    if [[ "$dns_source" == annotation-only ]]; then
+      if [[ "$dns_answers" == "$INTERNAL_VIP" ]]; then
+        dns_ok=true
+      elif [[ -n "$dns_answers" ]] && python3 -c '
+import ipaddress
+import sys
 
-    probe_result="$(probe_http "$host" "$path")"
+try:
+    addresses = [ipaddress.ip_address(value) for value in sys.argv[1].split(",")]
+except ValueError:
+    raise SystemExit(1)
+raise SystemExit(0 if addresses and all(address.is_global for address in addresses) else 1)
+' "$dns_answers"; then
+        dns_ok=true
+        probe_dns_source=annotation-only
+      fi
+    elif tr ',' '\n' <<<"$dns_answers" | grep -qx "$INTERNAL_VIP"; then
+      dns_ok=true
+    fi
+
+    probe_result="$(probe_http "$host" "$path" "$probe_dns_source")"
     code="${probe_result%%$'\t'*}"
     http_attempts="${probe_result#*$'\t'}"
     keda_managed=false
@@ -179,7 +204,7 @@ while IFS= read -r route; do
 
     [[ "$result" == PASS ]] || failures=$((failures + 1))
     reason_csv="$(IFS=,; echo "${reasons[*]:-}")"
-    jq -nc       --arg namespace "$ns" --arg route "$name" --arg host "$host"       --arg accepted "$accepted" --arg resolvedRefs "$refs"       --arg dns "$dns_answers" --arg code "$code" --arg result "$result"       --arg reasons "$reason_csv" --argjson readyEndpoints "$endpoint_count"       --argjson httpAttempts "$http_attempts" --argjson kedaManaged "$keda_managed"       '{namespace:$namespace,route:$route,host:$host,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),dns:$dns,httpStatus:$code,httpAttempts:$httpAttempts,kedaManaged:$kedaManaged,readyEndpoints:$readyEndpoints,result:$result,reasons:($reasons|if length > 0 then . else null end),disabledByDesign:false}'       | tee -a "$report"
+    jq -nc       --arg namespace "$ns" --arg route "$name" --arg host "$host" --arg dnsSource "$dns_source"       --arg accepted "$accepted" --arg resolvedRefs "$refs"       --arg dns "$dns_answers" --arg code "$code" --arg result "$result"       --arg reasons "$reason_csv" --argjson readyEndpoints "$endpoint_count"       --argjson httpAttempts "$http_attempts" --argjson kedaManaged "$keda_managed"       '{namespace:$namespace,route:$route,host:$host,dnsSource:$dnsSource,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),dns:$dns,httpStatus:$code,httpAttempts:$httpAttempts,kedaManaged:$kedaManaged,readyEndpoints:$readyEndpoints,result:$result,reasons:($reasons|if length > 0 then . else null end),disabledByDesign:false}'       | tee -a "$report"
   done < <(jq -r '.spec.hostnames[]?' <<<"$route")
 done < <(jq -c '.items[]' <<<"$routes")
 

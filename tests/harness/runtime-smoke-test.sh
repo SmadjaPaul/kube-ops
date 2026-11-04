@@ -413,6 +413,52 @@ cat >"$tmp/routes.json" <<'JSON'
 }
 JSON
 
+jq '.items += [
+  {
+    "metadata": {
+      "namespace": "smoke",
+      "name": "public-annotation-only",
+      "annotations": {
+        "external-dns.kubernetes.io/gateway-hostname-source": "annotation-only",
+        "qa.smadja.dev/expected-status": "200"
+      }
+    },
+    "spec": {"parentRefs":[{"name":"internal"}],"hostnames":["public.example.test"]},
+    "status": {"parents":[{"parentRef":{"name":"internal"},"conditions":[
+      {"type":"Accepted","status":"True"},{"type":"ResolvedRefs","status":"True"}
+    ]}]}
+  },
+  {
+    "metadata": {
+      "namespace": "smoke",
+      "name": "public-annotation-only-stale-private-dns",
+      "annotations": {
+        "external-dns.kubernetes.io/gateway-hostname-source": "annotation-only",
+        "qa.smadja.dev/expected-status": "200"
+      }
+    },
+    "spec": {"parentRefs":[{"name":"internal"}],"hostnames":["stale-private.example.test"]},
+    "status": {"parents":[{"parentRef":{"name":"internal"},"conditions":[
+      {"type":"Accepted","status":"True"},{"type":"ResolvedRefs","status":"True"}
+    ]}]}
+  },
+  {
+    "metadata": {
+      "namespace": "smoke",
+      "name": "internal-annotation-only",
+      "annotations": {
+        "external-dns.kubernetes.io/gateway-hostname-source": "annotation-only",
+        "qa.smadja.dev/expected-status": "200"
+      }
+    },
+    "spec": {"parentRefs":[{"name":"internal"}],"hostnames":["internal.example.test"]},
+    "status": {"parents":[{"parentRef":{"name":"internal"},"conditions":[
+      {"type":"Accepted","status":"True"},{"type":"ResolvedRefs","status":"True"}
+    ]}]}
+  }
+]' "$tmp/routes.json" >"$tmp/routes.updated.json"
+mv "$tmp/routes.updated.json" "$tmp/routes.json"
+
 cat >"$tmp/openclawinstances.json" <<'JSON'
 {
   "items": [
@@ -488,7 +534,11 @@ SH
 
 cat >"$tmp/bin/dig" <<'SH'
 #!/usr/bin/env bash
-printf '%s\n' '10.0.20.192'
+case "$*" in
+  *public.example.test*) printf '%s\n' '1.1.1.1' ;;
+  *stale-private.example.test*) printf '%s\n' '10.0.20.53' ;;
+  *) printf '%s\n' '10.0.20.192' ;;
+esac
 SH
 
 cat >"$tmp/bin/curl" <<'SH'
@@ -496,6 +546,9 @@ cat >"$tmp/bin/curl" <<'SH'
 set -euo pipefail
 printf '%s\n' "$*" >>"$SMOKE_CURL_LOG"
 case "$*" in
+  *public.example.test*) printf '200\n' ;;
+  *stale-private.example.test*) printf '200\n' ;;
+  *internal.example.test*) printf '200\n' ;;
   *active-healthy.example.test*)
     if ! grep -q 'KEDA_WARMUP_MARKER' "$SMOKE_CURL_LOG"; then
       printf '%s\n' 'KEDA_WARMUP_MARKER' >>"$SMOKE_CURL_LOG"
@@ -522,7 +575,7 @@ if output="$(
     KUBECONFIG="$tmp/kubeconfig" \
     KEDA_WAKE_RETRY_DELAY_SECONDS=0 \
     ARTIFACT_DIR="$tmp/artifacts" \
-    "$repo_root/scripts/runtime-smoke.sh"
+    bash "$repo_root/scripts/runtime-smoke.sh"
 )"; then
   status=0
 else
@@ -530,14 +583,14 @@ else
 fi
 
 [[ "$status" -ne 0 ]] || { printf 'expected active failures in fixture\n%s\n' "$output" >&2; exit 1; }
-[[ "$output" == *'RUNTIME_SMOKE_TESTED=5'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
-[[ "$output" == *'RUNTIME_SMOKE_FAILURES=3'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
+[[ "$output" == *'RUNTIME_SMOKE_TESTED=8'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
+[[ "$output" == *'RUNTIME_SMOKE_FAILURES=4'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
 [[ "$output" == *'RUNTIME_SMOKE_SKIPPED_DISABLED_BY_DESIGN=3'* ]] || { printf '%s\n' "$output" >&2; exit 1; }
 
 report="$tmp/artifacts/results.jsonl"
-[[ "$(jq -s 'length' "$report")" == 8 ]] || exit 1
-[[ "$(jq -s '[.[] | select(.result == "PASS")] | length' "$report")" == 2 ]] || exit 1
-[[ "$(jq -s '[.[] | select(.result == "FAIL")] | length' "$report")" == 3 ]] || exit 1
+[[ "$(jq -s 'length' "$report")" == 11 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.result == "PASS")] | length' "$report")" == 4 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.result == "FAIL")] | length' "$report")" == 4 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.result == "SKIPPED_DISABLED_BY_DESIGN")] | length' "$report")" == 3 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "active-no-endpoint" and .result == "FAIL" and (.reasons | contains("no-ready-endpoint")))] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "absent-indeterminate" and .result == "FAIL")] | length' "$report")" == 1 ]] || exit 1
@@ -545,12 +598,23 @@ report="$tmp/artifacts/results.jsonl"
 [[ "$(jq -s '[.[] | select(.route == "active-healthy" and .result == "PASS" and .kedaManaged == true and .httpAttempts == 2)] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "executor-zero" and .result == "SKIPPED_DISABLED_BY_DESIGN" and .reasons == "statefulset-zero-replicas")] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "executor-resumed" and .result == "FAIL")] | length' "$report")" == 1 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.route == "public-annotation-only" and .result == "PASS" and .dnsSource == "annotation-only")] | length' "$report")" == 1 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.route == "public-annotation-only-stale-private-dns" and .result == "FAIL" and (.reasons | contains("private-dns")))] | length' "$report")" == 1 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.route == "internal-annotation-only" and .result == "PASS" and .dns == "10.0.20.192")] | length' "$report")" == 1 ]] || exit 1
 if grep -q 'executor-zero' "$tmp/curl.log"; then
   printf 'zero-scaled executor route must not be probed\n' >&2
   exit 1
 fi
 if grep -q 'suspended-by-' "$tmp/curl.log"; then
   printf 'suspended routes must not be probed\n' >&2
+  exit 1
+fi
+if grep -q -- '--resolve public.example.test:443:10.0.20.192' "$tmp/curl.log"; then
+  printf 'annotation-only hosts must use their public DNS path\n' >&2
+  exit 1
+fi
+if ! grep -q -- '--resolve internal.example.test:443:10.0.20.192' "$tmp/curl.log"; then
+  printf 'annotation-only hosts with private DNS must use the internal gateway path\n' >&2
   exit 1
 fi
 
