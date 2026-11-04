@@ -220,3 +220,4 @@ echo "V1_DOPPLER_STORES=PASS"
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_BEGIN"
 printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | sort -u
 echo "ACTIVE_DOPPLER_REQUIRED_KEYS_END"
+# PLT-131 gate-change canary
