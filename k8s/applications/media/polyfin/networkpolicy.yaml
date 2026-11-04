@@ -67,6 +67,9 @@ spec:
         # reviewed public control-plane host, not blanket TorBox/CDN egress.
         # Verify the tokenized install URL host before importing the addon.
         - matchName: nebula.eclipsemusic.app
+        # Observed by the qualified warm-track stream resolution. Keep this
+        # exact CDN host scoped; do not replace it with world:443 or a wildcard.
+        - matchName: nexus-326.ceur.tb-cdn.st
         # Anime identifier maps are fetched from the pinned upstream GitHub
         # repository; keep this exact HTTPS FQDN allowlisted instead of
         # granting arbitrary Internet egress.
