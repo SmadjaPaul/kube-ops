@@ -59,3 +59,4 @@ After the root ApplicationSets exist, all normal changes are reconciled by Argo 
 
 Run `npm run check:v1-contract` before deployment.
 <!-- PLT-131 stale-head canary -->
+<!-- PLT-131 stale-head canary B -->
