@@ -60,10 +60,14 @@ upstream change or a separately tested admission control is required.
   credentials separately.
 - Scoped S3 credentials for Barman, full CNPG restore and uploads PVC
   Velero/Kopia restore are REQUIRED. No shared Hetzner catch-all key.
-- Verify the server and frontend *actual* OCI tags/digests before
-  activating the upstream Helm candidate: the v1.11.0 Docker Hub server
-  is published, but the chart's GHCR frontend version is not yet
-  established. Do not assume a Git tag implies GHCR images exist.
+- The upstream chart resolves the server and frontend to these immutable
+  GHCR references; keep both digests in the Argo values and re-check them
+  when the chart revision changes:
+  `ghcr.io/codewithcj/sparkyfitness-server:v1.11.0@sha256:51a2d7c19bd99b50ea17e579fe8d9d4febed895595356b1ddafe0fa808caf75e`
+  and
+  `ghcr.io/codewithcj/sparkyfitness-frontend:v1.11.0@sha256:5eb77135ccd8e58492ee9bd19b8714ea4a73a99623b863a9287ccecb0557cd17`.
+  Existence of the image is not runtime qualification; the chart remains
+  staged until bootstrap, RLS, ESO and restore tests pass.
 - Disable Garmin until API egress and health-data retention are qualified.
   Keep internal Gateway HTTPS only; never world egress for OIDC.
 - Test iOS/Android SSO, HealthKit/Health Connect sync permission boundaries,
