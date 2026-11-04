@@ -213,7 +213,7 @@
           "expectedCi": "required"
         }
       ],
-      "summary": {"outcome": "incomplete", "total": 11, "executed": 8, "notExecuted": 3}
+      "summary": {"outcome": "incomplete", "total": 11, "executed": 7, "notExecuted": 4}
     }
   }
 }
