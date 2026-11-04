@@ -13,8 +13,8 @@
   "schedule": [
     "* 0-7 * * *"
   ],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 2,
+  "prConcurrentLimit": 8,
+  "prHourlyLimit": 3,
   "rangeStrategy": "pin",
   "labels": [
     "dependencies"
@@ -138,5 +138,6 @@
       "/k8s/.+\\.yaml$/",
       "/k8s/.+\\.yml$/"
     ]
-  }
+  },
+  "platformAutomerge": false
 }
