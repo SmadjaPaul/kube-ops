@@ -15,7 +15,10 @@ entries:
       signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
       client_type: confidential
       grant_types: [authorization_code]
-      client_id: bookorbit-v36-staged
+      # Keep the staged provider aligned with the dedicated Doppler contract.
+      # The provider slug/name remains staged; the OAuth client ID is the
+      # stable value consumed by BookOrbit and its mobile callback.
+      client_id: bookorbit
       client_secret: !Env BOOKORBIT_CLIENT_SECRET
       redirect_uris:
         - {url: https://bookorbit.smadja.dev/oauth2-callback, matching_mode: strict}
