@@ -56,13 +56,21 @@ if TorBox provides that capability, and review the access scope.
    It must not print the content. Run:
    \`node scripts/polyfin-nebula-pilot.mjs\`
    This probes the real manifest without installing it.
-6. After acquiring an authorized Polyfin admin session, securely provide the
-   Cookie header via \`POLYFIN_ADMIN_COOKIE_FILE\`, and explicitly run:
-   \`POLYFIN_APPLY_NEBULA=YES node scripts/polyfin-nebula-pilot.mjs --apply\`
-   This invokes Polyfin's native shared-addon API, never SQL. Verify
-   \`kind=eclipse\`. Source configurations and tokens are stored by Polyfin
-   in PostgreSQL; this is an intentional runtime API write after GitOps
-   secret admission, not a Kubernetes imperative configuration mutation.
+6. Authenticate through **Polyfin's official native session API**.
+   Preferred: provide the existing Polyfin administrator name/password through
+   local restricted-permission files at \`POLYFIN_ADMIN_USERNAME_FILE\` and
+   \`POLYFIN_ADMIN_PASSWORD_FILE\`. The helper performs
+   \`POST /admin/api/session\`, extracts the HttpOnly
+   \`polyfin_session\` cookie in memory, and verifies
+   \`GET /admin/api/session\` with \`isAdministrator=true\`.
+   No session cookie, password or token is printed or written to disk by
+   the helper. Two-step sign-in needs an authorized interactive method.
+   Alternative: supply an already-authorized Cookie header via
+   \`POLYFIN_ADMIN_COOKIE_FILE\`. Do not combine the two modes.
+   Run \`POLYFIN_APPLY_NEBULA=YES node scripts/polyfin-nebula-pilot.mjs --apply\`.
+   Verify \`kind=eclipse\` after installation through the native API.
+   If no password nor cookie exists, stop at \`MISSING_ADMIN_AUTH\`:
+   do not reset accounts, bypass login or invent credentials.
 7. Verify the actual \`search\`, \`catalog\`, \`album\`, \`artist\` and
    \`stream\` resources claimed by the manifest. A search-only addon
    yields Polyfin's synthesized **My music** library, not necessarily

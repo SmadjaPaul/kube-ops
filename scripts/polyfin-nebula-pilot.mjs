@@ -76,6 +76,47 @@ async function fetchJSON(url, init = {}) {
   try { return JSON.parse(body); } catch { fail('INVALID_JSON'); }
 }
 
+// Native Polyfin 0.60 login returns an HttpOnly cookie. Keep it in memory only.
+export function sessionCookie(setCookie) {
+  if (typeof setCookie !== 'string') fail('ADMIN_SESSION_COOKIE_MISSING');
+  const part = setCookie.split(';', 1)[0];
+  if (!/^polyfin_session=[A-Za-z0-9._~+/=-]+$/.test(part)) fail('ADMIN_SESSION_COOKIE_MISSING');
+  return part;
+}
+
+async function authorizedAdminCookie() {
+  const cookieFile = process.env.POLYFIN_ADMIN_COOKIE_FILE;
+  const userFile = process.env.POLYFIN_ADMIN_USERNAME_FILE;
+  const passwordFile = process.env.POLYFIN_ADMIN_PASSWORD_FILE;
+  if (cookieFile && (userFile || passwordFile)) fail('AMBIGUOUS_ADMIN_AUTH');
+  let cookie;
+  if (cookieFile) {
+    cookie = await loadSecretFile('POLYFIN_ADMIN_COOKIE_FILE');
+    if (cookie.includes('\n') || cookie.includes('\r') ||
+        !/^polyfin_session=[A-Za-z0-9._~+/=-]+$/.test(cookie)) fail('INVALID_COOKIE_FILE');
+  } else if (userFile && passwordFile) {
+    const name = await loadSecretFile('POLYFIN_ADMIN_USERNAME_FILE');
+    const password = await loadSecretFile('POLYFIN_ADMIN_PASSWORD_FILE');
+    const response = await fetch(polyfinURL + '/admin/api/session', {
+      method: 'POST',
+      redirect: 'error',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, password }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) fail('ADMIN_LOGIN_HTTP_' + response.status);
+    cookie = sessionCookie(response.headers.get('set-cookie'));
+    await response.body?.cancel();
+  } else {
+    fail('MISSING_ADMIN_AUTH');
+  }
+  const session = await fetchJSON(polyfinURL + '/admin/api/session', {
+    headers: { Cookie: cookie },
+  });
+  if (session?.user?.isAdministrator !== true) fail('NOT_POLYFIN_ADMIN');
+  return cookie;
+}
+
 export async function run() {
   const apply = process.argv.includes('--apply');
   const resolveTrack = process.argv.includes('--resolve-track');
@@ -101,8 +142,7 @@ export async function run() {
     return;
   }
   if (process.env.POLYFIN_APPLY_NEBULA !== 'YES') fail('EXPLICIT_APPLY_APPROVAL_REQUIRED');
-  const cookie = await loadSecretFile('POLYFIN_ADMIN_COOKIE_FILE');
-  if (cookie.includes('\n') || cookie.includes('\r')) fail('INVALID_COOKIE_FILE');
+  const cookie = await authorizedAdminCookie();
   const endpoint = polyfinURL + '/admin/api/scopes/shared/addons';
   const installed = await fetchJSON(endpoint, { headers: { Cookie: cookie } });
   if (!Array.isArray(installed)) fail('UNEXPECTED_INSTALLED_LIST');
@@ -128,11 +168,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       'INVALID_MANIFEST', 'MISSING_SEARCH_OR_STREAM', 'NOT_MUSIC', 'INVALID_STREAM',
       'INVALID_STREAM_URL', 'RESPONSE_TOO_LARGE', 'INVALID_JSON', 'INVALID_COOKIE_FILE',
       'UNEXPECTED_INSTALLED_LIST', 'UNEXPECTED_ADDON_KIND', 'UNKNOWN_FLAG',
-      'EXPLICIT_APPLY_APPROVAL_REQUIRED', 'EXPLICIT_RESOLVE_APPROVAL_REQUIRED', 'INVALID_TRACK_ID']);
+      'EXPLICIT_APPLY_APPROVAL_REQUIRED', 'EXPLICIT_RESOLVE_APPROVAL_REQUIRED', 'INVALID_TRACK_ID',
+      'ADMIN_SESSION_COOKIE_MISSING', 'AMBIGUOUS_ADMIN_AUTH', 'MISSING_ADMIN_AUTH',
+      'NOT_POLYFIN_ADMIN']);
     const reason = error?.name === 'TimeoutError' || error?.name === 'AbortError'
       ? 'ADDON_TIMEOUT_15S'
       : typeof error?.message === 'string' &&
-        (known.has(error.message) || /^HTTP_[0-9]{3}$/.test(error.message) ||
+        (known.has(error.message) || /^(HTTP|ADMIN_LOGIN_HTTP)_[0-9]{3}$/.test(error.message) ||
           /^(MISSING|EMPTY)_POLYFIN_/.test(error.message))
         ? error.message : 'NETWORK_OR_RUNTIME_ERROR';
     process.stderr.write('NEBULA_PILOT_BLOCKED=' + reason + '\n');
