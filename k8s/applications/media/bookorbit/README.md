@@ -1,9 +1,16 @@
-# BookOrbit — ADMISSION_PAUSED; staged only, NOT deployed
+# BookOrbit — ADMISSION_PAUSED; synthetic pilot only, NOT deployed
 
 **Decision hold (2026-10-27, PLT-122):** Do not promote this candidate or
-provision BookOrbit-specific S3 credentials, CNPG databases, or secrets while
+provision production BookOrbit S3 credentials, CNPG databases, or secrets while
 the reading stack is reassessed. This is a reversible *pause*, not an
 authorization to delete the staged manifests or any persistent data.
+
+This package is now a bounded synthetic pilot design. Its app data and library
+PVCs are dedicated to BookOrbit fixtures; it must never mount `media-share`.
+Its CNPG object store is an intentionally unreachable placeholder and uses only
+pilot-specific ESO key names. An operator must replace that endpoint with a
+separate least-privilege synthetic bucket and prove restore before any runtime
+admission. No production/Hetzner backup identity is valid for this pilot.
 
 The maintainer has publicly acknowledged previously creating BookLore
 (https://www.reddit.com/r/selfhosted/comments/1w9h1b4/). Its governance history
@@ -41,15 +48,17 @@ A dedicated admission PR, image digest and runtime tests are mandatory.
 - **CNPG baseline:** the cluster currently runs CloudNativePG 1.29.1 and the
   Barman Cloud plugin v0.11.0; BookOrbit PostgreSQL health, extension
   availability and backup status remain unexecuted until admission.
-- **PVC backup gate:** `bookorbit-data` needs an explicit Velero/Kopia
+- **PVC backup gate:** `bookorbit-pilot-data` and `bookorbit-pilot-library` need
+  explicit Velero/Kopia
   filesystem-backup schedule and a restore probe in the admission change.
   The current media schedules do not provide a BookOrbit-specific selector.
-- **Identity gate:** the staged Barman manifest requires
-  `APP_BOOKORBIT_CNPG_S3_ACCESS_KEY_ID` and
-  `APP_BOOKORBIT_CNPG_S3_SECRET_ACCESS_KEY`. These names are a contract for a
-  dedicated, prefix-scoped credential that must be provisioned and qualified
-  in `homelab-infra` before admission; the shared `HETZNER_S3_*` identity is
-  explicitly forbidden. No secret value belongs in this repo.
+- **Identity gate:** the staged Barman manifest requires only
+  `APP_BOOKORBIT_PILOT_CNPG_S3_ACCESS_KEY_ID` and
+  `APP_BOOKORBIT_PILOT_CNPG_S3_SECRET_ACCESS_KEY`. These names are a contract
+  for a dedicated, prefix-scoped synthetic credential that must be provisioned
+  and qualified in `homelab-infra` before admission. The shared `HETZNER_S3_*`
+  identity and the production backup bucket are explicitly forbidden. No
+  secret value belongs in this repo.
 - **Private admission:** the staged HTTPRoute attaches only to
   `Gateway/internal`. Adding `Gateway/external` is a separate reviewed
   exposure decision and is not part of BookOrbit admission.
@@ -85,10 +94,11 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
    and a sentinel row/checksum matches. Record RPO/RTO and delete only the
    disposable restore after evidence capture.
 4. **PVC restore probe:** create a disposable Velero/Kopia filesystem backup
-   of `bookorbit-data`, restore it to a new claim with a distinct name, and
+   of both pilot PVCs, restore them to new claims with distinct names, and
    verify a sentinel file, UID/GID 2501 ownership, `/appdata` readability,
-   and the `/data/book-dock` plus `/data/media/books` path contract. Do not
-   delete or reinitialize the production claim.
+   and the `/data/book-dock` plus `/data/media/books` path contract. The
+   sentinel media must be synthetic EPUB/PDF/audiobook/CBZ fixtures only.
+   Do not delete or reinitialize any production claim.
 5. **Private admission:** add only `- bookorbit` to the Media root in a
    separate exact-SHA PR after the preceding gates pass. Keep Decypharr
    ingress, external HTTPRoute attachment, indexer/source egress and automatic
@@ -123,7 +133,8 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
 - No category changes after import or calls to `setCategory`: v2.5 and
   v2.7 implement it with a null filter, risking mutation of the entire queue.
 - Existing SABnzbd, audiobook app, Jellyfin libraries, PVCs and live
-  Decypharr state remain unchanged by this staging PR.
+  Decypharr state remain unchanged by this staging PR. The pilot does not
+  authorize a download-client, indexer, or production-media integration.
 
 ## Admission gates
 

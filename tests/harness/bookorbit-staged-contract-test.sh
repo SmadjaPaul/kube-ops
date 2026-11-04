@@ -25,8 +25,19 @@ assert_contains 'APP_BOOKORBIT_JWT_SECRET' "$pkg/external-secret.yaml"
 assert_contains 'port: "8282"' "$pkg/networkpolicy.yaml"
 assert_contains 'bookorbit-postgresql' "$pkg/database.yaml"
 assert_contains 'bookorbit-postgresql-weekly' "$pkg/backup.yaml"
-assert_contains 'APP_BOOKORBIT_CNPG_S3_ACCESS_KEY_ID' "$pkg/backup.yaml"
-assert_contains 'APP_BOOKORBIT_CNPG_S3_SECRET_ACCESS_KEY' "$pkg/backup.yaml"
+assert_contains 'APP_BOOKORBIT_PILOT_CNPG_S3_ACCESS_KEY_ID' "$pkg/backup.yaml"
+assert_contains 'APP_BOOKORBIT_PILOT_CNPG_S3_SECRET_ACCESS_KEY' "$pkg/backup.yaml"
+assert_contains 'bookorbit-pilot-synthetic' "$pkg/backup.yaml"
+assert_contains 'bookorbit-pilot-data' "$pkg/app.yaml"
+assert_contains 'bookorbit-pilot-library' "$pkg/app.yaml"
+if grep -Fq -- 'claimName: media-share' "$pkg/app.yaml"; then
+  echo "BOOKORBIT_STAGE=FAIL: pilot must not mount production media-share" >&2
+  exit 1
+fi
+if grep -Eq 'smadja-dev-homelab-backups|fsn1\.your-objectstorage\.com|HETZNER_S3_' "$pkg/backup.yaml"; then
+  echo "BOOKORBIT_STAGE=FAIL: production/Hetzner backup target is not allowed" >&2
+  exit 1
+fi
 if grep -Eq 'HETZNER_S3_(ACCESS_KEY_ID|SECRET_ACCESS_KEY)' "$pkg/backup.yaml"; then
   echo "BOOKORBIT_STAGE=FAIL: shared Hetzner S3 identity is not allowed" >&2
   exit 1

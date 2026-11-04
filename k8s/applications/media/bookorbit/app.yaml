@@ -1,12 +1,33 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: bookorbit-data
+  name: bookorbit-pilot-data
   namespace: media
+  labels:
+    app.kubernetes.io/name: bookorbit
+    app.kubernetes.io/component: pilot-storage
+    bookorbit.smadja.dev/storage-scope: synthetic-only
 spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bookorbit-pilot-library
+  namespace: media
+  labels:
+    app.kubernetes.io/name: bookorbit
+    app.kubernetes.io/component: pilot-storage
+    bookorbit.smadja.dev/storage-scope: synthetic-only
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-bulk
   resources:
     requests:
       storage: 10Gi
@@ -159,10 +180,10 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: bookorbit-data
+            claimName: bookorbit-pilot-data
         - name: media
           persistentVolumeClaim:
-            claimName: media-share
+            claimName: bookorbit-pilot-library
         - name: tmp
           emptyDir:
             sizeLimit: 1Gi
