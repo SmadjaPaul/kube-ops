@@ -39,6 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           relevant=false
+          # Capture the diff in a standalone assignment so git failures abort the job.
+          changed_files="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
           while IFS= read -r file; do
             [[ -n "$file" ]] || continue
             case "$file" in
@@ -49,7 +51,7 @@ jobs:
                 relevant=true
                 ;;
             esac
-          done <<< "$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          done <<< "$changed_files"
           echo "documentation_relevant=$relevant" >> "$GITHUB_OUTPUT"
           if [[ "$relevant" == true ]]; then
             echo 'DOCS_REQUIRED_CLASSIFICATION=documentation-change'
