@@ -25,15 +25,15 @@ export function inspectManifest(manifest) {
   for (const key of ['id', 'name', 'version']) {
     if (typeof manifest[key] !== 'string' || !manifest[key].trim()) fail('INVALID_MANIFEST');
   }
-  if (!Array.isArray(manifest.resources) ||
-      !manifest.resources.includes('search') || !manifest.resources.includes('stream')) {
-    fail('MISSING_SEARCH_OR_STREAM');
-  }
+  const resources = Array.isArray(manifest.resources)
+    ? manifest.resources.map(resource => typeof resource === 'string' ? resource : resource?.name)
+    : [];
+  if (!resources.includes('search') || !resources.includes('stream')) fail('MISSING_SEARCH_OR_STREAM');
   if (manifest.contentType && manifest.contentType !== 'music') fail('NOT_MUSIC');
   const catalogs = Array.isArray(manifest.catalogs) ? manifest.catalogs : [];
   return {
     search: true, stream: true,
-    catalogDeclared: manifest.resources.includes('catalog'),
+    catalogDeclared: resources.includes('catalog'),
     musicCatalogRows: catalogs.filter(c => ['track', 'album', 'artist', 'playlist'].includes(c?.type)).length,
     // Polyfin creates a "My music" library for addons that support search.
     synthesizedMyMusic: true,
@@ -78,11 +78,24 @@ async function fetchJSON(url, init = {}) {
 
 export async function run() {
   const apply = process.argv.includes('--apply');
-  if (process.argv.slice(2).some(arg => arg !== '--apply')) fail('UNKNOWN_FLAG');
+  const resolveTrack = process.argv.includes('--resolve-track');
+  if (process.argv.slice(2).some(arg => !['--apply', '--resolve-track'].includes(arg))) fail('UNKNOWN_FLAG');
   const manifestURL = validateManifestURL(await loadSecretFile('POLYFIN_NEBULA_URL_FILE'));
   const manifest = await fetchJSON(manifestURL);
   const summary = inspectManifest(manifest);
   process.stdout.write('NEBULA_MANIFEST_PASS ' + JSON.stringify(summary) + '\n');
+  if (resolveTrack) {
+    // Explicit only: resolving an uncached track can initiate a TorBox download.
+    if (process.env.POLYFIN_RESOLVE_TRACK !== 'YES') fail('EXPLICIT_RESOLVE_APPROVAL_REQUIRED');
+    const trackId = await loadSecretFile('POLYFIN_NEBULA_TRACK_ID_FILE');
+    if (trackId.length > 500) fail('INVALID_TRACK_ID');
+    const streamURL = manifestURL.slice(0, -'manifest.json'.length) +
+      'stream/' + encodeURIComponent(trackId);
+    const started = performance.now();
+    const stream = await fetchJSON(streamURL);
+    process.stdout.write('NEBULA_STREAM_PASS ' +
+      JSON.stringify({ ...inspectStream(stream), latencyMs: Math.round(performance.now() - started) }) + '\n');
+  }
   if (!apply) {
     process.stdout.write('NEBULA_INSTALL=NOT_EXECUTED (use --apply with an authorized admin session)\n');
     return;
@@ -115,7 +128,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       'INVALID_MANIFEST', 'MISSING_SEARCH_OR_STREAM', 'NOT_MUSIC', 'INVALID_STREAM',
       'INVALID_STREAM_URL', 'RESPONSE_TOO_LARGE', 'INVALID_JSON', 'INVALID_COOKIE_FILE',
       'UNEXPECTED_INSTALLED_LIST', 'UNEXPECTED_ADDON_KIND', 'UNKNOWN_FLAG',
-      'EXPLICIT_APPLY_APPROVAL_REQUIRED']);
+      'EXPLICIT_APPLY_APPROVAL_REQUIRED', 'EXPLICIT_RESOLVE_APPROVAL_REQUIRED', 'INVALID_TRACK_ID']);
     const reason = typeof error?.message === 'string' && 
       (known.has(error.message) || /^HTTP_[0-9]{3}$/.test(error.message) ||
         /^(MISSING|EMPTY)_POLYFIN_/.test(error.message))
