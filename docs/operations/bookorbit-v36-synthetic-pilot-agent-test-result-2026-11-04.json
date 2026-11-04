@@ -1,0 +1,192 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "bookorbit-v36-synthetic-pilot-2026-11-04-3e5b0355",
+  "producedAt": "2026-11-04T16:18:08+01:00",
+  "actor": { "kind": "agent", "name": "codex" },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "3e5b0355a60b24d8121fd2260cad79abab41ca01",
+    "branch": "codex/bookorbit-v36-synthetic-pilot"
+  },
+  "tests": [
+    {
+      "id": "upstream-v360-tag",
+      "name": "BookOrbit v3.6.0 upstream tag verification",
+      "command": "git ls-remote https://github.com/bookorbit/bookorbit.git refs/tags/v3.6.0",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The upstream tag resolves to a96ff0c85a4c25e9126dfa4c71ea87537a3baf7a.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:PASS" }
+    },
+    {
+      "id": "upstream-v360-contract",
+      "name": "BookOrbit v3.6.0 upstream release and image contract",
+      "command": "curl raw v3.6.0 docker-compose.yml/.env.example and compare release/image metadata",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Release behavior and published digest were independently checked: comic/manga support, EPUB+audiobook read-aloud, read-only app, tmpfs, capability drop, PostgreSQL and APP_URL requirements.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:PASS; upstream v3.6.0 sources" }
+    },
+    {
+      "id": "bookorbit-static-contract",
+      "name": "BookOrbit synthetic-only staged contract",
+      "command": "bash tests/harness/bookorbit-staged-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The package remains dormant, private-only, digest-pinned, uses dedicated pilot PVCs, and rejects production/Hetzner storage references.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:PASS" }
+    },
+    {
+      "id": "bookorbit-kustomize-render",
+      "name": "BookOrbit Kustomize render",
+      "command": "kustomize build k8s/applications/media/bookorbit",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The inactive synthetic pilot package renders without a cluster or credentials.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:PASS" }
+    },
+    {
+      "id": "repository-check",
+      "name": "kube-ops static check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All deterministic repository contracts passed.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "command", "reference": "local:PASS" }
+    },
+    {
+      "id": "web-flow",
+      "name": "Synthetic web library and reader flow",
+      "command": "private pilot browser: login, browse, open EPUB/PDF/CBZ, audiobook resume, logout",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "EXTERNAL_DEPENDENCY: no admitted pilot runtime or synthetic fixtures; activating it would violate the current security gate.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    },
+    {
+      "id": "ios-flow",
+      "name": "Synthetic iOS callback and reader flow",
+      "command": "iOS pilot: bookorbit://oauth2-callback, token return, browse, reader, logout",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "EXTERNAL_DEPENDENCY: no iOS device/app session or admitted pilot endpoint.",
+      "risk": "high",
+      "expectedCi": "optional",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    },
+    {
+      "id": "oidc-flow",
+      "name": "Authentik OIDC discovery, linking, claims and recovery",
+      "command": "dedicated synthetic Authentik client and BookOrbit OIDC test",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "EXTERNAL_DEPENDENCY: dedicated client/secret and runtime are not provisioned; AUTHORITY_REQUIRED for group permissions and local-auth decision.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    },
+    {
+      "id": "format-fixtures",
+      "name": "Synthetic EPUB/PDF/audiobook/CBZ import and read flows",
+      "command": "generate rights-cleared fixtures, import from Book Dock, verify metadata/reader/progress",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "EXTERNAL_DEPENDENCY: isolated pilot PVC and runtime are not admitted; no production media may be used.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    },
+    {
+      "id": "cnpg-restore",
+      "name": "CNPG synthetic Barman restore",
+      "command": "restore newest synthetic backup into a disposable cluster and verify extensions/sentinel checksum",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "SECURITY_NO_GO: no dedicated least-privilege synthetic object-store credential or completed backup exists; production/Hetzner credentials are forbidden.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    },
+    {
+      "id": "pvc-restore",
+      "name": "Synthetic pilot PVC restore",
+      "command": "Velero/Kopia backup and restore of bookorbit-pilot-data and bookorbit-pilot-library to new claims",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "EXTERNAL_DEPENDENCY: requires an admitted synthetic runtime and isolated restore operation; no production claim may be touched.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    },
+    {
+      "id": "runtime-admission",
+      "name": "Argo/runtime admission and network proof",
+      "command": "exact-SHA Argo import, private route, NetworkPolicy allow/deny and runtime smoke",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "AUTHORITY_REQUIRED and SECURITY_NO_GO: admission PR is explicitly separate and depends on restore coverage, dedicated credentials, and private-only approval.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": { "kind": "none", "reference": "NOT_EXECUTED" }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 12,
+    "executed": 5,
+    "notExecuted": 7,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "unavailable": 7,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@3e5b0355a60b24d8121fd2260cad79abab41ca01:bookorbit-v36-synthetic-pilot",
+    "payload": {
+      "resultId": "bookorbit-v36-synthetic-pilot-2026-11-04-3e5b0355",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "3e5b0355a60b24d8121fd2260cad79abab41ca01",
+      "tests": [
+        {
+          "id": "repository-check",
+          "name": "kube-ops static check suite",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Deterministic repository contracts passed.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": { "outcome": "incomplete", "total": 12, "executed": 5, "notExecuted": 7 }
+    }
+  }
+}
