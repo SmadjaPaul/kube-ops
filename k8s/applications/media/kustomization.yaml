@@ -42,3 +42,25 @@ patches:
       - op: add
         path: /spec/template/spec/hostAliases/0/hostnames/-
         value: auth.smadja.dev
+  # Cilium Gateway hairpin: in-cluster egress is checked against the
+  # destination backend endpoint identity/port, not only the Gateway VIP.
+  # Without this, Envoy can return 403 Access denied after successful TLS.
+  # Authentik ingress already permits media namespace on port 9000.
+  # Scope to Polyfin -> Authentik (auth namespace) TCP/9000 only.
+  - target:
+      group: cilium.io
+      version: v2
+      kind: CiliumNetworkPolicy
+      name: polyfin-pilot
+    patch: |-
+      - op: add
+        path: /spec/egress/-
+        value:
+          toEndpoints:
+            - matchLabels:
+                k8s:io.kubernetes.pod.namespace: auth
+                app.kubernetes.io/name: authentik
+          toPorts:
+            - ports:
+                - port: "9000"
+                  protocol: TCP

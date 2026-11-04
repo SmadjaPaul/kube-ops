@@ -66,3 +66,46 @@ References:
 https://github.com/moodiness/polyfin/blob/v0.60.0/internal/admin/provider.go
 https://github.com/moodiness/polyfin/blob/v0.60.0/internal/oidc/oidc.go
 https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/infrastructure/auth/authentik/httproute.yaml
+
+## 2026-11-04 — Gateway hairpin HTTP 403: candidate backend egress fix
+
+The post-#904 diagnostic from the running Polyfin Pod now proves:
+- DNS and TLS to the Gateway VIP `10.0.20.192:443` pass.
+- OIDC discovery through the Gateway returns HTTP `403 Access denied`.
+- The same discovery from the operator returns HTTP `200` and the
+  correct exact issuer. Gateway route reports Accepted/ResolvedRefs.
+
+Cilium upstream issue [#47617](https://github.com/cilium/cilium/issues/47617)
+reproduces this precise **in-cluster origin vs LAN origin** difference and
+observes an L7 policy verdict `Denied` even with no L3/L4 packet drops.
+The documented resolution is to permit the originating Pod egress
+to the actual Gateway backend **endpoint and port**, not just to the VIP
+or `toEntities: [ingress]`. This is a strong root-cause hypothesis,
+but not a claim of confirmed runtime fix.
+
+The active `k8s/applications/media/kustomization.yaml` now appends exactly
+one egress rule to `CiliumNetworkPolicy/polyfin-pilot`:
+`toEndpoints: auth namespace + app.kubernetes.io/name=authentik`,
+`toPorts: TCP/9000`. The existing Authentik ingress CNP already
+admits `media` namespace on TCP/9000. No public/Cloudflare egress or
+new port on other destinations is opened.
+
+**Check rendered and live policies:** source CNP deliberately retains its
+four-rule historical baseline; the active Kustomize overlay produces
+five egress rules including the new narrowly scoped fifth one. Do not
+change `tests/harness/polyfin-private-pilot-contract-test.sh` simply
+to make static checks pass. Confirm both source and destination labels
+actually select the expected endpoint and the Service backend target
+port is 9000. Use only scoped live instrumentation, no blanket allow.
+
+**Runtime proof after merge:** Argo Synced/Healthy at the exact merge
+commit; new egress rule present; retry Pod-network OIDC discovery with
+TLS validation enabled; HTTP 200 and exact issuer; Hubble L7 verdict
+FORWARDED (rather than Denied); then real OIDC as `e2e-user` and
+`isAdministrator=false`. If the 403 persists, investigate the actual
+Envoy response flags/request-id and whether it is produced by the
+backend/Authentik rather than adding new permissions.
+
+**Rollback:** revert the single active-root CNP egress patch. Preserve
+AIOStreams, Nebula, user accounts, backups and the original Gateway
+hostAliases.
