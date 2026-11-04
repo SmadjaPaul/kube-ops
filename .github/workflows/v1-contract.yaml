@@ -1,19 +1,9 @@
 name: V1 Contract
 
 on:
+  # Always run this CI on every PR so a required check cannot be skipped by
+  # changing only renovate.json or unrelated documentation.
   pull_request:
-    paths:
-      - 'k8s/**'
-      - 'scripts/**'
-      - '.agents/**'
-      - '.justfile'
-      - 'docs/agent-harness.md'
-      - 'docs/contracts/**'
-      - 'tests/harness/**'
-      - 'docs/operations/acceptance-levels.md'
-      - 'AGENTS.md'
-      - 'README.md'
-      - '.github/workflows/v1-contract.yaml'
   push:
     branches: [main]
     paths:
@@ -60,6 +50,9 @@ jobs:
           tar -xzf /tmp/kubeconform.tgz -C /tmp
           sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
           kubeconform -v
+
+      - name: Validate Renovate configuration syntax
+        run: python3 -m json.tool renovate.json > /dev/null
 
       - name: Validate V1 desired state and backup coverage
         run: npm run check
