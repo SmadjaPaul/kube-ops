@@ -100,3 +100,4 @@ jobs:
 
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh
+# PLT-131 skipped-gate canary trigger
