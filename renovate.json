@@ -160,5 +160,6 @@
       "/k8s/.+\\.yml$/"
     ]
   },
-  "platformAutomerge": false
+  "platformAutomerge": false,
+  "ignoreTests": false
 }
