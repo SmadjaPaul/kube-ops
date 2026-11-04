@@ -63,9 +63,9 @@ jobs:
       - name: Validate Factory supervised promotion contract
         run: bash tests/harness/mastra-factory-supervised-promotion-test.sh
 
-      - name: Validate dormant Polyfin private pilot
+      - name: Validate Polyfin 0.60 private pilot
         run: |
-          kustomize build k8s/applications/media/polyfin > /tmp/polyfin-rendered.yaml
+          kustomize build k8s/optional/polyfin-v060 > /tmp/polyfin-rendered.yaml
           kubeconform -summary -ignore-missing-schemas /tmp/polyfin-rendered.yaml
           bash tests/harness/polyfin-private-pilot-contract-test.sh
 

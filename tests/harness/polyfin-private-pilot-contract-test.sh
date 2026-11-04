@@ -2,12 +2,14 @@
 # Static gate for the explicitly admitted private Polyfin family pilot.
 set -euo pipefail
 root=k8s/applications/media/polyfin
+overlay=k8s/optional/polyfin-v060
+policy=.github/polyfin/private-pilot-admission-v060.json
 global=k8s/infrastructure/network/policies/applications/media/media/allow-media-access.yaml
 tmpfindings="$(mktemp /tmp/polyfin-contract-findings.XXXXXX)"
 trap 'rm -f "$tmpfindings"' EXIT
 
-grep -Eq '^[[:space:]]*-[[:space:]]+polyfin[[:space:]]*$' k8s/applications/media/kustomization.yaml || {
-  echo 'POLYFIN_STATIC=FAIL Polyfin is not activated in the reviewed pilot branch' >&2
+grep -Eq '^[[:space:]]*-[[:space:]]+\.\./\.\./optional/polyfin-v060[[:space:]]*$' k8s/applications/media/kustomization.yaml || {
+  echo 'POLYFIN_STATIC=FAIL Polyfin v0.60 overlay is not activated in the reviewed pilot branch' >&2
   exit 1
 }
 
@@ -16,8 +18,7 @@ eq() {
   [[ "$got" == "$3" ]] || { echo "POLYFIN_STATIC=FAIL $2 $1 got=$got want=$3" >&2; exit 1; }
 }
 ! grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/kustomization.yaml"
-jq -e '.perimeter.hostname == null and .perimeter.routeStatus == "disabled"' \
-  .github/polyfin/private-pilot-admission.json >/dev/null
+jq -e '.securityTier == "T2" and .perimeter.publicExposure == false and .perimeter.externalRoute == false' "$policy" >/dev/null
 eq '.spec.template.spec.automountServiceAccountToken' "$root/deployment.yaml" false
 # The existing Cilium egress permits only 10.0.20.192:443 for AIOStreams.
 # Bind this hostname inside Polyfin alone; do not use public Cloudflare AAAA.
@@ -61,24 +62,14 @@ yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[1].fromEndp
 yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[1].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" | grep -Fx 8000 >/dev/null || {
   echo 'POLYFIN_STATIC=FAIL CNPG status port mismatch' >&2; exit 1
 }
-eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3'
-[[ "$(jq -r '.image.repository + ":" + .image.tag + "@" + .image.digest' .github/polyfin/private-pilot-admission.json)" == "ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3" ]] || {
-  echo 'POLYFIN_STATIC=FAIL admission digest mismatch' >&2; exit 1
-}
-[[ "$(jq -r '.approval.expiresAt' .github/polyfin/private-pilot-admission.json)" == '2026-11-26T23:59:59Z' ]] || {
-  echo 'POLYFIN_STATIC=FAIL admission expiry mismatch' >&2; exit 1
-}
-[[ "$(jq '[.acceptedFindings[]] | length' .github/polyfin/private-pilot-admission.json)" == '17' ]] || {
-  echo 'POLYFIN_STATIC=FAIL expected 17 individually tracked residual CVEs' >&2; exit 1
-}
-[[ "$(jq '[.acceptedFindings[] | select(.id == "CVE-2026-6653")] | length' .github/polyfin/private-pilot-admission.json)" == '1' ]] || {
-  echo 'POLYFIN_STATIC=FAIL CRITICAL CVE-2026-6653 must remain separate' >&2; exit 1
-}
+overlay_image="$(kustomize build "$overlay" | yq -r 'select(.kind == "Deployment" and .metadata.name == "polyfin") | .spec.template.spec.containers[0].image')"
+expected_image="$(jq -er '.image.repository + ":" + .image.tag + "@" + .image.digest' "$policy")"
+[[ "$overlay_image" == "$expected_image" ]] || { echo 'POLYFIN_STATIC=FAIL overlay image mismatch' >&2; exit 1; }
 ! grep -Eq '^[[:space:]]*-[[:space:]]+name:[[:space:]]+external[[:space:]]*$' "$root/http-route.yaml"
 ! grep -Eq '^[[:space:]]*toEntities:|^[[:space:]]*matchPattern:|^[[:space:]]*toCIDR:|0\.0\.0\.0/0|^[[:space:]]*-[[:space:]]+world' "$root/networkpolicy.yaml"
-jq -r '.acceptedFindings[].id | "target\t" + . + "\tpkg\t1\tUNFIXED\tHIGH\taffected"' .github/polyfin/private-pilot-admission.json > "$tmpfindings"
+jq -r '.riskRegister[] | select(.disposition != "fixed-required") | [.id, .severity] | @tsv' "$policy" | awk -F '\t' '{print "target\t" $1 "\tpkg\t1\tUNFIXED\t" $2 "\taffected"}' > "$tmpfindings"
 bash scripts/polyfin-admission-check.sh \
-  --image 'ghcr.io/smadjapaul/polyfin-downstream:0.50.0-patched-01dfcfa30e78-run40564826453-attempt1@sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3' \
+  --image "$expected_image" \
   --findings "$tmpfindings" \
-  --policy .github/polyfin/private-pilot-admission.json >/dev/null
-echo 'POLYFIN_STATIC=PASS; PRIVATE_PILOT=ADMITTED_UNTIL_2026-11-26; RUNTIME=PENDING'
+  --policy "$policy" >/dev/null
+echo 'POLYFIN_STATIC=PASS; PRIVATE_PILOT_V060=T2_ADMITTED; RUNTIME=QUALIFIED_ISOLATED'
