@@ -4,6 +4,13 @@
 kubeProxy:
   enabled: false
 
+# The chart's availability group evaluates 30-day recording rules while this
+# homelab retains 10 days. No repository or live dashboard/rule consumer was
+# found for these recordings; keep burn-rate recording rules and SLO alerts.
+defaultRules:
+  rules:
+    kubeApiserverAvailability: false
+
 # Edge/single-node budget: apiserver exposes ~68k series and accounts for
 # ~2,274 accepted samples/s at the observed 30s scrape cadence (Phase 2).
 # Scrape every 60s to lower ingestion and API metrics serialization load while
