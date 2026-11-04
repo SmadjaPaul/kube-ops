@@ -1,0 +1,106 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sparkyfitness-frontend
+  namespace: wellness
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+      app.kubernetes.io/name: sparkyfitness
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: wellness
+            sparkyfitness.io/server: "true"
+      toPorts:
+        - ports:
+            - port: "3010"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sparkyfitness-server
+  namespace: wellness
+spec:
+  endpointSelector:
+    matchLabels:
+      sparkyfitness.io/server: "true"
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: wellness
+            app.kubernetes.io/component: frontend
+      toPorts:
+        - ports:
+            - port: "3010"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: wellness
+            cnpg.io/cluster: sparkyfitness-db
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: auth.smadja.dev
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sparkyfitness-db-access
+  namespace: wellness
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: sparkyfitness-db
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: wellness
+            sparkyfitness.io/server: "true"
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+            app.kubernetes.io/name: cloudnative-pg
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
