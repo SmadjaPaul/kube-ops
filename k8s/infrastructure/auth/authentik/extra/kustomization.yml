@@ -9,6 +9,7 @@ resources:
   - matrix-mas-oidc-externalsecret.yaml
   # Legacy filename retained; this AIOStreams ExternalSecret is active.
   - aiostreams-oidc-externalsecret.dormant.yaml
+  - rustical-oidc-externalsecret.yaml
 
 generatorOptions:
   disableNameSuffixHash: false
@@ -54,3 +55,4 @@ configMapGenerator:
       - ./blueprints/apps-factory.yaml
       - ./blueprints/apps-matrix-mas.yaml
       - ./blueprints/apps-aiostreams.yaml
+      - ./blueprints/apps-rustical.yaml
