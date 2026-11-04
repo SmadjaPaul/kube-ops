@@ -24,3 +24,20 @@ entries:
         - !Find [authentik_core.group, [name, "Home Assistant Users"]]
         - !Find [authentik_core.group, [name, "Open WebUI Users"]]
         - !Find [authentik_core.group, [name, "Grafana Users"]]
+
+---
+# The second synthetic identity is kept in the already-applied QA blueprint so
+# Authentik's existing blueprint discovery path reprocesses it deterministically.
+  - id: e2e-user-secondary
+    model: authentik_core.user
+    state: present
+    identifiers:
+      username: e2e-user-secondary
+    attrs:
+      username: e2e-user-secondary
+      name: E2E Secondary User
+      email: e2e-user-secondary@smadja.dev
+      is_active: true
+      password: !Env E2E_SECOND_USER_PASSWORD
+      groups:
+        - !Find [authentik_core.group, [name, "family"]]
