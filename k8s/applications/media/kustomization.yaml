@@ -15,6 +15,7 @@ resources:
 - audiobookrequest
 - aiostreams
 - polyfin
+- ../../optional/polyfin-nebula
 - polyfin-media-route.yaml
 
 # Intentionally disabled from V1:
