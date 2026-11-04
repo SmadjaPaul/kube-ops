@@ -129,10 +129,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       'INVALID_STREAM_URL', 'RESPONSE_TOO_LARGE', 'INVALID_JSON', 'INVALID_COOKIE_FILE',
       'UNEXPECTED_INSTALLED_LIST', 'UNEXPECTED_ADDON_KIND', 'UNKNOWN_FLAG',
       'EXPLICIT_APPLY_APPROVAL_REQUIRED', 'EXPLICIT_RESOLVE_APPROVAL_REQUIRED', 'INVALID_TRACK_ID']);
-    const reason = typeof error?.message === 'string' && 
-      (known.has(error.message) || /^HTTP_[0-9]{3}$/.test(error.message) ||
-        /^(MISSING|EMPTY)_POLYFIN_/.test(error.message))
-      ? error.message : 'NETWORK_OR_RUNTIME_ERROR';
+    const reason = error?.name === 'TimeoutError' || error?.name === 'AbortError'
+      ? 'ADDON_TIMEOUT_15S'
+      : typeof error?.message === 'string' &&
+        (known.has(error.message) || /^HTTP_[0-9]{3}$/.test(error.message) ||
+          /^(MISSING|EMPTY)_POLYFIN_/.test(error.message))
+        ? error.message : 'NETWORK_OR_RUNTIME_ERROR';
     process.stderr.write('NEBULA_PILOT_BLOCKED=' + reason + '\n');
     process.exitCode = 1;
   });
