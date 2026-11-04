@@ -1,0 +1,13 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/endpoints/0/metricRelabelings/-",
+    "value": {
+      "action": "drop",
+      "regex": "^(apiserver_request_body_size_bytes|apiserver_watch_list_duration_seconds|apiserver_response_sizes|apiserver_watch_cache_read_wait_seconds|apiserver_watch_events_sizes|etcd_request_duration_seconds)_bucket$",
+      "sourceLabels": [
+        "__name__"
+      ]
+    }
+  }
+]
