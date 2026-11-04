@@ -58,3 +58,4 @@ After the root ApplicationSets exist, all normal changes are reconciled by Argo 
 - `website/`: inherited documentation source, not a runtime surface.
 
 Run `npm run check:v1-contract` before deployment.
+<!-- PLT-131 stale-head canary -->
