@@ -54,6 +54,32 @@ export function inspectStream(stream) {
   };
 }
 
+export function selectSearchTrack(payload, { title, artist }) {
+  const tracks = Array.isArray(payload?.tracks) ? payload.tracks : [];
+  const match = tracks.find(track =>
+    track && track.title === title && track.artist === artist &&
+    typeof track.id === 'string' && track.id.trim());
+  if (!match) fail('SEARCH_TRACK_NOT_FOUND');
+  return match;
+}
+
+async function searchAndResolve(manifestURL) {
+  const baseURL = manifestURL.slice(0, -'manifest.json'.length);
+  const searchURL = baseURL + 'search?q=' + encodeURIComponent('Daft Punk');
+  const searchStarted = performance.now();
+  const search = await fetchJSON(searchURL);
+  const track = selectSearchTrack(search, { title: 'One More Time', artist: 'Daft Punk' });
+  const streamURL = baseURL + 'stream/' + encodeURIComponent(track.id);
+  const streamStarted = performance.now();
+  const stream = await fetchJSON(streamURL);
+  return {
+    trackTitle: track.title,
+    trackArtist: track.artist,
+    searchLatencyMs: Math.round(performance.now() - searchStarted),
+    stream: { ...inspectStream(stream), latencyMs: Math.round(performance.now() - streamStarted) },
+  };
+}
+
 async function loadSecretFile(envKey) {
   const path = process.env[envKey];
   if (!path) fail('MISSING_' + envKey);
@@ -120,11 +146,20 @@ async function authorizedAdminCookie() {
 export async function run() {
   const apply = process.argv.includes('--apply');
   const resolveTrack = process.argv.includes('--resolve-track');
-  if (process.argv.slice(2).some(arg => !['--apply', '--resolve-track'].includes(arg))) fail('UNKNOWN_FLAG');
+  const resolveSearch = process.argv.includes('--resolve-search');
+  if (process.argv.slice(2).some(arg => !['--apply', '--resolve-track', '--resolve-search'].includes(arg))) fail('UNKNOWN_FLAG');
   const manifestURL = validateManifestURL(await loadSecretFile('POLYFIN_NEBULA_URL_FILE'));
   const manifest = await fetchJSON(manifestURL);
   const summary = inspectManifest(manifest);
   process.stdout.write('NEBULA_MANIFEST_PASS ' + JSON.stringify(summary) + '\n');
+  if (resolveSearch) {
+    if (process.env.POLYFIN_RESOLVE_TRACK !== 'YES') fail('EXPLICIT_RESOLVE_APPROVAL_REQUIRED');
+    const result = await searchAndResolve(manifestURL);
+    process.stdout.write('NEBULA_SEARCH_PASS ' + JSON.stringify({
+      title: result.trackTitle, artist: result.trackArtist, latencyMs: result.searchLatencyMs,
+    }) + '\n');
+    process.stdout.write('NEBULA_STREAM_PASS ' + JSON.stringify(result.stream) + '\n');
+  }
   if (resolveTrack) {
     // Explicit only: resolving an uncached track can initiate a TorBox download.
     if (process.env.POLYFIN_RESOLVE_TRACK !== 'YES') fail('EXPLICIT_RESOLVE_APPROVAL_REQUIRED');
@@ -169,7 +204,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       'INVALID_STREAM_URL', 'RESPONSE_TOO_LARGE', 'INVALID_JSON', 'INVALID_COOKIE_FILE',
       'UNEXPECTED_INSTALLED_LIST', 'UNEXPECTED_ADDON_KIND', 'UNKNOWN_FLAG',
       'EXPLICIT_APPLY_APPROVAL_REQUIRED', 'EXPLICIT_RESOLVE_APPROVAL_REQUIRED', 'INVALID_TRACK_ID',
-      'ADMIN_SESSION_COOKIE_MISSING', 'AMBIGUOUS_ADMIN_AUTH', 'MISSING_ADMIN_AUTH',
+      'SEARCH_TRACK_NOT_FOUND', 'ADMIN_SESSION_COOKIE_MISSING', 'AMBIGUOUS_ADMIN_AUTH', 'MISSING_ADMIN_AUTH',
       'NOT_POLYFIN_ADMIN']);
     const reason = error?.name === 'TimeoutError' || error?.name === 'AbortError'
       ? 'ADDON_TIMEOUT_15S'
