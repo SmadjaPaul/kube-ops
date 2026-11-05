@@ -13,9 +13,10 @@
   "schedule": [
     "* 0-7 * * *"
   ],
-  "prConcurrentLimit": 8,
-  "prHourlyLimit": 3,
+  "prConcurrentLimit": 20,
+  "prHourlyLimit": 5,
   "rangeStrategy": "pin",
+  "internalChecksFilter": "strict",
   "labels": [
     "dependencies"
   ],
@@ -61,6 +62,18 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "PLT-128 prefer qualified npm website update PRs over Docker digest backlog",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json", "website/package.json"],
+      "prPriority": 10
+    },
+    {
+      "description": "PLT-128 defer non-security Docker digest PRs behind npm tooling",
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "prPriority": -10
+    },
     {
       "groupName": "Media containers",
       "matchDatasources": [
