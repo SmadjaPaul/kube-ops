@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
   annotations:
-    factory-platform.dev/source-sha: 68d8be297776f5bf12e4a60f29f8f44a084a829d
+    factory-platform.dev/source-sha: faa07b66b2e1ee37534967c46f8306b3d87474ea
 spec:
   replicas: 1 # Keep one dispatcher until cross-replica sandbox claim locking is qualified.
   strategy: {type: Recreate}
@@ -30,7 +30,7 @@ spec:
       containers:
         - name: factory
           # Rollback digest: sha256:e7482fde895bc19218031e6275ec538e954c65a2da2bb1ddd69988c5347a8cc5
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:c3afb1dc7e6023e8aa482eae37879305ad413e4b61d19e5e15286cb19a44d083
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:7d98ff1784dd45706305e5d31eb7cfb482964ed195a8c7228623f5680e7bd107
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -69,6 +69,8 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef: {name: mastra-factory-postgresql-app, key: uri}
+            - name: MASTRACODE_REVIEW_ONLY_ENABLED
+              value: "0"
           envFrom:
             - secretRef: {name: mastra-factory-runtime}
             # Optional until the separate OIDC client credential is provisioned.
