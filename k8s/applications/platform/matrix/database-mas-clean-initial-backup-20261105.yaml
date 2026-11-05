@@ -1,0 +1,16 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: matrix-mas-postgresql-clean-initial-20261105
+  namespace: matrix
+  labels:
+    backup.smadja.dev/purpose: clean-install-qualification
+    backup.smadja.dev/restore-proof-source: matrix-mas-clean
+spec:
+  cluster:
+    name: matrix-mas-postgresql-clean
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-mas-clean-hetzner-store
