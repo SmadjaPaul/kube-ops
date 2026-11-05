@@ -47,7 +47,11 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: mastra-factory
       server: https://kubernetes.default.svc
+    - namespace: mastra-factory-canary
+      server: https://kubernetes.default.svc
     - namespace: mastra-sandbox
+      server: https://kubernetes.default.svc
+    - namespace: mastra-factory-canary-sandbox
       server: https://kubernetes.default.svc
     - namespace: matrix
       server: https://kubernetes.default.svc

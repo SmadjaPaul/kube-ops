@@ -6,6 +6,7 @@ resources:
   - open-connector
   - agentgateway
   - mastra-factory
+  - mastra-factory-canary
   - mastra-sandbox
   - matrix
   - matrix-legacy

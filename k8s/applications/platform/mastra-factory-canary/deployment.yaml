@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mastra-factory-canary
+  namespace: mastra-factory-canary
+  labels: {app.kubernetes.io/name: mastra-factory-canary, app.kubernetes.io/part-of: platform}
+  annotations:
+    factory-platform.dev/source-sha: 48cd34e04d04e1998042d38cfb9c538de0ad55b7
+spec:
+  # Stay dormant until a read-only GHCR pull credential and the dedicated
+  # Builder/Linear identities are installed and verified.
+  replicas: 0
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: mastra-factory-canary}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: mastra-factory-canary, app.kubernetes.io/part-of: platform}
+      annotations:
+        secret.reloader.stakater.com/reload: mastra-factory-canary-runtime
+    spec:
+      serviceAccountName: mastra-factory-canary
+      automountServiceAccountToken: true
+      imagePullSecrets:
+        - name: mastra-factory-canary-ghcr
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: factory
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:6b172efde2b1fe1ca0b0473d0a7a154a44533fe78337c29505a4f85aab6a4ffe
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 4111}
+          env:
+            - {name: NODE_ENV, value: production}
+            - {name: NODE_OPTIONS, value: "--max-old-space-size=1024"}
+            - {name: PORT, value: "4111"}
+            - {name: DEPLOYMENT_ENVIRONMENT, value: canary}
+            - {name: FACTORY_SANDBOX_PROVIDER, value: kubernetes}
+            - {name: FACTORY_KUBERNETES_NAMESPACE, value: mastra-factory-canary-sandbox}
+            - {name: FACTORY_KUBERNETES_WARMPOOL, value: mastra-code-canary}
+            - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
+            - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "3600"}
+            - {name: MASTRACODE_PUBLIC_URL, value: https://factory-canary.smadja.dev}
+            - {name: MASTRACODE_ALLOWED_ORIGINS, value: https://factory-canary.smadja.dev}
+            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
+            - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "0"}
+            - {name: MASTRACODE_REVIEW_ONLY_ENABLED, value: "0"}
+            - {name: FACTORY_AUTHENTIK_OIDC_CLIENT_ID, value: mastra-factory-canary}
+            - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: https://auth.smadja.dev/application/o/factory-canary/.well-known/openid-configuration}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: {name: mastra-factory-canary-postgresql-app, key: uri}
+          envFrom:
+            - secretRef: {name: mastra-factory-canary-runtime}
+            - secretRef: {name: mastra-factory-canary-github, optional: true}
+            - secretRef: {name: mastra-factory-canary-linear-oauth, optional: true}
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket: {port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+            seccompProfile: {type: RuntimeDefault}
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: cache, mountPath: /home/node/.cache}
+            - {name: config, mountPath: /home/node/.config}
+            - {name: local, mountPath: /home/node/.local}
+      volumes:
+        - {name: tmp, emptyDir: {sizeLimit: 512Mi}}
+        - {name: cache, emptyDir: {sizeLimit: 256Mi}}
+        - {name: config, emptyDir: {sizeLimit: 32Mi}}
+        - {name: local, emptyDir: {sizeLimit: 128Mi}}

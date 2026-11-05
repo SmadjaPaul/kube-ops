@@ -47,6 +47,21 @@ data:
               # MiniMax Token Plan owns the 5-hour and weekly quota windows.
               # Mastra retains per-run budgets, concurrency and bounded retry.
               # No PAYG fallback is configured for these routes.
+            - key: "$AGENTGATEWAY_FACTORY_CANARY_CLIENT_KEY"
+              metadata:
+                name: factory-native-e2e-canary
+                owner: factory-native-e2e-canary
+              allowedModels:
+                - factory/fast
+                - factory/code
+              budgets:
+                - name: factory-native-e2e-canary-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 50000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
             - key: "$GPT_RESEARCHER_API_KEY"
               metadata:
                 name: gpt-researcher
@@ -110,7 +125,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: gpt-researcher-routing-v1
+        checksum/agentgateway-runtime: factory-native-e2e-canary-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -173,6 +188,10 @@ spec:
   ingress:
     - fromEndpoints:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: mastra-factory}
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: mastra-factory-canary}
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
     - fromEndpoints:

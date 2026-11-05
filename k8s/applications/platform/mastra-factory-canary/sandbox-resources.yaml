@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mastra-factory-canary
+  namespace: mastra-factory-canary
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mastra-agent-sandbox-client
+  namespace: mastra-factory-canary-sandbox
+rules:
+  - apiGroups: [extensions.agents.x-k8s.io]
+    resources: [sandboxclaims]
+    verbs: [get, list, watch, create, delete, patch]
+  - apiGroups: [agents.x-k8s.io]
+    resources: [sandboxes]
+    verbs: [get, list, watch, patch]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mastra-agent-sandbox-client
+  namespace: mastra-factory-canary-sandbox
+subjects:
+  - kind: ServiceAccount
+    name: mastra-factory-canary
+    namespace: mastra-factory-canary
+roleRef:
+  kind: Role
+  name: mastra-agent-sandbox-client
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxTemplate
+metadata:
+  name: mastra-code-canary
+  namespace: mastra-factory-canary-sandbox
+spec:
+  envVarsInjectionPolicy: Disallowed
+  volumeClaimTemplatesPolicy: Disallowed
+  service: true
+  networkPolicyManagement: Unmanaged
+  podTemplate:
+    spec:
+      automountServiceAccountToken: false
+      runtimeClassName: gvisor
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: sandboxd
+          image: ghcr.io/smadjapaul/mastra-sandboxd@sha256:92975c43d1616e64c7abc06f030335ebbdefa9d125eb4f3c92931c6e68755513
+          command: [/usr/local/bin/sandboxd, --root-dir=/workspace, --rest-port=8080, --grpc-port=9090]
+          ports:
+            - {name: rest, containerPort: 8080}
+            - {name: grpc, containerPort: 9090}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          readinessProbe:
+            httpGet: {path: /v1/health, port: rest}
+            periodSeconds: 5
+          volumeMounts:
+            - {name: workspace, mountPath: /workspace}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {sizeLimit: 1Gi}}
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: longhorn-workspace
+        resources: {requests: {storage: 2Gi}}
+---
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxWarmPool
+metadata:
+  name: mastra-code-canary
+  namespace: mastra-factory-canary-sandbox
+spec:
+  replicas: 0
+  updateStrategy: {type: Recreate}
+  sandboxTemplateRef: {name: mastra-code-canary}

@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+---
+version: 1
+metadata:
+  name: Apps - Mastra Factory Canary
+entries:
+  - id: factory_canary_group
+    model: authentik_core.group
+    identifiers: {name: Factory Canary Operators}
+    attrs: {name: Factory Canary Operators}
+
+  - id: factory_canary_user
+    model: authentik_core.user
+    identifiers: {username: mastra-factory-canary}
+    attrs:
+      username: mastra-factory-canary
+      name: Mastra Factory Canary
+      email: mastra-factory-canary@smadja.dev
+      is_active: true
+      password: !Env FACTORY_CANARY_USER_PASSWORD
+      groups:
+        - !KeyOf factory_canary_group
+
+  - id: factory_canary_groups_mapping
+    model: authentik_providers_oauth2.scopemapping
+    identifiers: {name: OAuth mapping: Mastra Factory Canary groups}
+    attrs:
+      scope_name: groups
+      description: Emit the Factory admin claim only for the canary-only Authentik group.
+      expression: |
+        group_names = [group.name for group in request.user.ak_groups.all()]
+        return {"groups": ["admin"] if "Factory Canary Operators" in group_names else []}
+
+  - id: factory_canary_provider
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers: {name: k8s.smadja.dev/platform/mastra-factory-canary}
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-one-time-consent"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      client_type: confidential
+      grant_types: [authorization_code]
+      redirect_uris:
+        - url: https://factory-canary.smadja.dev/auth/api/callback/authentik
+          matching_mode: strict
+      client_id: mastra-factory-canary
+      client_secret: !Env FACTORY_CANARY_OIDC_CLIENT_SECRET
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      refresh_token_validity: days=7
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+        - !KeyOf factory_canary_groups_mapping
+
+  - id: factory_canary_application
+    model: authentik_core.application
+    identifiers: {slug: factory-canary}
+    attrs:
+      name: Mastra Factory Canary
+      group: Infrastructure
+      meta_description: Isolated Factory 0.27 E2E canary
+      provider: !KeyOf factory_canary_provider
+      policy_engine_mode: any
+
+  - id: factory_canary_operator_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf factory_canary_application
+      group: !KeyOf factory_canary_group
+    attrs: {order: 1}

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mastra-factory-canary
+  namespace: mastra-factory-canary
+spec:
+  type: ClusterIP
+  selector: {app.kubernetes.io/name: mastra-factory-canary}
+  ports:
+    - {name: http, port: 4111, targetPort: http}

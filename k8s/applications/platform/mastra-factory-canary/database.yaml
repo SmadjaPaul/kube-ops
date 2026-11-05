@@ -1,0 +1,26 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: mastra-factory-canary-postgresql
+  namespace: mastra-factory-canary
+  labels: {app.kubernetes.io/part-of: mastra-factory-canary}
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7
+  bootstrap:
+    initdb:
+      database: mastra
+      owner: mastra
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS vector
+  storage:
+    size: 10Gi
+    storageClass: longhorn-bulk
+  walStorage:
+    size: 2Gi
+    storageClass: longhorn-bulk
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  affinity:
+    enablePodAntiAffinity: false

@@ -1,0 +1,89 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: mastra-factory-canary
+  namespace: mastra-factory-canary
+spec:
+  description: Isolated Factory canary egress to its database, sandbox, identity and required APIs only.
+  endpointSelector:
+    matchLabels: {app.kubernetes.io/name: mastra-factory-canary}
+  ingress:
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports: [{port: "4111", protocol: TCP}]
+  egress:
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}, {port: "6443", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory-canary-sandbox
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}, {port: "9090", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory-canary
+            cnpg.io/cluster: mastra-factory-canary-postgresql
+      toPorts:
+        - ports: [{port: "5432", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+              rules:
+                dns: [{matchPattern: "*"}]
+            - {port: "53", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: agentgateway
+            app: agentgateway
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - toFQDNs:
+        - {matchName: api.github.com}
+        - {matchName: github.com}
+        - {matchName: api.linear.app}
+        - {matchName: registry.npmjs.org}
+        - {matchName: auth.smadja.dev}
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: mastra-factory-canary-sandbox
+  namespace: mastra-factory-canary-sandbox
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory-canary
+            app.kubernetes.io/name: mastra-factory-canary
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}, {port: "9090", protocol: TCP}]
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+              rules:
+                dns: [{matchPattern: "*"}]
+            - {port: "53", protocol: TCP}
+    - toFQDNs:
+        - {matchName: github.com}
+        - {matchName: api.github.com}
+        - {matchName: codeload.github.com}
+        - {matchName: objects.githubusercontent.com}
+        - {matchName: release-assets.githubusercontent.com}
+        - {matchName: registry.npmjs.org}
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]

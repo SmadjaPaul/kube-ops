@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mastra-factory-canary
+  namespace: mastra-factory-canary
+spec:
+  parentRefs:
+    - {name: internal, namespace: gateway}
+  hostnames:
+    - factory-canary.smadja.dev
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: mastra-factory-canary, port: 4111}
