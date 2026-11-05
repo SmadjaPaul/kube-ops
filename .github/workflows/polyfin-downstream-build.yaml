@@ -144,7 +144,7 @@ jobs:
               ./configure --static --prefix=/tmp/zlib-check
               make -j"$(nproc)" check
               DEBEMAIL=polyfin-build@example.invalid DEBFULLNAME="Polyfin downstream" \
-                dch --local +polyfin1 --distribution trixie \
+                dch --newversion "${ZLIB_SOURCE_VERSION}+polyfin1" --distribution trixie \
                 "Backport CVE-2026-76844 gzwrite fix from upstream df84af2"
               dpkg-buildpackage -us -uc -b
               cp ../zlib1g_*.deb /workspace/zlib1g-backport.deb
