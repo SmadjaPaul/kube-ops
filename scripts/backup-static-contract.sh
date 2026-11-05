@@ -43,9 +43,13 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
       namespace:(.metadata.namespace//"default"),
       name:.metadata.name,
       rebuildable:(
-        ([.spec.volumeClaimTemplates[]? | .metadata.labels["backup.smadja.dev/strategy"]=="rebuildable"] | length) > 0
-        and
-        ([.spec.volumeClaimTemplates[]? | select(.metadata.labels["backup.smadja.dev/strategy"]!="rebuildable")] | length) == 0
+        .metadata.annotations["backup.smadja.dev/strategy"]=="rebuildable"
+        or
+        (
+          ([.spec.volumeClaimTemplates[]? | .metadata.labels["backup.smadja.dev/strategy"]=="rebuildable"] | length) > 0
+          and
+          ([.spec.volumeClaimTemplates[]? | select(.metadata.labels["backup.smadja.dev/strategy"]!="rebuildable")] | length) == 0
+        )
       )
     }
   ] as $stateful |
