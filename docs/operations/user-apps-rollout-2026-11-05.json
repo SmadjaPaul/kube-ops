@@ -1,0 +1,72 @@
+{
+  "schema": "personal-apps-readiness/v1",
+  "snapshotAt": "2026-11-05",
+  "repo": "SmadjaPaul/kube-ops",
+  "baselineMain": "43ab9ee0c3c6ae8790e82a70ce2f74e88548d4f0",
+  "notes": "This is a dated status snapshot, NOT real-time runtime evidence. Use Linear issues and verify Argo before promotion.",
+  "apps": [
+    {
+      "id": "PLT-133",
+      "key": "polyfin-music",
+      "state": "BRAVE_USER_PASS_SAFARI_PENDING",
+      "path": "k8s/applications/media/polyfin",
+      "next": "Safari live playback; metrics optional"
+    },
+    {
+      "id": "PLT-134",
+      "key": "polyfin-aiostreams",
+      "state": "PILOT_HELPER_MERGED_NOT_INSTALLED",
+      "path": "scripts/polyfin-aiostreams-pilot.mjs",
+      "next": "Node offline tests; operator manifest secret; native install; authorized video direct-play"
+    },
+    {
+      "id": "PLT-135",
+      "key": "polyfin-live-tv",
+      "state": "NO_AUTHORIZED_IPTV_SOURCE",
+      "path": "k8s/applications/media/polyfin",
+      "next": "Operator-authorized local source; guide EPG and channel playback"
+    },
+    {
+      "id": "PLT-136",
+      "key": "romm-family",
+      "state": "RUNTIME_READY_USER_OIDC_403_FIX_PR_OPEN",
+      "path": "k8s/applications/games/romm/deployment.yaml",
+      "next": "Review and merge PR #933 by allowed workflow; Argo exact SHA; family viewer login and negative guest; restore"
+    },
+    {
+      "id": "PLT-137",
+      "key": "rustical",
+      "state": "ACTIVE_DISPOSABLE_PILOT_RESTORE_PENDING",
+      "path": "k8s/applications/platform/rustical-pilot",
+      "next": "Atomic persistent PVC/WAL backup and isolated restore; Apple DAV tests"
+    },
+    {
+      "id": "PLT-138",
+      "key": "sparkyfitness",
+      "state": "DORMANT_STAGED_NOT_DEPLOYED",
+      "path": "k8s/optional/sparkyfitness",
+      "next": "Verify Helm/digests, Doppler presence, dedicated S3/DB/OIDC, CNPG/PVC restore; pilot MVP"
+    },
+    {
+      "id": "PLT-122",
+      "key": "bookorbit",
+      "state": "DRAFT_PR_875_DORMANT_NO_RUNTIME",
+      "path": "k8s/applications/media/bookorbit",
+      "next": "Isolated synthetic S3 and OIDC credentials, CNPG/PVC restore, reader fixture; no premature merge"
+    },
+    {
+      "id": "PLT-139",
+      "key": "la-suite",
+      "state": "DORMANT_SCAFFOLD_NOT_DEPLOYABLE",
+      "path": "k8s/optional/lasuite",
+      "next": "Missing secrets and CNPG/Valkey/S3/WOPI/restore/network policies; only then pilot"
+    },
+    {
+      "id": "PLT-35",
+      "key": "personal-agent",
+      "state": "BACKLOG_NO_FAMILY_AGENT",
+      "path": "k8s/applications/platform",
+      "next": "Principal isolation, memory/threads, Matrix and resource permissions; no cross-user leaks"
+    }
+  ]
+}
