@@ -24,6 +24,10 @@ grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
 grep -q 'name: atlantis-pilot-backend' "$rendered"
 grep -q 'name: atlantis-aiostreams-provider' "$rendered"
+grep -q 'name: atlantis-polyfin-backend' "$rendered"
+grep -q 'ATLANTIS_POLYFIN_S3_ACCESS_KEY_ID' "$rendered"
+grep -q 'ATLANTIS_POLYFIN_S3_SECRET_ACCESS_KEY' "$rendered"
+grep -q 'ATLANTIS_POLYFIN_S3_REGION' "$rendered"
 grep -q 'ATLANTIS_AIOSTREAMS_S3_ACCESS_KEY_ID' "$rendered"
 grep -q 'APP_AIOSTREAMS_TERRAFORM_PASSWORD' "$rendered"
 grep -q 'APP_TORBOX_API_KEY' "$rendered"
@@ -110,6 +114,9 @@ grep -q 'github-atlantis-guard.sh:' "$rendered"
 grep -q 'fc66d3b6d8c59581cf3f771b33766d1ebcb042a3' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q '79522bce630cad360a6ebe3bf6f1ebc965379cb9' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q '37cf4ab1d01f0228a305d54f458e7a9c51930127' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
+grep -q 'bbfddeeeaad80871296e369faf4dd3cd8ff5a283' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
+grep -q 'terraform/polyfin' k8s/poc/atlantis-plan-only/values.yaml
+grep -q 'Polyfin apply is disabled' k8s/poc/atlantis-plan-only/values.yaml
 grep -q 'scripts/architecture-check.sh' "$rendered"
 grep -q 'terraform/cloudflare/modules/access/README.md' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 if grep -Eq 'terraform/\*/modules/\*/README\.md|security-headers/variables\.tf' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh; then
