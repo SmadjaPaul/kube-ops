@@ -19,7 +19,8 @@ spec:
     namespace: matrix
   syncPolicy:
     automated:
-      prune: false
+      prune: true
+      allowEmpty: true
       selfHeal: true
     syncOptions:
       - ApplyOutOfSyncOnly=true
