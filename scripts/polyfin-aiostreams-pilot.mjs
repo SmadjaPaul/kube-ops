@@ -66,10 +66,19 @@ async function jsonRequest(url, options={}) {
 
 export function existingAddonCheck(rows, manifest) {
   if (!Array.isArray(rows)) fail('INVALID_INSTALLED_ADDONS');
-  // IDs alone cannot prove that a tokenized AIOStreams profile has the same
-  // URL. If occupied, refuse to silently overwrite or duplicate it.
-  return rows.some(a => a?.kind === 'stremio' && a?.id === manifest.id)
-    ? 'EXISTING_ADDON_ID_REVIEW_PROFILE' : 'ABSENT';
+  // Polyfin's addonJSON.id is an installation UUID, not the manifest ID.
+  // manifestUrl may be redacted; block same-name AIOStreams profiles.
+  const name = String(manifest.name).trim().toLowerCase();
+  return rows.some(a => a?.kind === 'stremio' &&
+    (String(a.name ?? '').trim().toLowerCase() === name ||
+      /aiostreams/i.test(String(a.name ?? ''))))
+    ? 'EXISTING_ADDON_REVIEW_PROFILE' : 'ABSENT';
+}
+
+export function createdAddonOK(created, manifest) {
+  return created?.kind === 'stremio' &&
+    typeof created.id === 'string' && created.id.trim().length > 0 &&
+    created.name === manifest.name;
 }
 
 export async function run(argv=process.argv.slice(2)) {
@@ -100,7 +109,7 @@ export async function run(argv=process.argv.slice(2)) {
     headers:{Cookie:cookie, 'Content-Type':'application/json'},
     body:JSON.stringify({manifestUrl:manifestURL})
   });
-  if (created?.kind !== 'stremio' || created?.id !== manifest.id) fail('UNEXPECTED_CREATED_ADDON');
+  if (!createdAddonOK(created, manifest)) fail('UNEXPECTED_CREATED_ADDON');
   process.stdout.write('AIOSTREAMS_INSTALL=PASS ' + JSON.stringify({
     kind:'stremio', catalogCount:Number(created.catalogCount ?? 0),
     enabledLibraries:created.enabledLibraries ?? null,
