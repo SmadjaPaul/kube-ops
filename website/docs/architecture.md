@@ -38,10 +38,10 @@ This design marries an immutable Talos OS, Kubernetes, and GitOps to create a re
 ## Dive deeper
 
 <!-- vale Google.Units = NO -->
-- Provisioning flow: [Talos with OpenTofu](/docs/tofu/provisioning-task-guide.md)
-- Configuration flow: [Manage Kubernetes with GitOps](/docs/k8s/manage-kubernetes.md)
-- Application strategy: [Deploy and manage applications](/docs/k8s/applications/application-management.md)
-- Personal data direction: [Personal data platform architecture and roadmap](/docs/architecture/personal-data-platform)
+- Provisioning flow: [Talos with OpenTofu](./tofu/provisioning-task-guide.md)
+- Configuration flow: [Manage Kubernetes with GitOps](./k8s/manage-kubernetes.md)
+- Application strategy: [Deploy and manage applications](./k8s/applications/application-management.md)
+- Personal data direction: [Personal data platform architecture and roadmap](./architecture/personal-data-platform)
 <!-- vale Google.Units = YES -->
 
 ## Verify the architecture in your cluster
