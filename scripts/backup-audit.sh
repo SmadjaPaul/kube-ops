@@ -155,7 +155,7 @@ def is_rebuildable:
 def is_excluded:
   # An explicit Velero exclusion is an operator-declared EXCLUDE decision. It
   # is not recovery proof and must not be reported as a protected PVC gap.
-  (.metadata.annotations["velero.io/exclude-from-backup"] // "") == "true";
+  (.metadata.labels["velero.io/exclude-from-backup"] // "") == "true";
 def is_cnpg:
   (.metadata.labels["cnpg.io/cluster"] // "") != "";
 def is_restore_drill:
@@ -203,11 +203,15 @@ def schedule_selector_matches($schedule; $pvc; $pvc_pod_labels_index):
   ($schedule.spec.template.labelSelector // null) as $selector |
   ($schedule.spec.template.orLabelSelectors // []) as $or_selectors |
   ([($pvc.metadata.labels // {})] + ($pvc_pod_labels_index[(($pvc | ns) + "/" + ($pvc | name))] // [])) as $candidate_labels |
-  if (($selector == null or $selector == {}) and ($or_selectors | length) == 0) then true
-  else any($candidate_labels[]; labels_match(.; $selector)) or
-       any($or_selectors[]; . as $or_selector |
-         any($candidate_labels[]; labels_match(.; $or_selector)))
-  end;
+  (($selector != null and $selector != {}) as $has_selector |
+   (($or_selectors | length) > 0) as $has_or_selectors |
+   if (($has_selector|not) and ($has_or_selectors|not)) then true
+   else (($has_selector and any($candidate_labels[]; labels_match(.; $selector))) or
+         ($has_or_selectors and any($or_selectors[]; . as $or_selector |
+           any($candidate_labels[]; labels_match(.; $or_selector)))))
+   end);
+def pod_volume_exclusion_for($pvc; $pvc_exclusion_index):
+  ($pvc_exclusion_index[(($pvc | ns) + "/" + ($pvc | name))] // false);
 def schedule_for_pvc($pvc; $pvc_pod_labels_index):
   any(items($schedules)[];
     ((.spec.template.includedNamespaces // []) | index($pvc | ns)) != null and
@@ -310,6 +314,15 @@ def recurring_backup_for($lhvolume):
     (.spec.task // "") == "backup" and
     ((($lhvolume.metadata.labels // {})[("recurring-job.longhorn.io/" + (.metadata.name // ""))] // "") == "enabled" or
      any((.spec.groups // [])[]; (($lhvolume.metadata.labels // {})[("recurring-job-group.longhorn.io/" + .)] // "") == "enabled")));
+def explicit_recurring_backup_for($lhvolume):
+  any(items($lhrecurring)[];
+    (.spec.task // "") == "backup" and
+    ((($lhvolume.metadata.labels // {})[("recurring-job.longhorn.io/" + (.metadata.name // ""))] // "") == "enabled" or
+     any((.spec.groups // [])[]; . != "default" and (($lhvolume.metadata.labels // {})[("recurring-job-group.longhorn.io/" + .)] // "") == "enabled")));
+def default_recurring_backup_for($lhvolume):
+  any(items($lhrecurring)[];
+    (.spec.task // "") == "backup" and
+    any((.spec.groups // [])[]; . == "default" and (($lhvolume.metadata.labels // {})["recurring-job-group.longhorn.io/default"] // "") == "enabled"));
 
  (items($pvs) | reduce .[] as $pv ({}; .[$pv.metadata.name] = $pv)) as $pv_index |
  (completed_backups) as $completed_backups_list |
@@ -323,6 +336,13 @@ def recurring_backup_for($lhvolume):
    reduce ($pod.spec.volumes[]? | select(.persistentVolumeClaim.claimName? != null)) as $volume (.;
      (($pod.metadata.namespace // "default") + "/" + ($volume.persistentVolumeClaim.claimName // "")) as $claim |
      .[$claim] = ((.[$claim] // []) + [($pod.metadata.labels // {})])))) as $pvc_pod_labels_index |
+ (items($pods) | reduce .[] as $pod ({};
+   ($pod.metadata.annotations["backup.velero.io/backup-volumes-excludes"] // "") as $excluded_names |
+   ($excluded_names | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $excluded |
+   reduce ($pod.spec.volumes[]? | select(.persistentVolumeClaim.claimName? != null)) as $volume (.;
+     if (($excluded | index($volume.name)) != null) then
+       .[(($pod.metadata.namespace // "default") + "/" + ($volume.persistentVolumeClaim.claimName // ""))] = true
+     else . end))) as $pvc_exclusion_index |
  ($valid_pvbs | reduce .[] as $pvb ({};
    .[((($pvb.metadata.labels["velero.io/pvc-namespace"] // "") + "/" + ($pvb.metadata.labels["velero.io/pvc-name"] // "")))] = true |
    .[((($pvb.spec.pvc.namespace // "") + "/" + ($pvb.spec.pvc.name // "")))] = true |
@@ -340,6 +360,7 @@ def recurring_backup_for($lhvolume):
      .[(($volume.status.kubernetesStatus.namespace // "") + "/" + ($volume.status.kubernetesStatus.pvcName // ""))] = $volume
    else . end)) as $lh_volume_index |
 ([items($pvcs)[] | . as $pvc |
+  (is_excluded or pod_volume_exclusion_for($pvc; $pvc_exclusion_index)) as $excluded |
   (recovery_policy_for($pvc)) as $policy |
   (lh_volume_for($pvc; $lh_volume_index)) as $lhvolume |
   (lh_backup_for($pvc; $lh_volume_index; $lh_backup_index)) as $lhbackup |
@@ -356,18 +377,20 @@ def recurring_backup_for($lhvolume):
     drill:is_drill,
     cnpg:is_cnpg,
     rebuildable:is_rebuildable,
-    excluded:is_excluded,
+    excluded:$excluded,
     orphan:((.metadata.labels["backup.smadja.dev/orphan"] // "") == "true"),
     volume:(.spec.volumeName // ""),
-    classification:(if is_excluded then "explicitly-excluded" elif is_drill then "synthetic/test" else "production" end),
-    decision:(if is_excluded then "EXPLICITLY_EXCLUDED" elif is_drill then "REVIEW" else "PROTECT" end),
-    recoveryPolicy:($policy.recoveryPolicy // (if is_excluded then "UNKNOWN_REVIEW" elif is_drill then "UNKNOWN_REVIEW" else "PROTECT_OFFSITE" end)),
+    classification:(if $excluded then "explicitly-excluded" elif is_drill then "synthetic/test" else "production" end),
+    decision:(if $excluded then "EXPLICITLY_EXCLUDED" elif is_drill then "REVIEW" else "PROTECT" end),
+    recoveryPolicy:($policy.recoveryPolicy // (if $excluded then "UNKNOWN_REVIEW" elif is_drill then "UNKNOWN_REVIEW" else "PROTECT_OFFSITE" end)),
     recoveryEvidence:($policy.recoveryEvidence // []),
     lastVerifiedAt:($policy.lastVerifiedAt // ""),
     policyMatched:(($policy.uid // "") != "" and ($policy.uid == (.metadata.uid // ""))),
     scheduled:(schedule_for_pvc($pvc; $pvc_pod_labels_index)),
     completedBackup:(completed_backup_for_pvc($pvc; $completed_backups_list; $pvc_pod_labels_index)),
     completedPVB:($pvb != false),
+    resourceExcluded:(is_excluded),
+    podVolumeExcluded:(pod_volume_exclusion_for($pvc; $pvc_exclusion_index)),
     longhornVolumePresent:($lhvolume != null),
     longhornVolume:($lhvolume.metadata.name // ""),
     longhornBackupCompleted:($lhbackup),
@@ -377,11 +400,18 @@ def recurring_backup_for($lhvolume):
     applicationRecoveryVerified:($restore_evidence != null and (($restore_evidence.applicationRecoveryVerified // false) == true)),
     restoreEvidence:($restore_evidence // null),
     recurringBackupConfigured:recurring_backup_for($lhvolume),
+    longhornExplicitRecurringConfigured:explicit_recurring_backup_for($lhvolume),
+    longhornDefaultRecurringConfigured:default_recurring_backup_for($lhvolume),
     backupConfigured:(schedule_for_pvc($pvc; $pvc_pod_labels_index) or ($pvb != false) or $cnpg_protected),
     offsiteBackupVerified:(($pvb != false) or $cnpg_protected)
   }
   | .coverageReady=(.bound and .pvBound and .backupConfigured and .offsiteBackupVerified)
   | .backupMechanism=(if .cnpgBackupConfigured then "cnpg/barman" elif .completedPVB then "velero/kopia" elif .longhornBackupSupplemental then "longhorn-s3-supplemental" elif .scheduled then "configured-no-completed-proof" else "none" end)
+  | .longhornProtectionStatus=(if .longhornBackupSupplemental and .longhornExplicitRecurringConfigured and .restoreVerified then "EXPLICIT_QUALIFIED" elif .longhornBackupSupplemental and .longhornExplicitRecurringConfigured then "EXPLICIT_CONFIGURED" elif .longhornBackupSupplemental and .longhornDefaultRecurringConfigured then "GLOBAL_DEFAULT_SUPPLEMENTAL" elif .longhornBackupSupplemental then "SUPPLEMENTAL_UNCLASSIFIED" else "NONE" end)
+  | .backupConfigurationPresent=(.scheduled or .cnpgBackupConfigured or .recurringBackupConfigured)
+  | .veleroBackupCompleted=.completedBackup
+  | .filesystemRestoreVerified=.restoreVerified
+  | .applicationRestoreVerified=.applicationRecoveryVerified
   | .recoveryStatus=(recovery_status($policy; .offsiteBackupVerified; .classification))
   | .lastVerifiedAt=(if .lastVerifiedAt != "" then .lastVerifiedAt elif .offsiteBackupVerified then $observedAt else "" end)
 ] | map(select((.rebuildable or .excluded) | not))) as $all_pvcs |

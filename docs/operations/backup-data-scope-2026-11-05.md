@@ -1,6 +1,6 @@
 # PLT-56 — matrice de données et contrat de sauvegarde (audit I/O 2026-11-05)
 
-> Capture de référence : 5 novembre 2026, à partir des objets live collectés dans `/private/tmp/plt56-live/` et de l’audit I/O [plt-io-audit-2026-11-05.md](https://github.com/SmadjaPaul/homelab-infra/pull/235) récupéré du worktree précédent (`c667dc6`). Cette matrice décrit la décision de périmètre; elle ne supprime aucune source ni sauvegarde.
+> Capture de référence : 5 novembre 2026, à partir d’une collecte live locale non versionnée et de l’audit I/O [plt-io-audit-2026-11-05.md](https://github.com/SmadjaPaul/homelab-infra/pull/235) récupéré du worktree précédent (`c667dc6`). Cette matrice décrit la décision de périmètre; elle ne supprime aucune source ni sauvegarde.
 
 ## Décision
 
@@ -9,7 +9,7 @@ La cible est de protéger les données importantes une seule fois par un mécani
 ## État du périmètre
 
 - 95 PVC observés : 85 Bound, 10 Pending; 82 Longhorn, 13 Proxmox CSI.
-- L’audit corrigé corrèle désormais les schedules Velero avec `includedNamespaces` et `labelSelector`/`orLabelSelectors`, en considérant les labels des PVC et des pods qui les montent. En mode primaire strict, le constat live est 31/50 PVC de production vérifiés et 19 non vérifiés; 22 PVC de résidu de restauration restent hors gate de couverture. Les 19 écarts sont attendus avant réconciliation des exclusions et des schedules Velero/Kopia.
+- L’audit corrigé corrèle désormais les schedules Velero avec `includedNamespaces` et `labelSelector`/`orLabelSelectors`, en considérant les labels des PVC et des pods qui les montent. Le ratio PLT-56 de référence est **31/50 PVC hors CNPG vérifiés**; les claims CNPG sont évalués séparément par la ligne Barman (12/12 clusters configurés) et ne doivent pas être comptés comme une seconde copie Velero. En lecture live avant réconciliation, 19 PVC de ce périmètre restent non vérifiés; 22 PVC de résidu de restauration restent hors gate de couverture. Les écarts sont maintenus sous protection existante jusqu’à qualification.
 - CNPG : 12 clusters de production configurés avec WAL/Barman/ScheduledBackup; la preuve de restauration applicative reste `UNPROVEN` dans l’audit, sans changement de contrat Factory/Mastra.
 
 ### Coût logique demandé par décision
@@ -128,7 +128,7 @@ La cible est de protéger les données importantes une seule fois par un mécani
 
 - Le manifeste historique de synthèse contient 17 PVC (`docs/operations/dr-synth-historical-review-manifest-2026-10-19.json`), avec `executable=false` et aucune suppression autorisée. Ils restent en revue; aucun PVC, PV, volume Longhorn ou objet S3 n’est supprimé par PLT-56.
 - La capture live montre 13 PVC `proxmox-csi` correspondant aux restes visibles des drills Invoice Ninja/OpenClaw; 77 PV sont en phase `Released`. Ces objets sont inventoriés et conservés, sans nettoyage automatique.
-- Les 22 résidus de restauration remontés par l’audit (`RESTORE_RESIDUE_COUNT=21`) restent hors couverture de production et doivent être qualifiés séparément. Les sessions/workspaces Factory/Mastra restent protégés jusqu’à preuve de restauration applicative acceptée.
+- Les 22 résidus de restauration remontés par l’audit (`RESTORE_RESIDUE_COUNT=22`) restent hors couverture de production et doivent être qualifiés séparément. Les sessions/workspaces Factory/Mastra restent protégés jusqu’à preuve de restauration applicative acceptée.
 
 ## Mesures I/O, Longhorn, réseau et température
 
@@ -142,7 +142,7 @@ La cible est de protéger les données importantes une seule fois par un mécani
 ## PR et garde-fous
 
 - PR Longhorn : suppression du recurring job global `default`; jobs explicites conservés.
-- PR Velero : schedules retirés pour monitoring/Executor, selectors resserrés, exclusions explicites et labels `rebuildable` pour les données reconstructibles.
+- PR Velero : schedules retirés pour monitoring/Executor, selectors resserrés, labels d’exclusion sur les PVC directs et annotations FSB/Kopia sur les Pod templates. Aucun `volumeClaimTemplate` de StatefulSet n’est modifié; les claims existants ne déduisent pas les labels d’un template.
 - PR audit/contrats : corrélation sélective Velero, test de non-régression, matrice et limites de mesure.
 - Nettoyage : inventaire uniquement; aucune suppression d’anciennes sauvegardes ou de volumes sans preuve de restauration et validation opérateur.
 

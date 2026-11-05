@@ -35,7 +35,7 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
       namespace:(.metadata.namespace//"default"),
       name:.metadata.name,
       rebuildable:(.metadata.labels["backup.smadja.dev/strategy"]=="rebuildable"),
-      excluded:(.metadata.annotations["velero.io/exclude-from-backup"]=="true")
+      excluded:(.metadata.labels["velero.io/exclude-from-backup"]=="true")
     }
   ] as $pvcs |
   [$docs[] |
