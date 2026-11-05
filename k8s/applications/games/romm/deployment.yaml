@@ -80,8 +80,11 @@ spec:
               value: groups
             - name: OIDC_ROLE_ADMIN
               value: authentik-admins
+            # RomM 5.2.0 expects ONE literal OIDC group here, not CSV.
+            # "family,media" was interpreted as a single group, causing
+            # the observed family login HTTP 403. Keep admin group separate.
             - name: OIDC_ROLE_VIEWER
-              value: family,media
+              value: family
             - name: HASHEOUS_API_ENABLED
               value: "true"
             - name: SCAN_WORKERS

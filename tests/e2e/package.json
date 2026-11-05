@@ -11,6 +11,6 @@
     "test:home-assistant": "playwright test home-assistant.spec.ts"
   },
   "devDependencies": {
-    "@playwright/test": "1.60.0"
+    "@playwright/test": "1.64.1"
   }
 }
