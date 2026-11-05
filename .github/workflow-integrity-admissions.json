@@ -4,7 +4,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 997,
-      "headSha": "a182094da229e44197e589bdf044410f5457aa18",
+      "headSha": "ec07a358fab5634ff18739ffec47df53efc3ce3a",
       "paths": [
         ".github/workflows/polyfin-image-audit.yaml"
       ],
