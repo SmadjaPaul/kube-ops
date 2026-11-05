@@ -49,8 +49,16 @@ def protected(path):
     )
 
 
+def merge_base(base, head):
+    return git_bytes("merge-base", base, head).decode("utf-8").strip()
+
+
 def changed_paths(base, head):
-    data = git_bytes("diff", "--no-renames", "--no-ext-diff", "--no-textconv", "--name-only", "-z", base, head)
+    # Compare the PR head with the common ancestor, not with the current base
+    # tip. The base branch may have received a late owner admission after the
+    # PR was opened; that base-only change must not become a PR change.
+    ancestor = merge_base(base, head)
+    data = git_bytes("diff", "--no-renames", "--no-ext-diff", "--no-textconv", "--name-only", "-z", ancestor, head)
     return [p.decode("utf-8") for p in data.split(b"\0") if p]
 
 
