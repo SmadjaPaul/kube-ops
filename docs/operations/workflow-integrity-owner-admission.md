@@ -65,6 +65,20 @@ Retain normal branch review and merge protections.
 The workflow runs standard-library unit tests **from the base checkout**:
 `python3 -m unittest discover -s .github/actions/workflow-integrity -p 'test_*.py'`.
 
+## Public-repository Actions policy (December 2026)
+
+GitHub's [secure use guidance](https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target)
+announces enforcement of the default `pull_request_target` event policy for
+affected public repositories on **2026-12-02**. This repository is public.
+The owner must verify the repository's Actions event policy and ensure the
+trusted-base workflow remains authorized before that date. The connector cannot
+read or change the event policy; do not infer that it is already configured.
+
+Do not replace `pull_request_target` by `pull_request` as a quick fix:
+a PR-controlled workflow could then edit the very gate that should check it.
+If switching event models, design a separate trusted evaluator and verify its
+protected status context independently.
+
 ## Trust boundary and manual approval limitations
 
 The registry check authenticates the **GitHub PR author account**, not a
