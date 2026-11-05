@@ -17,8 +17,9 @@ resources:
   - daily-audiobookrequest.yaml
   - daily-jellyseerr.yaml
   - daily-karakeep.yaml
-  # Factory Executor is stopped and its work directory is rebuildable; keep
-  # Factory/Mastra application recovery policies separate.
+  # Owner ACCEPT_LOSS applies only to two identified Longhorn Executor volumes.
+  # Keep the daily schedule for all future Executor data.
+  - daily-executor.yaml
   - daily-pinepods.yaml
   - daily-mqtt.yaml
   - daily-zigbee2mqtt.yaml
