@@ -1,0 +1,19 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: rustical-restore-fixture
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: rustical-restore-fixture
+  ingress:
+    # A scoped probe Pod in the SAME namespace only, never Gateway/Internet.
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: rustical-restore-probe
+      toPorts:
+        - ports:
+            - port: "4000"
+              protocol: TCP
+  # No outbound calls are needed: local SQLite, no OIDC and DAV Push off.
+  egress: []

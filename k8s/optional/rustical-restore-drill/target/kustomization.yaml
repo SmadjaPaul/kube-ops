@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Target preflight: namespace and Cilium policy ONLY.
+# Do NOT create a PVC before Velero restores its synthetic source copy.
+namespace: rustical-restore-target
+resources:
+  - namespace.yaml
+  - ../base/networkpolicy.yaml

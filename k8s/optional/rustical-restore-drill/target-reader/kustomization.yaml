@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# ONLY after a successful isolated PVC restore into rustical-restore-target.
+# No PVC, no HTTPRoute, no Secret, no Production resource.
+namespace: rustical-restore-target
+resources:
+  - ../target/namespace.yaml
+  - ../base/networkpolicy.yaml
+  - ../base/service.yaml
+  - ../base/deployment.yaml
