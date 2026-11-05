@@ -8,4 +8,6 @@ resources:
   - mastra-factory
   - mastra-sandbox
   - matrix
+  - matrix-legacy
   - rustical-pilot
+  - ../../optional/sparkyfitness

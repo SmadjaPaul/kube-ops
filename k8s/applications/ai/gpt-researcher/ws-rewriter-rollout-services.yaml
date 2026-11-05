@@ -1,0 +1,30 @@
+# PLT-140: new shadow Services, not referenced by HTTPRoute until cutover.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ws-rewriter-rollout-active
+  namespace: gpt-researcher
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ws-rewriter-rollout
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ws-rewriter-rollout-preview
+  namespace: gpt-researcher
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ws-rewriter-rollout
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

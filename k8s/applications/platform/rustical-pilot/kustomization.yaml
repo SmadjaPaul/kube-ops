@@ -1,38 +1,17 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# First runtime admission is intentionally disposable. The persistent RustiCal
-# PVC and Velero schedule remain in k8s/optional/rustical for a later promotion
-# PR after a coherent SQLite/WAL restore proof.
+# Private pilot admission uses the reviewed persistent contract with synthetic
+# data only. FAMILY_GO still requires an isolated SQLite/WAL restore proof.
 namespace: rustical-pilot
 resources:
   - ../../../optional/rustical
+  - pvc-bulk.yaml
 patches:
-  - target:
-      kind: PersistentVolumeClaim
-      name: rustical-data
-    patch: |-
-      $patch: delete
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: rustical-data
-  - target:
-      kind: Schedule
-      name: velero-daily-rustical
-    patch: |-
-      $patch: delete
-      apiVersion: velero.io/v1
-      kind: Schedule
-      metadata:
-        name: velero-daily-rustical
   - target:
       kind: Deployment
       name: rustical
     patch: |-
       - op: replace
-        path: /spec/template/spec/volumes/0
-        value:
-          name: state
-          emptyDir:
-            sizeLimit: 1Gi
+        path: /spec/template/spec/volumes/0/persistentVolumeClaim/claimName
+        value: rustical-data-bulk

@@ -10,6 +10,7 @@ spec:
   description: User workloads reconciled from the canonical kube-ops repository
   sourceRepos:
     - https://github.com/SmadjaPaul/kube-ops.git
+    - https://github.com/CodeWithCJ/SparkyFitness.git
     - ghcr.io/actions/actions-runner-controller-charts
   destinations:
     # Applications use an empty destination namespace because their rendered
@@ -69,6 +70,8 @@ spec:
     - namespace: romm
       server: https://kubernetes.default.svc
     - namespace: rustical-pilot
+      server: https://kubernetes.default.svc
+    - namespace: wellness
       server: https://kubernetes.default.svc
     - namespace: searxng
       server: https://kubernetes.default.svc

@@ -69,6 +69,14 @@ routes keep a single probe attempt. The JSONL result records `kedaManaged` and
 When `ARTIFACT_DIR` is set, results are JSONL in that directory. Without it,
 the report is temporary and removed when the smoke command exits.
 
+The JSONL result is deliberately split into evidence levels: `routePass` only
+means that DNS, Gateway/HTTPRoute, ready endpoints and the declared HTTP
+status passed. `workloadPass` is `NOT_MEASURED` unless a separate observer has
+checked the live revision, image ID and probes; `functionalPass` is
+`NOT_EXECUTED` because a route probe is not an application journey. A 401 or
+403 can therefore be a valid `routePass` while never becoming a functional
+application pass.
+
 ## Kubernetes access preflight
 
 Every live-runtime recipe requires an operator-provided `KUBECONFIG`. The
