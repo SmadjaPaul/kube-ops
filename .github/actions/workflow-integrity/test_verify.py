@@ -28,8 +28,21 @@ class AdmissionContract(unittest.TestCase):
         self.assertEqual(len(gate.validate_registry(json.dumps(example()), NOW, True)), 1)
 
     def test_unauthorized_gate_change(self):
-        with self.assertRaises(ValueError):
-            gate.validate_registry(json.dumps(example(paths=[gate.SELF])), NOW, True)
+        for path in (
+            gate.SELF,
+            gate.GATE_DIR + "verify.py",
+            gate.GATE_DIR + "test_verify.py",
+        ):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                gate.validate_registry(json.dumps(example(paths=[path])), NOW, True)
+
+    def test_reject_admitted_self_modification(self):
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=[
+                 gate.GATE_DIR + "verify.py"
+             ]):
+            with self.assertRaises(SystemExit):
+                gate.verify(self._args(), NOW)
 
     def test_reject_wildcards(self):
         with self.assertRaises(ValueError):
