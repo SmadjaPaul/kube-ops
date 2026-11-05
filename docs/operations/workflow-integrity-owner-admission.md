@@ -8,6 +8,44 @@ itself**. The repository owner must review the changes and use GitHub's
 explicitly permitted administrative bootstrap procedure. Never silently
 disable the check or claim it passed.
 
+## Owner-only bootstrap procedure (one-time)
+
+**This is an owner-admin task, not an agent action.** Under the current
+`main` rule, `workflow-integrity` is required even for admins and the
+trusted-base version intentionally rejects modifications to itself. An
+ordinary PR review or GitHub App acting as the owner cannot turn this failing
+status into a passing check.
+
+1. **Before changing any rule:** independently review this PR's exact
+   five-file diff and SHA; verify `pull_request_target` policy for the
+   public repository in GitHub Actions Policy Insights; inspect the existing
+   required checks and record the original protection state. Ensure no other
+   PR will merge automatically during the short bootstrap window.
+2. In the GitHub repository's **Settings → Branches → protection for
+   `main`**, the human owner may explicitly authorize a **one-time**
+   change removing only `workflow-integrity` from required checks.
+   Retain `v1-contract`, `docs-required`, strict/up-to-date requirements,
+   and administrator enforcement. Do not disable the rule, enable force pushes,
+   grant a bypass actor or weaken any other checks.
+3. Check that this PR's HEAD is still the **reviewed** SHA and that the
+   remaining required checks are green for that HEAD and current base.
+   Merge this single PR normally; do not represent the pre-bootstrap
+   `workflow-integrity` failure as a PASS.
+4. **Immediately restore** `workflow-integrity` as a required check, and
+   verify the complete branch rule including strict checks and
+   `enforce_admins=true`. Confirm the new workflow files and empty registry
+   on `main`; verify a subsequent PR runs the new trusted-base
+   `workflow-integrity` job. If any step fails, stop all further admissions
+   and restore the exact original rule immediately.
+5. Registry-only admission PRs remain separate. Each requires a truly
+   independent owner decision on current PR SHA and path set. A GitHub
+   `PR_AUTHOR` value or `approvedBy` string alone is **not** that
+   independent human authorization. Never enable auto-merge for the registry.
+
+This procedure describes an explicit administrative exception requiring the
+owner to execute it personally. It does **not** grant an agent permission to
+change GitHub protection settings and it is not a durable bypass design.
+
 ## Workflow contract
 
 - `pull_request_target` checks out **only** the trusted base SHA. It never runs
