@@ -56,16 +56,32 @@ change GitHub protection settings and it is not a durable bypass design.
   PR editing **only** `.github/workflow-integrity-admissions.json`. The gate
   checks the GitHub-authenticated PR author and validates the proposed registry
   document as data, without executing it.
-- Each entry contains `repository`, `pr`, 40-character `headSha`, exact
-  `paths`, `reason`, `approvedBy: SmadjaPaul` and `expiresAt` in UTC.
+- Each entry contains `repository`, `pr`, a 64-character
+  `changeFingerprint`, exact `paths`, `reason`, `approvedBy: SmadjaPaul` and
+  `expiresAt` in UTC. The fingerprint is computed from the complete raw Git
+  diff between the trusted base and PR head: every file's path, status,
+  old/new mode and type, and old/new blob ID, including non-protected files.
+  It does not normalize or discard changed-line positions.
   Expiration must be within seven days at the time the registry PR is checked.
+  Existing owner-approved pre-cutover registry entries with a 40-character
+  `headSha` (notably the active Polyfin #997 entry) remain accepted **only**
+  for their original exact event HEAD SHA, repository, PR, paths and existing
+  expiry; they do not gain fingerprint-based rebase stability. Both entry
+  formats can coexist transiently. New PLT-56 admissions must use
+  `changeFingerprint`; migrate or let legacy entries expire naturally rather
+  than invalidate already admitted unrelated work during gate bootstrap.
 - Protected PRs may be admitted **only using registry content on the base
-  branch** and the exact current SHA and *complete protected path set*.
+  branch**, the current complete protected path set and the exact complete
+  diff fingerprint.
   No globs, forks, expired records, registry edits in the same PR, or changes
   to the gate workflow or its verifier/tests under
   `.github/actions/workflow-integrity/` can be admitted. Any change to the
   gate implementation requires another explicit owner bootstrap.
-- A new HEAD commit invalidates the old record.
+- A merge or rebase of `main` does not invalidate the record when the affected
+  files' base/head blobs and raw metadata are unchanged. Any protected-file
+  content change, protected file addition/deletion, or non-protected-file
+  change changes the fingerprint and invalidates the record. The trusted base
+  must be an ancestor of the PR head; stale branches fail closed.
 - After the owner's registry PR merges, trigger a **new**
   `pull_request_target` event for each affected PR (for example close/reopen).
   Rerunning an old job may reuse its old base SHA and cannot prove admission.
@@ -87,7 +103,7 @@ Retain normal branch review and merge protections.
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 949,
-      "headSha": "REPLACE_WITH_EXACT_40_CHARACTER_HEAD_SHA",
+      "changeFingerprint": "REPLACE_WITH_EXACT_64_CHARACTER_DIFF_FINGERPRINT",
       "paths": [
         "tests/harness/atlantis-plan-only-test.sh",
         "tests/harness/backup-audit-contract-test.sh"
@@ -141,7 +157,7 @@ Protected-file rename detection must be fail-closed: the verifier uses
 `git diff --no-renames` so that both the deletion of a protected source
 and creation of its new path are included in the changed-file set.
 
-## PLT-56 protected path scope (revalidate SHA before each admission)
+## PLT-56 protected path scope (recompute fingerprint before each admission)
 
 | PR | Protected paths |
 | --- | --- |
@@ -149,7 +165,11 @@ and creation of its new path are included in the changed-file set.
 | #948 | `tests/harness/velero-storage-tier-test.sh` |
 | #949 | `tests/harness/atlantis-plan-only-test.sh`, `tests/harness/backup-audit-contract-test.sh` |
 
-Each registry entry must use the **current** exact HEAD SHA of its PR.
+Each registry entry must use the **current complete-diff fingerprint** computed
+against the trusted base of its PR. The PR number and repository remain exact
+identity fields; the last commit SHA is not used as the admission key, so a
+strict-branch-protection synchronization can preserve the admission when the
+reviewed change itself is unchanged.
 An admission for #947 does not constitute approval to remove the Longhorn
 global recurring job; the 19 primary-coverage gaps still need a separate
 recoverability decision.

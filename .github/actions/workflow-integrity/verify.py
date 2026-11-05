@@ -6,6 +6,7 @@ is used as inert git diff / JSON input; it is never imported or executed.
 """
 import argparse
 import datetime as dt
+import hashlib
 import json
 import re
 import subprocess
@@ -18,7 +19,10 @@ REGISTRY = ".github/workflow-integrity-admissions.json"
 SELF = ".github/workflows/workflow-integrity.yaml"
 GATE_DIR = ".github/actions/workflow-integrity/"
 CONTRACT = "docs/contracts/agent-test-result-v1.schema.json"
-ALLOWED_FIELDS = {"repository", "pr", "headSha", "paths", "reason", "approvedBy", "expiresAt"}
+ALLOWED_FIELDS = {"repository", "pr", "changeFingerprint", "paths", "reason", "approvedBy", "expiresAt"}
+# A pre-cutover registry entry for PR #997 is still on main. Honor existing
+# time-limited SHA admissions until expiry; new admissions use fingerprints.
+LEGACY_FIELDS = (ALLOWED_FIELDS - {"changeFingerprint"}) | {"headSha"}
 UTC_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 COMMITLINT = re.compile(
     r'\s*"@commitlint/(?:cli|config-conventional)"\s*:\s*"\^?[0-9]+\.[0-9]+\.[0-9]+"\s*,?\s*'
@@ -62,6 +66,45 @@ def changed_paths(base, head):
     return [p.decode("utf-8") for p in data.split(b"\0") if p]
 
 
+def _changed_records(base, head):
+    """Return the complete raw Git change without lossy line normalization."""
+    try:
+        git_bytes("merge-base", "--is-ancestor", base, head)
+    except subprocess.CalledProcessError as exc:
+        raise ValueError("base revision is not an ancestor of PR head") from exc
+
+    raw = git_bytes("diff", "--no-renames", "--raw", "-z", base, head, "--")
+    fields = [field for field in raw.split(b"\0") if field]
+    if len(fields) % 2:
+        raise ValueError("invalid git raw diff output")
+    records = []
+    for index in range(0, len(fields), 2):
+        header = fields[index].decode("ascii").split()
+        if len(header) != 5 or not header[0].startswith(":"):
+            raise ValueError("invalid git raw diff record")
+        path = fields[index + 1].decode("utf-8", "surrogateescape")
+        records.append({
+            "path": path,
+            "status": header[4],
+            "oldMode": header[0][1:],
+            "newMode": header[1],
+            "oldBlob": header[2],
+            "newBlob": header[3],
+        })
+    return sorted(records, key=lambda record: (record["path"], record["status"]))
+
+
+def change_fingerprint(base, head):
+    """Hash all changed paths, statuses, modes/types and Git blobs."""
+    canonical = json.dumps(
+        _changed_records(base, head),
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def package_change_is_exempt(base, head):
     diff = git_bytes("diff", "--no-renames", "--no-ext-diff", "--no-textconv", "--unified=0", base, head, "--", "package.json").decode("utf-8")
     for line in diff.splitlines():
@@ -95,14 +138,17 @@ def validate_registry(raw, now, require_fresh=False):
         raise ValueError("invalid admission count")
     seen = set()
     for entry in entries:
-        if not isinstance(entry, dict) or set(entry) != ALLOWED_FIELDS:
+        if not isinstance(entry, dict) or set(entry) not in (ALLOWED_FIELDS, LEGACY_FIELDS):
             raise ValueError("invalid admission fields")
-        repo, number, sha = entry["repository"], entry["pr"], entry["headSha"]
+        repo, number = entry["repository"], entry["pr"]
+        legacy = set(entry) == LEGACY_FIELDS
+        fingerprint = entry["headSha"] if legacy else entry["changeFingerprint"]
         paths = entry["paths"]
         if repo != REPOSITORY or type(number) is not int or number <= 0:
             raise ValueError("invalid repository or PR number")
-        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
-            raise ValueError("invalid exact SHA")
+        pattern = r"[0-9a-f]{40}" if legacy else r"[0-9a-f]{64}"
+        if not isinstance(fingerprint, str) or not re.fullmatch(pattern, fingerprint):
+            raise ValueError("invalid admission fingerprint or legacy SHA")
         if entry["approvedBy"] != OWNER or not isinstance(entry["reason"], str):
             raise ValueError("owner/reason missing")
         if not entry["reason"].strip() or len(entry["reason"]) > 400:
@@ -116,9 +162,9 @@ def validate_registry(raw, now, require_fresh=False):
         expiry = parse_utc(entry["expiresAt"])
         if require_fresh and not (now < expiry <= now + dt.timedelta(days=7)):
             raise ValueError("owner admission expiry must be in the next 7 days")
-        key = (repo, number, sha)
+        key = (repo, number, fingerprint)
         if key in seen:
-            raise ValueError("duplicate PR/SHA admission")
+            raise ValueError("duplicate PR/fingerprint admission")
         seen.add(key)
     return entries
 
@@ -156,8 +202,14 @@ def verify(args, now=None):
         entries = validate_registry(Path(REGISTRY).read_text(encoding="utf-8"), now)
     except (OSError, ValueError, UnicodeError) as exc:
         deny(f"BASE_REGISTRY_INVALID:{exc}")
+    try:
+        fingerprint = change_fingerprint(args.base_sha, args.head_ref)
+    except ValueError as exc:
+        deny(f"INVALID_PR_GRAPH:{exc}")
     matches = [row for row in entries if row["repository"] == args.repo
-               and row["pr"] == args.pr and row["headSha"] == args.sha]
+               and row["pr"] == args.pr
+               and (row.get("changeFingerprint") == fingerprint
+                    or row.get("headSha") == args.sha)]
     if len(matches) != 1:
         deny("NO_EXACT_BASE_ADMISSION")
     admission = matches[0]
@@ -167,7 +219,10 @@ def verify(args, now=None):
         deny("ADMISSION_EXPIRED")
     print("WORKFLOW_INTEGRITY=ADMITTED")
     print(f"ADMISSION_PR={args.pr}")
-    print(f"ADMISSION_SHA={args.sha}")
+    if "changeFingerprint" in admission:
+        print(f"ADMISSION_FINGERPRINT={fingerprint}")
+    else:
+        print(f"ADMISSION_LEGACY_HEAD_SHA={admission['headSha']}")
     print(f"ADMISSION_PATHS={','.join(blocked)}")
     print(f"ADMISSION_EXPIRES_AT={admission['expiresAt']}")
 
