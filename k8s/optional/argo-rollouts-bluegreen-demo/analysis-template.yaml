@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: rollout-demo-http
+  namespace: argo-rollouts-demo
+spec:
+  args:
+    - name: service-name
+    - name: path
+      value: /
+  metrics:
+    - name: http-smoke
+      # Two tiny internal HTTP probes; no auth, PVC, user traffic or LLM.
+      count: 2
+      interval: 10s
+      failureLimit: 0
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            ttlSecondsAfterFinished: 120
+            template:
+              spec:
+                restartPolicy: Never
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 65534
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: http-smoke
+                    image: busybox:1.37.0
+                    imagePullPolicy: IfNotPresent
+                    command:
+                      - sh
+                      - -ec
+                      - |
+                        wget -q -T 5 -t 2 -O /dev/null \
+                          "http://{{ args.service-name }}{{ args.path }}"
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities:
+                        drop: ["ALL"]
+                    resources:
+                      requests:
+                        cpu: 5m
+                        memory: 8Mi
+                      limits:
+                        cpu: 50m
+                        memory: 32Mi

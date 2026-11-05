@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: rollout-demo
+  namespace: argo-rollouts-demo
+  labels:
+    app.kubernetes.io/name: rollout-demo
+    app.kubernetes.io/part-of: progressive-delivery
+spec:
+  replicas: 1
+  revisionHistoryLimit: 4
+  progressDeadlineSeconds: 300
+  progressDeadlineAbort: true
+  rollbackWindow:
+    revisions: 3
+  selector:
+    matchLabels:
+      app: rollout-demo
+  template:
+    metadata:
+      labels:
+        app: rollout-demo
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: demo
+          # Official demo image, never used to serve a public route.
+          # Change blue -> green for a real blue/green upgrade test.
+          image: argoproj/rollouts-demo:blue
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+  strategy:
+    blueGreen:
+      activeService: rollout-demo-active
+      previewService: rollout-demo-preview
+      autoPromotionEnabled: true
+      # Deliberately omit scaleDownDelaySeconds: post-promotion analysis
+      # must complete while the previous stable ReplicaSet remains available.
+      prePromotionAnalysis:
+        templates:
+          - templateName: rollout-demo-http
+        args:
+          - name: service-name
+            value: rollout-demo-preview.argo-rollouts-demo.svc.cluster.local
+      postPromotionAnalysis:
+        templates:
+          - templateName: rollout-demo-http
+        args:
+          - name: service-name
+            value: rollout-demo-active.argo-rollouts-demo.svc.cluster.local

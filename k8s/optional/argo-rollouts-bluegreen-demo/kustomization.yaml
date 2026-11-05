@@ -1,0 +1,10 @@
+# PLT-141: NOT referenced by the production ApplicationSets.
+# Opt-in only after the Argo Rollouts controller is confirmed Healthy.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - services.yaml
+  - analysis-template.yaml
+  - rollout.yaml
