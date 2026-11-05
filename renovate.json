@@ -328,6 +328,35 @@
       "minimumReleaseAge": "14 days",
       "automerge": false,
       "platformAutomerge": false
+    },
+    {
+      "description": "PLT-128 documentation UI libraries patch-only candidate; requires docs-required and 14-day maturation",
+      "enabled": true,
+      "groupName": "PLT-128 docs UI libraries patch-only",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "matchPackageNames": [
+        "@mdx-js/react",
+        "clsx",
+        "prism-react-renderer",
+        "react-icons"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "matchCurrentVersion": "!/^0\\./",
+      "minimumReleaseAge": "14 days",
+      "rangeStrategy": "bump",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
     }
   ],
   "kubernetes": {
