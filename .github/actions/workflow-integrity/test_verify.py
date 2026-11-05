@@ -79,6 +79,43 @@ class AdmissionContract(unittest.TestCase):
         with self.assertRaises(ValueError):
             gate.validate_registry(json.dumps(data), NOW, True)
 
+    def test_legacy_admission_survives_cutover_without_weaker_authorization(self):
+        # #997 has a pre-cutover headSha entry on main. It must keep its
+        # exact event SHA, exact protected paths, owner and short expiry.
+        doc = example()
+        old = doc["admissions"][0]
+        old["headSha"] = "a" * 40
+        del old["changeFingerprint"]
+        raw = json.dumps(doc)
+        self.assertEqual(len(gate.validate_registry(raw, NOW)), 1)
+        paths = ["tests/harness/backup-audit-contract-test.sh"]
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=paths), \
+             patch.object(gate, "change_fingerprint", return_value="f" * 64), \
+             patch.object(Path, "read_text", return_value=raw):
+            gate.verify(self._args(), NOW)
+            with self.assertRaises(SystemExit):
+                gate.verify(self._args(pr=950), NOW)
+
+        # Legacy entries never bypass the existing event-head binding.
+        with patch.object(gate, "git_bytes", return_value=b"b" * 40):
+            with self.assertRaises(SystemExit):
+                gate.verify(self._args(), NOW)
+
+        with self.assertRaises(ValueError):
+            gate.validate_registry(
+                json.dumps(example(headSha="a" * 40)), NOW
+            )
+
+    def test_mixed_registry_preserves_new_fingerprint_admission(self):
+        doc = example()
+        legacy = dict(doc["admissions"][0])
+        legacy["pr"] = 997
+        legacy["headSha"] = "b" * 40
+        del legacy["changeFingerprint"]
+        doc["admissions"].append(legacy)
+        self.assertEqual(len(gate.validate_registry(json.dumps(doc), NOW, True)), 2)
+
     def test_protected_path_matching(self):
         self.assertTrue(gate.protected("tests/harness/backup-audit-contract-test.sh"))
         self.assertTrue(gate.protected(".github/workflows/workflow-integrity.yaml"))
