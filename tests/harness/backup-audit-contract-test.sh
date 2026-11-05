@@ -10,12 +10,13 @@ cnpg_negative_dir="$(mktemp -d)"
 longhorn_dir="$(mktemp -d)"
 selector_dir="$(mktemp -d)"
 fsb_dir="$(mktemp -d)"
+shared_dir="$(mktemp -d)"
 recovery_label_dir="$(mktemp -d)"
 stale_evidence_dir="$(mktemp -d)"
 policy_dir="$(mktemp -d)"
 stale_policy_dir="$(mktemp -d)"
 tmp_json="$longhorn_dir/mutation.tmp.json"
-trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$selector_dir" "$fsb_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
+trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$selector_dir" "$fsb_dir" "$shared_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
 
 qualification_evidence="$repo_root/docs/operations/dr-restore-evidence-2026-10-20.json"
 jq -e '
@@ -157,6 +158,52 @@ set -e
 (( fsb_rc == 0 ))
 jq -e '[.pvc[] | select(.namespace == "fsb-fixture" and .name == "logs")] | length == 0' "$fsb_report" >/dev/null
 jq -e '[.productionPVCs[] | select(.namespace == "fsb-fixture" and .name == "important")][0] | .completedPVB == true and .backupMechanism == "velero/kopia"' "$fsb_report" >/dev/null
+
+# Shared PVC: excluding a volume in only one of two pods must not hide
+# the other pod's unexcluded mount from the protection audit.
+cp -R "$fixture_dir/." "$shared_dir/"
+jq '.items += [{
+  "metadata":{"namespace":"shared-fixture","name":"shared"},
+  "spec":{"storageClassName":"longhorn-fast","volumeName":"pv-shared"},
+  "status":{"phase":"Bound"}
+}]' "$shared_dir/pvc.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/pvc.json"
+jq '.items += [{
+  "metadata":{"name":"pv-shared"},
+  "spec":{"claimRef":{"namespace":"shared-fixture","name":"shared"}},
+  "status":{"phase":"Bound"}
+}]' "$shared_dir/pv.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/pv.json"
+jq '.items += [
+  {"metadata":{"namespace":"shared-fixture","name":"excluded-pod",
+                "annotations":{"backup.velero.io/backup-volumes-excludes":"data"}},
+   "spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"shared"}}]}},
+  {"metadata":{"namespace":"shared-fixture","name":"included-pod"},
+   "spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"shared"}}]}}
+]' "$shared_dir/pods.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/pods.json"
+jq '.items += [{
+  "metadata":{"namespace":"velero","name":"daily-shared"},
+  "spec":{"template":{"includedNamespaces":["shared-fixture"]}}
+}]' "$shared_dir/schedules.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/schedules.json"
+jq '.items += [{
+  "metadata":{"namespace":"velero","name":"daily-shared-20261105",
+              "labels":{"velero.io/schedule-name":"daily-shared"}},
+  "spec":{"includedNamespaces":["shared-fixture"]},
+  "status":{"phase":"Completed"}
+}]' "$shared_dir/backups.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/backups.json"
+shared_report="$shared_dir/report.json"
+set +e
+BACKUP_AUDIT_INPUT_DIR="$shared_dir" BACKUP_AUDIT_REPORT_FILE="$shared_report" \
+  bash "$repo_root/scripts/backup-audit.sh" >"$output"
+shared_rc=$?
+set -e
+(( shared_rc != 0 ))
+jq -e '[.productionPVCs[] | select(.namespace == "shared-fixture" and .name == "shared")][0]
+  | .podVolumeExcluded == false and .decision == "PROTECT" and
+    .completedPVB == false and .coverageReady == false' "$shared_report" >/dev/null
 
 # Explicit recovery-purpose labels classify isolated recovery fixtures as
 # restore residue without guessing from a namespace name or treating them as
