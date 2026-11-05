@@ -39,6 +39,7 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: it-tools
       server: https://kubernetes.default.svc
+    # PLT-141: isolated opt-in Rollouts fixture; never grant tenant namespaces broadly.
     - namespace: argo-rollouts-demo
       server: https://kubernetes.default.svc
     - namespace: karakeep
