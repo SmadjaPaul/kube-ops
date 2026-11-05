@@ -48,13 +48,13 @@ matrixAuthenticationService:
     host: account.smadja.dev
     tlsSecret: cert-smadja
   postgres:
-    host: matrix-mas-postgresql-rw.matrix.svc.cluster.local
+    host: matrix-mas-postgresql-clean-rw.matrix.svc.cluster.local
     port: 5432
     user: mas
     database: mas
     sslMode: prefer
     password:
-      secret: matrix-mas-postgresql-app
+      secret: matrix-mas-postgresql-clean-app
       secretKey: password
   additional:
     authentik:
