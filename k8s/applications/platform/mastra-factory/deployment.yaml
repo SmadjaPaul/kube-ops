@@ -71,8 +71,6 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef: {name: mastra-factory-postgresql-app, key: uri}
-            - name: MASTRACODE_REVIEW_ONLY_ENABLED
-              value: "0"
           envFrom:
             - secretRef: {name: mastra-factory-runtime}
             # Optional until the separate OIDC client credential is provisioned.
