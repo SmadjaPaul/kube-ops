@@ -149,7 +149,7 @@ def is_drill:
   ((.metadata.labels["qa.smadja.dev/restore"] // "") == "true") or
   ((.metadata.labels["recovery.smadja.dev/purpose"] // "") != "") or
   ((.metadata.labels["restore.smadja.dev/purpose"] // "") != "") or
-  ((ns | test("(^|[-])restore([-]|$)|(^|[-])drill([-]|$)|(^|[-])dr-protect([-]|$)")));
+  ((ns | test("(^|[-])restore([-]|$)|(^|[-])drill([-]|$)|(^|[-])dr([-]|$)|(^|[-])dr-protect([-]|$)")));
 def is_rebuildable:
   (.metadata.labels["backup.smadja.dev/strategy"] // "") == "rebuildable";
 def is_excluded:
@@ -182,14 +182,49 @@ def bound_pv_for($pvc; $pv_index):
    ($requireUIDs != "true" or
      (($pv.spec.claimRef.uid // "") != "" and
       ($pv.spec.claimRef.uid // "") == ($pvc.metadata.uid // ""))));
-def schedule_for_namespace($namespace):
-  any(items($schedules)[]; (.spec.template.includedNamespaces // []) | index($namespace));
-def completed_backup_for_namespace($namespace; $completed_backup_list):
+def labels_match($labels; $selector):
+  ($labels // {}) as $labels |
+  ($selector // {}) as $selector |
+  (all(($selector.matchLabels // {}) | to_entries[];
+      . as $entry |
+      ($labels[$entry.key] // null) == $entry.value)) and
+  (all(($selector.matchExpressions // [])[];
+      . as $expression |
+      if $expression.operator == "In" then
+        (($labels[$expression.key] // null) != null and (($expression.values // []) | index($labels[$expression.key])) != null)
+      elif $expression.operator == "NotIn" then
+        (($labels[$expression.key] // null) == null or (($expression.values // []) | index($labels[$expression.key])) == null)
+      elif $expression.operator == "Exists" then
+        (($labels[$expression.key] // null) != null)
+      elif $expression.operator == "DoesNotExist" then
+        (($labels[$expression.key] // null) == null)
+      else false end));
+def schedule_selector_matches($schedule; $pvc; $pvc_pod_labels_index):
+  ($schedule.spec.template.labelSelector // null) as $selector |
+  ($schedule.spec.template.orLabelSelectors // []) as $or_selectors |
+  ([($pvc.metadata.labels // {})] + ($pvc_pod_labels_index[(($pvc | ns) + "/" + ($pvc | name))] // [])) as $candidate_labels |
+  if (($selector == null or $selector == {}) and ($or_selectors | length) == 0) then true
+  else any($candidate_labels[]; labels_match(.; $selector)) or
+       any($or_selectors[]; . as $or_selector |
+         any($candidate_labels[]; labels_match(.; $or_selector)))
+  end;
+def schedule_for_pvc($pvc; $pvc_pod_labels_index):
+  any(items($schedules)[];
+    ((.spec.template.includedNamespaces // []) | index($pvc | ns)) != null and
+    schedule_selector_matches(.; $pvc; $pvc_pod_labels_index));
+def completed_backup_for_pvc($pvc; $completed_backup_list; $pvc_pod_labels_index):
   any($completed_backup_list[];
-    ((.spec.includedNamespaces // []) | index($namespace)) != null or
-    ((.metadata.labels["velero.io/schedule-name"] // "") as $schedule |
-      any(items($schedules)[]; .metadata.name == $schedule and
-        ((.spec.template.includedNamespaces // []) | index($namespace)) != null)));
+    . as $backup |
+    ($backup.spec.includedNamespaces // []) as $included |
+    ($backup.metadata.labels["velero.io/schedule-name"] // "") as $schedule |
+    if $schedule == "" then
+      ($included | index($pvc | ns)) != null
+    else
+      any(items($schedules)[];
+        .metadata.name == $schedule and
+        ((.spec.template.includedNamespaces // []) | index($pvc | ns)) != null and
+        schedule_selector_matches(.; $pvc; $pvc_pod_labels_index))
+    end);
 def pvb_for_pvc($pvc; $pvb_claim_index):
   ($pvb_claim_index[(($pvc | ns) + "/" + ($pvc | name))] // false);
 def lh_volume_for($pvc; $lh_volume_index):
@@ -228,6 +263,12 @@ def cnpg_store_for($cluster):
     .metadata.name == $cluster_store and
     $cluster_store != "" and
     ($scheduled_store == "" or $scheduled_store == $cluster_store));
+def cnpg_protection_for_pvc($pvc):
+  ($pvc.metadata.labels["cnpg.io/cluster"] // "") as $cluster_name |
+  any(items($cnpg)[];
+    .metadata.namespace == ($pvc.metadata.namespace // "default") and
+    .metadata.name == $cluster_name and
+    cnpg_wal and cnpg_scheduled_backup_for(.) and cnpg_backup_for(.) and cnpg_store_for(.));
 def accepted_restore:
   ((.metadata.annotations["backup.smadja.dev/restore-accepted"] // "") == "true") or
   ((.metadata.labels["backup.smadja.dev/restore-accepted"] // "") == "true") or
@@ -278,6 +319,10 @@ def recurring_backup_for($lhvolume):
    reduce ($pod.spec.volumes[]? | select(.persistentVolumeClaim.claimName? != null)) as $volume (.;
      .[(($pod.metadata.namespace // "default") + "/" + ($pod.metadata.name // "") + "/" + ($volume.name // ""))] =
        (($pod.metadata.namespace // "default") + "/" + ($volume.persistentVolumeClaim.claimName // ""))))) as $pod_volume_index |
+ (items($pods) | reduce .[] as $pod ({};
+   reduce ($pod.spec.volumes[]? | select(.persistentVolumeClaim.claimName? != null)) as $volume (.;
+     (($pod.metadata.namespace // "default") + "/" + ($volume.persistentVolumeClaim.claimName // "")) as $claim |
+     .[$claim] = ((.[$claim] // []) + [($pod.metadata.labels // {})])))) as $pvc_pod_labels_index |
  ($valid_pvbs | reduce .[] as $pvb ({};
    .[((($pvb.metadata.labels["velero.io/pvc-namespace"] // "") + "/" + ($pvb.metadata.labels["velero.io/pvc-name"] // "")))] = true |
    .[((($pvb.spec.pvc.namespace // "") + "/" + ($pvb.spec.pvc.name // "")))] = true |
@@ -298,6 +343,7 @@ def recurring_backup_for($lhvolume):
   (recovery_policy_for($pvc)) as $policy |
   (lh_volume_for($pvc; $lh_volume_index)) as $lhvolume |
   (lh_backup_for($pvc; $lh_volume_index; $lh_backup_index)) as $lhbackup |
+  (cnpg_protection_for_pvc($pvc)) as $cnpg_protected |
   (evidence_for_pvc($pvc)) as $restore_evidence |
   (pvb_for_pvc($pvc; $pvb_claim_index)) as $pvb |
   {
@@ -319,21 +365,23 @@ def recurring_backup_for($lhvolume):
     recoveryEvidence:($policy.recoveryEvidence // []),
     lastVerifiedAt:($policy.lastVerifiedAt // ""),
     policyMatched:(($policy.uid // "") != "" and ($policy.uid == (.metadata.uid // ""))),
-    scheduled:(schedule_for_namespace(ns)),
-    completedBackup:(completed_backup_for_namespace(ns; $completed_backups_list)),
+    scheduled:(schedule_for_pvc($pvc; $pvc_pod_labels_index)),
+    completedBackup:(completed_backup_for_pvc($pvc; $completed_backups_list; $pvc_pod_labels_index)),
     completedPVB:($pvb != false),
     longhornVolumePresent:($lhvolume != null),
     longhornVolume:($lhvolume.metadata.name // ""),
     longhornBackupCompleted:($lhbackup),
+    longhornBackupSupplemental:($lhbackup),
+    cnpgBackupConfigured:$cnpg_protected,
     restoreVerified:($restore_evidence != null and (($restore_evidence.restoreVerified // true) == true)),
     applicationRecoveryVerified:($restore_evidence != null and (($restore_evidence.applicationRecoveryVerified // false) == true)),
     restoreEvidence:($restore_evidence // null),
     recurringBackupConfigured:recurring_backup_for($lhvolume),
-    backupConfigured:(schedule_for_namespace(ns) or ($lhbackup)),
-    offsiteBackupVerified:(($pvb != false) or ($lhbackup))
+    backupConfigured:(schedule_for_pvc($pvc; $pvc_pod_labels_index) or ($pvb != false) or $cnpg_protected),
+    offsiteBackupVerified:(($pvb != false) or $cnpg_protected)
   }
   | .coverageReady=(.bound and .pvBound and .backupConfigured and .offsiteBackupVerified)
-  | .backupMechanism=(if .completedPVB then "velero/kopia" elif .longhornBackupCompleted then "longhorn-s3" elif .scheduled then "configured-no-completed-proof" else "none" end)
+  | .backupMechanism=(if .cnpgBackupConfigured then "cnpg/barman" elif .completedPVB then "velero/kopia" elif .longhornBackupSupplemental then "longhorn-s3-supplemental" elif .scheduled then "configured-no-completed-proof" else "none" end)
   | .recoveryStatus=(recovery_status($policy; .offsiteBackupVerified; .classification))
   | .lastVerifiedAt=(if .lastVerifiedAt != "" then .lastVerifiedAt elif .offsiteBackupVerified then $observedAt else "" end)
 ] | map(select((.rebuildable or .excluded) | not))) as $all_pvcs |
