@@ -145,6 +145,9 @@ prometheus:
     # history loss; no PVC or existing backup is deleted by this change.
     storageSpec:
       volumeClaimTemplate:
+        metadata:
+          labels:
+            backup.smadja.dev/strategy: rebuildable
         spec:
           storageClassName: longhorn-fast
           accessModes:

@@ -107,6 +107,7 @@ spec:
         labels:
           app.kubernetes.io/name: executor
           backup.smadja.dev/velero: "true"
+          backup.smadja.dev/strategy: rebuildable
       spec:
         accessModes:
           - ReadWriteOnce
