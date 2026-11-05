@@ -3,8 +3,6 @@ kind: StatefulSet
 metadata:
   name: executor
   namespace: executor
-  annotations:
-    backup.smadja.dev/strategy: rebuildable
   labels:
     app.kubernetes.io/name: executor
     app.kubernetes.io/component: server
@@ -20,8 +18,6 @@ spec:
       app.kubernetes.io/component: server
   template:
     metadata:
-      annotations:
-        backup.velero.io/backup-volumes-excludes: data
       labels:
         app.kubernetes.io/name: executor
         app.kubernetes.io/component: server
