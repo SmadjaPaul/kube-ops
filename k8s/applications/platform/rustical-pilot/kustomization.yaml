@@ -6,3 +6,12 @@ kind: Kustomization
 namespace: rustical-pilot
 resources:
   - ../../../optional/rustical
+  - pvc-bulk.yaml
+patches:
+  - target:
+      kind: Deployment
+      name: rustical
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0/persistentVolumeClaim/claimName
+        value: rustical-data-bulk

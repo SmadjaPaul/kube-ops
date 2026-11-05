@@ -9,3 +9,4 @@ resources:
   - mastra-sandbox
   - matrix
   - rustical-pilot
+  - ../../optional/sparkyfitness

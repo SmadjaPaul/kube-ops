@@ -75,6 +75,9 @@ global:
     - secretRef:
         name: authentik-blueprint-polyfin
     - secretRef:
+        name: authentik-blueprint-sparkyfitness
+        optional: true
+    - secretRef:
         name: authentik-smtp-credentials
 
   # -- Additional volumeMounts to all deployed Deployments. Does not apply to GeoIP
@@ -222,7 +225,7 @@ server:
 worker:
   enabled: true
   deploymentAnnotations:
-    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-paperless,authentik-blueprint-ntfy,authentik-blueprint-romm,authentik-blueprint-sure,authentik-blueprint-talos-bluegreen,authentik-blueprint-matrix-mas-oidc,authentik-blueprint-aiostreams-oidc,authentik-blueprint-rustical,authentik-blueprint-polyfin"
+    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-paperless,authentik-blueprint-ntfy,authentik-blueprint-romm,authentik-blueprint-sure,authentik-blueprint-talos-bluegreen,authentik-blueprint-matrix-mas-oidc,authentik-blueprint-aiostreams-oidc,authentik-blueprint-rustical,authentik-blueprint-polyfin,authentik-blueprint-sparkyfitness"
     configmap.reloader.stakater.com/auto: "true"
   # Force one desired-state rollout so the already-merged blueprint reload
   # wiring is applied to the existing worker pod. Subsequent ConfigMap changes
