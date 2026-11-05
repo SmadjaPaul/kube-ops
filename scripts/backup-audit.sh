@@ -340,9 +340,11 @@ def default_recurring_backup_for($lhvolume):
    ($pod.metadata.annotations["backup.velero.io/backup-volumes-excludes"] // "") as $excluded_names |
    ($excluded_names | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $excluded |
    reduce ($pod.spec.volumes[]? | select(.persistentVolumeClaim.claimName? != null)) as $volume (.;
-     if (($excluded | index($volume.name)) != null) then
-       .[(($pod.metadata.namespace // "default") + "/" + ($volume.persistentVolumeClaim.claimName // ""))] = true
-     else . end))) as $pvc_exclusion_index |
+     (($pod.metadata.namespace // "default") + "/" + ($volume.persistentVolumeClaim.claimName // "")) as $claim |
+     # A shared claim is excluded only if EVERY pod mount excludes that
+     # exact volume. An included mount must not be hidden by another pod.
+     .[$claim] = ((.[$claim] // true) and (($excluded | index($volume.name)) != null))
+   ))) as $pvc_exclusion_index |
  ($valid_pvbs | reduce .[] as $pvb ({};
    .[((($pvb.metadata.labels["velero.io/pvc-namespace"] // "") + "/" + ($pvb.metadata.labels["velero.io/pvc-name"] // "")))] = true |
    .[((($pvb.spec.pvc.namespace // "") + "/" + ($pvb.spec.pvc.name // "")))] = true |
