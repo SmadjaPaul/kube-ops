@@ -44,7 +44,7 @@
         "/\\.sh$/"
       ],
       "matchStrings": [
-        "(?<currentValue>[\\w+\\.\\-]*)['\\\",;]*\\s*#\\s?renovate:\\s+datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+registry=(?<registryUrl>\\S+))?(?:\\s+versioning=(?<versioning>\\S+))?",
+        "(?<currentValue>[\\w+\\.\\-]+)(?:@sha256:[a-f0-9]{64})?['\\\",;]*\\s*#\\s?renovate:\\s+datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+registry=(?<registryUrl>\\S+))?(?:\\s+versioning=(?<versioning>\\S+))?",
         "(?<currentValue>[\\w+\\.\\-]*)['\\\",;]*\\s*#\\s?renovate:\\s+(?<datasource>docker)=(?<depName>\\S+)",
         "https://github.com/(?<depName>[^/]+/[^/]+)/releases/download/(?<currentValue>[^/]+)/",
         "https://raw.githubusercontent.com/(?<depName>[^/]+/[^/]+)/(?<currentValue>[^/]+)/"
@@ -93,6 +93,24 @@
         "/^ghcr\\.io\\/onedr0p\\/.+$/",
         "/^ghcr\\.io\\/jellyfin\\/.+$/"
       ]
+    },
+    {
+      "description": "Polyfin official releases and digests require the image audit and T2 policy before merge",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/moodiness/polyfin"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest",
+        "patch",
+        "minor"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
     },
     {
       "groupName": "Netbird",

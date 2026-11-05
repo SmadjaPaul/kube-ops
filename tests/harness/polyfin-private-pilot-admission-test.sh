@@ -7,7 +7,7 @@ image="$(jq -er '.image.repository + ":" + .image.tag + "@" + .image.digest' "$p
 tmpdir="$(mktemp -d /tmp/polyfin-admission-test.XXXXXX)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-jq -r '.acceptedFindings[].id | "target\t" + . + "\tpkg\t1\tUNFIXED\tHIGH\taffected"' "$policy" > "$tmpdir/findings.tsv"
+jq -r '.acceptedFindings[] | "target\t" + .id + "\tpkg\t1\t" + (if .disposition == "fixed-required" then "1.0" else "UNFIXED" end) + "\tHIGH\t" + (if .disposition == "fixed-required" then "fixed" else "affected" end)' "$policy" > "$tmpdir/findings.tsv"
 
 POLYFIN_ADMISSION_NOW=2026-11-01T12:00:00Z "$checker" \
   --image "$image" --findings "$tmpdir/findings.tsv" --policy "$policy"

@@ -1,33 +1,36 @@
 # Polyfin — family media pilot (private LAN/VPN)
 
-Status: **PRIVATE PILOT ADMITTED / ROUTE DISABLED**. The parent media
-Kustomization still keeps the workload and its data resources staged, but its
-Gateway HTTPRoute is intentionally disabled. `tv.smadja.dev` is reserved for
-the native AIOStreams family player; this change does not delete Polyfin data.
+Status: **OFFICIAL 0.61.1 PRIVATE PILOT / ROUTE DISABLED**. The parent media
+Kustomization keeps the workload and its data resources staged, but its Gateway
+HTTPRoute is intentionally disabled. `tv.smadja.dev` remains reserved for the
+native AIOStreams family player; this migration does not delete Polyfin data.
 There is no external HTTPRoute or Cloudflare Tunnel.
 
-The temporary risk acceptance is machine-checked by
+The T2 acceptance is machine-checked by
 `.github/polyfin/private-pilot-admission.json` and
-`scripts/polyfin-admission-check.sh`. It is bound to the exact signed
-downstream digest, linux/amd64, the internal Gateway, and expires at
-`2026-11-26T23:59:59Z`. It accepts only the 17 CVEs in that file; a new CVE,
-digest, platform or perimeter change fails admission. `CVE-2026-6653` remains
-an individual CRITICAL entry and is not hidden from Trivy.
+`scripts/polyfin-admission-check.sh`. It is bound to the official upstream
+`ghcr.io/moodiness/polyfin:0.61.1` linux/amd64 digest and expires at
+`2026-12-05T23:59:59Z`. The upstream release and GHCR digest are recorded, but
+no upstream Cosign signature or GitHub artifact attestation was found and none
+is claimed. Trivy output remains complete and visible.
 
-Current admission result (2026-10-27): the signed downstream `0.50.0` candidate
-is pinned by immutable digest. A reproducible Trivy 0.76.1 scan of
-`linux/amd64` on workflow run
-[`40558560121`](https://github.com/SmadjaPaul/kube-ops/actions/runs/40558560121)
-reports **61 HIGH/CRITICAL affected-package occurrences, 23 distinct CVEs,
-including one CRITICAL**; six distinct CVEs have published fixes. The original
-operator scan reported six HIGH, apparently using a narrower or
-fixed-vulnerabilities-only filter: its exact command needs comparison.
-Do not confuse the number of package occurrences with distinct CVEs.
-The downstream Cosign signature, SBOM and provenance were independently
-verified. The whole Trivy JSON and TSV are attached as GitHub Actions artifact
-`polyfin-downstream-candidate-01dfcfa30e78aaf6f28115180d8c90fb61cfc334`.
+The exact local Trivy qualification of the official platform digest found
+**68 HIGH/CRITICAL occurrences across 29 CVEs**, including the separately
+accepted CRITICAL `CVE-2026-6653` and the zlib `CVE-2026-76844`. The scan also
+contains nine findings marked fixed by Trivy; they remain tracked and are
+required not to become affected in a future digest. The authoritative CI scan
+uses the repository's pinned Trivy version and must pass the same admission
+policy before promotion.
+
+The previous downstream build/backport evidence is historical only. It is
+preserved in closed PR [#1018](https://github.com/SmadjaPaul/kube-ops/pull/1018)
+and is not part of the official-image promotion path.
 
 ## Historical upstream vulnerability baseline — 2026-10-27
+
+The downstream-candidate material below is historical evidence only. It is not
+an approval for the official 0.61.1 image and must not be revived as a build
+pipeline.
 
 Exact target:
 `ghcr.io/moodiness/polyfin:0.50.0@sha256:b544e75ae8f028214d6dd1ea7fd55094b75211c081a41d7c6afe0917637cc719`
@@ -91,7 +94,7 @@ suppress whole package families, or relax all media/network gates.
 
 ### Residual CVE reachability assessment
 
-This is a reachability review, not a waiver. The local downstream image was
+This is a reachability review, not a waiver. The official upstream image was
 built for `linux/amd64`; `/polyfin` is a static Go binary, while FFmpeg and
 Tesseract are separate child processes. The container runs as UID 65532 with a
 readonly root filesystem and no extra capabilities.
@@ -113,14 +116,14 @@ unstable, including [ncurses](https://security-tracker.debian.org/tracker/CVE-20
 vendor prioritization, not evidence that the vulnerable code is unreachable in
 this application. No temporary exception is applied automatically.
 
-**Remaining gates:** verified source-to-image provenance; published
-image integrity/signature or signed and auditable downstream build;
+**Remaining gates:** verified official release and immutable GHCR digest;
+no upstream Cosign signature is claimed because none was found;
 specific CVE remediation + justified treatment of any remaining
 findings; user authorizes any documented temporary risk acceptance;
 successful backup restore; actual runtime device/direct-play tests.
 Public route and Polyfin admission remain OFF.
 
-## Outstanding security evidence for v0.50.0
+## Historical security evidence for v0.50.0
 
 - Preserve the **exact Trivy JSON** from the pinned OCI index and the
   `linux/amd64` workload image; list all HIGH/CRITICAL IDs, component, installed
@@ -228,7 +231,7 @@ recording intentionally moves bytes through the server. Therefore:
 Polyfin SSO is **not configured**. This is intentional: upstream issue
 [#217](https://github.com/moodiness/polyfin/issues/217) remains open in the
 `Later` milestone, with no linked implementation branch or pull request. The
-latest released Polyfin version used by this pilot is `0.50.0`; upstream's
+current official pilot uses Polyfin `0.61.1`; upstream's
 current Silo capability contract still advertises both OAuth and external sign
 in as unsupported, and the deployed web login remains the native username /
 password flow.
@@ -329,15 +332,15 @@ Upstream docs:
 [Music/addons](https://github.com/moodiness/polyfin/blob/main/docs/addons-and-libraries.md).
 
 
-## v0.59.0 upstream migration candidate (not admitted)
+## Historical v0.59.0 upstream migration candidate
 
 The original Authentik bridge PR #797 was closed and not merged. Polyfin
 upstream shipped OpenID Connect in v0.55.0, so no downstream auth bridge
 should be resurrected. The next candidate is official
 `ghcr.io/moodiness/polyfin:0.59.0@sha256:613dbcf3c87f1079f028e1ecce0dd04d3b28f3543187d0c5068d32b22c7c6ad3`,
 pinned in `k8s/optional/polyfin-v059/kustomization.yaml`. This overlay is
-NOT referenced by the Argo application roots; the live 0.50.0 image and its
-digest-specific temporary risk admission remain untouched.
+Superseded by the official 0.61.1 image and its new digest-specific T2
+admission. The old downstream evidence remains historical and is not reused.
 
 `media.smadja.dev` is the future private Polyfin hostname. The staged
 `http-route.yaml` remains excluded; `tv.smadja.dev` belongs to
@@ -352,4 +355,4 @@ database before its 0.59 schema migration, qualify upstream Authentik OIDC
 (issuer/sub mapping, provisioning, log out, Quick Connect), validate Jellyfin
 web/mobile plus AIOStreams/Eclipse network dependencies, then introduce the
 route and image into the admitted root in a dedicated PR. A new image does not
-inherit the 2026-11-26 private-pilot exception.
+inherit the 2026-12-05 private-pilot exception.
