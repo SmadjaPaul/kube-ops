@@ -32,8 +32,16 @@ Répéter la fenêtre de l’audit I/O du 5 novembre après convergence Argo CD 
 ## Décision PLT-56
 
 L’état par défaut est `HOLD`. Cette PR est documentaire et ne retire aucun
-manifest ni objet. Pour toute future suppression d’un manifeste GitOps, le
-pruning devra être protégé par `Prune=false` ou `Prune=confirm`, et
-`preserveResourcesOnDeletion: true` devra être configuré dans l’ApplicationSet
-concernée. PLT-56 ne supprime aucune donnée source, PVC historique, PV
-`Released`, backup Longhorn, backup Velero/Kopia ou objet S3.
+manifest ni objet. Pour toute suppression ultérieure d’une ressource **contenant des données**
+(PVC, PV, volume ou sauvegarde), une PR dédiée doit détailler son propriétaire,
+la preuve de restauration et le comportement réel de pruning Argo. Si la
+suppression de l’objet Kubernetes n’est pas approuvée, utiliser une protection
+appropriée comme `Prune=false` ou `Prune=confirm` sur la ressource concernée;
+ces options ne remplacent pas la qualification des données. L’option
+`preserveResourcesOnDeletion: true` protège les ressources lors de la
+**suppression de l’ApplicationSet/Application**, pas lors du retrait ordinaire
+d’un manifeste de l’application. En revanche, le `RecurringJob` Longhorn global
+de #947 doit bien être retiré par le pruning Argo **après** approbation explicite
+de la nouvelle couverture de sauvegarde. PLT-56 ne supprime aucune donnée
+source, PVC historique, PV `Released`, snapshot, backup Longhorn, backup
+Velero/Kopia ou objet S3.
