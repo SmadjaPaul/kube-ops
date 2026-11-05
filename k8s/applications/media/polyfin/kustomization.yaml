@@ -10,5 +10,6 @@ resources:
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
+  - aiostreams-networkpolicy.yaml
 # Activation remains separate from ../kustomization.yaml until the upstream
 # image security gate and runtime admission checks pass.

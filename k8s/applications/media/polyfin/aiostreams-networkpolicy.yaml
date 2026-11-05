@@ -1,0 +1,19 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polyfin-aiostreams-control
+  namespace: media
+spec:
+  description: "Allow only the Polyfin pilot to reach the AIOStreams control API."
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: polyfin
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: aiostreams
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
