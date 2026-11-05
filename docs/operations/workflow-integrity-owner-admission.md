@@ -24,8 +24,9 @@ disable the check or claim it passed.
 - Protected PRs may be admitted **only using registry content on the base
   branch** and the exact current SHA and *complete protected path set*.
   No globs, forks, expired records, registry edits in the same PR, or changes
-  to the gate workflow itself can be admitted. A change to the gate requires
-  another explicit owner bootstrap.
+  to the gate workflow or its verifier/tests under
+  `.github/actions/workflow-integrity/` can be admitted. Any change to the
+  gate implementation requires another explicit owner bootstrap.
 - A new HEAD commit invalidates the old record.
 - After the owner's registry PR merges, trigger a **new**
   `pull_request_target` event for each affected PR (for example close/reopen).
