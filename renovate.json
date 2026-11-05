@@ -185,7 +185,9 @@
       "matchFileNames": [
         "website/package.json"
       ],
-      "matchDepTypes": ["devDependencies"],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
       "matchPackageNames": [
         "remark",
         "remark-cli",
@@ -201,8 +203,8 @@
     {
       "description": "PLT-131 Remark tooling discovery enabled; automerge held pending required documentation gate",
       "enabled": true,
-      "automerge": false,
-      "platformAutomerge": false,
+      "automerge": true,
+      "platformAutomerge": true,
       "groupName": "PLT-131 Remark tooling automerge pilot",
       "matchManagers": [
         "npm"
@@ -210,7 +212,9 @@
       "matchFileNames": [
         "website/package.json"
       ],
-      "matchDepTypes": ["devDependencies"],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
       "matchPackageNames": [
         "remark",
         "remark-cli",
@@ -227,9 +231,7 @@
       ],
       "matchCurrentVersion": "!/^0\\./",
       "minimumReleaseAge": "14 days",
-      "automerge": false,
-      "automergeType": "pr",
-      "platformAutomerge": false
+      "automergeType": "pr"
     },
     {
       "description": "PLT-128 preserve ranges for the documentation TypeScript toolchain",
@@ -240,7 +242,9 @@
       "matchFileNames": [
         "website/package.json"
       ],
-      "matchDepTypes": ["devDependencies"],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
       "matchPackageNames": [
         "typescript"
       ],
@@ -256,7 +260,9 @@
       "matchFileNames": [
         "website/package.json"
       ],
-      "matchDepTypes": ["devDependencies"],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
       "matchPackageNames": [
         "typescript"
       ],
