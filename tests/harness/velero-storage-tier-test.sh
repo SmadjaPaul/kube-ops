@@ -29,3 +29,24 @@ fi
 grep -F 'source-pvcs.json' "$restore_doc" >/dev/null
 grep -F 'IN("longhorn-fast", "longhorn-bulk")' "$restore_doc" >/dev/null
 echo "VELERO_STORAGE_TIER_CONTRACT=PASS"
+
+# PLT-56 durable-data scope: rebuildable media/index/cache/log volumes are
+# explicitly excluded, while the schedule set retains application data and
+# database-specific recovery policies.
+for file in \
+  "$repo_root/k8s/applications/media/media-share-pvc.yaml" \
+  "$repo_root/k8s/applications/ai/gpt-researcher/pvc.yaml" \
+  "$repo_root/k8s/applications/web/pinepods/pvc.yaml"; do
+  grep -F 'velero.io/exclude-from-backup: "true"' "$file" >/dev/null
+done
+grep -F 'velero.io/exclude-from-backup: "true"' \
+  "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml" >/dev/null
+grep -F 'velero.io/exclude-from-backup: "true"' \
+  "$repo_root/k8s/applications/media/jellyfin/statefulset.yaml" >/dev/null
+! grep -Fxq '  - daily-monitoring.yaml' \
+  "$velero_root/schedules/kustomization.yaml"
+! grep -Fxq '  - daily-executor.yaml' \
+  "$velero_root/schedules/kustomization.yaml"
+grep -F 'app: karakeep-web' \
+  "$velero_root/schedules/daily-karakeep.yaml" >/dev/null
+echo "VELERO_DURABLE_DATA_SCOPE_CONTRACT=PASS"
