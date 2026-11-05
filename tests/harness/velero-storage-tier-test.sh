@@ -66,16 +66,16 @@ grep -F 'backup.velero.io/backup-volumes-excludes: media' \
   "$repo_root/k8s/applications/media/arr/base/media-patch.yaml" >/dev/null
 grep -F 'backup.velero.io/backup-volumes-excludes: media' \
   "$repo_root/k8s/applications/media/arr/bazarr/statefulset.yaml" >/dev/null
-grep -F 'backup.smadja.dev/strategy: rebuildable' \
+! grep -F 'backup.smadja.dev/strategy: rebuildable' \
   "$repo_root/k8s/applications/ai/executor/statefulset.yaml" >/dev/null
 ! grep -F 'backup.smadja.dev/strategy: rebuildable' \
   "$repo_root/k8s/infrastructure/monitoring/prometheus-stack/values.yaml" >/dev/null
-grep -F 'backup.velero.io/backup-volumes-excludes: data' \
+! grep -F 'backup.velero.io/backup-volumes-excludes: data' \
   "$repo_root/k8s/applications/ai/executor/statefulset.yaml" >/dev/null
 ! test -e "$repo_root/k8s/infrastructure/monitoring/loki/pvc-backup-policy-patch.yaml"
 ! grep -Fxq '  - daily-monitoring.yaml' \
   "$velero_root/schedules/kustomization.yaml"
-! grep -Fxq '  - daily-executor.yaml' \
+grep -Fxq '  - daily-executor.yaml' \
   "$velero_root/schedules/kustomization.yaml"
 grep -F 'app: karakeep-web' \
   "$velero_root/schedules/daily-karakeep.yaml" >/dev/null
