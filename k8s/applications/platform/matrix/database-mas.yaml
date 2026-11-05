@@ -5,6 +5,10 @@ metadata:
   namespace: matrix
   annotations:
     argocd.argoproj.io/sync-wave: "-10"
+    # Retain the corrupt source while the clean Matrix install is qualified.
+    # This is temporary and does not permit it to become an application writer.
+    argocd.argoproj.io/sync-options: Prune=false
+    argocd.argoproj.io/ignore-healthcheck: "true"
   labels:
     backup.smadja.dev/cnpg-cluster: matrix-mas-postgresql
 spec:
