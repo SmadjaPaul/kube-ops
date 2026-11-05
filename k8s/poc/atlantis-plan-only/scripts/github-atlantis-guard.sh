@@ -52,7 +52,7 @@ while IFS= read -r path; do
     terraform/aiostreams/backend.tf|terraform/aiostreams/main.tf|terraform/aiostreams/variables.tf|\
     terraform/aiostreams/versions.tf|terraform/aiostreams/.terraform.lock.hcl|\
     terraform/aiostreams/README.md|terraform/aiostreams/terraform.tfvars.example|\
-    terraform/polyfin/main.tf|\
+    terraform/polyfin/backend.tf|terraform/polyfin/main.tf|\
     terraform/doppler/aiostreams-atlantis-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend-variables.tf|\
