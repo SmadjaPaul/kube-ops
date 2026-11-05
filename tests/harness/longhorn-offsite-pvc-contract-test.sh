@@ -9,6 +9,7 @@ credentials="$longhorn/backup-credentials.yaml"
 job="$longhorn/recurring-job.yaml"
 immich_job="$longhorn/immich-redis-recurring-job.yaml"
 immich_pvc="$repo_root/k8s/applications/media/immich/immich-redis/redis-pvc-labels.yaml"
+default_group_job="$longhorn/recurring-job-default-group.yaml"
 
 grep -F 'version: 1.12.1' "$longhorn/kustomization.yaml" >/dev/null
 grep -F 'backupTarget: s3://smadja-dev-homelab-backups@fsn1/longhorn/' "$values" >/dev/null
@@ -21,6 +22,8 @@ grep -F 'kind: RecurringJob' "$job" >/dev/null
 grep -F 'task: backup' "$job" >/dev/null
 grep -F 'retain: 7' "$job" >/dev/null
 grep -F 'concurrency: 1' "$job" >/dev/null
+test ! -e "$default_group_job"
+! grep -F 'recurring-job-default-group.yaml' "$longhorn/kustomization.yaml" >/dev/null
 grep -F 'name: immich-redis-offsite' "$immich_job" >/dev/null
 grep -F 'task: backup' "$immich_job" >/dev/null
 grep -F 'retain: 7' "$immich_job" >/dev/null

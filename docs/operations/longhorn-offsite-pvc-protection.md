@@ -1,11 +1,13 @@
 # Longhorn off-site protection for retained PVCs
 
 Status: the target is reconciled and the first restore proofs are recorded in
-`dr-restore-evidence-2026-10-20.json`. The four original retained PVCs remain
-covered by the existing policy. Immich Redis now has an explicit recurring
-backup assignment; the two Mastra workspace PVCs are deliberately protected
-by traceable one-off qualification backups until their dynamic lifecycle has a
-safe owner-aware scheduling mechanism.
+`dr-restore-evidence-2026-10-20.json`. The global `default` recurring-job
+assignment has been retired: Longhorn no longer schedules a backup for every
+volume. Only PVCs and retained volumes with an explicit recurring-job label
+remain in this transitional protection policy. Velero/Kopia or CNPG/Barman is
+the preferred steady-state mechanism for application data; Longhorn backups
+are not inferred from the presence of a PVC and are not a reason to keep a
+blanket policy.
 
 ## Native capability and target
 
@@ -76,11 +78,23 @@ workspace is file recovery evidence only: it does not prove Factory claim
 reattachment or safe agent continuation. The temporary restore namespaces and
 volumes are retained pending a separate cleanup approval.
 
-The native recurring policy intentionally covers Immich Redis only. Mastra
-workspaces rotate dynamically; attaching a permanent job to a named PVC would
-leave orphaned schedules after claim rotation. Until Factory exposes an
-owner-aware upstream lifecycle hook, the audit reports the current Mastra
-backups/restores separately from continuous policy coverage.
+The native recurring policy intentionally covers only explicitly labelled
+volumes. Mastra workspaces rotate dynamically; attaching a permanent job to a
+named PVC would leave orphaned schedules after claim rotation. Until Factory
+exposes an owner-aware upstream lifecycle hook, the audit reports the current
+Mastra backups/restores separately from continuous policy coverage. The
+historical retained volumes remain untouched and must be qualified before any
+longhorn label or remote backup is retired.
+
+## PLT-56 scope boundary
+
+The former `persistent-offsite-backup-default-group` job selected the
+`default` group and caused detached, released and otherwise rebuildable
+volumes to be attached and backed up. It is intentionally absent from the
+Kustomization. This change does not remove the explicit recurring job,
+existing labels, snapshots or remote backup objects. A later Velero/CNPG
+policy change may remove duplicate explicit labels only after its own
+completed-backup and restore evidence is recorded.
 
 ## Rollback
 

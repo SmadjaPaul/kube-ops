@@ -11,7 +11,6 @@ resources:
   - workspace-storageclass.yaml
   - backup-credentials.yaml
   - recurring-job.yaml
-  - recurring-job-default-group.yaml
   - immich-redis-recurring-job.yaml
 
 helmCharts:
