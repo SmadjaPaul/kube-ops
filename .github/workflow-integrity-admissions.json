@@ -26,7 +26,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 1018,
-      "changeFingerprint": "e1cc502a09a7bb786fb8c734197890f536ec2a7e94f84db6d29f2913ae973779",
+      "changeFingerprint": "dc25c87e13f6de03be078205a58230ff24af13b024145b04dcf22d925ab01f18",
       "paths": [
         ".github/workflows/polyfin-downstream-build.yaml"
       ],
