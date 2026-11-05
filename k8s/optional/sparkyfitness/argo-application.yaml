@@ -15,7 +15,7 @@ spec:
       releaseName: sparkyfitness
       valuesObject:
         global:
-          storageClass: longhorn-fast
+          storageClass: longhorn-bulk
         postgresql:
           enabled: false
         externalDatabase:
@@ -70,10 +70,10 @@ spec:
           persistence:
             backup:
               size: 1Gi
-              storageClass: longhorn-fast
+              storageClass: longhorn-bulk
             uploads:
               size: 2Gi
-              storageClass: longhorn-fast
+              storageClass: longhorn-bulk
         frontend:
           replicas: 1
           image:
