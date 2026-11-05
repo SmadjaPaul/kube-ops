@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/polyfin-downstream-build.yaml'
       - '.github/polyfin/Dockerfile.v0.61.1-apt.patch'
+      - '.github/polyfin/CVE-2026-76844-zlib-1.3.1.patch'
+      - '.github/polyfin/poc-cve-2026-76844.c'
   workflow_dispatch:
 
 # Pull requests only validate the upstream patch. They cannot publish images.
@@ -34,6 +36,21 @@ jobs:
           git -C upstream diff --check
           test "$(git -C upstream diff --name-only)" = Dockerfile
 
+      - name: Verify Debian Trixie zlib backport against upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout https://github.com/madler/zlib.git zlib-upstream
+          git -C zlib-upstream checkout --quiet --detach v1.3.1
+          test "$(git -C zlib-upstream rev-parse HEAD)" = 51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf
+          git -C zlib-upstream apply --check "$GITHUB_WORKSPACE/.github/polyfin/CVE-2026-76844-zlib-1.3.1.patch"
+          git -C zlib-upstream apply "$GITHUB_WORKSPACE/.github/polyfin/CVE-2026-76844-zlib-1.3.1.patch"
+          git -C zlib-upstream diff --check
+          test "$(git -C zlib-upstream diff --name-only)" = gzwrite.c
+          grep -q 'state->strm.avail_in = 0' zlib-upstream/gzwrite.c
+          grep -q 'state->strm.next_in = state->in' zlib-upstream/gzwrite.c
+          printf 'ZLIB_PATCH_SHA256=%s\n' "$(sha256sum "$GITHUB_WORKSPACE/.github/polyfin/CVE-2026-76844-zlib-1.3.1.patch" | awk '{print $1}')"
+
   build-scan-sign:
     if: github.event_name == 'workflow_dispatch'
     needs: verify-source-patch
@@ -52,6 +69,10 @@ jobs:
       UPSTREAM_TAG: v0.61.1
       UPSTREAM_COMMIT: 2c1576329fba3546202a47f0f3a157cd7cb0623d
       PATCH_FILE: .github/polyfin/Dockerfile.v0.61.1-apt.patch
+      ZLIB_PATCH_FILE: .github/polyfin/CVE-2026-76844-zlib-1.3.1.patch
+      ZLIB_POC_FILE: .github/polyfin/poc-cve-2026-76844.c
+      ZLIB_SOURCE_VERSION: 1:1.3.dfsg+really1.3.1-1
+      ZLIB_BASE_IMAGE: debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a
     steps:
       - name: Check out the GitOps repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -77,13 +98,85 @@ jobs:
           git -C upstream diff --check
           printf 'PATCH_SHA256=%s\n' "$(sha256sum "$PATCH_FILE" | awk '{print $1}')"
 
+      - name: Build Debian Trixie zlib backport and run proof tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --platform linux/amd64 \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace \
+            -e ZLIB_PATCH_FILE="$ZLIB_PATCH_FILE" \
+            -e ZLIB_POC_FILE="$ZLIB_POC_FILE" \
+            -e ZLIB_SOURCE_VERSION="$ZLIB_SOURCE_VERSION" \
+            "$ZLIB_BASE_IMAGE" \
+            bash -euxo pipefail -c '
+              printf "%s\\n" \
+                "Types: deb-src" \
+                "URIs: http://deb.debian.org/debian" \
+                "Suites: trixie trixie-updates" \
+                "Components: main" \
+                "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" \
+                > /etc/apt/sources.list.d/debian-src.sources
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                build-essential devscripts dpkg-dev ca-certificates patch \
+                zlib1g-dev libasan8 libubsan1
+              cp "/workspace/$ZLIB_PATCH_FILE" /tmp/CVE-2026-76844.patch
+              cp "/workspace/$ZLIB_POC_FILE" /tmp/poc-cve-2026-76844.c
+
+              ldconfig -p | awk "/libz.so.1 / {print \$4; exit}" | xargs -r cp -t /tmp
+              before_lib="$(find /tmp -maxdepth 1 -name "libz.so.1*" -type f -print -quit)"
+              readelf --dyn-syms --wide "$before_lib" | awk "\$4 == \"FUNC\" && \$7 != \"UND\" {print \$8}" | sort -u > /tmp/libz-before.symbols
+              gcc -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
+                /tmp/poc-cve-2026-76844.c -o /tmp/poc-before -lz
+              set +e
+              ASAN_OPTIONS=abort_on_error=1:detect_leaks=0 /tmp/poc-before > /tmp/zlib-poc-before.log 2>&1
+              before_rc=$?
+              set -e
+              test "$before_rc" -ne 0
+              grep -Eq "AddressSanitizer|SEGV|runtime error" /tmp/zlib-poc-before.log
+
+              apt-get build-dep -y "zlib=$ZLIB_SOURCE_VERSION"
+              apt-get source "zlib=$ZLIB_SOURCE_VERSION"
+              source_dir="$(find /workspace -mindepth 1 -maxdepth 1 -type d -name "zlib-*" -print -quit)"
+              cd "$source_dir"
+              patch -p1 < /tmp/CVE-2026-76844.patch
+              ./configure --static --prefix=/tmp/zlib-check
+              make -j"$(nproc)" check
+              DEBEMAIL=polyfin-build@example.invalid DEBFULLNAME="Polyfin downstream" \
+                dch --local +polyfin1 --distribution trixie \
+                "Backport CVE-2026-76844 gzwrite fix from upstream df84af2"
+              dpkg-buildpackage -us -uc -b
+              cp ../zlib1g_*.deb /workspace/zlib1g-backport.deb
+              cp ../zlib1g-dev_*.deb /workspace/zlib1g-dev-backport.deb
+              dpkg -i /workspace/zlib1g-backport.deb /workspace/zlib1g-dev-backport.deb
+              test "$(dpkg-query -W -f="\${Version}" zlib1g)" = "1:1.3.dfsg+really1.3.1-1+polyfin1"
+              gcc -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
+                /tmp/poc-cve-2026-76844.c -o /tmp/poc-after -lz
+              ldd /tmp/poc-after | grep -F "libz.so.1"
+              /tmp/poc-after > /tmp/zlib-poc-after.log 2>&1
+              grep -q survived /tmp/zlib-poc-after.log
+              ! grep -Eq "AddressSanitizer|runtime error|SEGV" /tmp/zlib-poc-after.log
+              after_lib="$(ldconfig -p | awk "/libz.so.1 / {print \$4; exit}")"
+              readelf --dyn-syms --wide "$after_lib" | awk "\$4 == \"FUNC\" && \$7 != \"UND\" {print \$8}" | sort -u > /tmp/libz-after.symbols
+              diff -u /tmp/libz-before.symbols /tmp/libz-after.symbols
+              dpkg-query -W -f="Package=\${Package}\\nVersion=\${Version}\\nArchitecture=\${Architecture}\\n" zlib1g > /workspace/zlib-package.txt
+              cp /tmp/zlib-poc-before.log /workspace/zlib-poc-before.log
+              cp /tmp/zlib-poc-after.log /workspace/zlib-poc-after.log
+              cp /tmp/libz-before.symbols /workspace/libz-before.symbols
+              cp /tmp/libz-after.symbols /workspace/libz-after.symbols
+            '
+          cp "$ZLIB_PATCH_FILE" upstream/CVE-2026-76844-zlib-1.3.1.patch
+          cp "$ZLIB_POC_FILE" upstream/poc-cve-2026-76844.c
+          cp zlib1g-backport.deb upstream/zlib1g-backport.deb
+
       - name: Derive immutable candidate reference
         shell: bash
         run: |
           set -euo pipefail
           repository="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/polyfin-downstream"
           # Each manual attempt gets a unique non-overwritten tag.
-          tag="0.61.1-apt-candidate-${GITHUB_SHA::12}-run${GITHUB_RUN_ID}-attempt${GITHUB_RUN_ATTEMPT}"
+          tag="0.61.1-zlib-backport-${GITHUB_SHA::12}-run${GITHUB_RUN_ID}-attempt${GITHUB_RUN_ATTEMPT}"
           {
             echo "IMAGE_REPOSITORY=$repository"
             echo "IMAGE_TAG=$tag"
@@ -178,12 +271,18 @@ jobs:
           unique="$(cut -f2 polyfin-candidate-findings.tsv | sort -u | sed '/^$/d' | wc -l | tr -d ' ')"
           occurrences="$(wc -l < polyfin-candidate-findings.tsv | tr -d ' ')"
           eliminated="$(grep -c $'\tELIMINATED$' polyfin-remediation.tsv || true)"
+          zlib_status='VERIFIED_ABSENT_FROM_TRIVY'
+          if grep -Fq $'\tCVE-2026-76844\t' polyfin-candidate-findings.tsv; then
+            zlib_status='REPORTED_AFTER_VERIFIED_BACKPORT'
+          fi
+          zlib_package_version="$(awk -F= '$1 == "Version" {print $2}' zlib-package.txt)"
           {
             echo '## Polyfin downstream candidate security result'
             echo "Candidate: \`$IMAGE_REPOSITORY@${{ steps.build.outputs.digest }}\`"
             echo 'Target: linux/amd64; Trivy v0.76.1; OS and library; unfixed findings included.'
             echo "HIGH/CRITICAL occurrences: **$occurrences**; unique CVEs: **$unique**."
             echo "Correctable CVEs eliminated: **$eliminated/6**."
+            echo "zlib package: `$zlib_package_version`; CVE-2026-76844 status: **$zlib_status**."
             echo ''
             echo 'Per-CVE remediation:'
             echo '~~~text'
@@ -202,7 +301,10 @@ jobs:
             --argjson occurrences "$occurrences" \
             --argjson uniqueCves "$unique" \
             --argjson eliminated "$eliminated" \
-            '{upstreamTag:$tag,upstreamCommit:$source,dockerfilePatchSha256:$patch,image:$image,digest:$digest,sbomSha256:$sbom,trivy:"0.76.1",platform:"linux/amd64",highCriticalOccurrences:$occurrences,uniqueCves:$uniqueCves,correctableCvesEliminated:$eliminated,admission:"NO-GO-until-residual-risk-approved"}' \
+            --arg zlibPatch "$(sha256sum "$ZLIB_PATCH_FILE" | awk '{print $1}')" \
+            --arg zlibPackage "$zlib_package_version" \
+            --arg zlibStatus "$zlib_status" \
+            '{upstreamTag:$tag,upstreamCommit:$source,dockerfilePatchSha256:$patch,zlibPatchSha256:$zlibPatch,zlibPackageVersion:$zlibPackage,zlibCveStatus:$zlibStatus,image:$image,digest:$digest,sbomSha256:$sbom,trivy:"0.76.1",platform:"linux/amd64",highCriticalOccurrences:$occurrences,uniqueCves:$uniqueCves,correctableCvesEliminated:$eliminated,admission:"NO-GO-until-residual-risk-approved"}' \
             > polyfin-candidate-metadata.json
 
       - name: Upload candidate evidence
@@ -217,6 +319,11 @@ jobs:
             polyfin-candidate-trivy.json
             polyfin-candidate-findings.tsv
             polyfin-remediation.tsv
+            zlib-package.txt
+            zlib-poc-before.log
+            zlib-poc-after.log
+            libz-before.symbols
+            libz-after.symbols
           if-no-files-found: error
           retention-days: 30
 
