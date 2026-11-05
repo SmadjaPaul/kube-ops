@@ -19,7 +19,7 @@ CHECKS = {
                                      "autoRegister: false", "name: internal",
                                      "existingSecret: sparkyfitness-runtime"]),
     "database": ("database.yaml", ["name: sparkyfitness-db", "name: sparky_admin",
-                                   "createrole: true", "sparkyfitness-hetzner-store"]),
+                                   "createrole: true", "storageClass: longhorn-bulk"]),
     "eso": ("external-secret.yaml", ["APP_SPARKYFITNESS_API_ENCRYPTION_KEY",
                                     "APP_SPARKYFITNESS_BETTER_AUTH_SECRET",
                                     "APP_SPARKYFITNESS_OIDC_CLIENT_ID",
