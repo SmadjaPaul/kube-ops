@@ -9,11 +9,3 @@ helmCharts:
     releaseName: loki
     namespace: monitoring
     valuesFile: values.yaml
-
-patches:
-  - path: pvc-backup-policy-patch.yaml
-    target:
-      group: apps
-      version: v1
-      kind: StatefulSet
-      name: loki

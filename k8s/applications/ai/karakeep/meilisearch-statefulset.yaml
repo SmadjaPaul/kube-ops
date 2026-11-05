@@ -11,9 +11,6 @@ spec:
   volumeClaimTemplates:
     - metadata:
         name: meilisearch-data
-        annotations:
-          # The index is rebuilt from Karakeep's durable web data.
-          velero.io/exclude-from-backup: "true"
       spec:
         accessModes: [ "ReadWriteOnce" ]
         storageClassName: "longhorn-fast"
@@ -24,6 +21,9 @@ spec:
     metadata:
       labels:
         app: meilisearch
+      annotations:
+        # The index is rebuilt from Karakeep's durable web data.
+        backup.velero.io/backup-volumes-excludes: meilisearch-data
     spec:
       hostIPC: false
       hostPID: false

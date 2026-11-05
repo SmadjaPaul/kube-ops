@@ -16,6 +16,9 @@ spec:
     metadata:
       labels:
         app: jellyfin
+      annotations:
+        # Media and cache are reproducible; Jellyfin config remains covered.
+        backup.velero.io/backup-volumes-excludes: media,cache
     spec:
       securityContext:
         runAsNonRoot: true
@@ -378,10 +381,6 @@ spec:
             storage: 10Gi
     - metadata:
         name: cache
-        annotations:
-          # Jellyfin cache and thumbnails are reproducible from the media
-          # library and must not be copied to remote backup storage.
-          velero.io/exclude-from-backup: "true"
       spec:
         accessModes: ["ReadWriteOnce"]
         storageClassName: "longhorn-fast"

@@ -18,6 +18,9 @@ spec:
         app.kubernetes.io/name: pinepods
         app.kubernetes.io/part-of: pinepods
         app.kubernetes.io/component: web
+      annotations:
+        # Downloads and generated backups are reproducible from the feed data.
+        backup.velero.io/backup-volumes-excludes: downloads,backups
     spec:
       hostIPC: false
       hostPID: false

@@ -46,6 +46,9 @@ spec:
     metadata:
       labels:
         app: audiobookshelf
+      annotations:
+        # The shared media library is reproducible; config and metadata remain.
+        backup.velero.io/backup-volumes-excludes: media
     spec:
       securityContext:
         runAsNonRoot: true

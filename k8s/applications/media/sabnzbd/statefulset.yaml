@@ -28,8 +28,6 @@ spec:
             storage: 1Gi
     - metadata:
         name: incomplete-downloads
-        annotations:
-          velero.io/exclude-from-backup: "true"
       spec:
         accessModes: ["ReadWriteOnce"]
         storageClassName: longhorn-bulk
@@ -40,6 +38,9 @@ spec:
     metadata:
       labels:
         app: sabnzbd
+      annotations:
+        # The shared media library and incomplete downloads are reproducible.
+        backup.velero.io/backup-volumes-excludes: media-share,incomplete-downloads
     spec:
       securityContext:
         runAsUser: 2501

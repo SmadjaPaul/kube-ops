@@ -29,7 +29,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: gpt-researcher-logs
   namespace: gpt-researcher
-  annotations:
+  labels:
     velero.io/exclude-from-backup: "true"
 spec:
   accessModes:
