@@ -123,6 +123,19 @@ run_case() {
       mkdir -p "$fixture/terraform/aiostreams"
       printf '%s\n' '# generated provider lock' >"$fixture/terraform/aiostreams/.terraform.lock.hcl"
       ;;
+    hetzner-lockfile-allowed)
+      mkdir -p "$fixture/terraform/hetzner-object-storage"
+      printf '%s\n' '# generated provider lock' >"$fixture/terraform/hetzner-object-storage/.terraform.lock.hcl"
+      ;;
+    migadu-lockfile-allowed)
+      mkdir -p "$fixture/terraform/migadu"
+      printf '%s\n' '# generated provider lock' >"$fixture/terraform/migadu/.terraform.lock.hcl"
+      ;;
+    unrelated-lockfile-denied)
+      mkdir -p "$fixture/terraform/proxmox"
+      printf '%s\n' '# generated provider lock' >"$fixture/terraform/proxmox/.terraform.lock.hcl"
+      change_path=terraform/proxmox/.terraform.lock.hcl
+      ;;
     aiostreams-nested-denied)
       mkdir -p "$fixture/terraform/aiostreams/nested"
       printf '%s\n' 'resource "terraform_data" "unexpected" {}' >"$fixture/terraform/aiostreams/nested/main.tf"
@@ -147,6 +160,15 @@ run_case() {
   git -C "$fixture" add -A
   if test -f "$fixture/terraform/aiostreams/.terraform.lock.hcl"; then
     git -C "$fixture" add -f terraform/aiostreams/.terraform.lock.hcl
+  fi
+  if test -f "$fixture/terraform/hetzner-object-storage/.terraform.lock.hcl"; then
+    git -C "$fixture" add -f terraform/hetzner-object-storage/.terraform.lock.hcl
+  fi
+  if test -f "$fixture/terraform/migadu/.terraform.lock.hcl"; then
+    git -C "$fixture" add -f terraform/migadu/.terraform.lock.hcl
+  fi
+  if test -f "$fixture/terraform/proxmox/.terraform.lock.hcl"; then
+    git -C "$fixture" add -f terraform/proxmox/.terraform.lock.hcl
   fi
   git -C "$fixture" commit -qm "$name"
   head="$(git -C "$fixture" rev-parse HEAD)"
@@ -198,6 +220,9 @@ run_case mise-lock-path-allowed pass mise.lock
 run_case mise-config-path-allowed pass mise.toml
 run_case mise-config-sibling-denied deny mise.local.toml
 run_case aiostreams-lockfile-allowed pass terraform/aiostreams/.terraform.lock.hcl
+run_case hetzner-lockfile-allowed pass terraform/hetzner-object-storage/.terraform.lock.hcl
+run_case migadu-lockfile-allowed pass terraform/migadu/.terraform.lock.hcl
+run_case unrelated-lockfile-denied deny terraform/proxmox/.terraform.lock.hcl
 run_case aiostreams-nested-denied deny terraform/aiostreams/nested/main.tf
 run_case aiostreams-backend-files-allowed pass terraform/oracle-cloud/aiostreams-state-backend.tf
 run_case aiostreams-shared-oracle-file-denied deny terraform/oracle-cloud/variables.tf
