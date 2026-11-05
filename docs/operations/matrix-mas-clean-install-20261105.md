@@ -1,8 +1,8 @@
 # Matrix MAS clean-install qualification — 2026-11-05
 
-Status: GitOps preparation only. No Kubernetes resource, PostgreSQL source
-volume, WAL volume, Secret value, or Factory object was modified by this
-qualification.
+Status: GitOps clean install completed and Matrix service qualified. No
+PostgreSQL source volume, WAL volume, Secret value, or Factory object was
+modified by this qualification.
 
 ## Decision and boundary
 
@@ -87,4 +87,27 @@ following are observed on the new revision:
 
 Only after those gates may the old Matrix source be retired in a separate,
 explicit GitOps change. Factory remains outside that operation.
+
+## Observed final state
+
+The transition was admitted through protected GitHub checks and merged as:
+
+- #979: `89b9149fcf24e045fa00490eb909857f6d2988bc`;
+- #981: `ef9cd35efa1d2f62070c7e4d459e7061f0aa57c2`;
+- #982: `642606175ddb55774a6a0393f40d3507da361d58`.
+
+The new CNPG cluster is Ready with a unique system ID, continuous archiving,
+and `LastBackupSucceeded=True`. The one-time Backup
+`matrix-mas-postgresql-clean-initial-20261105` completed at 2026-11-05
+16:09 UTC. The MAS schema-only dump passed; the database contains 34 public
+tables and 167 migrations. MAS is 1/1 Ready and its health endpoint returns
+200. Matrix MAS, Synapse, Element and both well-known routes pass the runtime
+smoke. The complete smoke has one unrelated Atlantis 503, so the global
+`apps-platform` health remains Degraded; Matrix itself is healthy.
+
+Credentialed Authentik → MAS → Element login and Factory technical-account
+compatibility were not executed. No credential or private message content was
+read. The old corrupt Cluster and its original PGDATA/WAL PVCs remain retained
+outside the active graph with `Prune=false`; retirement is a separate
+destructive GitOps decision.
 
