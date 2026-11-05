@@ -251,7 +251,7 @@
       "rangeStrategy": "bump"
     },
     {
-      "description": "PLT-128 TypeScript docs toolchain: PRs enabled, automerge held for qualification",
+      "description": "PLT-128 TypeScript docs patch-only automerge candidate; gated by docs-required",
       "enabled": true,
       "groupName": "PLT-128 TypeScript documentation toolchain",
       "matchManagers": [
@@ -267,13 +267,13 @@
         "typescript"
       ],
       "matchUpdateTypes": [
-        "patch",
-        "minor"
+        "patch"
       ],
       "matchCurrentVersion": "!/^0\\./",
       "minimumReleaseAge": "14 days",
-      "automerge": false,
-      "platformAutomerge": false
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
     },
     {
       "description": "PLT-128 preserve ranges for Docusaurus runtime and plugins",
