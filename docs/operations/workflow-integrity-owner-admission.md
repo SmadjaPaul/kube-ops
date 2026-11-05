@@ -64,6 +64,43 @@ Retain normal branch review and merge protections.
 The workflow runs standard-library unit tests **from the base checkout**:
 `python3 -m unittest discover -s .github/actions/workflow-integrity -p 'test_*.py'`.
 
+## Trust boundary and manual approval limitations
+
+The registry check authenticates the **GitHub PR author account**, not a
+separate human approval. If an automation or connected app can create PRs using
+the same `SmadjaPaul` identity, author equality alone cannot distinguish the
+owner from that automation. Therefore:
+
+- The repository owner must independently review and decide on the bootstrap
+  merge and every registry-admission merge using GitHub's owner-controlled
+  administrative process.
+- Required status checks and branch rules must be independently verified; no
+  CODEOWNERS requirement or ruleset is established by this PR. If admission
+  records can be pushed directly to `main` by an untrusted actor, the
+  gate cannot be considered owner-authorized.
+- Do not enable automatic merging of admission-registry PRs. Avoid granting
+  agents or other applications write authority to owner-admission records.
+- This gate cannot validate the correctness of a protected test change; it only
+  provides narrowly scoped owner admission once the separate authorization
+  and repository protections have been established.
+
+Protected-file rename detection must be fail-closed: the verifier uses
+`git diff --no-renames` so that both the deletion of a protected source
+and creation of its new path are included in the changed-file set.
+
+## PLT-56 protected path scope (revalidate SHA before each admission)
+
+| PR | Protected paths |
+| --- | --- |
+| #947 | `tests/harness/longhorn-offsite-pvc-contract-test.sh` |
+| #948 | `tests/harness/velero-storage-tier-test.sh` |
+| #949 | `tests/harness/atlantis-plan-only-test.sh`, `tests/harness/backup-audit-contract-test.sh` |
+
+Each registry entry must use the **current** exact HEAD SHA of its PR.
+An admission for #947 does not constitute approval to remove the Longhorn
+global recurring job; the 19 primary-coverage gaps still need a separate
+recoverability decision.
+
 ## Boundaries
 
 This mechanism admits changes to protected code paths; it does **not**
