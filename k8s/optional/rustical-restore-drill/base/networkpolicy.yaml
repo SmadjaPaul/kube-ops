@@ -15,5 +15,10 @@ spec:
         - ports:
             - port: "4000"
               protocol: TCP
-  # No outbound calls are needed: local SQLite, no OIDC and DAV Push off.
-  egress: []
+  # Deny ALL egress, including if another namespace policy would allow it.
+  # Empty egress: [] alone may not enable Cilium egress enforcement.
+  enableDefaultDeny:
+    ingress: true
+    egress: true
+  egressDeny:
+    - toEntities: [all]

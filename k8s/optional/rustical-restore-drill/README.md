@@ -17,8 +17,8 @@ Application or HTTPRoute is used or altered by this package.
 - `target-reader/`: isolated reader Deployment/Service and policy,
   but no PVC creation. Use only **after** Velero actually restored
   `rustical-restore-fixture-data` into the target namespace.
-- Pod network: only allows inbound `rustical-restore-probe:4000`
-  **from within the same namespace**; no explicit outbound egress.
+- Pod network: explicitly denies all outbound egress and only allows inbound `rustical-restore-probe:4000`
+  **from within the same namespace**; deny-all egress is enforced.
   Validate Cilium endpoint enforcement before adding test records.
 - Never import `source`, `target` or `target-reader` into the
   active ApplicationSet. Promotion is an independent reviewed PR.
@@ -66,16 +66,21 @@ namespaced resource in the production `rustical`/`rustical-pilot`.
 5. Ensure **write quiescence / consistent SQLite backup** during
    Velero/Kopia (an online snapshot via SQLite backup API, or a proven
    quiesce/checkpoint with stable WAL). Confirm Velero **backup,
-   PodVolumeBackup and snapshot data** actually succeeded, not merely
+   PodVolumeBackup and snapshot data** actually succeeded for the annotated
+   `data` volume, not merely
    the Backup CR reporting Completed. Confirm the source is synthetic
    by namespace, Pod UID and PVC UID. Do not use a live family backup.
 6. Prepare `target/` only in `rustical-restore-target`; perform
-   a namespace-mapped Velero restore using the **exact synthetic backup**
-   and inspect PodVolumeRestore/volume mappings. Avoid carrying
-   production Argo tracking/ownerRefs/hostnames into the target.
-   Do not precreate the target PVC or read a restored PV by guessing.
-7. Only after proof of restored PVC contents and no source PVC
-   reference, admit `target-reader/`. Restart/read through real DAV
+   a namespace-mapped Velero restore from the **exact synthetic backup**.
+   With Kopia/FSB the synthetic Deployment/Pod must be restored as needed:
+   Velero's restore-wait init container and PodVolumeRestore need an
+   active Pod to complete. **A bare PVC restore is not sufficient.**
+   Inspect PVR and volume mappings; do not precreate the target PVC.
+7. Only after PVR is `Completed` and target PVC data is materialized,
+   inspect/delete any conflicting synthetic restored controller (only
+   within rustical-restore-target), and admit `target-reader/`.
+   Verify it mounts the restored target PVC, never the source.
+   Restart/read through real DAV
    APIs and verify both synthetic calendar/contact checksums plus
    cross-user access denied.
 8. Record RPO, backup and restore time, pod CPU/RAM/I/O,
@@ -95,3 +100,5 @@ script in this repo initiates a Velero backup or restore.
 
 See `docs/operations/rustical-sqlite-wal-restore-qualification.md`
 and `scripts/rustical-sqlite-wal-synthetic.py`.
+
+Official references: https://velero.io/docs/main/file-system-backup/ and https://docs.cilium.io/en/stable/security/policy/intro/

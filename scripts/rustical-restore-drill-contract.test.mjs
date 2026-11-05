@@ -32,7 +32,10 @@ test('fixture is offline private-only, uses exact pinned image',()=>{
   assert.match(d, /RUSTICAL_DATA_STORE__SQLITE__DB_URL/);
   assert.match(d, /automountServiceAccountToken: false/);
   assert.doesNotMatch(d, /envFrom|secretKeyRef|RUSTICAL_OIDC__|imagePullPolicy:\s*Always/);
-  assert.match(p, /egress: \[\]/);
+  assert.match(p, /egressDeny:/);
+  assert.match(p, /toEntities: \[all\]/);
+  assert.match(p, /enableDefaultDeny:/);
+  assert.match(d, /backup.velero.io\/backup-volumes: data/);
   assert.match(p, /rustical-restore-probe/);
   assert.match(s, /type: ClusterIP/);
   const all = ['base/pvc.yaml','base/deployment.yaml','base/service.yaml','base/networkpolicy.yaml',

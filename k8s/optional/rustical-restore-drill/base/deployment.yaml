@@ -17,6 +17,8 @@ spec:
         app.kubernetes.io/name: rustical-restore-fixture
         app.kubernetes.io/part-of: rustical-restore-drill
         backup.smadja.dev/velero: "true"
+      annotations:
+        backup.velero.io/backup-volumes: data
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
