@@ -282,7 +282,7 @@ jobs:
             echo 'Target: linux/amd64; Trivy v0.76.1; OS and library; unfixed findings included.'
             echo "HIGH/CRITICAL occurrences: **$occurrences**; unique CVEs: **$unique**."
             echo "Correctable CVEs eliminated: **$eliminated/6**."
-            echo "zlib package: `$zlib_package_version`; CVE-2026-76844 status: **$zlib_status**."
+            printf 'zlib package: %s; CVE-2026-76844 status: %s.\n' "$zlib_package_version" "$zlib_status"
             echo ''
             echo 'Per-CVE remediation:'
             echo '~~~text'
