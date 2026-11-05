@@ -39,8 +39,9 @@ spec:
       labels:
         app: sabnzbd
       annotations:
-        # The shared media library and incomplete downloads are reproducible.
-        backup.velero.io/backup-volumes-excludes: media-share,incomplete-downloads
+        # The mounted shared-media volume is reproducible; unused template PVCs
+        # are not in the pod volume list and cannot be excluded by name here.
+        backup.velero.io/backup-volumes-excludes: media-share
     spec:
       securityContext:
         runAsUser: 2501
