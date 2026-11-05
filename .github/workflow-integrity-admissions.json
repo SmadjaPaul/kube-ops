@@ -22,6 +22,29 @@
       "reason": "Bind the active rendered Polyfin image audit correction to its exact PR head.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-06T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 949,
+      "changeFingerprint": "9c73c173795ade5458b657a96cdecf5eeaacb078d8c5312617d98af23a06f5a8",
+      "paths": [
+        "tests/harness/atlantis-plan-only-test.sh",
+        "tests/harness/backup-audit-contract-test.sh"
+      ],
+      "reason": "PLT-56: qualify backup audit primary-protection contract after workflow-integrity cutover.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 948,
+      "changeFingerprint": "f59375307fc5c1dc3b66c5b4abe23cce322102eafa4a63cbed271fd386e0ef20",
+      "paths": [
+        "tests/harness/velero-storage-tier-test.sh"
+      ],
+      "reason": "PLT-56: qualify Velero/Kopia durable application-data scope.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
     }
   ]
 }
