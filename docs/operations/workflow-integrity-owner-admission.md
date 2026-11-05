@@ -63,6 +63,13 @@ change GitHub protection settings and it is not a durable bypass design.
   old/new mode and type, and old/new blob ID, including non-protected files.
   It does not normalize or discard changed-line positions.
   Expiration must be within seven days at the time the registry PR is checked.
+  Existing owner-approved pre-cutover registry entries with a 40-character
+  `headSha` (notably the active Polyfin #997 entry) remain accepted **only**
+  for their original exact event HEAD SHA, repository, PR, paths and existing
+  expiry; they do not gain fingerprint-based rebase stability. Both entry
+  formats can coexist transiently. New PLT-56 admissions must use
+  `changeFingerprint`; migrate or let legacy entries expire naturally rather
+  than invalidate already admitted unrelated work during gate bootstrap.
 - Protected PRs may be admitted **only using registry content on the base
   branch**, the current complete protected path set and the exact complete
   diff fingerprint.
