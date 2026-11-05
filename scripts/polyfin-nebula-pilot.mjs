@@ -110,7 +110,7 @@ export function sessionCookie(setCookie) {
   return part;
 }
 
-async function authorizedAdminCookie() {
+export async function authorizedAdminCookie() {
   const cookieFile = process.env.POLYFIN_ADMIN_COOKIE_FILE;
   const userFile = process.env.POLYFIN_ADMIN_USERNAME_FILE;
   const passwordFile = process.env.POLYFIN_ADMIN_PASSWORD_FILE;
