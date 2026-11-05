@@ -133,6 +133,7 @@ La cible est de protéger les données importantes une seule fois par un mécani
 ## Mesures I/O, Longhorn, réseau et température
 
 - Audit I/O du 5 novembre : le run blanket a produit 114 backups Longhorn terminés dans une heure, pour environ 4,25 GB de `newlyUploadDataSize`. Cette mesure est l’effet observable du groupe `default`, pas une estimation de l’occupation totale S3.
+- Température baseline : moyenne CPU hôte d’environ 86,7 °C sur 1 h, maximum 24 h d’environ 100,25 °C; HDD à 39–40 °C et NVMe autour de 40–43 °C. La causalité avec les écritures disque reste à mesurer après réconciliation.
 - Live Longhorn : 154 volumes, 148 avec le label de groupe `default`, 9 avec un label de recurring job explicite; environ 3,93 TB de capacité logique étaient éligibles au groupe global. Les CRD de backup totalisent environ 1,115 TB de tailles logiques et 26,4 GB de `newlyUploadDataSize` cumulé; ces champs ne sont pas l’occupation physique S3.
 - Velero : 467 backups observés, dont 448 `Completed`; Kopia : 40 repositories `Ready`.
 - La mesure d’occupation S3 réelle n’a pas pu être obtenue : `rclone size` avec les identifiants opérateur a reçu `403 AccessDenied` sur `ListObjects`. Aucune suppression ni estimation en euros n’est donc autorisée sur cette base.
