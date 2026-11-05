@@ -4,6 +4,18 @@ Status: **policy draft only**. As of 2026-11-04, `kube-ops` has no required
 `main` status-check ruleset and Renovate automerge is disabled. This document
 does not authorize merging or deploying any service update.
 
+The required V1 check keeps global invariants on every pull request but selects
+only the affected Kustomize roots for the render. Unknown or shared
+control-plane changes fail closed to the complete 17-root render, while the
+complete render also runs daily. This prevents an unrelated remote-chart outage
+from blocking an independent application or policy PR without weakening the
+global contract.
+
+The effective Renovate configuration remains conservative: global automerge is
+disabled, with the explicitly qualified commitlint development-dependency
+lane as the only automerge pilot. Documentation tooling and all stateful or
+platform dependencies remain manually admitted.
+
 ## Principle
 
 Renovate proposes versioned immutable dependency changes; GitHub admits

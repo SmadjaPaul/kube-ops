@@ -15,6 +15,8 @@ on:
       - 'AGENTS.md'
       - 'README.md'
       - '.github/workflows/v1-contract.yaml'
+  schedule:
+    - cron: '17 2 * * *'
 
 permissions:
   contents: read
@@ -57,7 +59,13 @@ jobs:
       - name: Validate Renovate configuration syntax
         run: python3 -m json.tool renovate.json > /dev/null
 
+      - name: Select V1 render scope
+        id: scope
+        run: echo "roots=$(bash scripts/select-v1-contract-roots.sh)" >> "$GITHUB_OUTPUT"
+
       - name: Validate V1 desired state and backup coverage
+        env:
+          V1_CONTRACT_ROOTS: ${{ steps.scope.outputs.roots }}
         run: npm run check
 
       - name: Validate Factory supervised promotion contract
