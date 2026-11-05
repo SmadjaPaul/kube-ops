@@ -87,6 +87,11 @@ while IFS= read -r path; do
     tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
     tests/google-cloud-build-bootstrap-policy.sh|\
     tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
+    renovate.json)
+      # PLT-140: the exact owner-reviewed Renovate toolchain policy only.
+      # Never admit arbitrary automerge rules through the Atlantis plan hook.
+      test "$(git hash-object "$DIR/renovate.json")" = "3704e49612b76dde0a78c4a1f84d2d505fdf3eab" ||
+        fail "Renovate config differs from server-admitted audited blob" ;;
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
 done <<<"$changed"
