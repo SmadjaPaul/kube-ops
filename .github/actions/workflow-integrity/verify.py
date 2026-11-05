@@ -49,12 +49,12 @@ def protected(path):
 
 
 def changed_paths(base, head):
-    data = git_bytes("diff", "--name-only", "-z", base, head)
+    data = git_bytes("diff", "--no-renames", "--no-ext-diff", "--no-textconv", "--name-only", "-z", base, head)
     return [p.decode("utf-8") for p in data.split(b"\0") if p]
 
 
 def package_change_is_exempt(base, head):
-    diff = git_bytes("diff", "--unified=0", base, head, "--", "package.json").decode("utf-8")
+    diff = git_bytes("diff", "--no-renames", "--no-ext-diff", "--no-textconv", "--unified=0", base, head, "--", "package.json").decode("utf-8")
     for line in diff.splitlines():
         if line.startswith(("+++", "---", "@@")) or not line.startswith(("+", "-")):
             continue
