@@ -1,7 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-# PLT-145: Operator authorized removal of obsolete corrupt Matrix MAS Cluster.
-# Deliberately empty; dedicated Argo owner must prune exactly the legacy Cluster
-# after UID-scoped runtime preflight, never the clean MAS or Synapse Cluster.
-resources: []

@@ -6,8 +6,6 @@ namespace: matrix
 resources:
   - namespace.yaml
   - database-synapse.yaml
-  # database-mas.yaml remains as an intentionally dormant forensic source. The
-  # live object carries Prune=false and is not part of the active app graph.
   - database-mas-clean.yaml
   - database-objectstores.yaml
   - database-scheduled-backups.yaml
