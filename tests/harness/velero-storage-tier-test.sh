@@ -54,8 +54,10 @@ grep -F 'backup.velero.io/backup-volumes-excludes: meilisearch-data' \
   "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml" >/dev/null
 grep -F 'backup.velero.io/backup-volumes-excludes: media,cache' \
   "$repo_root/k8s/applications/media/jellyfin/statefulset.yaml" >/dev/null
-grep -F 'backup.velero.io/backup-volumes-excludes: media-share,incomplete-downloads' \
-  "$repo_root/k8s/applications/media/sabnzbd/statefulset.yaml" >/dev/null
+# Only mounted volume names can be excluded through pod annotations.
+# The historical incomplete-downloads claim is not mounted and is retained.
+test "$(yq -r '.spec.template.metadata.annotations["backup.velero.io/backup-volumes-excludes"]' \
+  "$repo_root/k8s/applications/media/sabnzbd/statefulset.yaml")" = "media-share"
 grep -F 'backup.velero.io/backup-volumes-excludes: logs' \
   "$repo_root/k8s/applications/ai/gpt-researcher/gpt-researcher-deployment.yaml" >/dev/null
 grep -F 'backup.velero.io/backup-volumes-excludes: downloads,backups' \
