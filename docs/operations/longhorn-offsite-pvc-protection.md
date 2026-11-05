@@ -1,9 +1,9 @@
 # Longhorn off-site protection for retained PVCs
 
-Status: the target is proposed for GitOps reconciliation and the first restore proofs are recorded in
-`dr-restore-evidence-2026-10-20.json`. The global `default` recurring-job
-assignment has been retired: Longhorn no longer schedules a backup for every
-volume. Only PVCs and retained volumes with an explicit recurring-job label
+Status: the target is **proposed and not deployed** pending GitHub admission and primary-backup verification. First restore proofs are recorded in
+`dr-restore-evidence-2026-10-20.json`. Once #947 is merged and Argo has
+reconciled, the global `default` recurring-job assignment will be retired;
+until then it remains operational. Only PVCs and retained volumes with an explicit recurring-job label
 remain in this transitional protection policy. Velero/Kopia or CNPG/Barman is
 the preferred steady-state mechanism for application data; Longhorn backups
 are not inferred from the presence of a PVC and are not a reason to keep a
@@ -101,6 +101,36 @@ Mastra backups/restores separately from continuous policy coverage. The
 historical retained volumes remain untouched and must be qualified before any
 longhorn label or remote backup is retired.
 
+## PLT-56 — owner risk decision: Executor only
+
+The owner explicitly **accepts the potential loss of the current contents** of
+the two identified Executor volumes if a failure occurs after the global
+RecurringJob is removed. This accepts the absence of **new** recurring backups
+for these two volumes; it does **not** establish that their contents are
+rebuildable, and it does not authorize any destructive operation.
+
+- Current PVC `executor/data-executor-0`: Longhorn volume
+  `pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716`, Bound, 10 GiB,
+  `longhorn-bulk`, StatefulSet scaled to zero.
+- Historical Longhorn volume `pvc-c32ab0fc-51cb-47be-8f77-d1b0b592c2a1`:
+  released PV, detached, robustness `unknown`, 10 GiB.
+
+Read-only qualification found only the `default` group and backups from
+`persistent-offsite-backup-default-group`; no dedicated Executor recurring
+job. Volume contents have **not** been inspected and no link to Factory/Mastra
+workspaces is established. Owner acceptance applies **only to these two exact
+volume IDs**, not Factory/Mastra volumes, other PVCs, or any future Executor
+volume. Do not change `StatefulSet.volumeClaimTemplates`, create competing
+PVCs, mount/attach/recover these volumes, or remove any existing
+PVC/PV/Longhorn volume, snapshot, backup object or S3 data.
+
+**Executor HOLD is closed by explicit data-loss acceptance, not by a false
+backup PASS.** The global recurring-job retirement remains blocked until
+#949/#948 are admitted, reconciled and the 13 Velero/Kopia primary targets have
+satisfactory completed backup evidence; the other retained Longhorn protections
+must be verified live. This acceptance does not authorize a GitHub
+`workflow-integrity` bypass or an immediate merge of #947.
+
 ## PLT-56 scope boundary
 
 The former `persistent-offsite-backup-default-group` job selected the
@@ -117,7 +147,11 @@ completed-backup and restore evidence is recorded.
 
 ## Rollback
 
-Revert the PR to remove the target, ExternalSecret, recurring job and labels.
+If the rollout causes unintended loss of scheduling or uncovered durable data,
+restore the removed global recurring-job manifest and Kustomization reference
+through GitOps (revert #947's targeted removal), then verify Argo and Longhorn
+convergence. Do **not** remove the backup target, credentials, existing explicit
+recurring jobs, labels, or application manifests as part of this rollback.
 Do not delete the existing PVCs or Longhorn volumes. Existing external backup
 objects remain an operator retention decision and must be inventoried before
 any deletion.
