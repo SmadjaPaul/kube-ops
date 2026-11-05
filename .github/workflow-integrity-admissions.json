@@ -3,6 +3,17 @@
   "admissions": [
     {
       "repository": "SmadjaPaul/kube-ops",
+      "pr": 1014,
+      "headSha": "1cb3b3ff19ab458e9e160b722222ec85259d4f9e",
+      "paths": [
+        "tests/harness/v1-contract-scope-test.sh"
+      ],
+      "reason": "PLT-135: qualify Polyfin media-root V1 scope selection.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
       "pr": 997,
       "headSha": "ec07a358fab5634ff18739ffec47df53efc3ce3a",
       "paths": [
