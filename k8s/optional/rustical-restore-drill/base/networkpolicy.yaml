@@ -1,0 +1,24 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: rustical-restore-fixture
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: rustical-restore-fixture
+  ingress:
+    # A scoped probe Pod in the SAME namespace only, never Gateway/Internet.
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: rustical-restore-probe
+      toPorts:
+        - ports:
+            - port: "4000"
+              protocol: TCP
+  # Deny ALL egress, including if another namespace policy would allow it.
+  # Empty egress: [] alone may not enable Cilium egress enforcement.
+  enableDefaultDeny:
+    ingress: true
+    egress: true
+  egressDeny:
+    - toEntities: [all]

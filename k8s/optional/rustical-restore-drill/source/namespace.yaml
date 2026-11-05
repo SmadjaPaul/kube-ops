@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rustical-restore-source
+  labels:
+    app.kubernetes.io/part-of: rustical-restore-drill
+    pod-security.kubernetes.io/enforce: restricted

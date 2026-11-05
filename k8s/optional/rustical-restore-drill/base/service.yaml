@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rustical-restore-fixture
+  labels:
+    app.kubernetes.io/name: rustical-restore-fixture
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: rustical-restore-fixture
+  ports:
+    - name: http
+      port: 4000
+      targetPort: http

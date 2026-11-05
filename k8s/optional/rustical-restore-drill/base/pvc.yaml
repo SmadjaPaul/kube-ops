@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rustical-restore-fixture-data
+  labels:
+    app.kubernetes.io/name: rustical-restore-fixture
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 1Gi
