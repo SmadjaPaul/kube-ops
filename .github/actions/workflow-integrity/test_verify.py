@@ -56,7 +56,8 @@ class AdmissionContract(unittest.TestCase):
                 gate.validate_registry(json.dumps(example(paths=[path])), NOW, True)
 
     def test_reject_admitted_self_modification(self):
-        with patch.object(gate, "changed_paths", return_value=[gate.GATE_DIR + "verify.py"]):
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=[gate.GATE_DIR + "verify.py"]):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(), NOW)
 
@@ -113,32 +114,39 @@ class AdmissionContract(unittest.TestCase):
             self.assertTrue(any(gate.protected(path) for path in paths))
 
     def test_registry_change_must_be_single_file(self):
-        with patch.object(gate, "changed_paths", return_value=[gate.REGISTRY, "docs/other.md"]):
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=[gate.REGISTRY, "docs/other.md"]):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(), NOW)
 
     def test_registry_change_by_nonowner(self):
-        with patch.object(gate, "changed_paths", return_value=[gate.REGISTRY]):
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=[gate.REGISTRY]):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(author="attacker"), NOW)
 
     def test_registry_change_from_fork(self):
-        with patch.object(gate, "changed_paths", return_value=[gate.REGISTRY]):
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=[gate.REGISTRY]):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(head_repo="attacker/kube-ops"), NOW)
 
-    def test_head_sha_is_not_the_admission_key(self):
+    def test_head_sha_binds_event_but_not_admission_key(self):
         document = json.dumps(example())
         paths = ["tests/harness/backup-audit-contract-test.sh"]
-        with patch.object(gate, "changed_paths", return_value=paths), \
+        with patch.object(gate, "git_bytes", return_value=b"0" * 40), \
+             patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
              patch.object(Path, "read_text", return_value=document):
             gate.verify(self._args(sha="0" * 40), NOW)
+            with self.assertRaises(SystemExit):
+                gate.verify(self._args(sha="1" * 40), NOW)
 
     def test_exact_authorization_and_expiration(self):
         document = json.dumps(example())
         paths = ["tests/harness/backup-audit-contract-test.sh"]
-        with patch.object(gate, "changed_paths", return_value=paths), \
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
              patch.object(Path, "read_text", return_value=document):
             gate.verify(self._args(), NOW)
@@ -148,7 +156,8 @@ class AdmissionContract(unittest.TestCase):
     def test_reject_changed_content(self):
         document = json.dumps(example())
         paths = ["tests/harness/backup-audit-contract-test.sh"]
-        with patch.object(gate, "changed_paths", return_value=paths), \
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="e" * 64), \
              patch.object(Path, "read_text", return_value=document):
             with self.assertRaises(SystemExit):
@@ -160,7 +169,8 @@ class AdmissionContract(unittest.TestCase):
             "tests/harness/backup-audit-contract-test.sh",
             "tests/harness/new-protected-test.sh",
         ]
-        with patch.object(gate, "changed_paths", return_value=paths), \
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
              patch.object(Path, "read_text", return_value=document):
             with self.assertRaises(SystemExit):
@@ -172,18 +182,20 @@ class AdmissionContract(unittest.TestCase):
             "tests/harness/backup-audit-contract-test.sh",
             "tests/harness/removed-protected-test.sh",
         ]
-        with patch.object(gate, "changed_paths", return_value=paths), \
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
              patch.object(Path, "read_text", return_value=document):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(), NOW)
 
     def test_reject_wrong_repository(self):
-        with patch.object(
-            gate,
-            "changed_paths",
-            return_value=["tests/harness/backup-audit-contract-test.sh"],
-        ):
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(
+                 gate,
+                 "changed_paths",
+                 return_value=["tests/harness/backup-audit-contract-test.sh"],
+             ):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(repo="attacker/kube-ops"), NOW)
 
@@ -193,7 +205,8 @@ class AdmissionContract(unittest.TestCase):
             "tests/harness/backup-audit-contract-test.sh",
             "tests/harness/atlantis-plan-only-test.sh",
         ]
-        with patch.object(gate, "changed_paths", return_value=paths), \
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
              patch.object(Path, "read_text", return_value=document):
             with self.assertRaises(SystemExit):
@@ -202,7 +215,8 @@ class AdmissionContract(unittest.TestCase):
     def test_reject_expired_base_entry(self):
         document = json.dumps(example(expiresAt="2026-11-05T12:00:00Z"))
         paths = ["tests/harness/backup-audit-contract-test.sh"]
-        with patch.object(gate, "changed_paths", return_value=paths), \
+        with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
+             patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
              patch.object(Path, "read_text", return_value=document):
             with self.assertRaises(SystemExit):
@@ -283,6 +297,48 @@ class AdmissionContract(unittest.TestCase):
             with patch.object(gate, "git_bytes", side_effect=git):
                 second = gate.change_fingerprint(base, changed_head)
             self.assertNotEqual(first, second)
+
+    def test_fingerprint_distinguishes_same_lines_at_different_positions(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(root), *args], stderr=subprocess.DEVNULL
+                )
+
+            def commit(message):
+                git("add", ".")
+                git("commit", "-qm", message)
+                return git("rev-parse", "HEAD").decode().strip()
+
+            git("init", "-q")
+            git("config", "user.email", "tests@example.invalid")
+            git("config", "user.name", "CI Test")
+            source = root / "tracked.txt"
+            source.write_text("a\ntarget\nb\ntarget\nc\n")
+            base = commit("base")
+
+            source.write_text("a\nchanged\nb\ntarget\nc\n")
+            first = commit("change first occurrence")
+
+            git("checkout", "-q", "-b", "second", base)
+            source.write_text("a\ntarget\nb\nchanged\nc\n")
+            second = commit("change second occurrence")
+
+            def normalized_changed_lines(head):
+                return [
+                    line
+                    for line in git("diff", "--unified=0", base, head).decode().splitlines()
+                    if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
+                ]
+
+            self.assertEqual(normalized_changed_lines(first), normalized_changed_lines(second))
+            with patch.object(gate, "git_bytes", side_effect=git):
+                self.assertNotEqual(
+                    gate.change_fingerprint(base, first),
+                    gate.change_fingerprint(base, second),
+                )
 
     def test_base_must_be_ancestor(self):
         with patch.object(

@@ -56,39 +56,35 @@ def changed_paths(base, head):
 
 
 def _changed_records(base, head):
-    """Return a stable representation of the complete two-tree change.
-
-    Hunk line numbers and context are excluded so a merge or rebase onto a
-    newer main remains stable. Every changed path, operation and changed
-    content line is retained, including non-protected files.
-    """
+    """Return the complete raw Git change without lossy line normalization."""
     try:
         git_bytes("merge-base", "--is-ancestor", base, head)
     except subprocess.CalledProcessError as exc:
         raise ValueError("base revision is not an ancestor of PR head") from exc
 
-    raw = git_bytes("diff", "--no-renames", "--name-status", "-z", base, head, "--")
-    fields = [field.decode("utf-8") for field in raw.split(b"\0") if field]
+    raw = git_bytes("diff", "--no-renames", "--raw", "-z", base, head, "--")
+    fields = [field for field in raw.split(b"\0") if field]
     if len(fields) % 2:
-        raise ValueError("invalid git name-status output")
+        raise ValueError("invalid git raw diff output")
     records = []
     for index in range(0, len(fields), 2):
-        status, path = fields[index], fields[index + 1]
-        patch = git_bytes(
-            "diff", "--no-renames", "--no-ext-diff", "--no-textconv",
-            "--unified=0", "--binary", "--no-color", base, head, "--", path
-        ).decode("utf-8", "surrogateescape")
-        changes = []
-        for line in patch.splitlines():
-            if line.startswith(("diff --git ", "index ", "--- ", "+++ ", "@@")):
-                continue
-            changes.append(line)
-        records.append({"path": path, "status": status, "changes": changes})
+        header = fields[index].decode("ascii").split()
+        if len(header) != 5 or not header[0].startswith(":"):
+            raise ValueError("invalid git raw diff record")
+        path = fields[index + 1].decode("utf-8", "surrogateescape")
+        records.append({
+            "path": path,
+            "status": header[4],
+            "oldMode": header[0][1:],
+            "newMode": header[1],
+            "oldBlob": header[2],
+            "newBlob": header[3],
+        })
     return sorted(records, key=lambda record: (record["path"], record["status"]))
 
 
 def change_fingerprint(base, head):
-    """Hash all changed paths, operations and content, independent of SHA."""
+    """Hash all changed paths, statuses, modes/types and Git blobs."""
     canonical = json.dumps(
         _changed_records(base, head),
         ensure_ascii=True,
@@ -162,6 +158,9 @@ def validate_registry(raw, now, require_fresh=False):
 
 def verify(args, now=None):
     now = now or dt.datetime.now(dt.timezone.utc)
+    actual_head = git_bytes("rev-parse", args.head_ref).decode().strip()
+    if actual_head != args.sha:
+        deny("PR_HEAD_SHA_MISMATCH")
     paths = changed_paths(args.base_sha, args.head_ref)
     if REGISTRY in paths:
         if paths != [REGISTRY] or args.repo != REPOSITORY or args.base_ref != "main":

@@ -58,10 +58,10 @@ change GitHub protection settings and it is not a durable bypass design.
   document as data, without executing it.
 - Each entry contains `repository`, `pr`, a 64-character
   `changeFingerprint`, exact `paths`, `reason`, `approvedBy: SmadjaPaul` and
-  `expiresAt` in UTC. The fingerprint is computed from the complete diff
-  between the trusted base and PR head: normalized paths, operations and
-  changed content for every file, including non-protected files. Hunk line
-  numbers and context are deliberately excluded.
+  `expiresAt` in UTC. The fingerprint is computed from the complete raw Git
+  diff between the trusted base and PR head: every file's path, status,
+  old/new mode and type, and old/new blob ID, including non-protected files.
+  It does not normalize or discard changed-line positions.
   Expiration must be within seven days at the time the registry PR is checked.
 - Protected PRs may be admitted **only using registry content on the base
   branch**, the current complete protected path set and the exact complete
@@ -70,11 +70,11 @@ change GitHub protection settings and it is not a durable bypass design.
   to the gate workflow or its verifier/tests under
   `.github/actions/workflow-integrity/` can be admitted. Any change to the
   gate implementation requires another explicit owner bootstrap.
-- A merge or rebase of `main` does not invalidate the record when the complete
-  normalized diff is unchanged. Any protected-file content change, protected
-  file addition/deletion, or non-protected-file change changes the fingerprint
-  and invalidates the record. The trusted base must be an ancestor of the PR
-  head; stale branches fail closed.
+- A merge or rebase of `main` does not invalidate the record when the affected
+  files' base/head blobs and raw metadata are unchanged. Any protected-file
+  content change, protected file addition/deletion, or non-protected-file
+  change changes the fingerprint and invalidates the record. The trusted base
+  must be an ancestor of the PR head; stale branches fail closed.
 - After the owner's registry PR merges, trigger a **new**
   `pull_request_target` event for each affected PR (for example close/reopen).
   Rerunning an old job may reuse its old base SHA and cannot prove admission.
