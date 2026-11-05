@@ -26,7 +26,7 @@ spec:
         - name: demo
           # Official demo image, never used to serve a public route.
           # Change blue -> green for a real blue/green upgrade test.
-          image: argoproj/rollouts-demo:green
+          image: argoproj/rollouts-demo:purple
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -73,3 +73,5 @@ spec:
         args:
           - name: service-name
             value: rollout-demo-active.argo-rollouts-demo.svc.cluster.local
+          - name: path
+            value: /__plt141_post_failure
