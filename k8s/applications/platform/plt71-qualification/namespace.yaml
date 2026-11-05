@@ -5,6 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: factory-plt71-qualification
     app.kubernetes.io/part-of: factory-qualification
+    app.kubernetes.io/environment: qualification
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted
