@@ -16,6 +16,7 @@ OWNER = "SmadjaPaul"
 REPOSITORY = "SmadjaPaul/kube-ops"
 REGISTRY = ".github/workflow-integrity-admissions.json"
 SELF = ".github/workflows/workflow-integrity.yaml"
+GATE_DIR = ".github/actions/workflow-integrity/"
 CONTRACT = "docs/contracts/agent-test-result-v1.schema.json"
 ALLOWED_FIELDS = {"repository", "pr", "headSha", "paths", "reason", "approvedBy", "expiresAt"}
 UTC_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -100,7 +101,7 @@ def validate_registry(raw, now, require_fresh=False):
             raise ValueError("invalid reason")
         if not isinstance(paths, list) or not paths or len(paths) > 40:
             raise ValueError("invalid path list")
-        if any(not safe_path(p) or not protected(p) or p in (SELF, REGISTRY) for p in paths):
+        if any(not safe_path(p) or not protected(p) or p in (SELF, REGISTRY) or p.startswith(GATE_DIR) for p in paths):
             raise ValueError("paths must be exact protected paths, never the gate or registry")
         if len(paths) != len(set(paths)):
             raise ValueError("duplicate path")
@@ -139,7 +140,7 @@ def verify(args, now=None):
         return
 
     print("UNQUALIFIED_AUTOMATION_CHANGES=" + ",".join(blocked))
-    if SELF in blocked:
+    if SELF in blocked or any(path.startswith(GATE_DIR) for path in blocked):
         deny("SELF_MODIFYING_GATE_REQUIRES_SEPARATE_OWNER_BOOTSTRAP")
     if args.repo != REPOSITORY or args.base_ref != "main" or args.head_repo != REPOSITORY:
         deny("PROTECTED_CHANGES_REQUIRE_SAME_REPO_AND_MAIN")
