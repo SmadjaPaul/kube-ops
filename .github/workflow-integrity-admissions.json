@@ -26,7 +26,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 949,
-      "changeFingerprint": "878025aa797ef3dee2469017697b6b64207805d110dfee08f875a8107fff1d5f",
+      "changeFingerprint": "984a76c63913fc862df28e7fb8cd6bf84f79d3636c8119e1f6160f2fcd9d2b2a",
       "paths": [
         "tests/harness/atlantis-plan-only-test.sh",
         "tests/harness/backup-audit-contract-test.sh"
