@@ -88,6 +88,53 @@ following are observed on the new revision:
 Only after those gates may the old Matrix source be retired in a separate,
 explicit GitOps change. Factory remains outside that operation.
 
+## Evidence chronology erratum (post-facto; does not replace runtime proof)
+
+The machine-readable artifact
+`plt-145-matrix-clean-install-final-test-result-2026-11-05.json`
+is a historical record, but its `producedAt` value,
+`2026-11-05T16:15:00+01:00` (**15:15 UTC**), is inconsistent with its
+contents:
+
+- PR #979 merged at **15:39:50 UTC** on 2026-11-05.
+- PR #982 merged at **16:08:22 UTC** on 2026-11-05.
+- The initial clean CNPG backup is recorded as completed at **16:09 UTC**.
+
+Therefore `producedAt` **cannot be used as a trusted timestamp for
+the completed final qualification**. The original JSON has deliberately
+not been silently rewritten; it is preserved as received. A future
+machine-readable qualification must use a new `resultId` and
+`producedAt` attested at execution/assembly time, with independent
+GitHub and runtime references. This erratum itself does **not** re-run
+any health check or prove live runtime state.
+
+## Outstanding acceptance boundaries
+
+1. **Matrix login not yet USER-qualified:** test a controlled Authentik
+   -> MAS -> Element login, create a new session, then verify persistence
+   across a normal restart. An HTTP 200, successful migrations and a
+   successful base backup do not prove this flow.
+2. **Factory integration not yet qualified:** verify that the intended
+   Matrix technical/bot identity can authenticate and send exactly one
+   bounded non-sensitive test event to the correct private room; do not
+   disclose credentials, event payloads, or message history.
+3. **Old source retention:** the corrupt
+   `matrix/matrix-mas-postgresql` is excluded from the Kustomize
+   resource graph, but its live objects and original PGDATA/WAL PVCs
+   are intentionally retained by `Prune=false`. Before any hibernation
+   or cleanup, inspect CNPG ownership, live workloads, restart activity
+   and forensic retention; do not re-add an unhealthy Cluster to the
+   active Argo application merely to toggle hibernation. This is not
+   an authorization to prune the Cluster or PVCs.
+4. **Global health separate from Matrix:** the reported `43`-route
+   smoke has `42 PASS / 1 FAIL` for Atlantis 503/no Ready endpoint.
+   Investigate Atlantis through PLT-90/PLT-91 independently. Matrix's
+   route success cannot be used to mark `apps-platform` globally
+   Healthy.
+5. **Root cause remains UNKNOWN:** do not infer a PostgreSQL/Longhorn
+   defect or a Factory-caused incident from the shared
+   `replication checkpoint has wrong magic 0` signature alone.
+
 ## Observed final state
 
 The transition was admitted through protected GitHub checks and merged as:
