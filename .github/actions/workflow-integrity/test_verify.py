@@ -154,6 +154,39 @@ class AdmissionContract(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(), NOW)
 
+    def test_reject_added_protected_file(self):
+        document = json.dumps(example())
+        paths = [
+            "tests/harness/backup-audit-contract-test.sh",
+            "tests/harness/new-protected-test.sh",
+        ]
+        with patch.object(gate, "changed_paths", return_value=paths), \
+             patch.object(gate, "change_fingerprint", return_value="f" * 64), \
+             patch.object(Path, "read_text", return_value=document):
+            with self.assertRaises(SystemExit):
+                gate.verify(self._args(), NOW)
+
+    def test_reject_deleted_protected_file(self):
+        document = json.dumps(example())
+        paths = [
+            "tests/harness/backup-audit-contract-test.sh",
+            "tests/harness/removed-protected-test.sh",
+        ]
+        with patch.object(gate, "changed_paths", return_value=paths), \
+             patch.object(gate, "change_fingerprint", return_value="f" * 64), \
+             patch.object(Path, "read_text", return_value=document):
+            with self.assertRaises(SystemExit):
+                gate.verify(self._args(), NOW)
+
+    def test_reject_wrong_repository(self):
+        with patch.object(
+            gate,
+            "changed_paths",
+            return_value=["tests/harness/backup-audit-contract-test.sh"],
+        ):
+            with self.assertRaises(SystemExit):
+                gate.verify(self._args(repo="attacker/kube-ops"), NOW)
+
     def test_reject_incomplete_admitted_path_set(self):
         document = json.dumps(example())
         paths = [
