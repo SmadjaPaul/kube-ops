@@ -14,6 +14,7 @@ assert_scope() {
 }
 
 assert_scope 'k8s/infrastructure/network/policies/auth,k8s/optional/sparkyfitness' $'k8s/optional/sparkyfitness/networkpolicy.yaml\nk8s/infrastructure/network/policies/auth/allow-authentik-access.yaml'
+assert_scope 'k8s/applications/media' 'k8s/applications/media/polyfin/networkpolicy.yaml'
 assert_scope all 'k8s/infrastructure/controllers/argocd/kustomization.yaml'
 assert_scope all 'docs/unknown-scope.md'
 assert_scope all ''
