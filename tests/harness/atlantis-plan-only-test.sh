@@ -110,6 +110,7 @@ grep -q 'github-atlantis-guard.sh:' "$rendered"
 grep -q 'fc66d3b6d8c59581cf3f771b33766d1ebcb042a3' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q '79522bce630cad360a6ebe3bf6f1ebc965379cb9' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q '37cf4ab1d01f0228a305d54f458e7a9c51930127' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
+grep -q '26e40fd67a913dd903224434b273f61fcb5cdf5a' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 grep -q 'scripts/architecture-check.sh' "$rendered"
 grep -q 'terraform/cloudflare/modules/access/README.md' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh
 if grep -Eq 'terraform/\*/modules/\*/README\.md|security-headers/variables\.tf' k8s/poc/atlantis-plan-only/scripts/github-atlantis-guard.sh; then
