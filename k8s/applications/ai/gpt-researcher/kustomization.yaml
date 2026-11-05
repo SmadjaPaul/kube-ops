@@ -16,6 +16,10 @@ resources:
   - ws-rewriter-configmap.yaml
   - ws-rewriter-deployment.yaml
   - services-updated.yaml
+  # PLT-140 shadow blue/green: no live production traffic until cutover PR.
+  - ws-rewriter-rollout.yaml
+  - ws-rewriter-rollout-services.yaml
+  - ws-rewriter-analysis.yaml
 
 configMapGenerator:
   - name: gpt-researcher-config

@@ -400,6 +400,26 @@
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
+    },
+    {
+      "description": "PLT-143 qualified ws-rewriter Rollout Caddy patch/minor AUTO",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchFileNames": [
+        "k8s/applications/ai/gpt-researcher/ws-rewriter-rollout.yaml"
+      ],
+      "matchPackageNames": [
+        "caddy"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
     }
   ],
   "kubernetes": {

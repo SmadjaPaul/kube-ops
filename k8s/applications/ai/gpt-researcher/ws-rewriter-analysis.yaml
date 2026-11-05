@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: ws-rewriter-http
+  namespace: gpt-researcher
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: healthz
+      count: 2
+      interval: 10s
+      failureLimit: 0
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            ttlSecondsAfterFinished: 120
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: ws-rewriter-rollout-probe
+              spec:
+                restartPolicy: Never
+                automountServiceAccountToken: false
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 65534
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: http-smoke
+                    image: busybox:1.37.0
+                    command:
+                      - sh
+                      - -ec
+                      - |
+                        wget -q -T 5 -t 2 -O /dev/null \
+                          "http://{{ args.service-name }}:8000/healthz"
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities:
+                        drop: ["ALL"]
+                    resources:
+                      requests: {cpu: 5m, memory: 8Mi}
+                      limits: {cpu: 50m, memory: 32Mi}
