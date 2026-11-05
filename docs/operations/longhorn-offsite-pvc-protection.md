@@ -1,6 +1,6 @@
 # Longhorn off-site protection for retained PVCs
 
-Status: the target is reconciled and the first restore proofs are recorded in
+Status: the target is proposed for GitOps reconciliation and the first restore proofs are recorded in
 `dr-restore-evidence-2026-10-20.json`. The global `default` recurring-job
 assignment has been retired: Longhorn no longer schedules a backup for every
 volume. Only PVCs and retained volumes with an explicit recurring-job label
@@ -26,18 +26,30 @@ Hetzner S3 endpoint. The protection changes do not change a PVC volume size,
 StorageClass, replica count or data path. The Immich Redis PVC only gains
 Longhorn recurring-job source labels; no application restart is required.
 
-## Four PVCs
+## Seven explicit transitional PVCs
 
 The official `persistent-offsite-backup` recurring job runs daily at 03:17 UTC,
-retains seven backups per volume and allows one concurrent backup. The four
-PVCs are explicitly marked as the recurring-job source:
+retains seven backups per volume and allows one concurrent backup. The seven
+currently declared PVCs are explicitly marked as the recurring-job source:
 
 - `agentgateway/agentgateway-state` — SQLite; snapshot/restore validation
   must run `PRAGMA integrity_check` and a read-only application-level check.
 - `atlantis-system/atlantis-pilot-data` — protect the dormant pilot state;
   GitHub App readiness remains a separate blocker.
-- `listmonk/listmonk-uploads` — retained, unmounted data-only PVC.
-- `twenty/twenty-storage` — retained, unmounted data-only PVC.
+- `invoice-ninja/invoice-ninja-public` — application public data pending
+  qualification of its Velero/Kopia primary copy.
+- `invoice-ninja/invoice-ninja-storage` — application storage pending the same
+  one-copy qualification.
+- `matrix/matrix-synapse-media` — Matrix media retained until a verified
+  Velero/Kopia replacement is accepted.
+- `sure/sure-storage` — application storage retained until its primary copy is
+  verified.
+
+Two additional retained Longhorn volumes, `listmonk/listmonk-uploads` and
+`twenty/twenty-storage`, are unmounted data-only volumes with explicit labels
+in the live inventory. They are not represented by current PVC manifests and
+remain untouched; their jobs must be verified from the live Longhorn objects
+before any future qualification decision.
 
 `allowRecurringJobWhileVolumeDetached` is enabled because the two retained
 PVCs are currently detached. Longhorn may temporarily attach a labeled volume
@@ -92,8 +104,12 @@ The former `persistent-offsite-backup-default-group` job selected the
 `default` group and caused detached, released and otherwise rebuildable
 volumes to be attached and backed up. It is intentionally absent from the
 Kustomization. This change does not remove the explicit recurring job,
-existing labels, snapshots or remote backup objects. A later Velero/CNPG
-policy change may remove duplicate explicit labels only after its own
+existing labels, snapshots or remote backup objects. The 19 strict audit gaps
+must be classified before effective coverage is reduced: important data stays
+on its current mechanism; explicit transitional Longhorn volumes stay on their
+jobs; only accepted-loss/reconstructible data can move to an explicit Velero
+exclusion. A later Velero/CNPG policy change may remove duplicate explicit
+labels only after its own
 completed-backup and restore evidence is recorded.
 
 ## Rollback

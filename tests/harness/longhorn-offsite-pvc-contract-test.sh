@@ -48,10 +48,24 @@ for file in \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
   "$repo_root/k8s/poc/atlantis-plan-only/pvc-backup-patch.yaml" \
   "$repo_root/k8s/applications/business/invoice-ninja/storage.yaml" \
+  "$repo_root/k8s/applications/platform/matrix/media-pvc.yaml" \
   "$repo_root/k8s/applications/catalog/sure/storage.yaml"; do
   grep -F 'recurring-job.longhorn.io/source: enabled' "$file" >/dev/null
   grep -F 'recurring-job.longhorn.io/persistent-offsite-backup: enabled' "$file" >/dev/null
 done
+
+# Five manifests represent six PVCs: Invoice Ninja declares two claims. The
+# seventh declared PVC, Immich Redis, uses its own explicit recurring job.
+# listmonk/twenty are retained live volumes, not current manifests, and must
+# not be silently recreated or removed.
+test "$(grep -h -c 'recurring-job.longhorn.io/persistent-offsite-backup: enabled' \
+  "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
+  "$repo_root/k8s/poc/atlantis-plan-only/pvc-backup-patch.yaml" \
+  "$repo_root/k8s/applications/business/invoice-ninja/storage.yaml" \
+  "$repo_root/k8s/applications/platform/matrix/media-pvc.yaml" \
+  "$repo_root/k8s/applications/catalog/sure/storage.yaml" | awk '{sum += $1} END {print sum + 0}')" -eq 6
+grep -F 'recurring-job.longhorn.io/immich-redis-offsite: enabled' \
+  "$repo_root/k8s/applications/media/immich/immich-redis/redis-pvc-labels.yaml" >/dev/null
 
 ! rg -n 'storageClassName:|resources:|dataStorage:|numberOfReplicas:|defaultDataPath:' \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
