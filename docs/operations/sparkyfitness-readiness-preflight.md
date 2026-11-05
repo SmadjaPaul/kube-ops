@@ -12,7 +12,7 @@ Run from the repository root:
 
 ```sh
 python3 scripts/sparkyfitness-readiness.py
-python3 -m unittest discover -s scripts -p 'sparkyfitness-readiness-test.py'
+python3 -m unittest discover -s scripts -p 'test_sparkyfitness_readiness.py'
 # Optional, only after the canonical read-only kube-access bootstrap:
 python3 scripts/sparkyfitness-readiness.py --runtime
 ```
