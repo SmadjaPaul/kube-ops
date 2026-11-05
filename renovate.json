@@ -64,14 +64,24 @@
   "packageRules": [
     {
       "description": "PLT-128 prefer qualified npm website update PRs over Docker digest backlog",
-      "matchManagers": ["npm"],
-      "matchFileNames": ["package.json", "website/package.json"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "package.json",
+        "website/package.json"
+      ],
       "prPriority": 10
     },
     {
       "description": "PLT-128 defer non-security Docker digest PRs behind npm tooling",
-      "matchDatasources": ["docker"],
-      "matchUpdateTypes": ["digest", "pinDigest"],
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
       "prPriority": -10
     },
     {
@@ -341,6 +351,35 @@
       "automerge": true,
       "platformAutomerge": true,
       "automergeType": "pr"
+    },
+    {
+      "description": "PLT-128 documentation UI libraries patch-only candidate; requires docs-required and 14-day maturation",
+      "enabled": true,
+      "groupName": "PLT-128 docs UI libraries patch-only",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "matchPackageNames": [
+        "@mdx-js/react",
+        "clsx",
+        "prism-react-renderer",
+        "react-icons"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "matchCurrentVersion": "!/^0\\./",
+      "minimumReleaseAge": "14 days",
+      "rangeStrategy": "bump",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
     }
   ],
   "kubernetes": {
