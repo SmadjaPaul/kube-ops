@@ -19,7 +19,7 @@ This guide provides step-by-step instructions for setting up your homelab enviro
 
 ## Initial Setup
 
-First, set up Proxmox API access for OpenTofu. Follow the [Setup API Key for Proxmox](/docs/tofu/setup-apikey) guide to create the API token.
+First, set up Proxmox API access for OpenTofu. Follow the [Setup API Key for Proxmox](../tofu/setup-apikey) guide to create the API token.
 
 Then navigate to the OpenTofu directory:
 
@@ -91,5 +91,5 @@ tofu apply
 <!-- vale Google.Units = NO -->
 The cluster bootstraps automatically after deployment. Cert Manager, External Secrets Operator, ArgoCD, and all ApplicationSets are installed via OpenTofu without manual intervention.
 
-If automatic bootstrap fails, follow the [Manual Bootstrap Guide](/docs/k8s/manual-bootstrap-guide) for disaster recovery.
+If automatic bootstrap fails, follow the [Manual Bootstrap Guide](../k8s/manual-bootstrap-guide) for disaster recovery.
 <!-- vale Google.Units = YES -->

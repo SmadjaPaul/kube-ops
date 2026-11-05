@@ -170,4 +170,4 @@ kubectl exec -n <namespace> <pod-name> -- ls -la /var/lib/postgresql/data/
 
 ## Reference
 
-For detailed disaster recovery scenarios, see [Zalando to CNPG Migration](/docs/disaster/zalando-to-cnpg) which documents a real-world recovery case.
+For detailed disaster recovery scenarios, see [Zalando to CNPG Migration](../../disaster/zalando-to-cnpg) which documents a real-world recovery case.
