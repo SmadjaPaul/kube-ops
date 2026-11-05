@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polyfin-free-radios
+  namespace: media
+  labels:
+    app.kubernetes.io/name: polyfin
+data:
+  # Curated public Radio France live streams; no subscription or API key.
+  # Deliberately NOT imported as a Polyfin source until audio-only Live TV
+  # playback is qualified. Requires a native admin, never a family member.
+  # Sources: https://developers.radiofrance.fr/doc/tutorial-by-example/list-brands
+  #          https://developers.radiofrance.fr/doc/tutorial-by-example/list-locals-and-webradios
+  radios.m3u: |
+    #EXTM3U
+    #EXTINF:-1 tvg-id="FIP" group-title="Radios",FIP
+    https://icecast.radiofrance.fr/fip-midfi.mp3?id=openapi
+    #EXTINF:-1 tvg-id="FIP_ROCK" group-title="Radios",FIP Rock
+    https://icecast.radiofrance.fr/fiprock-midfi.mp3?id=openapi
+    #EXTINF:-1 tvg-id="FIP_JAZZ" group-title="Radios",FIP Jazz
+    https://icecast.radiofrance.fr/fipjazz-midfi.mp3?id=openapi
+    #EXTINF:-1 tvg-id="FIP_ELECTRO" group-title="Radios",FIP Electro
+    https://icecast.radiofrance.fr/fipelectro-midfi.mp3?id=openapi
+    #EXTINF:-1 tvg-id="FRANCEINTER" group-title="Radios",France Inter
+    https://icecast.radiofrance.fr/franceinter-midfi.mp3?id=openapi
+    #EXTINF:-1 tvg-id="FRANCEMUSIQUE" group-title="Radios",France Musique
+    https://icecast.radiofrance.fr/francemusique-midfi.mp3?id=openapi
+    #EXTINF:-1 tvg-id="FRANCEINFO" group-title="Radios",France Info
+    https://icecast.radiofrance.fr/franceinfo-midfi.mp3?id=openapi
+    #EXTINF:-1 tvg-id="MOUV" group-title="Radios",Mouv'
+    https://icecast.radiofrance.fr/mouv-midfi.mp3?id=openapi

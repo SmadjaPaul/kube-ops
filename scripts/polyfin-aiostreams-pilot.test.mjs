@@ -1,12 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateAIOStreamsURL, inspectStremioManifest, existingAddonCheck, createdAddonOK, run } from './polyfin-aiostreams-pilot.mjs';
+import { validateAIOStreamsURL, localPreflightURL, inspectStremioManifest, existingAddonCheck, createdAddonOK, run } from './polyfin-aiostreams-pilot.mjs';
 
-const allowed='https://aiostreams.smadja.dev/opaque-user/manifest.json';
-test('accepts only reviewed private AIOStreams endpoint',()=>{
-  assert.equal(validateAIOStreamsURL(allowed),allowed);
+const allowed = 'https://aiostreams.smadja.dev/opaque-user/manifest.json';
+const internal = 'http://aiostreams.media.svc.cluster.local/opaque-user/manifest.json';
+test('converts legacy public input to private Service URL, without public requests',()=>{
+  assert.equal(validateAIOStreamsURL(allowed), internal);
+  assert.equal(validateAIOStreamsURL(internal), internal);
+  assert.equal(localPreflightURL(internal), 'http://127.0.0.1:13000/opaque-user/manifest.json');
+  const withToken = 'https://aiostreams.smadja.dev/opaque/manifest.json?key=private';
+  assert.equal(validateAIOStreamsURL(withToken),
+    'http://aiostreams.media.svc.cluster.local/opaque/manifest.json?key=private');
+  assert.equal(localPreflightURL(validateAIOStreamsURL(withToken)),
+    'http://127.0.0.1:13000/opaque/manifest.json?key=private');
+});
+test('refuses arbitrary hosts, protocols, ports, userinfo and fragments',()=>{
   for (const input of [
     'http://aiostreams.smadja.dev/opaque-user/manifest.json',
+    'https://aiostreams.media.svc.cluster.local/opaque-user/manifest.json',
+    'http://aiostreams.media.svc.cluster.local:3000/opaque-user/manifest.json',
+    'http://evil.svc.cluster.local/opaque-user/manifest.json',
     'https://evil.test/opaque-user/manifest.json',
     'https://aiostreams.smadja.dev.evil.test/manifest.json',
     'https://user:pw@aiostreams.smadja.dev/manifest.json',

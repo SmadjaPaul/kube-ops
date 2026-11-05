@@ -102,6 +102,10 @@ spec:
               mountPath: /data
             - name: tmp
               mountPath: /tmp
+            # Curated public radios only. Not registered as an IPTV source yet.
+            - name: radio-playlist
+              mountPath: /iptv
+              readOnly: true
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -109,3 +113,7 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 1Gi
+        - name: radio-playlist
+          configMap:
+            name: polyfin-free-radios
+            defaultMode: 0444
