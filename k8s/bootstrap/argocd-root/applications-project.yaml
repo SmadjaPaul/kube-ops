@@ -39,6 +39,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: it-tools
       server: https://kubernetes.default.svc
+    - namespace: argo-rollouts-demo
+      server: https://kubernetes.default.svc
     - namespace: karakeep
       server: https://kubernetes.default.svc
     - namespace: mastra-factory
