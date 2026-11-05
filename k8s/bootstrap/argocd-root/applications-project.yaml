@@ -30,6 +30,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: factory-platform
       server: https://kubernetes.default.svc
+    - namespace: factory-plt71-qualification
+      server: https://kubernetes.default.svc
     - namespace: gpt-researcher
       server: https://kubernetes.default.svc
     - namespace: home-assistant
