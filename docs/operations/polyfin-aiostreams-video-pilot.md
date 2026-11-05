@@ -46,8 +46,8 @@ as admin, and never print cookies or paths. Apply is **opt-in**:
 POLYFIN_APPLY_AIOSTREAMS=YES node scripts/polyfin-aiostreams-pilot.mjs --apply
 ```
 
-If another Stremio addon with the same ID exists, the helper returns
-`EXISTING_ADDON_ID_REVIEW_PROFILE` without editing it; tokenized profile
+If a Stremio addon with the same name or a known AIOStreams display name exists, the helper returns
+`EXISTING_ADDON_REVIEW_PROFILE` without editing it; tokenized profile
 URLs may differ even with identical Stremio IDs. Inspect the existing
 profile in the native admin UI without leaking the URL.
 
@@ -87,3 +87,5 @@ and live playback, then qualify client and reconnection.
 Docs:
 https://github.com/moodiness/polyfin/blob/v0.60.0/docs/addons-and-libraries.md
 https://github.com/moodiness/polyfin/blob/v0.60.0/docs/iptv.md
+
+Note: Polyfin `addonJSON.id` is a local installation UUID, **not** the upstream Stremio manifest `id`. The helper compares display names and fails closed rather than silently replacing a tokenized profile. An artificially renamed profile still needs native admin UI review.
