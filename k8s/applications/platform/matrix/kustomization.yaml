@@ -6,9 +6,10 @@ namespace: matrix
 resources:
   - namespace.yaml
   - database-synapse.yaml
-  - database-mas.yaml
+  - database-mas-clean.yaml
   - database-objectstores.yaml
   - database-scheduled-backups.yaml
+  - database-mas-clean-initial-backup-20261105.yaml
   - backup-gap-remediation-20261020.yaml
   - database-s3-credentials.yaml
   - media-pvc.yaml
@@ -82,7 +83,7 @@ patches:
       - op: add
         path: /spec/template/metadata/annotations
         value:
-          secret.reloader.stakater.com/reload: matrix-mas-oidc,matrix-mas-postgresql-app
+          secret.reloader.stakater.com/reload: matrix-mas-oidc,matrix-mas-postgresql-clean-app
   - target:
       group: batch
       version: v1

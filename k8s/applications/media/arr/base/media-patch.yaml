@@ -1,4 +1,8 @@
 - op: add
+  path: /spec/template/metadata/annotations
+  value:
+    backup.velero.io/backup-volumes-excludes: media
+- op: add
   path: /spec/template/spec/containers/0/volumeMounts/-
   value:
     name: media

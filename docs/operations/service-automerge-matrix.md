@@ -4,6 +4,23 @@ Status: **policy draft only**. As of 2026-11-04, `kube-ops` has no required
 `main` status-check ruleset and Renovate automerge is disabled. This document
 does not authorize merging or deploying any service update.
 
+The required V1 check keeps global invariants on every pull request but selects
+only the affected Kustomize roots for the render. Unknown or shared
+control-plane changes fail closed to the complete 17-root render, while the
+complete render also runs daily. This prevents an unrelated remote-chart outage
+from blocking an independent application or policy PR without weakening the
+global contract.
+
+The effective Renovate configuration has global `automerge: false`, but six
+narrow rules explicitly configure automerge: commitlint, Remark tooling,
+TypeScript documentation tooling, Docusaurus patch updates, documentation UI
+library patches, and the qualified `ws-rewriter` Caddy patch/minor lane. A
+configured rule is not proof of qualification or an observed merge: the
+commitlint lane is the only lane with a previously observed real auto-merge;
+the other lanes still require their stated checks and runtime evidence before
+being treated as qualified. Stateful and core platform dependencies remain
+manually admitted.
+
 ## Principle
 
 Renovate proposes versioned immutable dependency changes; GitHub admits

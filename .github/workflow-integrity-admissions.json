@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "admissions": [
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1014,
+      "headSha": "1cb3b3ff19ab458e9e160b722222ec85259d4f9e",
+      "paths": [
+        "tests/harness/v1-contract-scope-test.sh"
+      ],
+      "reason": "PLT-135: qualify Polyfin media-root V1 scope selection.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 997,
+      "headSha": "ec07a358fab5634ff18739ffec47df53efc3ce3a",
+      "paths": [
+        ".github/workflows/polyfin-image-audit.yaml"
+      ],
+      "reason": "Bind the active rendered Polyfin image audit correction to its exact PR head.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1018,
+      "changeFingerprint": "dc25c87e13f6de03be078205a58230ff24af13b024145b04dcf22d925ab01f18",
+      "paths": [
+        ".github/workflows/polyfin-downstream-build.yaml"
+      ],
+      "reason": "PLT-134: owner-authorized Polyfin v0.61.1 signed candidate workflow and Trixie zlib backport qualification.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-10T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 949,
+      "changeFingerprint": "984a76c63913fc862df28e7fb8cd6bf84f79d3636c8119e1f6160f2fcd9d2b2a",
+      "paths": [
+        "tests/harness/atlantis-plan-only-test.sh",
+        "tests/harness/backup-audit-contract-test.sh"
+      ],
+      "reason": "PLT-56: qualify backup audit primary-protection contract after workflow-integrity cutover.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 948,
+      "changeFingerprint": "3096a30a7aa81160ead4b9211cd3bc8def6a069e667298cad90051d62c4d57c1",
+      "paths": [
+        "tests/harness/velero-storage-tier-test.sh"
+      ],
+      "reason": "PLT-56: qualify Velero/Kopia durable application-data scope.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
+    }
+  ]
+}

@@ -20,10 +20,11 @@ spec:
     wal: {compression: gzip, maxParallel: 2}
     data: {compression: gzip}
 ---
+---
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: matrix-mas-hetzner-store
+  name: matrix-mas-clean-hetzner-store
   namespace: matrix
   annotations:
     argocd.argoproj.io/sync-wave: "-11"
@@ -34,7 +35,7 @@ spec:
       - name: AWS_DEFAULT_REGION
         value: fsn1
   configuration:
-    destinationPath: s3://smadja-dev-homelab-backups/cnpg/matrix-mas
+    destinationPath: s3://smadja-dev-homelab-backups/cnpg/matrix-mas-clean
     endpointURL: https://fsn1.your-objectstorage.com
     s3Credentials:
       accessKeyId: {name: cnpg-hetzner-credentials, key: AWS_ACCESS_KEY_ID}

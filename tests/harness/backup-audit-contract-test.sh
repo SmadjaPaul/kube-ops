@@ -8,12 +8,15 @@ positive_dir="$(mktemp -d)"
 negative_dir="$(mktemp -d)"
 cnpg_negative_dir="$(mktemp -d)"
 longhorn_dir="$(mktemp -d)"
+selector_dir="$(mktemp -d)"
+fsb_dir="$(mktemp -d)"
+shared_dir="$(mktemp -d)"
 recovery_label_dir="$(mktemp -d)"
 stale_evidence_dir="$(mktemp -d)"
 policy_dir="$(mktemp -d)"
 stale_policy_dir="$(mktemp -d)"
 tmp_json="$longhorn_dir/mutation.tmp.json"
-trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
+trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$selector_dir" "$fsb_dir" "$shared_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
 
 qualification_evidence="$repo_root/docs/operations/dr-restore-evidence-2026-10-20.json"
 jq -e '
@@ -45,6 +48,162 @@ grep -F 'ORPHAN_PVC_COUNT=1' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_GAPS=2' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_LEGACY_GAPS=2' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_UNVERIFIED=0' "$output" >/dev/null
+
+# A label-selected Velero schedule must cover only PVCs mounted by matching
+# pods. A namespace-wide fallback would incorrectly mark the unselected PVC as
+# scheduled and hide the resulting protection gap.
+cp -R "$fixture_dir/." "$selector_dir/"
+jq '.items += [
+  {"metadata":{"namespace":"selector-fixture","name":"durable","labels":{}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-selector-durable"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"selector-fixture","name":"unselected","labels":{}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-selector-unselected"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"selector-fixture","name":"or-durable","labels":{}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-selector-or-durable"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"selector-fixture","name":"or-unselected","labels":{}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-selector-or-unselected"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"selector-fixture","name":"expr-durable","labels":{}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-selector-expr-durable"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"selector-fixture","name":"expr-unselected","labels":{}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-selector-expr-unselected"},"status":{"phase":"Bound"}}
+]' "$selector_dir/pvc.json" >"$tmp_json"
+mv "$tmp_json" "$selector_dir/pvc.json"
+jq '.items += [
+  {"metadata":{"name":"pv-selector-durable"},"spec":{"claimRef":{"namespace":"selector-fixture","name":"durable"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-selector-unselected"},"spec":{"claimRef":{"namespace":"selector-fixture","name":"unselected"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-selector-or-durable"},"spec":{"claimRef":{"namespace":"selector-fixture","name":"or-durable"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-selector-or-unselected"},"spec":{"claimRef":{"namespace":"selector-fixture","name":"or-unselected"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-selector-expr-durable"},"spec":{"claimRef":{"namespace":"selector-fixture","name":"expr-durable"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-selector-expr-unselected"},"spec":{"claimRef":{"namespace":"selector-fixture","name":"expr-unselected"}},"status":{"phase":"Bound"}}
+]' "$selector_dir/pv.json" >"$tmp_json"
+mv "$tmp_json" "$selector_dir/pv.json"
+jq '.items += [
+  {"metadata":{"namespace":"selector-fixture","name":"durable-pod","labels":{"backup.smadja.dev/velero":"true"}},"spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"durable"}}]}},
+  {"metadata":{"namespace":"selector-fixture","name":"or-durable-pod","labels":{"selector.or":"yes"}},"spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"or-durable"}}]}},
+  {"metadata":{"namespace":"selector-fixture","name":"expr-durable-pod","labels":{"selector.tier":"durable"}},"spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"expr-durable"}}]}}
+]' \
+  "$selector_dir/pods.json" >"$tmp_json"
+mv "$tmp_json" "$selector_dir/pods.json"
+jq '.items += [
+  {"metadata":{"namespace":"velero","name":"daily-selector"},"spec":{"template":{"includedNamespaces":["selector-fixture"],"labelSelector":{"matchLabels":{"backup.smadja.dev/velero":"true"}}}}},
+  {"metadata":{"namespace":"velero","name":"daily-selector-or"},"spec":{"template":{"includedNamespaces":["selector-fixture"],"orLabelSelectors":[{"matchLabels":{"selector.or":"yes"}}]}}},
+  {"metadata":{"namespace":"velero","name":"daily-selector-expr"},"spec":{"template":{"includedNamespaces":["selector-fixture"],"labelSelector":{"matchExpressions":[{"key":"selector.tier","operator":"In","values":["durable"]}]}}}}
+]' \
+  "$selector_dir/schedules.json" >"$tmp_json"
+mv "$tmp_json" "$selector_dir/schedules.json"
+jq '.items += [
+  {"metadata":{"namespace":"velero","name":"daily-selector-20261105","labels":{"velero.io/schedule-name":"daily-selector"}},"spec":{"includedNamespaces":["selector-fixture"]},"status":{"phase":"Completed"}},
+  {"metadata":{"namespace":"velero","name":"daily-selector-or-20261105","labels":{"velero.io/schedule-name":"daily-selector-or"}},"spec":{"includedNamespaces":["selector-fixture"]},"status":{"phase":"Completed"}},
+  {"metadata":{"namespace":"velero","name":"daily-selector-expr-20261105","labels":{"velero.io/schedule-name":"daily-selector-expr"}},"spec":{"includedNamespaces":["selector-fixture"]},"status":{"phase":"Completed"}}
+]' \
+  "$selector_dir/backups.json" >"$tmp_json"
+mv "$tmp_json" "$selector_dir/backups.json"
+jq '.items += [
+  {"metadata":{"namespace":"velero","name":"selector-durable-pvb","labels":{"velero.io/backup-name":"daily-selector-20261105","velero.io/pvc-namespace":"selector-fixture","velero.io/pvc-name":"durable"}},"spec":{"pod":{"namespace":"selector-fixture","name":"durable-pod"},"volume":"data"},"status":{"phase":"Completed"}},
+  {"metadata":{"namespace":"velero","name":"selector-or-durable-pvb","labels":{"velero.io/backup-name":"daily-selector-or-20261105","velero.io/pvc-namespace":"selector-fixture","velero.io/pvc-name":"or-durable"}},"spec":{"pod":{"namespace":"selector-fixture","name":"or-durable-pod"},"volume":"data"},"status":{"phase":"Completed"}},
+  {"metadata":{"namespace":"velero","name":"selector-expr-durable-pvb","labels":{"velero.io/backup-name":"daily-selector-expr-20261105","velero.io/pvc-namespace":"selector-fixture","velero.io/pvc-name":"expr-durable"}},"spec":{"pod":{"namespace":"selector-fixture","name":"expr-durable-pod"},"volume":"data"},"status":{"phase":"Completed"}}
+]' \
+  "$selector_dir/pvbs.json" >"$tmp_json"
+mv "$tmp_json" "$selector_dir/pvbs.json"
+selector_report="$selector_dir/report.json"
+set +e
+BACKUP_AUDIT_INPUT_DIR="$selector_dir" BACKUP_AUDIT_REPORT_FILE="$selector_report" \
+  bash "$repo_root/scripts/backup-audit.sh" >"$output"
+selector_rc=$?
+set -e
+(( selector_rc != 0 ))
+jq -e '[.productionPVCs[] | select(.namespace == "selector-fixture" and .name == "durable")][0] | .scheduled == true and .completedBackup == true and .completedPVB == true' \
+  "$selector_report" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "selector-fixture" and .name == "unselected")][0] | .scheduled == false and .completedBackup == false and .completedPVB == false' \
+  "$selector_report" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "selector-fixture" and .name == "or-durable")][0] | .scheduled == true and .completedBackup == true and .completedPVB == true' \
+  "$selector_report" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "selector-fixture" and .name == "or-unselected")][0] | .scheduled == false and .completedBackup == false and .completedPVB == false' \
+  "$selector_report" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "selector-fixture" and .name == "expr-durable")][0] | .scheduled == true and .completedBackup == true and .completedPVB == true' \
+  "$selector_report" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "selector-fixture" and .name == "expr-unselected")][0] | .scheduled == false and .completedBackup == false and .completedPVB == false' \
+  "$selector_report" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "invoice-ninja" and .name == "storage")][0] | .scheduled == true and .completedBackup == true' \
+  "$selector_report" >/dev/null
+
+# Pod-level FSB exclusions must prevent a PodVolumeBackup for the named
+# volume, while an important sibling volume in the same schedule still needs
+# an exact completed PVB correlation.
+cp -R "$fixture_dir/." "$fsb_dir/"
+jq '.items += [
+  {"metadata":{"namespace":"fsb-fixture","name":"logs"},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-fsb-logs"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"fsb-fixture","name":"important"},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-fsb-important"},"status":{"phase":"Bound"}}
+]' "$fsb_dir/pvc.json" >"$tmp_json"
+mv "$tmp_json" "$fsb_dir/pvc.json"
+jq '.items += [
+  {"metadata":{"name":"pv-fsb-logs"},"spec":{"claimRef":{"namespace":"fsb-fixture","name":"logs"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-fsb-important"},"spec":{"claimRef":{"namespace":"fsb-fixture","name":"important"}},"status":{"phase":"Bound"}}
+]' "$fsb_dir/pv.json" >"$tmp_json"
+mv "$tmp_json" "$fsb_dir/pv.json"
+jq '.items += [
+  {"metadata":{"namespace":"fsb-fixture","name":"logs-pod","annotations":{"backup.velero.io/backup-volumes-excludes":"logs"}},"spec":{"volumes":[{"name":"logs","persistentVolumeClaim":{"claimName":"logs"}}]}},
+  {"metadata":{"namespace":"fsb-fixture","name":"important-pod"},"spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"important"}}]}}
+]' "$fsb_dir/pods.json" >"$tmp_json"
+mv "$tmp_json" "$fsb_dir/pods.json"
+jq '.items += [{"metadata":{"namespace":"velero","name":"daily-fsb"},"spec":{"template":{"includedNamespaces":["fsb-fixture"]}}}]' \
+  "$fsb_dir/schedules.json" >"$tmp_json"
+mv "$tmp_json" "$fsb_dir/schedules.json"
+jq '.items += [{"metadata":{"namespace":"velero","name":"daily-fsb-20261105","labels":{"velero.io/schedule-name":"daily-fsb"}},"spec":{"includedNamespaces":["fsb-fixture"]},"status":{"phase":"Completed"}}]' \
+  "$fsb_dir/backups.json" >"$tmp_json"
+mv "$tmp_json" "$fsb_dir/backups.json"
+jq '.items += [{"metadata":{"namespace":"velero","name":"fsb-important-pvb","labels":{"velero.io/backup-name":"daily-fsb-20261105","velero.io/pvc-namespace":"fsb-fixture","velero.io/pvc-name":"important"}},"spec":{"pod":{"namespace":"fsb-fixture","name":"important-pod"},"volume":"data"},"status":{"phase":"Completed"}}]' \
+  "$fsb_dir/pvbs.json" >"$tmp_json"
+mv "$tmp_json" "$fsb_dir/pvbs.json"
+fsb_report="$fsb_dir/report.json"
+set +e
+BACKUP_AUDIT_INPUT_DIR="$fsb_dir" BACKUP_AUDIT_REPORT_FILE="$fsb_report" \
+  bash "$repo_root/scripts/backup-audit.sh" >"$output"
+fsb_rc=$?
+set -e
+(( fsb_rc == 0 ))
+jq -e '[.pvc[] | select(.namespace == "fsb-fixture" and .name == "logs")] | length == 0' "$fsb_report" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "fsb-fixture" and .name == "important")][0] | .completedPVB == true and .backupMechanism == "velero/kopia"' "$fsb_report" >/dev/null
+
+# Shared PVC: excluding a volume in only one of two pods must not hide
+# the other pod's unexcluded mount from the protection audit.
+cp -R "$fixture_dir/." "$shared_dir/"
+jq '.items += [{
+  "metadata":{"namespace":"shared-fixture","name":"shared"},
+  "spec":{"storageClassName":"longhorn-fast","volumeName":"pv-shared"},
+  "status":{"phase":"Bound"}
+}]' "$shared_dir/pvc.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/pvc.json"
+jq '.items += [{
+  "metadata":{"name":"pv-shared"},
+  "spec":{"claimRef":{"namespace":"shared-fixture","name":"shared"}},
+  "status":{"phase":"Bound"}
+}]' "$shared_dir/pv.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/pv.json"
+jq '.items += [
+  {"metadata":{"namespace":"shared-fixture","name":"excluded-pod",
+                "annotations":{"backup.velero.io/backup-volumes-excludes":"data"}},
+   "spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"shared"}}]}},
+  {"metadata":{"namespace":"shared-fixture","name":"included-pod"},
+   "spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"shared"}}]}}
+]' "$shared_dir/pods.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/pods.json"
+jq '.items += [{
+  "metadata":{"namespace":"velero","name":"daily-shared"},
+  "spec":{"template":{"includedNamespaces":["shared-fixture"]}}
+}]' "$shared_dir/schedules.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/schedules.json"
+jq '.items += [{
+  "metadata":{"namespace":"velero","name":"daily-shared-20261105",
+              "labels":{"velero.io/schedule-name":"daily-shared"}},
+  "spec":{"includedNamespaces":["shared-fixture"]},
+  "status":{"phase":"Completed"}
+}]' "$shared_dir/backups.json" >"$tmp_json"
+mv "$tmp_json" "$shared_dir/backups.json"
+shared_report="$shared_dir/report.json"
+set +e
+BACKUP_AUDIT_INPUT_DIR="$shared_dir" BACKUP_AUDIT_REPORT_FILE="$shared_report" \
+  bash "$repo_root/scripts/backup-audit.sh" >"$output"
+shared_rc=$?
+set -e
+(( shared_rc != 0 ))
+jq -e '[.productionPVCs[] | select(.namespace == "shared-fixture" and .name == "shared")][0]
+  | .podVolumeExcluded == false and .decision == "PROTECT" and
+    .completedPVB == false and .coverageReady == false' "$shared_report" >/dev/null
 
 # Explicit recovery-purpose labels classify isolated recovery fixtures as
 # restore residue without guessing from a namespace name or treating them as
@@ -102,12 +261,13 @@ jq '.producedAt=(now | todateiso8601) | .items=[
 ]' "$longhorn_dir/restore-evidence.json" >"$tmp_json"
 mv "$tmp_json" "$longhorn_dir/restore-evidence.json"
 longhorn_report="$longhorn_dir/report.json"
+set +e
 BACKUP_AUDIT_INPUT_DIR="$longhorn_dir" BACKUP_AUDIT_REPORT_FILE="$longhorn_report" \
   bash "$repo_root/scripts/backup-audit.sh" >"$output"
-grep -F 'PRODUCTION_PVC_COVERAGE=PASS (1/1)' "$output" >/dev/null
-grep -F 'CNPG_RESTORE_PROOF=PASS' "$output" >/dev/null
-grep -F 'RESTORE_DRILL_SUCCESS=PASS' "$output" >/dev/null
-jq -e '.productionPVCs[0].backupMechanism == "longhorn-s3" and .productionPVCs[0].offsiteBackupVerified == true' \
+longhorn_rc=$?
+set -e
+(( longhorn_rc != 0 ))
+jq -e '.productionPVCs[0].backupMechanism == "longhorn-s3-supplemental" and .productionPVCs[0].longhornBackupSupplemental == true and .productionPVCs[0].offsiteBackupVerified == false' \
   "$longhorn_report" >/dev/null
 jq -e '.productionPVCs[0].recurringBackupConfigured == true' "$longhorn_report" >/dev/null
 

@@ -11,13 +11,11 @@ spec:
   template:
     includedNamespaces:
       - karakeep
+    # Meilisearch's index is rebuildable from Karakeep's durable data. Select
+    # only the web workload so the index PVC is not uploaded by Kopia.
     labelSelector:
-      matchExpressions:
-        - key: app
-          operator: In
-          values:
-            - karakeep-web
-            - meilisearch
+      matchLabels:
+        app: karakeep-web
     includedResources:
       - '*'
     excludedResources:

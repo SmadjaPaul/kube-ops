@@ -13,17 +13,18 @@ spec:
     parameters:
       barmanObjectName: matrix-synapse-hetzner-store
 ---
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: matrix-mas-postgresql-weekly
+  name: matrix-mas-postgresql-clean-weekly
   namespace: matrix
 spec:
-  schedule: "0 45 3 * * 0"
+  schedule: "0 0 4 * * 0"
   backupOwnerReference: self
-  cluster: {name: matrix-mas-postgresql}
+  cluster: {name: matrix-mas-postgresql-clean}
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: matrix-mas-hetzner-store
+      barmanObjectName: matrix-mas-clean-hetzner-store

@@ -15,7 +15,7 @@ spec:
       releaseName: sparkyfitness
       valuesObject:
         global:
-          storageClass: longhorn-fast
+          storageClass: longhorn-bulk
         postgresql:
           enabled: false
         externalDatabase:
@@ -33,7 +33,10 @@ spec:
             enabled: true
             providerSlug: authentik
             providerName: Authentik
-            issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness/
+            # SparkyFitness v1.11.0 removes one trailing slash before storing
+            # the issuer. Authentik's discovery document correctly retains one;
+            # keep two at the chart boundary until the upstream fix is shipped.
+            issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness//
             scope: "openid email profile groups"
             adminGroup: authentik-admins
             # The upstream user.create.before hook blocks all registrations when
@@ -70,10 +73,10 @@ spec:
           persistence:
             backup:
               size: 1Gi
-              storageClass: longhorn-fast
+              storageClass: longhorn-bulk
             uploads:
               size: 2Gi
-              storageClass: longhorn-fast
+              storageClass: longhorn-bulk
         frontend:
           replicas: 1
           image:
