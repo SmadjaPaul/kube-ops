@@ -1,0 +1,41 @@
+{
+  "$schema": "https://kube-ops.smadja.dev/contracts/agent-test-result-v1.schema.json",
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt-145-plt-46-orphan-cnpg-2026-11-05",
+  "producedAt": "2026-11-05T18:53:05Z",
+  "actor": {"kind":"agent","name":"Codex"},
+  "repository": {"name":"SmadjaPaul/kube-ops","revision":"4d13b648f60b2cda18b80516f2742ecb64308adb","branch":"main"},
+  "tests": [
+    {"id":"ARGO_HEALTH_ROOT_CAUSE","name":"Argo apps-platform root cause","command":"just status-app apps-platform; argocd app diff apps-platform --core --hard-refresh","execution":"executed","status":"PASSED","classification":"passed","reason":"After #1001, the parent is Synced and the hard refresh has no desired/live diff; Degraded is caused only by OrphanedResourceWarning with 26 resources. No resource health is Degraded.","risk":"none","expectedCi":"expected","evidence":{"kind":"manual","reference":"PR #1001 merged as 4d13b648f60b2cda18b80516f2742ecb64308adb; runtime observed 2026-11-05T18:51:17Z"}},
+    {"id":"ORPHAN_INVENTORY","name":"Exact apps-platform orphan inventory","command":"argocd app resources apps-platform --core --orphaned --output tree=detailed","execution":"executed","status":"PASSED","classification":"passed","reason":"Exactly 26 objects were captured with UID and owner evidence: ACTIVE=1, OPERATOR_MANAGED=14, RETAINED=11, STALE_SAFE=0, UNKNOWN=0. The full metadata-only inventory is versioned separately.","risk":"medium","expectedCi":"expected","evidence":{"kind":"manual","reference":"docs/operations/plt-145-plt-46-apps-platform-orphans-2026-11-05.json"}},
+    {"id":"LEGACY_CNPG_RESOURCE_COST","name":"Legacy CNPG resource cost","command":"kubectl get cluster,pod,pvc,pv; Prometheus Longhorn volume metrics","execution":"executed","status":"PASSED","classification":"passed","reason":"Two attached healthy one-replica Longhorn volumes are provisioned at 15Gi and report 1.0289Gi actual size. The Pod requests 100m CPU/256Mi, has 117 restarts, and the 24h maximum restart increase is about 114. Longhorn 24h maxima were 21/6 IOPS and 196608/57344 bytes per second for PGDATA/WAL.","risk":"medium","expectedCi":"expected","evidence":{"kind":"manual","reference":"Runtime inventory 2026-11-05T18:36-18:47Z; Prometheus read-only queries"}},
+    {"id":"FORENSIC_RETENTION_OPTIONS","name":"Forensic retention copies","command":"kubectl get longhorn backups,backupvolumes; kubectl get objectstore","execution":"executed","status":"PASSED","classification":"passed","reason":"Both historical PVCs have seven Completed Longhorn offsite backups each, latest 2026-11-05, with about 1.018Gi stored in the latest backup-volume metadata. CNPG Barman ObjectStore remains configured with a 14d retention policy. File-level integrity and restore are not claimed because no restore was repeated.","risk":"low","expectedCi":"expected","evidence":{"kind":"manual","reference":"Longhorn backup CRs and matrix-mas-hetzner-store status observed 2026-11-05"}},
+    {"id":"SAFE_REMOVAL_READINESS","name":"Safe removal readiness","command":"kubectl get pvc,pv,volumeattachment; inspect Argo/CNPG/Longhorn policies","execution":"executed","status":"BLOCKED","classification":"unavailable","reason":"Removal is not ready: both PVCs have controller ownerReferences to the Cluster, both PVs are Retain but attached, and the Longhorn volumes are still attached. A safe keep-PVC/detach sequence and explicit operator authorization are required before any Cluster or PVC removal.","risk":"high","expectedCi":"required","evidence":{"kind":"manual","reference":"PVC/PV ownerReferences, Retain policy, attached VolumeAttachments and Argo prune=false observed 2026-11-05"}},
+    {"id":"MATRIX_SERVICE_STATUS","name":"Matrix service separation","command":"git grep matrix-mas-postgresql-rw; kubectl get endpointslice","execution":"executed","status":"PASSED","classification":"passed","reason":"Desired MAS configuration points to matrix-mas-postgresql-clean-rw; legacy CNPG Services exist only as unready historical endpoints. The already-qualified clean install and 43/43 smoke remain unchanged and were not rerun.","risk":"low","expectedCi":"expected","evidence":{"kind":"manual","reference":"origin/main Matrix values and runtime EndpointSlices observed 2026-11-05"}},
+    {"id":"GITOPS_CORRECTION","name":"Non-destructive GitOps correction","command":"kustomize build --enable-helm k8s/applications/platform; just check","execution":"executed","status":"PASSED","classification":"passed","reason":"PR #1001 removed only the empty child Application source field. Required checks and local validation passed; no orphan ignore, prune, delete, or runtime mutation was introduced.","risk":"none","expectedCi":"required","evidence":{"kind":"ci","reference":"PR #1001 checks workflow-integrity, v1-contract and docs-required PASS on 05ebf1aa73917a7210256771b3c73868ddf75bf1"}},
+    {"id":"REMAINING_BLOCKERS","name":"Remaining blockers","execution":"executed","status":"BLOCKED","classification":"failed","reason":"The 26 orphan warning remains intentionally visible; legacy CNPG hibernation remains WaitingForHealthy; Matrix human OIDC and Factory bot identity tests remain unqualified. No identity or data action was taken.","risk":"high","expectedCi":"optional","evidence":{"kind":"manual","reference":"PLT-145/PLT-46 runtime evidence 2026-11-05"}}
+  ],
+  "summary": {"outcome":"incomplete","total":8,"executed":8,"notExecuted":0,"passed":6,"failed":1,"skipped":0,"unavailable":1,"notApplicable":0},
+  "transmission": {
+    "target":"factory-platform",
+    "eventType":"agent.test.result",
+    "schema":"agent-test-result/v1",
+    "idempotencyKey":"SmadjaPaul/kube-ops@4d13b648f60b2cda18b80516f2742ecb64308adb:plt-145-plt-46-orphan-cnpg-2026-11-05",
+    "payload": {
+      "resultId":"plt-145-plt-46-orphan-cnpg-2026-11-05",
+      "repository":"SmadjaPaul/kube-ops",
+      "revision":"4d13b648f60b2cda18b80516f2742ecb64308adb",
+      "tests":[
+        {"id":"ARGO_HEALTH_ROOT_CAUSE","name":"Argo apps-platform root cause","execution":"executed","status":"PASSED","classification":"passed","reason":"Synced with no diff; Degraded only from 26 orphan warning.","risk":"none","expectedCi":"expected"},
+        {"id":"ORPHAN_INVENTORY","name":"Exact apps-platform orphan inventory","execution":"executed","status":"PASSED","classification":"passed","reason":"26 objects classified; no STALE_SAFE or UNKNOWN candidates.","risk":"medium","expectedCi":"expected"},
+        {"id":"LEGACY_CNPG_RESOURCE_COST","name":"Legacy CNPG resource cost","execution":"executed","status":"PASSED","classification":"passed","reason":"15Gi provisioned, 1.0289Gi actual, 117 restarts.","risk":"medium","expectedCi":"expected"},
+        {"id":"FORENSIC_RETENTION_OPTIONS","name":"Forensic retention copies","execution":"executed","status":"PASSED","classification":"passed","reason":"Seven Completed Longhorn copies per PVC; restore not repeated.","risk":"low","expectedCi":"expected"},
+        {"id":"SAFE_REMOVAL_READINESS","name":"Safe removal readiness","execution":"executed","status":"BLOCKED","classification":"unavailable","reason":"PVCs remain Cluster-owned and volumes attached; explicit keep-PVC sequence required.","risk":"high","expectedCi":"required"},
+        {"id":"MATRIX_SERVICE_STATUS","name":"Matrix service separation","execution":"executed","status":"PASSED","classification":"passed","reason":"Clean MAS is the configured consumer; legacy endpoints are unready and historical.","risk":"low","expectedCi":"expected"},
+        {"id":"GITOPS_CORRECTION","name":"Non-destructive GitOps correction","execution":"executed","status":"PASSED","classification":"passed","reason":"PR #1001 is merged with required checks PASS.","risk":"none","expectedCi":"required"},
+        {"id":"REMAINING_BLOCKERS","name":"Remaining blockers","execution":"executed","status":"BLOCKED","classification":"failed","reason":"Orphan warning, unhealthy legacy CNPG and identity prerequisites remain.","risk":"high","expectedCi":"optional"}
+      ],
+      "summary":{"outcome":"incomplete","total":8,"executed":8,"notExecuted":0,"passed":6,"failed":1,"skipped":0,"unavailable":1,"notApplicable":0}
+    }
+  }
+}

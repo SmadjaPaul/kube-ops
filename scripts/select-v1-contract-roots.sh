@@ -41,7 +41,10 @@ while IFS= read -r path; do
       roots[k8s/infrastructure/network]=1
       ;;
     k8s/applications/media/polyfin/*)
-      roots[k8s/applications/media/polyfin]=1
+      # Polyfin is an active component of the media root, not an independent
+      # V1 root. Render the owning root so scoped validation stays aligned with
+      # the actual Argo boundary.
+      roots[k8s/applications/media]=1
       ;;
     k8s/applications/games/romm/*)
       roots[k8s/applications/games/romm]=1
