@@ -26,7 +26,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 949,
-      "changeFingerprint": "9c73c173795ade5458b657a96cdecf5eeaacb078d8c5312617d98af23a06f5a8",
+      "changeFingerprint": "878025aa797ef3dee2469017697b6b64207805d110dfee08f875a8107fff1d5f",
       "paths": [
         "tests/harness/atlantis-plan-only-test.sh",
         "tests/harness/backup-audit-contract-test.sh"
@@ -38,7 +38,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 948,
-      "changeFingerprint": "f59375307fc5c1dc3b66c5b4abe23cce322102eafa4a63cbed271fd386e0ef20",
+      "changeFingerprint": "3096a30a7aa81160ead4b9211cd3bc8def6a069e667298cad90051d62c4d57c1",
       "paths": [
         "tests/harness/velero-storage-tier-test.sh"
       ],
