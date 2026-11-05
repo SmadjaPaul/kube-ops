@@ -299,7 +299,7 @@
       "rangeStrategy": "bump"
     },
     {
-      "description": "PLT-128 Docusaurus patch-only automerge candidate; gated by docs-required, v1-contract and workflow-integrity",
+      "description": "PLT-128 Docusaurus patch-only automerge candidate; gated by docs-required",
       "enabled": true,
       "groupName": "PLT-128 Docusaurus runtime and plugins",
       "matchManagers": [
@@ -326,8 +326,8 @@
       "matchCurrentVersion": "!/^0\\./",
       "minimumReleaseAge": "14 days",
       "automerge": true,
-      "platformAutomerge": true,
-      "automergeType": "pr"
+      "automergeType": "pr",
+      "platformAutomerge": true
     }
   ],
   "kubernetes": {
