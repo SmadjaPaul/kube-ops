@@ -299,7 +299,7 @@
       "rangeStrategy": "bump"
     },
     {
-      "description": "PLT-128 Docusaurus runtime: PRs enabled, fusion contrôlée",
+      "description": "PLT-128 Docusaurus patch-only automerge candidate; gated by docs-required, v1-contract and workflow-integrity",
       "enabled": true,
       "groupName": "PLT-128 Docusaurus runtime and plugins",
       "matchManagers": [
@@ -321,13 +321,13 @@
         "@docusaurus/types"
       ],
       "matchUpdateTypes": [
-        "patch",
-        "minor"
+        "patch"
       ],
       "matchCurrentVersion": "!/^0\\./",
       "minimumReleaseAge": "14 days",
-      "automerge": false,
-      "platformAutomerge": false
+      "automerge": true,
+      "platformAutomerge": true,
+      "automergeType": "pr"
     }
   ],
   "kubernetes": {
