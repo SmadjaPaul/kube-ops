@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateAIOStreamsURL, inspectStremioManifest, existingAddonCheck, run } from './polyfin-aiostreams-pilot.mjs';
+import { validateAIOStreamsURL, inspectStremioManifest, existingAddonCheck, createdAddonOK, run } from './polyfin-aiostreams-pilot.mjs';
 
 const allowed='https://aiostreams.smadja.dev/opaque-user/manifest.json';
 test('accepts only reviewed private AIOStreams endpoint',()=>{
@@ -31,12 +31,20 @@ test('classifies Stremio video catalog and stream resources',()=>{
   assert.throws(()=>inspectStremioManifest({id:'x'}));
 });
 test('refuses replacing an existing profile by ID, even if token differs',()=>{
-  assert.equal(existingAddonCheck([{kind:'stremio',id:'com.aiostreams',
-    manifestUrl:'REDACTED'}],movie),'EXISTING_ADDON_ID_REVIEW_PROFILE');
-  assert.equal(existingAddonCheck([{kind:'eclipse',id:'com.aiostreams'}],movie),'ABSENT');
+  assert.equal(existingAddonCheck([{kind:'stremio',id:'local-polyfin-uuid',
+    name:'AIOStreams',manifestUrl:'REDACTED'}],movie),'EXISTING_ADDON_REVIEW_PROFILE');
+  assert.equal(existingAddonCheck([{kind:'stremio',name:'AIOStreams family profile'}],
+    movie),'EXISTING_ADDON_REVIEW_PROFILE');
+  assert.equal(existingAddonCheck([{kind:'eclipse',name:'AIOStreams'}],movie),'ABSENT');
   assert.equal(existingAddonCheck([],movie),'ABSENT');
   assert.throws(()=>existingAddonCheck({},movie));
 });
 test('refuses unknown CLI flags before any secret or network access',async()=>{
   await assert.rejects(()=>run(['--unsafe']),/UNKNOWN_FLAG/);
+});
+
+test('native Polyfin returns a local addon UUID distinct from manifest ID',()=>{
+  assert.equal(createdAddonOK({kind:'stremio',id:'polyfin-local-uuid',name:'AIOStreams'},movie),true);
+  assert.equal(createdAddonOK({kind:'eclipse',id:'local',name:'AIOStreams'},movie),false);
+  assert.equal(createdAddonOK({kind:'stremio',id:'local',name:'Another'},movie),false);
 });
