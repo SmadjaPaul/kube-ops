@@ -6,7 +6,6 @@ resources:
   - open-connector
   - agentgateway
   - mastra-factory
-  - plt71-qualification
   - mastra-sandbox
   - matrix
   - rustical-pilot
