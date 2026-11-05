@@ -1,0 +1,66 @@
+{
+  "$schema": "https://kube-ops.smadja.dev/contracts/argo-platform-orphan-inventory-v1.schema.json",
+  "schemaVersion": "kube-ops/argo-platform-orphan-inventory/v1",
+  "generatedAt": "2026-11-05T18:53:05Z",
+  "application": "apps-platform",
+  "project": "applications",
+  "observed": {
+    "sync": "Synced",
+    "health": "Degraded",
+    "reconciledRevision": "4d13b648f60b2cda18b80516f2742ecb64308adb",
+    "condition": "Application has 26 orphaned resources",
+    "resourceCount": 143,
+    "resourcesWithHealthNotHealthy": 0,
+    "childApplication": {
+      "name": "matrix-legacy-forensics",
+      "sync": "Synced",
+      "health": "Healthy",
+      "orphanCondition": "Application has 2 orphaned resources",
+      "orphanObjects": [
+        "ConfigMap/matrix/matrix-markers",
+        "Secret/matrix/matrix-generated"
+      ]
+    }
+  },
+  "classificationSummary": {
+    "ACTIVE": 1,
+    "OPERATOR_MANAGED": 14,
+    "RETAINED": 11,
+    "STALE_SAFE": 0,
+    "UNKNOWN": 0
+  },
+  "items": [
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702d1","uid":"a4c234fd-2b44-4bc8-9a7b-878195083d65","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained because it is durable credential/runtime data and no deletion authority is proven."},
+    {"group":"rbac.authorization.k8s.io","kind":"RoleBinding","namespace":"arc-runners","name":"homelab-infra-ci-arc-7c996965-listener","uid":"807690f1-1323-4787-aa18-6efc94f0adcc","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"ARC listener RoleBinding; Helm/ARC labels identify homelab-infra runner scale-set ownership."},
+    {"group":"","kind":"ConfigMap","namespace":"matrix","name":"matrix-markers","uid":"e050de90-0d59-4f74-b1f7-33eedd036e52","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"matrix-tools deployment-marker labels identify the active Matrix marker controller."},
+    {"group":"","kind":"Secret","namespace":"argocd","name":"argocd-redis","uid":"cefd0414-1466-4e64-af8e-ac604903dbd6","ownerReferences":[],"classification":"RETAINED","evidence":"Argo system Secret with no owner metadata; retained as control-plane state."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702c0","uid":"05a797d3-38c9-47f4-aa96-203c2782c77c","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702c4","uid":"efda5e56-ec04-46b0-b9d5-4d319288001a","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702d2","uid":"f3911ef4-255c-4128-99cc-087f5a6cfc39","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."},
+    {"group":"rbac.authorization.k8s.io","kind":"RoleBinding","namespace":"arc-runners","name":"factory-ci-arc-7d779cd7-listener","uid":"88c6f5a3-4e2c-4380-834d-58f43b77bdda","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"ARC listener RoleBinding; Helm/ARC labels identify factory-platform runner scale-set ownership."},
+    {"group":"","kind":"Secret","namespace":"argocd","name":"argocd-server-tls","uid":"30f7de45-66eb-4e41-9b99-6af0b8c24688","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"cert-manager controller label is present; TLS Secret is controller-managed."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702c5","uid":"83b623d6-9b8f-404d-890f-0c2aba02f235","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702c6","uid":"cdda5e17-458e-4c49-acae-5ea5b0b7ccc3","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."},
+    {"group":"","kind":"Secret","namespace":"matrix","name":"matrix-generated","uid":"a6452a2d-abba-41dd-85ac-147a32690dc5","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"matrix-tools init-secrets labels identify the active generated-secret controller."},
+    {"group":"argoproj.io","kind":"AppProject","namespace":"argocd","name":"default","uid":"b620fdec-1cdb-4358-be5f-99d6fb1d69b6","ownerReferences":[],"classification":"ACTIVE","evidence":"Active Argo control-plane AppProject used by the controller; not an application workload orphan."},
+    {"group":"extensions.agents.x-k8s.io","kind":"SandboxClaim","namespace":"mastra-sandbox","name":"sandbox-claim-0855bc1d","uid":"d8a687da-9036-4924-bede-84335f95b866","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"Factory session label identifies an active sandbox controller/session claim."},
+    {"group":"rbac.authorization.k8s.io","kind":"Role","namespace":"arc-runners","name":"factory-ci-arc-7d779cd7-listener","uid":"05f2b2d6-27f6-44c0-a442-3475393ad16b","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"ARC Helm labels identify the listener Role owner."},
+    {"group":"aquasecurity.github.io","kind":"RbacAssessmentReport","namespace":"arc-runners","name":"role-factory-ci-arc-7d779cd7-listener","uid":"505a82c3-785f-4e2a-91f7-13c6cc138391","ownerReferences":[{"kind":"Role","name":"factory-ci-arc-7d779cd7-listener","uid":"05f2b2d6-27f6-44c0-a442-3475393ad16b"}],"classification":"OPERATOR_MANAGED","evidence":"Trivy report with controller ownerReference to the ARC listener Role."},
+    {"group":"","kind":"Secret","namespace":"argocd","name":"argocd-repo-server-tls","uid":"d6c58b09-d32a-49de-8901-8963b23b6da8","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"cert-manager controller label is present; TLS Secret is controller-managed."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702b1","uid":"38072231-66c4-44cb-aff2-fb0a8cd99776","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702c7","uid":"534029d4-2bb1-4512-bde5-b9fdf9b0cefb","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702d0","uid":"8add306f-c86f-425e-8bf9-f81250e73f8f","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."},
+    {"group":"rbac.authorization.k8s.io","kind":"Role","namespace":"arc-runners","name":"homelab-infra-ci-arc-7c996965-listener","uid":"d93224c8-219a-45f6-bdde-f4756de25192","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"ARC Helm labels identify the homelab-infra listener Role owner."},
+    {"group":"aquasecurity.github.io","kind":"RbacAssessmentReport","namespace":"arc-runners","name":"role-homelab-infra-ci-arc-7c996965-listener","uid":"5aaedcc8-37c3-48ce-95da-1bfa9e9a7327","ownerReferences":[{"kind":"Role","name":"homelab-infra-ci-arc-7c996965-listener","uid":"d93224c8-219a-45f6-bdde-f4756de25192"}],"classification":"OPERATOR_MANAGED","evidence":"Trivy report with controller ownerReference to the ARC listener Role."},
+    {"group":"","kind":"Secret","namespace":"argocd","name":"argocd-application-controller-tls","uid":"9d91d92f-7c79-46b9-b6dd-c1ca5add0de3","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"cert-manager controller label is present; TLS Secret is controller-managed."},
+    {"group":"","kind":"Secret","namespace":"argocd","name":"sh.helm.release.v1.argocd.v1","uid":"64a21c3f-3050-4b84-973f-e389b641bb98","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"Helm release Secret labels identify the active Argo Helm installation."},
+    {"group":"","kind":"Secret","namespace":"factory-platform","name":"factory-platform-postgresql-source","uid":"78f0c798-ee6d-4967-be51-90e7f00825aa","ownerReferences":[],"classification":"OPERATOR_MANAGED","evidence":"External Secrets managed label and CNPG reload label identify active controller ownership; value was not inspected."},
+    {"group":"","kind":"Secret","namespace":"mastra-factory","name":"factory-release-smoke-runtime-e702b2","uid":"e19a69c1-772b-4332-a2a5-14447cf279a8","ownerReferences":[],"classification":"RETAINED","evidence":"Secret with no owner metadata; retained pending an explicit Factory smoke-data owner decision."}
+  ],
+  "decision": {
+    "safeGitOpsCorrection": "PR #1001 removed the empty child Application source field; no orphan ignore or prune was added.",
+    "deletionPerformed": false,
+    "unknownOrphans": 0,
+    "staleSafeCandidates": 0
+  }
+}

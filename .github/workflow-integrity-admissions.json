@@ -1,4 +1,16 @@
 {
   "schemaVersion": 1,
-  "admissions": []
+  "admissions": [
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 997,
+      "headSha": "2ddb6794b424a748364c724a7e648915fbe9168e",
+      "paths": [
+        ".github/workflows/polyfin-image-audit.yaml"
+      ],
+      "reason": "Bind the active rendered Polyfin image audit correction to its exact PR head.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
+    }
+  ]
 }
