@@ -24,7 +24,9 @@ class PreflightTests(unittest.TestCase):
             calls.append(cmd)
             self.assertEqual(cmd[0], "kubectl")
             self.assertEqual(cmd[3], "get")
-            self.assertNotIn("secret", cmd[4].lower())
+            # ExternalSecret is an allowlisted metadata/status resource; the
+            # guard must reject only Secret object reads, not ESO resources.
+            self.assertNotEqual(cmd[4].lower(), "secret")
             obj={"status":{"conditions":[{"type":"Ready","status":"True"}],
                            "sync":{"status":"Synced"},"health":{"status":"Healthy"}}}
             return subprocess.CompletedProcess(cmd,0,json.dumps(obj),"")
@@ -33,7 +35,7 @@ class PreflightTests(unittest.TestCase):
         self.assertTrue(calls)
         self.assertEqual(result["application/argocd/personal-sparkyfitness"],"PASS")
         self.assertEqual(result["scheduledbackup/wellness/sparkyfitness-postgresql-weekly"],"PRESENT_NOT_PROVEN")
-        self.assertFalse(any("secret" in call[4].lower() for call in calls))
+        self.assertFalse(any(call[4].lower() == "secret" for call in calls))
 
     def test_missing_permission_fails_closed(self):
         with patch.object(m.subprocess,"run",return_value=subprocess.CompletedProcess([],1,"","forbidden")):
