@@ -1,7 +1,6 @@
 """Base-only admission gate unit tests; no GitHub API or cluster interaction."""
 import datetime as dt
 import json
-import os
 import subprocess
 import tempfile
 import unittest
@@ -131,7 +130,7 @@ class AdmissionContract(unittest.TestCase):
              patch.object(Path, "read_text", return_value=document):
             gate.verify(self._args(), NOW)
             with self.assertRaises(SystemExit):
-                gate.verify(self._args(sha="b" * 40), NOW)
+                gate.verify(self._args(pr=950), NOW)
 
     def test_reject_incomplete_admitted_path_set(self):
         document = json.dumps(example())
