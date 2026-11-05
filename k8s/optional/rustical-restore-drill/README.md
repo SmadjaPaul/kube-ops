@@ -36,7 +36,7 @@ the `.db` alone is **not** a backup.
 kustomize build k8s/optional/rustical-restore-drill/source
 kustomize build k8s/optional/rustical-restore-drill/target
 kustomize build k8s/optional/rustical-restore-drill/target-reader
-node --test tests/harness/rustical-restore-drill-contract.test.mjs
+node --test scripts/rustical-restore-drill-contract.test.mjs
 python3 scripts/rustical-sqlite-wal-synthetic.py
 ```
 
