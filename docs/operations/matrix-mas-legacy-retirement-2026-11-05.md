@@ -47,3 +47,17 @@ La cause partagée des corruptions Matrix/Factory reste **UNKNOWN**. Ce nettoyag
 ## Bilan
 
 État initial : `Cluster/matrix/matrix-mas-postgresql` corrompu avec 117+ restarts, ancien PGDATA+WAL 15Gi provisionnés / environ 1.03Gi réellement utilisés au dernier inventaire, nouvel MAS fonctionnel. Phase 1 = GitOps seulement, **pas** de suppression. Les étapes 2–3 ne sont pas déclarées exécutées dans ce runbook.
+
+## État final de la phase 3 — 2026-11-05
+
+La PR #1005 a été fusionnée par GitHub avec le merge `6f3cc4902274dd6aaae8202f26c3d8b7af775a2f` après le préflight UID-scopé et les trois checks requis. Argo a ensuite réconcilié `apps-platform` sur cette révision puis `matrix-legacy-forensics` sur une source vide avec `prune: true` et `allowEmpty: true`.
+
+Résultat observé après réconciliation :
+
+- le Cluster `matrix/matrix-mas-postgresql`, le Pod historique et les deux PVC sont absents ;
+- les PV historiques sont `Released` avec `Retain`, les deux volumes Longhorn sont `detached`, et aucune `VolumeAttachment` ne reste ;
+- le nouveau `matrix-mas-postgresql-clean` et `matrix-synapse-postgresql` sont Ready ;
+- les services historiques et leurs EndpointSlices ont disparu ;
+- l'Application dédiée est `Synced/Healthy` avec zéro ressource gérée.
+
+La phase 3 retire les déclarations GitOps historiques restantes : sauvegarde hebdomadaire suspendue, Backup de gap, ObjectStore `matrix-mas-hetzner-store`, sélecteurs Cilium de l'ancien cluster, source CNPG dormante et Application dédiée. Le préfixe S3 `cnpg/matrix-mas` n'est pas supprimé dans cette PR : sa suppression exige une vérification bornée des objets et de leur identité, sans toucher au bucket partagé ni aux préfixes clean/Synapse. Les PV `Retain` et volumes Longhorn détachés restent également conservés jusqu'à une opération de stockage explicitement qualifiée.
