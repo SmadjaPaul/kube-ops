@@ -63,6 +63,9 @@ spec:
         # SoundCloud Eclipse addon manifest; stream/CDN hosts remain
         # separately scoped after the addon returns a concrete URL.
         - matchName: sc.eclipsemusic.app
+        # Nebula artworkURL points at Tidal's public artwork origin. Keep the
+        # image fetch scoped to this exact host; no wildcard Internet egress.
+        - matchName: resources.tidal.com
         # Nebula is a TorBox-backed Eclipse music addon. This is only its
         # reviewed public control-plane host, not blanket TorBox/CDN egress.
         # Verify the tokenized install URL host before importing the addon.
