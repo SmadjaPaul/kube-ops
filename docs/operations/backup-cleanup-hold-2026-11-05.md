@@ -5,9 +5,10 @@ Ce document prépare le périmètre d’une éventuelle PR de nettoyage. Il n’
 ## Objets conservés
 
 - Le manifeste historique de synthèse contient 17 PVC et porte `executable=false` avec une liste de suppression vide : `docs/operations/dr-synth-historical-review-manifest-2026-10-19.json`.
-- La capture live du 5 novembre montre 13 PVC `proxmox-csi`, 77 PV `Released`, 154 volumes Longhorn et 22 PVC classés comme résidus de restauration par le contrat d’audit strict.
+- La capture live du 5 novembre montre 13 PVC `proxmox-csi`, 77 PV `Released`, 154 volumes Longhorn et 22 PVC classés comme résidus de restauration par le contrat d’audit strict. Les 17 PVC du manifeste historique sont un inventaire de contrôle distinct; les deux nombres ne doivent pas être additionnés ni substitués l’un à l’autre.
 - Les volumes Longhorn `listmonk/listmonk-uploads` et `twenty/twenty-storage` sont conservés même s’ils ne sont plus montés par un PVC actuel. Ils ne doivent pas être déduits de leur absence dans la matrice PVC.
 - Les volumes et sauvegardes associés à Factory/Mastra, Immich Redis et aux restaurations de preuve restent conservés jusqu’à preuve de restauration applicative acceptée.
+- La suppression du groupe Longhorn global proposée séparément ne retire que le `RecurringJob` global de la source GitOps; elle ne supprime ni jobs explicites, ni PVC, ni volume, ni snapshot, ni backup distant.
 
 ## Conditions préalables à toute suppression
 
