@@ -4,6 +4,7 @@ metadata:
   name: auth-authentik-access
   labels:
     policy-type: auth-audit
+# Scoped-render proof change; no policy semantics are altered.
 spec:
   endpointSelector:
     matchLabels:
