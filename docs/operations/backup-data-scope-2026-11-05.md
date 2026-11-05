@@ -1,6 +1,6 @@
 # PLT-56 — matrice de données et contrat de sauvegarde (audit I/O 2026-11-05)
 
-> Capture de référence : 5 novembre 2026, à partir des objets live collectés dans `/private/tmp/plt56-live/` et de l’audit I/O local [plt-io-audit-2026-11-05.md](../../../homelab-infra-plt-io-audit/docs/operations/plt-io-audit-2026-11-05.md) du worktree précédent (`c667dc6`). Cette matrice décrit la décision de périmètre; elle ne supprime aucune source ni sauvegarde.
+> Capture de référence : 5 novembre 2026, à partir des objets live collectés dans `/private/tmp/plt56-live/` et de l’audit I/O [plt-io-audit-2026-11-05.md](https://github.com/SmadjaPaul/homelab-infra/pull/235) récupéré du worktree précédent (`c667dc6`). Cette matrice décrit la décision de périmètre; elle ne supprime aucune source ni sauvegarde.
 
 ## Décision
 
