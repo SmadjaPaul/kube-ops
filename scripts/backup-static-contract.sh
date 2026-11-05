@@ -34,7 +34,8 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
     {
       namespace:(.metadata.namespace//"default"),
       name:.metadata.name,
-      rebuildable:(.metadata.labels["backup.smadja.dev/strategy"]=="rebuildable")
+      rebuildable:(.metadata.labels["backup.smadja.dev/strategy"]=="rebuildable"),
+      excluded:(.metadata.labels["velero.io/exclude-from-backup"]=="true")
     }
   ] as $pvcs |
   [$docs[] |
@@ -70,7 +71,7 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
     select(.kind=="ObjectStore" and (.apiVersion|startswith("barmancloud.cnpg.io/"))) |
     {namespace:(.metadata.namespace//"default"),name:.metadata.name}
   ] as $stores |
-  ((([$pvcs[]|select(.rebuildable!=true)]) + ([$stateful[]|select(.rebuildable!=true)])) | map(.namespace) | unique) as $protectedNamespaces |
+  ((([$pvcs[]|select(.rebuildable!=true and .excluded!=true)]) + ([$stateful[]|select(.rebuildable!=true)])) | map(.namespace) | unique) as $protectedNamespaces |
   {
     protectedNamespaces:$protectedNamespaces,
     rebuildablePVCs:[$pvcs[]|select(.rebuildable==true)],
