@@ -2,15 +2,6 @@ name: Documentation integrity
 
 on:
   pull_request:
-    paths:
-      - 'AGENTS.md'
-      - 'docs/**'
-      - 'website/**'
-      - 'scripts/check-documentation-integrity.mjs'
-      - 'tests/harness/documentation-integrity-test.mjs'
-      - '.justfile'
-      - 'package.json'
-      - '.github/workflows/documentation-integrity.yaml'
   push:
     branches: [main]
     paths:
@@ -27,8 +18,8 @@ permissions:
   contents: read
 
 jobs:
-  documentation:
-    name: Offline integrity and Docusaurus build
+  docs-required:
+    name: docs-required
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,24 +30,63 @@ jobs:
         with:
           node-version: '22.22.0'
 
-      - name: Run offline documentation checks
-        run: npm run check:documentation
-
-      - name: Check changed public-documentation disclosure boundary
+      - name: Classify changed files
+        id: classify
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            base='${{ github.event.pull_request.base.sha }}'
+          relevant=false
+          # Capture the diff in a standalone assignment so git failures abort the job.
+          changed_files="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          while IFS= read -r file; do
+            [[ -n "$file" ]] || continue
+            case "$file" in
+              AGENTS.md|docs/*|website/*|package.json|.justfile|\
+              scripts/check-documentation-integrity.mjs|\
+              tests/harness/documentation-integrity-test.mjs|\
+              .github/workflows/documentation-integrity.yaml)
+                relevant=true
+                ;;
+            esac
+          done <<< "$changed_files"
+          echo "documentation_relevant=$relevant" >> "$GITHUB_OUTPUT"
+          if [[ "$relevant" == true ]]; then
+            echo 'DOCS_REQUIRED_CLASSIFICATION=documentation-change'
           else
-            base='${{ github.event.before }}'
+            echo 'DOCS_REQUIRED_CLASSIFICATION=no-documentation-change'
           fi
-          node scripts/check-documentation-integrity.mjs --changed-from "$base"
 
-      - name: Install website dependencies without generating a lockfile
+      - name: Pass non-documentation changes explicitly
+        if: steps.classify.outputs.documentation_relevant != 'true'
+        run: echo 'DOCS_REQUIRED=PASS_NO_DOCUMENTATION_CHANGES'
+
+      - name: Run repository documentation integrity checks
+        if: steps.classify.outputs.documentation_relevant == 'true'
+        run: |
+          npm run check:documentation
+          node scripts/check-documentation-integrity.mjs --changed-from "$BASE_SHA"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+
+      - name: Install website dependencies
+        if: steps.classify.outputs.documentation_relevant == 'true'
         working-directory: website
         run: npm ci --ignore-scripts --no-audit --no-fund
 
+      - name: Lint Remark
+        if: steps.classify.outputs.documentation_relevant == 'true'
+        working-directory: website
+        run: npm exec --no -- remark . -q
+
+      - name: Typecheck documentation site
+        if: steps.classify.outputs.documentation_relevant == 'true'
+        working-directory: website
+        run: npm run typecheck
+
       - name: Build Docusaurus and reject broken links
+        if: steps.classify.outputs.documentation_relevant == 'true'
         working-directory: website
         run: npm run build
