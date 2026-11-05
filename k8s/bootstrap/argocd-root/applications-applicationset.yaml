@@ -55,6 +55,19 @@ spec:
           name: rollout-demo-preview
           jsonPointers:
             - /spec/selector/rollouts-pod-template-hash
+        # PLT-140 shadow: only the two Rollouts-owned hash selectors.
+        - group: ""
+          kind: Service
+          namespace: gpt-researcher
+          name: ws-rewriter-rollout-active
+          jsonPointers:
+            - /spec/selector/rollouts-pod-template-hash
+        - group: ""
+          kind: Service
+          namespace: gpt-researcher
+          name: ws-rewriter-rollout-preview
+          jsonPointers:
+            - /spec/selector/rollouts-pod-template-hash
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:
