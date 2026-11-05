@@ -24,6 +24,8 @@ spec:
           - path: k8s/applications/catalog
           - path: k8s/applications/platform
           - path: k8s/applications/restore
+          # PLT-141: opt-in only AFTER #942 controller + #943 fixture are merged.
+          - path: k8s/optional/argo-rollouts-bluegreen-demo
   template:
     metadata:
       name: 'apps-{{ path.basename }}'
@@ -38,6 +40,21 @@ spec:
         targetRevision: main
         path: '{{ path }}'
         kustomize: {}
+      # Rollouts owns only this Service selector key; keep every other field GitOps-managed.
+      # Names and namespace are exact so no other application is exempted.
+      ignoreDifferences:
+        - group: ""
+          kind: Service
+          namespace: argo-rollouts-demo
+          name: rollout-demo-active
+          jsonPointers:
+            - /spec/selector/rollouts-pod-template-hash
+        - group: ""
+          kind: Service
+          namespace: argo-rollouts-demo
+          name: rollout-demo-preview
+          jsonPointers:
+            - /spec/selector/rollouts-pod-template-hash
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:
