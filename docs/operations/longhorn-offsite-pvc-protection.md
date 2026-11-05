@@ -36,6 +36,9 @@ currently declared PVCs are explicitly marked as the recurring-job source:
   must run `PRAGMA integrity_check` and a read-only application-level check.
 - `atlantis-system/atlantis-pilot-data` — protect the dormant pilot state;
   GitHub App readiness remains a separate blocker.
+- `immich/redis-data-immich-redis-master-0` — Redis AOF restore sur copie qualifié ;
+  conserver la protection Longhorn explicite tant que la restauration applicative
+  complète d’Immich n’est pas validée.
 - `invoice-ninja/invoice-ninja-public` — application public data pending
   qualification of its Velero/Kopia primary copy.
 - `invoice-ninja/invoice-ninja-storage` — application storage pending the same
