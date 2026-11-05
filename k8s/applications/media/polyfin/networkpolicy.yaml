@@ -41,17 +41,6 @@ spec:
         - ports:
             - port: "5432"
               protocol: TCP
-    # Dedicated in-cluster AIOStreams control API for Polyfin's Stremio addon.
-    # Kubernetes Service port 80 is DNAT'ed to the AIOStreams Pod port 3000.
-    # The upstream ingress policy also explicitly permits this identity.
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: media
-            app.kubernetes.io/name: aiostreams
-      toPorts:
-        - ports:
-            - port: "3000"
-              protocol: TCP
     # Legacy Gateway route kept for previously installed manifests during
     # migration; NEW AIOStreams sources must use the in-cluster Service URL.
     # The configured AIOStreams manifest and its child endpoints use
