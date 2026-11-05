@@ -20,6 +20,7 @@ metadata:
   namespace: matrix
 spec:
   schedule: "0 45 3 * * 0"
+  suspend: true
   backupOwnerReference: self
   cluster: {name: matrix-mas-postgresql}
   method: plugin
@@ -27,3 +28,18 @@ spec:
     name: barman-cloud.cloudnative-pg.io
     parameters:
       barmanObjectName: matrix-mas-hetzner-store
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: matrix-mas-postgresql-clean-weekly
+  namespace: matrix
+spec:
+  schedule: "0 0 4 * * 0"
+  backupOwnerReference: self
+  cluster: {name: matrix-mas-postgresql-clean}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-mas-clean-hetzner-store

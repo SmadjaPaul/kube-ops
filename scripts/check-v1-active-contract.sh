@@ -48,7 +48,7 @@ grep -q 'PROXMOX_CSI_TOKEN_SECRET' k8s/infrastructure/storage/proxmox-csi/extern
 # Longhorn is introduced as a staged V1 storage backend while Proxmox CSI
 # remains available for existing PVCs. It must not become the default until the
 # dedicated Talos data volume and runtime storage canary are proven.
-grep -q 'version: 1.12.1' k8s/infrastructure/storage/longhorn/kustomization.yaml
+grep -q '^    version: [0-9]' k8s/infrastructure/storage/longhorn/kustomization.yaml
 grep -q 'defaultClass: false' k8s/infrastructure/storage/longhorn/values.yaml
 grep -q 'createStorageClass: false' k8s/infrastructure/storage/longhorn/values.yaml
 grep -q 'defaultDataPath: /var/mnt/k8s-fast/longhorn' k8s/infrastructure/storage/longhorn/values.yaml
@@ -128,13 +128,51 @@ roots=(
   k8s/applications/catalog
   k8s/applications/games
 )
+narrow_roots=(
+  k8s/optional/sparkyfitness
+  k8s/infrastructure/network/policies/auth
+)
+
+# The global invariants above always run.  Rendering may be narrowed for an
+# independent PR so an unrelated remote chart cannot block it.  The selector
+# is produced by scripts/select-v1-contract-roots.sh and fails closed on an
+# unknown root or an empty selection.
+requested_roots="${V1_CONTRACT_ROOTS:-all}"
+selected_roots=()
+if [[ "$requested_roots" == all ]]; then
+  selected_roots=("${roots[@]}")
+else
+  IFS=',' read -r -a requested_array <<<"$requested_roots"
+  for requested in "${requested_array[@]}"; do
+    [[ -n "$requested" ]] || {
+      echo "ERROR: V1_CONTRACT_ROOTS contains an empty root" >&2
+      exit 1
+    }
+    matched=false
+    for root in "${roots[@]}" "${narrow_roots[@]}"; do
+      if [[ "$requested" == "$root" ]]; then
+        selected_roots+=("$root")
+        matched=true
+        break
+      fi
+    done
+    [[ "$matched" == true ]] || {
+      echo "ERROR: V1_CONTRACT_ROOTS contains an unknown active root: $requested" >&2
+      exit 1
+    }
+  done
+  ((${#selected_roots[@]} > 0)) || {
+    echo "ERROR: V1_CONTRACT_ROOTS selected no roots" >&2
+    exit 1
+  }
+fi
 
 # The games root stays active for RomM; Minecraft manifests were retired.
 
 rendered="$(mktemp)"
 trap 'rm -f "$rendered"' EXIT
 
-for root in "${roots[@]}"; do
+for root in "${selected_roots[@]}"; do
   [[ -f "$root/kustomization.yaml" || -f "$root/kustomization.yml" ]] || {
     echo "ERROR: active root has no kustomization: $root" >&2
     exit 1

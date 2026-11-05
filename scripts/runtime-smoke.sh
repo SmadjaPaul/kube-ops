@@ -155,7 +155,7 @@ while IFS= read -r route; do
         --arg accepted "$accepted" --arg resolvedRefs "$refs" \
         --arg result SKIPPED_DISABLED_BY_DESIGN --arg reason "$disabled_reason" \
         --argjson readyEndpoints "$endpoint_count" \
-        '{namespace:$namespace,route:$route,host:$host,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),readyEndpoints:$readyEndpoints,result:$result,reasons:$reason,disabledByDesign:true}' \
+        '{namespace:$namespace,route:$route,host:$host,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),readyEndpoints:$readyEndpoints,result:$result,routePass:"NOT_EXECUTED",workloadPass:"NOT_MEASURED",functionalPass:"NOT_EXECUTED",reasons:$reason,disabledByDesign:true}' \
         | tee -a "$report"
       continue
     fi
@@ -204,7 +204,9 @@ raise SystemExit(0 if addresses and all(address.is_global for address in address
 
     [[ "$result" == PASS ]] || failures=$((failures + 1))
     reason_csv="$(IFS=,; echo "${reasons[*]:-}")"
-    jq -nc       --arg namespace "$ns" --arg route "$name" --arg host "$host" --arg dnsSource "$dns_source"       --arg accepted "$accepted" --arg resolvedRefs "$refs"       --arg dns "$dns_answers" --arg code "$code" --arg result "$result"       --arg reasons "$reason_csv" --argjson readyEndpoints "$endpoint_count"       --argjson httpAttempts "$http_attempts" --argjson kedaManaged "$keda_managed"       '{namespace:$namespace,route:$route,host:$host,dnsSource:$dnsSource,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),dns:$dns,httpStatus:$code,httpAttempts:$httpAttempts,kedaManaged:$kedaManaged,readyEndpoints:$readyEndpoints,result:$result,reasons:($reasons|if length > 0 then . else null end),disabledByDesign:false}'       | tee -a "$report"
+    route_pass=false
+    [[ "$result" == PASS ]] && route_pass=true
+    jq -nc       --arg namespace "$ns" --arg route "$name" --arg host "$host" --arg dnsSource "$dns_source"       --arg accepted "$accepted" --arg resolvedRefs "$refs"       --arg dns "$dns_answers" --arg code "$code" --arg result "$result"       --arg reasons "$reason_csv" --argjson routePass "$route_pass" --argjson readyEndpoints "$endpoint_count"       --argjson httpAttempts "$http_attempts" --argjson kedaManaged "$keda_managed"       '{namespace:$namespace,route:$route,host:$host,dnsSource:$dnsSource,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),dns:$dns,httpStatus:$code,httpAttempts:$httpAttempts,kedaManaged:$kedaManaged,readyEndpoints:$readyEndpoints,result:$result,routePass:$routePass,workloadPass:"NOT_MEASURED",functionalPass:"NOT_EXECUTED",reasons:($reasons|if length > 0 then . else null end),disabledByDesign:false}'       | tee -a "$report"
   done < <(jq -r '.spec.hostnames[]?' <<<"$route")
 done < <(jq -c '.items[]' <<<"$routes")
 

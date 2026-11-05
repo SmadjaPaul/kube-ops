@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt-145-matrix-clean-install-final-2026-11-05",
+  "producedAt": "2026-11-05T16:15:00+01:00",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "642606175ddb55774a6a0393f40d3507da361d58",
+    "branch": "main"
+  },
+  "tests": [
+    {
+      "id": "clean-cnpg-ready",
+      "name": "Clean Matrix MAS CNPG readiness",
+      "command": "kubectl get cluster.postgresql.cnpg.io matrix-mas-postgresql-clean",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The new cluster is Ready with a unique system ID, one Running instance, and continuous archiving enabled.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "matrix-mas-clean-install-20261105.md"}
+    },
+    {
+      "id": "clean-backup",
+      "name": "Clean Matrix MAS base backup",
+      "command": "kubectl get backup.postgresql.cnpg.io matrix-mas-postgresql-clean-initial-20261105",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The one-time CNPG plugin backup completed successfully at 2026-11-05 16:09 UTC and the Cluster reports LastBackupSucceeded=True.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "CNPG Backup status and Cluster LastBackupSucceeded"}
+    },
+    {
+      "id": "mas-schema-and-migrations",
+      "name": "MAS migrations and schema integrity",
+      "command": "kubectl logs database-migrate; pg_dump --schema-only; psql metadata counts",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Migration init completed with exit code 0; schema-only dump passed; 34 public tables and 167 migrations are present.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "runtime qualification 2026-11-05"}
+    },
+    {
+      "id": "matrix-route-smoke",
+      "name": "Matrix MAS, Synapse, Element and well-known route smoke",
+      "command": "just runtime-smoke",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "account.smadja.dev, matrix.smadja.dev, chat.smadja.dev, smadja.dev and matrix.smadja.dev well-known routes returned expected HTTP responses with ready endpoints.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "RUNTIME_SMOKE: Matrix routes PASS"}
+    },
+    {
+      "id": "runtime-smoke-global",
+      "name": "Global runtime smoke",
+      "command": "just runtime-smoke",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The 43-route smoke had 42 PASS and one unrelated Atlantis 503/no-ready-endpoint; Matrix routes passed.",
+      "risk": "medium",
+      "expectedCi": "optional",
+      "evidence": {"kind": "command", "reference": "Atlantis-only failure; outside PLT-145 scope"}
+    },
+    {
+      "id": "source-preservation",
+      "name": "Original Matrix and Factory source preservation",
+      "command": "read-only CNPG, PVC and Longhorn inventory",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Original Matrix PGDATA/WAL PVCs remain present and untouched; Factory objects and PVCs were not modified.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "matrix-mas-clean-install-20261105.md"}
+    },
+    {
+      "id": "root-cause-correlation",
+      "name": "Common substrate cause correlation",
+      "command": "bounded PostgreSQL, CNPG, Longhorn and substrate event review",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The shared wrong-magic failure after an unclean stop is proven, but no retained event record identifies the initiating PostgreSQL, filesystem, Longhorn or node cause.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "manual", "reference": "ROOT_CAUSE=UNKNOWN"}
+    },
+    {
+      "id": "credentialed-login-and-factory-compatibility",
+      "name": "Authentik login, Element persistence and Factory Matrix identity compatibility",
+      "command": "credentialed functional login and technical-account test",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "unavailable",
+      "reason": "No credential or Secret value was read; no human currently uses Matrix. HTTP readiness and route success are not proof of authenticated login or bot compatibility.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "BLOCKED on a controlled credentialed test"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 8,
+    "executed": 7,
+    "notExecuted": 1,
+    "passed": 5,
+    "failed": 2,
+    "skipped": 0,
+    "unavailable": 1,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@642606175ddb55774a6a0393f40d3507da361d58:plt-145-matrix-clean-install-final-2026-11-05",
+    "payload": {
+      "resultId": "plt-145-matrix-clean-install-final-2026-11-05",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "642606175ddb55774a6a0393f40d3507da361d58",
+      "tests": [
+        {
+          "id": "clean-cnpg-ready",
+          "name": "Clean Matrix MAS CNPG readiness",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The clean CNPG cluster is Ready.",
+          "risk": "high",
+          "expectedCi": "required"
+        },
+        {
+          "id": "credentialed-login-and-factory-compatibility",
+          "name": "Authentik login and Factory Matrix identity compatibility",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "unavailable",
+          "reason": "No credential or Secret value was read.",
+          "risk": "high",
+          "expectedCi": "required"
+        }
+      ],
+      "summary": {"outcome": "incomplete", "total": 8, "executed": 7, "notExecuted": 1}
+    }
+  }
+}
