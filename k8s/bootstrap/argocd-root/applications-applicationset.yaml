@@ -68,6 +68,19 @@ spec:
           name: ws-rewriter-rollout-preview
           jsonPointers:
             - /spec/selector/rollouts-pod-template-hash
+        # PLT-140: hash selector of Karakeep Chrome shadow Rollout Services only.
+        - group: ""
+          kind: Service
+          namespace: karakeep
+          name: chrome-rollout-active
+          jsonPointers:
+            - /spec/selector/rollouts-pod-template-hash
+        - group: ""
+          kind: Service
+          namespace: karakeep
+          name: chrome-rollout-preview
+          jsonPointers:
+            - /spec/selector/rollouts-pod-template-hash
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:

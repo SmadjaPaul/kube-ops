@@ -15,6 +15,10 @@ resources:
 - web-service.yaml
 - chrome-deployment.yaml
 - chrome-service.yaml
+# PLT-140: shadow only, Karakeep still targets the legacy Service chrome.
+- chrome-rollout.yaml
+- chrome-rollout-services.yaml
+- chrome-rollout-analysis.yaml
 - meilisearch-statefulset.yaml
 - meilisearch-service.yaml
 - http-route.yaml

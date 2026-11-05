@@ -1,0 +1,92 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: chrome-rollout
+  namespace: karakeep
+spec:
+  replicas: 1
+  revisionHistoryLimit: 4
+  progressDeadlineSeconds: 300
+  progressDeadlineAbort: true
+  rollbackWindow:
+    revisions: 3
+  strategy:
+    blueGreen:
+      activeService: chrome-rollout-active
+      previewService: chrome-rollout-preview
+      autoPromotionEnabled: true
+      prePromotionAnalysis:
+        templates:
+          - templateName: chrome-cdp-smoke
+        args:
+          - name: service-name
+            value: chrome-rollout-preview.karakeep.svc.cluster.local
+      postPromotionAnalysis:
+        templates:
+          - templateName: chrome-cdp-smoke
+        args:
+          - name: service-name
+            value: chrome-rollout-active.karakeep.svc.cluster.local
+  selector:
+    matchLabels:
+      app: chrome-rollout
+  template:
+    metadata:
+      labels:
+        app: chrome-rollout
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+      containers:
+        - name: chrome
+          # Pinned image digest and reproducible update tags must be qualified before merge.
+          # :release is currently a mutable floating tag, copied from legacy Deployment.
+          image: ghcr.io/karakeep-app/karakeep-chrome:release
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          args:
+            - --disable-gpu
+            - --disable-dev-shm-usage
+            - --hide-scrollbars
+            - --disable-blink-features=AutomationControlled
+            - --window-size=1440,900
+          resources:
+            requests:
+              cpu: '100m'
+              memory: '256Mi'
+            limits:
+              cpu: '300m'
+              memory: '512Mi'
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9222
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9222
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 1

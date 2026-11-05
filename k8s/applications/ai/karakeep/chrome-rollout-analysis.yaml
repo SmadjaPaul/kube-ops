@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: chrome-cdp-smoke
+  namespace: karakeep
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: cdp-version
+      count: 2
+      interval: 10s
+      failureLimit: 0
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            ttlSecondsAfterFinished: 120
+            template:
+              spec:
+                restartPolicy: Never
+                automountServiceAccountToken: false
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 65534
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: cdp-smoke
+                    image: busybox:1.37.0
+                    command:
+                      - sh
+                      - -ec
+                      - |
+                        wget -q -T 5 -t 2 -O - "http://{{ args.service-name }}:9222/json/version" \
+                          | grep -q '"webSocketDebuggerUrl"'
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities: {drop: ["ALL"]}
+                    resources:
+                      requests: {cpu: 5m, memory: 8Mi}
+                      limits: {cpu: 50m, memory: 32Mi}
