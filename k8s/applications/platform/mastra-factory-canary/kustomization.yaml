@@ -4,6 +4,7 @@ resources:
   - namespace.yaml
   - sandbox-namespace.yaml
   - runtime-externalsecret.yaml
+  - linear-externalsecret.yaml
   - database.yaml
   - deployment.yaml
   - service.yaml
