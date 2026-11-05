@@ -15,6 +15,9 @@ spec:
     metadata:
       labels:
         app: bazarr
+      annotations:
+        # The shared media library is reproducible; Bazarr config remains.
+        backup.velero.io/backup-volumes-excludes: media
     spec:
       securityContext:
         runAsNonRoot: true
