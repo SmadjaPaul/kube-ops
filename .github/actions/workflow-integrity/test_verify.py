@@ -150,7 +150,87 @@ class AdmissionContract(unittest.TestCase):
             self.assertIn("docs/moved-protected.sh", paths)
             self.assertTrue(any(gate.protected(path) for path in paths))
 
-    def test_registry_change_must_be_single_file(self):
+    def test_late_base_admission_is_not_a_pr_change(self):
+        # A registry-only owner PR can land on main after a protected PR was
+        # opened. The late base commit must not make the protected PR appear to
+        # edit the registry as well.
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(root), *args], stderr=subprocess.DEVNULL)
+
+            git("init", "-q")
+            git("config", "user.email", "tests@example.invalid")
+            git("config", "user.name", "CI Test")
+            (root / gate.REGISTRY).parent.mkdir(parents=True)
+            (root / gate.REGISTRY).write_text('{"schemaVersion":1,"admissions":[]}\n')
+            git("add", ".")
+            git("commit", "-qm", "initial")
+            ancestor = git("rev-parse", "HEAD").decode().strip()
+
+            (root / ".github" / "workflows").mkdir(parents=True)
+            (root / gate.SELF).write_text("name: trusted gate\n")
+            git("add", ".")
+            git("commit", "-qm", "protected PR change")
+            head = git("rev-parse", "HEAD").decode().strip()
+
+            # Simulate the owner admission landing on main after the PR head
+            # was created. The working tree remains at the PR head; create a
+            # second line of history for the current base ref.
+            git("checkout", "-qb", "main", ancestor)
+            (root / gate.REGISTRY).write_text(
+                '{"schemaVersion":1,"admissions":[{"late":true}]}\n'
+            )
+            git("add", ".")
+            git("commit", "-qm", "late owner admission")
+            base = git("rev-parse", "HEAD").decode().strip()
+
+            with patch.object(gate, "git_bytes", side_effect=git):
+                paths = gate.changed_paths(base, head)
+            self.assertEqual(paths, [gate.SELF])
+            self.assertNotIn(gate.REGISTRY, paths)
+
+    def test_registry_change_with_late_base_commit_remains_owner_only(self):
+        # The same merge-base rule must preserve the owner-only registry path
+        # for an admission PR, even when main advances independently.
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(root), *args], stderr=subprocess.DEVNULL)
+
+            git("init", "-q")
+            git("config", "user.email", "tests@example.invalid")
+            git("config", "user.name", "CI Test")
+            (root / gate.REGISTRY).parent.mkdir(parents=True)
+            (root / gate.REGISTRY).write_text('{"schemaVersion":1,"admissions":[]}\n')
+            git("add", ".")
+            git("commit", "-qm", "initial")
+            ancestor = git("rev-parse", "HEAD").decode().strip()
+
+            (root / gate.REGISTRY).write_text('{"schemaVersion":1,"admissions":[]}\n')
+            (root / gate.REGISTRY).write_text(
+                '{"schemaVersion":1,"admissions":[{"new":true}]}\n'
+            )
+            git("add", ".")
+            git("commit", "-qm", "registry admission")
+            head = git("rev-parse", "HEAD").decode().strip()
+
+            git("checkout", "-qb", "main", ancestor)
+            (root / "docs").mkdir()
+            (root / "docs" / "late.md").write_text("late base change\n")
+            git("add", ".")
+            git("commit", "-qm", "late base change")
+            base = git("rev-parse", "HEAD").decode().strip()
+
+            with patch.object(gate, "git_bytes", side_effect=git):
+                paths = gate.changed_paths(base, head)
+            self.assertEqual(paths, [gate.REGISTRY])
+
+    def test_reject_multi_file_registry_change(self):
         with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
              patch.object(gate, "changed_paths", return_value=[gate.REGISTRY, "docs/other.md"]):
             with self.assertRaises(SystemExit):

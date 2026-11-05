@@ -33,7 +33,10 @@ spec:
             enabled: true
             providerSlug: authentik
             providerName: Authentik
-            issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness/
+            # SparkyFitness v1.11.0 removes one trailing slash before storing
+            # the issuer. Authentik's discovery document correctly retains one;
+            # keep two at the chart boundary until the upstream fix is shipped.
+            issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness//
             scope: "openid email profile groups"
             adminGroup: authentik-admins
             # The upstream user.create.before hook blocks all registrations when
