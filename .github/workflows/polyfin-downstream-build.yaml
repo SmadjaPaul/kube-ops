@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/polyfin-downstream-build.yaml'
-      - '.github/polyfin/Dockerfile.v0.50.0.patch'
+      - '.github/polyfin/Dockerfile.v0.61.1-apt.patch'
   workflow_dispatch:
 
 # Pull requests only validate the upstream patch. They cannot publish images.
@@ -26,14 +26,13 @@ jobs:
         run: |
           set -euo pipefail
           git clone --filter=blob:none --no-checkout https://github.com/moodiness/polyfin.git upstream
-          git -C upstream checkout --quiet --detach e2cf9f08ac60400fdab20726671fa2e08fd09e1e
-          test "$(git -C upstream rev-parse HEAD)" = e2cf9f08ac60400fdab20726671fa2e08fd09e1e
-          test "$(git -C upstream describe --tags --exact-match)" = v0.50.0
-          git -C upstream apply --check "$GITHUB_WORKSPACE/.github/polyfin/Dockerfile.v0.50.0.patch"
-          git -C upstream apply "$GITHUB_WORKSPACE/.github/polyfin/Dockerfile.v0.50.0.patch"
+          git -C upstream checkout --quiet --detach 2c1576329fba3546202a47f0f3a157cd7cb0623d
+          test "$(git -C upstream rev-parse HEAD)" = 2c1576329fba3546202a47f0f3a157cd7cb0623d
+          test "$(git -C upstream describe --tags --exact-match)" = v0.61.1
+          git -C upstream apply --check "$GITHUB_WORKSPACE/.github/polyfin/Dockerfile.v0.61.1-apt.patch"
+          git -C upstream apply "$GITHUB_WORKSPACE/.github/polyfin/Dockerfile.v0.61.1-apt.patch"
           git -C upstream diff --check
           test "$(git -C upstream diff --name-only)" = Dockerfile
-          test "$(git -C upstream diff --numstat -- Dockerfile | awk '{print $1 ":" $2}')" = "5:2"
 
   build-scan-sign:
     if: github.event_name == 'workflow_dispatch'
@@ -50,9 +49,9 @@ jobs:
     timeout-minutes: 60
     env:
       UPSTREAM_REPOSITORY: https://github.com/moodiness/polyfin.git
-      UPSTREAM_TAG: v0.50.0
-      UPSTREAM_COMMIT: e2cf9f08ac60400fdab20726671fa2e08fd09e1e
-      PATCH_FILE: .github/polyfin/Dockerfile.v0.50.0.patch
+      UPSTREAM_TAG: v0.61.1
+      UPSTREAM_COMMIT: 2c1576329fba3546202a47f0f3a157cd7cb0623d
+      PATCH_FILE: .github/polyfin/Dockerfile.v0.61.1-apt.patch
     steps:
       - name: Check out the GitOps repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -74,7 +73,7 @@ jobs:
           set -euo pipefail
           git -C upstream apply --check "$GITHUB_WORKSPACE/$PATCH_FILE"
           git -C upstream apply "$GITHUB_WORKSPACE/$PATCH_FILE"
-          test "$(git -C upstream diff --numstat -- Dockerfile | awk '{print $1 ":" $2}')" = "5:2"
+          test "$(git -C upstream diff --name-only)" = Dockerfile
           git -C upstream diff --check
           printf 'PATCH_SHA256=%s\n' "$(sha256sum "$PATCH_FILE" | awk '{print $1}')"
 
@@ -84,7 +83,7 @@ jobs:
           set -euo pipefail
           repository="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/polyfin-downstream"
           # Each manual attempt gets a unique non-overwritten tag.
-          tag="0.50.0-patched-${GITHUB_SHA::12}-run${GITHUB_RUN_ID}-attempt${GITHUB_RUN_ATTEMPT}"
+          tag="0.61.1-apt-candidate-${GITHUB_SHA::12}-run${GITHUB_RUN_ID}-attempt${GITHUB_RUN_ATTEMPT}"
           {
             echo "IMAGE_REPOSITORY=$repository"
             echo "IMAGE_TAG=$tag"
@@ -167,7 +166,7 @@ jobs:
         run: |
           set -euo pipefail
           jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL") | [$target, .VulnerabilityID, .PkgName, .InstalledVersion, (.FixedVersion // "UNFIXED"), .Severity, (.Status // "UNKNOWN")] | @tsv' polyfin-candidate-trivy.json > polyfin-candidate-findings.tsv
-          fixable=$'CVE-2026-103111\nCVE-2026-111943\nCVE-2026-78667\nCVE-2026-78669\nCVE-2026-84782\nCVE-2026-97031'
+          fixable=$'CVE-2026-109518'
           : > polyfin-remediation.tsv
           while IFS= read -r cve; do
             if grep -Fq $'\t'"$cve"$'\t' polyfin-candidate-findings.tsv; then

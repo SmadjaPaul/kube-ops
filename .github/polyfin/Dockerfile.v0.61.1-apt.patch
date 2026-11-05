@@ -1,0 +1,29 @@
+diff --git a/Dockerfile b/Dockerfile
+index 77b4fac..4b85089 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -164,14 +164,21 @@ RUN if [ "$TARGETARCH" != "$(dpkg --print-architecture)" ]; then dpkg --add-arch
+ # none of these GPUs, and so their image runs nothing under emulation.
+ # NVIDIA's own libraries come from the NVIDIA container runtime.
+ FROM debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a AS runtime-arm64
++RUN apt-get update \
++	&& apt-get install -y --no-install-recommends apt \
++	&& apt_version="$(dpkg-query -W -f='${Version}' apt)" \
++	&& dpkg --compare-versions "$apt_version" ge 3.0.4 \
++	&& rm -rf /var/lib/apt/lists/*
+ 
+ FROM debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a AS runtime-amd64
+ # Packages are left unpinned so that each build gets Debian's security fixes.
+ # hadolint ignore=DL3008
+ RUN sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.list.d/debian.sources \
+ 	&& apt-get update \
+-	&& apt-get install -y --no-install-recommends libva2 libva-drm2 mesa-va-drivers intel-media-va-driver-non-free \
++	&& apt-get install -y --no-install-recommends apt libva2 libva-drm2 mesa-va-drivers intel-media-va-driver-non-free \
+ 		libvulkan1 libegl1 libxext6 \
++	&& apt_version="$(dpkg-query -W -f='${Version}' apt)" \
++	&& dpkg --compare-versions "$apt_version" ge 3.0.4 \
+ 	&& rm -rf /var/lib/apt/lists/*
+ 
+ # A stage of this file, chosen by platform: no tag to give.
+ # hadolint ignore=DL3006
+ FROM runtime-${TARGETARCH}
