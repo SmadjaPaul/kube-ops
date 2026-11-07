@@ -28,15 +28,27 @@ if grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/http-route.yaml")
   echo "AIOSTREAMS_STAGE=FAIL: family hostname must use its dedicated route" >&2
   exit 1
 fi
-grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/family-http-route.yaml")
-grep -Fxq 'Exact' <(yq -r '.spec.rules[0].matches[0].path.type' "$pkg/family-http-route.yaml")
-grep -Fxq '/jellyfin/u/tv/web/' <(yq -r '.spec.rules[0].filters[0].requestRedirect.path.replaceFullPath' "$pkg/family-http-route.yaml")
-grep -Fxq '302' <(yq -r '.spec.rules[0].filters[0].requestRedirect.statusCode' "$pkg/family-http-route.yaml")
-family_parent_contract='(.spec.parentRefs | length == 1) and (.spec.parentRefs[0].name == "external")'
-yq -e "$family_parent_contract" "$pkg/family-http-route.yaml" >/dev/null
-if yq 'del(.spec.parentRefs[] | select(.name == "external"))' "$pkg/family-http-route.yaml" | yq -e "$family_parent_contract" >/dev/null 2>&1; then
-  echo "AIOSTREAMS_STAGE=FAIL: family route contract accepts a non-external-only parent set" >&2
-  exit 1
+# AIOStreams public family HTTPRoute is active only during Stage 1.
+# Stage 2 hands tv.smadja.dev to Polyfin, while AIOStreams remains private.
+if grep -Fq -- '- family-http-route.yaml' "$pkg/kustomization.yaml"; then
+  grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/family-http-route.yaml")
+  grep -Fxq 'Exact' <(yq -r '.spec.rules[0].matches[0].path.type' "$pkg/family-http-route.yaml")
+  grep -Fxq '/jellyfin/u/tv/web/' <(yq -r '.spec.rules[0].filters[0].requestRedirect.path.replaceFullPath' "$pkg/family-http-route.yaml")
+  grep -Fxq '302' <(yq -r '.spec.rules[0].filters[0].requestRedirect.statusCode' "$pkg/family-http-route.yaml")
+  family_parent_contract='(.spec.parentRefs | length == 1) and (.spec.parentRefs[0].name == "external")'
+  yq -e "$family_parent_contract" "$pkg/family-http-route.yaml" >/dev/null
+  if yq 'del(.spec.parentRefs[] | select(.name == "external"))' "$pkg/family-http-route.yaml" | yq -e "$family_parent_contract" >/dev/null 2>&1; then
+    echo "AIOSTREAMS_STAGE=FAIL: family route contract accepts non-external-only parent" >&2
+    exit 1
+  fi
+else
+  # A dormant YAML file does not create an HTTPRoute. Assert it stays
+  # unreferenced and Polyfin is now sole active owner of tv.smadja.dev.
+  poly=k8s/applications/media/polyfin-media-route.yaml
+  yq -e '(.spec.hostnames | contains(["tv.smadja.dev"])) and ([.spec.parentRefs[].name] | sort) == ["external", "internal"]' "$poly" >/dev/null || {
+    echo "AIOSTREAMS_STAGE=FAIL: no qualified tv.smadja.dev Polyfin replacement" >&2
+    exit 1
+  }
 fi
 if grep -Fq -- '- name: external' "$pkg/http-route.yaml"; then
   echo "AIOSTREAMS_STAGE=FAIL: staged route must not attach to Gateway/external" >&2
