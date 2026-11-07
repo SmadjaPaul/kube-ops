@@ -15,7 +15,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 1032,
-      "changeFingerprint": "8f3fe0aecc643dba5283d432a49b1557688160825db307c81892acafea7217c0",
+      "changeFingerprint": "7ad20a5e7a41d6dcecf148e0dfcf28d138ffb3564c240103f83b64935661bb86",
       "paths": [
         ".github/workflows/polyfin-image-audit.yaml",
         "tests/harness/polyfin-private-pilot-admission-test.sh",
