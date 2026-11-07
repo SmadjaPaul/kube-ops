@@ -39,7 +39,7 @@ digest with OS and library scanners, `HIGH,CRITICAL` severity and
 `ignore-unfixed=false`. The local Trivy version was 0.68.2; repository CI is
 authoritative and pins Trivy 0.76.1.
 
-Result from the local scan:
+Initial local result:
 
 ```text
 68 HIGH/CRITICAL occurrences
@@ -47,12 +47,20 @@ Result from the local scan:
 22 unique CVEs with an affected status after the fixed-status CVEs are separated
 ```
 
+The latest authoritative CI scan (`42379080630`) found 73 HIGH/CRITICAL
+occurrences across 34 unique CVEs. It added three affected HIGH findings
+(`CVE-2026-115506`, `CVE-2026-119374`, `CVE-2026-119379`) and two findings
+marked fixed (`CVE-2026-85091`, `CVE-2026-78661`). The affected findings are
+explicit temporary T2 residuals; the fixed findings are tracked as
+`mustBeAbsent`.
+
 The complete raw JSON and normalized findings were kept outside the
 repository for this qualification run. The checked-in policy records every
 unique finding, keeps fixed-required findings visible, and does not use a
-scanner exclusion. `CVE-2026-6653` (libxml2) and
-`CVE-2026-76844` (zlib) remain explicit residual risks. No custom image,
-Debian backport or automatic waiver is part of this change.
+scanner exclusion. `CVE-2026-6653` (libxml2), `CVE-2026-76844` (zlib),
+`CVE-2026-115506` (libexpat), `CVE-2026-119374` (SQLite FTS5) and
+`CVE-2026-119379` (SQLite session changesets) remain explicit residual risks.
+No custom image, Debian backport or automatic waiver is part of this change.
 
 The upstream release workflow and its successful image smoke-test run are
 evidence about the publisher's release, not a Kubernetes runtime test. CI

@@ -55,7 +55,9 @@
     "CVE-2026-78669",
     "CVE-2026-84782",
     "CVE-2026-97031",
-    "CVE-2026-109518"
+    "CVE-2026-109518",
+    "CVE-2026-85091",
+    "CVE-2026-78661"
   ],
   "workload": {
     "nonRoot": true,
@@ -68,7 +70,12 @@
     {"id":"CVE-2026-113351","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
     {"id":"CVE-2026-117610","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
     {"id":"CVE-2026-118370","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
-    {"id":"CVE-2026-119373","severity":"HIGH","rationale":"Residual SQLite library finding retained in complete evidence; no reachable grave exploit path demonstrated for the private pilot."}
+    {"id":"CVE-2026-119373","severity":"HIGH","rationale":"Residual SQLite library finding retained in complete evidence; no reachable grave exploit path demonstrated for the private pilot."},
+    {"id":"CVE-2026-115506","severity":"HIGH","disposition":"temporary-risk-acceptance","rationale":"New libexpat DoS finding from the complete CI scan; non-reachability is not proven. Accepted only for the private pilot while no public route or IPTV/XMLTV source is admitted; revoke on a Debian/upstream fix or perimeter change.","controls":["Private LAN/VPN only","No public route","No IPTV/XMLTV source","Read-only root filesystem","Admission expires 2026-12-05"]},
+    {"id":"CVE-2026-119374","severity":"HIGH","disposition":"temporary-risk-acceptance","rationale":"New SQLite FTS5 corrupted-index finding from the complete CI scan; non-reachability is not proven. Polyfin uses PostgreSQL and no user SQLite database is mounted, but the residual remains explicitly accepted only for the private pilot.","controls":["PostgreSQL application database","No user SQLite database mount","Private LAN/VPN only","No public route","Admission expires 2026-12-05"]},
+    {"id":"CVE-2026-119379","severity":"HIGH","disposition":"temporary-risk-acceptance","rationale":"New SQLite session-changeset finding from the complete CI scan; non-reachability is not proven. Polyfin uses PostgreSQL and no user SQLite database is mounted, but the residual remains explicitly accepted only for the private pilot.","controls":["PostgreSQL application database","No user SQLite database mount","Private LAN/VPN only","No public route","Admission expires 2026-12-05"]},
+    {"id":"CVE-2026-85091","severity":"HIGH","disposition":"fixed-required","rationale":"The official image contains zlib with a scanner-recognized fixed status; keep it tracked and reject any future digest where it is affected.","controls":["Complete Trivy scan","Digest-specific admission"]},
+    {"id":"CVE-2026-78661","severity":"HIGH","disposition":"fixed-required","rationale":"The official Polyfin binary contains golang.org/x/net with a scanner-recognized fixed status; keep it tracked and reject any future digest where it is affected.","controls":["Complete Trivy scan","Digest-specific admission"]}
   ],
   "acceptedFindings": [
     {

@@ -14,13 +14,13 @@ The T2 acceptance is machine-checked by
 no upstream Cosign signature or GitHub artifact attestation was found and none
 is claimed. Trivy output remains complete and visible.
 
-The exact local Trivy qualification of the official platform digest found
-**68 HIGH/CRITICAL occurrences across 29 CVEs**, including the separately
-accepted CRITICAL `CVE-2026-6653` and the zlib `CVE-2026-76844`. The scan also
-contains nine findings marked fixed by Trivy; they remain tracked and are
-required not to become affected in a future digest. The authoritative CI scan
-uses the repository's pinned Trivy version and must pass the same admission
-policy before promotion.
+The initial local Trivy qualification found **68 HIGH/CRITICAL occurrences
+across 29 CVEs**. The latest authoritative CI scan (`42379080630`) found
+**73 occurrences across 34 CVEs**: three newly reported affected HIGH
+findings (`CVE-2026-115506`, `CVE-2026-119374`, `CVE-2026-119379`) and two
+findings marked fixed (`CVE-2026-85091`, `CVE-2026-78661`). The new affected
+findings are explicitly recorded as temporary T2 residuals; the fixed ones
+are tracked as `mustBeAbsent`. Trivy output remains complete and visible.
 
 The previous downstream build/backport evidence is historical only. It is
 preserved in closed PR [#1018](https://github.com/SmadjaPaul/kube-ops/pull/1018)
