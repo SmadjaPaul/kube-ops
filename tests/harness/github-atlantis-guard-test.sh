@@ -152,6 +152,9 @@ run_case() {
   if test -f "$fixture/terraform/aiostreams/.terraform.lock.hcl"; then
     git -C "$fixture" add -f terraform/aiostreams/.terraform.lock.hcl
   fi
+  if test -f "$fixture/terraform/polyfin/.terraform.lock.hcl"; then
+    git -C "$fixture" add -f terraform/polyfin/.terraform.lock.hcl
+  fi
   git -C "$fixture" commit -qm "$name"
   head="$(git -C "$fixture" rev-parse HEAD)"
   set +e
