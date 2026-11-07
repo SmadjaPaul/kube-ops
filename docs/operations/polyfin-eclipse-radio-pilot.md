@@ -42,7 +42,7 @@ Vérifier par des HTTP GET **sans cookies ni secrets** les deux URLs ci-dessus. 
 
 Après validation HTTP, installer l'addon Eclipse dans l'interface Polyfin depuis le manifeste, activer son catalogue et l'appeler **Radio**. Conserver l'addon Nebula/Musique sans changement, ainsi que les streams AIOStreams. **Ne pas utiliser Live TV pour les radios** ; conserver les huit anciennes chaînes audio-only désactivées.
 
-Test utilisateur : FIP en lecture sur Brave **5 minutes**, arrêt/reprise, changement vers France Inter, recherche depuis la bibliothèque, lecture depuis un autre client compatible, vérification des URLs de l'audio et du trafic éventuel via Cloudflare. Les flux sont des stations radio live sans durée de fin, pas des morceaux artificiels de 24 h. Si cela échoue, désactiver le catalogue Radio et documenter l'erreur exacte en vue d'un correctif upstream.
+Test utilisateur : FIP en lecture sur Brave **5 minutes**, arrêt/reprise, changement vers France Inter, navigation dans le catalogue Radio pour retrouver une station (pas de recherche globale), lecture depuis un autre client compatible, vérification des URLs de l'audio et du trafic éventuel via Cloudflare. Les flux sont des stations radio live sans durée de fin, pas des morceaux artificiels de 24 h. Si cela échoue, désactiver le catalogue Radio et documenter l'erreur exacte en vue d'un correctif upstream.
 
 ## Limitations et compromis
 
