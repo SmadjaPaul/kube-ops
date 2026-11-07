@@ -63,6 +63,49 @@
   ],
   "packageRules": [
     {
+      "description": "PLT-140 low-criticality stateless app candidate: it-tools image, discovery only pending runtime admission",
+      "enabled": true,
+      "groupName": "PLT-140 stateless UI image candidate",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchFileNames": [
+        "k8s/applications/tools/it-tools/deployment.yaml"
+      ],
+      "matchPackageNames": [
+        "corentinth/it-tools"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "patch"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": false,
+      "platformAutomerge": false
+    },
+    {
+      "description": "PLT-140 stateless ASR image candidate: discovery only; model warmup and resource smoke test still missing",
+      "enabled": true,
+      "groupName": "PLT-140 stateless ASR image candidate",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchFileNames": [
+        "k8s/applications/media/whisperasr/deployment.yaml"
+      ],
+      "matchPackageNames": [
+        "onerahmet/openai-whisper-asr-webservice"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "digest"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": false,
+      "platformAutomerge": false
+    },
+
+    {
       "description": "PLT-128 prefer qualified npm website update PRs over Docker digest backlog",
       "matchManagers": [
         "npm"
