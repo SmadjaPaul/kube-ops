@@ -123,6 +123,10 @@ run_case() {
       mkdir -p "$fixture/terraform/aiostreams"
       printf '%s\n' '# generated provider lock' >"$fixture/terraform/aiostreams/.terraform.lock.hcl"
       ;;
+    polyfin-lockfile-allowed)
+      mkdir -p "$fixture/terraform/polyfin"
+      printf '%s\n' '# generated provider lock' >"$fixture/terraform/polyfin/.terraform.lock.hcl"
+      ;;
     aiostreams-nested-denied)
       mkdir -p "$fixture/terraform/aiostreams/nested"
       printf '%s\n' 'resource "terraform_data" "unexpected" {}' >"$fixture/terraform/aiostreams/nested/main.tf"
@@ -198,6 +202,7 @@ run_case mise-lock-path-allowed pass mise.lock
 run_case mise-config-path-allowed pass mise.toml
 run_case mise-config-sibling-denied deny mise.local.toml
 run_case aiostreams-lockfile-allowed pass terraform/aiostreams/.terraform.lock.hcl
+run_case polyfin-lockfile-allowed pass terraform/polyfin/.terraform.lock.hcl
 run_case aiostreams-nested-denied deny terraform/aiostreams/nested/main.tf
 run_case aiostreams-backend-files-allowed pass terraform/oracle-cloud/aiostreams-state-backend.tf
 run_case aiostreams-shared-oracle-file-denied deny terraform/oracle-cloud/variables.tf
