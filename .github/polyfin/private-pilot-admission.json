@@ -6,18 +6,27 @@
   },
   "approval": {
     "type": "explicit-operator-risk-acceptance",
-    "scope": "Polyfin private LAN/VPN pilot only",
-    "expiresAt": "2026-11-26T23:59:59Z",
+    "scope": "Official Polyfin 0.61.1 private LAN/VPN pilot only",
+    "expiresAt": "2026-12-05T23:59:59Z",
     "revocation": "Revoke immediately when an upstream or Debian fix is available, the digest changes, the network perimeter changes, or a new unapproved finding appears."
   },
+  "provenance": {
+    "model": "upstream-release-and-ghcr-digest",
+    "releaseUrl": "https://github.com/moodiness/polyfin/releases/tag/v0.61.1",
+    "releaseCommit": "2c1576329fba3546202a47f0f3a157cd7cb0623d",
+    "manifestListDigest": "sha256:fdeb10f87e596fc04677b0801cbb8c0cc6728b2bb38d9fe89b9bf3685dbfdcc4",
+    "platformDigest": "sha256:1e55720ea21bca9448ddbdd80a21251622d21448ee2e31974ad18ae2a9f6c975",
+    "cosign": "NOT_VERIFIED_UPSTREAM_SIGNATURE_NOT_FOUND",
+    "githubAttestation": "NOT_FOUND",
+    "decision": "Official publisher and immutable GHCR digest are verified; no upstream Cosign or GitHub attestation is claimed. Promotion remains bounded by this T2 policy and complete Trivy evidence."
+  },
   "image": {
-    "repository": "ghcr.io/smadjapaul/polyfin-downstream",
-    "tag": "0.50.0-patched-01dfcfa30e78-run40564826453-attempt1",
-    "digest": "sha256:0b05483c047bb904dfcb8c4e893c528223833c7903ae8f193b4f31475ad5eaf3",
+    "repository": "ghcr.io/moodiness/polyfin",
+    "tag": "0.61.1",
+    "digest": "sha256:1e55720ea21bca9448ddbdd80a21251622d21448ee2e31974ad18ae2a9f6c975",
     "platform": "linux/amd64",
-    "upstreamTag": "v0.50.0",
-    "upstreamCommit": "e2cf9f08ac60400fdab20726671fa2e08fd09e1e",
-    "sbomSha256": "8707a88a2ab947635937559809a874c1fe99bd2758f19025e261f44dd0e822e8"
+    "upstreamTag": "v0.61.1",
+    "upstreamCommit": "2c1576329fba3546202a47f0f3a157cd7cb0623d"
   },
   "perimeter": {
     "hostname": null,
@@ -45,7 +54,10 @@
     "CVE-2026-78667",
     "CVE-2026-78669",
     "CVE-2026-84782",
-    "CVE-2026-97031"
+    "CVE-2026-97031",
+    "CVE-2026-109518",
+    "CVE-2026-85091",
+    "CVE-2026-78661"
   ],
   "workload": {
     "nonRoot": true,
@@ -58,7 +70,12 @@
     {"id":"CVE-2026-113351","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
     {"id":"CVE-2026-117610","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
     {"id":"CVE-2026-118370","severity":"HIGH","rationale":"Residual image finding retained in complete evidence; no reachable grave exploit path demonstrated for the private non-root pilot."},
-    {"id":"CVE-2026-119373","severity":"HIGH","rationale":"Residual SQLite library finding retained in complete evidence; no reachable grave exploit path demonstrated for the private pilot."}
+    {"id":"CVE-2026-119373","severity":"HIGH","rationale":"Residual SQLite library finding retained in complete evidence; no reachable grave exploit path demonstrated for the private pilot."},
+    {"id":"CVE-2026-115506","severity":"HIGH","disposition":"temporary-risk-acceptance","rationale":"New libexpat DoS finding from the complete CI scan; non-reachability is not proven. Accepted only for the private pilot while no public route or IPTV/XMLTV source is admitted; revoke on a Debian/upstream fix or perimeter change.","controls":["Private LAN/VPN only","No public route","No IPTV/XMLTV source","Read-only root filesystem","Admission expires 2026-12-05"]},
+    {"id":"CVE-2026-119374","severity":"HIGH","disposition":"temporary-risk-acceptance","rationale":"New SQLite FTS5 corrupted-index finding from the complete CI scan; non-reachability is not proven. Polyfin uses PostgreSQL and no user SQLite database is mounted, but the residual remains explicitly accepted only for the private pilot.","controls":["PostgreSQL application database","No user SQLite database mount","Private LAN/VPN only","No public route","Admission expires 2026-12-05"]},
+    {"id":"CVE-2026-119379","severity":"HIGH","disposition":"temporary-risk-acceptance","rationale":"New SQLite session-changeset finding from the complete CI scan; non-reachability is not proven. Polyfin uses PostgreSQL and no user SQLite database is mounted, but the residual remains explicitly accepted only for the private pilot.","controls":["PostgreSQL application database","No user SQLite database mount","Private LAN/VPN only","No public route","Admission expires 2026-12-05"]},
+    {"id":"CVE-2026-85091","severity":"HIGH","disposition":"fixed-required","rationale":"The official image contains zlib with a scanner-recognized fixed status; keep it tracked and reject any future digest where it is affected.","controls":["Complete Trivy scan","Digest-specific admission"]},
+    {"id":"CVE-2026-78661","severity":"HIGH","disposition":"fixed-required","rationale":"The official Polyfin binary contains golang.org/x/net with a scanner-recognized fixed status; keep it tracked and reject any future digest where it is affected.","controls":["Complete Trivy scan","Digest-specific admission"]}
   ],
   "acceptedFindings": [
     {
@@ -196,6 +213,78 @@
       "installedVersions": ["5.40.1-6+deb13u1"],
       "rationale": "Perl is a base-image utility and is not an application entrypoint or Polyfin child process.",
       "controls": ["Non-root process", "No shell or Perl entrypoint exposed", "Private LAN/VPN perimeter"]
+    },
+    {
+      "id": "CVE-2026-103111",
+      "severity": "HIGH",
+      "packages": ["libpcre2-8-0"],
+      "installedVersions": ["10.46-1~deb13u2"],
+      "disposition": "fixed-required",
+      "rationale": "A Debian fix is available; the finding is retained in complete evidence and must not become affected in a future official digest.",
+      "controls": ["Complete Trivy scan", "Digest-specific admission"]
+    },
+    {
+      "id": "CVE-2026-111943",
+      "severity": "HIGH",
+      "packages": ["stdlib"],
+      "installedVersions": ["v1.27.1"],
+      "disposition": "fixed-required",
+      "rationale": "The upstream binary is built with Go 1.27.1 and Trivy reports a fixed version; the finding remains visible and is not waived.",
+      "controls": ["Complete Trivy scan", "Digest-specific admission"]
+    },
+    {
+      "id": "CVE-2026-78667",
+      "severity": "HIGH",
+      "packages": ["stdlib"],
+      "installedVersions": ["v1.27.1"],
+      "disposition": "fixed-required",
+      "rationale": "The upstream binary is built with Go 1.27.1 and Trivy reports a fixed version; the finding remains visible and is not waived.",
+      "controls": ["Complete Trivy scan", "Digest-specific admission"]
+    },
+    {
+      "id": "CVE-2026-78669",
+      "severity": "HIGH",
+      "packages": ["stdlib"],
+      "installedVersions": ["v1.27.1"],
+      "disposition": "fixed-required",
+      "rationale": "The upstream binary is built with Go 1.27.1 and Trivy reports a fixed version; the finding remains visible and is not waived.",
+      "controls": ["Complete Trivy scan", "Digest-specific admission"]
+    },
+    {
+      "id": "CVE-2026-84782",
+      "severity": "HIGH",
+      "packages": ["libssl3t64", "openssl-provider-legacy"],
+      "installedVersions": ["3.5.7-1~deb13u2"],
+      "disposition": "fixed-required",
+      "rationale": "A Debian fix is available; the finding is retained in complete evidence and must not become affected in a future official digest.",
+      "controls": ["Complete Trivy scan", "Digest-specific admission"]
+    },
+    {
+      "id": "CVE-2026-97031",
+      "severity": "HIGH",
+      "packages": ["stdlib"],
+      "installedVersions": ["v1.27.1"],
+      "disposition": "fixed-required",
+      "rationale": "The upstream binary is built with Go 1.27.1 and Trivy reports a fixed version; the finding remains visible and is not waived.",
+      "controls": ["Complete Trivy scan", "Digest-specific admission"]
+    },
+    {
+      "id": "CVE-2026-109518",
+      "severity": "HIGH",
+      "packages": ["apt", "libapt-pkg7.0"],
+      "installedVersions": ["3.0.3"],
+      "disposition": "fixed-required",
+      "rationale": "The official image contains the vulnerable package version but Trivy marks the finding fixed. It is tracked explicitly and must not become affected; no custom package is introduced.",
+      "controls": ["Complete Trivy scan", "Digest-specific admission", "No custom image rebuild"]
+    },
+    {
+      "id": "CVE-2026-76844",
+      "severity": "HIGH",
+      "packages": ["zlib1g"],
+      "installedVersions": ["1:1.3.dfsg+really1.3.1-1+b1"],
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Official Polyfin 0.61.1 still contains the upstream Trixie zlib version reported for this CVE. The pilot remains private, non-root, capability-free, without IPTV/XMLTV admission, and this acceptance expires with the image policy. The scanner result is preserved; no upstream signature or binary fix is claimed.",
+      "controls": ["Private LAN/VPN only", "No public route", "Cilium egress allowlist", "No IPTV/XMLTV", "Non-root", "Read-only root filesystem", "Explicit expiry and digest binding"]
     }
   ]
 }
