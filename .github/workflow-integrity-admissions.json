@@ -40,11 +40,11 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 1049,
-      "changeFingerprint": "df39f045815235faeba5657373150ade21fa25502c9fd0ae64ae171a96452c6c",
+      "changeFingerprint": "8aeb4419b9ccf78a6b567da5a59c55ea096ce37017773afe4b6ab8a3bb3efb6c",
       "paths": [
         "tests/harness/aiostreams-staged-contract-test.sh"
       ],
-      "reason": "PLT-135: owner-directed in-place tv.smadja.dev HTTPRoute migration test contract; no public security approval is implied by this workflow admission.",
+      "reason": "PLT-135: owner-authorized exact in-place tv HTTPRoute contract diff, with Git raw default abbreviated object IDs; public rollout admission is separate.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-13T23:59:59Z"
     }
