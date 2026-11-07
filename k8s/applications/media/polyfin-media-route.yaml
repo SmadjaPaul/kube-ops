@@ -4,8 +4,8 @@ metadata:
   name: polyfin-media
   namespace: media
 spec:
-  # Stage 1: canary Polyfin on media.smadja.dev. Do not take over
-  # tv.smadja.dev until this public path passes runtime/security checks.
+  # Stage 2: Polyfin becomes the sole owner of tv.smadja.dev on both
+  # Gateways. Keep media.smadja.dev as a temporary OIDC/client fallback.
   parentRefs:
     - name: internal
       namespace: gateway
@@ -13,6 +13,7 @@ spec:
       namespace: gateway
   hostnames:
     - media.smadja.dev
+    - tv.smadja.dev
   rules:
     - matches:
         - path:
