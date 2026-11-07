@@ -56,6 +56,17 @@
       "reason": "PLT-56: qualify Velero/Kopia durable application-data scope.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-06T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 947,
+      "changeFingerprint": "9cc511defe04a729cc9d3288fe885e03af5c1a1304cc93d55755cbb6138a0e4d",
+      "paths": [
+        "tests/harness/longhorn-offsite-pvc-contract-test.sh"
+      ],
+      "reason": "PLT-56: qualify Longhorn global recurring-job retirement after primary backup evidence.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-06T23:59:59Z"
     }
   ]
 }
