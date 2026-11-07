@@ -24,6 +24,18 @@
       "reason": "PLT-134/135: owner-authorized official Polyfin 0.61.1 image audit and admission contract update.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-13T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1046,
+      "changeFingerprint": "c49ef35c7a41f20e69f7ba999f267f4907dd4f94255287618d4787ba7f0975cf",
+      "paths": [
+        ".github/workflows/v1-contract.yaml",
+        "tests/harness/polyfin-tv-migration-contract-test.sh"
+      ],
+      "reason": "PLT-135: owner-authorized staged Polyfin public canary contract; public security admission remains separate.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-13T23:59:59Z"
     }
   ]
 }
