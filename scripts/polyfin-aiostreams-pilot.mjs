@@ -11,13 +11,30 @@ const origin = 'https://media.smadja.dev';
 const timeout = 15_000;
 function fail(code) { throw new Error(code); }
 
+// Only this Kubernetes Service is trusted for private AIOStreams control API.
+// The old public hostname is accepted as INPUT ONLY to migrate existing
+// protected manifest files; this helper never fetches it over the Internet.
+const internalAIOStreamsOrigin = 'http://aiostreams.media.svc.cluster.local';
+const localPortForwardOrigin = 'http://127.0.0.1:13000';
+
 export function validateAIOStreamsURL(value) {
   let url;
   try { url = new URL(String(value).trim()); } catch { fail('INVALID_MANIFEST_URL'); }
-  if (url.protocol !== 'https:' || url.hostname !== 'aiostreams.smadja.dev' ||
-      url.port || url.username || url.password || url.hash ||
+  const internal = url.protocol === 'http:' &&
+    url.hostname === 'aiostreams.media.svc.cluster.local' && !url.port;
+  const legacy = url.protocol === 'https:' &&
+    url.hostname === 'aiostreams.smadja.dev' && !url.port;
+  if ((!internal && !legacy) || url.username || url.password || url.hash ||
       !url.pathname.endsWith('/manifest.json')) fail('UNREVIEWED_MANIFEST_URL');
-  return url.toString();
+  // Preserve the opaque token path and query without revealing either in logs.
+  return internalAIOStreamsOrigin + url.pathname + url.search;
+}
+
+export function localPreflightURL(internalManifestURL) {
+  const url = new URL(validateAIOStreamsURL(internalManifestURL));
+  // Operator uses: kubectl -n media port-forward svc/aiostreams 13000:80
+  // Never probe the legacy public URL, or put the token into argv.
+  return localPortForwardOrigin + url.pathname + url.search;
 }
 
 export function inspectStremioManifest(m) {
@@ -86,7 +103,7 @@ export async function run(argv=process.argv.slice(2)) {
     fail('UNKNOWN_FLAG');
   const apply = argv.includes('--apply');
   const manifestURL = validateAIOStreamsURL(await loadFile('POLYFIN_AIOSTREAMS_MANIFEST_URL_FILE'));
-  const manifest = await jsonRequest(manifestURL);
+  const manifest = await jsonRequest(localPreflightURL(manifestURL));
   const summary = inspectStremioManifest(manifest);
   process.stdout.write('AIOSTREAMS_MANIFEST_PASS ' + JSON.stringify(summary) + '\n');
   if (!apply) {

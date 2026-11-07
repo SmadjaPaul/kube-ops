@@ -82,7 +82,7 @@ spec:
             cnpg.io/cluster: matrix-synapse-postgresql
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: matrix
-            cnpg.io/cluster: matrix-mas-postgresql
+            cnpg.io/cluster: matrix-mas-postgresql-clean
       toPorts:
         - ports:
             - {port: "5432", protocol: TCP}
@@ -137,7 +137,7 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: matrix
-            cnpg.io/cluster: matrix-mas-postgresql
+            cnpg.io/cluster: matrix-mas-postgresql-clean
       toPorts:
         - ports:
             - {port: "5432", protocol: TCP}

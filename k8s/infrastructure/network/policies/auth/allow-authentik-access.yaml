@@ -65,6 +65,14 @@ spec:
     - ports:
       - port: "9000"
         protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: wellness
+        sparkyfitness.io/server: "true"
+    toPorts:
+    - ports:
+      - port: "9000"
+        protocol: TCP
   egress:
   - toEndpoints:
     - matchLabels:
@@ -93,6 +101,8 @@ spec:
         protocol: TCP
       - port: "587"
         protocol: TCP
+      - port: "465"
+        protocol: TCP
   - toEntities:
     - world
     toPorts:
@@ -100,6 +110,8 @@ spec:
       - port: "443"
         protocol: TCP
       - port: "587"
+        protocol: TCP
+      - port: "465"
         protocol: TCP
 ---
 apiVersion: cilium.io/v2

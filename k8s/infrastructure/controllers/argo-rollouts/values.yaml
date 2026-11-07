@@ -1,0 +1,41 @@
+# PLT-141: Official chart 2.43.9, upstream Argo Rollouts v1.10.2.
+# Single-node homelab: no public dashboard, no traffic plugins, no second controller.
+installCRDs: true
+keepCRDs: true
+clusterInstall: true
+
+controller:
+  replicas: 1
+  logging:
+    level: info
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: argo-rollouts
+      interval: 60s
+      additionalLabels:
+        release: kube-prometheus-stack
+  selfServiceNotification: false
+
+# Service selector switch is built in. No Istio/Gateway canary traffic plugin.
+providerRBAC:
+  enabled: false
+
+dashboard:
+  enabled: false
+
+# Notifications to Matrix remain a separate admission step:
+# no configured token, no unauthenticated webhook and no false proof of delivery.
+notifications:
+  configmap:
+    create: true
+  secret:
+    create: false

@@ -47,6 +47,9 @@ spec:
         app.kubernetes.io/name: ws-rewriter
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: gpt-researcher
+        app.kubernetes.io/name: ws-rewriter-rollout
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: gpt-researcher
         app.kubernetes.io/name: gptr-nextjs
     toPorts:
     - ports:
@@ -132,3 +135,40 @@ spec:
     - ports:
       - port: "3000"
         protocol: TCP
+
+---
+# PLT-140: shadow proxy policy. Keeps the legacy ws-rewriter policy unchanged.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ws-rewriter-rollout-network-policy
+  namespace: gpt-researcher
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ws-rewriter-rollout
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: gpt-researcher
+            app.kubernetes.io/name: gpt-researcher
+      toPorts:
+        - ports: [{port: "8000", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+  ingress:
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports: [{port: "8000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: gpt-researcher
+            app.kubernetes.io/name: ws-rewriter-rollout-probe
+      toPorts:
+        - ports: [{port: "8000", protocol: TCP}]

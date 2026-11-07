@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rustical-data-bulk
+  namespace: rustical-pilot
+  labels:
+    app.kubernetes.io/name: rustical
+    app.kubernetes.io/component: synthetic-pilot-state
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-bulk
+  resources:
+    requests:
+      storage: 1Gi

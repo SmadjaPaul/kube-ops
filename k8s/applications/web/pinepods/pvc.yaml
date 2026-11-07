@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: pinepods-downloads
   namespace: pinepods
+  labels:
+    velero.io/exclude-from-backup: "true"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -16,6 +18,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: pinepods-backups
   namespace: pinepods
+  labels:
+    velero.io/exclude-from-backup: "true"
 spec:
   accessModes:
     - ReadWriteOnce

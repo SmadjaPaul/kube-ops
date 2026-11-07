@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image="$(sed -nE 's/^[[:space:]]*image:[[:space:]]*([^[:space:]]+)$/\1/p' k8s/applications/media/polyfin/deployment.yaml)"
+          image="$(sed -nE 's/^[[:space:]]*image:[[:space:]]*([^[:space:]#]+)([[:space:]]+#.*)?$/\1/p' k8s/applications/media/polyfin/deployment.yaml)"
           if [[ ! "$image" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+:[^@[:space:]]+@sha256:[a-f0-9]{64}$ ]]; then
             echo 'Expected exactly one Polyfin image pinned to an immutable sha256 digest' >&2
             exit 1

@@ -25,6 +25,17 @@ test('canonical Docker annotation keeps datasource and depName separate', () => 
   );
 });
 
+test('digest-pinned Docker annotation keeps the release tag discoverable', () => {
+  const groups = extract(
+    yamlManager,
+    'image: ghcr.io/moodiness/polyfin:0.61.1@sha256:1e55720ea21bca9448ddbdd80a21251622d21448ee2e31974ad18ae2a9f6c975 # renovate: datasource=docker depName=ghcr.io/moodiness/polyfin',
+  );
+  assert.deepEqual(
+    { datasource: groups?.datasource, depName: groups?.depName, currentValue: groups?.currentValue },
+    { datasource: 'docker', depName: 'ghcr.io/moodiness/polyfin', currentValue: '0.61.1' },
+  );
+});
+
 test('canonical Helm annotation keeps datasource and depName separate', () => {
   const groups = extract(
     yamlManager,

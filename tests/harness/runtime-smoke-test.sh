@@ -601,6 +601,8 @@ report="$tmp/artifacts/results.jsonl"
 [[ "$(jq -s '[.[] | select(.route == "public-annotation-only" and .result == "PASS" and .dnsSource == "annotation-only")] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "public-annotation-only-stale-private-dns" and .result == "FAIL" and (.reasons | contains("private-dns")))] | length' "$report")" == 1 ]] || exit 1
 [[ "$(jq -s '[.[] | select(.route == "internal-annotation-only" and .result == "PASS" and .dns == "10.0.20.192")] | length' "$report")" == 1 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.route == "active-healthy" and .routePass == true and .workloadPass == "NOT_MEASURED" and .functionalPass == "NOT_EXECUTED")] | length' "$report")" == 1 ]] || exit 1
+[[ "$(jq -s '[.[] | select(.route == "executor-zero" and .routePass == "NOT_EXECUTED" and .functionalPass == "NOT_EXECUTED")] | length' "$report")" == 1 ]] || exit 1
 if grep -q 'executor-zero' "$tmp/curl.log"; then
   printf 'zero-scaled executor route must not be probed\n' >&2
   exit 1

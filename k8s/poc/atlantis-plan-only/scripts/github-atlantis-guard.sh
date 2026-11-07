@@ -52,6 +52,7 @@ while IFS= read -r path; do
     terraform/aiostreams/backend.tf|terraform/aiostreams/main.tf|terraform/aiostreams/variables.tf|\
     terraform/aiostreams/versions.tf|terraform/aiostreams/.terraform.lock.hcl|\
     terraform/aiostreams/README.md|terraform/aiostreams/terraform.tfvars.example|\
+    terraform/polyfin/backend.tf|terraform/polyfin/main.tf|\
     terraform/doppler/aiostreams-atlantis-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend-variables.tf|\
@@ -86,6 +87,11 @@ while IFS= read -r path; do
     tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
     tests/google-cloud-build-bootstrap-policy.sh|\
     tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
+    renovate.json)
+      # PLT-140: the exact owner-reviewed Renovate toolchain policy only.
+      # Never admit arbitrary automerge rules through the Atlantis plan hook.
+      test "$(git hash-object "$DIR/renovate.json")" = "3704e49612b76dde0a78c4a1f84d2d505fdf3eab" ||
+        fail "Renovate config differs from server-admitted audited blob" ;;
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
 done <<<"$changed"
@@ -95,7 +101,7 @@ test "$(git hash-object "$DIR/terraform/github/backend.tf")" = "63d68a69487cf768
   fail "GitHub backend is not the server-admitted canonical file"
 test -f "$DIR/.atlantis/plan-only.yaml" || fail "server project registry is missing"
 case "$(git hash-object "$DIR/.atlantis/plan-only.yaml")" in
-  fc66d3b6d8c59581cf3f771b33766d1ebcb042a3|79522bce630cad360a6ebe3bf6f1ebc965379cb9|37cf4ab1d01f0228a305d54f458e7a9c51930127) ;;
+  fc66d3b6d8c59581cf3f771b33766d1ebcb042a3|79522bce630cad360a6ebe3bf6f1ebc965379cb9|37cf4ab1d01f0228a305d54f458e7a9c51930127|26e40fd67a913dd903224434b273f61fcb5cdf5a|bbfddeeeaad80871296e369faf4dd3cd8ff5a283) ;;
   *) fail "server project registry changed outside admission" ;;
 esac
 test -f "$DIR/terraform/github/provider.tf" || fail "GitHub provider is missing"

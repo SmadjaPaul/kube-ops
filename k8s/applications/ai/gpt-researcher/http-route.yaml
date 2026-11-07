@@ -19,7 +19,7 @@ spec:
             type: PathPrefix
             value: /api
       backendRefs:
-        - name: ws-rewriter
+        - name: ws-rewriter-rollout-active
           namespace: gpt-researcher
           port: 8000
     - matches:
@@ -27,7 +27,7 @@ spec:
             type: Exact
             value: /ws
       backendRefs:
-        - name: ws-rewriter
+        - name: ws-rewriter-rollout-active
           namespace: gpt-researcher
           port: 8000
     - matches:
@@ -35,7 +35,7 @@ spec:
             type: Exact
             value: /docs
       backendRefs:
-        - name: ws-rewriter
+        - name: ws-rewriter-rollout-active
           namespace: gpt-researcher
           port: 8000
     - matches:
@@ -43,7 +43,7 @@ spec:
             type: Exact
             value: /openapi.json
       backendRefs:
-        - name: ws-rewriter
+        - name: ws-rewriter-rollout-active
           namespace: gpt-researcher
           port: 8000
     - matches:
@@ -51,7 +51,7 @@ spec:
             type: PathPrefix
             value: /report
       backendRefs:
-        - name: ws-rewriter
+        - name: ws-rewriter-rollout-active
           namespace: gpt-researcher
           port: 8000
     - matches:
@@ -59,7 +59,7 @@ spec:
             type: PathPrefix
             value: /upload
       backendRefs:
-        - name: ws-rewriter
+        - name: ws-rewriter-rollout-active
           namespace: gpt-researcher
           port: 8000
     - matches:
@@ -67,7 +67,7 @@ spec:
             type: PathPrefix
             value: /files
       backendRefs:
-        - name: ws-rewriter
+        - name: ws-rewriter-rollout-active
           namespace: gpt-researcher
           port: 8000
     # Frontend routes

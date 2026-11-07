@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
   annotations:
-    factory-platform.dev/source-sha: faa07b66b2e1ee37534967c46f8306b3d87474ea
+    factory-platform.dev/source-sha: 4960c92231a6def6380565207572bff7c728fa1a
 spec:
   replicas: 1 # Keep one dispatcher until cross-replica sandbox claim locking is qualified.
   strategy: {type: Recreate}
@@ -29,8 +29,9 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: factory
-          # Rollback digest: sha256:e7482fde895bc19218031e6275ec538e954c65a2da2bb1ddd69988c5347a8cc5
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:7d98ff1784dd45706305e5d31eb7cfb482964ed195a8c7228623f5680e7bd107
+          # Rollback digest: the image currently running before the 0.27 migration.
+          # The 0.27 startup migration may retire incompatible Factory history; Better Auth users and integrations are preserved.
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:ec6998396f0756dbe9027ee051f9f045788577c74c8d78e3a4bc0dd4d36edabb
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -50,6 +51,8 @@ spec:
             # PLT-126 canary ended; new autonomous admission is disabled. Delivery remains enabled.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
+            - {name: MASTRACODE_REVIEW_ONLY_ENABLED, value: "1"}
+            - {name: MASTRACODE_REVIEW_ONLY_FACTORY_PROJECT_ID, value: "507c5c16-933e-4c55-899a-e695ba35076b"}
             - {name: MASTRACODE_AUTONOMOUS_READY_LABEL, value: "factory-canary-v1-e2e-2026-11-04-ready"}
             - {name: MASTRACODE_AUTONOMOUS_DEPENDENCIES_READY_LABEL, value: "factory-canary-v1-e2e-2026-11-04-dependencies-ready"}
             - {name: MASTRACODE_AUTONOMOUS_QUALIFIED, value: "1"}
@@ -69,8 +72,6 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef: {name: mastra-factory-postgresql-app, key: uri}
-            - name: MASTRACODE_REVIEW_ONLY_ENABLED
-              value: "0"
           envFrom:
             - secretRef: {name: mastra-factory-runtime}
             # Optional until the separate OIDC client credential is provisioned.

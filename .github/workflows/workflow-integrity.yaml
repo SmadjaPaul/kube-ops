@@ -19,56 +19,27 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
 
-      - name: Reject unqualified workflow and gate changes
+      - name: Verify admission from trusted base revision
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         shell: bash
         run: |
           set -euo pipefail
-
           git fetch --no-tags origin \
             "pull/${PR_NUMBER}/head:refs/remotes/origin/pr-${PR_NUMBER}"
-
-          head_ref="refs/remotes/origin/pr-${PR_NUMBER}"
-          changed_files="$(git diff --name-only "$BASE_SHA" "$head_ref")"
-          blocked_files=()
-
-          while IFS= read -r file; do
-            [[ -n "$file" ]] || continue
-            case "$file" in
-              .github/workflows/*|.github/actions/*|.justfile|\
-              scripts/check-*.sh|tests/harness/*|\
-              docs/contracts/agent-test-result-v1.schema.json)
-                blocked_files+=("$file")
-                ;;
-              package.json)
-                package_diff="$(git diff --unified=0 "$BASE_SHA" "$head_ref" -- package.json)"
-                invalid_package_changes="$(
-                  printf '%s\n' "$package_diff" |
-                    awk '
-                      /^@@/ || /^---/ || /^\+\+\+/ { next }
-                      /^[+-]/ {
-                        line = substr($0, 2)
-                        if (line ~ /^[[:space:]]*"@commitlint\/(cli|config-conventional)"[[:space:]]*:[[:space:]]*"\^?[0-9]+\.[0-9]+\.[0-9]+"[[:space:]]*,?[[:space:]]*$/) {
-                          next
-                        }
-                        print
-                      }
-                    '
-                )"
-                if [[ -n "$invalid_package_changes" ]]; then
-                  blocked_files+=("$file")
-                fi
-                ;;
-            esac
-          done <<< "$changed_files"
-
-          if ((${#blocked_files[@]} > 0)); then
-            printf 'WORKFLOW_INTEGRITY=FAIL\n'
-            printf 'UNQUALIFIED_AUTOMATION_CHANGES=%s\n' \
-              "$(printf '%s\n' "${blocked_files[@]}" | sort -u | paste -sd, -)"
-            exit 1
-          fi
-
-          printf 'WORKFLOW_INTEGRITY=PASS\n'
+          python3 -m unittest discover \
+            -s .github/actions/workflow-integrity -p 'test_*.py'
+          python3 .github/actions/workflow-integrity/verify.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --base-ref "$BASE_REF" \
+            --base-sha "$BASE_SHA" \
+            --pr "$PR_NUMBER" \
+            --sha "$PR_HEAD_SHA" \
+            --author "$PR_AUTHOR" \
+            --head-repo "$PR_HEAD_REPO" \
+            --head-ref "refs/remotes/origin/pr-${PR_NUMBER}"

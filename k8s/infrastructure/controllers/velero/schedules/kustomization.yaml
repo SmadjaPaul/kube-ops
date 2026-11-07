@@ -5,7 +5,8 @@ resources:
   # One offsite tier only: daily Kopia backups, 14-day TTL.
   # CNPG database volumes are protected independently through Barman/WAL archiving.
   - daily-home-assistant.yaml
-  - daily-monitoring.yaml
+  # Monitoring metrics and Loki logs are explicitly excluded from the durable
+  # application-data policy; dashboards and rules are GitOps state.
   - daily-immich.yaml
   - daily-jellyfin.yaml
   - daily-radarr.yaml
@@ -16,6 +17,8 @@ resources:
   - daily-audiobookrequest.yaml
   - daily-jellyseerr.yaml
   - daily-karakeep.yaml
+  # Owner ACCEPT_LOSS applies only to two identified Longhorn Executor volumes.
+  # Keep the daily schedule for all future Executor data.
   - daily-executor.yaml
   - daily-pinepods.yaml
   - daily-mqtt.yaml

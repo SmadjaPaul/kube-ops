@@ -44,7 +44,7 @@
         "/\\.sh$/"
       ],
       "matchStrings": [
-        "(?<currentValue>[\\w+\\.\\-]*)['\\\",;]*\\s*#\\s?renovate:\\s+datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+registry=(?<registryUrl>\\S+))?(?:\\s+versioning=(?<versioning>\\S+))?",
+        "(?<currentValue>[\\w+\\.\\-]+)(?:@sha256:[a-f0-9]{64})?['\\\",;]*\\s*#\\s?renovate:\\s+datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+registry=(?<registryUrl>\\S+))?(?:\\s+versioning=(?<versioning>\\S+))?",
         "(?<currentValue>[\\w+\\.\\-]*)['\\\",;]*\\s*#\\s?renovate:\\s+(?<datasource>docker)=(?<depName>\\S+)",
         "https://github.com/(?<depName>[^/]+/[^/]+)/releases/download/(?<currentValue>[^/]+)/",
         "https://raw.githubusercontent.com/(?<depName>[^/]+/[^/]+)/(?<currentValue>[^/]+)/"
@@ -136,6 +136,24 @@
         "/^ghcr\\.io\\/onedr0p\\/.+$/",
         "/^ghcr\\.io\\/jellyfin\\/.+$/"
       ]
+    },
+    {
+      "description": "Polyfin official releases and digests require the image audit and T2 policy before merge",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/moodiness/polyfin"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest",
+        "patch",
+        "minor"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
     },
     {
       "groupName": "Netbird",
@@ -440,6 +458,106 @@
       ],
       "matchCurrentVersion": "!/^0\\./",
       "minimumReleaseAge": "14 days",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "PLT-143 qualified ws-rewriter Rollout Caddy patch/minor AUTO",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchFileNames": [
+        "k8s/applications/ai/gpt-researcher/ws-rewriter-rollout.yaml"
+      ],
+      "matchPackageNames": [
+        "caddy"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "PLT-140 Docusaurus website React runtime pair patch-only: docs-required build and typecheck",
+      "groupName": "PLT-140 documentation React patch-only",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "matchPackageNames": [
+        "react",
+        "react-dom"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "matchCurrentVersion": "!/^0\\./",
+      "minimumReleaseAge": "14 days",
+      "rangeStrategy": "bump",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "PLT-140 low-risk docs UI search and typed animation patch only, docs-required gate",
+      "groupName": "PLT-140 documentation UI extras patch-only",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "matchPackageNames": [
+        "typed.js",
+        "@easyops-cn/docusaurus-search-local"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "minimumReleaseAge": "14 days",
+      "rangeStrategy": "bump",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "PLT-140 documentation UI libraries minor-only expansion: non-runtime application docs build/typecheck gate; stable semver >=1 and 14d",
+      "groupName": "PLT-140 docs UI libraries minor-only",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "website/package.json"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "matchPackageNames": [
+        "@mdx-js/react",
+        "clsx",
+        "prism-react-renderer",
+        "react-icons",
+        "typed.js"
+      ],
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "matchCurrentVersion": "!/^0\\./",
+      "minimumReleaseAge": "14 days",
+      "rangeStrategy": "bump",
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true

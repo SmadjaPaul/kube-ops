@@ -156,3 +156,99 @@ entries:
       target: !KeyOf operator-invitation-flow
       stage: !KeyOf operator-invitation-user-login
       order: 100
+
+  # Family users use the same short-lived, single-use invitation mechanism,
+  # but must never inherit the operator flow's authentik-admins membership.
+  - id: family-invitation-flow
+    model: authentik_flows.flow
+    identifiers:
+      slug: family-invitation-enrollment
+    attrs:
+      name: Family invitation enrollment
+      title: Family invitation
+      designation: enrollment
+      authentication: require_unauthenticated
+
+  - id: family-invitation-user-write
+    model: authentik_stages_user_write.userwritestage
+    identifiers:
+      name: family-invitation-user-write
+    attrs:
+      user_creation_mode: always_create
+      user_type: internal
+      user_path_template: users/internal/family
+
+  - id: family-invitation-group-family
+    model: authentik_stages_user_write.userwritestage
+    identifiers:
+      name: family-invitation-group-family
+    attrs:
+      user_creation_mode: never_create
+      create_users_group: !Find [authentik_core.group, [name, "family"]]
+
+  - id: family-invitation-group-media
+    model: authentik_stages_user_write.userwritestage
+    identifiers:
+      name: family-invitation-group-media
+    attrs:
+      user_creation_mode: never_create
+      create_users_group: !Find [authentik_core.group, [name, "media"]]
+
+  - id: family-invitation-group-iot
+    model: authentik_stages_user_write.userwritestage
+    identifiers:
+      name: family-invitation-group-iot
+    attrs:
+      user_creation_mode: never_create
+      create_users_group: !Find [authentik_core.group, [name, "iot"]]
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-invitation-flow
+      stage: !KeyOf operator-invitation-stage
+      order: 5
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: true
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-invitation-flow
+      stage: !KeyOf operator-invitation-prompt-credentials
+      order: 10
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-invitation-flow
+      stage: !KeyOf operator-invitation-prompt-details
+      order: 15
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-invitation-flow
+      stage: !KeyOf family-invitation-user-write
+      order: 20
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-invitation-flow
+      stage: !KeyOf family-invitation-group-family
+      order: 30
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-invitation-flow
+      stage: !KeyOf family-invitation-group-media
+      order: 40
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-invitation-flow
+      stage: !KeyOf family-invitation-group-iot
+      order: 50
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-invitation-flow
+      stage: !KeyOf operator-invitation-user-login
+      order: 100

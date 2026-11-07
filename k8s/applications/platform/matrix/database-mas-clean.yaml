@@ -1,12 +1,12 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: matrix-mas-postgresql
+  name: matrix-mas-postgresql-clean
   namespace: matrix
   annotations:
     argocd.argoproj.io/sync-wave: "-10"
   labels:
-    backup.smadja.dev/cnpg-cluster: matrix-mas-postgresql
+    backup.smadja.dev/cnpg-cluster: matrix-mas-postgresql-clean
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7
@@ -22,7 +22,7 @@ spec:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: matrix-mas-hetzner-store
+        barmanObjectName: matrix-mas-clean-hetzner-store
   storage:
     size: 10Gi
     storageClass: longhorn-bulk

@@ -16,6 +16,9 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: gpt-researcher
+      annotations:
+        # Logs are diagnostic output; research data remains covered.
+        backup.velero.io/backup-volumes-excludes: logs
     spec:
       securityContext:
         runAsNonRoot: true
