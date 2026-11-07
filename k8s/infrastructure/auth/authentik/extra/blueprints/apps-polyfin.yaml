@@ -32,7 +32,7 @@ entries:
     attrs:
       name: Polyfin
       group: Media
-      meta_launch_url: https://media.smadja.dev
+      meta_launch_url: https://tv.smadja.dev
       provider: !KeyOf polyfin_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding
