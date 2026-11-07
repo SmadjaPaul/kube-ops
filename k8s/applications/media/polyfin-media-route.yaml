@@ -4,8 +4,12 @@ metadata:
   name: polyfin-media
   namespace: media
 spec:
+  # Stage 1: canary Polyfin on media.smadja.dev. Do not take over
+  # tv.smadja.dev until this public path passes runtime/security checks.
   parentRefs:
     - name: internal
+      namespace: gateway
+    - name: external
       namespace: gateway
   hostnames:
     - media.smadja.dev
