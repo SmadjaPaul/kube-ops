@@ -1,0 +1,76 @@
+{
+  "items": [
+    {
+      "type": "track",
+      "id": "fip",
+      "title": "FIP",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fip-midfi.mp3?id=openapi"
+    },
+    {
+      "type": "track",
+      "id": "fip-rock",
+      "title": "FIP Rock",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fiprock-midfi.mp3?id=openapi"
+    },
+    {
+      "type": "track",
+      "id": "fip-jazz",
+      "title": "FIP Jazz",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipjazz-midfi.mp3?id=openapi"
+    },
+    {
+      "type": "track",
+      "id": "fip-electro",
+      "title": "FIP Electro",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipelectro-midfi.mp3?id=openapi"
+    },
+    {
+      "type": "track",
+      "id": "france-inter",
+      "title": "France Inter",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/franceinter-midfi.mp3?id=openapi"
+    },
+    {
+      "type": "track",
+      "id": "france-musique",
+      "title": "France Musique",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/francemusique-midfi.mp3?id=openapi"
+    },
+    {
+      "type": "track",
+      "id": "france-info",
+      "title": "France Info",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/franceinfo-midfi.mp3?id=openapi"
+    },
+    {
+      "type": "track",
+      "id": "mouv",
+      "title": "Mouv'",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/mouv-midfi.mp3?id=openapi"
+    }
+  ]
+}
