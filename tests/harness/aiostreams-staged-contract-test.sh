@@ -28,16 +28,34 @@ if grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/http-route.yaml")
   echo "AIOSTREAMS_STAGE=FAIL: family hostname must use its dedicated route" >&2
   exit 1
 fi
-grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/family-http-route.yaml")
-grep -Fxq 'Exact' <(yq -r '.spec.rules[0].matches[0].path.type' "$pkg/family-http-route.yaml")
-grep -Fxq '/jellyfin/u/tv/web/' <(yq -r '.spec.rules[0].filters[0].requestRedirect.path.replaceFullPath' "$pkg/family-http-route.yaml")
-grep -Fxq '302' <(yq -r '.spec.rules[0].filters[0].requestRedirect.statusCode' "$pkg/family-http-route.yaml")
-family_parent_contract='(.spec.parentRefs | length == 1) and (.spec.parentRefs[0].name == "external")'
-yq -e "$family_parent_contract" "$pkg/family-http-route.yaml" >/dev/null
-if yq 'del(.spec.parentRefs[] | select(.name == "external"))' "$pkg/family-http-route.yaml" | yq -e "$family_parent_contract" >/dev/null 2>&1; then
-  echo "AIOSTREAMS_STAGE=FAIL: family route contract accepts a non-external-only parent set" >&2
-  exit 1
-fi
+# PLT-135 cutover: keep the same Argo-managed HTTPRoute object/identity.
+# No simultaneous second tv.smadja.dev route: PruneLast is irrelevant.
+family="$pkg/family-http-route.yaml"
+grep -Fxq -- '- family-http-route.yaml' "$pkg/kustomization.yaml"
+yq -e '.apiVersion == "gateway.networking.k8s.io/v1" and .kind == "HTTPRoute" and .metadata.name == "aiostreams-family" and .metadata.namespace == "media"' "$family" >/dev/null
+[[ "$(yq -r '.spec.hostnames | join(",")' "$family")" == "tv.smadja.dev" ]]
+[[ "$(yq -r '.spec.parentRefs[].name' "$family" | LC_ALL=C sort | tr '\n' ',')" == "external,internal," ]]
+[[ "$(yq -r '.spec.parentRefs[].namespace' "$family" | LC_ALL=C sort -u)" == "gateway" ]]
+yq -e '.spec.rules | length == 1' "$family" >/dev/null
+yq -e '.spec.rules[0].matches | length == 1' "$family" >/dev/null
+yq -e '.spec.rules[0].matches[0].path.type == "PathPrefix" and .spec.rules[0].matches[0].path.value == "/"' "$family" >/dev/null
+yq -e '.spec.rules[0].backendRefs | length == 1' "$family" >/dev/null
+yq -e '.spec.rules[0].backendRefs[0].name == "polyfin" and .spec.rules[0].backendRefs[0].port == 80' "$family" >/dev/null
+yq -e '.spec.rules[0].filters == null' "$family" >/dev/null
+grep -Fq -- 'name: polyfin' "$root/polyfin/service.yaml"
+grep -Fq -- 'port: 80' "$root/polyfin/service.yaml"
+# Keep the previous Polyfin media alias and AIOStreams internal control route.
+[[ "$(yq -r '.spec.hostnames | join(",")' "$root/polyfin-media-route.yaml")" == "media.smadja.dev" ]]
+[[ "$(yq -r '.spec.parentRefs[].name' "$root/polyfin-media-route.yaml")" == "internal" ]]
+[[ "$(yq -r '.spec.hostnames | join(",")' "$pkg/http-route.yaml")" == "aiostreams.smadja.dev" ]]
+# Strict dual callbacks, without an OIDC client secret in Git.
+auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-polyfin.yaml
+[[ "$(yq -r '.entries[] | select(.id == "polyfin_provider") | .attrs.redirect_uris[].url' "$auth" | LC_ALL=C sort | tr '\n' ',')" == "https://media.smadja.dev/admin/api/provider/callback,https://tv.smadja.dev/admin/api/provider/callback," ]]
+[[ "$(yq -r '.entries[] | select(.id == "polyfin_provider") | .attrs.redirect_uris[].matching_mode' "$auth" | LC_ALL=C sort -u)" == "strict" ]]
+[[ "$(yq -r '.entries[] | select(.id == "polyfin_application") | .attrs.meta_launch_url' "$auth")" == "https://tv.smadja.dev" ]]
+grep -Fq 'client_secret: !Env POLYFIN_OIDC_CLIENT_SECRET' "$auth"
+# Ensure historical Polyfin route remains disabled, preventing duplicate hostname claims.
+! grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/polyfin/kustomization.yaml"
 if grep -Fq -- '- name: external' "$pkg/http-route.yaml"; then
   echo "AIOSTREAMS_STAGE=FAIL: staged route must not attach to Gateway/external" >&2
   exit 1

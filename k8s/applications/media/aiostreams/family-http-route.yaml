@@ -7,24 +7,15 @@ spec:
   parentRefs:
     - name: external
       namespace: gateway
+    - name: internal
+      namespace: gateway
   hostnames:
     - tv.smadja.dev
   rules:
     - matches:
         - path:
-            type: Exact
-            value: /
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path:
-              type: ReplaceFullPath
-              replaceFullPath: /jellyfin/u/tv/web/
-            statusCode: 302
-    - matches:
-        - path:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: aiostreams
+        - name: polyfin
           port: 80
