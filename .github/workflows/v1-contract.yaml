@@ -82,6 +82,9 @@ jobs:
           kubeconform -summary -ignore-missing-schemas /tmp/polyfin-rendered.yaml
           bash tests/harness/polyfin-private-pilot-contract-test.sh
 
+      - name: Validate staged Polyfin tv.smadja.dev hostname migration
+        run: bash tests/harness/polyfin-tv-migration-contract-test.sh
+
       - name: Validate Arr Authentik proxy first-run contract
         run: bash tests/harness/arr-authentik-proxy-contract-test.sh
 
