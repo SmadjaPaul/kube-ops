@@ -15,8 +15,11 @@ entries:
       grant_types: [authorization_code]
       client_id: polyfin
       client_secret: !Env POLYFIN_OIDC_CLIENT_SECRET
+      # Both callbacks are allowed during the canary and hostname migration.
+      # Never wildcard the redirect URI or remove the old callback early.
       redirect_uris:
         - {url: https://media.smadja.dev/admin/api/provider/callback, matching_mode: strict}
+        - {url: https://tv.smadja.dev/admin/api/provider/callback, matching_mode: strict}
       sub_mode: hashed_user_id
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
