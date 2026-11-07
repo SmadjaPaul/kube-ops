@@ -41,6 +41,12 @@ Once Stage 1 public canary is **GO**, switch \`tv.smadja.dev\` to Polyfin in one
 - Qualify dedicated Anime library and Known Proxies against the real Envoy IP (avoid trusting Pod CIDR).
 - PLT-149 fixes LAN split-DNS globally rather than patching each app separately.
 
+## Stage 2 cutover caution: Argo uses PruneLast=true
+
+`k8s/bootstrap/argocd-root/applications-applicationset.yaml` sets `syncPolicy.automated.prune=true` and `syncOptions: PruneLast=true`. In a single sync, the new Polyfin tv HTTPRoute may be applied **before** the retired AIOStreams family HTTPRoute is pruned. Both can claim `tv.smadja.dev` temporarily.
+
+**Do not claim seamless/atomic cutover on that basis.** Codex must inspect the gateway's HTTPRoute conflict/precedence rules and actual Argo ordering before stage 2 promotion; if strict zero-collision is needed, split Stage 2 into two GitOps changes: (a) remove old public family route and verify prune, then (b) add tv to Polyfin. This yields a brief possible 404 but avoids ambiguous co-ownership. Alternatively prove a bounded automatic cutover with no user-visible regression using monitored Gateway route conditions and fail back. Never manually kubectl-delete a resource that Argo still manages, and never expose AIOStreams' control route to external Gateway.
+
 ## Operator evidence matrix
 \`PUBLIC_IMAGE_ADMISSION\`, \`CLOUDFLARE_EDGE_ROUTE\`, \`MEDIA_EXTERNAL_HTTPS\`, \`MEDIA_OIDC_FAMILY\`, \`MEDIA_OIDC_ADMIN\`, \`DENY_UNAUTH_DATA\`, \`WEBSOCKET\`, \`DIRECT_CDN_VIDEO\`, \`LAN_PATH\`, \`AIOSTREAMS_UNCHANGED\`, \`ROLLBACK\`.
 
