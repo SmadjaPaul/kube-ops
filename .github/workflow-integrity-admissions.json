@@ -36,6 +36,17 @@
       "reason": "PLT-135: owner-authorized staged Polyfin public canary contract; public security admission remains separate.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-13T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1049,
+      "changeFingerprint": "df39f045815235faeba5657373150ade21fa25502c9fd0ae64ae171a96452c6c",
+      "paths": [
+        "tests/harness/aiostreams-staged-contract-test.sh"
+      ],
+      "reason": "PLT-135: owner-directed in-place tv.smadja.dev HTTPRoute migration test contract; no public security approval is implied by this workflow admission.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-13T23:59:59Z"
     }
   ]
 }
