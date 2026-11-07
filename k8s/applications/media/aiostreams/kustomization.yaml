@@ -8,7 +8,8 @@ resources:
   - deployment.yaml
   - service.yaml
   - http-route.yaml
-  - family-http-route.yaml
+  # Public family player retired: tv.smadja.dev now belongs to Polyfin.
+  # AIOStreams remains reachable by Polyfin at aiostreams.smadja.dev (internal).
   - networkpolicy.yaml
 patchesStrategicMerge:
   - oidc-deployment-patch.dormant.yaml
