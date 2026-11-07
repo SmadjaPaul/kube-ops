@@ -29,4 +29,16 @@ renovate.json exemption; extending the auto list requires explicit server
 admission, or a separately reviewed, test-covered capability-limited guard.
 Do not bypass red Atlantis statuses or manually mark them successful.
 
+The same guard now admits only the two provider lockfile paths needed by the
+current low-risk Terraform dependency pilots:
+
+- `terraform/hetzner-object-storage/.terraform.lock.hcl`
+- `terraform/migadu/.terraform.lock.hcl`
+
+The harness proves both paths are accepted and that an unrelated critical
+lockfile (`terraform/proxmox/.terraform.lock.hcl`) remains denied. This is a
+path-only admission for plan qualification; it does not enable apply or
+automerge and does not admit Terraform source, provider, network, storage, or
+Talos configuration.
+
 **No cluster mutation was attempted in authoring this plan.**
