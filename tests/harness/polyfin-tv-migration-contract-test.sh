@@ -18,7 +18,6 @@ has "$route" '.spec.rules[0].backendRefs[0].name == "polyfin" and .spec.rules[0]
 # Check redirect_uri exactness; never accept URL wildcards or a plaintext secret.
 has "$auth" '([.entries[] | select(.id == "polyfin_provider") | .attrs.redirect_uris[].url] | sort) == ["https://media.smadja.dev/admin/api/provider/callback", "https://tv.smadja.dev/admin/api/provider/callback"]'
 has "$auth" '([.entries[] | select(.id == "polyfin_provider") | .attrs.redirect_uris[].matching_mode] | all(. == "strict"))'
-has "$auth" '.entries[] | select(.id == "polyfin_provider") | .attrs.client_secret == "!Env POLYFIN_OIDC_CLIENT_SECRET"' || true
 grep -Fq 'client_secret: !Env POLYFIN_OIDC_CLIENT_SECRET' "$auth" || fail "OIDC secret must remain environment backed"
 has "$aio/http-route.yaml" '([.spec.parentRefs[].name] | sort) == ["internal"]'
 has "$aio/http-route.yaml" '.spec.hostnames == ["aiostreams.smadja.dev"]'
