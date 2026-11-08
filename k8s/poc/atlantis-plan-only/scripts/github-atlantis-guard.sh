@@ -53,6 +53,8 @@ while IFS= read -r path; do
     terraform/aiostreams/versions.tf|terraform/aiostreams/.terraform.lock.hcl|\
     terraform/aiostreams/README.md|terraform/aiostreams/terraform.tfvars.example|\
     terraform/polyfin/backend.tf|terraform/polyfin/main.tf|terraform/polyfin/.terraform.lock.hcl|\
+    terraform/unifi/firewall_policies.tf|terraform/unifi/firewall_policy_ordering.tf|\
+    terraform/unifi/traffic_matching_lists.tf|\
     terraform/doppler/aiostreams-atlantis-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend-variables.tf|\
@@ -142,6 +144,35 @@ if path_changed scripts/live-tofu.sh; then
   admit_factory_security_file \
     scripts/live-tofu.sh \
     74914cb0407e4669dc8511a8e8ccc4c61aa99f57
+fi
+
+# PLT-153: admit only the owner-reviewed Media -> Polyfin HTTPS exception.
+# These paths are otherwise outside the Atlantis admission boundary. The
+# exact head and blob hashes prevent a later PR from reusing this exception
+# for unrelated UniFi policy changes.
+admitted_unifi_head="f3d61c7e03de0e8f4ce8fbffbd3f7a983a8f32c1"
+admit_unifi_security_file() {
+  local path=$1 expected_hash=$2
+  test "$HEAD_COMMIT" = "$admitted_unifi_head" ||
+    fail "UniFi security path requires the server-admitted head: $path"
+  test "$(git hash-object "$DIR/$path")" = "$expected_hash" ||
+    fail "UniFi security path content is not server-admitted: $path"
+}
+
+if path_changed terraform/unifi/firewall_policies.tf; then
+  admit_unifi_security_file \
+    terraform/unifi/firewall_policies.tf \
+    623c6101ad4a7c9cc04584ddd8e3d02a5a0987ff
+fi
+if path_changed terraform/unifi/firewall_policy_ordering.tf; then
+  admit_unifi_security_file \
+    terraform/unifi/firewall_policy_ordering.tf \
+    0f74eb5fbb18b4ada5f37799c3c1d585f08f2050
+fi
+if path_changed terraform/unifi/traffic_matching_lists.tf; then
+  admit_unifi_security_file \
+    terraform/unifi/traffic_matching_lists.tf \
+    8541b55f81001e82b01e4ae69ca5aae2de20632f
 fi
 
 echo "Atlantis admission accepted: server-owned diff boundary base=$BASE_REPO_OWNER/$BASE_REPO_NAME head=$HEAD_COMMIT"
