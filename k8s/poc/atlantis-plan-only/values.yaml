@@ -292,7 +292,7 @@ repoConfig: |
                 test "$BASE_BRANCH_NAME" = "main"
                 test "$REPO_REL_DIR" = "terraform/unifi"
                 test "$WORKSPACE" = "default"
-                test -z "$COMMENT_ARGS"
+                test "$COMMENT_ARGS" = "-d terraform/unifi"
                 test "$HEAD_COMMIT" != ""
                 test -f "$DIR/backend.tf"
                 test -f "$DIR/provider.tf"
