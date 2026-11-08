@@ -22,10 +22,7 @@ grep -Fq '"default_download_action": "download"' "$cfg"
 grep -Fq '"type": "none"' "$cfg"
 grep -Fq '"use_auth": true' "$cfg"
 grep -Fq 'port: "8282"' "$pol/allow-arr-to-decypharr.yaml"
-if grep -Fxq -- '- allow-arr-to-decypharr.yaml' "$pol/kustomization.yaml"; then
-  echo 'DECYPHARR_TORBOX_STAGED=FAIL retired Arr-to-Decypharr policy is active' >&2
-  exit 1
-fi
+grep -Fxq -- '- allow-arr-to-decypharr.yaml' "$pol/kustomization.yaml"
 python3 - "$cfg" <<'PY'
 import json
 import sys
