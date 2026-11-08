@@ -73,13 +73,13 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 1059,
-      "changeFingerprint": "a6e54a9b3675cdfd51aad9f0d60c59ae647e10c20e7b001a879ed37acc684825",
+      "changeFingerprint": "10692f9a8bbd928ff4a6df4182a126f3892877bb1c40490249b9b536d15524b9",
       "paths": [
         "tests/harness/bookorbit-staged-contract-test.sh",
         "tests/harness/decypharr-torbox-staged-test.sh",
         "tests/harness/media-retired-contract-test.sh"
       ],
-      "reason": "PLT-122: owner-requested review and approval of the exact three protected BookOrbit/Decypharr contract changes; runtime rollout remains separately gated.",
+      "reason": "PLT-122: owner-reviewed protected BookOrbit/Decypharr tests, including strict Velero opt-in to data volume; production rollout remains gated by backup and login proof.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-14T23:59:59Z"
     }
