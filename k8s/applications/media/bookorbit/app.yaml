@@ -32,6 +32,11 @@ spec:
       labels:
         app.kubernetes.io/name: bookorbit
     spec:
+      # Private split-DNS used by Authentik discovery without Cloudflare AAAA drift.
+      hostAliases:
+        - ip: "10.0.20.192"
+          hostnames:
+            - auth.smadja.dev
       securityContext:
         runAsNonRoot: true
         runAsUser: 2501
@@ -47,6 +52,10 @@ spec:
           env:
             - name: NODE_ENV
               value: production
+            # OIDC is configured in Settings after local admin bootstrap.
+            # Only authenticated administrators can add the trusted local issuer.
+            - name: OIDC_ALLOW_LOCAL_ISSUERS
+              value: "true"
             - name: PORT
               value: "3000"
             - name: APP_URL
