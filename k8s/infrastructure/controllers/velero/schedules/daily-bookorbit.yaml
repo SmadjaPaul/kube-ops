@@ -1,5 +1,6 @@
-# BookOrbit /appdata metadata PVC is durable. The large shared media-share
-# library is reproducible and explicitly excluded from Velero backup.
+# BookOrbit /appdata metadata PVC is durable. The 2-TiB media-share PVC
+# MUST NOT be included. FSB is pod opt-in for volume 'data' only;
+# snapshots are disabled to avoid fallbacks for excluded volumes.
 apiVersion: velero.io/v1
 kind: Schedule
 metadata:
@@ -21,6 +22,8 @@ spec:
     excludedResources:
       - events
       - storageclasses.storage.k8s.io
-    defaultVolumesToFsBackup: true
+    # Pod annotation backup.velero.io/backup-volumes: data permits only /appdata.
+    defaultVolumesToFsBackup: false
+    snapshotVolumes: false
     storageLocation: default
     ttl: 336h

@@ -19,6 +19,15 @@ assert_contains 'value: /data/book-dock' "$pkg/app.yaml"
 assert_contains 'value: /data/media/books' "$pkg/app.yaml"
 assert_contains 'APP_BOOKORBIT_BOOK_REQUEST_ENCRYPTION_KEY' "$pkg/external-secret.yaml"
 assert_contains 'APP_BOOKORBIT_JWT_SECRET' "$pkg/external-secret.yaml"
+# Velero must back up only the BookOrbit data volume, not the shared 2-TiB media.
+assert_contains 'backup.velero.io/backup-volumes: data' "$pkg/app.yaml"
+velero=k8s/infrastructure/controllers/velero/schedules/daily-bookorbit.yaml
+assert_contains 'defaultVolumesToFsBackup: false' "$velero"
+assert_contains 'snapshotVolumes: false' "$velero"
+if grep -Eq 'defaultVolumesToFsBackup: true|backup\.velero\.io/backup-volumes: (media|data,media)' "$velero" "$pkg/app.yaml"; then
+  echo "BOOKORBIT_BACKUP_SCOPE=FAIL: shared media volume may be backed up" >&2
+  exit 1
+fi
 assert_contains 'bookorbit-postgresql' "$pkg/database.yaml"
 assert_contains 'bookorbit-postgresql-weekly' "$pkg/backup.yaml"
 assert_contains 'APP_BOOKORBIT_CNPG_S3_ACCESS_KEY_ID' "$pkg/backup.yaml"

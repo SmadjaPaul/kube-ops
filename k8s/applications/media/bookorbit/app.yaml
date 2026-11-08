@@ -33,6 +33,9 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: bookorbit
+      annotations:
+        # Opt-in only /appdata; never include the shared 2-TiB media PVC.
+        backup.velero.io/backup-volumes: data
     spec:
       # Private split-DNS used by Authentik discovery without Cloudflare AAAA drift.
       hostAliases:
