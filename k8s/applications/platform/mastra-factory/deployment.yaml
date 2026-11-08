@@ -16,6 +16,7 @@ spec:
       labels: {app.kubernetes.io/name: mastra-factory}
       annotations:
         secret.reloader.stakater.com/reload: mastra-factory-runtime,mastra-factory-authentik-oidc,mastra-factory-linear-oauth,mastra-factory-matrix,mastra-factory-checkpoint-s3
+        factory-platform.dev/rollout-recovery: "plt150-admission-disabled-2026-11-08T02:14:45Z"
     spec:
       serviceAccountName: mastra-factory
       automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
