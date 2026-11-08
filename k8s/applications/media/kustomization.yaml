@@ -10,7 +10,7 @@ resources:
 - media-layout-job.yaml
 - jellyseerr
 - jellyseerr-secrets.yaml
-- decypharr
+- bookorbit
 - immich
 - audiobookrequest
 - aiostreams
