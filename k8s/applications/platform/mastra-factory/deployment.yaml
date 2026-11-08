@@ -51,7 +51,7 @@ spec:
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
             # Single-issue PLT-150 admission; cutoff excludes all earlier durable starts.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
-            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
             - {name: MASTRACODE_REVIEW_ONLY_ENABLED, value: "1"}
             - {name: MASTRACODE_REVIEW_ONLY_FACTORY_PROJECT_ID, value: "507c5c16-933e-4c55-899a-e695ba35076b"}
             - {name: MASTRACODE_AUTONOMOUS_READY_LABEL, value: "status: ready"}
