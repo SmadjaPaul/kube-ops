@@ -279,7 +279,7 @@ repoConfig: |
                 grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
                 grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
                 grep -Eq 'resource[[:space:]]+"polyfin_public_address"[[:space:]]+"canonical"' "$DIR/main.tf"
-                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smad\.dev"' "$DIR/main.tf"
+                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smadja\.dev"' "$DIR/main.tf"
                 if grep -REiq 'REPLACE_WITH_DEDICATED|DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|kubernetes|helm|local-exec|remote-exec' "$DIR"/*.tf; then
                   echo "an unqualified backend, infrastructure authority, or execution escape hatch is forbidden" >&2
                   exit 1
@@ -416,7 +416,7 @@ repoConfig: |
                 grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
                 grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
                 grep -Eq 'resource[[:space:]]+"polyfin_public_address"[[:space:]]+"canonical"' "$DIR/main.tf"
-                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smad\.dev"' "$DIR/main.tf"
+                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smadja\.dev"' "$DIR/main.tf"
                 if grep -REiq 'REPLACE_WITH_DEDICATED|DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|kubernetes|helm|local-exec|remote-exec' "$DIR"/*.tf; then
                   echo "an unqualified backend, infrastructure authority, or execution escape hatch is forbidden" >&2
                   exit 1
@@ -491,7 +491,7 @@ repoConfig: |
                 "$TOFU" init -input=false -reconfigure
                 test "$($TOFU workspace show)" = "default"
                 state=$($TOFU state show 'polyfin_public_address.canonical')
-                printf '%s\n' "$state" | grep -Eq '^[[:space:]]*public_address = "https://tv\.smad\.dev"$'
+                printf '%s\n' "$state" | grep -Eq '^[[:space:]]*public_address = "https://tv\.smadja\.dev"$'
                 exit 0
               fi
               test "$PROJECT_NAME" = "atlantis-pilot"
