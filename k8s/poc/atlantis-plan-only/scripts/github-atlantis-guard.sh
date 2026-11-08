@@ -148,13 +148,28 @@ fi
 
 # PLT-153: admit only the owner-reviewed Media -> Polyfin HTTPS exception.
 # These paths are otherwise outside the Atlantis admission boundary. The
-# exact head and blob hashes prevent a later PR from reusing this exception
-# for unrelated UniFi policy changes.
-admitted_unifi_head="f4adf9bc2dd1df0a7f62109f1fd12d4391550960"
+# exact changed-path/blob fingerprint prevents a later PR or Atlantis merge
+# checkout from reusing this exception for unrelated UniFi policy changes.
+admitted_unifi_fingerprint="3a1bf4668c488a30952860150342d96d84a263bf23514621f70b6c04e8889b14"
+unifi_path_changed=false
+while IFS= read -r path; do
+  case "$path" in
+    terraform/unifi/firewall_policies.tf|terraform/unifi/firewall_policy_ordering.tf|\
+    terraform/unifi/traffic_matching_lists.tf) unifi_path_changed=true ;;
+  esac
+done <<<"$changed"
+if test "$unifi_path_changed" = true; then
+  unifi_fingerprint="$({
+    while IFS= read -r path; do
+      test -z "$path" && continue
+      printf '%s\t%s\n' "$path" "$(git hash-object "$DIR/$path")"
+    done <<<"$changed"
+  } | LC_ALL=C sort | sha256sum | awk '{print $1}')"
+  test "$unifi_fingerprint" = "$admitted_unifi_fingerprint" ||
+    fail "UniFi security diff is not the server-admitted exact fixture"
+fi
 admit_unifi_security_file() {
   local path=$1 expected_hash=$2
-  test "$HEAD_COMMIT" = "$admitted_unifi_head" ||
-    fail "UniFi security path requires the server-admitted head: $path"
   test "$(git hash-object "$DIR/$path")" = "$expected_hash" ||
     fail "UniFi security path content is not server-admitted: $path"
 }
