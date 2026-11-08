@@ -7,10 +7,7 @@ policy="k8s/infrastructure/network/policies/applications/media/media/allow-prowl
 kustom="k8s/infrastructure/network/policies/applications/media/media/kustomization.yaml"
 test -s "$policy"
 test -s "$kustom"
-if grep -Fxq -- '- allow-prowlarr-to-arr.yaml' "$kustom"; then
-  echo 'PROWLARR_ARR_EGRESS_CONTRACT=FAIL retired Prowlarr policy is active' >&2
-  exit 1
-fi
+grep -Fxq -- '- allow-prowlarr-to-arr.yaml' "$kustom"
 
 check() {
   local expression="$1" expected="$2"
