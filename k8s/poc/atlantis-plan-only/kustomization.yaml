@@ -11,6 +11,7 @@ resources:
   - pilot-backend-external-secret.yaml
   - aiostreams-provider-external-secret.yaml
   - polyfin-backend-external-secret.yaml
+  - polyfin-admin-external-secret.yaml
   - webhook-route.yaml
   - network-policy.yaml
 
