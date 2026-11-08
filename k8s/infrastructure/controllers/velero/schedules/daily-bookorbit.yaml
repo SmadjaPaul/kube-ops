@@ -1,0 +1,26 @@
+# BookOrbit /appdata metadata PVC is durable. The large shared media-share
+# library is reproducible and explicitly excluded from Velero backup.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-bookorbit
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: bookorbit
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedNamespaces:
+      - media
+    orLabelSelectors:
+      - matchLabels:
+          app.kubernetes.io/name: bookorbit
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h
