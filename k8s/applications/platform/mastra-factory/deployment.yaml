@@ -48,18 +48,24 @@ spec:
             - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
             - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
-            # PLT-126 canary ended; new autonomous admission is disabled. Delivery remains enabled.
+            # PLT-150 scope staged only; admission remains OFF until its native state is verified.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
             - {name: MASTRACODE_REVIEW_ONLY_ENABLED, value: "1"}
             - {name: MASTRACODE_REVIEW_ONLY_FACTORY_PROJECT_ID, value: "507c5c16-933e-4c55-899a-e695ba35076b"}
-            - {name: MASTRACODE_AUTONOMOUS_READY_LABEL, value: "factory-canary-v1-e2e-2026-11-04-ready"}
-            - {name: MASTRACODE_AUTONOMOUS_DEPENDENCIES_READY_LABEL, value: "factory-canary-v1-e2e-2026-11-04-dependencies-ready"}
+            - {name: MASTRACODE_AUTONOMOUS_READY_LABEL, value: "status: ready"}
+            - {name: MASTRACODE_AUTONOMOUS_DEPENDENCIES_READY_LABEL, value: "status: dependencies-ready"}
             - {name: MASTRACODE_AUTONOMOUS_QUALIFIED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_IN_FLIGHT, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_ATTEMPTS, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_TOKENS, value: "50000"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_COST_USD, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_ALLOWED_LINEAR_ISSUE_ID, value: "74563725-0f5d-4c17-a483-cebff5dd25c3"}
+            - {name: MASTRACODE_AUTONOMOUS_LINEAR_PROJECT_ID, value: "02f32953-c5f5-43f2-b130-8a5a630aa578"}
+            - {name: MASTRACODE_AUTONOMOUS_FACTORY_PROJECT_ID, value: "8551e83c-15ca-498d-98d3-a606719a1370"}
+            - {name: MASTRACODE_AUTONOMOUS_ALLOWED_REPOSITORY, value: "SmadjaPaul/factory-platform"}
+            # DISPATCH_NOT_BEFORE is intentionally unset until the authenticated
+            # preflight immediately preceding activation establishes a fresh cutoff.
             - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
             - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://alloy.monitoring.svc.cluster.local:4318"}
             - {name: OTEL_SERVICE_NAME, value: "mastra-factory"}

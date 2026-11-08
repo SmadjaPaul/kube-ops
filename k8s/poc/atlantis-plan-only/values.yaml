@@ -278,6 +278,8 @@ repoConfig: |
                 grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-polyfin-tfstate"' "$DIR/backend.tf"
                 grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
                 grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
+                grep -Eq 'resource[[:space:]]+"polyfin_public_address"[[:space:]]+"canonical"' "$DIR/main.tf"
+                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smad\.dev"' "$DIR/main.tf"
                 if grep -REiq 'REPLACE_WITH_DEDICATED|DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|kubernetes|helm|local-exec|remote-exec' "$DIR"/*.tf; then
                   echo "an unqualified backend, infrastructure authority, or execution escape hatch is forbidden" >&2
                   exit 1
@@ -408,6 +410,31 @@ repoConfig: |
               grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-atlantis-pilot-tfstate"' "$DIR/backend.tf"
               grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
               grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
+              if test "$PROJECT_NAME" = polyfin; then
+                test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
+                test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
+                test "$BASE_BRANCH_NAME" = "main"
+                test "$REPO_REL_DIR" = "terraform/polyfin"
+                test "$PROJECT_NAME" = "polyfin"
+                test "$WORKSPACE" = "default"
+                test -z "$COMMENT_ARGS"
+                test "$HEAD_COMMIT" != ""
+                test -f "$DIR/backend.tf"
+                test -f "$DIR/main.tf"
+                grep -Eq 'source[[:space:]]*=[[:space:]]*"registry\.terraform\.io/SmadjaPaul/polyfin"' "$DIR/versions.tf"
+                grep -Eq 'version[[:space:]]*=[[:space:]]*"~> 0\.1"' "$DIR/versions.tf"
+                grep -Eq 'key[[:space:]]*=[[:space:]]*"polyfin/terraform\.tfstate"' "$DIR/backend.tf"
+                grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-polyfin-tfstate"' "$DIR/backend.tf"
+                grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
+                grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
+                grep -Eq 'resource[[:space:]]+"polyfin_public_address"[[:space:]]+"canonical"' "$DIR/main.tf"
+                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smad\.dev"' "$DIR/main.tf"
+                if grep -REiq 'REPLACE_WITH_DEDICATED|DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|kubernetes|helm|local-exec|remote-exec' "$DIR"/*.tf; then
+                  echo "an unqualified backend, infrastructure authority, or execution escape hatch is forbidden" >&2
+                  exit 1
+                fi
+                exit 0
+              fi
           - apply
           # Verify before Atlantis may automerge and remove the PR checkout.
           - run: |
@@ -463,7 +490,8 @@ repoConfig: |
                 cd "$PROJECT_DIR"
                 "$TOFU" init -input=false -reconfigure
                 test "$($TOFU workspace show)" = "default"
-                "$TOFU" state list | grep -Fx 'polyfin_public_address.canonical'
+                state=$($TOFU state show 'polyfin_public_address.canonical')
+                printf '%s\n' "$state" | grep -Fx 'public_address = "https://tv.smad.dev"'
                 exit 0
               fi
               test "$PROJECT_NAME" = "atlantis-pilot"
