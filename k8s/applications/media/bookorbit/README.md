@@ -1,8 +1,6 @@
-# BookOrbit — ADMISSION_PAUSED; staged only, NOT deployed
+# BookOrbit — 2026-11-08 owner-approved admission candidate; runtime NOT proven
 
-**Decision hold (2026-10-27, PLT-122):** Do not promote this candidate or
-provision BookOrbit-specific S3 credentials, CNPG databases, or secrets while
-the reading stack is reassessed. This is a reversible *pause*, not an
+**Historical decision hold (2026-10-27, PLT-122), superseded by owner approval on 2026-11-08:** The previous ADMISSION_PAUSED gate was a hold on architecture selection. The owner now chooses BookOrbit 3.6.0 as the only new reader and explicitly retires Decypharr, without introducing any replacement downloader while awaiting official upstream TorBox support. This is a reversible *pause*, not an
 authorization to delete the staged manifests or any persistent data.
 
 The maintainer has publicly acknowledged previously creating BookLore
@@ -28,7 +26,7 @@ new architecture decision and a separate reviewed admission PR. Retain all
 static safety contracts in the meantime.
 
 Updated staged candidate: **BookOrbit v3.6.0** (published 2026-10-28).
-The default Media root intentionally does not include `- bookorbit`.
+The deployment proposal imports `- bookorbit` in its dedicated draft admission branch; this does not prove that Argo, ESO, CNPG, the worker blueprint or the user's OIDC session is Ready.
 A dedicated admission PR, image digest and runtime tests are mandatory.
 
 ## Current qualification boundary (2026-10-25)
@@ -59,8 +57,7 @@ A dedicated admission PR, image digest and runtime tests are mandatory.
 
 The admission PR must sequence the dedicated backup identity, PVC backup and
 restore proof, ESO readiness, CNPG health/extensions, and only then the
-Argo import. Decypharr ingress remains closed until the dedicated
-no-category authentication and protected category requests are proven.
+Argo import. No Decypharr or torrent client is part of the approved BookOrbit deployment. Wait for official upstream BookOrbit native TorBox support; manual Book Dock imports are allowed.
 
 ## Private restore/admission procedure (prepared, not executed)
 
@@ -89,10 +86,10 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
    verify a sentinel file, UID/GID 2501 ownership, `/appdata` readability,
    and the `/data/book-dock` plus `/data/media/books` path contract. Do not
    delete or reinitialize the production claim.
-5. **Private admission:** add only `- bookorbit` to the Media root in a
-   separate exact-SHA PR after the preceding gates pass. Keep Decypharr
-   ingress, external HTTPRoute attachment, indexer/source egress and automatic
-   searching disabled until their independent tests pass.
+5. **Private admission:** merge the dedicated BookOrbit admission PR only after
+   all preceding gates pass. Keep Gateway/external, indexer/source egress and
+   automatic searching disabled. The owner has approved this target, but tests
+   and runtime evidence must precede promotion.
 
 ## Upstream-verified features
 
