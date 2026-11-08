@@ -58,6 +58,17 @@
       "reason": "PLT-135: owner-authorized exact Atlantis allowlist test for the Polyfin provider lockfile admission.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-12T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1060,
+      "changeFingerprint": "359069214579322a1e9272335c52295aba69ac85a15f368a6ca3680210d3e329",
+      "paths": [
+        "tests/harness/atlantis-plan-only-test.sh"
+      ],
+      "reason": "PLT-135: owner-authorized Atlantis Polyfin native-auth projection and apply workflow contract.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-14T23:59:59Z"
     }
   ]
 }
