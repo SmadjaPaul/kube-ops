@@ -8,7 +8,6 @@ resources:
   # Monitoring metrics and Loki logs are explicitly excluded from the durable
   # application-data policy; dashboards and rules are GitOps state.
   - daily-immich.yaml
-  - daily-jellyfin.yaml
   - daily-audiobookrequest.yaml
   - daily-karakeep.yaml
   # Owner ACCEPT_LOSS applies only to two identified Longhorn Executor volumes.
