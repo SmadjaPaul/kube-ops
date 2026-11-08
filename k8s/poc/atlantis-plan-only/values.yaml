@@ -286,7 +286,7 @@ repoConfig: |
                 fi
                 exit 0
               fi
-              if test "$PROJECT_NAME" = unifi; then
+              if test "$PROJECT_NAME" = unifi || test "$PROJECT_NAME" = terraform/unifi; then
                 test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
                 test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
                 test "$BASE_BRANCH_NAME" = "main"
