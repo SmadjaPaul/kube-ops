@@ -6,6 +6,12 @@ HTTPRoute is intentionally disabled. `tv.smadja.dev` remains reserved for the
 native AIOStreams family player; this migration does not delete Polyfin data.
 There is no external HTTPRoute or Cloudflare Tunnel.
 
+The existing `polyfin-data` PVC is intentionally 20Gi. Polyfin stores
+rebuildable source and artwork caches below `/data/cache`; the former 5Gi
+pilot volume reached 100% during normal catalogue use and caused write
+failures. The correction expands the existing Longhorn volume in place and
+does not remove application data or cache contents.
+
 The T2 acceptance is machine-checked by
 `.github/polyfin/private-pilot-admission.json` and
 `scripts/polyfin-admission-check.sh`. It is bound to the official upstream

@@ -10,4 +10,8 @@ spec:
   storageClassName: longhorn-fast
   resources:
     requests:
-      storage: 5Gi
+      # Polyfin keeps rebuildable source/image metadata caches under /data.
+      # The 5Gi pilot volume exhausted during normal catalogue use; retain
+      # the existing PVC and expand it in place rather than deleting cache or
+      # application data.
+      storage: 20Gi
