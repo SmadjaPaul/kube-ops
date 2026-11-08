@@ -5,10 +5,13 @@ v=k8s/infrastructure/controllers/velero/schedules/kustomization.yaml
 ! grep -Eq '^[[:space:]]*-[[:space:]]*(sabnzbd|audiobookshelf)[[:space:]]*$' "$m"
 ! grep -Eq '^[[:space:]]*-[[:space:]]*daily-(sabnzbd|audiobookshelf)\.yaml' "$v"
 grep -Fxq -- '- media-share-pvc.yaml' "$m"
-grep -Fxq -- '- decypharr' "$m"
+grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"
+grep -Fxq -- '- bookorbit' "$m"
+! grep -Fxq -- '- decypharr' "$m"
 grep -Fxq -- '- aiostreams' "$m"
 grep -Fxq -- '- audiobookrequest' "$m"
-grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"
+grep -Fxq -- '- polyfin' "$m"
+! grep -Fxq -- '- allow-arr-to-decypharr.yaml' k8s/infrastructure/network/policies/applications/media/media/kustomization.yaml
 script=scripts/media-retired-pvc-cleanup.sh
 bash -n "$script"
 grep -Fq 'ALLOW_EMPTY_MEDIA_PVC_DELETION' "$script"
