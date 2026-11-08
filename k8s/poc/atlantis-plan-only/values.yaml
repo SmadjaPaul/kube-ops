@@ -279,7 +279,7 @@ repoConfig: |
                 grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
                 grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
                 grep -Eq 'resource[[:space:]]+"polyfin_public_address"[[:space:]]+"canonical"' "$DIR/main.tf"
-                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smad\.dev"' "$DIR/main.tf"
+                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smadja\.dev"' "$DIR/main.tf"
                 if grep -REiq 'REPLACE_WITH_DEDICATED|DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|kubernetes|helm|local-exec|remote-exec' "$DIR"/*.tf; then
                   echo "an unqualified backend, infrastructure authority, or execution escape hatch is forbidden" >&2
                   exit 1
@@ -398,18 +398,6 @@ repoConfig: |
               test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
               test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
               test "$BASE_BRANCH_NAME" = "main"
-              test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
-              test "$PROJECT_NAME" = "atlantis-pilot"
-              test "$WORKSPACE" = "default"
-              test -z "$COMMENT_ARGS"
-              test "$HEAD_COMMIT" != ""
-              test -f "$DIR/backend.tf"
-              test -f "$DIR/main.tf"
-              grep -Eq 'required_version = "= 1.13.1"' "$DIR/versions.tf"
-              grep -Eq 'key[[:space:]]*=[[:space:]]*"atlantis-pilot/terraform.tfstate"' "$DIR/backend.tf"
-              grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-atlantis-pilot-tfstate"' "$DIR/backend.tf"
-              grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
-              grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
               if test "$PROJECT_NAME" = polyfin; then
                 test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
                 test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
@@ -428,13 +416,25 @@ repoConfig: |
                 grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
                 grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
                 grep -Eq 'resource[[:space:]]+"polyfin_public_address"[[:space:]]+"canonical"' "$DIR/main.tf"
-                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smad\.dev"' "$DIR/main.tf"
+                grep -Eq 'public_address[[:space:]]*=[[:space:]]*"https://tv\.smadja\.dev"' "$DIR/main.tf"
                 if grep -REiq 'REPLACE_WITH_DEDICATED|DOPPLER|OCI_S3|PROXMOX|KUBECONFIG|kubernetes|helm|local-exec|remote-exec' "$DIR"/*.tf; then
                   echo "an unqualified backend, infrastructure authority, or execution escape hatch is forbidden" >&2
                   exit 1
                 fi
                 exit 0
               fi
+              test "$REPO_REL_DIR" = "terraform/atlantis-pilot"
+              test "$PROJECT_NAME" = "atlantis-pilot"
+              test "$WORKSPACE" = "default"
+              test -z "$COMMENT_ARGS"
+              test "$HEAD_COMMIT" != ""
+              test -f "$DIR/backend.tf"
+              test -f "$DIR/main.tf"
+              grep -Eq 'required_version = "= 1.13.1"' "$DIR/versions.tf"
+              grep -Eq 'key[[:space:]]*=[[:space:]]*"atlantis-pilot/terraform.tfstate"' "$DIR/backend.tf"
+              grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-atlantis-pilot-tfstate"' "$DIR/backend.tf"
+              grep -Eq 'endpoint[[:space:]]*=[[:space:]]*"https://axnvxxurxefp\.compat\.objectstorage\.eu-paris-1\.oraclecloud\.com"' "$DIR/backend.tf"
+              grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
           - apply
           # Verify before Atlantis may automerge and remove the PR checkout.
           - run: |
@@ -491,7 +491,7 @@ repoConfig: |
                 "$TOFU" init -input=false -reconfigure
                 test "$($TOFU workspace show)" = "default"
                 state=$($TOFU state show 'polyfin_public_address.canonical')
-                printf '%s\n' "$state" | grep -Fx 'public_address = "https://tv.smad.dev"'
+                printf '%s\n' "$state" | grep -Eq '^[[:space:]]*public_address = "https://tv\.smadja\.dev"$'
                 exit 0
               fi
               test "$PROJECT_NAME" = "atlantis-pilot"

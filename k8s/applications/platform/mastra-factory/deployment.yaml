@@ -16,6 +16,7 @@ spec:
       labels: {app.kubernetes.io/name: mastra-factory}
       annotations:
         secret.reloader.stakater.com/reload: mastra-factory-runtime,mastra-factory-authentik-oidc,mastra-factory-linear-oauth,mastra-factory-matrix,mastra-factory-checkpoint-s3
+        factory-platform.dev/rollout-recovery: "plt150-admission-disabled-2026-11-08T02:14:45Z"
     spec:
       serviceAccountName: mastra-factory
       automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
@@ -48,7 +49,7 @@ spec:
             - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
             - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
-            # PLT-150 scope staged only; admission remains OFF until its native state is verified.
+            # PLT-150 admission disabled until the deployed Factory accepts its cutoff.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
             - {name: MASTRACODE_REVIEW_ONLY_ENABLED, value: "1"}
@@ -64,8 +65,7 @@ spec:
             - {name: MASTRACODE_AUTONOMOUS_LINEAR_PROJECT_ID, value: "02f32953-c5f5-43f2-b130-8a5a630aa578"}
             - {name: MASTRACODE_AUTONOMOUS_FACTORY_PROJECT_ID, value: "8551e83c-15ca-498d-98d3-a606719a1370"}
             - {name: MASTRACODE_AUTONOMOUS_ALLOWED_REPOSITORY, value: "SmadjaPaul/factory-platform"}
-            # DISPATCH_NOT_BEFORE is intentionally unset until the authenticated
-            # preflight immediately preceding activation establishes a fresh cutoff.
+            # DISPATCH_NOT_BEFORE remains unset until its runtime schema is verified.
             - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
             - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://alloy.monitoring.svc.cluster.local:4318"}
             - {name: OTEL_SERVICE_NAME, value: "mastra-factory"}

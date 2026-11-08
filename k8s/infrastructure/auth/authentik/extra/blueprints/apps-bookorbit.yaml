@@ -19,6 +19,7 @@ entries:
       client_secret: !Env BOOKORBIT_CLIENT_SECRET
       redirect_uris:
         - {url: https://bookorbit.smadja.dev/oauth2-callback, matching_mode: strict}
+        - {url: "bookorbit://oauth2-callback", matching_mode: strict}
       sub_mode: hashed_user_id
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
