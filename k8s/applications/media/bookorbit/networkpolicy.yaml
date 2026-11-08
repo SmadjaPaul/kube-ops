@@ -37,6 +37,21 @@ spec:
         - ports:
             - port: "8282"
               protocol: TCP
+    # Authentik issuer is pinned to the internal Gateway and backend identity.
+    - toCIDR:
+        - 10.0.20.192/32
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: TCP
     - toFQDNs:
         - matchName: auth.smadja.dev
       toPorts:
