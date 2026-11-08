@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
   annotations:
-    factory-platform.dev/source-sha: 5b016e793393b00bdb53d9a17eab754f68a09abc
+    factory-platform.dev/source-sha: ccfc029540deaf3c99fe776996b7c2a720d3550b
 spec:
   replicas: 1 # Keep one dispatcher until cross-replica sandbox claim locking is qualified.
   strategy: {type: Recreate}
@@ -32,7 +32,7 @@ spec:
         - name: factory
           # Rollback digest: the image currently running before the 0.27 migration.
           # The 0.27 startup migration may retire incompatible Factory history; Better Auth users and integrations are preserved.
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:136ff5fabe7c63e57af6520cbd5411949f9bede19c3e7433c9ea5903de79ed83
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:c56c2005ea0f4d9b2707b5bb5b23b1bf1f03a3fb9dbac249f9372e56a36768ed
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
