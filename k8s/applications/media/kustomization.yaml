@@ -2,14 +2,14 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+# Arr (Radarr/Sonarr/Prowlarr/Bazarr/Lidarr) and Seerr retired 2026-11-08.
+# Historical manifests are retained for audit, but no longer included by GitOps.
+# Keep media-share, Jellyfin, AIOStreams, Polyfin, Decypharr and BookOrbit pilot intact.
 - namespace.yaml
 - project.yaml
 - jellyfin
-- arr
 - media-share-pvc.yaml
 - media-layout-job.yaml
-- jellyseerr
-- jellyseerr-secrets.yaml
 - decypharr
 - immich
 - audiobookrequest
