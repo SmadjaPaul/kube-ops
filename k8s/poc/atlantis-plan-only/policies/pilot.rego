@@ -7,7 +7,7 @@ allowed_marker := "atlantis-plan-only-fixture-v1"
 allowed_pilot_actions := {"create", "update", "no-op"}
 allowed_aiostreams_actions := {"create", "update", "no-op"}
 allowed_polyfin_address := "polyfin_public_address.canonical"
-allowed_polyfin_public_address := "https://tv.smad.dev"
+allowed_polyfin_public_address := "https://tv.smadja.dev"
 allowed_polyfin_actions := {"create", "update", "no-op"}
 
 github_settings_address(address) if {
@@ -52,8 +52,8 @@ deny contains msg if {
   some change in input.resource_changes
   polyfin_public_address(change.address)
   change.change.actions == ["create"]
-  object.get(change.change.after, "public_address", "") != "https://tv.smad.dev"
-  msg := "Polyfin public address must remain \"https://tv.smad.dev\""
+  object.get(change.change.after, "public_address", "") != "https://tv.smadja.dev"
+  msg := "Polyfin public address must remain \"https://tv.smadja.dev\""
 }
 
 deny contains msg if {
