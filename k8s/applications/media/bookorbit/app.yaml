@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: bookorbit-data
   namespace: media
+  labels:
+    app.kubernetes.io/name: bookorbit
 spec:
   accessModes:
     - ReadWriteOnce
