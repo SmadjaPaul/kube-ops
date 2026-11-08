@@ -491,7 +491,7 @@ repoConfig: |
                 "$TOFU" init -input=false -reconfigure
                 test "$($TOFU workspace show)" = "default"
                 state=$($TOFU state show 'polyfin_public_address.canonical')
-                printf '%s\n' "$state" | grep -Fx 'public_address = "https://tv.smad.dev"'
+                printf '%s\n' "$state" | grep -Eq '^[[:space:]]*public_address = "https://tv\.smad\.dev"$'
                 exit 0
               fi
               test "$PROJECT_NAME" = "atlantis-pilot"
