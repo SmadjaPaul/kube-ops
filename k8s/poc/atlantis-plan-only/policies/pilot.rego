@@ -52,8 +52,8 @@ deny contains msg if {
   some change in input.resource_changes
   polyfin_public_address(change.address)
   change.change.actions == ["create"]
-  object.get(change.change.after, "public_address", "") != allowed_polyfin_public_address
-  msg := sprintf("Polyfin public address must remain %q", [allowed_polyfin_public_address])
+  object.get(change.change.after, "public_address", "") != "https://tv.smad.dev"
+  msg := "Polyfin public address must remain \"https://tv.smad.dev\""
 }
 
 deny contains msg if {
