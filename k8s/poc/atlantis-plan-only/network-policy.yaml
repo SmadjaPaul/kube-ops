@@ -68,3 +68,14 @@ spec:
         - ports:
             - port: "3000"
               protocol: TCP
+    # The Polyfin provider uses the native in-cluster admin API for its
+    # bounded public-address resource. Permit only that Service identity and
+    # port; no general media egress is added.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            k8s:app.kubernetes.io/name: polyfin
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
