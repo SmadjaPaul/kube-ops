@@ -150,7 +150,7 @@ fi
 # These paths are otherwise outside the Atlantis admission boundary. The
 # exact head and blob hashes prevent a later PR from reusing this exception
 # for unrelated UniFi policy changes.
-admitted_unifi_head="f3d61c7e03de0e8f4ce8fbffbd3f7a983a8f32c1"
+admitted_unifi_head="f4adf9bc2dd1df0a7f62109f1fd12d4391550960"
 admit_unifi_security_file() {
   local path=$1 expected_hash=$2
   test "$HEAD_COMMIT" = "$admitted_unifi_head" ||
@@ -172,7 +172,7 @@ fi
 if path_changed terraform/unifi/traffic_matching_lists.tf; then
   admit_unifi_security_file \
     terraform/unifi/traffic_matching_lists.tf \
-    8541b55f81001e82b01e4ae69ca5aae2de20632f
+    78e379b4d1662c74b4a429379e8c6e0bb953731f
 fi
 
 echo "Atlantis admission accepted: server-owned diff boundary base=$BASE_REPO_OWNER/$BASE_REPO_NAME head=$HEAD_COMMIT"
