@@ -286,6 +286,23 @@ repoConfig: |
                 fi
                 exit 0
               fi
+              if test "$PROJECT_NAME" = unifi; then
+                test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
+                test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
+                test "$BASE_BRANCH_NAME" = "main"
+                test "$REPO_REL_DIR" = "terraform/unifi"
+                test "$WORKSPACE" = "default"
+                test -z "$COMMENT_ARGS"
+                test "$HEAD_COMMIT" != ""
+                test -f "$DIR/backend.tf"
+                test -f "$DIR/provider.tf"
+                grep -Eq 'source[[:space:]]*=[[:space:]]*"registry\.terraform\.io/badgerops/unifi"' "$DIR/provider.tf"
+                grep -Eq 'version[[:space:]]*=[[:space:]]*"~> 0\.2\.15"' "$DIR/provider.tf"
+                grep -Eq 'key[[:space:]]*=[[:space:]]*"unifi-badgerops/terraform\.tfstate"' "$DIR/backend.tf"
+                grep -Eq 'bucket[[:space:]]*=[[:space:]]*"homelab-tfstate"' "$DIR/backend.tf"
+                grep -Eq 'use_lockfile[[:space:]]*=[[:space:]]*true' "$DIR/backend.tf"
+                exit 0
+              fi
               test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
               test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
               test "$PROJECT_NAME" = "atlantis-pilot"
