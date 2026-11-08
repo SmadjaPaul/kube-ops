@@ -60,6 +60,16 @@ matrixAuthenticationService:
     authentik:
       configSecret: matrix-mas-oidc
       configSecretKey: authentik.yaml
+    migration-passwords:
+      config: |
+        passwords:
+          enabled: true
+          schemes:
+            - version: 1
+              algorithm: bcrypt
+              unicode_normalization: true
+            - version: 2
+              algorithm: argon2id
 
 wellKnownDelegation:
   enabled: true
