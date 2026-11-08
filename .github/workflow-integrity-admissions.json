@@ -69,6 +69,19 @@
       "reason": "PLT-135: owner-authorized Atlantis Polyfin native-auth projection and apply workflow contract.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-14T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1059,
+      "changeFingerprint": "a6e54a9b3675cdfd51aad9f0d60c59ae647e10c20e7b001a879ed37acc684825",
+      "paths": [
+        "tests/harness/bookorbit-staged-contract-test.sh",
+        "tests/harness/decypharr-torbox-staged-test.sh",
+        "tests/harness/media-retired-contract-test.sh"
+      ],
+      "reason": "PLT-122: candidate admission for the current #1059 BookOrbit and retired-media contract changes; pending independent owner review.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-14T23:59:59Z"
     }
   ]
 }
