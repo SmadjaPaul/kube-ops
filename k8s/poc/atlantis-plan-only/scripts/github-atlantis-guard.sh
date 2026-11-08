@@ -150,7 +150,7 @@ fi
 # These paths are otherwise outside the Atlantis admission boundary. The
 # exact changed-path/blob fingerprint prevents a later PR or Atlantis merge
 # checkout from reusing this exception for unrelated UniFi policy changes.
-admitted_unifi_fingerprint="3a1bf4668c488a30952860150342d96d84a263bf23514621f70b6c04e8889b14"
+admitted_unifi_fingerprint="d00963e4207f2aa7fb0949c764f690d382c95555614e1b8536a65d422d0bc719"
 unifi_path_changed=false
 while IFS= read -r path; do
   case "$path" in
@@ -177,12 +177,12 @@ admit_unifi_security_file() {
 if path_changed terraform/unifi/firewall_policies.tf; then
   admit_unifi_security_file \
     terraform/unifi/firewall_policies.tf \
-    623c6101ad4a7c9cc04584ddd8e3d02a5a0987ff
+    46869e5d14d74970d566d565559fb6a357b147cb
 fi
 if path_changed terraform/unifi/firewall_policy_ordering.tf; then
   admit_unifi_security_file \
     terraform/unifi/firewall_policy_ordering.tf \
-    0f74eb5fbb18b4ada5f37799c3c1d585f08f2050
+    daba8f208f18c2958ea09c46d3f69b1a4ae96a64
 fi
 if path_changed terraform/unifi/traffic_matching_lists.tf; then
   admit_unifi_security_file \
