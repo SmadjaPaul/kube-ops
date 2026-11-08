@@ -79,7 +79,7 @@
         "tests/harness/decypharr-torbox-staged-test.sh",
         "tests/harness/media-retired-contract-test.sh"
       ],
-      "reason": "PLT-122: candidate admission for the current #1059 BookOrbit and retired-media contract changes; pending independent owner review.",
+      "reason": "PLT-122: owner-requested review and approval of the exact three protected BookOrbit/Decypharr contract changes; runtime rollout remains separately gated.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-14T23:59:59Z"
     }
