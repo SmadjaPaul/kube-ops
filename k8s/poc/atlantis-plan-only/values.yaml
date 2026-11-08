@@ -94,6 +94,10 @@ extraVolumes:
     secret:
       secretName: atlantis-polyfin-backend
       defaultMode: 288
+  - name: atlantis-polyfin-admin
+    secret:
+      secretName: atlantis-polyfin-admin
+      defaultMode: 288
 
 extraVolumeMounts:
   - name: atlantis-pilot-conftest
@@ -113,6 +117,9 @@ extraVolumeMounts:
     readOnly: true
   - name: atlantis-polyfin-backend
     mountPath: /etc/atlantis/polyfin-backend
+    readOnly: true
+  - name: atlantis-polyfin-admin
+    mountPath: /etc/atlantis/polyfin-admin
     readOnly: true
 
 repoConfig: |
@@ -213,6 +220,12 @@ repoConfig: |
               name: TF_VAR_torbox_api_key
               command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_torbox_api_key; else printf ""; fi'
           - env:
+              name: POLYFIN_ADMIN_USERNAME_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/polyfin-admin/POLYFIN_ADMIN_USERNAME; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_PASSWORD_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/polyfin-admin/POLYFIN_ADMIN_PASSWORD; else printf ""; fi'
+          - env:
               name: TF_VAR_github_app_id
               command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_ID; else printf ""; fi'
           - env:
@@ -312,23 +325,18 @@ repoConfig: |
           - policy_check
       apply:
         steps:
-          - run: |
-              if test "$PROJECT_NAME" = polyfin; then
-                echo "Polyfin apply is disabled until a separate apply admission" >&2
-                exit 1
-              fi
           - env:
               name: TF_DATA_DIR
               command: 'printf "%s/atlantis-tofu-data-%s-%s" "${TMPDIR:-/tmp}" "$PROJECT_NAME" "$PULL_NUM"'
           - env:
               name: AWS_ACCESS_KEY_ID
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_ACCESS_KEY_ID; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_ACCESS_KEY_ID; else printf "%s" "$AWS_ACCESS_KEY_ID"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_ACCESS_KEY_ID; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_ACCESS_KEY_ID; elif test "$PROJECT_NAME" = polyfin; then cat /etc/atlantis/polyfin-backend/AWS_ACCESS_KEY_ID; else printf "%s" "$AWS_ACCESS_KEY_ID"; fi'
           - env:
               name: AWS_SECRET_ACCESS_KEY
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_SECRET_ACCESS_KEY; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_SECRET_ACCESS_KEY; else printf "%s" "$AWS_SECRET_ACCESS_KEY"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_SECRET_ACCESS_KEY; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_SECRET_ACCESS_KEY; elif test "$PROJECT_NAME" = polyfin; then cat /etc/atlantis/polyfin-backend/AWS_SECRET_ACCESS_KEY; else printf "%s" "$AWS_SECRET_ACCESS_KEY"; fi'
           - env:
               name: AWS_REGION
-              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_REGION; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_REGION; else printf "%s" "$AWS_REGION"; fi'
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/AWS_REGION; elif test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/AWS_REGION; elif test "$PROJECT_NAME" = polyfin; then cat /etc/atlantis/polyfin-backend/AWS_REGION; else printf "%s" "$AWS_REGION"; fi'
           - env:
               name: TF_VAR_aiostreams_password
               command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_aiostreams_password; else printf ""; fi'
@@ -341,6 +349,12 @@ repoConfig: |
           - env:
               name: TF_VAR_torbox_api_key
               command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/aiostreams-provider/TF_VAR_torbox_api_key; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_USERNAME_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/polyfin-admin/POLYFIN_ADMIN_USERNAME; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_PASSWORD_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/polyfin-admin/POLYFIN_ADMIN_PASSWORD; else printf ""; fi'
           - env:
               name: TF_VAR_github_app_id
               command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/github-iac/APP_GITHUB_IAC_ID; else printf ""; fi'
@@ -434,6 +448,22 @@ repoConfig: |
                   echo "AIOStreams state contains a write-only credential field" >&2
                   exit 1
                 fi
+                exit 0
+              fi
+              if test "$PROJECT_NAME" = "polyfin"; then
+                TOFU=/atlantis-data/bin/tofu1.13.1
+                test -x "$TOFU"
+                export AWS_ACCESS_KEY_ID="$(cat /etc/atlantis/polyfin-backend/AWS_ACCESS_KEY_ID)"
+                export AWS_SECRET_ACCESS_KEY="$(cat /etc/atlantis/polyfin-backend/AWS_SECRET_ACCESS_KEY)"
+                export AWS_REGION="$(cat /etc/atlantis/polyfin-backend/AWS_REGION)"
+                export POLYFIN_ADMIN_USERNAME_FILE=/etc/atlantis/polyfin-admin/POLYFIN_ADMIN_USERNAME
+                export POLYFIN_ADMIN_PASSWORD_FILE=/etc/atlantis/polyfin-admin/POLYFIN_ADMIN_PASSWORD
+                PROJECT_DIR="$CHECKOUT_ROOT/terraform/polyfin"
+                test -f "$PROJECT_DIR/backend.tf"
+                cd "$PROJECT_DIR"
+                "$TOFU" init -input=false -reconfigure
+                test "$($TOFU workspace show)" = "default"
+                "$TOFU" state list | grep -Fx 'polyfin_public_address.canonical'
                 exit 0
               fi
               test "$PROJECT_NAME" = "atlantis-pilot"
