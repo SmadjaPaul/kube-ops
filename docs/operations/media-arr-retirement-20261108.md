@@ -8,12 +8,12 @@ Polyfin is the replacement direction, but it is not a reason to delete shared me
 ## Declarative change in this PR
 - Remove `arr`, `jellyseerr`, `jellyseerr-secrets.yaml` and `jellyfin` from `k8s/applications/media/kustomization.yaml`.
 - Remove dedicated daily backup Schedules for radarr/sonarr/prowlarr/lidarr/bazarr/jellyseerr/jellyfin from the Velero Kustomization (do not modify other schedules).
-- Remove dedicated Arr/Prowlarr Cilium policies from the media policies Kustomization.
+- Preserve the three legacy Arr/Prowlarr Cilium policies for now: protected static CI contracts still require them to be rendered. With the Arr Pods removed they should have no matching workloads, but this must be confirmed live. Retire the policies and corresponding protected tests in a separate formally admitted PR; do not bypass workflow-integrity.
 - Retain the historical source manifests for audit/rollback, but exclude them from the active Kustomize graph.
 
 ## Acceptance — require observed evidence
 1. `kustomize build k8s/applications/media` must not include StatefulSet/Service/HTTPRoute for the six retired apps, but must still include active Polyfin, AIOStreams, Decypharr and shared storage.
-2. Render Velero and media policy overlays and show only the retired resources disappear. Confirm no other namespace or critical policy was altered.
+2. Render Velero and media policy overlays: the retired Velero Schedules disappear, but the legacy Arr network policies remain intentionally due to protected historical tests. Confirm their selectors no longer match running Pods and do not authorize broad traffic for any replacement app.
 3. Confirm Git commit SHA, CI contract checks, merge, Argo `apps-media` and relevant infrastructure app reconciliation. Verify the unwanted workloads/HTTPRoutes/Services have actually been pruned, **not merely** removed from Git.
 4. In the live cluster, inventory `kubectl -n media get pvc,pv` / Longhorn objects and their owners. Delete *only* individual PVCs (including Jellyfin's actual claim names) proven to belong to the retired apps after the workload is gone. Verify data is disposable; never delete `media-share` or Polyfin/AIOStreams/Decypharr data. StatefulSet PVCs can remain after StatefulSet deletion; GitOps prune is not proof of PVC deletion.
 5. Audit orphaned secrets, Doppler keys, Authentik apps/Outposts and portal bookmarks; remove only exact owners after checking no consumer. `daily-sabnzbd.yaml` is not included by the current Velero Kustomization; classify it as dormant, not an active Schedule.
