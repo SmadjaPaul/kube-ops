@@ -2,9 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - allow-media-access.yaml
-- allow-prowlarr-to-arr.yaml
-- allow-arr-to-prowlarr.yaml
-- allow-arr-to-decypharr.yaml
 namespace: media
 labels:
 - pairs:
