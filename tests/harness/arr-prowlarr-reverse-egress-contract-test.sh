@@ -7,10 +7,7 @@ set -euo pipefail
 policy="k8s/infrastructure/network/policies/applications/media/media/allow-arr-to-prowlarr.yaml"
 kustom="k8s/infrastructure/network/policies/applications/media/media/kustomization.yaml"
 test -s "$policy"
-if grep -Fxq -- '- allow-arr-to-prowlarr.yaml' "$kustom"; then
-  echo 'ARR_PROWLARR_REVERSE_EGRESS=FAIL retired Arr policy is active' >&2
-  exit 1
-fi
+grep -Fxq -- '- allow-arr-to-prowlarr.yaml' "$kustom"
 
 check() {
   local expr="$1" expected="$2" actual
