@@ -286,13 +286,17 @@ repoConfig: |
                 fi
                 exit 0
               fi
-              if test "$PROJECT_NAME" = unifi || test "$PROJECT_NAME" = terraform/unifi; then
+              if test "$REPO_REL_DIR" = terraform/unifi && {
+                test "$PROJECT_NAME" = unifi ||
+                test "$PROJECT_NAME" = terraform/unifi ||
+                test -z "$PROJECT_NAME"
+              }; then
                 test "$BASE_REPO_OWNER/$BASE_REPO_NAME" = "SmadjaPaul/homelab-infra"
                 test "$HEAD_REPO_OWNER/$HEAD_REPO_NAME" = "$BASE_REPO_OWNER/$BASE_REPO_NAME"
                 test "$BASE_BRANCH_NAME" = "main"
                 test "$REPO_REL_DIR" = "terraform/unifi"
                 test "$WORKSPACE" = "default"
-                test "$COMMENT_ARGS" = "-d terraform/unifi"
+                test -z "$COMMENT_ARGS" || test "$COMMENT_ARGS" = "-d terraform/unifi"
                 test "$HEAD_COMMIT" != ""
                 test -f "$DIR/backend.tf"
                 test -f "$DIR/provider.tf"
