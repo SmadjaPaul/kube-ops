@@ -47,6 +47,17 @@
       "reason": "PLT-135: owner-authorized exact in-place tv HTTPRoute contract; 8-digit git raw object IDs as verified against prior admitted #1046 fingerprint, public risk separate.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-13T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1054,
+      "changeFingerprint": "c4f3d90ac86ce7cca27173cf59957094a5ea73f3b6e5def143ef5be1c8e32c62",
+      "paths": [
+        "tests/harness/github-atlantis-guard-test.sh"
+      ],
+      "reason": "PLT-135: owner-authorized exact Atlantis allowlist test for the Polyfin provider lockfile admission.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-12T23:59:59Z"
     }
   ]
 }
