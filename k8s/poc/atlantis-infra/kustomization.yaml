@@ -18,7 +18,6 @@ configMapGenerator:
   - name: atlantis-infra-admission
     files:
       - scripts/guard-project.sh
-      - scripts/post-apply-verify.sh
 
 generatorOptions:
   disableNameSuffixHash: true
