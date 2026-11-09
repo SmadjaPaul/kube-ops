@@ -348,6 +348,20 @@ repoConfig: |
           - policy_check
       apply:
         steps:
+          # ARC owns the disposable pilot state after cutover; keep the other
+          # historical roots under their existing Atlantis controls.
+          - run: |
+              case "$PROJECT_NAME" in
+                atlantis-pilot)
+                  echo "Atlantis pilot apply denied: ARC is the intended state writer" >&2
+                  exit 1
+                  ;;
+                github|aiostreams|polyfin) ;;
+                *)
+                  echo "Atlantis apply denied for unknown project" >&2
+                  exit 1
+                  ;;
+              esac
           - env:
               name: TF_DATA_DIR
               command: 'printf "%s/atlantis-tofu-data-%s-%s" "${TMPDIR:-/tmp}" "$PROJECT_NAME" "$PULL_NUM"'
