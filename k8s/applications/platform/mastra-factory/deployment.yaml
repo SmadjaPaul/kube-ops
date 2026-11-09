@@ -5,7 +5,7 @@ metadata:
   namespace: mastra-factory
   labels: {app.kubernetes.io/name: mastra-factory, app.kubernetes.io/part-of: platform}
   annotations:
-    factory-platform.dev/source-sha: 036511399024dd76b14ed81014f2a78c20de8817
+    factory-platform.dev/source-sha: ccfc029540deaf3c99fe776996b7c2a720d3550b
 spec:
   replicas: 1 # Keep one dispatcher until cross-replica sandbox claim locking is qualified.
   strategy: {type: Recreate}
@@ -16,6 +16,7 @@ spec:
       labels: {app.kubernetes.io/name: mastra-factory}
       annotations:
         secret.reloader.stakater.com/reload: mastra-factory-runtime,mastra-factory-authentik-oidc,mastra-factory-linear-oauth,mastra-factory-matrix,mastra-factory-checkpoint-s3
+        factory-platform.dev/rollout-recovery: "plt150-admission-disabled-2026-11-08T02:14:45Z"
     spec:
       serviceAccountName: mastra-factory
       automountServiceAccountToken: true # Restricted namespace RoleBinding, not cluster-admin
@@ -31,7 +32,7 @@ spec:
         - name: factory
           # Rollback digest: the image currently running before the 0.27 migration.
           # The 0.27 startup migration may retire incompatible Factory history; Better Auth users and integrations are preserved.
-          image: ghcr.io/smadjapaul/mastra-factory@sha256:a19409e1b90e4cb3ef7ae71692b298363f8a905d47947ce76c5f532273ddc232
+          image: ghcr.io/smadjapaul/mastra-factory@sha256:c56c2005ea0f4d9b2707b5bb5b23b1bf1f03a3fb9dbac249f9372e56a36768ed
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -48,18 +49,23 @@ spec:
             - {name: FACTORY_KUBERNETES_WORKSPACE_ROOT, value: /workspace}
             - {name: FACTORY_KUBERNETES_TTL_SECONDS, value: "7200"}
             - {name: MASTRACODE_PUBLIC_URL, value: "https://factory.smadja.dev"}
-            # PLT-126 canary ended; new autonomous admission is disabled. Delivery remains enabled.
+            # Single-issue PLT-150 admission; cutoff excludes all earlier durable starts.
             - {name: MASTRACODE_AUTONOMOUS_DELIVERY_ENABLED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_ENABLED, value: "0"}
             - {name: MASTRACODE_REVIEW_ONLY_ENABLED, value: "1"}
             - {name: MASTRACODE_REVIEW_ONLY_FACTORY_PROJECT_ID, value: "507c5c16-933e-4c55-899a-e695ba35076b"}
-            - {name: MASTRACODE_AUTONOMOUS_READY_LABEL, value: "factory-canary-v1-e2e-2026-11-04-ready"}
-            - {name: MASTRACODE_AUTONOMOUS_DEPENDENCIES_READY_LABEL, value: "factory-canary-v1-e2e-2026-11-04-dependencies-ready"}
+            - {name: MASTRACODE_AUTONOMOUS_READY_LABEL, value: "status: ready"}
+            - {name: MASTRACODE_AUTONOMOUS_DEPENDENCIES_READY_LABEL, value: "status: dependencies-ready"}
             - {name: MASTRACODE_AUTONOMOUS_QUALIFIED, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_IN_FLIGHT, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_ATTEMPTS, value: "1"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_TOKENS, value: "50000"}
             - {name: MASTRACODE_AUTONOMOUS_MAX_COST_USD, value: "1"}
+            - {name: MASTRACODE_AUTONOMOUS_ALLOWED_LINEAR_ISSUE_ID, value: "74563725-0f5d-4c17-a483-cebff5dd25c3"}
+            - {name: MASTRACODE_AUTONOMOUS_LINEAR_PROJECT_ID, value: "02f32953-c5f5-43f2-b130-8a5a630aa578"}
+            - {name: MASTRACODE_AUTONOMOUS_FACTORY_PROJECT_ID, value: "8551e83c-15ca-498d-98d3-a606719a1370"}
+            - {name: MASTRACODE_AUTONOMOUS_ALLOWED_REPOSITORY, value: "SmadjaPaul/factory-platform"}
+            - {name: MASTRACODE_AUTONOMOUS_DISPATCH_NOT_BEFORE, value: "2026-11-08T03:23:38.000Z"}
             - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
             - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://alloy.monitoring.svc.cluster.local:4318"}
             - {name: OTEL_SERVICE_NAME, value: "mastra-factory"}

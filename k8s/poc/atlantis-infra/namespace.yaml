@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: atlantis-infra
+  labels:
+    app.kubernetes.io/part-of: atlantis-v2
+    atlantis.smadja.dev/domain: infra

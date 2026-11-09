@@ -17,6 +17,7 @@ entries:
       client_secret: !Env POLYFIN_OIDC_CLIENT_SECRET
       redirect_uris:
         - {url: https://media.smadja.dev/admin/api/provider/callback, matching_mode: strict}
+        - {url: https://tv.smadja.dev/admin/api/provider/callback, matching_mode: strict}
       sub_mode: hashed_user_id
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
@@ -29,7 +30,7 @@ entries:
     attrs:
       name: Polyfin
       group: Media
-      meta_launch_url: https://media.smadja.dev
+      meta_launch_url: https://tv.smadja.dev
       provider: !KeyOf polyfin_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding

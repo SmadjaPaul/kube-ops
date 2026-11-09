@@ -1,0 +1,174 @@
+{
+  "items": [
+    {
+      "type": "track",
+      "id": "fip",
+      "title": "FIP",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fip-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-cultes",
+      "title": "FIP Cultes",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipcultes-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-cultes.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-sacre-francais",
+      "title": "FIP Sacré français !",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipsacrefrancais-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-sacre-francais.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-groove",
+      "title": "FIP Groove",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipgroove-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-groove.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-rock",
+      "title": "FIP Rock",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fiprock-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-rock.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-jazz",
+      "title": "FIP Jazz",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipjazz-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-jazz.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-reggae",
+      "title": "FIP Reggae",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipreggae-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-reggae.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-pop",
+      "title": "FIP Pop",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fippop-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-pop.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-electro",
+      "title": "FIP Electro",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipelectro-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-electro.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-monde",
+      "title": "FIP Monde",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipworld-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-monde.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-nouveautes",
+      "title": "FIP Nouveautés",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipnouveautes-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-nouveautes.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-hip-hop",
+      "title": "FIP Hip-Hop",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fiphiphop-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-hip-hop.png"
+    },
+    {
+      "type": "track",
+      "id": "fip-metal",
+      "title": "FIP Metal",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/fipmetal-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/fip-metal.png"
+    },
+    {
+      "type": "track",
+      "id": "france-inter",
+      "title": "France Inter",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/franceinter-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/france-inter.png"
+    },
+    {
+      "type": "track",
+      "id": "france-info",
+      "title": "France Info",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/franceinfo-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/france-info.png"
+    },
+    {
+      "type": "track",
+      "id": "france-musique",
+      "title": "France Musique",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/francemusique-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/france-musique.png"
+    },
+    {
+      "type": "track",
+      "id": "mouv",
+      "title": "Mouv'",
+      "artist": "Radio France",
+      "album": "Radios en direct",
+      "format": "mp3",
+      "streamURL": "https://icecast.radiofrance.fr/mouv-midfi.mp3?id=openapi",
+      "artworkURL": "https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/integrations/polyfin-radio-eclipse/static/artwork/mouv.png"
+    }
+  ]
+}

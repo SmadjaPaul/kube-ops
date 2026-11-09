@@ -44,7 +44,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: open-connector
-          image: ghcr.io/oomol-lab/open-connector@sha256:2f1a48c833b2768e6dfa14859ca94b5150da4dbbb9cf6908c404b7f7ee63c302
+          image: ghcr.io/oomol-lab/open-connector@sha256:d8c5924886bbc65c1c79da574dd590d23d8caba91f724cfdfbdb8615a117c565
           ports:
             - name: http
               containerPort: 3000

@@ -15,6 +15,15 @@ spec:
         - ports:
             - port: "3000"
               protocol: TCP
+    # Only Polyfin may resolve AIOStreams manifests on the cluster Service.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: polyfin
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: atlantis-system

@@ -24,6 +24,10 @@ grep -q 'ATLANTIS_GH_APP_KEY_PEM' "$rendered"
 grep -q 'ATLANTIS_GH_WEBHOOK_SECRET' "$rendered"
 grep -q 'name: atlantis-pilot-backend' "$rendered"
 grep -q 'name: atlantis-aiostreams-provider' "$rendered"
+grep -q 'name: atlantis-polyfin-admin' "$rendered"
+grep -q 'APP_POLYFIN_BREAKGLASS_PASSWORD' "$rendered"
+grep -q 'POLYFIN_ADMIN_USERNAME_FILE' "$rendered"
+grep -q 'POLYFIN_ADMIN_PASSWORD_FILE' "$rendered"
 grep -q 'ATLANTIS_AIOSTREAMS_S3_ACCESS_KEY_ID' "$rendered"
 grep -q 'APP_AIOSTREAMS_TERRAFORM_PASSWORD' "$rendered"
 grep -q 'APP_TORBOX_API_KEY' "$rendered"
@@ -74,6 +78,10 @@ grep -q '          - show' "$rendered"
 grep -q 'atlantis-pilot-bounded-change' "$rendered"
 grep -q 'Verify before Atlantis may automerge' "$rendered"
 grep -q '          - apply' "$rendered"
+if grep -q 'Polyfin apply is disabled' k8s/poc/atlantis-plan-only/values.yaml; then
+  echo "Polyfin apply must be enabled after native admin qualification" >&2
+  exit 1
+fi
 grep -q 'init -input=false -reconfigure' "$rendered"
 # State verification must be an apply-workflow run step, never a post-hook.
 if grep -q 'post_workflow_hooks:' k8s/poc/atlantis-plan-only/values.yaml; then
@@ -82,6 +90,7 @@ if grep -q 'post_workflow_hooks:' k8s/poc/atlantis-plan-only/values.yaml; then
 fi
 grep -q 'CHECKOUT_ROOT="$(cd "$DIR/../.." && pwd)"' k8s/poc/atlantis-plan-only/values.yaml
 grep -q 'aiostreams_configuration.family' k8s/poc/atlantis-plan-only/values.yaml
+grep -q "polyfin_public_address.canonical" k8s/poc/atlantis-plan-only/values.yaml
 grep -q 'Verify before Atlantis may automerge' k8s/poc/atlantis-plan-only/values.yaml
 # Native apply must precede the state check.
 python3 - <<'PY'

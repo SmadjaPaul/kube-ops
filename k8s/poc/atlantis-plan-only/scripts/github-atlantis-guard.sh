@@ -38,8 +38,8 @@ git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
 # static tests, and the exact generated OpenTofu module README files currently
 # qualified by the homelab-infra documentation contract may differ in a PR that
 # reaches this server. In particular, no provider, resource, data source,
-# provisioner, workflow, or arbitrary Terraform file can be introduced
-# alongside an admin plan. Keep this list literal: a broad Bash glob would
+# provisioner, unadmitted workflow, or arbitrary Terraform file can be
+# introduced alongside an admin plan. Keep this list literal: a broad Bash glob would
 # silently admit nested or newly introduced module paths. The exact
 # google-cloud-build bootstrap files are admitted individually so the
 # server-side envelope and wrapper can bind their contents later; this does
@@ -52,7 +52,9 @@ while IFS= read -r path; do
     terraform/aiostreams/backend.tf|terraform/aiostreams/main.tf|terraform/aiostreams/variables.tf|\
     terraform/aiostreams/versions.tf|terraform/aiostreams/.terraform.lock.hcl|\
     terraform/aiostreams/README.md|terraform/aiostreams/terraform.tfvars.example|\
-    terraform/polyfin/backend.tf|terraform/polyfin/main.tf|\
+    terraform/polyfin/backend.tf|terraform/polyfin/main.tf|terraform/polyfin/.terraform.lock.hcl|\
+    terraform/unifi/firewall_policies.tf|terraform/unifi/firewall_policy_ordering.tf|\
+    terraform/unifi/traffic_matching_lists.tf|\
     terraform/doppler/aiostreams-atlantis-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend.tf|\
     terraform/oracle-cloud/aiostreams-state-backend-variables.tf|\
@@ -83,7 +85,7 @@ while IFS= read -r path; do
     terraform/google-cloud-build/imports.tf|\
     terraform/google-cloud-build/main.tf|\
     terraform/google-cloud-build/variables.tf|\
-    .github/workflows/static-ci.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
+    .github/workflows/static-ci.yml|.github/workflows/arc-iac-pilot.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
     tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
     tests/google-cloud-build-bootstrap-policy.sh|\
     tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
@@ -142,6 +144,50 @@ if path_changed scripts/live-tofu.sh; then
   admit_factory_security_file \
     scripts/live-tofu.sh \
     74914cb0407e4669dc8511a8e8ccc4c61aa99f57
+fi
+
+# PLT-153: admit only the owner-reviewed Media -> Polyfin HTTPS exception.
+# These paths are otherwise outside the Atlantis admission boundary. The
+# exact changed-path/blob fingerprint prevents a later PR or Atlantis merge
+# checkout from reusing this exception for unrelated UniFi policy changes.
+admitted_unifi_fingerprint="d00963e4207f2aa7fb0949c764f690d382c95555614e1b8536a65d422d0bc719"
+unifi_path_changed=false
+while IFS= read -r path; do
+  case "$path" in
+    terraform/unifi/firewall_policies.tf|terraform/unifi/firewall_policy_ordering.tf|\
+    terraform/unifi/traffic_matching_lists.tf) unifi_path_changed=true ;;
+  esac
+done <<<"$changed"
+if test "$unifi_path_changed" = true; then
+  unifi_fingerprint="$({
+    while IFS= read -r path; do
+      test -z "$path" && continue
+      printf '%s\t%s\n' "$path" "$(git hash-object "$DIR/$path")"
+    done <<<"$changed"
+  } | LC_ALL=C sort | sha256sum | awk '{print $1}')"
+  test "$unifi_fingerprint" = "$admitted_unifi_fingerprint" ||
+    fail "UniFi security diff is not the server-admitted exact fixture"
+fi
+admit_unifi_security_file() {
+  local path=$1 expected_hash=$2
+  test "$(git hash-object "$DIR/$path")" = "$expected_hash" ||
+    fail "UniFi security path content is not server-admitted: $path"
+}
+
+if path_changed terraform/unifi/firewall_policies.tf; then
+  admit_unifi_security_file \
+    terraform/unifi/firewall_policies.tf \
+    46869e5d14d74970d566d565559fb6a357b147cb
+fi
+if path_changed terraform/unifi/firewall_policy_ordering.tf; then
+  admit_unifi_security_file \
+    terraform/unifi/firewall_policy_ordering.tf \
+    daba8f208f18c2958ea09c46d3f69b1a4ae96a64
+fi
+if path_changed terraform/unifi/traffic_matching_lists.tf; then
+  admit_unifi_security_file \
+    terraform/unifi/traffic_matching_lists.tf \
+    78e379b4d1662c74b4a429379e8c6e0bb953731f
 fi
 
 echo "Atlantis admission accepted: server-owned diff boundary base=$BASE_REPO_OWNER/$BASE_REPO_NAME head=$HEAD_COMMIT"

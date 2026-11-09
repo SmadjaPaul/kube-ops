@@ -35,9 +35,12 @@ defaultSettings:
   v2DataEngine: false
   defaultReplicaCount: '{"v1":"1","v2":"1"}'
   # The single fast disk already carries existing 1-replica volumes whose
-  # scheduled capacity is above physical usage. 175% provides bounded virtual
-  # headroom for the current 80GiB faulted set without changing replica count.
-  storageOverProvisioningPercentage: 175
+  # scheduled capacity is above physical usage. 180% provides bounded virtual
+  # headroom for the current set while retaining the 10% physical free-space
+  # guard. This small increase is required to admit the already-qualified
+  # Polyfin PVC expansion; it does not change the disk, replica count, or
+  # physical free-space threshold.
+  storageOverProvisioningPercentage: 180
   storageMinimalAvailablePercentage: 10
   defaultDataLocality: best-effort
   createDefaultDiskLabeledNodes: true

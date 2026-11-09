@@ -1,0 +1,20 @@
+{
+  "id": "dev.smadja.radio-france",
+  "name": "Radio France — direct",
+  "version": "0.2.0",
+  "description": "Radio France : FIP et ses 12 webradios, France Inter, Info, Musique et Mouv’ ; flux MP3 officiels directs, vignettes statiques.",
+  "contentType": "music",
+  "resources": [
+    "catalog"
+  ],
+  "types": [
+    "track"
+  ],
+  "catalogs": [
+    {
+      "id": "stations",
+      "type": "track",
+      "name": "Radio"
+    }
+  ]
+}

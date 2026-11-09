@@ -2,14 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+# Arr, Seerr and Jellyfin retired from active media on 2026-11-08.
+# Historical manifests are retained for audit, but no longer included by GitOps.
+# Keep media-share, AIOStreams, Polyfin, Decypharr and other live media clients intact.
 - namespace.yaml
 - project.yaml
-- jellyfin
-- arr
 - media-share-pvc.yaml
 - media-layout-job.yaml
-- jellyseerr
-- jellyseerr-secrets.yaml
 - decypharr
 - immich
 - audiobookrequest
@@ -21,11 +20,6 @@ resources:
 # Intentionally disabled from V1:
 # - whisperasr: local CPU transcription is too expensive on the current single-node host.
 
-images:
-  - name: ghcr.io/smadjapaul/polyfin-downstream
-    newName: ghcr.io/moodiness/polyfin
-    newTag: 0.60.0
-    digest: sha256:e2b1d1624a985292ef7a69434a9fd43cea2ead37202b1860c659d18a609125a6
 # Keep Polyfin's Authentik OIDC discovery on the same private HTTPS Gateway
 # as its existing AIOStreams addon. This Pod-scoped /etc/hosts override
 # avoids Cloudflare/split-DNS drift without broadening the Cilium egress.

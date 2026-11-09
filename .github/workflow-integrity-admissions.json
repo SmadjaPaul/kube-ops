@@ -24,6 +24,75 @@
       "reason": "PLT-134/135: owner-authorized official Polyfin 0.61.1 image audit and admission contract update.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-13T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1046,
+      "changeFingerprint": "c49ef35c7a41f20e69f7ba999f267f4907dd4f94255287618d4787ba7f0975cf",
+      "paths": [
+        ".github/workflows/v1-contract.yaml",
+        "tests/harness/polyfin-tv-migration-contract-test.sh"
+      ],
+      "reason": "PLT-135: owner-authorized staged Polyfin public canary contract; public security admission remains separate.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-13T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1049,
+      "changeFingerprint": "0c4d23ebb32c36621451ef2f38be9f78f796d7ff8090f034f7b54428c1c5195c",
+      "paths": [
+        "tests/harness/aiostreams-staged-contract-test.sh"
+      ],
+      "reason": "PLT-135: owner-authorized exact in-place tv HTTPRoute contract; 8-digit git raw object IDs as verified against prior admitted #1046 fingerprint, public risk separate.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-13T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1054,
+      "changeFingerprint": "c4f3d90ac86ce7cca27173cf59957094a5ea73f3b6e5def143ef5be1c8e32c62",
+      "paths": [
+        "tests/harness/github-atlantis-guard-test.sh"
+      ],
+      "reason": "PLT-135: owner-authorized exact Atlantis allowlist test for the Polyfin provider lockfile admission.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-12T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1060,
+      "changeFingerprint": "359069214579322a1e9272335c52295aba69ac85a15f368a6ca3680210d3e329",
+      "paths": [
+        "tests/harness/atlantis-plan-only-test.sh"
+      ],
+      "reason": "PLT-135: owner-authorized Atlantis Polyfin native-auth projection and apply workflow contract.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-14T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1059,
+      "changeFingerprint": "10692f9a8bbd928ff4a6df4182a126f3892877bb1c40490249b9b536d15524b9",
+      "paths": [
+        "tests/harness/bookorbit-staged-contract-test.sh",
+        "tests/harness/decypharr-torbox-staged-test.sh",
+        "tests/harness/media-retired-contract-test.sh"
+      ],
+      "reason": "PLT-122: owner-reviewed protected BookOrbit/Decypharr tests, including strict Velero opt-in to data volume; production rollout remains gated by backup and login proof.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-14T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1095,
+      "changeFingerprint": "a5ddf70cf915a6d2231fd242b714af3edb521f1b6af2495d6f4b4c1db9b6e3d1",
+      "paths": [
+        "tests/harness/aiostreams-staged-contract-test.sh"
+      ],
+      "reason": "PLT-153: owner-authorized explicit AIOStreams sensitive-log disablement and matching contract assertion; no image, route, network, or credential changes.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-15T23:59:59Z"
     }
   ]
 }

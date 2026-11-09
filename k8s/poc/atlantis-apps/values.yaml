@@ -1,0 +1,233 @@
+fullnameOverride: atlantis-apps
+orgAllowlist: github.com/SmadjaPaul/homelab-infra
+atlantisUrl: https://atlantis-apps-webhook.smadja.dev
+
+image:
+  repository: ghcr.io/runatlantis/atlantis
+  # Official multi-arch GHCR manifest for Atlantis v0.49.0. The image no
+  # longer bundles Terraform/OpenTofu; Atlantis downloads the exact project
+  # versions from the runtime repo config.
+  tag: v0.49.0@sha256:389f1c1bf12bd08d647f0383b13cd531e5667a6c654adadf4932d6bf4d5e0c13
+  pullPolicy: IfNotPresent
+
+# The existing smadja-atlantis App is reused for the controlled Apps cutover.
+# Its IDs and credentials arrive through ESO; the webhook remains on the pilot
+# URL until the replacement pod is Ready and the cutover is explicitly tested.
+githubApp:
+  slug: smadja-atlantis
+vcsSecretName: atlantis-apps-github-app
+
+# Apps is one explicit trust domain for these two application roots. PROJECT_NAME
+# selects the env values but is not a secret-isolation boundary; the pre-plan
+# provenance guard and native approval requirement are mandatory compensating
+# controls. Do not add a higher-privilege root to this pod.
+
+allowForkPRs: false
+allowDraftPRs: false
+hidePrevPlanComments: true
+hideUnchangedPlanComments: true
+disableApply: false
+disableApplyAll: true
+disableRepoLocking: false
+defaultTFDistribution: opentofu
+defaultTFVersion: "1.13.1"
+
+environment:
+  ATLANTIS_ALLOW_COMMANDS: version,plan,apply,policy_check
+  ATLANTIS_DISABLE_APPLY: "false"
+  ATLANTIS_CHECKOUT_STRATEGY: merge
+  ATLANTIS_RESTRICT_FILE_LIST: "true"
+  ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
+  ATLANTIS_ENABLE_POLICY_CHECKS: "true"
+  ATLANTIS_VCS_STATUS_NAME: "atlantis-apps"
+  ATLANTIS_EXECUTABLE_NAME: "atlantis-apps"
+  ATLANTIS_SILENCE_NO_PROJECTS: "true"
+  ATLANTIS_SILENCE_VCS_STATUS_NO_PROJECTS: "true"
+  ATLANTIS_DISCARD_APPROVAL_ON_PLAN: "true"
+  AWS_EC2_METADATA_DISABLED: "true"
+  TF_CLI_ARGS: ""
+  TF_CLI_ARGS_init: ""
+  TF_CLI_ARGS_plan: ""
+  TF_CLI_ARGS_apply: ""
+
+environmentSecrets:
+  - name: ATLANTIS_GH_APP_ID
+    secretKeyRef:
+      name: atlantis-apps-github-app
+      key: APP_ID
+  - name: ATLANTIS_GH_APP_INSTALLATION_ID
+    secretKeyRef:
+      name: atlantis-apps-github-app
+      key: INSTALLATION_ID
+
+extraVolumes:
+  - name: atlantis-apps-policy
+    configMap:
+      name: atlantis-apps-policy
+      defaultMode: 292
+  - name: atlantis-apps-admission
+    configMap:
+      name: atlantis-apps-admission
+      defaultMode: 365
+  - name: aiostreams-backend
+    secret:
+      secretName: atlantis-apps-aiostreams-backend
+  - name: aiostreams-provider
+    secret:
+      secretName: atlantis-apps-aiostreams-provider
+  - name: polyfin-backend
+    secret:
+      secretName: atlantis-apps-polyfin-backend
+  - name: polyfin-provider
+    secret:
+      secretName: atlantis-apps-polyfin-provider
+
+extraVolumeMounts:
+  - name: atlantis-apps-policy
+    mountPath: /etc/atlantis/policies
+    readOnly: true
+  - name: atlantis-apps-admission
+    mountPath: /etc/atlantis/admission
+    readOnly: true
+  - name: aiostreams-backend
+    mountPath: /etc/atlantis/roots/aiostreams/backend
+    readOnly: true
+  - name: aiostreams-provider
+    mountPath: /etc/atlantis/roots/aiostreams/provider
+    readOnly: true
+  - name: polyfin-backend
+    mountPath: /etc/atlantis/roots/polyfin/backend
+    readOnly: true
+  - name: polyfin-provider
+    mountPath: /etc/atlantis/roots/polyfin/provider
+    readOnly: true
+
+repoConfig: |
+  repos:
+    - id: /.*/
+      branch: /.*/
+      workflow: atlantis-deny
+      allowed_overrides: []
+      allow_custom_workflows: false
+    - id: github.com/SmadjaPaul/homelab-infra
+      branch: /^main$/
+      repo_config_file: docs/architecture/atlantis-runtime-apps.yaml
+      workflow: atlantis-v2-apps
+      policy_check: true
+      plan_requirements: [approved, mergeable, undiverged]
+      apply_requirements: [approved, mergeable, undiverged]
+      repo_locks:
+        mode: on_plan
+      allowed_overrides: []
+      allow_custom_workflows: false
+  policies:
+    owners:
+      users: [__atlantis_v2_policy_no_bypass__]
+    approve_count: 1
+    policy_sets:
+      - name: atlantis-v2-apps-plan-safety
+        path: /etc/atlantis/policies
+        source: local
+  workflows:
+    atlantis-deny:
+      plan:
+        steps:
+          - run: 'echo "Atlantis Apps repository denied" >&2; exit 1'
+      apply:
+        steps:
+          - run: 'echo "Atlantis Apps repository denied" >&2; exit 1'
+    atlantis-v2-apps:
+      plan:
+        steps:
+          - env:
+              name: AWS_ACCESS_KEY_ID
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_ACCESS_KEY_ID; else cat /etc/atlantis/roots/polyfin/backend/AWS_ACCESS_KEY_ID; fi'
+          - env:
+              name: AWS_SECRET_ACCESS_KEY
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_SECRET_ACCESS_KEY; else cat /etc/atlantis/roots/polyfin/backend/AWS_SECRET_ACCESS_KEY; fi'
+          - env:
+              name: AWS_REGION
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_REGION; else cat /etc/atlantis/roots/polyfin/backend/AWS_REGION; fi'
+          - env:
+              name: AIOSTREAMS_PASSWORD
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/AIOSTREAMS_PASSWORD; else printf ""; fi'
+          - env:
+              name: AIOSTREAMS_OPERATOR_AUTH
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/AIOSTREAMS_OPERATOR_AUTH; else printf ""; fi'
+          - env:
+              name: TF_VAR_torbox_api_key
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/TF_VAR_torbox_api_key; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_USERNAME_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/roots/polyfin/provider/POLYFIN_ADMIN_USERNAME; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_PASSWORD_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/roots/polyfin/provider/POLYFIN_ADMIN_PASSWORD; else printf ""; fi'
+          - run: /etc/atlantis/admission/guard-project.sh
+          - init
+          - plan
+      policy_check:
+        steps:
+          - show
+          - policy_check
+      apply:
+        steps:
+          - env:
+              name: AWS_ACCESS_KEY_ID
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_ACCESS_KEY_ID; else cat /etc/atlantis/roots/polyfin/backend/AWS_ACCESS_KEY_ID; fi'
+          - env:
+              name: AWS_SECRET_ACCESS_KEY
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_SECRET_ACCESS_KEY; else cat /etc/atlantis/roots/polyfin/backend/AWS_SECRET_ACCESS_KEY; fi'
+          - env:
+              name: AWS_REGION
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_REGION; else cat /etc/atlantis/roots/polyfin/backend/AWS_REGION; fi'
+          - env:
+              name: AIOSTREAMS_PASSWORD
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/AIOSTREAMS_PASSWORD; else printf ""; fi'
+          - env:
+              name: AIOSTREAMS_OPERATOR_AUTH
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/AIOSTREAMS_OPERATOR_AUTH; else printf ""; fi'
+          - env:
+              name: TF_VAR_torbox_api_key
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/TF_VAR_torbox_api_key; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_USERNAME_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/roots/polyfin/provider/POLYFIN_ADMIN_USERNAME; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_PASSWORD_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/roots/polyfin/provider/POLYFIN_ADMIN_PASSWORD; else printf ""; fi'
+          - run: /etc/atlantis/admission/guard-project.sh
+          - apply
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 4141
+
+ingress:
+  enabled: false
+webhook_ingress:
+  enabled: false
+route:
+  main:
+    enabled: false
+
+serviceAccount:
+  create: true
+  mount: false
+  name: atlantis-apps
+
+volumeClaim:
+  enabled: true
+  dataStorage: 5Gi
+  storageClassName: longhorn-fast
+  accessModes: [ReadWriteOnce]
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
