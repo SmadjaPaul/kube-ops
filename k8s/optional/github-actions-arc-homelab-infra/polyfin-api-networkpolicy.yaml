@@ -33,5 +33,7 @@ spec:
             k8s:app.kubernetes.io/name: polyfin
       toPorts:
         - ports:
-            - port: "8096"
+            # The runner connects through the Polyfin Service, which exposes
+            # port 80 and forwards to the pod's 8096 targetPort.
+            - port: "80"
               protocol: TCP
