@@ -4,6 +4,7 @@ namespace: personal-health-coach
 resources:
   - namespace.yaml
   - serviceaccount.yaml
+  - registry-externalsecret.yaml
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
