@@ -73,7 +73,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 1059,
-      "changeFingerprint": "10692f9a8bbd928ff4a6df4182a126f3892877bb1c40490249b9b536d15524b9",
+      "changeFingerprint": "8b69ef238fe6e07e1976b570c11c3cd045de4caf7f297a1196ee9e3e639e805d",
       "paths": [
         "tests/harness/bookorbit-staged-contract-test.sh",
         "tests/harness/decypharr-torbox-staged-test.sh",
