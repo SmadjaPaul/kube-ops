@@ -61,8 +61,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: open-connector
       server: https://kubernetes.default.svc
-    - namespace: personal-health-coach
-      server: https://kubernetes.default.svc
     - namespace: opencode
       server: https://kubernetes.default.svc
     - namespace: paperless

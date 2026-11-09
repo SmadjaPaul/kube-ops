@@ -7,7 +7,6 @@ resources:
   - agentgateway
   - mastra-factory
   - mastra-sandbox
-  - personal-health-coach
   - matrix
   - rustical-pilot
   - ../../optional/sparkyfitness
