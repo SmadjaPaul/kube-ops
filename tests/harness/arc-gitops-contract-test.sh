@@ -21,7 +21,6 @@ required_patterns=(
   'name: infra-arc-controller'
   'name: apps-arc-factory-ci'
   'name: apps-arc-homelab-infra-ci'
-  'name: apps-arc-homelab-iac-pilot'
   'name: arc-runner-bounds'
   'name: arc-systems-github-egress'
   'name: arc-runners-github-egress'
@@ -104,30 +103,6 @@ assert_yq "$homelab_runner_values | .template.spec.containers[0].image" \
 assert_yq "$homelab_runner_values | .template.spec.containers[0].securityContext.allowPrivilegeEscalation" 'false'
 assert_yq "$homelab_runner_values | .template.spec.containers[0].securityContext.seccompProfile.type" 'RuntimeDefault'
 
-pilot_runner_values='select(.kind == "Application" and .metadata.name == "apps-arc-homelab-iac-pilot") | .spec.source.helm.valuesObject'
-assert_yq "$pilot_runner_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/homelab-infra'
-assert_yq "$pilot_runner_values | .githubConfigSecret" 'arc-github-app'
-assert_yq "$pilot_runner_values | .minRunners" '0'
-assert_yq "$pilot_runner_values | .maxRunners" '1'
-assert_yq "$pilot_runner_values | .template.spec.automountServiceAccountToken" 'false'
-assert_yq "$pilot_runner_values | .template.spec.securityContext.runAsNonRoot" 'true'
-assert_yq "$pilot_runner_values | .template.spec.containers | length" '1'
-assert_yq "$pilot_runner_values | .template.spec.containers[0].name" 'runner'
-assert_yq "$pilot_runner_values | .template.spec.containers[0].image" \
-  'ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807'
-assert_yq "$pilot_runner_values | .template.spec.containers[0].securityContext.allowPrivilegeEscalation" 'false'
-assert_yq "$pilot_runner_values | .template.spec.containers[0].securityContext.seccompProfile.type" 'RuntimeDefault'
-
-pilot_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-homelab-iac-pilot-egress")'
-assert_yq "$pilot_download_policy | .metadata.namespace" 'arc-runners'
-assert_yq "$pilot_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'homelab-iac-pilot-arc'
-assert_yq "$pilot_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
-  'api.github.com,axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com,codeload.github.com,github-registry-files.githubusercontent.com,github-releases.githubusercontent.com,github.com,objects-origin.githubusercontent.com,objects.githubusercontent.com,registry.opentofu.org,release-assets.githubusercontent.com,releases.hashicorp.com,results-receiver.actions.githubusercontent.com'
-
-runner_github_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-github-egress")'
-assert_yq "$runner_github_policy | [.spec.endpointSelector.matchExpressions[0].values[]] | sort | join(\",\")" \
-  'factory-ci-arc,homelab-iac-pilot-arc,homelab-infra-ci-arc'
-
 homelab_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-homelab-infra-downloads")'
 assert_yq "$homelab_download_policy | .metadata.namespace" 'arc-runners'
 assert_yq "$homelab_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'homelab-infra-ci-arc'
@@ -198,7 +173,7 @@ assert_yq "$factory_gcs_policy | .spec.egress[1].toPorts | length" '1'
 assert_yq "$factory_gcs_policy | [.spec.egress[] | select(.toFQDNs[0].matchName == \"storage.googleapis.com\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" \
   '443/TCP'
 
-[[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "4" ]] || {
+[[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "3" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
   exit 1
 }

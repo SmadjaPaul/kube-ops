@@ -15,8 +15,8 @@ spec:
       releaseName: homelab-iac-pilot-arc
       valuesObject:
         githubConfigUrl: https://github.com/SmadjaPaul/homelab-infra
-        # This is consumed by the ARC listener/controller only. It is not
-        # mounted into the runner container or exposed to workflow steps.
+        # Consumed by the ARC listener/controller only; never mounted into
+        # runner containers or exposed to workflow steps.
         githubConfigSecret: arc-github-app
         minRunners: 0
         maxRunners: 1

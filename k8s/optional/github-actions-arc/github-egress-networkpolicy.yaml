@@ -48,14 +48,7 @@ metadata:
     policy-type: github-actions-arc
 spec:
   description: "Allow ephemeral ARC runners DNS and the GitHub domains required for the no-secret pilot job"
-  endpointSelector:
-    matchExpressions:
-      - key: k8s:actions.github.com/scale-set-name
-        operator: In
-        values:
-          - factory-ci-arc
-          - homelab-infra-ci-arc
-          - homelab-iac-pilot-arc
+  endpointSelector: {}
   egress:
     - toEndpoints:
         - matchLabels:
