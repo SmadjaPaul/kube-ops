@@ -10,10 +10,11 @@ image:
   tag: v0.49.0@sha256:389f1c1bf12bd08d647f0383b13cd531e5667a6c654adadf4932d6bf4d5e0c13
   pullPolicy: IfNotPresent
 
-# The IDs arrive through ESO so this values file contains no GitHub identity
-# material. The slug is also the distinct status/comment identity.
+# The existing smadja-atlantis App is reused for the controlled Apps cutover.
+# Its IDs and credentials arrive through ESO; the webhook remains on the pilot
+# URL until the replacement pod is Ready and the cutover is explicitly tested.
 githubApp:
-  slug: smadja-atlantis-apps
+  slug: smadja-atlantis
 vcsSecretName: atlantis-apps-github-app
 
 # Apps is one explicit trust domain for these two application roots. PROJECT_NAME
