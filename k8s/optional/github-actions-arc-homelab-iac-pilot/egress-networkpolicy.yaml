@@ -40,6 +40,7 @@ spec:
         - matchPattern: "*.actions.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
         - matchName: get.opentofu.org
+        - matchName: registry.terraform.io
         - matchName: registry.opentofu.org
         - matchName: releases.hashicorp.com
         - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
