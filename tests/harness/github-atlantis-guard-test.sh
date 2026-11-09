@@ -100,14 +100,9 @@ run_case() {
       printf '%s\n' '# unexpected nested documentation' >"$fixture/terraform/google-cloud-build/nested/README.md"
       change_path=terraform/google-cloud-build/nested/README.md
       ;;
-    ci-workflow-path-allowed|arc-reusable-workflow-path-allowed|arc-polyfin-workflow-path-allowed)
+    ci-workflow-path-allowed)
       mkdir -p "$fixture/.github/workflows"
-      case "$name" in
-        ci-workflow-path-allowed) workflow_path=static-ci.yml ;;
-        arc-reusable-workflow-path-allowed) workflow_path=arc-iac-root-reusable.yml ;;
-        arc-polyfin-workflow-path-allowed) workflow_path=arc-polyfin-plan.yml ;;
-      esac
-      printf '%s\n' 'name: admitted-workflow' >"$fixture/.github/workflows/$workflow_path"
+      printf '%s\n' 'name: static-ci' >"$fixture/.github/workflows/static-ci.yml"
       ;;
     ci-workflow-sibling-denied)
       mkdir -p "$fixture/.github/workflows"
@@ -205,8 +200,6 @@ run_case factory-bootstrap-paths-allowed pass terraform/google-cloud-build/READM
 run_case factory-neighbor-denied deny terraform/google-cloud-build/variables.tf
 run_case factory-nested-readme-denied deny terraform/google-cloud-build/nested/README.md
 run_case ci-workflow-path-allowed pass .github/workflows/static-ci.yml
-run_case arc-reusable-workflow-path-allowed pass .github/workflows/arc-iac-root-reusable.yml
-run_case arc-polyfin-workflow-path-allowed pass .github/workflows/arc-polyfin-plan.yml
 run_case ci-workflow-sibling-denied deny .github/workflows/other.yml
 run_case mise-lock-path-allowed pass mise.lock
 run_case mise-config-path-allowed pass mise.toml
