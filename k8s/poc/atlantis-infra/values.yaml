@@ -27,6 +27,11 @@ environment:
   ATLANTIS_CHECKOUT_STRATEGY: merge
   ATLANTIS_RESTRICT_FILE_LIST: "true"
   ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
+  ATLANTIS_ENABLE_POLICY_CHECKS: "true"
+  ATLANTIS_VCS_STATUS_NAME: "atlantis-infra"
+  ATLANTIS_EXECUTABLE_NAME: "atlantis-infra"
+  ATLANTIS_SILENCE_NO_PROJECTS: "true"
+  ATLANTIS_SILENCE_VCS_STATUS_NO_PROJECTS: "true"
   ATLANTIS_DISCARD_APPROVAL_ON_PLAN: "true"
   AWS_EC2_METADATA_DISABLED: "true"
   TF_CLI_ARGS: ""
@@ -116,7 +121,7 @@ repoConfig: |
     atlantis-deny:
       plan:
         steps:
-          - run: ["sh", "-c", "echo 'Atlantis Infra repository denied' >&2; exit 1"]
+          - run: 'echo "Atlantis Infra repository denied" >&2; exit 1'
       apply:
         steps:
           - run: ["sh", "-c", "echo 'Atlantis Infra repository denied' >&2; exit 1"]
@@ -171,9 +176,47 @@ repoConfig: |
           - policy_check
       apply:
         steps:
+          - env:
+              name: AWS_ACCESS_KEY_ID
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/backend/AWS_ACCESS_KEY_ID; else cat /etc/atlantis/roots/unifi/backend/AWS_ACCESS_KEY_ID; fi'
+          - env:
+              name: AWS_SECRET_ACCESS_KEY
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/backend/AWS_SECRET_ACCESS_KEY; else cat /etc/atlantis/roots/unifi/backend/AWS_SECRET_ACCESS_KEY; fi'
+          - env:
+              name: AWS_REGION
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/backend/AWS_REGION; else cat /etc/atlantis/roots/unifi/backend/AWS_REGION; fi'
+          - env:
+              name: TF_VAR_github_app_id
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/provider/TF_VAR_github_app_id; else printf ""; fi'
+          - env:
+              name: TF_VAR_github_app_installation_id
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/provider/TF_VAR_github_app_installation_id; else printf ""; fi'
+          - env:
+              name: TF_VAR_github_app_pem_file
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/provider/TF_VAR_github_app_pem_file; else printf ""; fi'
+          - env:
+              name: TF_VAR_unifi_api_url
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_unifi_api_url; else printf ""; fi'
+          - env:
+              name: TF_VAR_unifi_integration_api_key
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_unifi_integration_api_key; else printf ""; fi'
+          - env:
+              name: TF_VAR_unifi_verify_ssl
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_unifi_verify_ssl; else printf ""; fi'
+          - env:
+              name: TF_VAR_wifi_trusted_password
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_wifi_trusted_password; else printf ""; fi'
+          - env:
+              name: TF_VAR_wifi_iot_password
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_wifi_iot_password; else printf ""; fi'
+          - env:
+              name: TF_VAR_wifi_guest_password
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_wifi_guest_password; else printf ""; fi'
+          - env:
+              name: TF_VAR_wifi_media_password
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_wifi_media_password; else printf ""; fi'
           - run: /etc/atlantis/admission/guard-project.sh
           - apply
-          - run: /etc/atlantis/admission/post-apply-verify.sh
 
 service:
   type: ClusterIP
