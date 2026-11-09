@@ -73,7 +73,7 @@ def _changed_records(base, head):
     except subprocess.CalledProcessError as exc:
         raise ValueError("base revision is not an ancestor of PR head") from exc
 
-    raw = git_bytes("diff", "--no-renames", "--raw", "-z", base, head, "--")
+    raw = git_bytes("diff", "--no-renames", "--raw", "--abbrev=40", "-z", base, head, "--")
     fields = [field for field in raw.split(b"\0") if field]
     if len(fields) % 2:
         raise ValueError("invalid git raw diff output")
