@@ -85,7 +85,8 @@ while IFS= read -r path; do
     terraform/google-cloud-build/imports.tf|\
     terraform/google-cloud-build/main.tf|\
     terraform/google-cloud-build/variables.tf|\
-    .github/workflows/static-ci.yml|.github/workflows/arc-iac-pilot.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
+    .github/workflows/static-ci.yml|.github/workflows/arc-iac-pilot.yml|.github/workflows/arc-iac-root-reusable.yml|\
+    .github/workflows/arc-polyfin-plan.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
     tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
     tests/google-cloud-build-bootstrap-policy.sh|\
     tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
