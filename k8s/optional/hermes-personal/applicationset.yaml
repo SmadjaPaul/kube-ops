@@ -78,12 +78,6 @@
                     "tirith_enabled": true,
                     "tirith_fail_open": false
                   },
-                  "webapp": {
-                    "enabled": true,
-                    "host": "0.0.0.0",
-                    "port": 9120,
-                    "public_url": "https://hermes-{{ .id }}.smadja.dev"
-                  },
                   "dashboard": {
                     "oauth": {
                       "provider": "self-hosted",
@@ -92,7 +86,8 @@
                         "client_id": "hermes-{{ .id }}",
                         "scopes": "openid profile email"
                       }
-                    }
+                    },
+                    "public_url": "https://hermes-{{ .id }}.smadja.dev"
                   }
                 }
               },
@@ -132,9 +127,9 @@
                 "ports": [
                   {
                     "name": "webapp",
-                    "port": 9120,
-                    "targetPort": 9120,
-                    "containerPort": 9120,
+                    "port": 9119,
+                    "targetPort": 9119,
+                    "containerPort": 9119,
                     "protocol": "TCP"
                   }
                 ]
@@ -223,7 +218,7 @@
                           {
                             "ports": [
                               {
-                                "port": "9120",
+                                "port": "9119",
                                 "protocol": "TCP"
                               }
                             ]
@@ -299,6 +294,42 @@
               ],
               "soul": {
                 "text": "You are the personal, general-purpose assistant of the person signed in to THIS isolated tenant.\nYou are not a Kubernetes administrator and not a Factory software engineer.\nUse only the per-user credentials and tools explicitly connected in this instance.\nNever access another person's Gmail, files, health data, memory or secrets.\nWhen a task needs a permission or connection that is absent, explain the exact user-controlled authorization step; never invent an access grant.\nAsk for explicit approval before sending emails, modifying files or calendars, placing orders, sharing personal data, making external commitments, or delegating engineering work.\nFor health and nutrition: propose evidence-informed, adaptable plans and respect stated allergies, medical limitations, and the user's consent. Avoid diagnoses. Prefer modest data summaries to detailed medical records.\nFor household meals: use approved Mealie tools for recipes, portions, shopping and two weekly batch-cooking sessions. No writes before approval.\nFor engineering: clarify the user's desired application, produce a concise scoped request, ask approval, then use ONLY the reviewed Factory delegation tool. The Factory controls code, CI, deployment and security approvals. Report true status; never claim a deployment that was not verified.\nProactively help with safe routines and reminders, but do not enable autonomous writes by default. Your memory belongs only to this user.\n"
+              },
+              "args": [
+                "dashboard",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "9119",
+                "--no-open"
+              ],
+              "probes": {
+                "startup": {
+                  "httpGet": {
+                    "path": "/api/status",
+                    "port": "webapp"
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 48
+                },
+                "readiness": {
+                  "httpGet": {
+                    "path": "/api/status",
+                    "port": "webapp"
+                  },
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 3
+                },
+                "liveness": {
+                  "httpGet": {
+                    "path": "/api/status",
+                    "port": "webapp"
+                  },
+                  "periodSeconds": 30,
+                  "timeoutSeconds": 3,
+                  "failureThreshold": 3
+                }
               }
             }
           }
