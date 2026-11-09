@@ -55,6 +55,11 @@ spec:
                   key: AIOSTREAMS_AUTH
             - name: AIOSTREAMS_AUTH_REQUIRED
               value: "true"
+            # Keep addon credentials and tokenized manifest data out of every
+            # AIOStreams log sink. Upstream redaction is present in v2.37.0;
+            # keep the safety setting explicit so it cannot drift by default.
+            - name: LOG_SENSITIVE_INFO
+              value: "false"
             # Family users still authenticate with the shared configuration
             # password; PINs only protect profile switching.
             - name: JELLYFIN_PIN_SIGN_IN
