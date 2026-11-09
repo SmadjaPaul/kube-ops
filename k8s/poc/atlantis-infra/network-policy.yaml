@@ -45,6 +45,7 @@ spec:
         - matchName: codeload.github.com
         - matchName: objects.githubusercontent.com
         - matchName: get.opentofu.org
+        - matchName: releases.hashicorp.com
         - matchName: registry.opentofu.org
         - matchName: registry.terraform.io
         - matchName: release-assets.githubusercontent.com
