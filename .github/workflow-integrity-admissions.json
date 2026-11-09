@@ -104,6 +104,17 @@
       "reason": "PLT-89/90/91: owner-authorized pilot-only Atlantis apply denial before ARC cutover; preserve apply for github, aiostreams and polyfin.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-15T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1105,
+      "changeFingerprint": "b7971942fae0a88a73d4e03a8c3be2305fa967d1ef4fa408c18cce2ea02879a2",
+      "paths": [
+        "scripts/check-atlantis-dispatch-contract.sh"
+      ],
+      "reason": "PLT-89/90/91: compatibility admission for the current gate's abbreviated raw Git records; same #1105 blob set as the canonical full-blob fingerprint.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-15T23:59:59Z"
     }
   ]
 }
