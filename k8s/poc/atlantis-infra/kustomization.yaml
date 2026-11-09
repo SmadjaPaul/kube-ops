@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - github-app-external-secret.yaml
+  - github-backend-external-secret.yaml
+  - github-provider-external-secret.yaml
+  - unifi-external-secrets.yaml
+  - webhook-route.yaml
+  - network-policy.yaml
+
+configMapGenerator:
+  - name: atlantis-infra-policy
+    files:
+      - policies/plan-safety.rego
+  - name: atlantis-infra-admission
+    files:
+      - scripts/guard-project.sh
+      - scripts/post-apply-verify.sh
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+patches:
+  - path: statefulset-patch.yaml
+    target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: atlantis-infra
+
+helmCharts:
+  - name: atlantis
+    repo: https://runatlantis.github.io/helm-charts
+    version: 6.16.1
+    releaseName: atlantis-infra
+    namespace: atlantis-infra
+    valuesFile: values.yaml

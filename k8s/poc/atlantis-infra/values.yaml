@@ -1,0 +1,209 @@
+fullnameOverride: atlantis-infra
+orgAllowlist: github.com/SmadjaPaul/homelab-infra
+atlantisUrl: https://atlantis-infra-webhook.smadja.dev
+
+image:
+  repository: ghcr.io/runatlantis/atlantis
+  tag: v0.48.1@sha256:42bde40e38ec7b89f02a2968b4b1b74b990121eb8768d0a7de7caad125344298
+  pullPolicy: IfNotPresent
+
+githubApp:
+  slug: smadja-atlantis-infra
+vcsSecretName: atlantis-infra-github-app
+
+allowForkPRs: false
+allowDraftPRs: false
+hidePrevPlanComments: true
+hideUnchangedPlanComments: true
+disableApply: false
+disableApplyAll: true
+disableRepoLocking: false
+defaultTFDistribution: opentofu
+defaultTFVersion: "1.13.1"
+
+environment:
+  ATLANTIS_ALLOW_COMMANDS: version,plan,apply,policy_check
+  ATLANTIS_DISABLE_APPLY: "false"
+  ATLANTIS_CHECKOUT_STRATEGY: merge
+  ATLANTIS_RESTRICT_FILE_LIST: "true"
+  ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
+  ATLANTIS_DISCARD_APPROVAL_ON_PLAN: "true"
+  AWS_EC2_METADATA_DISABLED: "true"
+  TF_CLI_ARGS: ""
+  TF_CLI_ARGS_init: ""
+  TF_CLI_ARGS_plan: ""
+  TF_CLI_ARGS_apply: ""
+
+environmentSecrets:
+  - name: ATLANTIS_GH_APP_ID
+    secretKeyRef:
+      name: atlantis-infra-github-app
+      key: APP_ID
+  - name: ATLANTIS_GH_APP_INSTALLATION_ID
+    secretKeyRef:
+      name: atlantis-infra-github-app
+      key: INSTALLATION_ID
+
+extraVolumes:
+  - name: atlantis-infra-policy
+    configMap:
+      name: atlantis-infra-policy
+      defaultMode: 292
+  - name: atlantis-infra-admission
+    configMap:
+      name: atlantis-infra-admission
+      defaultMode: 365
+  - name: github-backend
+    secret:
+      secretName: atlantis-infra-github-backend
+  - name: github-provider
+    secret:
+      secretName: atlantis-infra-github-provider
+  - name: unifi-backend
+    secret:
+      secretName: atlantis-infra-unifi-backend
+  - name: unifi-provider
+    secret:
+      secretName: atlantis-infra-unifi-provider
+
+extraVolumeMounts:
+  - name: atlantis-infra-policy
+    mountPath: /etc/atlantis/policies
+    readOnly: true
+  - name: atlantis-infra-admission
+    mountPath: /etc/atlantis/admission
+    readOnly: true
+  - name: github-backend
+    mountPath: /etc/atlantis/roots/github/backend
+    readOnly: true
+  - name: github-provider
+    mountPath: /etc/atlantis/roots/github/provider
+    readOnly: true
+  - name: unifi-backend
+    mountPath: /etc/atlantis/roots/unifi/backend
+    readOnly: true
+  - name: unifi-provider
+    mountPath: /etc/atlantis/roots/unifi/provider
+    readOnly: true
+
+repoConfig: |
+  repos:
+    - id: /.*/
+      branch: /.*/
+      workflow: atlantis-deny
+      allowed_overrides: []
+      allow_custom_workflows: false
+    - id: github.com/SmadjaPaul/homelab-infra
+      branch: /^main$/
+      repo_config_file: docs/architecture/atlantis-target-infra.yaml
+      workflow: atlantis-v2-infra
+      policy_check: true
+      plan_requirements: [mergeable, undiverged]
+      apply_requirements: [mergeable, undiverged]
+      repo_locks:
+        mode: on_plan
+      allowed_overrides: []
+      allow_custom_workflows: false
+  policies:
+    owners:
+      users: [__atlantis_v2_policy_no_bypass__]
+    approve_count: 1
+    policy_sets:
+      - name: atlantis-v2-infra-plan-safety
+        path: /etc/atlantis/policies
+        source: local
+  workflows:
+    atlantis-deny:
+      plan:
+        steps:
+          - run: ["sh", "-c", "echo 'Atlantis Infra repository denied' >&2; exit 1"]
+      apply:
+        steps:
+          - run: ["sh", "-c", "echo 'Atlantis Infra repository denied' >&2; exit 1"]
+    atlantis-v2-infra:
+      plan:
+        steps:
+          - env:
+              name: AWS_ACCESS_KEY_ID
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/backend/AWS_ACCESS_KEY_ID; else cat /etc/atlantis/roots/unifi/backend/AWS_ACCESS_KEY_ID; fi'
+          - env:
+              name: AWS_SECRET_ACCESS_KEY
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/backend/AWS_SECRET_ACCESS_KEY; else cat /etc/atlantis/roots/unifi/backend/AWS_SECRET_ACCESS_KEY; fi'
+          - env:
+              name: AWS_REGION
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/backend/AWS_REGION; else cat /etc/atlantis/roots/unifi/backend/AWS_REGION; fi'
+          - env:
+              name: TF_VAR_github_app_id
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/provider/TF_VAR_github_app_id; else printf ""; fi'
+          - env:
+              name: TF_VAR_github_app_installation_id
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/provider/TF_VAR_github_app_installation_id; else printf ""; fi'
+          - env:
+              name: TF_VAR_github_app_pem_file
+              command: 'if test "$PROJECT_NAME" = github; then cat /etc/atlantis/roots/github/provider/TF_VAR_github_app_pem_file; else printf ""; fi'
+          - env:
+              name: TF_VAR_unifi_api_url
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_unifi_api_url; else printf ""; fi'
+          - env:
+              name: TF_VAR_unifi_integration_api_key
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_unifi_integration_api_key; else printf ""; fi'
+          - env:
+              name: TF_VAR_unifi_verify_ssl
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_unifi_verify_ssl; else printf ""; fi'
+          - env:
+              name: TF_VAR_wifi_trusted_password
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_wifi_trusted_password; else printf ""; fi'
+          - env:
+              name: TF_VAR_wifi_iot_password
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_wifi_iot_password; else printf ""; fi'
+          - env:
+              name: TF_VAR_wifi_guest_password
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_wifi_guest_password; else printf ""; fi'
+          - env:
+              name: TF_VAR_wifi_media_password
+              command: 'if test "$PROJECT_NAME" = unifi; then cat /etc/atlantis/roots/unifi/provider/TF_VAR_wifi_media_password; else printf ""; fi'
+          - run: /etc/atlantis/admission/guard-project.sh
+          - init
+          - plan
+      policy_check:
+        steps:
+          - show
+          - policy_check
+      apply:
+        steps:
+          - run: /etc/atlantis/admission/guard-project.sh
+          - apply
+          - run: /etc/atlantis/admission/post-apply-verify.sh
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 4141
+
+ingress:
+  enabled: false
+webhook_ingress:
+  enabled: false
+route:
+  main:
+    enabled: false
+
+serviceAccount:
+  create: true
+  mount: false
+  name: atlantis-infra
+
+volumeClaim:
+  enabled: true
+  dataStorage: 5Gi
+  storageClassName: longhorn-fast
+  accessModes: [ReadWriteOnce]
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
