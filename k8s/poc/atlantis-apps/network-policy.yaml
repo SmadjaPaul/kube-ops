@@ -1,0 +1,71 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: atlantis-apps
+  namespace: atlantis-apps
+spec:
+  description: >-
+    Atlantis Apps domain: signed GitHub webhook/UI ingress, monitoring, DNS,
+    GitHub source and registries, dedicated OCI S3 endpoints, and only the
+    in-cluster AIOStreams/Polyfin APIs.
+  endpointSelector:
+    matchLabels:
+      app: atlantis
+      release: atlantis-apps
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "4141"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            k8s:app.kubernetes.io/name: prometheus
+            k8s:app.kubernetes.io/instance: kube-prometheus-stack-prometheus
+      toPorts:
+        - ports:
+            - port: "4141"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: api.github.com
+        - matchName: github.com
+        - matchName: codeload.github.com
+        - matchName: objects.githubusercontent.com
+        - matchName: get.opentofu.org
+        - matchName: registry.opentofu.org
+        - matchName: registry.terraform.io
+        - matchName: release-assets.githubusercontent.com
+        - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            k8s:app.kubernetes.io/name: aiostreams
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            k8s:app.kubernetes.io/name: polyfin
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
