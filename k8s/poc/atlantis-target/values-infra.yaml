@@ -1,0 +1,41 @@
+# STAGED target executor. No Argo Kustomization references this file.
+# No credentials or GitHub webhook are installed by this manifest.
+fullnameOverride: atlantis-target-infra
+orgAllowlist: github.com/SmadjaPaul/homelab-infra
+image:
+  repository: ghcr.io/runatlantis/atlantis
+  tag: v0.48.1@sha256:42bde40e38ec7b89f02a2968b4b1b74b990121eb8768d0a7de7caad125344298
+allowForkPRs: false
+allowDraftPRs: false
+disableApply: true
+disableApplyAll: true
+environment:
+  ATLANTIS_ALLOW_COMMANDS: version
+  ATLANTIS_CHECKOUT_STRATEGY: merge
+  ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
+repoConfig: |
+  repos:
+    - id: /.*/
+      workflow: atlantis-target-deny
+      allowed_overrides: []
+      allow_custom_workflows: false
+    - id: github.com/SmadjaPaul/homelab-infra
+      branch: /^main$/
+      repo_config_file: docs/architecture/atlantis-target-infra.yaml
+      workflow: atlantis-target-deny
+      plan_requirements: [approved, mergeable, undiverged]
+      apply_requirements: [approved, mergeable, undiverged]
+      allowed_overrides: []
+      allow_custom_workflows: false
+  workflows:
+    atlantis-target-deny:
+      plan:
+        steps:
+          - run: |
+              echo "Target executor not yet admitted" >&2
+              exit 1
+      apply:
+        steps:
+          - run: |
+              echo "Target apply not yet admitted" >&2
+              exit 1

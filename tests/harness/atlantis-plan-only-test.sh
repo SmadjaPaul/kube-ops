@@ -223,3 +223,6 @@ if grep -Eiq 'value:[[:space:]]*infrastructure/prd|name:[[:space:]]*OCI_S3|allow
 fi
 
 echo "Atlantis pilot apply manifests: render and security assertions passed"
+
+# Target-v2 static tests; stage must remain fail-closed.
+bash tests/harness/atlantis-target-contract-test.sh
