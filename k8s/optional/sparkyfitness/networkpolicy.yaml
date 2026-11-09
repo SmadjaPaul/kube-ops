@@ -83,6 +83,20 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # External providers used by the v1.11 food and exercise search flows.
+    # Keep this list explicit; do not replace it with public CIDR egress.
+    - toFQDNs:
+        - matchName: api.nal.usda.gov
+        - matchName: api.webapp.prod.blv.foodcase-services.com
+        - matchName: dataportal.livsmedelsverket.se
+        - matchName: food-nutrition.canada.ca
+        - matchName: raw.githubusercontent.com
+        - matchName: search.openfoodfacts.org
+        - matchName: world.openfoodfacts.org
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     # Cilium Gateway hairpin: permit the in-cluster Authentik backend leg
     # used by the private Gateway for OIDC discovery and callbacks.
     - toEndpoints:
