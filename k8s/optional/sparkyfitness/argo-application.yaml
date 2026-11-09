@@ -27,8 +27,11 @@ spec:
         config:
           timezone: Europe/Paris
           frontendUrl: https://fitness.smadja.dev
-          disableSignup: true
-          forceEmailLogin: true
+          # OIDC auto-provisioning is limited by the Authentik application
+          # bindings to the family and authentik-admins groups.
+          disableSignup: false
+          disableEmailLogin: true
+          forceEmailLogin: false
           oidc:
             enabled: true
             providerSlug: authentik
@@ -39,10 +42,7 @@ spec:
             issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness//
             scope: "openid email profile groups"
             adminGroup: authentik-admins
-            # The upstream user.create.before hook blocks all registrations when
-            # disableSignup is true, INCLUDING OIDC auto-registration.
-            # Pre-provision family accounts and link SSO before closed admission.
-            autoRegister: false
+            autoRegister: true
             autoRedirect: false
             secrets:
               existingSecret: sparkyfitness-oidc

@@ -26,6 +26,7 @@ spec:
           - path: k8s/poc/atlantis-apps
           - path: k8s/optional/github-actions-arc
           - path: k8s/optional/github-actions-arc-homelab-infra
+          - path: k8s/optional/github-actions-arc-homelab-iac-pilot
   template:
     metadata:
       name: 'infra-{{ path.basename }}'
