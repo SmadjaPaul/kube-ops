@@ -38,8 +38,8 @@ git rev-parse "$HEAD_COMMIT^{commit}" >/dev/null 2>&1 ||
 # static tests, and the exact generated OpenTofu module README files currently
 # qualified by the homelab-infra documentation contract may differ in a PR that
 # reaches this server. In particular, no provider, resource, data source,
-# provisioner, workflow, or arbitrary Terraform file can be introduced
-# alongside an admin plan. Keep this list literal: a broad Bash glob would
+# provisioner, unadmitted workflow, or arbitrary Terraform file can be
+# introduced alongside an admin plan. Keep this list literal: a broad Bash glob would
 # silently admit nested or newly introduced module paths. The exact
 # google-cloud-build bootstrap files are admitted individually so the
 # server-side envelope and wrapper can bind their contents later; this does
@@ -85,7 +85,7 @@ while IFS= read -r path; do
     terraform/google-cloud-build/imports.tf|\
     terraform/google-cloud-build/main.tf|\
     terraform/google-cloud-build/variables.tf|\
-    .github/workflows/static-ci.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
+    .github/workflows/static-ci.yml|.github/workflows/arc-iac-pilot.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
     tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
     tests/google-cloud-build-bootstrap-policy.sh|\
     tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
