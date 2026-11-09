@@ -32,5 +32,19 @@ class TenantContractTest(unittest.TestCase):
         self.assertFalse(doc["spec"]["template"]["spec"]["source"]["helm"]["valuesObject"]["apiServer"]["enabled"])
 
 
+    def test_official_dashboard_command_and_service_port_match(self):
+        """Helm chart defaults to gateway run; dashboard requires explicit command."""
+        doc = json.loads(mod.TEMPLATE.read_text())
+        vals = doc["spec"]["template"]["spec"]["source"]["helm"]["valuesObject"]
+        self.assertEqual(vals["args"], ["dashboard", "--host", "0.0.0.0", "--port", "9119", "--no-open"])
+        self.assertEqual(vals["service"]["ports"][0]["port"], 9119)
+        self.assertEqual(vals["service"]["ports"][0]["targetPort"], 9119)
+        self.assertEqual(vals["config"]["values"]["dashboard"]["public_url"],
+                         "https://hermes-{{ .id }}.smadja.dev")
+        self.assertNotIn("webapp", vals["config"]["values"])
+        self.assertEqual(vals["extraObjects"][0]["spec"]["ingress"][0]["toPorts"][0]["ports"][0]["port"], "9119")
+        self.assertEqual(vals["probes"]["readiness"]["httpGet"]["path"], "/api/status")
+
+
 if __name__ == "__main__":
     unittest.main()

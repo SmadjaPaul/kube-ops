@@ -1,7 +1,8 @@
 # Hermes Personal Agents — PLT-158 (staged, zero tenants)
 
-**Not active**: this directory is not imported by the platform root. It creates
-no agent, HTTPRoute, credential, or PVC until deliberately admitted.
+**Active only as an empty foundation**: platform root imports the Hermès
+AppProject and ApplicationSet, but the registry has zero tenants, so no user
+agent, HTTPRoute, credential, or PVC is deployed.
 
 This is an **unofficial community Helm chart** at fixed Git commit
 `e3b685d4d0288668a37216435742cd0a659ebc6c` in **direct deployment mode**.
@@ -13,7 +14,7 @@ verify this digest directly with the registry and platform admission before use.
 
 ## Vision and onboarding
 
-An end user signs in via **Authentik** and only sees their own Hermes Webapp.
+An end user signs in via **Authentik** and only sees their own Hermes Dashboard/Chat.
 A provider/application per user must bind **only that identity** (and explicit
 breakglass admins) to the corresponding issuer and PKCE client; a generic
 "family" OIDC binding is NOT sufficient. The Hermes dashboard and Webapp both
@@ -48,11 +49,11 @@ YAML authoring for new family members.
    and prove ESO Ready. Do not reuse Factory credentials.
 4. Verify the exact Agentgateway OpenAI-compatible API path/model `factory/fast`
    and per-tenant identities, quotas and no prompt logging of health data.
-5. Confirm Cilium labels/ports, auth.smadja.dev egress, probes, init/migrations,
+5. Confirm Cilium labels/ports (9119), auth.smadja.dev egress, probes, init/migrations,
    Webapp login/callback (including browser websockets), image pull and resources.
-6. Activate this directory from the platform root, approve the Hermès AppProject
-   with restricted chart source/destinations and the ApplicationSet. No HTTPRoute
-   exists yet: test first by scoped admin port-forward.
+6. The empty foundation is already active from the platform root; verify Argo
+   actually reconciled it, with healthy AppProject/ApplicationSet. No HTTPRoute
+   exists yet: test the first tenant via scoped admin port-forward.
 7. Only after negative A→B security tests, create **separate** authenticated
    HTTPRoutes to each user's Webapp. No shared management dashboard.
 8. Restore one test PVC. Measure 2 and 5 active agents and estimate 20–30
@@ -73,3 +74,30 @@ YAML authoring for new family members.
 
 Companion tickets: PLT-159 (provisioning/auth), PLT-160 (connectors), PLT-161
 (Factory handoff), PLT-162 (runtime E2E + old coach cleanup).
+
+## Runtime correction: dashboard is not the messaging gateway
+
+The pinned community chart defaults to `args: [gateway, run]` while the
+official Hermes v0.23.0 browser UI is launched via:
+`hermes dashboard --host 0.0.0.0 --port 9119 --no-open`.
+
+The tenant Helm values override `args` explicitly, expose Service port
+**9119**, and set `dashboard.public_url` for OAuth callbacks. The previously
+configured `webapp.enabled / webapp.port: 9120` was not the documented v0.23.0
+dashboard entrypoint. The startup/readiness probes call `/api/status`; this
+is a public readiness endpoint **not** a login/auth check. OIDC/WebSocket
+security must be proven separately.
+
+The dashboard process **does not replace** the long-running messaging gateway
+(`hermes gateway run`). Add a separate, carefully qualified gateway process
+or sidecar once Matrix/cron integration is actually needed. Check single-writer
+SQLite/HERMES_HOME concurrency and backup safety before enabling it.
+
+If an Authentik OIDC client is confidential, inject
+`HERMES_DASHBOARD_OIDC_CLIENT_SECRET` into the tenant ESO Secret; for public
+PKCE-only clients it is not necessary. The client's authorization binding must
+restrict **only** the intended identity to this tenant. No browser route should
+be published before this is verified.
+
+Upstream v0.23.0 reference:
+https://github.com/NousResearch/hermes-agent/blob/v0.23.0/website/docs/user-guide/features/web-dashboard.md
