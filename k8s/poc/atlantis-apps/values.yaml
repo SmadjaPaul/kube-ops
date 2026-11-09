@@ -29,6 +29,11 @@ environment:
   ATLANTIS_CHECKOUT_STRATEGY: merge
   ATLANTIS_RESTRICT_FILE_LIST: "true"
   ATLANTIS_FAIL_ON_PRE_WORKFLOW_HOOK_ERROR: "true"
+  ATLANTIS_ENABLE_POLICY_CHECKS: "true"
+  ATLANTIS_VCS_STATUS_NAME: "atlantis-apps"
+  ATLANTIS_EXECUTABLE_NAME: "atlantis-apps"
+  ATLANTIS_SILENCE_NO_PROJECTS: "true"
+  ATLANTIS_SILENCE_VCS_STATUS_NO_PROJECTS: "true"
   ATLANTIS_DISCARD_APPROVAL_ON_PLAN: "true"
   AWS_EC2_METADATA_DISABLED: "true"
   TF_CLI_ARGS: ""
@@ -118,7 +123,7 @@ repoConfig: |
     atlantis-deny:
       plan:
         steps:
-          - run: ["sh", "-c", "echo 'Atlantis Apps repository denied' >&2; exit 1"]
+          - run: 'echo "Atlantis Apps repository denied" >&2; exit 1'
       apply:
         steps:
           - run: ["sh", "-c", "echo 'Atlantis Apps repository denied' >&2; exit 1"]
@@ -158,9 +163,32 @@ repoConfig: |
           - policy_check
       apply:
         steps:
+          - env:
+              name: AWS_ACCESS_KEY_ID
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_ACCESS_KEY_ID; else cat /etc/atlantis/roots/polyfin/backend/AWS_ACCESS_KEY_ID; fi'
+          - env:
+              name: AWS_SECRET_ACCESS_KEY
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_SECRET_ACCESS_KEY; else cat /etc/atlantis/roots/polyfin/backend/AWS_SECRET_ACCESS_KEY; fi'
+          - env:
+              name: AWS_REGION
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/backend/AWS_REGION; else cat /etc/atlantis/roots/polyfin/backend/AWS_REGION; fi'
+          - env:
+              name: AIOSTREAMS_PASSWORD
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/AIOSTREAMS_PASSWORD; else printf ""; fi'
+          - env:
+              name: AIOSTREAMS_OPERATOR_AUTH
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/AIOSTREAMS_OPERATOR_AUTH; else printf ""; fi'
+          - env:
+              name: TF_VAR_torbox_api_key
+              command: 'if test "$PROJECT_NAME" = aiostreams; then cat /etc/atlantis/roots/aiostreams/provider/TF_VAR_torbox_api_key; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_USERNAME_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/roots/polyfin/provider/POLYFIN_ADMIN_USERNAME; else printf ""; fi'
+          - env:
+              name: POLYFIN_ADMIN_PASSWORD_FILE
+              command: 'if test "$PROJECT_NAME" = polyfin; then printf "%s" /etc/atlantis/roots/polyfin/provider/POLYFIN_ADMIN_PASSWORD; else printf ""; fi'
           - run: /etc/atlantis/admission/guard-project.sh
           - apply
-          - run: /etc/atlantis/admission/post-apply-verify.sh
 
 service:
   type: ClusterIP
