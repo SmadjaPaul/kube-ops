@@ -97,6 +97,15 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # Native Mealie recipe provider: access only the internal application pod.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mealie
+            app.kubernetes.io/name: mealie
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: TCP
     # Cilium Gateway hairpin: permit the in-cluster Authentik backend leg
     # used by the private Gateway for OIDC discovery and callbacks.
     - toEndpoints:
