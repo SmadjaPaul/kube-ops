@@ -49,6 +49,9 @@ spec:
         - matchName: files.pythonhosted.org
         - matchName: registry.npmjs.org
         - matchName: api.nuget.org
+        # Polyfin's dedicated OCI state endpoint; no other Object Storage
+        # endpoint is reachable from this runner.
+        - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
       toPorts:
         - ports:
             - port: "443"
