@@ -16,6 +16,11 @@ githubApp:
   slug: smadja-atlantis-apps
 vcsSecretName: atlantis-apps-github-app
 
+# Apps is one explicit trust domain for these two application roots. PROJECT_NAME
+# selects the env values but is not a secret-isolation boundary; the pre-plan
+# provenance guard and native approval requirement are mandatory compensating
+# controls. Do not add a higher-privilege root to this pod.
+
 allowForkPRs: false
 allowDraftPRs: false
 hidePrevPlanComments: true
@@ -108,8 +113,8 @@ repoConfig: |
       repo_config_file: docs/architecture/atlantis-runtime-apps.yaml
       workflow: atlantis-v2-apps
       policy_check: true
-      plan_requirements: [mergeable, undiverged]
-      apply_requirements: [mergeable, undiverged]
+      plan_requirements: [approved, mergeable, undiverged]
+      apply_requirements: [approved, mergeable, undiverged]
       repo_locks:
         mode: on_plan
       allowed_overrides: []
