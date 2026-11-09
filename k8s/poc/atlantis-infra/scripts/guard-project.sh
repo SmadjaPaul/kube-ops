@@ -17,6 +17,23 @@ deny() {
 [[ -f "${DIR:-}/backend.tf" ]] || deny 'backend missing'
 [[ -f "${DIR:-}/.terraform.lock.hcl" ]] || deny 'provider lockfile missing'
 
+# This is a narrow pre-plan provenance boundary, not a sandbox. Atlantis
+# executes provider code during init/plan, so toolchain, backend, module and
+# executor changes are never allowed through the privileged Infra workflow.
+git rev-parse 'origin/main^{commit}' >/dev/null 2>&1 || deny 'base unavailable'
+git rev-parse "${HEAD_COMMIT}^{commit}" >/dev/null 2>&1 || deny 'head unavailable'
+changed_root=false
+while IFS= read -r -d '' path; do
+  case "$path" in
+    "terraform/$PROJECT_NAME/backend.tf"|"terraform/$PROJECT_NAME/provider.tf"|"terraform/$PROJECT_NAME/versions.tf"|"terraform/$PROJECT_NAME/.terraform.lock.hcl"|terraform/modules/*|.atlantis*|docs/architecture/atlantis-runtime-*.yaml)
+      deny "unadmitted execution or toolchain change: $path" ;;
+    "terraform/$PROJECT_NAME/"*) changed_root=true ;;
+    docs/*|tests/*) ;;
+    *) deny "unexpected path: $path" ;;
+  esac
+done < <(git diff --name-only -z "origin/main...$HEAD_COMMIT" --)
+[[ "$changed_root" == true ]] || deny 'no change in selected root'
+
 case "$PROJECT_NAME" in
   github)
     [[ -f /etc/atlantis/roots/github/backend/AWS_ACCESS_KEY_ID ]] || deny 'GitHub backend identity unavailable'

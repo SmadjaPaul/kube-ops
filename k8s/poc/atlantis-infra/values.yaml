@@ -14,6 +14,10 @@ githubApp:
   slug: smadja-atlantis-infra
 vcsSecretName: atlantis-infra-github-app
 
+# Infra is one explicit trust domain for the currently admitted roots.
+# PROJECT_NAME selects env values but does not isolate mounted secrets; the
+# pre-plan provenance guard and native approval requirement remain mandatory.
+
 allowForkPRs: false
 allowDraftPRs: false
 hidePrevPlanComments: true
@@ -106,8 +110,8 @@ repoConfig: |
       repo_config_file: docs/architecture/atlantis-runtime-infra.yaml
       workflow: atlantis-v2-infra
       policy_check: true
-      plan_requirements: [mergeable, undiverged]
-      apply_requirements: [mergeable, undiverged]
+      plan_requirements: [approved, mergeable, undiverged]
+      apply_requirements: [approved, mergeable, undiverged]
       repo_locks:
         mode: on_plan
       allowed_overrides: []
