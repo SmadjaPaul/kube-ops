@@ -12,7 +12,11 @@ grep -Eq '^[[:space:]]*-[[:space:]]+polyfin[[:space:]]*$' k8s/applications/media
 }
 
 eq() {
-  got="$(yq -r "$1" "$2" | head -n 1)"
+  # Do not use head here: with pipefail, yq receives SIGPIPE on GitHub's
+  # runner when the expression emits multiple documents and the contract
+  # aborts with exit 141. sed reads the complete stream and preserves the
+  # intended first-value comparison.
+  got="$(yq -r "$1" "$2" | sed -n '1p')"
   [[ "$got" == "$3" ]] || { echo "POLYFIN_STATIC=FAIL $2 $1 got=$got want=$3" >&2; exit 1; }
 }
 ! grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/kustomization.yaml"
