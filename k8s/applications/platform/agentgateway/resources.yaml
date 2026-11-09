@@ -44,9 +44,14 @@ data:
               allowedModels:
                 - factory/fast
                 - factory/code
-              # MiniMax Token Plan owns the 5-hour and weekly quota windows.
-              # Mastra retains per-run budgets, concurrency and bounded retry.
-              # No PAYG fallback is configured for these routes.
+              budgets:
+                - name: factory-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 1000000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
             - key: "$GPT_RESEARCHER_API_KEY"
               metadata:
                 name: gpt-researcher
@@ -110,7 +115,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: gpt-researcher-routing-v1
+        checksum/agentgateway-runtime: factory-shared-budget-1m-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
