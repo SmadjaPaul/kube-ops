@@ -27,6 +27,9 @@ spec:
         config:
           timezone: Europe/Paris
           frontendUrl: https://fitness.smadja.dev
+          # Suppress application logger output. Direct console diagnostics are
+          # additionally excluded from Loki by the shared Alloy pipeline.
+          logLevel: SILENT
           # OIDC auto-provisioning is limited by the Authentik application
           # bindings to the family and authentik-admins groups.
           disableSignup: false
