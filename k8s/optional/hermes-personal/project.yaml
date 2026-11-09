@@ -1,0 +1,35 @@
+{
+  "apiVersion": "argoproj.io/v1alpha1",
+  "kind": "AppProject",
+  "metadata": {
+    "name": "hermes-tenants",
+    "namespace": "argocd"
+  },
+  "spec": {
+    "description": "Isolated personal Hermes instances from exact pinned upstream chart",
+    "sourceRepos": [
+      "https://github.com/ultraworkers/hermes-agent-helm-chart.git"
+    ],
+    "destinations": [
+      {
+        "server": "https://kubernetes.default.svc",
+        "namespace": "hermes-*"
+      }
+    ],
+    "clusterResourceWhitelist": [
+      {
+        "group": "",
+        "kind": "Namespace"
+      }
+    ],
+    "namespaceResourceWhitelist": [
+      {
+        "group": "*",
+        "kind": "*"
+      }
+    ],
+    "orphanedResources": {
+      "warn": true
+    }
+  }
+}
