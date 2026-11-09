@@ -126,7 +126,7 @@ repoConfig: |
           - run: 'echo "Atlantis Apps repository denied" >&2; exit 1'
       apply:
         steps:
-          - run: ["sh", "-c", "echo 'Atlantis Apps repository denied' >&2; exit 1"]
+          - run: 'echo "Atlantis Apps repository denied" >&2; exit 1'
     atlantis-v2-apps:
       plan:
         steps:
