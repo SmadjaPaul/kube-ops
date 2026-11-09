@@ -49,6 +49,17 @@ spec:
             autoRedirect: false
             secrets:
               existingSecret: sparkyfitness-oidc
+          garmin:
+            enabled: true
+            isChinaRegion: false
+            networkPolicy:
+              to:
+                - matchName: sso.garmin.com
+                - matchName: connect.garmin.com
+                - matchName: connectapi.garmin.com
+                - matchName: mobile.integration.garmin.com
+                - matchName: diauth.garmin.com
+                - matchName: ghs.garmin.com
         server:
           replicas: 1
           image:
@@ -92,6 +103,18 @@ spec:
             limits:
               cpu: 300m
               memory: 256Mi
+        garmin:
+          replicas: 1
+          image:
+            tag: v1.11.0
+            digest: sha256:7f4c69b0c7e4090a66c79f0580f49a55792206a38a66e09c1ca84150fda9ee74
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
         networkPolicy:
           enabled: false
         ingress:
