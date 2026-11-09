@@ -77,6 +77,12 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    - toFQDNs:
+        - matchName: wger.de
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     # Cilium Gateway hairpin: permit the in-cluster Authentik backend leg
     # used by the private Gateway for OIDC discovery and callbacks.
     - toEndpoints:
