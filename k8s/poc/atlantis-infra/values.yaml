@@ -95,7 +95,7 @@ repoConfig: |
       allow_custom_workflows: false
     - id: github.com/SmadjaPaul/homelab-infra
       branch: /^main$/
-      repo_config_file: docs/architecture/atlantis-target-infra.yaml
+      repo_config_file: docs/architecture/atlantis-runtime-infra.yaml
       workflow: atlantis-v2-infra
       policy_check: true
       plan_requirements: [mergeable, undiverged]
