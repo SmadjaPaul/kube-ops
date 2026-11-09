@@ -93,6 +93,17 @@
       "reason": "PLT-153: owner-authorized explicit AIOStreams sensitive-log disablement and matching contract assertion; no image, route, network, or credential changes.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-15T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1105,
+      "changeFingerprint": "fbdeee1b394ce3f6589addd087fa6677aea666359d94c0a4c86a70b38b6d3845",
+      "paths": [
+        "scripts/check-atlantis-dispatch-contract.sh"
+      ],
+      "reason": "PLT-89/90/91: owner-authorized pilot-only Atlantis apply denial before ARC cutover; preserve apply for github, aiostreams and polyfin.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-15T23:59:59Z"
     }
   ]
 }
