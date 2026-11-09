@@ -4,7 +4,7 @@ This runbook records the supported CLI/MCP boundary observed on 2026-11-09 for
 `https://factory.smadja.dev` (`@mastra/factory@0.27.0`). It does not authorize
 run retries, approvals, transitions, or changes to Factory configuration.
 
-## Official CLI
+## Official CLI and headless Better Auth
 
 Install the upstream skill for Codex:
 
@@ -20,13 +20,53 @@ env -u NODE_TLS_REJECT_UNAUTHORIZED npm exec --yes --package=mastra@latest --pac
   mastra api --url "$FACTORY_URL" factory project list '{"page":0,"perPage":10}'
 ```
 
-The command is read-only, but this deployment returned HTTP 401. `mastra auth
-login` authenticates to Mastra Platform; it does not create a session for this
-self-hosted Better Auth deployment. The CLI accepts an explicit `--header`, but
-do not reuse Mastra Platform credentials or copy a browser cookie. No supported
-interactive self-hosted CLI login or short-lived CLI token issuer is configured
-here, so authenticated Factory commands remain blocked until a first-party
-Better Auth CLI/OAuth flow is made available.
+`mastra auth login` authenticates to Mastra Platform; it does not create a
+session for this self-hosted Better Auth deployment. The CLI accepts an explicit
+`--header`, but passing a session token there exposes it in the process argument
+list. Do not do that, and do not copy cookies from a browser.
+
+Headless reads were verified against the deployed Factory with the existing
+operator account. The supported Better Auth endpoint is:
+
+```text
+POST https://factory.smadja.dev/auth/api/sign-in/email
+Origin: https://factory.smadja.dev
+Content-Type: application/json
+{"email":"…","password":"…","rememberMe":false}
+```
+
+The response contains a Better Auth session `token`. Read it in a same-process
+HTTPS client and send `Authorization: Bearer <token>` directly to Factory; do
+not put credentials or the token in command arguments, shell history, files,
+logs, or tickets. Obtain the password through a local secure prompt, not from a
+browser session. The deployed `FactoryBootstrapBetterAuth` extends
+`MastraAuthBetterAuth` 1.1.8, whose `authenticateToken()` accepts this Bearer
+session form. The sign-in request must include the matching `Origin` (without it
+the endpoint returns `403 MISSING_OR_NULL_ORIGIN`).
+
+Verified read-only endpoints:
+
+```text
+GET /web/factory/projects
+GET /web/factory/projects/:projectId/work-items
+GET /web/factory/projects/:projectId/decisions?limit=100
+```
+
+For example, all three returned HTTP 200 for project
+`8551e83c-15ca-498d-98d3-a606719a1370`. The project list contained two projects;
+the target was `kube-ops`. Work Items returned the target card and its linked
+canonical Work Item. The decisions endpoint returned its first page; no target
+decision matched that page or the exact read-only CNPG query. The CLI itself
+remains `CLI_PASS=FAIL` for authenticated use until it has a credential input
+that does not expose the token in process arguments; the in-process HTTP method
+is `HEADLESS_API_PASS`.
+
+After a read, end the session with `POST /auth/api/sign-out`, the session cookie
+from the same sign-in response, matching `Origin`, and JSON body `{}`. For a
+temporary session that could not be signed out in its original process, Better
+Auth's authenticated `GET /auth/api/list-sessions` and
+`POST /auth/api/revoke-session` can revoke that exact session. Do not use
+`revoke-other-sessions` because it would also sign out the operator's browser.
 
 ## Native MCP
 
@@ -46,12 +86,16 @@ organization checks are supported end to end.
 
 ## Read-only record for the blocked run
 
-The authenticated CLI/API read was blocked by HTTP 401. A bounded CNPG inspection
-used only `BEGIN READ ONLY` and `SELECT` against the exact session/run identifiers:
+The official CLI remains unable to send the token without exposing it in argv.
+The in-process authenticated Factory API read succeeded. A bounded CNPG
+inspection used only `BEGIN READ ONLY` and `SELECT` against the exact
+session/run identifiers:
 
 - Work Item `799d87e2-5b9d-4883-a3e0-473c4fdeb6a3`; board card
   `5dac9364-8c8a-4574-9176-7fd7dc03225f`; board `work`, stage `intake`, revision 3.
-  No Linear source row or autonomous run was linked to either ID.
+  The authenticated Work Items endpoint confirmed the same card, linked Work
+  Item, revision, and chat session; `runningSessionIds` and `parkedSessionIds`
+  were empty. No Linear source row or autonomous run was linked to either ID.
 - Session `4bc19542-22b7-4d20-85f0-21a5b161af72` has an active `chat` binding.
 - Run `24156226-ab90-4b95-bc21-22e17037f3c4` is persisted as `suspended` at
   `toolCallStep`; `resumeClaimedAt` is `2026-11-09T09:39:45.488Z`.
