@@ -65,7 +65,7 @@ spec:
             - {name: MASTRACODE_AUTONOMOUS_LINEAR_PROJECT_ID, value: "02f32953-c5f5-43f2-b130-8a5a630aa578"}
             - {name: MASTRACODE_AUTONOMOUS_FACTORY_PROJECT_ID, value: "8551e83c-15ca-498d-98d3-a606719a1370"}
             - {name: MASTRACODE_AUTONOMOUS_ALLOWED_REPOSITORY, value: "SmadjaPaul/factory-platform"}
-            - {name: MASTRACODE_AUTONOMOUS_DISPATCH_NOT_BEFORE, value: "2026-11-08T03:23:38.000Z"}
+            - {name: MASTRACODE_AUTONOMOUS_DISPATCH_NOT_BEFORE, value: "2026-11-09T10:15:34.000Z"}
             - {name: FACTORY_AUTHENTIK_OIDC_DISCOVERY_URL, value: "https://auth.smadja.dev/application/o/factory/.well-known/openid-configuration"}
             - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://alloy.monitoring.svc.cluster.local:4318"}
             - {name: OTEL_SERVICE_NAME, value: "mastra-factory"}
