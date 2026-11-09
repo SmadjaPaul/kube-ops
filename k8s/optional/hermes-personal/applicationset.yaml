@@ -1,0 +1,325 @@
+{
+  "apiVersion": "argoproj.io/v1alpha1",
+  "kind": "ApplicationSet",
+  "metadata": {
+    "name": "hermes-personal-tenants",
+    "namespace": "argocd",
+    "labels": {
+      "app.kubernetes.io/part-of": "personal-platform"
+    }
+  },
+  "spec": {
+    "goTemplate": true,
+    "goTemplateOptions": [
+      "missingkey=error"
+    ],
+    "generators": [
+      {
+        "list": {
+          "elements": []
+        }
+      }
+    ],
+    "template": {
+      "metadata": {
+        "name": "hermes-{{ .id }}",
+        "namespace": "argocd",
+        "labels": {
+          "app.kubernetes.io/part-of": "personal-platform"
+        }
+      },
+      "spec": {
+        "project": "hermes-tenants",
+        "source": {
+          "repoURL": "https://github.com/ultraworkers/hermes-agent-helm-chart.git",
+          "targetRevision": "e3b685d4d0288668a37216435742cd0a659ebc6c",
+          "path": ".",
+          "helm": {
+            "releaseName": "hermes",
+            "valuesObject": {
+              "fullnameOverride": "hermes",
+              "tenant": {
+                "id": "{{ .id }}"
+              },
+              "image": {
+                "repository": "nousresearch/hermes-agent",
+                "tag": "v0.23.0@sha256:adb7890916de63245523492be8f68f9d2095fecbec4e2a6dab7960381f0fc002",
+                "pullPolicy": "IfNotPresent"
+              },
+              "replicaCount": 1,
+              "strategy": {
+                "type": "Recreate"
+              },
+              "bootstrap": {
+                "enabled": true,
+                "overwrite": false
+              },
+              "config": {
+                "values": {
+                  "model": {
+                    "default": "factory/fast",
+                    "provider": "custom",
+                    "base_url": "http://agentgateway.agentgateway.svc.cluster.local:4000/v1"
+                  },
+                  "agent": {
+                    "max_turns": 45,
+                    "disabled_toolsets": [
+                      "terminal",
+                      "code_execution",
+                      "browser"
+                    ]
+                  },
+                  "terminal": {
+                    "backend": "local",
+                    "home_mode": "profile"
+                  },
+                  "security": {
+                    "redact_secrets": true,
+                    "tirith_enabled": true,
+                    "tirith_fail_open": false
+                  },
+                  "webapp": {
+                    "enabled": true,
+                    "host": "0.0.0.0",
+                    "port": 9120,
+                    "public_url": "https://hermes-{{ .id }}.smadja.dev"
+                  },
+                  "dashboard": {
+                    "oauth": {
+                      "provider": "self-hosted",
+                      "self_hosted": {
+                        "issuer": "https://auth.smadja.dev/application/o/hermes-{{ .id }}/",
+                        "client_id": "hermes-{{ .id }}",
+                        "scopes": "openid profile email"
+                      }
+                    }
+                  }
+                }
+              },
+              "externalSecret": {
+                "enabled": true,
+                "refreshInterval": "1h",
+                "secretStoreRef": {
+                  "kind": "ClusterSecretStore",
+                  "name": "doppler-cluster"
+                },
+                "target": {
+                  "name": "hermes-runtime",
+                  "creationPolicy": "Owner",
+                  "deletionPolicy": "Retain",
+                  "template": {
+                    "type": "Opaque"
+                  }
+                },
+                "data": [
+                  {
+                    "secretKey": "OPENAI_API_KEY",
+                    "remoteRef": {
+                      "key": "{{ .secret_key }}"
+                    }
+                  }
+                ]
+              },
+              "secrets": {
+                "existingSecret": ""
+              },
+              "apiServer": {
+                "enabled": false
+              },
+              "service": {
+                "enabled": true,
+                "type": "ClusterIP",
+                "ports": [
+                  {
+                    "name": "webapp",
+                    "port": 9120,
+                    "targetPort": 9120,
+                    "containerPort": 9120,
+                    "protocol": "TCP"
+                  }
+                ]
+              },
+              "ingress": {
+                "enabled": false
+              },
+              "networkPolicy": {
+                "enabled": false
+              },
+              "tenantIsolation": {
+                "enabled": false
+              },
+              "persistence": {
+                "enabled": true,
+                "size": "5Gi",
+                "storageClass": "longhorn-bulk",
+                "accessMode": "ReadWriteOnce",
+                "mountPath": "/opt/data"
+              },
+              "serviceAccount": {
+                "create": true,
+                "automountServiceAccountToken": false
+              },
+              "rbac": {
+                "create": false
+              },
+              "resources": {
+                "requests": {
+                  "cpu": "150m",
+                  "memory": "512Mi"
+                },
+                "limits": {
+                  "cpu": "1500m",
+                  "memory": "2Gi"
+                }
+              },
+              "podSecurityContext": {
+                "runAsUser": 1000,
+                "runAsGroup": 1000,
+                "fsGroup": 1000,
+                "fsGroupChangePolicy": "OnRootMismatch",
+                "runAsNonRoot": true,
+                "seccompProfile": {
+                  "type": "RuntimeDefault"
+                }
+              },
+              "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "readOnlyRootFilesystem": true,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                },
+                "seccompProfile": {
+                  "type": "RuntimeDefault"
+                }
+              },
+              "extraObjects": [
+                {
+                  "apiVersion": "cilium.io/v2",
+                  "kind": "CiliumNetworkPolicy",
+                  "metadata": {
+                    "name": "hermes-personal",
+                    "labels": {
+                      "policy-type": "platform-audit"
+                    }
+                  },
+                  "spec": {
+                    "description": "Pilot-only: no cross-tenant egress, no direct Factory or Kubernetes API",
+                    "endpointSelector": {
+                      "matchLabels": {
+                        "app.kubernetes.io/name": "hermes-agent",
+                        "app.kubernetes.io/instance": "hermes"
+                      }
+                    },
+                    "ingress": [
+                      {
+                        "fromEntities": [
+                          "host",
+                          "remote-node",
+                          "ingress"
+                        ],
+                        "toPorts": [
+                          {
+                            "ports": [
+                              {
+                                "port": "9120",
+                                "protocol": "TCP"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "egress": [
+                      {
+                        "toEndpoints": [
+                          {
+                            "matchLabels": {
+                              "k8s:io.kubernetes.pod.namespace": "kube-system",
+                              "k8s:k8s-app": "kube-dns"
+                            }
+                          }
+                        ],
+                        "toPorts": [
+                          {
+                            "ports": [
+                              {
+                                "port": "53",
+                                "protocol": "UDP"
+                              },
+                              {
+                                "port": "53",
+                                "protocol": "TCP"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "toEndpoints": [
+                          {
+                            "matchLabels": {
+                              "k8s:io.kubernetes.pod.namespace": "agentgateway",
+                              "app": "agentgateway"
+                            }
+                          }
+                        ],
+                        "toPorts": [
+                          {
+                            "ports": [
+                              {
+                                "port": "4000",
+                                "protocol": "TCP"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "toFQDNs": [
+                          {
+                            "matchName": "auth.smadja.dev"
+                          }
+                        ],
+                        "toPorts": [
+                          {
+                            "ports": [
+                              {
+                                "port": "443",
+                                "protocol": "TCP"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "destination": {
+          "server": "https://kubernetes.default.svc",
+          "namespace": "hermes-{{ .id }}"
+        },
+        "syncPolicy": {
+          "syncOptions": [
+            "CreateNamespace=true",
+            "ServerSideApply=true",
+            "PruneLast=true"
+          ],
+          "managedNamespaceMetadata": {
+            "labels": {
+              "pod-security.kubernetes.io/enforce": "restricted",
+              "pod-security.kubernetes.io/audit": "restricted",
+              "pod-security.kubernetes.io/warn": "restricted",
+              "app.kubernetes.io/part-of": "personal-platform"
+            }
+          }
+        }
+      }
+    }
+  }
+}
