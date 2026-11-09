@@ -6,3 +6,4 @@ resources:
   - runner-application.yaml
   - egress-networkpolicy.yaml
   - opentofu-downloads-networkpolicy.yaml
+  - polyfin-api-networkpolicy.yaml
