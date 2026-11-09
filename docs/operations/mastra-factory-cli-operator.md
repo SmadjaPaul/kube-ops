@@ -12,7 +12,9 @@ Install the upstream skill for Codex:
 npx skills add mastra-ai/skills --skill mastra-factory
 ```
 
-Use the official CLI without changing application dependencies:
+Use the official CLI without changing application dependencies (this
+unauthenticated example returned HTTP 401 on the self-hosted Factory; it only
+checks CLI availability and API reachability, not operator access):
 
 ```bash
 FACTORY_URL=https://factory.smadja.dev
@@ -61,12 +63,21 @@ remains `CLI_PASS=FAIL` for authenticated use until it has a credential input
 that does not expose the token in process arguments; the in-process HTTP method
 is `HEADLESS_API_PASS`.
 
+While the temporary session is still accessible, retrieve its non-token
+`session.id` through the authenticated Better Auth `GET /auth/api/get-session`
+endpoint using the same secure in-process client. Keep that identifier in the
+operator's private recovery record, not a public ticket or log. Never infer a
+session ID from the user ID or another browser session.
+
 After a read, end the session with `POST /auth/api/sign-out`, the session cookie
 from the same sign-in response, matching `Origin`, and JSON body `{}`. For a
 temporary session that could not be signed out in its original process, Better
 Auth's authenticated `GET /auth/api/list-sessions` and
-`POST /auth/api/revoke-session` can revoke that exact session. Do not use
-`revoke-other-sessions` because it would also sign out the operator's browser.
+`POST /auth/api/revoke-session` can revoke that exact session **only after**
+matching its recorded `session.id` to a returned session. If no reliable ID
+match exists, do not guess or revoke another session; seek an authorized
+session-management recovery. Do not use `revoke-other-sessions` because it
+would also sign out the operator's browser.
 
 ## Native MCP
 
