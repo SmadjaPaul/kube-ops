@@ -7,3 +7,4 @@ resources:
   - egress-networkpolicy.yaml
   - opentofu-downloads-networkpolicy.yaml
   - polyfin-api-networkpolicy.yaml
+  - polyfin-oci-networkpolicy.yaml
