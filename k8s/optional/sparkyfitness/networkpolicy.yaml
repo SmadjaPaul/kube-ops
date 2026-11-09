@@ -143,3 +143,45 @@ spec:
         - ports:
             - port: "8000"
               protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sparkyfitness-garmin
+  namespace: wellness
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: sparkyfitness
+      app.kubernetes.io/component: garmin
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: wellness
+            sparkyfitness.io/server: "true"
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: sso.garmin.com
+        - matchName: connect.garmin.com
+        - matchName: connectapi.garmin.com
+        - matchName: mobile.integration.garmin.com
+        - matchName: diauth.garmin.com
+        - matchName: ghs.garmin.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
