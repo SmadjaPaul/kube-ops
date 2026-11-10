@@ -18,8 +18,10 @@ Past references: kube-ops PR #295 (isolated cells), #401 (suspended test),
 `hermes-personal` foundation is unchanged.
 
 Pinned first-pilot components:
-- OpenClaw **2026.11.2** official GHCR image, direct upstream-style K8s Deployment,
-  no Operator/Enterprise, single writer and port-forward only.
+- OpenClaw **2026.11.2** official GHCR base, wrapped in the private
+  `openclaw-personal` image with the official Hindsight plugin, direct
+  upstream-style K8s Deployment, no Operator/Enterprise, single writer and
+  port-forward only.
 - Hindsight **1.2.1** official OCI Helm chart + dedicated CNPG 17.7 standard
   (pgvector) with Barman/Hetzner and no HTTPRoute. Chart's control plane disabled.
   The originally qualified 1.2.0 runtime is retained as historical evidence;
@@ -33,7 +35,9 @@ Supply-chain verification recorded on 10 November 2026 (linux/amd64):
 
 | Artifact | Version | OCI/chart digest or platform manifest | Verification |
 |---|---:|---|---|
-| OpenClaw image | 2026.11.2 | `sha256:c764f17ed94b725599043f0548ece6297f1fe4409e6dd1133b1d2fb1f8d2b599` | `docker buildx imagetools inspect` |
+| OpenClaw upstream base | 2026.11.2 | `sha256:c764f17ed94b725599043f0548ece6297f1fe4409e6dd1133b1d2fb1f8d2b599` | `docker buildx imagetools inspect` |
+| OpenClaw personal image | 2026.11.2 + Hindsight 1.2.0 | `sha256:b88dd76140907b1cf32f8675b8fd4b2321806a1066bd3cc1e6689bfaf90c5717` | GHCR main build `42845211135`, linux/amd64 manifest |
+| Hindsight OpenClaw plugin | 1.2.0 | npm integrity `sha512-5UCvNOU12K3aKHwYaSrCFaeXGrfpuw6ZQ67+OJqV9WUgDx1X9Xp/S9rlNVzPKYf2y5S0n7tl02e3gQfb6bQntw==` | committed `images/openclaw-personal/package-lock.json` |
 | Hindsight chart | 1.2.1 | `sha256:4781a117dcafa4e776218a5988f8047a30379d2e195130cf44cc2055dc028258` | `helm pull oci://ghcr.io/vectorize-io/charts/hindsight --version 1.2.1` |
 | Hindsight API image index | 1.2.1 | `sha256:662109ece429871a81e036427fb93fbb09ba9dc4b01d320d356f114c0e1aedd8` | `docker buildx imagetools inspect` |
 | LibreChat chart | 3.0.0 | `sha256:5d50ecaf2685295fb5d28da016a964b03610e7897d6e366c0b573086fb23775a` | `helm pull oci://ghcr.io/librechat-ai/librechat-chart/librechat --version 3.0.0` |
@@ -66,11 +70,11 @@ the verified amd64 manifests in Git.
    restart to ensure GitOps authority; workspace survives. No HTTPRoute or
    elevated tools; do not restore an old operator, kubectl credentials or
    Docker socket.
-6. Build a *pinned and audited* OpenClaw image with
-   `@vectorize-io/hindsight-openclaw` plugin at a version proven compatible
-   with 2026.11.2. Wire only a dedicated bank and approved endpoint;
-   test recalled memory, corrections, secrets redaction and plugin fallback.
-   The plugin is **NOT** enabled in this staging branch.
+6. The pinned and audited OpenClaw image is now built by kube-ops #1169 from
+   the qualified 2026.11.2 base and the exact
+   `@vectorize-io/hindsight-openclaw@1.2.0` lockfile. Wire only the dedicated
+   `openclaw-personal` bank and approved endpoint; test recalled memory,
+   corrections, secrets redaction and plugin fallback before declaring USER.
 7. LibreChat: validate Helm 3.0.0 render, MongoDB auth and PVC policy, backup and
    restore, then configure Authentik OIDC with user-specific MFA/callback and
    permissioned MCP. Current chart is **fail-closed** with all login methods off.

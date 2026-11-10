@@ -9,6 +9,12 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: hindsight-personal
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: openclaw-personal
+            app.kubernetes.io/name: openclaw-personal
+      toPorts:
+        - ports: [{port: "8888", protocol: TCP}]
     - fromEntities: [host, remote-node]
       toPorts:
         - ports: [{port: "8888", protocol: TCP}]

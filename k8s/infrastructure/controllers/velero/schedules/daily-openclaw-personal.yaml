@@ -1,0 +1,21 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-openclaw-personal
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: openclaw-personal
+spec:
+  schedule: "45 5 * * *"
+  template:
+    includedNamespaces:
+      - openclaw-personal
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h

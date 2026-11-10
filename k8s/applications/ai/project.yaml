@@ -13,6 +13,8 @@ spec:
       server: '*'
     - namespace: 'hindsight-personal'
       server: '*'
+    - namespace: 'openclaw-personal'
+      server: '*'
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'

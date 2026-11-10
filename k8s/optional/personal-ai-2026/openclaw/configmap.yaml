@@ -32,6 +32,27 @@ data:
           }
         }
       },
+      "plugins": {
+        "load": {"paths": ["/opt/openclaw-plugins/hindsight-openclaw"]},
+        "allow": ["hindsight-openclaw"],
+        "entries": {
+          "hindsight-openclaw": {
+            "enabled": true,
+            "config": {
+              "hindsightApiUrl": "http://hindsight-api.hindsight-personal.svc.cluster.local:8888",
+              "dynamicBankId": false,
+              "bankId": "openclaw-personal",
+              "autoRecall": true,
+              "autoRetain": true,
+              "memoryMode": "hybrid",
+              "allowKnowledgeDelete": false,
+              "retainSource": "openclaw-personal",
+              "retainTags": ["source_system:openclaw", "bank:openclaw-personal"],
+              "logLevel": "info"
+            }
+          }
+        }
+      },
       "tools": {
         "allow": ["read"],
         "elevated": {"enabled": false},
@@ -46,5 +67,6 @@ data:
     You may read your own workspace only. No terminal, browser, code execution,
     arbitrary URL access, mail/calendar writes, or cluster administration.
     Never report success without observing the tool result. Avoid storing secrets.
-    Memory via Hindsight is NOT enabled until its plugin and bank authorization
-    have been separately qualified. No cross-person requests.
+    Hindsight is restricted to the fixed openclaw-personal bank. Do not attempt
+    to access other banks or use any administrative Hindsight endpoint. No
+    cross-person requests.
