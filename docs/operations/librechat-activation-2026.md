@@ -9,10 +9,12 @@ uses the private-only candidate hostname `librechat.smadja.dev`.
 
 1. Create, outside this repository, `APP_LIBRECHAT_CREDS_KEY`,
    `APP_LIBRECHAT_CREDS_IV`, `APP_LIBRECHAT_JWT_SECRET`,
-   `APP_LIBRECHAT_JWT_REFRESH_SECRET`, `APP_LIBRECHAT_MEILI_MASTER_KEY`,
-   `APP_LIBRECHAT_LLM_KEY`, `APP_LIBRECHAT_OIDC_CLIENT_SECRET` and
+   `APP_LIBRECHAT_JWT_REFRESH_SECRET`, `APP_LIBRECHAT_LLM_KEY`,
+   `APP_LIBRECHAT_OIDC_CLIENT_SECRET` and
    `APP_LIBRECHAT_OPENID_SESSION_SECRET` in the application Doppler project.
-   Values are never copied to Git or read by the coding agent.
+   This is the seven-key contract: Meilisearch is disabled and has no
+   `MEILI_MASTER_KEY` dependency. Values are never copied to Git or read by
+   the coding agent.
 2. In the activation PR, include the dormant Authentik ExternalSecret in the
    Authentik kustomization and admit the dormant blueprint into its
    `authentik-blueprints` ConfigMap in the same reviewed change as the

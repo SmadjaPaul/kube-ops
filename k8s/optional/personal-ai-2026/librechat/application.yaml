@@ -46,6 +46,20 @@ spec:
             OPENID_BUTTON_LABEL: Login with Authentik
             OPENID_GENERATE_NONCE: "true"
             OPENID_USE_END_SESSION_ENDPOINT: "true"
+          configYamlContent: |
+            version: 1.0.8
+            endpoints:
+              custom:
+                - name: Personal Agentgateway
+                  apiKey: "${OPENAI_API_KEY}"
+                  baseURL: http://agentgateway.agentgateway.svc.cluster.local:4000/v1
+                  models:
+                    default: [factory/fast]
+                    fetch: false
+                  titleConvo: true
+                  titleModel: factory/fast
+                  summarize: false
+                  modelDisplayLabel: Personal Agentgateway
           imageVolume:
             enabled: true
             size: 10Gi

@@ -213,7 +213,7 @@ public link access, disables shared-link file snapshots, and fixes the OIDC
 identity claim to `email`. These settings are part of the two-user isolation
 gate; they do not substitute for the real A/B denial test after activation.
 
-The candidate ExternalSecret declares the six existing application keys plus
+The candidate ExternalSecret declares the five required application keys plus
 `APP_LIBRECHAT_OIDC_CLIENT_SECRET` and
 `APP_LIBRECHAT_OPENID_SESSION_SECRET`, without values. A dormant Authentik
 blueprint uses one strict callback, `sub_mode: user_email`, and only the
