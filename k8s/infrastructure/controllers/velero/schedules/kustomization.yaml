@@ -33,3 +33,4 @@ resources:
   - daily-factory-platform.yaml
   - daily-matrix.yaml
   - daily-aiostreams.yaml
+  - daily-librechat.yaml
