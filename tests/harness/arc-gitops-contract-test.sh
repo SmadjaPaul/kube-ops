@@ -88,7 +88,12 @@ assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .res
 assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .resources.limits.memory" '1Gi'
 assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .resources.limits.\"ephemeral-storage\"" '2Gi'
 assert_yq "$runner_values | (.containers | length)" '2'
-assert_yq "$runner_values | ((.volumes // []) | length)" '0'
+assert_yq "$runner_values | ((.volumes // []) | length)" '1'
+assert_yq "$runner_values | .volumes[0].name" 'postgres-data'
+assert_yq "$runner_values | .volumes[0].emptyDir.medium" 'Memory'
+assert_yq "$runner_values | .volumes[0].emptyDir.sizeLimit" '512Mi'
+assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .volumeMounts[0].name" 'postgres-data'
+assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .volumeMounts[0].mountPath" '/var/lib/postgresql'
 
 homelab_runner_values='select(.kind == "Application" and .metadata.name == "apps-arc-homelab-infra-ci") | .spec.source.helm.valuesObject'
 assert_yq "$homelab_runner_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/homelab-infra'
