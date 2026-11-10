@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: personal-librechat
+  namespace: argocd
+spec:
+  project: applications
+  source:
+    repoURL: ghcr.io/librechat-ai/librechat-chart
+    chart: librechat
+    targetRevision: 3.0.0
+    helm:
+      releaseName: librechat
+      valuesObject:
+        global:
+          librechat:
+            existingSecretName: librechat-credentials-env
+        librechat:
+          configEnv:
+            ALLOW_REGISTRATION: "false"
+            ALLOW_EMAIL_LOGIN: "false"
+            ALLOW_SOCIAL_REGISTRATION: "false"
+            ALLOW_SOCIAL_LOGIN: "false"
+        image:
+          repository: registry.librechat.ai/librechat-ai/librechat
+          tag: v0.8.8
+        mongodb:
+          enabled: true
+          auth: {enabled: true}
+        meilisearch: {enabled: false}
+        librechat-rag-api: {enabled: false}
+        redis: {enabled: false}
+        ingress: {enabled: false}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: librechat
+  # No sync: identity, bundled MongoDB auth, storage/backup and chart render need proof.

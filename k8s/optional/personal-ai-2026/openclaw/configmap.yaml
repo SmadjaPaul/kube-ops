@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-personal-config
+  namespace: openclaw-personal
+data:
+  openclaw.json: |
+    {
+      "logging": {"level": "info", "redactSensitive": "tools"},
+      "gateway": {
+        "mode": "local",
+        "bind": "loopback",
+        "port": 18789,
+        "auth": {"mode": "token"},
+        "controlUi": {"enabled": true}
+      },
+      "agents": {
+        "defaults": {
+          "workspace": "~/.openclaw/workspace",
+          "model": {"primary": "agentgateway/factory/fast"},
+          "maxConcurrent": 1
+        }
+      },
+      "models": {
+        "mode": "merge",
+        "providers": {
+          "agentgateway": {
+            "api": "openai-completions",
+            "baseUrl": "http://agentgateway.agentgateway.svc.cluster.local:4000/v1",
+            "apiKey": "${OPENAI_API_KEY}",
+            "models": [{"id": "factory/fast", "name": "Factory fast"}]
+          }
+        }
+      },
+      "tools": {
+        "allow": ["read"],
+        "elevated": {"enabled": false},
+        "fs": {"workspaceOnly": true}
+      },
+      "cron": {"enabled": false},
+      "channels": {"slack": {"enabled": false}}
+    }
+  AGENTS.md: |
+    # Personal assistant pilot
+    One consenting owner; no family access and no access to Mastra Factory internals.
+    You may read your own workspace only. No terminal, browser, code execution,
+    arbitrary URL access, mail/calendar writes, or cluster administration.
+    Never report success without observing the tool result. Avoid storing secrets.
+    Memory via Hindsight is NOT enabled until its plugin and bank authorization
+    have been separately qualified. No cross-person requests.

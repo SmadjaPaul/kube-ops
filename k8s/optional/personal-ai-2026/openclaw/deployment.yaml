@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-personal
+  namespace: openclaw-personal
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openclaw-personal
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openclaw-personal
+        app.kubernetes.io/part-of: personal-ai
+    spec:
+      automountServiceAccountToken: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: reconcile-config
+          image: busybox:1.38
+          command: [sh, -ec]
+          args:
+            - |
+              # Git is authoritative: overwrite config each restart; preserve workspace.
+              cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+              mkdir -p /home/node/.openclaw/workspace /home/node/.openclaw/.cache
+              cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          volumeMounts:
+            - {name: home, mountPath: /home/node/.openclaw}
+            - {name: config, mountPath: /config, readOnly: true}
+      containers:
+        - name: gateway
+          image: ghcr.io/openclaw/openclaw:2026.11.2
+          imagePullPolicy: IfNotPresent
+          command: [node, /app/dist/index.js, gateway, run]
+          env:
+            - {name: HOME, value: /home/node}
+            - {name: OPENCLAW_CONFIG_DIR, value: /home/node/.openclaw}
+            - {name: XDG_CACHE_HOME, value: /home/node/.openclaw/.cache}
+            - {name: NODE_ENV, value: production}
+            - name: OPENCLAW_GATEWAY_TOKEN
+              valueFrom: {secretKeyRef: {name: openclaw-personal-secrets, key: OPENCLAW_GATEWAY_TOKEN}}
+            - name: OPENAI_API_KEY
+              valueFrom: {secretKeyRef: {name: openclaw-personal-secrets, key: OPENAI_API_KEY}}
+          ports:
+            - {name: gateway, containerPort: 18789}
+          resources:
+            requests: {cpu: 150m, memory: 512Mi}
+            limits: {cpu: "1", memory: 2Gi}
+          startupProbe:
+            exec:
+              command: [node, -e, "require('http').get('http://127.0.0.1:18789/readyz',r=>{let b='';r.on('data',d=>b+=d);r.on('end',()=>{try{process.exit(r.statusCode<400&&JSON.parse(b).ready===true?0:1)}catch{process.exit(1)}})}).on('error',()=>process.exit(1))"]
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command: [node, -e, "require('http').get('http://127.0.0.1:18789/readyz',r=>{let b='';r.on('data',d=>b+=d);r.on('end',()=>{try{process.exit(r.statusCode<400&&JSON.parse(b).ready===true?0:1)}catch{process.exit(1)}})}).on('error',()=>process.exit(1))"]
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: [node, -e, "require('http').get('http://127.0.0.1:18789/healthz',r=>{let b='';r.on('data',d=>b+=d);r.on('end',()=>{try{process.exit(r.statusCode<400&&JSON.parse(b).ok===true?0:1)}catch{process.exit(1)}})}).on('error',()=>process.exit(1))"]
+            periodSeconds: 30
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+            seccompProfile: {type: RuntimeDefault}
+          volumeMounts:
+            - {name: home, mountPath: /home/node/.openclaw}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: home, persistentVolumeClaim: {claimName: openclaw-personal-home}}
+        - {name: config, configMap: {name: openclaw-personal-config}}
+        - {name: tmp, emptyDir: {sizeLimit: 256Mi}}
