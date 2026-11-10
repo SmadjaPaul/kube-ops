@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "personal-ai-2026-hindsight-activation-e8cf949",
-  "producedAt": "2026-11-10T13:23:21Z",
+  "resultId": "personal-ai-2026-hindsight-runtime-20261110",
+  "producedAt": "2026-11-10T13:44:47Z",
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "e8cf949f7f22760c4187028e7210cdf6d5b1c9aa",
+    "revision": "69f416bd09b48db49c0e81f1a28fc9a9999ec819",
     "branch": "codex/plt165-hindsight-activation"
   },
   "tests": [
@@ -97,25 +97,25 @@
       "id": "hindsight-argo-reconciliation",
       "name": "Hindsight Argo reconciliation",
       "command": "just status-app apps-ai; just status-app personal-hindsight",
-      "execution": "not-executed",
-      "status": "BLOCKED",
-      "classification": "unavailable",
-      "reason": "The activation branch is not merged, so the Hindsight Application and its CNPG/ESO resources are not yet admitted to Argo.",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Argo accepted the Hindsight Namespace, AppProject, child Application, CNPG, ObjectStore, Backup, ScheduledBackup, ExternalSecrets and Cilium policy; apps-ai was Synced/Degraded and personal-hindsight was Synced/Progressing while workloads continued startup.",
       "risk": "high",
       "expectedCi": "required",
-      "evidence": {"kind": "none"}
+      "evidence": {"kind": "manual", "reference": "Argo apps-ai=Synced/Degraded; personal-hindsight=Synced/Progressing; merge:b8801f3c487e05e9dcdc87f84d83c5368c882399"}
     },
     {
       "id": "hindsight-runtime",
       "name": "Hindsight runtime retain/recall/reflect and vector extension",
       "command": "Argo, CNPG, API readiness, CREATE EXTENSION vector, retain/recall/reflect",
-      "execution": "not-executed",
-      "status": "BLOCKED",
-      "classification": "unavailable",
-      "reason": "The workload is not yet reconciled and no personal Hindsight data has been created.",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "CNPG and API readiness could not proceed because ESO reported the required Doppler key APP_HINDSIGHT_DB_PASSWORD missing; no vector-extension or retain/recall/reflect assertion was claimed.",
       "risk": "high",
       "expectedCi": "required",
-      "evidence": {"kind": "none"}
+      "evidence": {"kind": "manual", "reference": "ESO event:2026-11-10T13:43:59Z; CNPG event:secret-hindsight-db-bootstrap-not-found; PVCs:Longhorn-Bound-10Gi+5Gi"}
     },
     {
       "id": "hindsight-backup-restore",
@@ -133,12 +133,12 @@
   "summary": {
     "outcome": "incomplete",
     "total": 10,
-    "executed": 7,
-    "notExecuted": 3,
-    "passed": 6,
-    "failed": 1,
+    "executed": 9,
+    "notExecuted": 1,
+    "passed": 7,
+    "failed": 2,
     "skipped": 0,
-    "unavailable": 3,
+    "unavailable": 1,
     "notApplicable": 0
   },
   "transmission": {
@@ -147,16 +147,17 @@
     "schema": "agent-test-result/v1",
     "idempotencyKey": "SmadjaPaul/kube-ops@e8cf949f7f22760c4187028e7210cdf6d5b1c9aa:personal-ai-hindsight-activation",
     "payload": {
-      "resultId": "personal-ai-2026-hindsight-activation-e8cf949",
+      "resultId": "personal-ai-2026-hindsight-runtime-20261110",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "e8cf949f7f22760c4187028e7210cdf6d5b1c9aa",
+      "revision": "69f416bd09b48db49c0e81f1a28fc9a9999ec819",
       "tests": [
         {"id": "hindsight-active-kustomize", "name": "Active AI root render with Hindsight activation", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "58 resources rendered.", "risk": "high", "expectedCi": "required"},
         {"id": "hindsight-chart", "name": "Hindsight chart activation render and lint", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Official chart linted and rendered with offline model values.", "risk": "high", "expectedCi": "required"},
         {"id": "repository-just-check", "name": "Repository required check suite", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Pre-existing aiostreams staged contract failed outside PLT-165.", "risk": "high", "expectedCi": "required"},
-        {"id": "hindsight-argo-reconciliation", "name": "Hindsight Argo reconciliation", "execution": "not-executed", "status": "BLOCKED", "classification": "unavailable", "reason": "Activation branch is not merged.", "risk": "high", "expectedCi": "required"}
+        {"id": "hindsight-argo-reconciliation", "name": "Hindsight Argo reconciliation", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Argo accepted the Hindsight resources; apps-ai was Synced/Degraded and personal-hindsight was Synced/Progressing.", "risk": "high", "expectedCi": "required"},
+        {"id": "hindsight-runtime", "name": "Hindsight runtime retain/recall/reflect and vector extension", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "ESO could not find APP_HINDSIGHT_DB_PASSWORD; CNPG/API and user journey remained blocked.", "risk": "high", "expectedCi": "required"}
       ],
-      "summary": {"outcome": "incomplete", "total": 10, "executed": 7, "notExecuted": 3, "passed": 6, "failed": 1, "skipped": 0, "unavailable": 3, "notApplicable": 0}
+      "summary": {"outcome": "incomplete", "total": 10, "executed": 9, "notExecuted": 1, "passed": 7, "failed": 2, "skipped": 0, "unavailable": 1, "notApplicable": 0}
     }
   }
 }

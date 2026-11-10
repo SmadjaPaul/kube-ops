@@ -1,10 +1,14 @@
 # Personal AI pilot — OpenClaw, Hindsight, LibreChat (10 November 2026)
 
-Status: **STAGING + HINDSIGHT ACTIVATION PR / NO CLAIMED RUNTIME PROOF**. A narrow Argo AppProject restricts official chart sources and destinations; OpenClaw and LibreChat remain unadmitted.
+Status: **HINDSIGHT ADMITTED / RUNTIME BLOCKED ON DOPPLER CREDENTIAL DELIVERY**. The
+Hindsight-only subtree is admitted by the active AI root and its Argo child
+Application syncs, but CNPG/bootstrap and the API are not Ready because the
+dedicated Doppler key `APP_HINDSIGHT_DB_PASSWORD` is not present in the live
+provider. OpenClaw and LibreChat remain unadmitted.
 NetworkPolicies default-deny both Hindsight and LibreChat namespaces until
-specific OIDC/MCP/model download egress is admitted. The Kustomization under
-`k8s/optional/personal-ai-2026` is **not** imported into the active platform or AI roots. Do not claim
-Argo Synced, Secret Ready, a running gateway or a usable user-facing service.
+specific OIDC/MCP/model download egress is admitted. Do not claim Hindsight
+runtime or user availability until ESO, CNPG, API, backup/restore and the
+retain/recall/reflect journey are proven.
 
 ## Scope and provenance
 
@@ -90,6 +94,31 @@ with the default local embedding and reranker models; activation sets
 `BAAI/bge-small-en-v1.5`, `HF_HUB_OFFLINE=true` and
 `TRANSFORMERS_OFFLINE=true`, and disables the model-cache PVC so a hidden empty
 PVC cannot trigger an unreviewed Hugging Face download.
+
+## Hindsight runtime evidence — 2026-11-10
+
+The admission correction in kube-ops #1154 was merged as
+`b8801f3c487e05e9dcdc87f84d83c5368c882399`. At observation time, `root` was
+Argo `Synced/Healthy`, `apps-ai` was `Synced/Degraded`, and
+`personal-hindsight` was `Synced/Progressing`; Argo accepted the Namespace,
+AppProject, child Application, CNPG, ObjectStore, Backup, ScheduledBackup,
+ExternalSecrets and Cilium policy.
+
+The CNPG data and WAL PVCs were both Longhorn `Bound` (`10Gi` and `5Gi`). The
+Hindsight API Service was private ClusterIP `hindsight-api:8888`. The S3
+ExternalSecret was `SecretSynced=True`, but the database bootstrap and runtime
+ExternalSecrets were not Ready. The exact ESO event observed at
+`2026-11-10T13:43:59Z` was that Doppler could not find
+`APP_HINDSIGHT_DB_PASSWORD`; CNPG consequently reported
+`secret "hindsight-db-bootstrap" not found`.
+
+This is a delivery blocker, not a Hindsight application success: the
+Terraform declaration was merged in homelab-infra #294, but Atlantis denied
+its pre-workflow admission because
+`terraform/doppler/generated-app-secrets.tf` is outside the server allowlist.
+No secret value was read or injected manually. The owner-controlled Atlantis
+allowlist/procedure must be repaired before the CNPG, API, backup, restore and
+user checks can run.
 
 The Hindsight child Application uses automated self-heal with pruning disabled.
 This is a desired-state admission only until Argo, ESO, CNPG, Barman, model
