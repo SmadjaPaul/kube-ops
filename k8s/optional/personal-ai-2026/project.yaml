@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: personal-ai-pilot
+  namespace: argocd
+spec:
+  description: Pinned official Helm charts for private personal-assistant pilots only
+  sourceRepos:
+    - ghcr.io/vectorize-io/charts
+    - ghcr.io/librechat-ai/librechat-chart
+  destinations:
+    - {server: https://kubernetes.default.svc, namespace: hindsight-personal}
+    - {server: https://kubernetes.default.svc, namespace: librechat}
+  namespaceResourceWhitelist:
+    - {group: "*", kind: "*"}
+  clusterResourceWhitelist: []
+  orphanedResources:
+    warn: true

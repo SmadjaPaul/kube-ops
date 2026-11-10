@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: personal-librechat
+  namespace: argocd
+spec:
+  project: personal-ai-pilot
+  source:
+    repoURL: ghcr.io/librechat-ai/librechat-chart
+    chart: librechat
+    targetRevision: 3.0.0
+    helm:
+      releaseName: librechat
+      valuesObject:
+        global:
+          librechat:
+            existingSecretName: librechat-credentials-env
+        librechat:
+          configEnv:
+            ALLOW_REGISTRATION: "false"
+            ALLOW_EMAIL_LOGIN: "false"
+            ALLOW_SOCIAL_REGISTRATION: "false"
+            ALLOW_SOCIAL_LOGIN: "false"
+          imageVolume:
+            enabled: true
+            size: 10Gi
+            accessModes: ReadWriteOnce
+            storageClassName: longhorn-bulk
+        image:
+          registry: registry.librechat.ai
+          repository: librechat-ai/librechat
+          tag: v0.8.8
+        serviceAccount:
+          automount: false
+        resources:
+          requests: {cpu: 100m, memory: 512Mi}
+          limits: {cpu: "1", memory: 2Gi}
+        mongodb:
+          enabled: true
+          auth: {enabled: true}
+          persistence:
+            storageClass: longhorn-bulk
+            size: 10Gi
+            resourcePolicy: keep
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+        meilisearch: {enabled: false}
+        librechat-rag-api: {enabled: false}
+        redis: {enabled: false}
+        ingress: {enabled: false}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: librechat
+  # No sync: identity, bundled MongoDB auth, storage/backup and chart render need proof.

@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: personal-hindsight
+  namespace: argocd
+spec:
+  project: personal-ai-pilot
+  source:
+    repoURL: ghcr.io/vectorize-io/charts
+    chart: hindsight
+    targetRevision: 1.2.0
+    helm:
+      releaseName: hindsight
+      valuesObject:
+        version: 1.2.0
+        existingSecret: hindsight-runtime
+        api:
+          enabled: true
+          replicaCount: 1
+          automountServiceAccountToken: false
+          env:
+            HINDSIGHT_API_LLM_PROVIDER: openai
+            HINDSIGHT_API_LLM_BASE_URL: http://agentgateway.agentgateway.svc.cluster.local:4000/v1
+            HINDSIGHT_API_LLM_MODEL: factory/fast
+            HINDSIGHT_API_LLM_MAX_CONCURRENT: "1"
+            HINDSIGHT_API_EMBEDDINGS_PROVIDER: local
+            HINDSIGHT_API_EMBEDDINGS_LOCAL_MODEL: hindsight-ai/hs-embed-1
+            HINDSIGHT_API_MENTAL_MODEL_MIN_REFRESH_INTERVAL_SECONDS: "86400"
+            HINDSIGHT_API_REFLECT_DEFAULT_OPTIONS: '{"reflect_search_observations_max_tokens":3000}'
+          persistence:
+            modelCache:
+              enabled: true
+              size: 2Gi
+              storageClass: longhorn-bulk
+          resources:
+            requests: {cpu: 200m, memory: 768Mi}
+            limits: {cpu: "2", memory: 3Gi}
+        worker: {enabled: false}
+        controlPlane: {enabled: false}
+        postgresql:
+          enabled: false
+          external:
+            host: hindsight-db-rw.hindsight-personal.svc.cluster.local
+            port: 5432
+            database: hindsight
+            username: hindsight
+        ingress: {enabled: false}
+        gatewayApi: {enabled: false}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hindsight-personal
+  # No automated sync: the DB, secrets, upstream chart and restore must be admitted first.
