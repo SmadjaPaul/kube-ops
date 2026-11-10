@@ -47,3 +47,33 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 Run Helm/Kustomize offline validation and a security review; capture the exact chart digests. After the dedicated app is installed, Doppler keys are Ready, and network policy is observed, review the explicit activation PR wiring this root to Argo. No direct `helm install`, no uncontrolled credentials, no forced merge, no GitOps bypass.
 
 Report `ARC_CHART_RENDER`, `CONTROLLER_SA_MATCH`, `POD_SECURITY`, `ARC_GITHUB_APP_READY`, `NETPOL`, `TALOS_CAPACITY`, `PRIVATE_JOB_CHECK_SHA`, `SCALE_TO_ZERO`, `FIRST_DEPLOYMENT_AUTHORIZED`.
+
+## PLT-56 disposable dependency-cache canary (not yet authorized)
+
+The Factory runner can optionally mount a single `longhorn-bulk` 8 GiB
+ReadWriteOnce PVC at `/home/runner/.cache` to persist `npm` download archives
+(`NPM_CONFIG_CACHE=/home/runner/.cache/npm`) and `pip` caches
+(`PIP_CACHE_DIR=/home/runner/.cache/pip`) across ephemeral ARC jobs.
+
+This does **not** persist checkout, `node_modules`, `/tmp`, the runner's work
+directory, PostgreSQL data, or execution credentials. It has no effect on other
+scale sets. All consumers are on the same Kubernetes node and run as uid/gid
+1001 with `fsGroup: 1001`. Do not scale to multiple nodes without revisiting
+RWO scheduling, locking, and isolation.
+
+The cache is rebuildable and intentionally excluded from Velero, but the
+existing Longhorn default recurring backup group may still back up new volumes.
+**Do not admit this PVC until its Longhorn recurring-job labels are inspected
+and any default backup coverage is removed using the owner-approved PLT-147/148
+migration path.** Verify a new PVC is truly excluded from *both* Velero and
+Longhorn. Never delete old backups directly from S3.
+
+For the canary, compare two identical Factory jobs: baseline uncached and
+warm-cache runs with the same lockfiles, report cache hits, job duration,
+`du` of npm/pip caches, Talos scsi0 QMP bytes, physical NVMe/HDD bytes,
+and ZFS/ZIL counters, ensuring no OOM or permission errors. The old GitHub
+Actions cache restore in `factory-static-arc.yml` should be removed only
+*after* this PVC is live and verified, otherwise it repeatedly extracts
+packages onto OverlayFS. The cache itself must not be trusted as a source of
+validated code or privileged actions; enforce lockfile and pinned actions,
+and do not expose repository or Kubernetes secrets through it.
