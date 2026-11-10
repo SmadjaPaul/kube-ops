@@ -123,6 +123,12 @@ run_case() {
       mkdir -p "$fixture/terraform/aiostreams"
       printf '%s\n' '# generated provider lock' >"$fixture/terraform/aiostreams/.terraform.lock.hcl"
       ;;
+    github-versions-allowed)
+      printf '%s\n' 'source = "registry.terraform.io/integrations/github"' 'version = "= 6.13.0"' >"$fixture/terraform/github/versions.tf"
+      ;;
+    github-lockfile-allowed)
+      printf '%s\n' '# generated provider lock' >"$fixture/terraform/github/.terraform.lock.hcl"
+      ;;
     polyfin-lockfile-allowed)
       mkdir -p "$fixture/terraform/polyfin"
       printf '%s\n' '# generated provider lock' >"$fixture/terraform/polyfin/.terraform.lock.hcl"
@@ -151,6 +157,9 @@ run_case() {
   git -C "$fixture" add -A
   if test -f "$fixture/terraform/aiostreams/.terraform.lock.hcl"; then
     git -C "$fixture" add -f terraform/aiostreams/.terraform.lock.hcl
+  fi
+  if test -f "$fixture/terraform/github/.terraform.lock.hcl"; then
+    git -C "$fixture" add -f terraform/github/.terraform.lock.hcl
   fi
   if test -f "$fixture/terraform/polyfin/.terraform.lock.hcl"; then
     git -C "$fixture" add -f terraform/polyfin/.terraform.lock.hcl
@@ -206,6 +215,8 @@ run_case mise-config-path-allowed pass mise.toml
 run_case mise-config-sibling-denied deny mise.local.toml
 run_case aiostreams-lockfile-allowed pass terraform/aiostreams/.terraform.lock.hcl
 run_case polyfin-lockfile-allowed pass terraform/polyfin/.terraform.lock.hcl
+run_case github-versions-allowed pass terraform/github/versions.tf
+run_case github-lockfile-allowed pass terraform/github/.terraform.lock.hcl
 run_case aiostreams-nested-denied deny terraform/aiostreams/nested/main.tf
 run_case aiostreams-backend-files-allowed pass terraform/oracle-cloud/aiostreams-state-backend.tf
 run_case aiostreams-shared-oracle-file-denied deny terraform/oracle-cloud/variables.tf
