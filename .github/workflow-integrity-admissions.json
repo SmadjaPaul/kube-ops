@@ -148,6 +148,17 @@
       "reason": "PLT-163: owner-authorized exact provider egress admission for read-only ARC qualification; preserve bounded public Doppler and private AIOStreams access with no writer or apply change.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1159,
+      "changeFingerprint": "26f400f941287b400721382927b6b77d676db917588c370f50c39db8d3e558c4",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact endpoint-port admission for read-only ARC qualification; preserve bounded Cloudflare API and AIOStreams workload access with no writer or apply change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
     }
   ]
 }
