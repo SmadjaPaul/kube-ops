@@ -6,6 +6,7 @@ resources:
   - namespaces.yaml
   - github-app-secret.yaml
   - controller-application.yaml
+  - factory-dependency-cache-pvc.yaml
   - runner-application.yaml
   - runner-quota.yaml
   - github-egress-networkpolicy.yaml
