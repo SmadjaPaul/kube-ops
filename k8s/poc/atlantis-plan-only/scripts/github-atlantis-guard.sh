@@ -90,7 +90,7 @@ while IFS= read -r path; do
     scripts/arc-diagnostics.sh|scripts/install-iac-engine.sh|scripts/static-checks.sh|\
     tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
     tests/google-cloud-build-bootstrap-policy.sh|\
-    tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh|\
+    tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh|scripts/doppler-safe-delete.sh|\
     scripts/check-arc-execution-admission.sh|scripts/check-arc-root-inventory.py|.github/workflows/arc-iac-plan-qualification.yml) ;;
     renovate.json)
       # PLT-140: the exact owner-reviewed Renovate toolchain policy only.
@@ -100,6 +100,15 @@ while IFS= read -r path; do
     *) fail "file is outside the server admission allowlist: $path" ;;
   esac
 done <<<"$changed"
+
+# PLT-164: admit only the reviewed secret-deletion wrapper. This does not add
+# a Terraform project or authorize a plan/apply; pin both the PR head and blob.
+if grep -Fxq 'scripts/doppler-safe-delete.sh' <<<"$changed"; then
+  test "$HEAD_COMMIT" = "aab6da16a84c8dd0a12660d46d234e0e645d2b84" ||
+    fail "Doppler safe-delete path requires the server-admitted head"
+  test "$(git hash-object "$DIR/scripts/doppler-safe-delete.sh")" = "c725ecd1e9b72c206773667f76d1de699ee67308" ||
+    fail "Doppler safe-delete file differs from the server-admitted content"
+fi
 
 test -f "$DIR/terraform/github/backend.tf" || fail "GitHub backend is missing"
 test "$(git hash-object "$DIR/terraform/github/backend.tf")" = "63d68a69487cf768e662ed0b1c4d8ae93f3bcd19" ||

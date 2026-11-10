@@ -76,6 +76,9 @@ run_case() {
     bootstrap-script-path-without-admission)
       printf '%s\n' '# reviewed bootstrap executor' >"$fixture/scripts/live-tofu.sh"
       ;;
+    doppler-safe-delete-path-without-admission)
+      printf '%s\n' '# temporary test wrapper' >"$fixture/scripts/doppler-safe-delete.sh"
+      ;;
     factory-bootstrap-paths-allowed)
       mkdir -p \
         "$fixture/terraform/google-cloud-build" \
@@ -204,6 +207,7 @@ run_case mixed-readme-and-terraform-denied deny terraform/cloudflare/modules/sec
 run_case bootstrap-policy-path-without-admission deny .atlantis/policies/google-cloud-build-bootstrap/main.rego
 run_case bootstrap-policy-sibling-denied deny .atlantis/policies/other/main.rego
 run_case bootstrap-script-path-without-admission deny scripts/live-tofu.sh
+run_case doppler-safe-delete-path-without-admission deny scripts/doppler-safe-delete.sh
 run_case factory-bootstrap-paths-allowed pass terraform/google-cloud-build/README.md
 run_case factory-neighbor-denied deny terraform/google-cloud-build/variables.tf
 run_case factory-nested-readme-denied deny terraform/google-cloud-build/nested/README.md
@@ -221,7 +225,7 @@ run_case aiostreams-backend-files-allowed pass terraform/oracle-cloud/aiostreams
 run_case aiostreams-shared-oracle-file-denied deny terraform/oracle-cloud/variables.tf
 
 run_security_pin_cases() {
-  local fixture guard_copy head policy_hash executor_hash status output
+  local fixture guard_copy head policy_hash executor_hash doppler_hash status output
   fixture="$(make_fixture)"
   guard_copy="$(mktemp)"
   trap 'rm -rf "$fixture" "$guard_copy"' RETURN
@@ -231,16 +235,20 @@ run_security_pin_cases() {
     "$fixture/scripts"
   printf '%s\n' 'package main' >"$fixture/.atlantis/policies/google-cloud-build-bootstrap/main.rego"
   printf '%s\n' '# reviewed bootstrap executor' >"$fixture/scripts/live-tofu.sh"
+  printf '%s\n' '# reviewed Doppler deletion wrapper' >"$fixture/scripts/doppler-safe-delete.sh"
   git -C "$fixture" add -A
   git -C "$fixture" commit -qm security-admission
   head="$(git -C "$fixture" rev-parse HEAD)"
   policy_hash="$(git -C "$fixture" hash-object .atlantis/policies/google-cloud-build-bootstrap/main.rego)"
   executor_hash="$(git -C "$fixture" hash-object scripts/live-tofu.sh)"
+  doppler_hash="$(git -C "$fixture" hash-object scripts/doppler-safe-delete.sh)"
 
   sed \
     -e "s/54774b1924663761b608624bb993bd025d02e38d/$head/" \
     -e "s/29e96dc002d1430ab77d0d8e5fe21c04439cd8e1/$policy_hash/" \
     -e "s/74914cb0407e4669dc8511a8e8ccc4c61aa99f57/$executor_hash/" \
+    -e "s/aab6da16a84c8dd0a12660d46d234e0e645d2b84/$head/" \
+    -e "s/c725ecd1e9b72c206773667f76d1de699ee67308/$doppler_hash/" \
     "$guard" >"$guard_copy"
   chmod 0755 "$guard_copy"
 
@@ -302,6 +310,26 @@ run_security_pin_cases() {
     printf 'GUARD_TEST=FAIL case=policy-pin-tamper-refused output=%s\n' "$output" >&2
     return 1
   }
+  printf '%s\n' 'package main' >"$fixture/.atlantis/policies/google-cloud-build-bootstrap/main.rego"
+  printf '%s\n' '# tampered Doppler wrapper' >"$fixture/scripts/doppler-safe-delete.sh"
+  set +e
+  output="$(
+    cd "$fixture"
+    BASE_REPO_OWNER=SmadjaPaul \
+    BASE_REPO_NAME=homelab-infra \
+    HEAD_REPO_OWNER=SmadjaPaul \
+    HEAD_REPO_NAME=homelab-infra \
+    BASE_BRANCH_NAME=main \
+    HEAD_COMMIT="$head" \
+    DIR="$fixture" \
+    bash "$guard_copy" 2>&1
+  )"
+  status=$?
+  set -e
+  test "$status" -ne 0 || {
+    printf 'GUARD_TEST=FAIL case=doppler-pin-tamper-refused output=%s\n' "$output" >&2
+    return 1
+  }
   printf 'GUARD_TEST=PASS case=security-pins-accepted-and-tamper-refused\n'
 }
 
@@ -310,5 +338,7 @@ run_security_pin_cases
 grep -q '54774b1924663761b608624bb993bd025d02e38d' "$guard"
 grep -q '29e96dc002d1430ab77d0d8e5fe21c04439cd8e1' "$guard"
 grep -q '74914cb0407e4669dc8511a8e8ccc4c61aa99f57' "$guard"
+grep -q 'aab6da16a84c8dd0a12660d46d234e0e645d2b84' "$guard"
+grep -q 'c725ecd1e9b72c206773667f76d1de699ee67308' "$guard"
 
 printf 'GUARD_TEST=PASS all admission fixtures\n'
