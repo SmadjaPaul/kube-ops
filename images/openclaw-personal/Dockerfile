@@ -14,4 +14,6 @@ RUN npm ci --omit=dev --ignore-scripts \
     && ln -s /opt/openclaw-personal-plugin/node_modules/@vectorize-io/hindsight-openclaw /opt/openclaw-plugins/hindsight-openclaw \
     && npm cache clean --force
 
+# Preserve the upstream image's entrypoint working directory.
+WORKDIR /app
 USER node
