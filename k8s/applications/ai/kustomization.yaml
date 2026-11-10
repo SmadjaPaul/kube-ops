@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
 - project.yaml
 - ../../optional/personal-ai-2026/hindsight
+- ../../optional/personal-ai-2026/hindsight-restore
 - karakeep
 - opencode
 - gpt-researcher
