@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "personal-ai-openclaw-admission-2026-11-10-620ab80",
+  "producedAt": "2026-11-10T15:38:00Z",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "620ab80",
+    "branch": "codex/plt165-openclaw-activation"
+  },
+  "tests": [
+    {
+      "id": "openclaw-image-build",
+      "name": "Pinned OpenClaw personal image build",
+      "command": "GitHub Actions Build and Push Docker Images",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The main build produced the linux/amd64 image with the locked official Hindsight plugin; the permanent manifest digest is recorded in the runbook.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "workflow", "reference": "run 42845211135; image sha256:b88dd76140907b1cf32f8675b8fd4b2321806a1066bd3cc1e6689bfaf90c5717"}
+    },
+    {
+      "id": "openclaw-activation-render",
+      "name": "OpenClaw activation Kustomize render",
+      "command": "kustomize build --enable-helm k8s/applications/ai",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The active AI root rendered with OpenClaw, bilateral Cilium policy, dedicated Agentgateway policy, and the Velero schedule.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "plt165-openclaw-activation-render.yaml"}
+    },
+    {
+      "id": "openclaw-backup-static-contract",
+      "name": "OpenClaw backup static contract",
+      "command": "bash scripts/backup-static-contract.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "OpenClaw is covered by a daily Velero/Kopia schedule and the static contract reports zero gaps.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "BACKUP_STATIC_GAPS=0"}
+    },
+    {
+      "id": "repository-just-check",
+      "name": "Repository required check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The pre-existing aiostreams-staged-contract.sh assertion fails without output; the failure is outside PLT-165 and is not masked.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "just check: line 46 aiostreams-staged-contract-test.sh"}
+    },
+    {
+      "id": "openclaw-doppler-admission",
+      "name": "Fresh OpenClaw Doppler credentials",
+      "command": "Atlantis admission and normal apply for homelab-infra #298",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "Atlantis server admission rejects terraform/doppler/generated-app-secrets.tf; no second local apply or policy bypass was attempted.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "pull_request", "reference": "homelab-infra #298: server allowlist denial"}
+    },
+    {
+      "id": "openclaw-user-journey",
+      "name": "OpenClaw A→memory→B→correction journey",
+      "command": "two conversations, Hindsight retain/recall/correction and restart persistence",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The activation PR is intentionally not merged while its ExternalSecret inputs are absent from cluster/prd; no user or personal data was used.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "pull_request", "reference": "kube-ops #1171 remains unmerged"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 6,
+    "executed": 4,
+    "notExecuted": 2,
+    "passed": 3,
+    "failed": 1,
+    "unavailable": 2,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@620ab80:personal-ai-openclaw-admission",
+    "payload": {
+      "resultId": "personal-ai-openclaw-admission-2026-11-10-620ab80",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "620ab80",
+      "tests": [
+        {"id": "openclaw-image-build", "name": "Pinned OpenClaw personal image build", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Main image build passed.", "risk": "high", "expectedCi": "required"},
+        {"id": "openclaw-activation-render", "name": "OpenClaw activation Kustomize render", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Activation render passed.", "risk": "high", "expectedCi": "required"},
+        {"id": "openclaw-backup-static-contract", "name": "OpenClaw backup static contract", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Zero static backup gaps.", "risk": "high", "expectedCi": "required"},
+        {"id": "repository-just-check", "name": "Repository required check suite", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Pre-existing aiostreams contract failure outside PLT-165.", "risk": "high", "expectedCi": "required"},
+        {"id": "openclaw-doppler-admission", "name": "Fresh OpenClaw Doppler credentials", "execution": "not-executed", "status": "BLOCKED", "classification": "unavailable", "reason": "Atlantis server allowlist blocks the desired Terraform file.", "risk": "high", "expectedCi": "required"},
+        {"id": "openclaw-user-journey", "name": "OpenClaw A→memory→B→correction journey", "execution": "not-executed", "status": "BLOCKED", "classification": "unavailable", "reason": "Activation remains unmerged pending credentials.", "risk": "high", "expectedCi": "required"}
+      ],
+      "summary": {"outcome": "incomplete", "total": 6, "executed": 4, "notExecuted": 2, "passed": 3, "failed": 1, "unavailable": 2, "notApplicable": 0}
+    }
+  }
+}
