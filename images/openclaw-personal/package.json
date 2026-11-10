@@ -1,0 +1,8 @@
+{
+  "name": "@smadjapaul/openclaw-personal-runtime",
+  "private": true,
+  "version": "2026.11.2",
+  "dependencies": {
+    "@vectorize-io/hindsight-openclaw": "1.2.0"
+  }
+}
