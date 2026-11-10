@@ -28,10 +28,10 @@
       "execution": "executed",
       "status": "PASSED",
       "classification": "passed",
-      "reason": "The active AI root rendered with OpenClaw, bilateral Cilium policy, dedicated Agentgateway policy, and the Velero schedule.",
+      "reason": "The active AI root rendered 70 resources with OpenClaw, bilateral Cilium policy, dedicated Agentgateway policy, and the Velero schedule; 38 core resources were schema-valid and 32 CRD-backed resources had no local schema.",
       "risk": "high",
       "expectedCi": "required",
-      "evidence": {"kind": "command", "reference": "plt165-openclaw-activation-render.yaml"}
+      "evidence": {"kind": "command", "reference": "plt165-openclaw-activation-render.yaml; resources=70; kubeconform=38-valid-0-invalid-32-skipped"}
     },
     {
       "id": "openclaw-backup-static-contract",
@@ -103,7 +103,7 @@
       "revision": "620ab80",
       "tests": [
         {"id": "openclaw-image-build", "name": "Pinned OpenClaw personal image build", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Main image build passed.", "risk": "high", "expectedCi": "required"},
-        {"id": "openclaw-activation-render", "name": "OpenClaw activation Kustomize render", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Activation render passed.", "risk": "high", "expectedCi": "required"},
+        {"id": "openclaw-activation-render", "name": "OpenClaw activation Kustomize render", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "70 resources rendered; 38 valid and 32 CRD-backed schemas skipped.", "risk": "high", "expectedCi": "required"},
         {"id": "openclaw-backup-static-contract", "name": "OpenClaw backup static contract", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Zero static backup gaps.", "risk": "high", "expectedCi": "required"},
         {"id": "repository-just-check", "name": "Repository required check suite", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Pre-existing aiostreams contract failure outside PLT-165.", "risk": "high", "expectedCi": "required"},
         {"id": "openclaw-doppler-admission", "name": "Fresh OpenClaw Doppler credentials", "execution": "not-executed", "status": "BLOCKED", "classification": "unavailable", "reason": "Atlantis server allowlist blocks the desired Terraform file.", "risk": "high", "expectedCi": "required"},

@@ -75,6 +75,10 @@ the verified amd64 manifests in Git.
    `@vectorize-io/hindsight-openclaw@1.2.0` lockfile. Wire only the dedicated
    `openclaw-personal` bank and approved endpoint; test recalled memory,
    corrections, secrets redaction and plugin fallback before declaring USER.
+   The pilot tool policy explicitly allows only `read` plus the three
+   Hindsight memory tools (`hindsight_retain`, `hindsight_recall` and
+   `hindsight_reflect`); terminal, browser, code execution and elevated tools
+   remain disabled.
 7. LibreChat: validate Helm 3.0.0 render, MongoDB auth and PVC policy, backup and
    restore, then configure Authentik OIDC with user-specific MFA/callback and
    permissioned MCP. Current chart is **fail-closed** with all login methods off.

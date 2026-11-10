@@ -59,7 +59,7 @@ data:
         }
       },
       "tools": {
-        "allow": ["read"],
+        "allow": ["read", "hindsight_retain", "hindsight_recall", "hindsight_reflect"],
         "elevated": {"enabled": false},
         "fs": {"workspaceOnly": true}
       },
