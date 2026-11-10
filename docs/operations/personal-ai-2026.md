@@ -193,47 +193,51 @@ underlying controller condition is separately repaired.
   Argo sync, secret-value read, prune or delete was used for activation.
 - Post-merge levels remain separate: STATIC → RECONCILED → RUNTIME → USER.
 
-## LibreChat preparation evidence — 2026-11-10
+## LibreChat activation evidence — 2026-11-10
 
-LibreChat remains `STATIC` preparation only. Its optional subtree is not
-imported by an active Argo root, and the candidate HTTPRoute is deliberately
-not in the subtree kustomization. The existing `chat.smadja.dev` hostname is
-owned by Matrix, so the candidate private hostname is
-`librechat.smadja.dev`; no public Gateway parent is declared.
+PR #1181 is the single Draft activation change. Its branch renders the
+desired-state import, Authentik provider, private route and Agentgateway
+policy, but it has no runtime effect until normal GitHub admission and merge.
+The existing `chat.smadja.dev` hostname is owned by Matrix; LibreChat uses
+the private hostname `librechat.smadja.dev` and declares no public Gateway
+parent.
 
 The official chart 3.0.0 rendered 14 resources with bundled authenticated
 MongoDB, Longhorn persistence, no Ingress, and the OIDC environment contract.
-The LibreChat subtree rendered 4 resources. `kubeconform -strict` reported 15
-valid objects and 3 external CRD schemas skipped across those renders. The
-chart Service name was verified as `librechat-librechat`; the dormant route
-targets that Service on port 3080.
+The LibreChat activation subtree rendered 5 resources. `kubeconform -strict`
+reported 1 valid object, 0 invalid and 4 external CRD schemas skipped there;
+the AI, Authentik and Agentgateway supporting roots also reported zero invalid
+resources. The chart Service name was verified as `librechat-librechat`; the
+private route targets that Service on port 3080.
 
 The preparation contract now explicitly disables shared conversation links and
 public link access, disables shared-link file snapshots, and fixes the OIDC
 identity claim to `email`. These settings are part of the two-user isolation
 gate; they do not substitute for the real A/B denial test after activation.
 
-The candidate ExternalSecret declares the five required application keys plus
+The activation ExternalSecret declares the five required application keys plus
 `APP_LIBRECHAT_OIDC_CLIENT_SECRET` and
-`APP_LIBRECHAT_OPENID_SESSION_SECRET`, without values. A dormant Authentik
-blueprint uses one strict callback, `sub_mode: user_email`, and only the
-`LibreChat Users` group. The Authentik Secret and provider files remain
-dormant and are not in the active Authentik kustomization/configMap; the
-activation PR must admit both together after Doppler credentials exist. No
-Authentik provider, route or LibreChat workload is admitted by this
-preparation change. Hindsight egress is absent
+`APP_LIBRECHAT_OPENID_SESSION_SECRET`, without values. `CREDS_KEY` and
+`CREDS_IV` are format-gated at 64 and 32 hexadecimal characters respectively;
+the safe checker reports only PASS/FAIL/NOT_EXECUTED. The Authentik blueprint
+uses one strict callback, `sub_mode: user_email`, and only the `LibreChat
+Users` group. Hindsight egress is absent
 because the current Hindsight API has no trusted per-user bank boundary; a
-dedicated non-admin Agentgateway key/policy remains a separate admission gate.
-The active AI root currently admits the Hindsight-owned `personal-ai-pilot`
-AppProject from `k8s/optional/personal-ai-2026/hindsight/project.yaml`; a
-future LibreChat activation PR must extend that single project and import the
-LibreChat subtree together. It must not introduce the dormant duplicate
+dedicated non-admin Agentgateway key/policy is included in the same activation
+PR. Pre-merge evidence ends at credential availability, format, renders,
+checks and review. ESO, Argo, OIDC, MongoDB restart/reconciliation, A/B
+isolation and restore are post-merge runtime/user gates.
+The active AI root admits the Hindsight-owned `personal-ai-pilot` AppProject
+from `k8s/optional/personal-ai-2026/hindsight/project.yaml`; PR #1181 extends
+that single project and imports the LibreChat subtree together. It must not
+introduce the dormant duplicate
 AppProject from `k8s/optional/personal-ai-2026/project.yaml`.
 
 The active Velero schedules now include a daily `librechat` namespace schedule
 at `05:50 UTC`, with filesystem volume backup enabled and a 14-day retention.
-The required MongoDB isolated-restore and two-identity deny journeys remain
-unexecuted until credentials and the application are admitted. See
+The required MongoDB isolated-restore, MongoDB restart/reconciliation
+stability and two-identity deny journeys remain unexecuted until credentials
+and the application are admitted. See
 `docs/operations/librechat-activation-2026.md` for the exact activation order.
 
 ## Rollback and storage
