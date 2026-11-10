@@ -212,9 +212,10 @@ The candidate ExternalSecret declares the six existing application keys plus
 `APP_LIBRECHAT_OIDC_CLIENT_SECRET` and
 `APP_LIBRECHAT_OPENID_SESSION_SECRET`, without values. A dormant Authentik
 blueprint uses one strict callback, `sub_mode: user_email`, and only the
-`LibreChat Users` group. The Authentik Secret contract is optional and wired
-to `envFrom`, while the provider blueprint is not in the active ConfigMap.
-No Authentik provider, route or LibreChat workload is admitted by this
+`LibreChat Users` group. The Authentik Secret and provider files remain
+dormant and are not in the active Authentik kustomization/configMap; the
+activation PR must admit both together after Doppler credentials exist. No
+Authentik provider, route or LibreChat workload is admitted by this
 preparation change. Hindsight egress is absent
 because the current Hindsight API has no trusted per-user bank boundary; a
 dedicated non-admin Agentgateway key/policy remains a separate admission gate.
