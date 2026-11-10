@@ -159,6 +159,17 @@
       "reason": "PLT-163: owner-authorized exact endpoint-port admission for read-only ARC qualification; preserve bounded Cloudflare API and AIOStreams workload access with no writer or apply change.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1161,
+      "changeFingerprint": "d0473ad8b3abbec500fac70863a0d99c8b511de63aab63a7c058b603b9a1830e",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact destination ingress admission for the private ARC read-only AIOStreams plan; retain the existing workload boundary and no writer or apply change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
     }
   ]
 }
