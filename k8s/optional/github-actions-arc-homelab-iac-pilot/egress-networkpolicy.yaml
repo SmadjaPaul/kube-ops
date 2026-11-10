@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: github-actions-arc
     policy-type: github-actions-arc
 spec:
-  description: "Allow only the pilot runner's GitHub, OpenTofu and dedicated OCI state endpoints"
+  description: "Allow only the pilot runner's GitHub, OpenTofu, dedicated OCI state, and Factory plan endpoint"
   endpointSelector:
     matchLabels:
       k8s:actions.github.com/scale-set-name: homelab-iac-pilot-arc
@@ -43,10 +43,18 @@ spec:
         - matchName: registry.terraform.io
         - matchName: registry.opentofu.org
         - matchName: releases.hashicorp.com
-        - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
+        - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oci.customer-oci.com
       toPorts:
         - ports:
             - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mastra-factory
+            k8s:app.kubernetes.io/name: mastra-factory
+      toPorts:
+        - ports:
+            - port: "4111"
               protocol: TCP
     - toEndpoints:
         - matchLabels:

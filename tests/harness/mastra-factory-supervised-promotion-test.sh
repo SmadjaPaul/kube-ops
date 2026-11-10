@@ -7,7 +7,7 @@ policy="$root/docs/operations/mastra-factory-supervised-promotion-v1.md"
 readme="$root/k8s/applications/platform/mastra-factory/README.md"
 command -v yq >/dev/null || { echo 'yq required' >&2; exit 127; }
 test "$(shasum -a 256 "$network_policy" | awk '{print $1}')" = \
-  'ef85320702470b08853dd932803d2206f45bbc5a492c1da71b6f765d6823de4d'
+  '5720b674bd14f80fc5d9a2c73dbf6b9de42f4fcfb9308a419fc651ce1d900932'
 yq -e '
   (.kind == "Deployment") and
   (.metadata.name == "mastra-factory") and
@@ -40,6 +40,7 @@ yq -e '
   ([.spec.ingress[].fromEntities[]] | contains(["host"])) and
   ([.spec.ingress[].fromEntities[]] | contains(["remote-node"])) and
   ([.spec.ingress[].fromEntities[]] | contains(["ingress"])) and
+  ([.spec.ingress[]? | select(.fromEndpoints[0].matchLabels."k8s:io.kubernetes.pod.namespace" == "arc-runners" and .fromEndpoints[0].matchLabels."k8s:actions.github.com/scale-set-name" == "homelab-iac-pilot-arc") | .toPorts[]?.ports[]? | select(.port == "4111" and .protocol == "TCP")] | length == 1) and
   ([.spec.ingress[]?.toPorts[]?.ports[]? |
     select(.port == "4111" and .protocol == "TCP")] | length > 0) and
   (.spec.egress | length == 11) and
