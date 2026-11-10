@@ -30,6 +30,7 @@ spec:
     - toFQDNs:
         - matchName: github.com
         - matchName: api.github.com
+        - matchName: api.doppler.com
         - matchName: codeload.github.com
         - matchName: objects.githubusercontent.com
         - matchName: objects-origin.githubusercontent.com
