@@ -89,7 +89,8 @@ while IFS= read -r path; do
     .github/workflows/arc-polyfin-plan.yml|.gitignore|.justfile|docs/*|mise.lock|mise.toml|\
     tests/fixtures/google-cloud-build-bootstrap/valid.template.json|\
     tests/google-cloud-build-bootstrap-policy.sh|\
-    tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh) ;;
+    tests/*|scripts/architecture-check.sh|scripts/live-tofu.sh|\
+    scripts/check-arc-execution-admission.sh|scripts/check-arc-root-inventory.py) ;;
     renovate.json)
       # PLT-140: the exact owner-reviewed Renovate toolchain policy only.
       # Never admit arbitrary automerge rules through the Atlantis plan hook.
