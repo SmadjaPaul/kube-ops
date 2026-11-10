@@ -1,0 +1,257 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt164-arc-factory-network-2026-11-10",
+  "producedAt": "2026-11-10T17:20:52Z",
+  "actor": {
+    "kind": "agent",
+    "name": "Codex"
+  },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "3c296d989483c48adc9f1070c1e6ad6aba97c2f6",
+    "branch": "codex/plt164-factory-arc-network"
+  },
+  "tests": [
+    {
+      "id": "arc-egress-contract",
+      "name": "ARC runner network policy contract",
+      "command": "bash tests/harness/arc-gitops-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Exact OCI FQDN and Factory Service egress are constrained to the pilot ARC scale set.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "local on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+      }
+    },
+    {
+      "id": "factory-ingress-contract",
+      "name": "Factory ingress policy contract",
+      "command": "bash tests/harness/mastra-factory-supervised-promotion-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Factory port 4111 ingress is limited to the named homelab-iac-pilot-arc scale set; existing egress invariants remain intact.",
+      "risk": "none",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "local on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+      }
+    },
+    {
+      "id": "arc-kustomize-render",
+      "name": "ARC pilot Kustomize render",
+      "command": "kustomize build k8s/optional/github-actions-arc-homelab-iac-pilot",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The desired-state resources render successfully.",
+      "risk": "none",
+      "expectedCi": "expected",
+      "evidence": {
+        "kind": "command",
+        "reference": "local on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+      }
+    },
+    {
+      "id": "factory-kustomize-render",
+      "name": "Factory Kustomize render",
+      "command": "kustomize build k8s/applications/platform/mastra-factory",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The Factory application resources render successfully.",
+      "risk": "none",
+      "expectedCi": "expected",
+      "evidence": {
+        "kind": "command",
+        "reference": "local on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+      }
+    },
+    {
+      "id": "repository-just-check",
+      "name": "Repository just check",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "Fails in the unchanged AIOStreams staged contract: expected family-http-route.yaml entry is missing from that contract's kustomization. The failing AIOStreams files are unchanged from origin/main; no unrelated fix was included.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "local run on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+      }
+    },
+    {
+      "id": "arc-runtime-network",
+      "name": "Live ARC-to-Factory network probe",
+      "command": "Authenticated plan workflow from the homelab-iac-pilot-arc runner",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "not-applicable",
+      "reason": "No plan workflow was dispatched; the root remains inventory_only and no authenticated runner execution was authorized yet.",
+      "risk": "unknown",
+      "expectedCi": "expected",
+      "evidence": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "factory-authenticated-plan",
+      "name": "Read-only Factory OpenTofu plan",
+      "command": "ARC workflow_dispatch: arc-mastrafactory-plan with plan=true and confirm=true",
+      "execution": "not-executed",
+      "status": "NOT_EXECUTED",
+      "classification": "not-applicable",
+      "reason": "No technical Better Auth identity exists and the root remains inventory_only; no plan or skill mutation was attempted.",
+      "risk": "unknown",
+      "expectedCi": "not-expected",
+      "evidence": {
+        "kind": "none"
+      }
+    }
+  ],
+  "summary": {
+    "outcome": "failed",
+    "total": 7,
+    "executed": 5,
+    "notExecuted": 2,
+    "passed": 4,
+    "failed": 1,
+    "skipped": 0,
+    "unavailable": 0,
+    "notApplicable": 2
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@3c296d989483c48adc9f1070c1e6ad6aba97c2f6:plt164-arc-factory-network-2026-11-10",
+    "payload": {
+      "resultId": "plt164-arc-factory-network-2026-11-10",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "3c296d989483c48adc9f1070c1e6ad6aba97c2f6",
+      "tests": [
+        {
+          "id": "arc-egress-contract",
+          "name": "ARC runner network policy contract",
+          "command": "bash tests/harness/arc-gitops-contract-test.sh",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Exact OCI FQDN and Factory Service egress are constrained to the pilot ARC scale set.",
+          "risk": "none",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "local on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+          }
+        },
+        {
+          "id": "factory-ingress-contract",
+          "name": "Factory ingress policy contract",
+          "command": "bash tests/harness/mastra-factory-supervised-promotion-test.sh",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Factory port 4111 ingress is limited to the named homelab-iac-pilot-arc scale set; existing egress invariants remain intact.",
+          "risk": "none",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "local on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+          }
+        },
+        {
+          "id": "arc-kustomize-render",
+          "name": "ARC pilot Kustomize render",
+          "command": "kustomize build k8s/optional/github-actions-arc-homelab-iac-pilot",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The desired-state resources render successfully.",
+          "risk": "none",
+          "expectedCi": "expected",
+          "evidence": {
+            "kind": "command",
+            "reference": "local on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+          }
+        },
+        {
+          "id": "factory-kustomize-render",
+          "name": "Factory Kustomize render",
+          "command": "kustomize build k8s/applications/platform/mastra-factory",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The Factory application resources render successfully.",
+          "risk": "none",
+          "expectedCi": "expected",
+          "evidence": {
+            "kind": "command",
+            "reference": "local on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+          }
+        },
+        {
+          "id": "repository-just-check",
+          "name": "Repository just check",
+          "command": "just check",
+          "execution": "executed",
+          "status": "FAILED",
+          "classification": "failed",
+          "reason": "Fails in the unchanged AIOStreams staged contract: expected family-http-route.yaml entry is missing from that contract's kustomization. The failing AIOStreams files are unchanged from origin/main; no unrelated fix was included.",
+          "risk": "medium",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "local run on code commit 3c296d989483c48adc9f1070c1e6ad6aba97c2f6"
+          }
+        },
+        {
+          "id": "arc-runtime-network",
+          "name": "Live ARC-to-Factory network probe",
+          "command": "Authenticated plan workflow from the homelab-iac-pilot-arc runner",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "not-applicable",
+          "reason": "No plan workflow was dispatched; the root remains inventory_only and no authenticated runner execution was authorized yet.",
+          "risk": "unknown",
+          "expectedCi": "expected",
+          "evidence": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "factory-authenticated-plan",
+          "name": "Read-only Factory OpenTofu plan",
+          "command": "ARC workflow_dispatch: arc-mastrafactory-plan with plan=true and confirm=true",
+          "execution": "not-executed",
+          "status": "NOT_EXECUTED",
+          "classification": "not-applicable",
+          "reason": "No technical Better Auth identity exists and the root remains inventory_only; no plan or skill mutation was attempted.",
+          "risk": "unknown",
+          "expectedCi": "not-expected",
+          "evidence": {
+            "kind": "none"
+          }
+        }
+      ],
+      "summary": {
+        "outcome": "failed",
+        "total": 7,
+        "executed": 5,
+        "notExecuted": 2,
+        "passed": 4,
+        "failed": 1,
+        "skipped": 0,
+        "unavailable": 0,
+        "notApplicable": 2
+      }
+    }
+  }
+}
