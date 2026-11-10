@@ -64,7 +64,7 @@ Pinned first-pilot components:
 
 ## Static tests / evidence
 
-- `python3 -m unittest tests/harness/test_personal_ai_staging.py`
+- Protected tests/workflow edits need a separate exact-base owner admission PR.
 - `kustomize build k8s/optional/personal-ai-2026`
 - `just check` (when the repository's toolchain and secrets are available)
 - No live `kubectl apply`, Helm install, Argo sync, secrets read, prune or delete
