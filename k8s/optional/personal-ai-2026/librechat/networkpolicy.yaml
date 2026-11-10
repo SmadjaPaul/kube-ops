@@ -11,6 +11,11 @@ spec:
             k8s:io.kubernetes.pod.namespace: librechat
       toPorts:
         - ports: [{port: "3080", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: gateway
+      toPorts:
+        - ports: [{port: "3080", protocol: TCP}]
     - fromEntities: [host, remote-node]
       toPorts:
         - ports: [{port: "3080", protocol: TCP}]
@@ -18,6 +23,11 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: librechat
+            k8s:app.kubernetes.io/name: mongodb
+            k8s:app.kubernetes.io/component: mongodb
+            k8s:app.kubernetes.io/instance: librechat
+      toPorts:
+        - ports: [{port: "27017", protocol: TCP}]
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system

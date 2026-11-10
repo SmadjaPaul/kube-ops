@@ -13,6 +13,9 @@ resources:
   - polyfin-oidc-externalsecret.yaml
   - sparkyfitness-oidc-externalsecret.yaml
   - bookorbit-oidc-externalsecret.yaml
+  # The provider blueprint remains dormant until its configMap entry is
+  # explicitly admitted; this Secret contract may safely wait for Doppler.
+  - librechat-oidc-externalsecret.dormant.yaml
 
 generatorOptions:
   disableNameSuffixHash: false

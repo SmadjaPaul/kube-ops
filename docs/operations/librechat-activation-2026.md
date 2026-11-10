@@ -13,7 +13,9 @@ uses the private-only candidate hostname `librechat.smadja.dev`.
    `APP_LIBRECHAT_LLM_KEY`, `APP_LIBRECHAT_OIDC_CLIENT_SECRET` and
    `APP_LIBRECHAT_OPENID_SESSION_SECRET` in the application Doppler project.
    Values are never copied to Git or read by the coding agent.
-2. Admit the dormant Authentik ExternalSecret and blueprint together. The
+2. The Authentik kustomization already carries the optional Secret contract;
+   admit the dormant blueprint into its `authentik-blueprints` ConfigMap only
+   in the same reviewed change as the credentials. The
    provider has one exact callback, `https://librechat.smadja.dev/oauth/openid/callback`,
    `sub_mode: user_email`, and only the `LibreChat Users` group. No global
    administrator group is bound to the application.

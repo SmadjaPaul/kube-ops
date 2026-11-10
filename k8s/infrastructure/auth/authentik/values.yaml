@@ -80,6 +80,11 @@ global:
     - secretRef:
         name: authentik-blueprint-sparkyfitness
         optional: true
+    # LibreChat's provider blueprint is not in the active ConfigMap yet. Keep
+    # this optional so missing Doppler credentials cannot break Authentik.
+    - secretRef:
+        name: authentik-blueprint-librechat
+        optional: true
     - secretRef:
         name: authentik-smtp-credentials
 
