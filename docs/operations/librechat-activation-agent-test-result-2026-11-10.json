@@ -5,7 +5,7 @@
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "36591bece10974520b4b177412d7e4c890723dcf",
+    "revision": "0bbb011aa91f7123b5160e4cf40d34f7b0ab17e1",
     "branch": "codex/plt165-librechat-activation"
   },
   "tests": [
@@ -157,11 +157,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@36591bece10974520b4b177412d7e4c890723dcf:plt165-librechat-activation",
+    "idempotencyKey": "SmadjaPaul/kube-ops@0bbb011aa91f7123b5160e4cf40d34f7b0ab17e1:plt165-librechat-activation",
     "payload": {
       "resultId": "plt165-librechat-activation-2026-11-10-210749z",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "36591bece10974520b4b177412d7e4c890723dcf",
+      "revision": "0bbb011aa91f7123b5160e4cf40d34f7b0ab17e1",
       "tests": [
         {"id":"librechat-credential-contract","name":"LibreChat exact Doppler credential contract","execution":"executed","status":"PASSED","classification":"passed","reason":"Seven unique keys; Meilisearch dependency absent.","risk":"high","expectedCi":"required"},
         {"id":"librechat-chart-render","name":"LibreChat official chart render with Agentgateway","execution":"executed","status":"PASSED","classification":"passed","reason":"Chart rendered with private Agentgateway endpoint and no Meilisearch key reference.","risk":"high","expectedCi":"required"},
