@@ -119,6 +119,14 @@ run_case() {
       printf '%s\n' '[tools]' >"$fixture/mise.local.toml"
       change_path=mise.local.toml
       ;;
+    arc-diagnostics-helper-path-allowed)
+      mkdir -p "$fixture/scripts"
+      printf '%s\n' '# reviewed diagnostics helper' >"$fixture/scripts/arc-diagnostics.sh"
+      ;;
+    arc-installer-helper-path-allowed)
+      mkdir -p "$fixture/scripts"
+      printf '%s\n' '# reviewed installer helper' >"$fixture/scripts/install-iac-engine.sh"
+      ;;
     aiostreams-lockfile-allowed)
       mkdir -p "$fixture/terraform/aiostreams"
       printf '%s\n' '# generated provider lock' >"$fixture/terraform/aiostreams/.terraform.lock.hcl"
@@ -204,6 +212,8 @@ run_case ci-workflow-sibling-denied deny .github/workflows/other.yml
 run_case mise-lock-path-allowed pass mise.lock
 run_case mise-config-path-allowed pass mise.toml
 run_case mise-config-sibling-denied deny mise.local.toml
+run_case arc-diagnostics-helper-path-allowed pass scripts/arc-diagnostics.sh
+run_case arc-installer-helper-path-allowed pass scripts/install-iac-engine.sh
 run_case aiostreams-lockfile-allowed pass terraform/aiostreams/.terraform.lock.hcl
 run_case polyfin-lockfile-allowed pass terraform/polyfin/.terraform.lock.hcl
 run_case aiostreams-nested-denied deny terraform/aiostreams/nested/main.tf

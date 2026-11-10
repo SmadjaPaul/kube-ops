@@ -29,7 +29,7 @@ required_patterns=(
   'name: arc-gha-rs-controller'
   'minRunners: 0'
   'maxRunners: 3'
-  'maxRunners: 1'
+  'maxRunners: 2'
   'pod-security.kubernetes.io/enforce: restricted'
   'image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873'
 )
@@ -90,7 +90,7 @@ homelab_runner_values='select(.kind == "Application" and .metadata.name == "apps
 assert_yq "$homelab_runner_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/homelab-infra'
 assert_yq "$homelab_runner_values | .githubConfigSecret" 'arc-github-app'
 assert_yq "$homelab_runner_values | .minRunners" '0'
-assert_yq "$homelab_runner_values | .maxRunners" '1'
+assert_yq "$homelab_runner_values | .maxRunners" '2'
 assert_yq "$homelab_runner_values | .template.spec.automountServiceAccountToken" 'false'
 assert_yq "$homelab_runner_values | .template.spec.securityContext.runAsNonRoot" 'true'
 assert_yq "$homelab_runner_values | .template.spec.securityContext.runAsUser" '1001'

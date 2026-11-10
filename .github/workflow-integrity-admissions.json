@@ -104,6 +104,28 @@
       "reason": "PLT-89/90/91: owner-authorized pilot-only Atlantis apply denial before ARC cutover; preserve apply for github, aiostreams and polyfin.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-15T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1148,
+      "changeFingerprint": "8ca27b52fc6380c78a44500b7cdf3727b7c5b7ed98968f188b156e547953c7fc",
+      "paths": [
+        "tests/harness/github-atlantis-guard-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact Atlantis admission for the reviewed ARC diagnostic and installer helper paths; no root, provider or writer authority change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1149,
+      "changeFingerprint": "7a1c1d8754b3f6f621a7a8bf10a5ee2af542f3544b8c5c1d752ea4078cafa9cd",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact ARC capacity contract update; keep the existing hardened runner and network boundary while allowing one concurrent read-only validation or plan.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
     }
   ]
 }

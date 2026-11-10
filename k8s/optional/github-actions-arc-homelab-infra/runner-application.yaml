@@ -19,7 +19,9 @@ spec:
         # it is never mounted in the runner container.
         githubConfigSecret: arc-github-app
         minRunners: 0
-        maxRunners: 1
+        # Validation and admitted read-only plans use the same hardened scale set.
+        # Keep two warm slots so a plan cannot serialize behind repository CI.
+        maxRunners: 2
         controllerServiceAccount:
           namespace: arc-systems
           name: arc-gha-rs-controller
