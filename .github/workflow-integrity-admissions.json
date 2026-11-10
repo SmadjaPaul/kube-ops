@@ -107,7 +107,7 @@
     },
     {
       "repository": "SmadjaPaul/kube-ops",
-      "pr": 1142,
+      "pr": 1144,
       "changeFingerprint": "8ca27b52fc6380c78a44500b7cdf3727b7c5b7ed98968f188b156e547953c7fc",
       "paths": [
         "tests/harness/github-atlantis-guard-test.sh"
