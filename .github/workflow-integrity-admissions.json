@@ -137,6 +137,17 @@
       "reason": "PLT-163: owner-authorized exact ARC private pilot capacity contract; preserve the candidate network and credential boundaries while allowing one concurrent read-only plan.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1156,
+      "changeFingerprint": "4581ac8eb606656b07e76b1852f6a88e196d49872968e7c9e46149d44a6a6e46",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact provider egress admission for read-only ARC qualification; preserve bounded public Doppler and private AIOStreams access with no writer or apply change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
     }
   ]
 }
