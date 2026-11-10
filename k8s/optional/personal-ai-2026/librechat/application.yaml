@@ -15,12 +15,32 @@ spec:
         global:
           librechat:
             existingSecretName: librechat-credentials-env
+            env:
+              - name: OPENID_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: librechat-credentials-env
+                    key: OPENID_CLIENT_SECRET
+              - name: OPENID_SESSION_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: librechat-credentials-env
+                    key: OPENID_SESSION_SECRET
         librechat:
           configEnv:
             ALLOW_REGISTRATION: "false"
             ALLOW_EMAIL_LOGIN: "false"
             ALLOW_SOCIAL_REGISTRATION: "false"
-            ALLOW_SOCIAL_LOGIN: "false"
+            ALLOW_SOCIAL_LOGIN: "true"
+            DOMAIN_CLIENT: https://librechat.smadja.dev
+            DOMAIN_SERVER: https://librechat.smadja.dev
+            OPENID_CLIENT_ID: librechat
+            OPENID_ISSUER: https://auth.smadja.dev/application/o/librechat/.well-known/openid-configuration
+            OPENID_CALLBACK_URL: /oauth/openid/callback
+            OPENID_SCOPE: openid profile email groups
+            OPENID_BUTTON_LABEL: Login with Authentik
+            OPENID_GENERATE_NONCE: "true"
+            OPENID_USE_END_SESSION_ENDPOINT: "true"
           imageVolume:
             enabled: true
             size: 10Gi
@@ -52,4 +72,5 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: librechat
-  # No sync: identity, bundled MongoDB auth, storage/backup and chart render need proof.
+  # No sync: the OIDC provider/client, credentials, Agentgateway policy,
+  # backup/restore and two-user isolation still require admission evidence.

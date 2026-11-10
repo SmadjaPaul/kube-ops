@@ -9,7 +9,11 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: librechat
+      toPorts:
+        - ports: [{port: "3080", protocol: TCP}]
     - fromEntities: [host, remote-node]
+      toPorts:
+        - ports: [{port: "3080", protocol: TCP}]
   egress:
     - toEndpoints:
         - matchLabels:
@@ -26,4 +30,10 @@ spec:
             app: agentgateway
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
-  # Authentik outbound + restricted MCP added only after OIDC and bank admission.
+    - toFQDNs:
+        - matchName: auth.smadja.dev
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+  # No Hindsight egress is granted: its API has no trusted per-user boundary.
+  # Agentgateway access remains blocked at its own ingress until a dedicated
+  # LibreChat key and non-admin model policy are admitted.

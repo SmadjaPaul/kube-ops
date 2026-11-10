@@ -193,6 +193,36 @@ underlying controller condition is separately repaired.
   Argo sync, secret-value read, prune or delete was used for activation.
 - Post-merge levels remain separate: STATIC → RECONCILED → RUNTIME → USER.
 
+## LibreChat preparation evidence — 2026-11-10
+
+LibreChat remains `STATIC` preparation only. Its optional subtree is not
+imported by an active Argo root, and the candidate HTTPRoute is deliberately
+not in the subtree kustomization. The existing `chat.smadja.dev` hostname is
+owned by Matrix, so the candidate private hostname is
+`librechat.smadja.dev`; no public Gateway parent is declared.
+
+The official chart 3.0.0 rendered 14 resources with bundled authenticated
+MongoDB, Longhorn persistence, no Ingress, and the OIDC environment contract.
+The LibreChat subtree rendered 4 resources. `kubeconform -strict` reported 15
+valid objects and 3 external CRD schemas skipped across those renders. The
+chart Service name was verified as `librechat-librechat`; the dormant route
+targets that Service on port 3080.
+
+The candidate ExternalSecret declares the six existing application keys plus
+`APP_LIBRECHAT_OIDC_CLIENT_SECRET` and
+`APP_LIBRECHAT_OPENID_SESSION_SECRET`, without values. A dormant Authentik
+blueprint uses one strict callback, `sub_mode: user_email`, and only the
+`LibreChat Users` group. No Authentik provider, secret, route or LibreChat
+workload is admitted by this preparation change. Hindsight egress is absent
+because the current Hindsight API has no trusted per-user bank boundary; a
+dedicated non-admin Agentgateway key/policy remains a separate admission gate.
+
+The active Velero schedules now include a daily `librechat` namespace schedule
+at `05:50 UTC`, with filesystem volume backup enabled and a 14-day retention.
+The required MongoDB isolated-restore and two-identity deny journeys remain
+unexecuted until credentials and the application are admitted. See
+`docs/operations/librechat-activation-2026.md` for the exact activation order.
+
 ## Rollback and storage
 
 As the root is not imported, closing/removing it is zero runtime delta.
