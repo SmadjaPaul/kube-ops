@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "personal-ai-2026-hindsight-activation-e8cf949",
+  "producedAt": "2026-11-10T13:23:21Z",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "e8cf949f7f22760c4187028e7210cdf6d5b1c9aa",
+    "branch": "codex/plt165-hindsight-activation"
+  },
+  "tests": [
+    {
+      "id": "hindsight-active-kustomize",
+      "name": "Active AI root render with Hindsight activation",
+      "command": "kustomize build --enable-helm k8s/applications/ai",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The active AI root rendered 58 resources without Kustomize errors; Hindsight is the only newly included personal-AI subtree.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kustomize:58-resources"}
+    },
+    {
+      "id": "hindsight-schema",
+      "name": "Hindsight activation schema validation",
+      "command": "kustomize build --enable-helm k8s/applications/ai | kubeconform -strict -summary -ignore-missing-schemas -kubernetes-version 1.36.0",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The active root produced 32 valid resources, 0 invalid resources and 26 CRD-backed resources without local schemas.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kubeconform:32-valid-0-invalid-26-skipped"}
+    },
+    {
+      "id": "hindsight-chart",
+      "name": "Hindsight chart activation render and lint",
+      "command": "helm lint and helm template ghcr.io/vectorize-io/charts/hindsight 1.2.0 with offline local model values",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The official chart linted cleanly and rendered 7 valid resources with no model-cache PVC and offline embedding settings.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "helm-lint:pass; kubeconform:7-valid-0-invalid"}
+    },
+    {
+      "id": "hindsight-subtree-render",
+      "name": "Hindsight-only subtree render",
+      "command": "kustomize build --enable-helm k8s/optional/personal-ai-2026/hindsight",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The Hindsight subtree rendered Namespace, AppProject, ExternalSecrets, CNPG, backup resources, Cilium policy and child Application.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "kustomize:hindsight-subtree-pass"}
+    },
+    {
+      "id": "hindsight-docs-contract",
+      "name": "Documentation and agent-result contract",
+      "command": "git diff --check; npm run check:documentation; bash scripts/check-agent-harness-contract.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Documentation integrity, schema harness and whitespace checks passed.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "DOC_INTEGRITY=PASS; AGENT_TEST_RESULT_CONTRACT=PASS"}
+    },
+    {
+      "id": "hindsight-kube-access",
+      "name": "Canonical operator Kubernetes access",
+      "command": "just kube-access-check",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The canonical Doppler-distributed operator kubeconfig reached Kubernetes v1.36.3 without reading Secret values.",
+      "risk": "medium",
+      "expectedCi": "not-expected",
+      "evidence": {"kind": "command", "reference": "KUBE_ACCESS=PASS; KUBE_ACCESS_SOURCE=doppler_operator_distribution"}
+    },
+    {
+      "id": "repository-just-check",
+      "name": "Repository required check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The repository suite remains blocked by the pre-existing aiostreams family-http-route contract assertion outside PLT-165; no Hindsight-specific assertion failed.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "tests/harness/aiostreams-staged-contract-test.sh"}
+    },
+    {
+      "id": "hindsight-argo-reconciliation",
+      "name": "Hindsight Argo reconciliation",
+      "command": "just status-app apps-ai; just status-app personal-hindsight",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The activation branch is not merged, so the Hindsight Application and its CNPG/ESO resources are not yet admitted to Argo.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none"}
+    },
+    {
+      "id": "hindsight-runtime",
+      "name": "Hindsight runtime retain/recall/reflect and vector extension",
+      "command": "Argo, CNPG, API readiness, CREATE EXTENSION vector, retain/recall/reflect",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The workload is not yet reconciled and no personal Hindsight data has been created.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none"}
+    },
+    {
+      "id": "hindsight-backup-restore",
+      "name": "Hindsight Barman backup and isolated restore",
+      "command": "completed Backup CR followed by pinned CNPG recovery into an isolated target",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The activation declares the initial Backup and schedule, but a live backup ID and isolated recovery target can only be selected after reconciliation.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 10,
+    "executed": 7,
+    "notExecuted": 3,
+    "passed": 6,
+    "failed": 1,
+    "skipped": 0,
+    "unavailable": 3,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@e8cf949f7f22760c4187028e7210cdf6d5b1c9aa:personal-ai-hindsight-activation",
+    "payload": {
+      "resultId": "personal-ai-2026-hindsight-activation-e8cf949",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "e8cf949f7f22760c4187028e7210cdf6d5b1c9aa",
+      "tests": [
+        {"id": "hindsight-active-kustomize", "name": "Active AI root render with Hindsight activation", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "58 resources rendered.", "risk": "high", "expectedCi": "required"},
+        {"id": "hindsight-chart", "name": "Hindsight chart activation render and lint", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Official chart linted and rendered with offline model values.", "risk": "high", "expectedCi": "required"},
+        {"id": "repository-just-check", "name": "Repository required check suite", "execution": "executed", "status": "FAILED", "classification": "failed", "reason": "Pre-existing aiostreams staged contract failed outside PLT-165.", "risk": "high", "expectedCi": "required"},
+        {"id": "hindsight-argo-reconciliation", "name": "Hindsight Argo reconciliation", "execution": "not-executed", "status": "BLOCKED", "classification": "unavailable", "reason": "Activation branch is not merged.", "risk": "high", "expectedCi": "required"}
+      ],
+      "summary": {"outcome": "incomplete", "total": 10, "executed": 7, "notExecuted": 3, "passed": 6, "failed": 1, "skipped": 0, "unavailable": 3, "notApplicable": 0}
+    }
+  }
+}

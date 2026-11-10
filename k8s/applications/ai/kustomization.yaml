@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
 - project.yaml
+- ../../optional/personal-ai-2026/hindsight
 - karakeep
 - opencode
 - gpt-researcher

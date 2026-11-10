@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: personal-ai-pilot
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: personal-ai
+spec:
+  description: Hindsight-only personal memory pilot; LibreChat and OpenClaw are separate admissions
+  sourceRepos:
+    - ghcr.io/vectorize-io/charts
+  destinations:
+    - {server: https://kubernetes.default.svc, namespace: hindsight-personal}
+  namespaceResourceWhitelist:
+    - {group: "*", kind: "*"}
+  clusterResourceWhitelist: []
+  orphanedResources:
+    warn: true

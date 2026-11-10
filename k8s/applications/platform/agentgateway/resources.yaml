@@ -66,6 +66,20 @@ data:
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
+            - key: "$HINDSIGHT_AGENTGATEWAY_KEY"
+              metadata:
+                name: hindsight-personal
+                owner: hindsight-personal
+              allowedModels:
+                - factory/fast
+              budgets:
+                - name: hindsight-personal-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 200000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
       models:
         - name: factory/fast
           provider:
@@ -115,7 +129,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: factory-shared-budget-1m-v1
+        checksum/agentgateway-runtime: personal-ai-hindsight-1-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -188,6 +202,11 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: gpt-researcher
             app.kubernetes.io/name: gpt-researcher
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: hindsight-personal
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
   egress:
