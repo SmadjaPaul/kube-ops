@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "plt165-librechat-activation-2026-11-10-212506z",
-  "producedAt": "2026-11-10T21:25:06Z",
+  "resultId": "plt165-librechat-activation-2026-11-10-212616z",
+  "producedAt": "2026-11-10T21:26:16Z",
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "da2cdd4157afaa41d467435200fa369bc2a71e69",
+    "revision": "c294781c70fd96910c517df071abd6c62b7bbc2c",
     "branch": "codex/plt165-librechat-activation"
   },
   "tests": [
@@ -205,11 +205,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@da2cdd4157afaa41d467435200fa369bc2a71e69:plt165-librechat-activation",
+    "idempotencyKey": "SmadjaPaul/kube-ops@c294781c70fd96910c517df071abd6c62b7bbc2c:plt165-librechat-activation",
     "payload": {
-      "resultId": "plt165-librechat-activation-2026-11-10-212506z",
+      "resultId": "plt165-librechat-activation-2026-11-10-212616z",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "da2cdd4157afaa41d467435200fa369bc2a71e69",
+      "revision": "c294781c70fd96910c517df071abd6c62b7bbc2c",
       "tests": [
         {"id":"librechat-credential-contract","name":"LibreChat exact Doppler credential contract","execution":"executed","status":"PASSED","classification":"passed","reason":"Seven unique keys; Meilisearch dependency absent.","risk":"high","expectedCi":"required"},
         {"id":"librechat-credential-format-checker","name":"LibreChat credential format checker","execution":"executed","status":"PASSED","classification":"passed","reason":"Synthetic valid/invalid fixtures produced PASS/FAIL without value output.","risk":"high","expectedCi":"required"},
