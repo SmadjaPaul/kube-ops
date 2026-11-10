@@ -24,17 +24,22 @@ spec:
             HINDSIGHT_API_LLM_MODEL: factory/fast
             HINDSIGHT_API_LLM_MAX_CONCURRENT: "1"
             HINDSIGHT_API_EMBEDDINGS_PROVIDER: local
-            HINDSIGHT_API_EMBEDDINGS_LOCAL_MODEL: hindsight-ai/hs-embed-1
+            HINDSIGHT_API_EMBEDDINGS_LOCAL_MODEL: BAAI/bge-small-en-v1.5
+            HINDSIGHT_API_ENABLE_BANK_CONFIG_API: "false"
             HINDSIGHT_API_MENTAL_MODEL_MIN_REFRESH_INTERVAL_SECONDS: "86400"
             HINDSIGHT_API_REFLECT_DEFAULT_OPTIONS: '{"reflect_search_observations_max_tokens":3000}'
+            HF_HUB_OFFLINE: "true"
+            TRANSFORMERS_OFFLINE: "true"
           persistence:
             modelCache:
-              enabled: true
-              size: 2Gi
-              storageClass: longhorn-bulk
+              enabled: false
           resources:
             requests: {cpu: 200m, memory: 768Mi}
             limits: {cpu: "2", memory: 3Gi}
+          startupProbe:
+            httpGet: {path: /health/live, port: 8888}
+            periodSeconds: 10
+            failureThreshold: 60
         worker: {enabled: false}
         controlPlane: {enabled: false}
         postgresql:
@@ -46,7 +51,16 @@ spec:
             username: hindsight
         ingress: {enabled: false}
         gatewayApi: {enabled: false}
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
   destination:
     server: https://kubernetes.default.svc
     namespace: hindsight-personal
-  # No automated sync: the DB, secrets, upstream chart and restore must be admitted first.
+  # Hindsight is the only admitted personal-AI child in this activation PR;
+  # pruning remains disabled so rollback cannot delete stateful resources.

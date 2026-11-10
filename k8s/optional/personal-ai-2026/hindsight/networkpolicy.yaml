@@ -10,6 +10,8 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: hindsight-personal
     - fromEntities: [host, remote-node]
+      toPorts:
+        - ports: [{port: "8888", protocol: TCP}]
   egress:
     - toEndpoints:
         - matchLabels:
@@ -26,4 +28,7 @@ spec:
             app: agentgateway
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
-  # Any model-download egress requires a separate, observed and audited allowlist.
+    - toFQDNs:
+        - matchName: fsn1.your-objectstorage.com
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
