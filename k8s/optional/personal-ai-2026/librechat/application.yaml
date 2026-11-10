@@ -4,7 +4,7 @@ metadata:
   name: personal-librechat
   namespace: argocd
 spec:
-  project: applications
+  project: personal-ai-pilot
   source:
     repoURL: ghcr.io/librechat-ai/librechat-chart
     chart: librechat

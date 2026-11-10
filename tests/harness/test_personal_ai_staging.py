@@ -29,6 +29,7 @@ class PersonalAIStagingContract(unittest.TestCase):
             self.assertNotIn("kind: HTTPRoute", content, f.as_posix())
             self.assertNotIn("kind: ClusterRoleBinding", content, f.as_posix())
             self.assertNotIn("automountServiceAccountToken: true", content, f.as_posix())
+            self.assertNotIn("kind: ClusterRole", content, f.as_posix())
         config = (ROOT/"openclaw/configmap.yaml").read_text()
         self.assertIn('"bind": "loopback"', config)
         self.assertIn('"cron": {"enabled": false}', config)
@@ -37,6 +38,16 @@ class PersonalAIStagingContract(unittest.TestCase):
         self.assertNotIn("kubectl", config)
         self.assertIn("ALLOW_SOCIAL_LOGIN: \"false\"",
                       (ROOT/"librechat/application.yaml").read_text())
+
+    def test_dedicated_helm_project_and_policies(self):
+        project = (ROOT/"project.yaml").read_text()
+        self.assertIn("personal-ai-pilot", project)
+        self.assertIn("ghcr.io/vectorize-io/charts", project)
+        self.assertIn("ghcr.io/librechat-ai/librechat-chart", project)
+        for name in ("hindsight", "librechat"):
+            self.assertIn("networkpolicy.yaml", (ROOT/name/"kustomization.yaml").read_text())
+            self.assertIn("endpointSelector: {}", (ROOT/name/"networkpolicy.yaml").read_text())
+            self.assertIn("project: personal-ai-pilot", (ROOT/name/"application.yaml").read_text())
 
     def test_external_secrets_no_value(self):
         for f in ROOT.rglob("externalsecret*.yaml"):

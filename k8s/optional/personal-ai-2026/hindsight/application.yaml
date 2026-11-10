@@ -4,7 +4,7 @@ metadata:
   name: personal-hindsight
   namespace: argocd
 spec:
-  project: applications
+  project: personal-ai-pilot
   source:
     repoURL: ghcr.io/vectorize-io/charts
     chart: hindsight
@@ -22,7 +22,6 @@ spec:
             HINDSIGHT_API_LLM_BASE_URL: http://agentgateway.agentgateway.svc.cluster.local:4000/v1
             HINDSIGHT_API_LLM_MODEL: factory/fast
             HINDSIGHT_API_LLM_MAX_CONCURRENT: "2"
-            HINDSIGHT_API_WORKER_ENABLED: "true"
           resources:
             requests: {cpu: 200m, memory: 768Mi}
             limits: {cpu: "2", memory: 3Gi}

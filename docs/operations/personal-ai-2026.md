@@ -1,6 +1,8 @@
 # Personal AI pilot — OpenClaw, Hindsight, LibreChat (10 November 2026)
 
-Status: **STATIC STAGING ONLY / NO LIVE DEPLOYMENT**. The Kustomization under
+Status: **STATIC STAGING ONLY / NO LIVE DEPLOYMENT**. A narrow, staged Argo AppProject restricts official chart sources and destinations.
+NetworkPolicies default-deny both Hindsight and LibreChat namespaces until
+specific OIDC/MCP/model download egress is admitted. The Kustomization under
 `k8s/optional/personal-ai-2026` is **not** imported into the active platform or AI roots. Do not claim
 Argo Synced, Secret Ready, a running gateway or a usable user-facing service.
 

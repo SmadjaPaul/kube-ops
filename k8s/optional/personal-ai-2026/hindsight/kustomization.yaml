@@ -6,4 +6,5 @@ resources:
   - database.yaml
   - objectstore.yaml
   - scheduledbackup.yaml
+  - networkpolicy.yaml
   - application.yaml
