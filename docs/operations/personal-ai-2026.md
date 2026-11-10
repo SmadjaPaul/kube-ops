@@ -22,8 +22,10 @@ Past references: kube-ops PR #295 (isolated cells), #401 (suspended test),
 Pinned first-pilot components:
 - OpenClaw **2026.11.2** official GHCR image, direct upstream-style K8s Deployment,
   no Operator/Enterprise, single writer and port-forward only.
-- Hindsight **1.2.0** official OCI Helm chart + dedicated CNPG 17.7 standard
+- Hindsight **1.2.1** official OCI Helm chart + dedicated CNPG 17.7 standard
   (pgvector) with Barman/Hetzner and no HTTPRoute. Chart's control plane disabled.
+  The originally qualified 1.2.0 runtime is retained as historical evidence;
+  1.2.1 is the corrective release for the MiniMax-compatible reflect schema.
 - LibreChat **0.8.8**, official chart **3.0.0**, bundled authenticated MongoDB,
   no Meilisearch/RAG at first, and intentionally **no login method** until an
   Authentik per-user OIDC review. Never expose this state to the family.
@@ -34,9 +36,8 @@ Supply-chain verification recorded on 10 November 2026 (linux/amd64):
 | Artifact | Version | OCI/chart digest or platform manifest | Verification |
 |---|---:|---|---|
 | OpenClaw image | 2026.11.2 | `sha256:c764f17ed94b725599043f0548ece6297f1fe4409e6dd1133b1d2fb1f8d2b599` | `docker buildx imagetools inspect` |
-| Hindsight chart | 1.2.0 | `sha256:9c6081902317a1f9ac86f79c56319373bc1e358caa67b5e7df37e119317660aa` | `helm pull oci://ghcr.io/vectorize-io/charts/hindsight --version 1.2.0` |
-| Hindsight API image index | 1.2.0 | `sha256:ef1a5ac515a7652fbff605277d44a39e7616e421503c61841189e63ef6db6705` | `docker buildx imagetools inspect` |
-| Hindsight API image (linux/amd64) | 1.2.0 | `sha256:118f82ab69c8f3b17bdbcd081682f560748974339ef60da8f48fdcccdd4a1351` | `docker buildx imagetools inspect` |
+| Hindsight chart | 1.2.1 | `sha256:4781a117dcafa4e776218a5988f8047a30379d2e195130cf44cc2055dc028258` | `helm pull oci://ghcr.io/vectorize-io/charts/hindsight --version 1.2.1` |
+| Hindsight API image index | 1.2.1 | `sha256:662109ece429871a81e036427fb93fbb09ba9dc4b01d320d356f114c0e1aedd8` | `docker buildx imagetools inspect` |
 | LibreChat chart | 3.0.0 | `sha256:5d50ecaf2685295fb5d28da016a964b03610e7897d6e366c0b573086fb23775a` | `helm pull oci://ghcr.io/librechat-ai/librechat-chart/librechat --version 3.0.0` |
 | LibreChat image | v0.8.8 | `sha256:1e3bd3ac2cdbbcd64bdc4ef04c850d6fef5392d1fcb22cea46c5dcba17da7b95` | `docker buildx imagetools inspect` |
 | CNPG PostgreSQL image | 17.7-standard-trixie | `sha256:44c64899a6fb61c01b56a91322cb9cfdc955aa5fd1c8f34ff3a0a9f51664a202` | `docker buildx imagetools inspect` |
