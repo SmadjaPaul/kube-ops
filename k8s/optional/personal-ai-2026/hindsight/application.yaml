@@ -8,11 +8,11 @@ spec:
   source:
     repoURL: ghcr.io/vectorize-io/charts
     chart: hindsight
-    targetRevision: 1.2.0
+    targetRevision: 1.2.1
     helm:
       releaseName: hindsight
       valuesObject:
-        version: 1.2.0
+        version: 1.2.1
         existingSecret: hindsight-runtime
         podSecurityContext:
           seccompProfile:
