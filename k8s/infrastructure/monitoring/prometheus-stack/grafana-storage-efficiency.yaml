@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-storage-efficiency-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "10 — Infrastructure"
+  labels:
+    grafana_dashboard: "1"
+data:
+  storage-efficiency.json: |
+    {
+      "uid": "homelab-storage-efficiency",
+      "title": "Homelab Storage Efficiency",
+      "description": "Storage attribution and lifecycle signals. Logical Kubernetes and guest-node metrics are separated from Proxmox/ZFS instrumentation that is not currently scraped.",
+      "tags": ["storage", "infrastructure", "kubernetes"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "5m",
+      "time": {"from": "now-24h", "to": "now"},
+      "editable": false,
+      "links": [
+        {"title": "Host & Hardware", "type": "link", "url": "/d/homeops-edge-boot-io", "targetBlank": false},
+        {"title": "Storage & Backups", "type": "link", "url": "/d/storage-backups", "targetBlank": false},
+        {"title": "Cluster Resource Efficiency", "type": "link", "url": "/d/cluster-resource-efficiency", "targetBlank": false}
+      ],
+      "templating": {"list": [{
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "query": "label_values(homelab:storage:pvc_used_bytes, namespace)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {"text": "All", "value": "$__all"}
+      }]},
+      "panels": [
+        {"id": 1, "type": "text", "title": "How to read this dashboard", "gridPos": {"x": 0, "y": 0, "w": 24, "h": 4}, "options": {"mode": "markdown", "content": "PVC capacity/usage and Longhorn logical bytes are Kubernetes-layer signals. Guest disk writes are not Proxmox physical writes. ZFS pool I/O, SMART Data Units Written, Longhorn physical replica traffic and object-store retention are **not scraped here**; missing data is unknown, not zero."}},
+        {"id": 2, "type": "stat", "title": "Longhorn provisioned", "gridPos": {"x": 0, "y": 4, "w": 6, "h": 5}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets": [{"refId": "A", "expr": "homelab:storage:longhorn_provisioned_bytes", "instant": true}], "fieldConfig": {"defaults": {"unit": "bytes", "noValue": "No data", "min": 0}, "overrides": []}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"}},
+        {"id": 3, "type": "stat", "title": "Longhorn actual", "gridPos": {"x": 6, "y": 4, "w": 6, "h": 5}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets": [{"refId": "A", "expr": "homelab:storage:longhorn_actual_bytes", "instant": true}], "fieldConfig": {"defaults": {"unit": "bytes", "noValue": "No data", "min": 0}, "overrides": []}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"}},
+        {"id": 4, "type": "stat", "title": "PVC used", "gridPos": {"x": 12, "y": 4, "w": 6, "h": 5}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets": [{"refId": "A", "expr": "sum(homelab:storage:pvc_used_bytes{namespace=~\"$namespace\"})", "instant": true}], "fieldConfig": {"defaults": {"unit": "bytes", "noValue": "No data", "min": 0}, "overrides": []}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"}},
+        {"id": 5, "type": "stat", "title": "PVC utilization", "gridPos": {"x": 18, "y": 4, "w": 6, "h": 5}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets": [{"refId": "A", "expr": "100 * sum(homelab:storage:pvc_used_bytes{namespace=~\"$namespace\"}) / clamp_min(sum(homelab:storage:pvc_capacity_bytes{namespace=~\"$namespace\"}), 1)", "instant": true}], "fieldConfig": {"defaults": {"unit": "percent", "noValue": "No data", "min": 0, "max": 100}, "overrides": []}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"}},
+        {"id": 6, "type": "timeseries", "title": "PVC used vs capacity by namespace", "gridPos": {"x": 0, "y": 9, "w": 12, "h": 8}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets": [{"refId": "A", "expr": "sum by (namespace) (homelab:storage:pvc_used_bytes{namespace=~\"$namespace\"})", "legendFormat": "{{namespace}} used"}, {"refId": "B", "expr": "sum by (namespace) (homelab:storage:pvc_capacity_bytes{namespace=~\"$namespace\"})", "legendFormat": "{{namespace}} capacity"}], "fieldConfig": {"defaults": {"unit": "bytes", "noValue": "No data", "min": 0}, "overrides": []}, "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}}},
+        {"id": 7, "type": "timeseries", "title": "Top PVC utilization", "gridPos": {"x": 12, "y": 9, "w": 12, "h": 8}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets": [{"refId": "A", "expr": "topk(12, 100 * homelab:storage:pvc_used_bytes{namespace=~\"$namespace\"} / clamp_min(homelab:storage:pvc_capacity_bytes{namespace=~\"$namespace\"}, 1))", "legendFormat": "{{namespace}}/{{persistentvolumeclaim}}"}], "fieldConfig": {"defaults": {"unit": "percent", "noValue": "No data", "min": 0, "max": 100}, "overrides": []}, "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}}},
+        {"id": 8, "type": "timeseries", "title": "Guest node disk writes", "gridPos": {"x": 0, "y": 17, "w": 12, "h": 8}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets": [{"refId": "A", "expr": "sum by (instance, device) (homelab:storage:guest_disk_write_bytes_per_second)", "legendFormat": "{{instance}} {{device}}"}], "fieldConfig": {"defaults": {"unit": "Bps", "noValue": "No data", "min": 0}, "overrides": []}, "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}}},
+        {"id": 9, "type": "timeseries", "title": "Prometheus samples appended", "gridPos": {"x": 12, "y": 17, "w": 12, "h": 8}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "targets": [{"refId": "A", "expr": "homelab:storage:prometheus_samples_appended_per_second", "legendFormat": "samples/s"}], "fieldConfig": {"defaults": {"unit": "ops", "noValue": "No data", "min": 0}, "overrides": []}, "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}}}
+      ]
+    }

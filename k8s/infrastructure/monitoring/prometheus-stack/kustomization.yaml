@@ -10,6 +10,8 @@ resources:
   - atlantis-servicemonitor.yaml
   - atlantis-observability.yaml
   - grafana-resource-efficiency.yaml
+  - grafana-storage-efficiency.yaml
+  - storage-efficiency-rules.yaml
 
 patches:
   - path: kube-apiserver-cardinality-patch.json

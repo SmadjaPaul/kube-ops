@@ -1,10 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Synthetic bootstrap. Keep S3 backup resources staged in backup.yaml, not admitted
-# until dedicated credentials and the CNPG plugin are intentionally enabled.
+# SparkyFitness is active through the optional Argo Application. Its CNPG
+# ObjectStore and ScheduledBackup are part of the same desired-state package;
+# runtime readiness and a completed backup remain separate evidence gates.
 resources:
   - namespace.yaml
   - database.yaml
+  - backup.yaml
   - external-secret.yaml
   - networkpolicy.yaml
   - argo-application.yaml

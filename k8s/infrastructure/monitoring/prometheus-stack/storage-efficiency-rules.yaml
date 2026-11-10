@@ -1,0 +1,51 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-storage-efficiency-rules
+  namespace: monitoring
+spec:
+  groups:
+    - name: homelab.storage.efficiency
+      interval: 5m
+      rules:
+        - record: homelab:storage:pvc_requested_bytes
+          expr: |
+            sum by (namespace, persistentvolumeclaim) (
+              kube_persistentvolumeclaim_resource_requests_storage_bytes
+            )
+        - record: homelab:storage:pvc_capacity_bytes
+          expr: |
+            sum by (namespace, persistentvolumeclaim) (
+              kubelet_volume_stats_capacity_bytes
+            )
+        - record: homelab:storage:pvc_used_bytes
+          expr: |
+            sum by (namespace, persistentvolumeclaim) (
+              kubelet_volume_stats_used_bytes
+            )
+        - record: homelab:storage:longhorn_actual_bytes
+          expr: sum(longhorn_volume_actual_size_bytes)
+        - record: homelab:storage:longhorn_provisioned_bytes
+          expr: sum(longhorn_volume_size_bytes)
+        - record: homelab:storage:guest_disk_write_bytes_per_second
+          expr: |
+            sum by (instance, device) (
+              rate(node_disk_written_bytes_total[5m])
+            )
+        - record: homelab:storage:prometheus_samples_appended_per_second
+          expr: rate(prometheus_tsdb_head_samples_appended_total[5m])
+        - alert: HomelabPVCNearCapacity
+          expr: |
+            (
+              homelab:storage:pvc_used_bytes
+              /
+              clamp_min(homelab:storage:pvc_capacity_bytes, 1)
+            ) > 0.85
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is near capacity
+            description: >-
+              Observed filesystem usage is above 85%. This is an owner-review
+              signal; it does not authorize resizing or deleting data.

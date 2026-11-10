@@ -53,6 +53,8 @@ check:
     bash tests/harness/longhorn-tier-restore-runbook-test.sh
     bash tests/harness/bookorbit-staged-contract-test.sh
     bash tests/harness/media-retired-contract-test.sh
+    bash tests/harness/storage-classification-contract-test.sh
+    bash tests/harness/storage-efficiency-dashboard-test.sh
     bash tests/harness/d-recovery-contract-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]

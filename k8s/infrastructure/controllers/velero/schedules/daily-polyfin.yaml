@@ -1,0 +1,27 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-polyfin
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: polyfin
+spec:
+  # Polyfin application state is durable configuration and must be selected
+  # independently of the reconstructible media-share claim. Its PostgreSQL
+  # data is protected by the native CNPG/Barman package in the Media root.
+  schedule: "30 5 * * *"
+  template:
+    includedNamespaces:
+      - media
+    orLabelSelectors:
+      - matchLabels:
+          app.kubernetes.io/name: polyfin
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    ttl: 336h

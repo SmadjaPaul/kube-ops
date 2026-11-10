@@ -4,12 +4,12 @@ kind: Kustomization
 resources:
 # Arr, Seerr and Jellyfin retired from active media on 2026-11-08.
 # Historical manifests are retained for audit, but no longer included by GitOps.
-# Keep media-share, AIOStreams, Polyfin, Decypharr and other live media clients intact.
+# Decypharr and its one-shot media layout job are retired. Keep the shared
+# media-share claim staged until the post-prune retirement gate proves that no
+# workload mounts it; AIOStreams and Polyfin use their own application PVCs.
 - namespace.yaml
 - project.yaml
 - media-share-pvc.yaml
-- media-layout-job.yaml
-- decypharr
 - immich
 - audiobookrequest
 - aiostreams

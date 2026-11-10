@@ -4,6 +4,8 @@ metadata:
   name: media-share
   namespace: media
   labels:
+    storage.smadja.dev/data-class: reconstructible
+    storage.smadja.dev/backup-contract: exclude
     # Downloaded media is reproducible and is intentionally outside the
     # durable application-data backup contract.
     velero.io/exclude-from-backup: "true"

@@ -7,7 +7,7 @@
     "check:backup-contract": "bash scripts/backup-static-contract.sh",
     "check:gatekeeper-contract": "bash tests/harness/gatekeeper-audit-values-test.sh",
     "check:atlantis-dispatch": "bash scripts/check-atlantis-dispatch-contract.sh",
-    "check": "npm run check:documentation && npm run check:v1-contract && npm run check:backup-contract && npm run check:gatekeeper-contract && npm run check:atlantis-dispatch && npm run check:agent-harness && npm run check:alerting-stage && npm run check:argocd-roots && npm run check:paperclip-retirement-stage && npm run check:inventory-graph && npm run check:resource-efficiency",
+    "check": "npm run check:documentation && npm run check:v1-contract && npm run check:backup-contract && npm run check:gatekeeper-contract && npm run check:atlantis-dispatch && npm run check:agent-harness && npm run check:alerting-stage && npm run check:argocd-roots && npm run check:paperclip-retirement-stage && npm run check:inventory-graph && npm run check:resource-efficiency && npm run check:storage-classification && npm run check:storage-efficiency",
     "check:documentation": "node scripts/check-documentation-integrity.mjs && node --test tests/harness/documentation-integrity-test.mjs",
     "check:cluster-contract": "npm run check:v1-contract",
     "check:agent-harness": "bash scripts/check-agent-harness-contract.sh",
@@ -15,7 +15,9 @@
     "check:argocd-roots": "node --test tests/harness/argocd-generator-paths.test.mjs",
     "check:paperclip-retirement-stage": "node --test tests/harness/paperclip-retirement-stage.test.mjs",
     "check:inventory-graph": "node --test tests/harness/inventory-graph.test.mjs",
-    "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh"
+    "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh",
+    "check:storage-classification": "bash tests/harness/storage-classification-contract-test.sh",
+    "check:storage-efficiency": "bash tests/harness/storage-efficiency-dashboard-test.sh"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.2.4",

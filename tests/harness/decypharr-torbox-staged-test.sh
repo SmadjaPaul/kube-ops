@@ -6,7 +6,7 @@ deploy="$root/decypharr/deployment.yaml"
 secret="$root/decypharr/external-secret.yaml"
 media="$root/kustomization.yaml"
 pol="k8s/infrastructure/network/policies/applications/media/media"
-grep -Fxq -- '- decypharr' "$media"
+! grep -Fxq -- '- decypharr' "$media"
 ! grep -Eq '^[[:space:]]*-[[:space:]]*qbittorrent([[:space:]]|$)' "$media"
 test ! -e "$root/qbittorrent/kustomization.yaml"
 grep -Fq 'APP_TORBOX_API_KEY' "$secret"
@@ -21,8 +21,6 @@ grep -Fq 'DECYPHARR_DOWNLOAD_FOLDER' "$deploy"
 grep -Fq '"default_download_action": "download"' "$cfg"
 grep -Fq '"type": "none"' "$cfg"
 grep -Fq '"use_auth": true' "$cfg"
-grep -Fq 'port: "8282"' "$pol/allow-arr-to-decypharr.yaml"
-grep -Fxq -- '- allow-arr-to-decypharr.yaml' "$pol/kustomization.yaml"
 python3 - "$cfg" <<'PY'
 import json
 import sys
@@ -33,4 +31,4 @@ start = lines.index("  config.json: |") + 1
 payload = "\n".join(line[4:] for line in lines[start:])
 json.loads(payload)
 PY
-echo "DECYPHARR_TORBOX_STAGED=PASS (STATIC_ONLY)"
+echo "DECYPHARR_TORBOX_RETIRED=PASS (STATIC_ONLY; HISTORICAL PACKAGE NOT ADMITTED)"

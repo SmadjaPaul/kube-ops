@@ -5,8 +5,10 @@ v=k8s/infrastructure/controllers/velero/schedules/kustomization.yaml
 ! grep -Eq '^[[:space:]]*-[[:space:]]*(sabnzbd|audiobookshelf)[[:space:]]*$' "$m"
 ! grep -Eq '^[[:space:]]*-[[:space:]]*daily-(sabnzbd|audiobookshelf)\.yaml' "$v"
 grep -Fxq -- '- media-share-pvc.yaml' "$m"
-grep -Fxq -- '- decypharr' "$m"
+! grep -Fxq -- '- decypharr' "$m"
+! grep -Fxq -- '- media-layout-job.yaml' "$m"
 grep -Fxq -- '- aiostreams' "$m"
+grep -Fxq -- '- polyfin' "$m"
 grep -Fxq -- '- audiobookrequest' "$m"
 grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"
 script=scripts/media-retired-pvc-cleanup.sh

@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: polyfin-data
   namespace: media
+  labels:
+    storage.smadja.dev/data-class: protected
+    storage.smadja.dev/backup-contract: velero-kopia
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
 spec:
