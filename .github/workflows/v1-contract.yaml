@@ -73,6 +73,12 @@ jobs:
           V1_CONTRACT_ROOTS: ${{ steps.scope.outputs.roots }}
         run: npm run check
 
+      - name: Validate staged personal AI root (OpenClaw / Hindsight / LibreChat)
+        run: |
+          python3 -m unittest discover -s tests/harness -p 'test_personal_ai_staging.py' -v
+          kustomize build k8s/optional/personal-ai-2026 > /tmp/personal-ai-staging.yaml
+          kubeconform -summary -ignore-missing-schemas /tmp/personal-ai-staging.yaml
+
       - name: Validate Factory supervised promotion contract
         run: bash tests/harness/mastra-factory-supervised-promotion-test.sh
 

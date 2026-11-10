@@ -1,6 +1,5 @@
 """Static fail-closed contract for staged personal AI, stdlib only."""
 from pathlib import Path
-import re
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -21,7 +20,7 @@ class PersonalAIStagingContract(unittest.TestCase):
         self.assertIn("targetRevision: 3.0.0", librechat)
         self.assertIn("tag: v0.8.8", librechat)
         for content in (openclaw,hindsight,librechat):
-            self.assertNotRegex(content, r"image:\\s*\\S+:latest\\b")
+            self.assertNotRegex(content, r"image:\s*\S+:latest\b")
 
     def test_no_public_routes_or_admin_tokens(self):
         for f in ROOT.rglob("*.yaml"):
