@@ -171,6 +171,22 @@
       "reason": "PLT-163: owner-authorized exact destination ingress admission for the private ARC read-only AIOStreams plan; retain the existing workload boundary and no writer or apply change.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1188,
+      "changeFingerprint": "18e6e33c4c72e9890f3d79eb876bedf1d933159dba0a79d0513527b13971522e",
+      "paths": [
+        "package.json",
+        "scripts/check-atlantis-dispatch-contract.sh",
+        "tests/harness/atlantis-dispatch.test.mjs",
+        "tests/harness/atlantis-plan-only-test.sh",
+        "tests/harness/github-atlantis-guard-test.sh",
+        "tests/harness/longhorn-offsite-pvc-contract-test.sh"
+      ],
+      "reason": "PLT-163 owner-authorized retirement of the active Atlantis runtime and its protected contract harnesses after ARC Polyfin no-op qualification; retain recovery PVC and manual live-tofu path.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
     }
   ]
 }
