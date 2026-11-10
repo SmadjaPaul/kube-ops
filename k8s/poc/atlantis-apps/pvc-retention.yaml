@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: atlantis-apps-data
+  namespace: atlantis-apps
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false
+  labels:
+    atlantis.smadja.dev/retention: recovery-only
+    atlantis.smadja.dev/server: retired
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: longhorn-fast
