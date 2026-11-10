@@ -25,6 +25,22 @@ Pinned first-pilot components:
   Authentik per-user OIDC review. Never expose this state to the family.
 - Hermes tenant ApplicationSet stays empty and is not migrated by this change.
 
+Supply-chain verification recorded on 10 November 2026 (linux/amd64):
+
+| Artifact | Version | OCI/chart digest or platform manifest | Verification |
+|---|---:|---|---|
+| OpenClaw image | 2026.11.2 | `sha256:c764f17ed94b725599043f0548ece6297f1fe4409e6dd1133b1d2fb1f8d2b599` | `docker buildx imagetools inspect` |
+| Hindsight chart | 1.2.0 | `sha256:9c6081902317a1f9ac86f79c56319373bc1e358caa67b5e7df37e119317660aa` | `helm pull oci://ghcr.io/vectorize-io/charts/hindsight --version 1.2.0` |
+| Hindsight API image index | 1.2.0 | `sha256:ef1a5ac515a7652fbff605277d44a39e7616e421503c61841189e63ef6db6705` | `docker buildx imagetools inspect` |
+| LibreChat chart | 3.0.0 | `sha256:5d50ecaf2685295fb5d28da016a964b03610e7897d6e366c0b573086fb23775a` | `helm pull oci://ghcr.io/librechat-ai/librechat-chart/librechat --version 3.0.0` |
+| LibreChat image | v0.8.8 | `sha256:1e3bd3ac2cdbbcd64bdc4ef04c850d6fef5392d1fcb22cea46c5dcba17da7b95` | `docker buildx imagetools inspect` |
+| CNPG PostgreSQL image | 17.7-standard-trixie | `sha256:44c64899a6fb61c01b56a91322cb9cfdc955aa5fd1c8f34ff3a0a9f51664a202` | `docker buildx imagetools inspect` |
+
+The LibreChat chart currently has no digest value in its upstream image
+values, so its chart and image digests are recorded here while the Helm
+release remains tag-based. The direct OpenClaw and CNPG images are pinned to
+the verified amd64 manifests in Git.
+
 ## Provisioning before activation
 
 1. Verify all **OCI image and Helm chart digests**, architectures, upstream helm

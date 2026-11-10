@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: reconcile-config
-          image: busybox:1.38
+          image: busybox:1.38@sha256:f97baa533a26513c453a362be331a43eb60214302f449c16571b23cea141dce4
           command: [sh, -ec]
           args:
             - |
@@ -53,7 +53,7 @@ spec:
             - {name: config, mountPath: /config, readOnly: true}
       containers:
         - name: gateway
-          image: ghcr.io/openclaw/openclaw:2026.11.2
+          image: ghcr.io/openclaw/openclaw:2026.11.2@sha256:c764f17ed94b725599043f0548ece6297f1fe4409e6dd1133b1d2fb1f8d2b599
           imagePullPolicy: IfNotPresent
           command: [node, /app/dist/index.js, gateway, run]
           env:
