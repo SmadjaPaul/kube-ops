@@ -32,18 +32,6 @@ spec:
         - ports:
             - port: "8096"
               protocol: TCP
-    # Atlantis may run the provider's bounded public-address update through
-    # the native Polyfin admin API. Keep this internal control path limited to
-    # the Atlantis identity and the HTTP service port.
-    - fromEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: atlantis-system
-            k8s:app: atlantis
-            k8s:release: atlantis-pilot
-      toPorts:
-        - ports:
-            - port: "8096"
-              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:

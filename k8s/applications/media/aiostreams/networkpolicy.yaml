@@ -24,15 +24,6 @@ spec:
         - ports:
             - port: "3000"
               protocol: TCP
-    - fromEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: atlantis-system
-            k8s:app: atlantis
-            k8s:release: atlantis-pilot
-      toPorts:
-        - ports:
-            - port: "3000"
-              protocol: TCP
     # The private ARC pilot is a read-only Terraform/OpenTofu planner. Keep
     # this identity and port-specific; do not grant the public ARC pool access.
     - fromEndpoints:

@@ -1,5 +1,9 @@
 # Atlantis pilot: declared versus runtime
 
+> Historical record. The pilot described here was retired after ARC replaced
+> the active execution path. See `atlantis-retirement-v1.md` for the current
+> desired-state contract.
+
 **Evidence date:** 2026-10-22
 **Status:** terraform/atlantis-pilot qualified for autonomous
 plan/policy/apply/verification/automerge. Production roots remain excluded.
