@@ -14,6 +14,12 @@ spec:
       valuesObject:
         version: 1.2.0
         existingSecret: hindsight-runtime
+        podSecurityContext:
+          seccompProfile:
+            type: RuntimeDefault
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
         api:
           enabled: true
           replicaCount: 1
