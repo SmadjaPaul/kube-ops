@@ -1,11 +1,11 @@
 {
   "schemaVersion": "agent-test-result/v1",
-  "resultId": "personal-ai-openclaw-admission-2026-11-10-620ab80",
-  "producedAt": "2026-11-10T15:38:00Z",
+  "resultId": "personal-ai-openclaw-admission-2026-11-10-e8305c6",
+  "producedAt": "2026-11-10T16:34:55Z",
   "actor": {"kind": "agent", "name": "codex"},
   "repository": {
     "name": "SmadjaPaul/kube-ops",
-    "revision": "620ab80",
+    "revision": "e8305c607b2f26a16793c6ae2cab425474e1410f",
     "branch": "codex/plt165-openclaw-activation"
   },
   "tests": [
@@ -28,10 +28,10 @@
       "execution": "executed",
       "status": "PASSED",
       "classification": "passed",
-      "reason": "The active AI root rendered 70 resources with OpenClaw, bilateral Cilium policy, dedicated Agentgateway policy, and the Velero schedule; 38 core resources were schema-valid and 32 CRD-backed resources had no local schema.",
+      "reason": "The active AI root rendered 70 resources containing OpenClaw, Hindsight and the isolated restore drill; 38 core resources were schema-valid and 32 CRD-backed resources had no local schema. Agentgateway and Velero schedules are validated by separate repository renders.",
       "risk": "high",
       "expectedCi": "required",
-      "evidence": {"kind": "command", "reference": "plt165-openclaw-activation-render.yaml; resources=70; kubeconform=38-valid-0-invalid-32-skipped"}
+      "evidence": {"kind": "command", "reference": "kustomize: k8s/applications/ai resources=70 kubeconform=38-valid-0-invalid-32-skipped; separate renders agentgateway=7 and velero-schedules=26, combined kubeconform=5-valid-0-invalid-28-skipped"}
     },
     {
       "id": "openclaw-backup-static-contract",
@@ -96,11 +96,11 @@
     "target": "factory-platform",
     "eventType": "agent.test.result",
     "schema": "agent-test-result/v1",
-    "idempotencyKey": "SmadjaPaul/kube-ops@620ab80:personal-ai-openclaw-admission",
+    "idempotencyKey": "SmadjaPaul/kube-ops@e8305c607b2f26a16793c6ae2cab425474e1410f:personal-ai-openclaw-admission",
     "payload": {
-      "resultId": "personal-ai-openclaw-admission-2026-11-10-620ab80",
+      "resultId": "personal-ai-openclaw-admission-2026-11-10-e8305c6",
       "repository": "SmadjaPaul/kube-ops",
-      "revision": "620ab80",
+      "revision": "e8305c607b2f26a16793c6ae2cab425474e1410f",
       "tests": [
         {"id": "openclaw-image-build", "name": "Pinned OpenClaw personal image build", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "Main image build passed.", "risk": "high", "expectedCi": "required"},
         {"id": "openclaw-activation-render", "name": "OpenClaw activation Kustomize render", "execution": "executed", "status": "PASSED", "classification": "passed", "reason": "70 resources rendered; 38 valid and 32 CRD-backed schemas skipped.", "risk": "high", "expectedCi": "required"},
