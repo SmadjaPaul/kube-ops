@@ -126,6 +126,17 @@
       "reason": "PLT-163: owner-authorized exact ARC capacity contract update; keep the existing hardened runner and network boundary while allowing one concurrent read-only validation or plan.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1153,
+      "changeFingerprint": "cb54d9954e6fcb34858d65fec50c7c75bd5ed10405bc50ba5f90270dd7f6f8d5",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact ARC private pilot capacity contract; preserve the candidate network and credential boundaries while allowing one concurrent read-only plan.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
     }
   ]
 }
