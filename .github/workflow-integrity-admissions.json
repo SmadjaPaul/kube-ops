@@ -15,17 +15,6 @@
     },
     {
       "repository": "SmadjaPaul/kube-ops",
-      "pr": 1018,
-      "changeFingerprint": "dc25c87e13f6de03be078205a58230ff24af13b024145b04dcf22d925ab01f18",
-      "paths": [
-        ".github/workflows/polyfin-downstream-build.yaml"
-      ],
-      "reason": "PLT-134: owner-authorized Polyfin v0.61.1 signed candidate workflow and Trixie zlib backport qualification.",
-      "approvedBy": "SmadjaPaul",
-      "expiresAt": "2026-11-10T23:59:59Z"
-    },
-    {
-      "repository": "SmadjaPaul/kube-ops",
       "pr": 1032,
       "changeFingerprint": "7ad20a5e7a41d6dcecf148e0dfcf28d138ffb3564c240103f83b64935661bb86",
       "paths": [
