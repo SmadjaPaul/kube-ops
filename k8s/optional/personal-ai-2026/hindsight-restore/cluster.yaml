@@ -1,0 +1,30 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: hindsight-db-restore
+  namespace: hindsight-restore-20261110
+  labels:
+    plt165.smadja.dev/purpose: isolated-cnpg-restore
+    backup.smadja.dev/restore-drill: "true"
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:44c64899a6fb61c01b56a91322cb9cfdc955aa5fd1c8f34ff3a0a9f51664a202
+  bootstrap:
+    recovery:
+      source: hindsight-source
+      recoveryTarget:
+        backupID: "20261110T142602"
+  externalClusters:
+    - name: hindsight-source
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: hindsight-restore-hetzner-store
+          serverName: hindsight-db
+  storage: {size: 10Gi, storageClass: longhorn-bulk}
+  walStorage: {size: 5Gi, storageClass: longhorn-bulk}
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  affinity:
+    enablePodAntiAffinity: false

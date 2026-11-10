@@ -1,0 +1,13 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hindsight-restore-hetzner-store
+  namespace: hindsight-restore-20261110
+spec:
+  retentionPolicy: "14d"
+  configuration:
+    destinationPath: s3://smadja-dev-homelab-backups/cnpg/hindsight-personal
+    endpointURL: https://fsn1.your-objectstorage.com
+    s3Credentials:
+      accessKeyId: {name: hindsight-restore-cnpg-s3, key: AWS_ACCESS_KEY_ID}
+      secretAccessKey: {name: hindsight-restore-cnpg-s3, key: AWS_SECRET_ACCESS_KEY}
