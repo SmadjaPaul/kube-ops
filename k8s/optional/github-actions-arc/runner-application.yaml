@@ -43,10 +43,23 @@ spec:
                 emptyDir:
                   medium: Memory
                   sizeLimit: 512Mi
+              # Cache archives only; workspace, checkout and node_modules stay
+              # ephemeral. Same-node RWO permits current factory ARC concurrency.
+              - name: factory-dependency-cache
+                persistentVolumeClaim:
+                  claimName: factory-arc-dependency-cache
             containers:
               - name: runner
                 image: ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807
                 command: ["/home/runner/run.sh"]
+                env:
+                  - name: NPM_CONFIG_CACHE
+                    value: /home/runner/.cache/npm
+                  - name: PIP_CACHE_DIR
+                    value: /home/runner/.cache/pip
+                volumeMounts:
+                  - name: factory-dependency-cache
+                    mountPath: /home/runner/.cache
                 resources:
                   requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}
                   limits: {cpu: "2", memory: 2Gi, ephemeral-storage: 4Gi}
