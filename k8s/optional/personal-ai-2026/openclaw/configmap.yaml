@@ -33,11 +33,16 @@ data:
         }
       },
       "plugins": {
+        "slots": {"memory": "hindsight-openclaw"},
         "load": {"paths": ["/opt/openclaw-plugins/hindsight-openclaw"]},
         "allow": ["hindsight-openclaw"],
         "entries": {
           "hindsight-openclaw": {
             "enabled": true,
+            "hooks": {
+              "allowConversationAccess": true,
+              "allowPromptInjection": true
+            },
             "config": {
               "hindsightApiUrl": "http://hindsight-api.hindsight-personal.svc.cluster.local:8888",
               "dynamicBankId": false,
