@@ -19,7 +19,9 @@ spec:
         # runner containers or exposed to workflow steps.
         githubConfigSecret: arc-github-app
         minRunners: 0
-        maxRunners: 1
+        # Keep a second private slot available for an admitted plan while a
+        # separate pilot validation or recovery run is still active.
+        maxRunners: 2
         controllerServiceAccount:
           namespace: arc-systems
           name: arc-gha-rs-controller

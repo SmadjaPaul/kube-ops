@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 arc_root="$repo_root/k8s/optional/github-actions-arc"
 homelab_arc_root="$repo_root/k8s/optional/github-actions-arc-homelab-infra"
+pilot_arc_root="$repo_root/k8s/optional/github-actions-arc-homelab-iac-pilot"
 infrastructure_project="$repo_root/k8s/bootstrap/argocd-root/infrastructure-project.yaml"
 applications_project="$repo_root/k8s/bootstrap/argocd-root/applications-project.yaml"
 rendered="$(mktemp)"
@@ -13,6 +14,8 @@ trap cleanup EXIT
 kubectl kustomize "$arc_root" >"$rendered"
 printf '\n---\n' >>"$rendered"
 kubectl kustomize "$homelab_arc_root" >>"$rendered"
+printf '\n---\n' >>"$rendered"
+kubectl kustomize "$pilot_arc_root" >>"$rendered"
 
 required_patterns=(
   'name: arc-systems'
@@ -103,6 +106,15 @@ assert_yq "$homelab_runner_values | .template.spec.containers[0].image" \
 assert_yq "$homelab_runner_values | .template.spec.containers[0].securityContext.allowPrivilegeEscalation" 'false'
 assert_yq "$homelab_runner_values | .template.spec.containers[0].securityContext.seccompProfile.type" 'RuntimeDefault'
 
+pilot_runner_values='select(.kind == "Application" and .metadata.name == "apps-arc-homelab-iac-pilot") | .spec.source.helm.valuesObject'
+assert_yq "$pilot_runner_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/homelab-infra'
+assert_yq "$pilot_runner_values | .githubConfigSecret" 'arc-github-app'
+assert_yq "$pilot_runner_values | .minRunners" '0'
+assert_yq "$pilot_runner_values | .maxRunners" '2'
+assert_yq "$pilot_runner_values | .template.spec.automountServiceAccountToken" 'false'
+assert_yq "$pilot_runner_values | .template.spec.securityContext.runAsNonRoot" 'true'
+assert_yq "$pilot_runner_values | .template.spec.containers | length" '1'
+
 homelab_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-homelab-infra-downloads")'
 assert_yq "$homelab_download_policy | .metadata.namespace" 'arc-runners'
 assert_yq "$homelab_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'homelab-infra-ci-arc'
@@ -173,7 +185,7 @@ assert_yq "$factory_gcs_policy | .spec.egress[1].toPorts | length" '1'
 assert_yq "$factory_gcs_policy | [.spec.egress[] | select(.toFQDNs[0].matchName == \"storage.googleapis.com\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" \
   '443/TCP'
 
-[[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "3" ]] || {
+[[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "4" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
   exit 1
 }
