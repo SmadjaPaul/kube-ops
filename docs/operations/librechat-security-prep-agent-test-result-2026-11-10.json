@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt165-librechat-security-prep-2026-11-10-204254z",
+  "producedAt": "2026-11-10T20:42:54Z",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "98e790b1e572b5dfdbb8e38f5f26367db8aeefc8",
+    "branch": "codex/plt165-librechat-finalize"
+  },
+  "tests": [
+    {
+      "id": "librechat-security-contract",
+      "name": "LibreChat OIDC/session and sharing security contract",
+      "command": "static assertions over application.yaml, activation contract and network policy",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Registration, local email login and override are disabled; shared links and snapshots are disabled; the email claim, exact callback, scopes and no-Hindsight policy are explicit.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "security_oidc_contract=PASS"}
+    },
+    {
+      "id": "librechat-subtree-render",
+      "name": "LibreChat dormant subtree render",
+      "command": "kustomize build k8s/optional/personal-ai-2026/librechat",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The dormant subtree rendered four resources and did not include the private HTTPRoute.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "resources=4; route_absent=PASS"}
+    },
+    {
+      "id": "librechat-chart-schema",
+      "name": "LibreChat official chart render and schema validation",
+      "command": "helm template ... --version 3.0.0 --set-string security values; kubeconform -strict",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The official chart digest rendered with string-valued security settings; combined subtree/chart validation reported 22 valid, 0 invalid and 3 external schemas skipped.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "chart-digest:sha256:5d50ecaf2685295fb5d28da016a964b03610e7897d6e366c0b573086fb23775a; kubeconform:22-valid-0-invalid-3-skipped"}
+    },
+    {
+      "id": "repository-check",
+      "name": "kube-ops static check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "All preceding repository contracts completed, but the existing shell message `Error: no matches found` caused recipe line 46 to exit 1; no LibreChat-specific failure was reported.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "just-check:/tmp/plt165-librechat-final-just-check.log; recipe-line-46"}
+    },
+    {
+      "id": "librechat-user-e2e",
+      "name": "LibreChat two-identity OIDC and persistence journey",
+      "command": "A login/conversation/logout, B login/denial, restart persistence and reciprocal denial",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The Authentik provider, credentials, private route and LibreChat Application remain dormant; the exact E2E contract is documented but cannot be executed safely.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    },
+    {
+      "id": "librechat-mongodb-restore",
+      "name": "LibreChat synthetic MongoDB backup and isolated restore",
+      "command": "execute docs/operations/librechat-mongodb-restore-2026.md after activation",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No admitted LibreChat workload or backup artifact exists; the restore runbook remains preparation only.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 6,
+    "executed": 4,
+    "notExecuted": 2,
+    "passed": 3,
+    "failed": 1,
+    "skipped": 0,
+    "unavailable": 2,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@98e790b1e572b5dfdbb8e38f5f26367db8aeefc8:plt165-librechat-security-prep",
+    "payload": {
+      "resultId": "plt165-librechat-security-prep-2026-11-10-204254z",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "98e790b1e572b5dfdbb8e38f5f26367db8aeefc8",
+      "tests": [
+        {"id":"librechat-security-contract","name":"LibreChat OIDC/session and sharing security contract","execution":"executed","status":"PASSED","classification":"passed","reason":"Security and OIDC assertions passed.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-subtree-render","name":"LibreChat dormant subtree render","execution":"executed","status":"PASSED","classification":"passed","reason":"Four resources rendered and route stayed absent.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-chart-schema","name":"LibreChat official chart render and schema validation","execution":"executed","status":"PASSED","classification":"passed","reason":"22 valid, 0 invalid and 3 external schemas skipped.","risk":"high","expectedCi":"required"},
+        {"id":"repository-check","name":"kube-ops static check suite","execution":"executed","status":"FAILED","classification":"failed","reason":"Pre-existing no-match shell failure at recipe line 46.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-user-e2e","name":"LibreChat two-identity OIDC and persistence journey","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"LibreChat remains dormant.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-mongodb-restore","name":"LibreChat synthetic MongoDB backup and isolated restore","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"No admitted workload or backup exists.","risk":"high","expectedCi":"required"}
+      ],
+      "summary": {"outcome":"incomplete","total":6,"executed":4,"notExecuted":2,"passed":3,"failed":1,"skipped":0,"unavailable":2,"notApplicable":0}
+    }
+  }
+}

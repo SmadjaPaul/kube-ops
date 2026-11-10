@@ -208,6 +208,11 @@ valid objects and 3 external CRD schemas skipped across those renders. The
 chart Service name was verified as `librechat-librechat`; the dormant route
 targets that Service on port 3080.
 
+The preparation contract now explicitly disables shared conversation links and
+public link access, disables shared-link file snapshots, and fixes the OIDC
+identity claim to `email`. These settings are part of the two-user isolation
+gate; they do not substitute for the real A/B denial test after activation.
+
 The candidate ExternalSecret declares the six existing application keys plus
 `APP_LIBRECHAT_OIDC_CLIENT_SECRET` and
 `APP_LIBRECHAT_OPENID_SESSION_SECRET`, without values. A dormant Authentik
@@ -219,6 +224,11 @@ Authentik provider, route or LibreChat workload is admitted by this
 preparation change. Hindsight egress is absent
 because the current Hindsight API has no trusted per-user bank boundary; a
 dedicated non-admin Agentgateway key/policy remains a separate admission gate.
+The active AI root currently admits the Hindsight-owned `personal-ai-pilot`
+AppProject from `k8s/optional/personal-ai-2026/hindsight/project.yaml`; a
+future LibreChat activation PR must extend that single project and import the
+LibreChat subtree together. It must not introduce the dormant duplicate
+AppProject from `k8s/optional/personal-ai-2026/project.yaml`.
 
 The active Velero schedules now include a daily `librechat` namespace schedule
 at `05:50 UTC`, with filesystem volume backup enabled and a 14-day retention.

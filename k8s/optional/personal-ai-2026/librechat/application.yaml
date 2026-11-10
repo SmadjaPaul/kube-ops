@@ -30,14 +30,19 @@ spec:
           configEnv:
             ALLOW_REGISTRATION: "false"
             ALLOW_EMAIL_LOGIN: "false"
+            ALLOW_EMAIL_LOGIN_OVERRIDE: "false"
             ALLOW_SOCIAL_REGISTRATION: "false"
             ALLOW_SOCIAL_LOGIN: "true"
+            ALLOW_SHARED_LINKS: "false"
+            ALLOW_SHARED_LINKS_PUBLIC: "false"
+            SHARED_LINKS_SNAPSHOT_FILES: "false"
             DOMAIN_CLIENT: https://librechat.smadja.dev
             DOMAIN_SERVER: https://librechat.smadja.dev
             OPENID_CLIENT_ID: librechat
             OPENID_ISSUER: https://auth.smadja.dev/application/o/librechat/.well-known/openid-configuration
             OPENID_CALLBACK_URL: /oauth/openid/callback
             OPENID_SCOPE: openid profile email groups
+            OPENID_EMAIL_CLAIM: email
             OPENID_BUTTON_LABEL: Login with Authentik
             OPENID_GENERATE_NONCE: "true"
             OPENID_USE_END_SESSION_ENDPOINT: "true"
