@@ -1,0 +1,493 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "personal-ai-2026-11-10-runtime-6925064",
+  "producedAt": "2026-11-10T15:11:32Z",
+  "actor": {
+    "kind": "agent",
+    "name": "codex"
+  },
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "692506499ab6b4419082913f5d1f4f6ae6c137db",
+    "branch": "codex/plt165-personal-ai-evidence"
+  },
+  "tests": [
+    {
+      "id": "hindsight-static-121",
+      "name": "Hindsight 1.2.1 static render",
+      "command": "kustomize build --enable-helm k8s/optional/personal-ai-2026/hindsight; kubeconform -strict -ignore-missing-schemas",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The corrective official chart rendered 11 resources with 1 valid, 0 invalid and 10 CRD-backed resources skipped.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "chart digest sha256:4781a117dcafa4e776218a5988f8047a30379d2e195130cf44cc2055dc028258"
+      }
+    },
+    {
+      "id": "hindsight-required-ci",
+      "name": "Hindsight corrective PR admission",
+      "command": "GitHub PR #1164 required checks",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "docs-required, v1-contract and workflow-integrity passed; the independent CodeRabbit observation was corrected before merge.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "ci",
+        "reference": "PR #1164 merged as 69df24a6e7f0109263e2ec426f69a48b814b9b17"
+      }
+    },
+    {
+      "id": "doppler-exact-apply",
+      "name": "Exact Hindsight Doppler plan and apply",
+      "command": "doppler run --project infrastructure --config prd -- bash scripts/live-tofu.sh plan|apply doppler <saved-plan>",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The saved plan contained exactly four Hindsight creates, no other action, and was applied without recalculation; state serial advanced 58 to 59 with unchanged lineage.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "manual",
+        "reference": "plan sha256 679f1e71b76061f7af8a24d80d07a7d6e9cf865336f7a089ac111b759c72922f; post-plan actions []"
+      }
+    },
+    {
+      "id": "doppler-no-drift",
+      "name": "Doppler state drift check",
+      "command": "doppler run --project infrastructure --config prd -- bash scripts/live-tofu.sh plan doppler",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The post-apply plan returned no actions and both Hindsight Doppler key names were present without reading values.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "post-plan sha256 5c3d78be7796de847b4b9c7e0dfb2cf3a7680a927b23c7f6251caaf0a8474620"
+      }
+    },
+    {
+      "id": "hindsight-eso",
+      "name": "Hindsight ExternalSecrets",
+      "command": "kubectl -n hindsight-personal get externalsecret",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "hindsight-cnpg-s3, hindsight-db-bootstrap and hindsight-runtime were SecretSynced=True and Ready.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "runtime observation 2026-11-10T15:11:32Z"
+      }
+    },
+    {
+      "id": "hindsight-argo",
+      "name": "Hindsight Argo reconciliation",
+      "command": "just status-app personal-hindsight",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "personal-hindsight reported Synced/Healthy with revision 1.2.1 and operation Succeeded.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "runtime observation 2026-11-10T15:11:32Z"
+      }
+    },
+    {
+      "id": "hindsight-cnpg-runtime",
+      "name": "Hindsight CNPG pgvector runtime",
+      "command": "kubectl exec hindsight-db-1 -- psql; kubectl get pod,pvc",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The source pod was 2/2 Running, both Longhorn PVCs were Bound, and SQL confirmed pgvector; CNPG also exposes a pre-existing status-extraction condition, which remains recorded.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "vector; source data/WAL 10Gi/5Gi Bound"
+      }
+    },
+    {
+      "id": "hindsight-backup",
+      "name": "Hindsight CNPG backup",
+      "command": "kubectl get backup.postgresql.cnpg.io hindsight-db-initial-20261110",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The plugin backup completed with backup ID 20261110T142602.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "completed 2026-11-10T14:26:02Z..2026-11-10T14:26:08Z"
+      }
+    },
+    {
+      "id": "hindsight-memory-journey",
+      "name": "Hindsight retain recall reflect correction",
+      "command": "private port-forward; POST memories, recall and reflect",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Synthetic isolated bank: retain 200, recall 200 with results, correction by document replacement, and reflect 200 after 1.2.1.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "manual",
+        "reference": "bank plt165-synthetic-20261110; no personal data"
+      }
+    },
+    {
+      "id": "hindsight-restart-persistence",
+      "name": "Hindsight API restart persistence",
+      "command": "kubectl rollout restart deployment/hindsight-api; recall after rollout",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The API rollout completed and the corrected synthetic memory was recalled with HTTP 200 afterward.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "recall_after_restart_http=200; results=2"
+      }
+    },
+    {
+      "id": "hindsight-isolated-restore",
+      "name": "Hindsight isolated CNPG restore",
+      "command": "Argo recovery cluster; recovery job; isolated SQL checks",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The recovery job succeeded, the new pod and PVCs were usable, and SQL confirmed hindsight/vector/25 tables/2 synthetic rows; no HTTPRoute or application writer exists.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "manual",
+        "reference": "backupID 20261110T142602; recovery completion 2026-11-10T15:09:22Z"
+      }
+    },
+    {
+      "id": "repository-just-check",
+      "name": "Repository required check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The existing aiostreams staged family-http-route contract failure remains outside PLT-165; it is not converted into a pass.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "pre-existing aiostreams-staged-contract-test.sh failure"
+      }
+    },
+    {
+      "id": "backup-audit-baseline",
+      "name": "Existing cluster backup audit",
+      "command": "just backup-audit",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The shared baseline still reports pre-existing coverage and restore-proof gaps; Hindsight-specific backup and restore evidence is recorded separately above.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "command",
+        "reference": "PRODUCTION_PVC_COVERAGE=FAIL; CNPG_RESTORE_PROOF=UNPROVEN for existing baseline"
+      }
+    },
+    {
+      "id": "openclaw-user-journey",
+      "name": "OpenClaw two-session Hindsight journey",
+      "command": "OpenClaw conversation A, new session B, recall and correction",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "OpenClaw remains unadmitted pending its own plugin, Cilium, resource, session and user-level qualification PR.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "librechat-user-isolation",
+      "name": "LibreChat Authentik two-user isolation",
+      "command": "two-user OIDC login and cross-user denial journey",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "LibreChat remains fail-closed and unadmitted; Authentik OIDC, MongoDB restore and cross-user denial are not yet proven.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {
+        "kind": "none"
+      }
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 15,
+    "executed": 13,
+    "notExecuted": 2,
+    "passed": 11,
+    "failed": 2,
+    "unavailable": 2
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@692506499ab6b4419082913f5d1f4f6ae6c137db:personal-ai-2026-runtime",
+    "payload": {
+      "resultId": "personal-ai-2026-11-10-runtime-6925064",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "692506499ab6b4419082913f5d1f4f6ae6c137db",
+      "tests": [
+        {
+          "id": "hindsight-static-121",
+          "name": "Hindsight 1.2.1 static render",
+          "command": "kustomize build --enable-helm k8s/optional/personal-ai-2026/hindsight; kubeconform -strict -ignore-missing-schemas",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The corrective official chart rendered 11 resources with 1 valid, 0 invalid and 10 CRD-backed resources skipped.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "chart digest sha256:4781a117dcafa4e776218a5988f8047a30379d2e195130cf44cc2055dc028258"
+          }
+        },
+        {
+          "id": "hindsight-required-ci",
+          "name": "Hindsight corrective PR admission",
+          "command": "GitHub PR #1164 required checks",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "docs-required, v1-contract and workflow-integrity passed; the independent CodeRabbit observation was corrected before merge.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "ci",
+            "reference": "PR #1164 merged as 69df24a6e7f0109263e2ec426f69a48b814b9b17"
+          }
+        },
+        {
+          "id": "doppler-exact-apply",
+          "name": "Exact Hindsight Doppler plan and apply",
+          "command": "doppler run --project infrastructure --config prd -- bash scripts/live-tofu.sh plan|apply doppler <saved-plan>",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The saved plan contained exactly four Hindsight creates, no other action, and was applied without recalculation; state serial advanced 58 to 59 with unchanged lineage.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "manual",
+            "reference": "plan sha256 679f1e71b76061f7af8a24d80d07a7d6e9cf865336f7a089ac111b759c72922f; post-plan actions []"
+          }
+        },
+        {
+          "id": "doppler-no-drift",
+          "name": "Doppler state drift check",
+          "command": "doppler run --project infrastructure --config prd -- bash scripts/live-tofu.sh plan doppler",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The post-apply plan returned no actions and both Hindsight Doppler key names were present without reading values.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "post-plan sha256 5c3d78be7796de847b4b9c7e0dfb2cf3a7680a927b23c7f6251caaf0a8474620"
+          }
+        },
+        {
+          "id": "hindsight-eso",
+          "name": "Hindsight ExternalSecrets",
+          "command": "kubectl -n hindsight-personal get externalsecret",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "hindsight-cnpg-s3, hindsight-db-bootstrap and hindsight-runtime were SecretSynced=True and Ready.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "runtime observation 2026-11-10T15:11:32Z"
+          }
+        },
+        {
+          "id": "hindsight-argo",
+          "name": "Hindsight Argo reconciliation",
+          "command": "just status-app personal-hindsight",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "personal-hindsight reported Synced/Healthy with revision 1.2.1 and operation Succeeded.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "runtime observation 2026-11-10T15:11:32Z"
+          }
+        },
+        {
+          "id": "hindsight-cnpg-runtime",
+          "name": "Hindsight CNPG pgvector runtime",
+          "command": "kubectl exec hindsight-db-1 -- psql; kubectl get pod,pvc",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The source pod was 2/2 Running, both Longhorn PVCs were Bound, and SQL confirmed pgvector; CNPG also exposes a pre-existing status-extraction condition, which remains recorded.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "vector; source data/WAL 10Gi/5Gi Bound"
+          }
+        },
+        {
+          "id": "hindsight-backup",
+          "name": "Hindsight CNPG backup",
+          "command": "kubectl get backup.postgresql.cnpg.io hindsight-db-initial-20261110",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The plugin backup completed with backup ID 20261110T142602.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "completed 2026-11-10T14:26:02Z..2026-11-10T14:26:08Z"
+          }
+        },
+        {
+          "id": "hindsight-memory-journey",
+          "name": "Hindsight retain recall reflect correction",
+          "command": "private port-forward; POST memories, recall and reflect",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "Synthetic isolated bank: retain 200, recall 200 with results, correction by document replacement, and reflect 200 after 1.2.1.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "manual",
+            "reference": "bank plt165-synthetic-20261110; no personal data"
+          }
+        },
+        {
+          "id": "hindsight-restart-persistence",
+          "name": "Hindsight API restart persistence",
+          "command": "kubectl rollout restart deployment/hindsight-api; recall after rollout",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The API rollout completed and the corrected synthetic memory was recalled with HTTP 200 afterward.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "recall_after_restart_http=200; results=2"
+          }
+        },
+        {
+          "id": "hindsight-isolated-restore",
+          "name": "Hindsight isolated CNPG restore",
+          "command": "Argo recovery cluster; recovery job; isolated SQL checks",
+          "execution": "executed",
+          "status": "PASSED",
+          "classification": "passed",
+          "reason": "The recovery job succeeded, the new pod and PVCs were usable, and SQL confirmed hindsight/vector/25 tables/2 synthetic rows; no HTTPRoute or application writer exists.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "manual",
+            "reference": "backupID 20261110T142602; recovery completion 2026-11-10T15:09:22Z"
+          }
+        },
+        {
+          "id": "repository-just-check",
+          "name": "Repository required check suite",
+          "command": "just check",
+          "execution": "executed",
+          "status": "FAILED",
+          "classification": "failed",
+          "reason": "The existing aiostreams staged family-http-route contract failure remains outside PLT-165; it is not converted into a pass.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "pre-existing aiostreams-staged-contract-test.sh failure"
+          }
+        },
+        {
+          "id": "backup-audit-baseline",
+          "name": "Existing cluster backup audit",
+          "command": "just backup-audit",
+          "execution": "executed",
+          "status": "FAILED",
+          "classification": "failed",
+          "reason": "The shared baseline still reports pre-existing coverage and restore-proof gaps; Hindsight-specific backup and restore evidence is recorded separately above.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "command",
+            "reference": "PRODUCTION_PVC_COVERAGE=FAIL; CNPG_RESTORE_PROOF=UNPROVEN for existing baseline"
+          }
+        },
+        {
+          "id": "openclaw-user-journey",
+          "name": "OpenClaw two-session Hindsight journey",
+          "command": "OpenClaw conversation A, new session B, recall and correction",
+          "execution": "not-executed",
+          "status": "BLOCKED",
+          "classification": "unavailable",
+          "reason": "OpenClaw remains unadmitted pending its own plugin, Cilium, resource, session and user-level qualification PR.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "librechat-user-isolation",
+          "name": "LibreChat Authentik two-user isolation",
+          "command": "two-user OIDC login and cross-user denial journey",
+          "execution": "not-executed",
+          "status": "BLOCKED",
+          "classification": "unavailable",
+          "reason": "LibreChat remains fail-closed and unadmitted; Authentik OIDC, MongoDB restore and cross-user denial are not yet proven.",
+          "risk": "high",
+          "expectedCi": "required",
+          "evidence": {
+            "kind": "none"
+          }
+        }
+      ],
+      "summary": {
+        "outcome": "incomplete",
+        "total": 15,
+        "executed": 13,
+        "notExecuted": 2,
+        "passed": 11,
+        "failed": 2,
+        "unavailable": 2
+      }
+    }
+  }
+}

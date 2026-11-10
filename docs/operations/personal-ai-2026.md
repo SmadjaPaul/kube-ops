@@ -1,14 +1,12 @@
 # Personal AI pilot — OpenClaw, Hindsight, LibreChat (10 November 2026)
 
-Status: **HINDSIGHT ADMITTED / RUNTIME BLOCKED ON DOPPLER CREDENTIAL DELIVERY**. The
-Hindsight-only subtree is admitted by the active AI root and its Argo child
-Application syncs, but CNPG/bootstrap and the API are not Ready because the
-dedicated Doppler key `APP_HINDSIGHT_DB_PASSWORD` is not present in the live
-provider. OpenClaw and LibreChat remain unadmitted.
-NetworkPolicies default-deny both Hindsight and LibreChat namespaces until
-specific OIDC/MCP/model download egress is admitted. Do not claim Hindsight
-runtime or user availability until ESO, CNPG, API, backup/restore and the
-retain/recall/reflect journey are proven.
+Status: **HINDSIGHT RUNTIME QUALIFIED / OPENCLAW USER JOURNEY PENDING**. The
+Hindsight child is Argo `Synced/Healthy` at chart 1.2.1; all three Hindsight
+ExternalSecrets are `SecretSynced=True`, CNPG is running with pgvector, the
+API retain/recall/reflect journey passes on a synthetic isolated bank, and an
+isolated CNPG restore is proven. OpenClaw and LibreChat remain unadmitted, so
+the personal assistant is not yet USER-qualified. LibreChat NetworkPolicies
+and identity admission remain fail-closed.
 
 ## Scope and provenance
 
@@ -96,7 +94,7 @@ with the default local embedding and reranker models; activation sets
 `TRANSFORMERS_OFFLINE=true`, and disables the model-cache PVC so a hidden empty
 PVC cannot trigger an unreviewed Hugging Face download.
 
-## Hindsight runtime evidence — 2026-11-10
+## Historical staging evidence — superseded
 
 The admission correction in kube-ops #1154 was merged as
 `b8801f3c487e05e9dcdc87f84d83c5368c882399`. At observation time, `root` was
@@ -122,16 +120,77 @@ allowlist/procedure must be repaired before the CNPG, API, backup, restore and
 user checks can run.
 
 The Hindsight child Application uses automated self-heal with pruning disabled.
-This is a desired-state admission only until Argo, ESO, CNPG, Barman, model
-loading, retain/recall/reflect and isolated restore evidence are recorded.
+The delivery blocker above was cleared by the controlled local Doppler apply
+recorded below; this section remains only to preserve the earlier timestamped
+staging observation.
+
+## Hindsight runtime evidence — 2026-11-10
+
+### Credential delivery and state continuity
+
+On homelab-infra `main` at `d6780b37698fc46dba828d18ce9d360eac9816e0`, the
+existing `scripts/live-tofu.sh` wrapper was used under the authenticated
+Doppler session with the existing OCI credentials. The saved plan SHA-256 was
+`679f1e71b76061f7af8a24d80d07a7d6e9cf865336f7a089ac111b759c72922f` and its
+sanitized `tofu show -json` action set was exactly four creates:
+
+- `random_password.v1_generated_app_secret["APP_HINDSIGHT_DB_PASSWORD"]`
+- `random_password.v1_generated_app_secret["APP_HINDSIGHT_AGENTGATEWAY_KEY"]`
+- `doppler_secret.cluster_v1_generated_app_secret["APP_HINDSIGHT_DB_PASSWORD"]`
+- `doppler_secret.cluster_v1_generated_app_secret["APP_HINDSIGHT_AGENTGATEWAY_KEY"]`
+
+There were no deletes, changes, replacements or rotations. The exact saved
+plan was applied without recalculation. State lineage remained
+`b6e9eeb7-0d29-6be9-6eee-3f204556ad95`, serial advanced from `58` to `59`, and
+the post-apply plan SHA-256 was
+`5c3d78be7796de847b4b9c7e0dfb2cf3a7680a927b23c7f6251caaf0a8474620` with no
+actions. Doppler presence was verified for both names above without reading
+their values. Plans and temporary files were removed.
+
+### Reconciled and runtime proof
+
+At `2026-11-10T15:11:32Z`, `personal-hindsight` was Argo `Synced/Healthy`,
+reconciled at `1.2.1`, with operation `Succeeded`. The source API pod was
+`1/1 Running` on `ghcr.io/vectorize-io/hindsight-api:1.2.1`; its migrations
+completed and it reported the pgvector extension. The three ExternalSecrets
+(`hindsight-cnpg-s3`, `hindsight-db-bootstrap`, `hindsight-runtime`) were
+`SecretSynced=True`/Ready. The source data and WAL PVCs were Longhorn
+`Bound` at `10Gi` and `5Gi`; the initial CNPG backup
+`hindsight-db-initial-20261110` was `completed`, backup ID `20261110T142602`,
+from `2026-11-10T14:26:02Z` to `2026-11-10T14:26:08Z`.
+
+The synthetic bank `plt165-synthetic-20261110` proved retain `200`, recall
+`200` with two results, correction through the same document ID with
+`update_mode=replace`, and reflect `200` after the 1.2.1 upgrade. Recall still
+returned two results after an API rollout restart. The first reflect failure
+on 1.2.0 was the upstream MiniMax nullable-schema defect; 1.2.1 contains the
+official fix. No personal data was used.
+
+### Isolated restore proof
+
+PRs #1165, #1166 and #1167 admitted a private
+`hindsight-restore-20261110` drill. Argo created no HTTPRoute and no
+application writer; only CNPG internal ClusterIP services exist. The recovery
+job `hindsight-db-restore-1-full-recovery` succeeded at
+`2026-11-10T15:09:22Z` from backup ID `20261110T142602`. The restored pod was
+`1/1 Running`, both fresh Longhorn PVCs were `Bound` (`10Gi` and `5Gi`), SQL
+returned database `hindsight`, extension `vector`, `25` public tables and `2`
+synthetic memory rows. The source cluster remained running and untouched.
+
+CNPG's controller still reports the pre-existing `Instance Status Extraction
+Error: HTTP communication issue` condition on both source and restore
+clusters even while the pods and SQL are usable; this is recorded, not
+masked. It prevents claiming a clean CNPG `Ready=True` condition until the
+underlying controller condition is separately repaired.
 
 ## Static tests / evidence
 
 - Protected tests/workflow edits need a separate exact-base owner admission PR.
 - `kustomize build k8s/optional/personal-ai-2026`
 - `just check` (when the repository's toolchain and secrets are available)
-- No live `kubectl apply`, Helm install, Argo sync, secrets read, prune or delete
-  was performed by this preparation.
+- The one-time Doppler apply was performed only through the homelab-infra
+  wrapper and is documented above; no Kubernetes `apply`, Helm install, manual
+  Argo sync, secret-value read, prune or delete was used for activation.
 - Post-merge levels remain separate: STATIC → RECONCILED → RUNTIME → USER.
 
 ## Rollback and storage
