@@ -61,6 +61,7 @@ spec:
           rules:
             dns:
               - matchName: polyfin.media.svc.cluster.local
+              - matchName: aiostreams.media.svc.cluster.local
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: media
@@ -70,4 +71,12 @@ spec:
             - port: "80"
               protocol: TCP
             - port: "8096"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            k8s:app.kubernetes.io/name: aiostreams
+      toPorts:
+        - ports:
+            - port: "80"
               protocol: TCP
