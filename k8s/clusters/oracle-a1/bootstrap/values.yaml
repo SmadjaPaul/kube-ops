@@ -1,0 +1,46 @@
+# Cluster-local Argo CD (D-2026-11-11-17): pull mode, no ingress, no SSO.
+# Break-glass access is the local admin account over port-forward/NetBird.
+configs:
+  cm:
+    create: true
+    application.resourceTrackingMethod: annotation
+    admin.enabled: true
+    kustomize.buildOptions: '--enable-helm'
+  params:
+    server.insecure: true
+    controller.diff.server.side: true
+    reposerver.parallelism.limit: "1"
+    controller.sync.timeout.seconds: "1800"
+  rbac:
+    policy.default: role:readonly
+
+crds:
+  install: true
+  keep: true
+
+dex:
+  enabled: false
+notifications:
+  enabled: false
+applicationSet:
+  enabled: false
+
+controller:
+  replicas: 1
+  resources:
+    requests: {cpu: 25m, memory: 256Mi}
+    limits: {memory: 1Gi}
+server:
+  replicas: 1
+  resources:
+    requests: {cpu: 10m, memory: 64Mi}
+    limits: {memory: 256Mi}
+repoServer:
+  replicas: 1
+  resources:
+    requests: {cpu: 25m, memory: 128Mi}
+    limits: {memory: 512Mi}
+redis:
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}
+    limits: {memory: 128Mi}

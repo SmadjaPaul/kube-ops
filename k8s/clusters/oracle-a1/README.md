@@ -1,30 +1,21 @@
-# Oracle A1 (D-2026-11-11-07) — STAGED, not in any ApplicationSet
+# Oracle cluster (`oracle-a1`)
 
-Two independent kustomizations. Neither is listed in
-`k8s/bootstrap/argocd-root`, so merging this directory deploys nothing.
+Cluster-local Argo CD in pull mode on this repository (D-2026-11-11-17). The
+homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 
-- `argo/` (home cluster, namespace `argocd`): ExternalSecret that builds the
-  Argo cluster Secret for the Oracle A1 k3s, an AppProject limited to that
-  destination, and a MANUAL-sync Application. Activate by adding `argo/` to
-  `bootstrap/argocd-root` only after Doppler holds `ORACLE_A1_API_SERVER` and
-  `ORACLE_A1_ARGO_BEARER_TOKEN` (otherwise the ExternalSecret errors).
-- `workloads/` (Oracle A1 k3s, namespace `media`): AIOStreams, Polyfin, plain
-  Postgres, cloudflared (dedicated Oracle A1 tunnel) and the idle-reclamation
-  memory floor. arm64 images (manifest lists verified 2026-11-11); tags are
-  pinned, digests to be recorded on Oracle A1 (existing digests are amd64).
-
-Prerequisites on the Oracle A1 cluster (homelab-infra bootstrap, not Git-synced
-from here): External Secrets Operator and a `ClusterSecretStore/doppler-cluster`
-backed by a Doppler token Secret injected once by the operator.
-
-No Gateway API / Cilium objects are used: cloudflared reaches Polyfin directly
-through its Service; AIOStreams has no route at all (cluster-internal, Polyfin
-only). `tv.smadja.dev` is not referenced; only `tv-pilot.smadja.dev` is served.
-
-## Auth boundaries
-
-| Path | Protection |
+| Path | Role |
 | --- | --- |
-| Polyfin client API (Jellyfin-compatible, `/healthz`) on `tv-pilot` | app-native token auth, deliberately NOT behind an OIDC proxy so TV/mobile clients keep working. Polyfin native OIDC is blocked upstream (see media/polyfin README), so family login is native. |
-| AIOStreams dashboard + `/api/v1/auth/oidc/*` | Authentik OIDC native to the app, reachable only over NetBird (no public route). |
-| AIOStreams addon/stream paths | token-in-URL, consumed by Polyfin in-cluster only. |
+| `bootstrap/` | One-time operator `kubectl apply -k --enable-helm`: Argo CD, AppProject `oracle-a1`, root Application. Not synced by any Argo CD. |
+| `apps/` | Root Application target (the only path it reads): child Applications, ordered by sync-wave. |
+| `external-secrets/` | Overlay on the shared ESO + `ClusterSecretStore/doppler-cluster` base. |
+| `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster. One `Database` + role per application. |
+| `cloudflared/` | Outbound-only tunnel (token from Doppler). |
+| `media/` | Overlay on the shared `applications/media/{polyfin,aiostreams}` bases. |
+
+Prerequisites outside Git: the `doppler-access-token` Secret in `external-secrets`,
+the OKE cluster and its `oci-bv` StorageClass (homelab-infra), Doppler keys
+`ORACLE_A1_POSTGRES_PASSWORD` and `ORACLE_A1_CLOUDFLARE_TUNNEL_TOKEN`.
+
+Open items: no CNPG backup yet (needs off-Oracle storage and a tested restore
+before any non-reconstructible data); no network policies (CNI to confirm);
+StorageClass name and arm64 digests to confirm at runtime.

@@ -1,0 +1,20 @@
+# OKE block volumes: 50Gi is the provider minimum, so sizes are set to it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: polyfin-data
+spec:
+  storageClassName: oci-bv
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aiostreams-data
+spec:
+  storageClassName: oci-bv
+  resources:
+    requests:
+      storage: 50Gi

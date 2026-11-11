@@ -1,0 +1,92 @@
+# Oracle overlay of the shared Polyfin + AIOStreams bases (no copied manifests).
+# Removed here because they depend on homelab-only components: Gateway API
+# routes, Cilium policies pointing at the LAN VIP, per-app CNPG + Barman, and
+# the LAN hostAliases (D-2026-11-11-17: no route to the LAN).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: media
+resources:
+  - namespace.yaml
+  - ../../../applications/media/polyfin
+  - ../../../applications/media/aiostreams
+  - polyfin-db-external-secret.yaml
+
+images:
+  # The base digest is the linux/amd64 manifest; use the multi-arch index.
+  - name: ghcr.io/moodiness/polyfin
+    newTag: 0.61.1
+    digest: sha256:fdeb10f87e596fc04677b0801cbb8c0cc6728b2bb38d9fe89b9bf3685dbfdcc4
+
+patches:
+  - path: storage-patch.yaml
+  - target: {kind: Deployment, name: polyfin}
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/hostAliases
+  # Not applicable on Oracle (shared CNPG, no Gateway, no Cilium CRDs, no Barman).
+  - target: {kind: Cluster, name: polyfin-db}
+    patch: |-
+      $patch: delete
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata: {name: polyfin-db}
+  - target: {kind: ExternalSecret, name: polyfin-cnpg-hetzner-credentials}
+    patch: |-
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata: {name: polyfin-cnpg-hetzner-credentials}
+  - target: {kind: ObjectStore, name: polyfin-hetzner-store}
+    patch: |-
+      $patch: delete
+      apiVersion: barmancloud.cnpg.io/v1
+      kind: ObjectStore
+      metadata: {name: polyfin-hetzner-store}
+  - target: {kind: ScheduledBackup, name: polyfin-postgresql-weekly}
+    patch: |-
+      $patch: delete
+      apiVersion: postgresql.cnpg.io/v1
+      kind: ScheduledBackup
+      metadata: {name: polyfin-postgresql-weekly}
+  - target: {kind: Backup, name: polyfin-postgresql-qualification-20261027}
+    patch: |-
+      $patch: delete
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Backup
+      metadata: {name: polyfin-postgresql-qualification-20261027}
+  - target: {kind: CiliumNetworkPolicy, name: polyfin-pilot}
+    patch: |-
+      $patch: delete
+      apiVersion: cilium.io/v2
+      kind: CiliumNetworkPolicy
+      metadata: {name: polyfin-pilot}
+  - target: {kind: CiliumNetworkPolicy, name: polyfin-db-access}
+    patch: |-
+      $patch: delete
+      apiVersion: cilium.io/v2
+      kind: CiliumNetworkPolicy
+      metadata: {name: polyfin-db-access}
+  - target: {kind: CiliumNetworkPolicy, name: polyfin-aiostreams-control}
+    patch: |-
+      $patch: delete
+      apiVersion: cilium.io/v2
+      kind: CiliumNetworkPolicy
+      metadata: {name: polyfin-aiostreams-control}
+  - target: {kind: CiliumNetworkPolicy, name: aiostreams-runtime}
+    patch: |-
+      $patch: delete
+      apiVersion: cilium.io/v2
+      kind: CiliumNetworkPolicy
+      metadata: {name: aiostreams-runtime}
+  - target: {kind: HTTPRoute, name: aiostreams}
+    patch: |-
+      $patch: delete
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata: {name: aiostreams}
+  - target: {kind: HTTPRoute, name: aiostreams-family}
+    patch: |-
+      $patch: delete
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata: {name: aiostreams-family}

@@ -1,10 +1,13 @@
-# Outbound-only dedicated Oracle A1 tunnel; ingress (tv-pilot -> polyfin) is
-# declared in homelab-infra terraform/cloudflare/oracle-a1.tf.
+# Outbound-only tunnel dedicated to this cluster. Public hostnames and their
+# in-cluster origins are declared in homelab-infra (Cloudflare root); no
+# inbound port, no route to the home LAN.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudflared
-  namespace: media
+  namespace: cloudflared
+  annotations:
+    secret.reloader.stakater.com/reload: cloudflared-token
 spec:
   replicas: 1
   selector:
@@ -13,14 +16,20 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: cloudflared}
     spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2025.11.1
+          image: cloudflare/cloudflared:2026.6.0
           args: [tunnel, --no-autoupdate, --metrics, "0.0.0.0:2000", run]
           env:
             - name: TUNNEL_TOKEN
@@ -33,4 +42,4 @@ spec:
             capabilities: {drop: ["ALL"]}
           resources:
             requests: {cpu: 20m, memory: 64Mi}
-            limits: {memory: 256Mi}
+            limits: {cpu: 500m, memory: 256Mi}
