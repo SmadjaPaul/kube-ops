@@ -58,19 +58,9 @@ A merged PR proves none of levels 2-4 by itself.
 
 ## Coding-agent test results
 
-Every coding-agent handoff must carry a machine-readable test result, even when
-some checks were not run. Use the versioned contract in
-`docs/contracts/agent-test-result-v1.schema.json` and include one record per
-planned check. Each record must distinguish `executed` from `not-executed`, use
-the classification `passed`, `failed`, `skipped`, `unavailable`, or
-`not-applicable`, and state its reason, risk, and expected CI treatment.
+Every PR body lists, in a few lines, the checks that were run (with result) and the checks that were not run (with reason). A missing check is never reported as a pass.
 
-Hooks may generate or transport this record, but they are advisory only. The
-agent instructions and handoff remain responsible for producing the result and
-for calling out missing, unavailable, or out-of-scope checks. Never turn a
-missing hook artifact into an implied pass. The `transmission` projection is
-the transport shape for the separate `factory-platform` evidence consumer; it
-does not authorize telemetry/runtime changes in this repository.
+The machine-readable record in `docs/contracts/agent-test-result-v1.schema.json` is required only when the handoff is consumed by the `factory-platform` evidence pipeline (Factory runs). Interactive and orchestrator agents do not produce it (decision D-2026-11-11-12, token budget).
 
 ## Operator Kubernetes access
 
