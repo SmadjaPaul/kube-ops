@@ -114,8 +114,13 @@ For HTTP failures distinguish DNS, TLS, HTTPRoute status, ready EndpointSlices a
 
 Build phase ([decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md) D-2026-11-11-02): for reconstructible, non-critical workloads, `kubectl apply/patch/scale/rollout`, suspending valueless jobs and merging green PRs need no per-action approval; reconcile any imperative change into Git the same day. Agents work on their own claude/ or codex/ branch prefix, never on another agent's branch. The list below still applies to data, PVCs, backups, secrets, public exposure, identity roots and irreversible migrations.
 
+Bounded operator recovery commands run autonomously, with no click or per-action approval (D-2026-11-11-02, D-2026-11-11-13). Each one checks its own preconditions and data protections and refuses otherwise:
+- `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]`: terminate a sync stuck on hooks/health once no unprotected PVC/PV/CNPG Cluster/ObjectStore/non-empty namespace would be pruned.
+
+The Argo MCP stays read-only observation (`role:readonly`). Operations go through these commands only, never through the MCP account.
+
 Without explicit operator approval:
-- no apply/delete/patch/edit/scale/restart as durable repair;
+- no apply/delete/patch/edit/scale/restart as durable repair, outside the bounded recovery commands above and the build-phase exceptions;
 - no infrastructure apply/destroy/state mutation;
 - no Secret value reads or credential printing;
 - no TLS bypass with `-k`;
