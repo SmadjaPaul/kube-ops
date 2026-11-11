@@ -26,6 +26,9 @@ spec:
         template:
           spec:
             automountServiceAccountToken: false
+            # Kubelet-only GHCR pull credential, not mounted inside runner containers.
+            imagePullSecrets:
+              - name: arc-factory-ghcr-pull
             securityContext:
               runAsNonRoot: true
               runAsUser: 1001
