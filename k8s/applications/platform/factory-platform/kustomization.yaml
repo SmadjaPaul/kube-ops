@@ -14,6 +14,7 @@ resources:
   - database-pg2-objectstore.yaml
   - database-pg2.yaml
   - database-pg2-scheduled-backup.yaml
+  - database-pg2-initial-backup.yaml
   - deployment.yaml
   - service.yaml
   - servicemonitor.yaml
