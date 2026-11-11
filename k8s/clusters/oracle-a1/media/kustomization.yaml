@@ -18,7 +18,15 @@ images:
     digest: sha256:fdeb10f87e596fc04677b0801cbb8c0cc6728b2bb38d9fe89b9bf3685dbfdcc4
 
 patches:
-  - path: storage-patch.yaml
+  # OKE block volumes: 50Gi is the provider minimum (PLT-183).
+  - target: {kind: PersistentVolumeClaim, name: polyfin-data}
+    patch: |-
+      - {op: replace, path: /spec/storageClassName, value: oci-bv}
+      - {op: replace, path: /spec/resources/requests/storage, value: 50Gi}
+  - target: {kind: PersistentVolumeClaim, name: aiostreams-data}
+    patch: |-
+      - {op: replace, path: /spec/storageClassName, value: oci-bv}
+      - {op: replace, path: /spec/resources/requests/storage, value: 50Gi}
   - target: {kind: Deployment, name: polyfin}
     patch: |-
       - op: remove
