@@ -108,14 +108,10 @@ Everything is consolidated in a single **`deployment.yaml`** for convenience. Wi
    kind: Secret
    metadata:
      name: unifi-mongo-credentials
-   data:
-     password: "c3VwZXJzZWNyZXQK"
+   stringData:
+     password: "replace-with-a-local-password"
    ```
-   - The example password is `supersecret` (base64-encoded). To generate your own:
-     ```bash
-     echo -n "mypassword" | base64
-     ```
-     Then replace the string in the manifest.
+   - Replace the placeholder locally; do not commit a real password.
 
 4. **UniFi Controller Deployment**  
    - An **initContainer** `fix-permissions-unifi` runs as `root` to `chown` the `/config` volume to user 1000.  

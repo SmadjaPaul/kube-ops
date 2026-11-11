@@ -95,7 +95,7 @@
       ]
     },
     {
-      "description": "Polyfin official releases and digests require the image audit and T2 policy before merge",
+      "description": "Polyfin releases and digests are security-sensitive and require manual review after the image audit",
       "matchDatasources": [
         "docker"
       ],
@@ -108,9 +108,8 @@
         "patch",
         "minor"
       ],
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
+      "automerge": false,
+      "platformAutomerge": false
     },
     {
       "groupName": "Netbird",
