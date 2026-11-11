@@ -1,0 +1,7 @@
+# Shared base: ESO chart + ClusterSecretStore doppler-cluster. The Doppler
+# token Secret `doppler-access-token` (ns external-secrets) is injected once by
+# the operator and is never stored in Git.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../infrastructure/controllers/external-secrets
