@@ -5,6 +5,7 @@ kind: Kustomization
 resources:
   - namespaces.yaml
   - github-app-secret.yaml
+  - factory-ghcr-pull-secret.yaml
   - controller-application.yaml
   - runner-application.yaml
   - runner-quota.yaml
