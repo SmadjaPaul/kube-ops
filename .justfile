@@ -83,6 +83,7 @@ runtime-inventory:
 [doc('Probe every discovered internal HTTPRoute')]
 runtime-smoke:
     bash scripts/runtime-smoke.sh
+    bash scripts/github-queued-runs-check.sh
 
 [doc('Show bounded read-only status for one Argo Application')]
 status-app APP:
