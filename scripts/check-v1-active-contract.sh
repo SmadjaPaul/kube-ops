@@ -38,7 +38,8 @@ for appset in k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml k8s/b
   }
 done
 
-grep -q 'version: 1.20.2' k8s/infrastructure/network/cilium/kustomization.yaml
+# Security patch baseline for Cilium 1.20.x; revise with a qualified, controlled CNI upgrade.
+grep -q 'version: 1.20.4' k8s/infrastructure/network/cilium/kustomization.yaml
 grep -q 'v1.6.1' k8s/infrastructure/network/gateway-api/kustomization.yaml
 grep -q 'version: 0.5.12' k8s/infrastructure/storage/proxmox-csi/kustomization.yaml
 grep -q 'volumeBindingMode: WaitForFirstConsumer' k8s/infrastructure/storage/proxmox-csi/values.yaml
