@@ -9,11 +9,25 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: librechat
-    - fromEntities: [host, remote-node]
+      toPorts:
+        - ports: [{port: "3080", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: gateway
+      toPorts:
+        - ports: [{port: "3080", protocol: TCP}]
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports: [{port: "3080", protocol: TCP}]
   egress:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: librechat
+            k8s:app.kubernetes.io/name: mongodb
+            k8s:app.kubernetes.io/component: mongodb
+            k8s:app.kubernetes.io/instance: librechat
+      toPorts:
+        - ports: [{port: "27017", protocol: TCP}]
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
@@ -26,4 +40,23 @@ spec:
             app: agentgateway
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
-  # Authentik outbound + restricted MCP added only after OIDC and bank admission.
+    - toFQDNs:
+        - matchName: auth.smadja.dev
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    # auth.smadja.dev resolves to Gateway/internal on the cluster DNS view
+    # (same pattern as rustical): VIP 443 plus the Authentik server backend.
+    - toCIDRSet:
+        - cidr: 10.0.20.192/32
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports: [{port: "9000", protocol: TCP}]
+  # No Hindsight egress is granted: its API has no trusted per-user boundary.
+  # Agentgateway access remains blocked at its own ingress until a dedicated
+  # LibreChat key and non-admin model policy are admitted.

@@ -2,39 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: atlantis-apps
 
+# Retention-only manifest. The Apps Atlantis server was dormant and never
+# carried the active homelab-infra checks; keep its existing volume until a
+# separate, state-aware recovery decision proves it can be removed.
 resources:
   - namespace.yaml
-  - github-app-external-secret.yaml
-  - aiostreams-backend-external-secret.yaml
-  - aiostreams-provider-external-secret.yaml
-  - polyfin-backend-external-secret.yaml
-  - polyfin-provider-external-secret.yaml
-  - webhook-route.yaml
-  - network-policy.yaml
-
-configMapGenerator:
-  - name: atlantis-apps-policy
-    files:
-      - policies/plan-safety.rego
-  - name: atlantis-apps-admission
-    files:
-      - scripts/guard-project.sh
-
-generatorOptions:
-  disableNameSuffixHash: true
-
-patches:
-  - path: statefulset-patch.yaml
-    target:
-      group: apps
-      version: v1
-      kind: StatefulSet
-      name: atlantis-apps
-
-helmCharts:
-  - name: atlantis
-    repo: https://runatlantis.github.io/helm-charts
-    version: 6.16.1
-    releaseName: atlantis-apps
-    namespace: atlantis-apps
-    valuesFile: values.yaml
+  - pvc-retention.yaml

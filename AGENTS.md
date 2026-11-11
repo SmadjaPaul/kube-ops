@@ -1,5 +1,7 @@
 # AGENTS.md — kube-ops operating router
 
+Read `docs/state/cluster-reality.md` first: live cluster reality (what runs, real CPU/RAM, exposure, data class, verdict); regenerate with `bash scripts/cluster-reality.sh`.
+
 Git is the Kubernetes desired-state authority. Argo CD continuously reconciles Git. Runtime tools provide evidence; they are never a second steady-state mutation plane.
 
 ## Authority
@@ -13,6 +15,8 @@ Repository boundary:
 Do not add Terraform/OpenTofu here.
 
 ## Read order
+
+Vision and active cross-repo decisions live in `homelab-infra`: [charter](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/charter.md) and [decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md). Read them once per session; they win over older tickets and docs.
 
 For a task read: this file → one relevant skill under `.agents/skills/` → only the application/infrastructure subtree being changed. Use `just inventory` before crawling the repository.
 
@@ -56,19 +60,9 @@ A merged PR proves none of levels 2-4 by itself.
 
 ## Coding-agent test results
 
-Every coding-agent handoff must carry a machine-readable test result, even when
-some checks were not run. Use the versioned contract in
-`docs/contracts/agent-test-result-v1.schema.json` and include one record per
-planned check. Each record must distinguish `executed` from `not-executed`, use
-the classification `passed`, `failed`, `skipped`, `unavailable`, or
-`not-applicable`, and state its reason, risk, and expected CI treatment.
+Every PR body lists, in a few lines, the checks that were run (with result) and the checks that were not run (with reason). A missing check is never reported as a pass.
 
-Hooks may generate or transport this record, but they are advisory only. The
-agent instructions and handoff remain responsible for producing the result and
-for calling out missing, unavailable, or out-of-scope checks. Never turn a
-missing hook artifact into an implied pass. The `transmission` projection is
-the transport shape for the separate `factory-platform` evidence consumer; it
-does not authorize telemetry/runtime changes in this repository.
+The machine-readable record in `docs/contracts/agent-test-result-v1.schema.json` is required only when the handoff is consumed by the `factory-platform` evidence pipeline (Factory runs). Interactive and orchestrator agents do not produce it (decision D-2026-11-11-12, token budget).
 
 ## Operator Kubernetes access
 
@@ -120,8 +114,15 @@ For HTTP failures distinguish DNS, TLS, HTTPRoute status, ready EndpointSlices a
 
 ## Safety
 
+Build phase ([decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md) D-2026-11-11-02): for reconstructible, non-critical workloads, `kubectl apply/patch/scale/rollout`, suspending valueless jobs and merging green PRs need no per-action approval; reconcile any imperative change into Git the same day. Agents work on their own claude/ or codex/ branch prefix, never on another agent's branch. The list below still applies to data, PVCs, backups, secrets, public exposure, identity roots and irreversible migrations.
+
+Bounded operator recovery commands run autonomously, with no click or per-action approval (D-2026-11-11-02, D-2026-11-11-13). Each one checks its own preconditions and data protections and refuses otherwise:
+- `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]`: terminate a sync stuck on hooks/health once no unprotected PVC/PV/CNPG Cluster/ObjectStore/non-empty namespace would be pruned.
+
+The Argo MCP stays read-only observation (`role:readonly`). Operations go through these commands only, never through the MCP account.
+
 Without explicit operator approval:
-- no apply/delete/patch/edit/scale/restart as durable repair;
+- no apply/delete/patch/edit/scale/restart as durable repair, outside the bounded recovery commands above and the build-phase exceptions;
 - no infrastructure apply/destroy/state mutation;
 - no Secret value reads or credential printing;
 - no TLS bypass with `-k`;

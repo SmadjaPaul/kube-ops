@@ -39,6 +39,7 @@ spec:
         - matchName: results-receiver.actions.githubusercontent.com
         - matchPattern: "*.actions.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
+        - matchName: api.doppler.com
         - matchName: get.opentofu.org
         - matchName: registry.terraform.io
         - matchName: registry.opentofu.org

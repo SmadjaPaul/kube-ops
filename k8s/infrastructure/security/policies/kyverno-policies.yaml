@@ -93,3 +93,27 @@ spec:
           =(hostPID): false
           =(hostIPC): false
           =(hostNetwork): false
+  # Converted from Gatekeeper K8sPSPProhibited/nsa-restricted-psp (D-2026-11-11-06).
+  # The Gatekeeper constraint was dryrun with 0 violations; the host namespace
+  # checks already existed above, so only the privileged check is new here.
+  - name: disallow-privileged-containers
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+          namespaces: ["*"]
+    exclude:
+      any:
+      - resources:
+           namespaces: ["security-system", "gatekeeper-system", "kyverno", "kube-system", "kubearmor", "monitoring"]
+    validate:
+      message: "Privileged containers are not allowed (NSA/CISA 4.1)"
+      pattern:
+        spec:
+          =(containers):
+          - =(securityContext):
+              =(privileged): false
+          =(initContainers):
+          - =(securityContext):
+              =(privileged): false

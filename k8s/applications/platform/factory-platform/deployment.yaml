@@ -45,7 +45,7 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: factory-platform-postgresql-app
+                  name: factory-platform-pg2-app
                   key: uri
           securityContext:
             allowPrivilegeEscalation: false
@@ -71,7 +71,7 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: factory-platform-postgresql-app
+                  name: factory-platform-pg2-app
                   key: uri
             - name: FACTORY_TENANT_ID
               value: smadja-internal

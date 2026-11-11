@@ -15,12 +15,51 @@ spec:
         global:
           librechat:
             existingSecretName: librechat-credentials-env
+            env:
+              - name: OPENID_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: librechat-credentials-env
+                    key: OPENID_CLIENT_SECRET
+              - name: OPENID_SESSION_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: librechat-credentials-env
+                    key: OPENID_SESSION_SECRET
         librechat:
           configEnv:
             ALLOW_REGISTRATION: "false"
             ALLOW_EMAIL_LOGIN: "false"
+            ALLOW_EMAIL_LOGIN_OVERRIDE: "false"
             ALLOW_SOCIAL_REGISTRATION: "false"
-            ALLOW_SOCIAL_LOGIN: "false"
+            ALLOW_SOCIAL_LOGIN: "true"
+            ALLOW_SHARED_LINKS: "false"
+            ALLOW_SHARED_LINKS_PUBLIC: "false"
+            SHARED_LINKS_SNAPSHOT_FILES: "false"
+            DOMAIN_CLIENT: https://librechat.smadja.dev
+            DOMAIN_SERVER: https://librechat.smadja.dev
+            OPENID_CLIENT_ID: librechat
+            OPENID_ISSUER: https://auth.smadja.dev/application/o/librechat/.well-known/openid-configuration
+            OPENID_CALLBACK_URL: /oauth/openid/callback
+            OPENID_SCOPE: openid profile email groups
+            OPENID_EMAIL_CLAIM: email
+            OPENID_BUTTON_LABEL: Login with Authentik
+            OPENID_GENERATE_NONCE: "true"
+            OPENID_USE_END_SESSION_ENDPOINT: "true"
+          configYamlContent: |
+            version: 1.0.8
+            endpoints:
+              custom:
+                - name: Personal Agentgateway
+                  apiKey: "${OPENAI_API_KEY}"
+                  baseURL: http://agentgateway.agentgateway.svc.cluster.local:4000/v1
+                  models:
+                    default: [factory/fast]
+                    fetch: false
+                  titleConvo: true
+                  titleModel: factory/fast
+                  summarize: false
+                  modelDisplayLabel: Personal Agentgateway
           imageVolume:
             enabled: true
             size: 10Gi
@@ -32,6 +71,29 @@ spec:
           tag: v0.8.8
         serviceAccount:
           automount: false
+        podSecurityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          fsGroup: 1000
+          fsGroupChangePolicy: OnRootMismatch
+          seccompProfile: {type: RuntimeDefault}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities: {drop: [ALL]}
+          seccompProfile: {type: RuntimeDefault}
+        volumes:
+          - {name: logs, emptyDir: {sizeLimit: 512Mi}}
+          - {name: tmp, emptyDir: {sizeLimit: 512Mi}}
+        volumeMounts:
+          - {name: logs, mountPath: /app/logs}
+          # user files: persistent (existing images PVC, Velero/Kopia-backed), not emptyDir
+          - {name: image-volume, mountPath: /app/uploads, subPath: uploads}
+          - {name: tmp, mountPath: /tmp}
         resources:
           requests: {cpu: 100m, memory: 512Mi}
           limits: {cpu: "1", memory: 2Gi}
@@ -52,4 +114,15 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: librechat
-  # No sync: identity, bundled MongoDB auth, storage/backup and chart render need proof.
+  # Le sous-chart MongoDB regenere les cles de librechat-mongodb a chaque rendu.
+  # Le mot de passe live ne doit JAMAIS etre rotate (donnees deja initialisees).
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: librechat-mongodb
+      jsonPointers: [/data]
+  syncPolicy:
+    syncOptions:
+      - RespectIgnoreDifferences=true
+  # No sync: the OIDC provider/client, credentials, Agentgateway policy,
+  # backup/restore and two-user isolation still require admission evidence.
