@@ -90,7 +90,7 @@ spec:
           - {name: logs, emptyDir: {sizeLimit: 512Mi}}
           - {name: tmp, emptyDir: {sizeLimit: 512Mi}}
         volumeMounts:
-          - {name: logs, mountPath: /app/api/logs}
+          - {name: logs, mountPath: /app/logs}
           # user files: persistent (existing images PVC, Velero/Kopia-backed), not emptyDir
           - {name: image-volume, mountPath: /app/uploads, subPath: uploads}
           - {name: tmp, mountPath: /tmp}
@@ -114,5 +114,15 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: librechat
+  # Le sous-chart MongoDB regenere les cles de librechat-mongodb a chaque rendu.
+  # Le mot de passe live ne doit JAMAIS etre rotate (donnees deja initialisees).
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: librechat-mongodb
+      jsonPointers: [/data]
+  syncPolicy:
+    syncOptions:
+      - RespectIgnoreDifferences=true
   # No sync: the OIDC provider/client, credentials, Agentgateway policy,
   # backup/restore and two-user isolation still require admission evidence.
