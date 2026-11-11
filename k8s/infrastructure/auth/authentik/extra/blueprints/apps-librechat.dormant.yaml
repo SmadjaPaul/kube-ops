@@ -1,7 +1,8 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
 # yamllint disable-file
-# Dormant until the two Doppler keys exist and the LibreChat activation PR is
-# admitted. This file is intentionally not in extra/kustomization.yml.
+# This file is admitted only by the single Draft LibreChat activation PR. The
+# PR must remain unmerged until the two Doppler keys exist and normal admission
+# checks pass.
 ---
 version: 1
 metadata:

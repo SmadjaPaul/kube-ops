@@ -7,6 +7,7 @@ resources:
 # The isolated restore drill is private and admitted by the root AppProject;
 # its separate namespace has no Service, route, or application writer.
 - ../../optional/personal-ai-2026/hindsight-restore
+- ../../optional/personal-ai-2026/librechat
 - karakeep
 - opencode
 - gpt-researcher
