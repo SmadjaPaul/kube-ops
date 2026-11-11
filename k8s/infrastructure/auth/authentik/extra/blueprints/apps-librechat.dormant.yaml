@@ -8,11 +8,6 @@ version: 1
 metadata:
   name: Apps - LibreChat (dormant)
 entries:
-  - id: librechat_users_group
-    model: authentik_core.group
-    identifiers: {name: LibreChat Users}
-    attrs:
-      is_superuser: false
   - id: librechat_provider
     model: authentik_providers_oauth2.oauth2provider
     identifiers:
@@ -43,5 +38,5 @@ entries:
       provider: !KeyOf librechat_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding
-    identifiers: {target: !KeyOf librechat_application, group: !KeyOf librechat_users_group}
+    identifiers: {target: !KeyOf librechat_application, group: !Find [authentik_core.group, [name, "family"]]}
     attrs: {order: 10}
