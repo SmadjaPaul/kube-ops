@@ -40,3 +40,16 @@ entries:
   - model: authentik_policies.policybinding
     identifiers: {target: !KeyOf librechat_application, group: !Find [authentik_core.group, [name, "family"]]}
     attrs: {order: 10}
+  # PLT-199: retire the legacy LibreChat Users binding (D-19: family only).
+  # Under policy_engine_mode=any a leftover binding keeps granting access.
+  - id: librechat_retire_librechat_users_policy_binding
+    model: authentik_policies.policybinding
+    state: absent
+    identifiers:
+      target: !KeyOf librechat_application
+      group: !Find [authentik_core.group, [name, "LibreChat Users"]]
+  # Group has 0 members and no other binding, flow or policy usage (API check).
+  - id: librechat_retire_librechat_users_group
+    model: authentik_core.group
+    state: absent
+    identifiers: {name: LibreChat Users}
