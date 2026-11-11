@@ -3,6 +3,14 @@ kind: Cluster
 metadata:
   name: factory-platform-postgresql
   namespace: factory-platform
+  annotations:
+    # PLT-168: instance crashloops since 2026-10-29 (PANIC replication checkpoint
+    # wrong magic). CNPG refuses hibernation on an unhealthy cluster, so the
+    # instance is fenced instead: PostgreSQL stays stopped, PGDATA/WAL PVCs are
+    # kept intact for forensics. Owner: Paul. Remove only once
+    # factory-platform-pg2 (PITR 2026-10-29T00:35:32Z) is promoted or this data
+    # is deliberately retired.
+    cnpg.io/fencedInstances: '["*"]'
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7

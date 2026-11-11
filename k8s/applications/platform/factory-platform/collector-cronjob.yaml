@@ -9,6 +9,11 @@ metadata:
 spec:
   suspend: true # PLT-168: reactivate only after pg2 is verified
   schedule: "0,30 * * * *"
+  # Temporary suspension (PLT-168), not removal. Reason: CNPG factory-platform-postgresql
+  # down since 2026-10-29; the collector fails every 30 min with retries.
+  # Owner: Paul. Reactivation: CNPG restored and healthy, then one controlled run.
+  # Still part of the vision: Factory delivery metrics for model evaluation.
+  suspend: true
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
   successfulJobsHistoryLimit: 2
