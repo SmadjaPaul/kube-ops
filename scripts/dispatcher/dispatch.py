@@ -158,31 +158,88 @@ def claude_command(issue: dict, lane: str) -> list[str]:
     return cmd
 
 
+BLOCAGE_NONE = {"", "aucun", "aucune", "non", "rien", "-", "n/a"}
+
+
+def has_blocker(result: str) -> bool:
+    """True when the session's 5-line report has a non-empty `Blocage ...` line."""
+    for line in result.splitlines():
+        head, sep, rest = line.partition(":")
+        key = head.strip().strip("*-• ").lower()
+        if sep and key.startswith("blocage") and rest.strip(" *.").lower() not in BLOCAGE_NONE:
+            return True
+    return False
+
+
+def issue_outcome(ok: bool, result: str) -> str:
+    """Measure-line outcome: pr-valide | blocage | echec. The PR claim is the session's own."""
+    if not ok:
+        return "echec"
+    return "blocage" if has_blocker(result) else "pr-valide"
+
+
+def count_subagents(data: dict) -> int | None:
+    """Sub-agent count if the JSON exposes one (`subagents`: list or int); else None (n/a)."""
+    value = data.get("subagents")
+    if isinstance(value, list):
+        return len(value)
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    return None
+
+
 def summarize_run(returncode: int, stdout: str, stderr: str) -> dict:
-    """Parse `claude -p --output-format json`; never raises."""
+    """Parse `claude -p --output-format json`; never raises.
+
+    Token fields are None when the JSON carries no `usage` object (crash, timeout),
+    so the measure line prints n/a instead of a misleading 0.
+    """
     try:
         data = json.loads(stdout)
     except (json.JSONDecodeError, TypeError):
         data = {}
-    usage = data.get("usage") or {}
+    if not isinstance(data, dict):
+        data = {}
+    usage = data.get("usage") if isinstance(data.get("usage"), dict) else None
+
+    def token(key: str) -> int | None:
+        return None if usage is None else usage.get(key, 0)
+
     subtype = data.get("subtype") or ("success" if returncode == 0 else "error")
     ok = returncode == 0 and bool(data) and not data.get("is_error") and subtype == "success"
     cause = None
     if not ok:
         # Never copy raw stderr into Linear: it may carry tokens or URLs.
         cause = subtype if data else f"exit {returncode}, stderr: {len((stderr or '').encode())} octets"
+    result = (data.get("result") or "").strip()
     return {
         "ok": ok,
         "cause": cause,
         "subtype": subtype,
-        "result": (data.get("result") or "").strip(),
+        "result": result,
         "num_turns": data.get("num_turns"),
         "cost_usd": data.get("total_cost_usd"),
-        "tokens_in": usage.get("input_tokens", 0),
-        "tokens_out": usage.get("output_tokens", 0),
-        "cache_read": usage.get("cache_read_input_tokens", 0),
-        "cache_write": usage.get("cache_creation_input_tokens", 0),
+        "tokens_in": token("input_tokens"),
+        "tokens_out": token("output_tokens"),
+        "cache_read": token("cache_read_input_tokens"),
+        "cache_write": token("cache_creation_input_tokens"),
+        "sub_agents": count_subagents(data),
+        "outcome": issue_outcome(ok, result),
     }
+
+
+def _n(value, fmt: str = "{}") -> str:
+    return "n/a" if value is None else fmt.format(value)
+
+
+def measure_line(run: dict) -> str:
+    """Stable one-line measure, parsed by key=value: keep key order and names."""
+    return (
+        f"mesure: in={_n(run['tokens_in'])} out={_n(run['tokens_out'])} "
+        f"cache_read={_n(run['cache_read'])} cache_create={_n(run['cache_write'])} "
+        f"tours={_n(run['num_turns'])} sous_agents={_n(run['sub_agents'])} "
+        f"cout_usd={_n(run['cost_usd'], '{:.4f}')} issue={run['outcome']}"
+    )
 
 
 def checkpoint_body(issue: dict, lane: str, run: dict) -> str:
@@ -192,10 +249,11 @@ def checkpoint_body(issue: dict, lane: str, run: dict) -> str:
         f"**Checkpoint dispatcher** (voie {lane}, {prof['model']}/{prof['effort']}, "
         f"max {prof['max_turns']} tours, budget {prof['budget_usd']:.2f} USD)",
         f"- Issue : {'succès' if run['ok'] else 'échec — ' + str(run['cause'])}",
-        f"- Tours : {run['num_turns']}",
-        f"- Tokens : entrée {run['tokens_in']}, sortie {run['tokens_out']}, "
-        f"cache lu {run['cache_read']}, cache écrit {run['cache_write']}",
+        f"- Tours : {_n(run['num_turns'])}",
+        f"- Tokens : entrée {_n(run['tokens_in'])}, sortie {_n(run['tokens_out'])}, "
+        f"cache lu {_n(run['cache_read'])}, cache écrit {_n(run['cache_write'])}",
         f"- Coût estimé : {cost}",
+        measure_line(run),
     ]
     if run["result"]:
         lines += ["", "\n".join(run["result"].splitlines()[:5])]

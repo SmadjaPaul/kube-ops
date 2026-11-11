@@ -121,6 +121,58 @@ class RunSummaryTests(unittest.TestCase):
         self.assertNotIn("boom", run["cause"])
         self.assertIn("4 octets", run["cause"])
 
+    def test_measure_line_full(self):
+        out = json.dumps({"subtype": "success", "is_error": False, "num_turns": 7,
+                          "result": "PR https://github.com/x/y/pull/1\nChecks: ok\n"
+                                    "Etat: Done\nBlocage éventuel : aucun\nSuite: rien",
+                          "total_cost_usd": 0.42, "subagents": [{"id": 1}, {"id": 2}],
+                          "usage": {"input_tokens": 10, "output_tokens": 20,
+                                    "cache_read_input_tokens": 30, "cache_creation_input_tokens": 40}})
+        run = dispatch.summarize_run(0, out, "")
+        self.assertEqual(run["outcome"], "pr-valide")
+        self.assertEqual(run["sub_agents"], 2)
+        issue = load("queue.json")["queue"][0]
+        body = dispatch.checkpoint_body(issue, "local", run)
+        self.assertIn("- Issue : succès", body)  # existing lines unchanged
+        self.assertIn("- Tours : 7", body)
+        self.assertIn("0.4200 USD", body)
+        self.assertIn("mesure: in=10 out=20 cache_read=30 cache_create=40 tours=7 "
+                      "sous_agents=2 cout_usd=0.4200 issue=pr-valide", body.splitlines())
+
+    def test_measure_line_unknowns_are_na(self):
+        # No usage object, no cost, no sub-agent field: every unknown prints n/a, never 0.
+        out = json.dumps({"subtype": "success", "is_error": False, "result": "PR #2"})
+        run = dispatch.summarize_run(0, out, "")
+        self.assertIsNone(run["tokens_in"])
+        self.assertIn("mesure: in=n/a out=n/a cache_read=n/a cache_create=n/a tours=n/a "
+                      "sous_agents=n/a cout_usd=n/a issue=pr-valide", dispatch.measure_line(run))
+
+    def test_measure_line_crash_is_echec(self):
+        run = dispatch.summarize_run(-1, "", "")
+        line = dispatch.measure_line(run)
+        self.assertTrue(line.endswith("issue=echec"))
+        self.assertIn("in=n/a", line)
+
+    def test_blocage_line_marks_blocage(self):
+        out = json.dumps({"subtype": "success", "is_error": False,
+                          "result": "PR none\nEtat: In Progress\nChecks: non lancés\n"
+                                    "Blocage éventuel : Needs-operator, accès Doppler\nSuite: attente Paul",
+                          "usage": {}})
+        run = dispatch.summarize_run(0, out, "")
+        self.assertTrue(run["ok"])
+        self.assertEqual(run["outcome"], "blocage")
+        self.assertTrue(dispatch.measure_line(run).endswith("issue=blocage"))
+
+    def test_subagents_non_numeric_is_na(self):
+        self.assertIsNone(dispatch.count_subagents({}))
+        self.assertIsNone(dispatch.count_subagents({"subagents": True}))
+        self.assertEqual(dispatch.count_subagents({"subagents": 3}), 3)
+
+    def test_blocker_detection_ignores_empty_values(self):
+        self.assertFalse(dispatch.has_blocker("Blocage éventuel : aucun"))
+        self.assertFalse(dispatch.has_blocker("**Blocage éventuel** : -"))
+        self.assertTrue(dispatch.has_blocker("**Blocage éventuel** : Doppler absent"))
+
 
 class DryRunTests(unittest.TestCase):
     """End-to-end dry-run on a snapshot: no key, no network, no subprocess."""
