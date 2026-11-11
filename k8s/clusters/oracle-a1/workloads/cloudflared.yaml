@@ -1,5 +1,5 @@
-# Outbound-only dedicated pilot tunnel; ingress (tv-pilot -> polyfin) is
-# declared in homelab-infra terraform/cloudflare/oracle-pilot.tf.
+# Outbound-only dedicated Oracle A1 tunnel; ingress (tv-pilot -> polyfin) is
+# declared in homelab-infra terraform/cloudflare/oracle-a1.tf.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

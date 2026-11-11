@@ -1,5 +1,5 @@
-# Pilot-only Postgres (CNPG/Barman is not installed on the pilot). Polyfin data
-# on the pilot is disposable until the switch is decided.
+# Oracle A1 Postgres (CNPG/Barman is not installed on Oracle A1). Polyfin data
+# on Oracle A1 is disposable until the switch is decided.
 apiVersion: v1
 kind: Service
 metadata:

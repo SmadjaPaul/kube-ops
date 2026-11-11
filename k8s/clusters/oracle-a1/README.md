@@ -1,19 +1,19 @@
-# Oracle A1 pilot (D-2026-11-11-07) — STAGED, not in any ApplicationSet
+# Oracle A1 (D-2026-11-11-07) — STAGED, not in any ApplicationSet
 
 Two independent kustomizations. Neither is listed in
 `k8s/bootstrap/argocd-root`, so merging this directory deploys nothing.
 
 - `argo/` (home cluster, namespace `argocd`): ExternalSecret that builds the
-  Argo cluster Secret for the pilot k3s, an AppProject limited to that
+  Argo cluster Secret for the Oracle A1 k3s, an AppProject limited to that
   destination, and a MANUAL-sync Application. Activate by adding `argo/` to
-  `bootstrap/argocd-root` only after Doppler holds `ORACLE_PILOT_API_SERVER` and
-  `ORACLE_PILOT_ARGO_BEARER_TOKEN` (otherwise the ExternalSecret errors).
-- `workloads/` (pilot k3s, namespace `media`): AIOStreams, Polyfin, plain
-  Postgres, cloudflared (dedicated pilot tunnel) and the idle-reclamation
+  `bootstrap/argocd-root` only after Doppler holds `ORACLE_A1_API_SERVER` and
+  `ORACLE_A1_ARGO_BEARER_TOKEN` (otherwise the ExternalSecret errors).
+- `workloads/` (Oracle A1 k3s, namespace `media`): AIOStreams, Polyfin, plain
+  Postgres, cloudflared (dedicated Oracle A1 tunnel) and the idle-reclamation
   memory floor. arm64 images (manifest lists verified 2026-11-11); tags are
-  pinned, digests to be recorded on the pilot (existing digests are amd64).
+  pinned, digests to be recorded on Oracle A1 (existing digests are amd64).
 
-Prerequisites on the pilot cluster (homelab-infra bootstrap, not Git-synced
+Prerequisites on the Oracle A1 cluster (homelab-infra bootstrap, not Git-synced
 from here): External Secrets Operator and a `ClusterSecretStore/doppler-cluster`
 backed by a Doppler token Secret injected once by the operator.
 
