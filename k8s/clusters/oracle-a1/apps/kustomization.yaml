@@ -6,3 +6,5 @@ resources:
   - cnpg-cluster.yaml
   - cloudflared.yaml
   - media.yaml
+  - ntfy.yaml
+  - gatus.yaml
