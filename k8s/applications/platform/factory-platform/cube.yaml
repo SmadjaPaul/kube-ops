@@ -16,7 +16,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: cube
-          image: cubejs/cube@sha256:a84bae164de5d6b6a8ab3f5e6bb55f62a17dbc31021aa85d8a226ebc1e52eb5c
+          image: cubejs/cube@sha256:3bb957753fc834a8143b48dfef467e6ab13c21a710e6a7b5fb484d7f9d6e76d8
           ports: [{name: http, containerPort: 4000}]
           env:
             - {name: CUBEJS_DB_TYPE, value: postgres}
