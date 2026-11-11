@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - runner-application.yaml
   - egress-networkpolicy.yaml
+  - oci-api-egress-networkpolicy.yaml
