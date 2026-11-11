@@ -1,0 +1,86 @@
+# Cluster-local Argo CD (D-2026-11-11-17): pull mode, no ingress, no SSO.
+# Break-glass access is the local admin account over port-forward/NetBird.
+configs:
+  cm:
+    create: true
+    application.resourceTrackingMethod: annotation
+    admin.enabled: true
+    kustomize.buildOptions: '--enable-helm'
+    # Argo CD 3.x no longer assesses child Application health by default;
+    # without it the root would not wait for sync-wave 0 (ESO, CNPG CRDs).
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {status = "Progressing", message = "Waiting for the child Application to be Synced and Healthy"}
+      if obj.status ~= nil and obj.status.health ~= nil and obj.status.sync ~= nil then
+        if obj.status.health.status == "Healthy" and obj.status.sync.status == "Synced" then
+          hs.status = "Healthy"
+          hs.message = obj.status.health.message or ""
+        elseif obj.status.health.status == "Degraded" then
+          hs.status = "Degraded"
+          hs.message = obj.status.health.message or ""
+        end
+      end
+      return hs
+  params:
+    server.insecure: true
+    controller.diff.server.side: true
+    reposerver.parallelism.limit: "1"
+    controller.sync.timeout.seconds: "1800"
+  rbac:
+    policy.default: role:readonly
+
+global:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+
+crds:
+  install: true
+  keep: true
+
+dex:
+  enabled: false
+notifications:
+  enabled: false
+applicationSet:
+  enabled: false
+
+controller:
+  replicas: 1
+  resources:
+    requests: {cpu: 25m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  emptyDir: {sizeLimit: 1Gi}
+server:
+  replicas: 1
+  resources:
+    requests: {cpu: 10m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  emptyDir: {sizeLimit: 256Mi}
+repoServer:
+  replicas: 1
+  resources:
+    requests: {cpu: 25m, memory: 128Mi}
+    limits: {cpu: "1", memory: 512Mi}
+  emptyDir: {sizeLimit: 2Gi}
+redis:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}
+    limits: {cpu: 250m, memory: 128Mi}
+redisSecretInit:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
