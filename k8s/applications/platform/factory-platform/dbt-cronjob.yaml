@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/component: dbt
 spec:
   schedule: "5,35 * * * *"
+  suspend: true
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
   successfulJobsHistoryLimit: 2
