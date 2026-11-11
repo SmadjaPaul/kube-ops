@@ -54,6 +54,7 @@ check:
     bash tests/harness/bookorbit-staged-contract-test.sh
     bash tests/harness/media-retired-contract-test.sh
     bash tests/harness/d-recovery-contract-test.sh
+    python3 -m unittest discover -s scripts/dispatcher/tests
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:
@@ -75,6 +76,12 @@ check-affected:
 [doc('Validate canonical operator Kubernetes access; auto-bootstrap from Doppler, never from ~/.kube')]
 kube-access-check:
     bash -c 'source scripts/lib/kube-preflight.sh; require_kube_access'
+
+[doc('Linear dispatcher (D-12/D-20): just dispatch --lane local|cloud [--dry-run]; LINEAR_API_KEY via doppler run')]
+dispatch *ARGS:
+    if [ -z "${LINEAR_API_KEY:-}" ] && command -v doppler >/dev/null; then \
+      exec doppler run -p "${DISPATCH_DOPPLER_PROJECT:-infrastructure}" -c "${DISPATCH_DOPPLER_CONFIG:-prd}" -- python3 scripts/dispatcher/dispatch.py "$@"; \
+    else exec python3 scripts/dispatcher/dispatch.py "$@"; fi
 
 [doc('Read-only Argo/Gateway/workload runtime inventory')]
 runtime-inventory:

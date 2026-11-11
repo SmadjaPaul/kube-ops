@@ -1,0 +1,148 @@
+{
+ "now": "2026-11-11T12:00:00Z",
+ "locked": [
+  {
+   "id": "uuid-PLT-40",
+   "identifier": "PLT-40",
+   "title": "t PLT-40",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-wip:claude-local",
+      "name": "wip:claude-local"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": [
+     {
+      "createdAt": "2026-11-11T06:00:00Z"
+     },
+     {
+      "createdAt": "2026-11-11T10:30:00Z"
+     }
+    ]
+   }
+  },
+  {
+   "id": "uuid-PLT-41",
+   "identifier": "PLT-41",
+   "title": "t PLT-41",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-11T11:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-wip:claude-local",
+      "name": "wip:claude-local"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": [
+     {
+      "createdAt": "2026-11-11T08:59:00Z"
+     }
+    ]
+   }
+  },
+  {
+   "id": "uuid-PLT-42",
+   "identifier": "PLT-42",
+   "title": "t PLT-42",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-11T10:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-wip:claude-local",
+      "name": "wip:claude-local"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-43",
+   "identifier": "PLT-43",
+   "title": "t PLT-43",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-11T08:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-wip:claude-local",
+      "name": "wip:claude-local"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  }
+ ]
+}
