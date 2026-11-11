@@ -11,6 +11,8 @@ metadata:
     # factory-platform-pg2 (PITR 2026-10-29T00:35:32Z) is promoted or this data
     # is deliberately retired.
     cnpg.io/fencedInstances: '["*"]'
+    # Never let Argo prune this Cluster: CNPG would delete its PVCs with it.
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7
