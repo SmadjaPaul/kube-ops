@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ntfy
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: oracle-a1
+  source:
+    repoURL: https://github.com/SmadjaPaul/kube-ops.git
+    targetRevision: main
+    path: k8s/clusters/oracle-a1/ntfy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ntfy
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
