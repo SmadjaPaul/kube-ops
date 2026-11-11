@@ -73,6 +73,14 @@ spec:
     - ports:
       - port: "9000"
         protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: librechat
+        app.kubernetes.io/name: librechat-librechat
+    toPorts:
+    - ports:
+      - port: "9000"
+        protocol: TCP
   egress:
   - toEndpoints:
     - matchLabels:
