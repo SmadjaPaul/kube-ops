@@ -2,8 +2,10 @@
 set -euo pipefail
 
 for cmd in kubectl jq curl dig python3; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
+source "$(dirname "$0")/lib/output-mode.sh"
+mode="$(resolve_output_mode "${OUTPUT:-}")"
 source "$(dirname "$0")/lib/kube-preflight.sh"
-require_kube_access
+if [[ "$mode" == full ]]; then require_kube_access; else require_kube_access >/dev/null; fi
 
 # OpenClaw's controller owns the generated HTTPRoute and publishes the
 # disablement state on the owning OpenClawInstance.  Keep this lookup generic:
@@ -62,6 +64,9 @@ mkdir -p "$artifact_dir"
 ARTIFACT_DIR="$artifact_dir"
 report="$ARTIFACT_DIR/results.jsonl"
 : >"$report"
+emit_row() {
+  if [[ "$mode" == full ]]; then tee -a "$report"; else cat >>"$report"; fi
+}
 
 routes="$(kubectl get httproutes.gateway.networking.k8s.io -A -o json)"
 keda_interceptor_routes='{"items":[]}'
@@ -156,7 +161,7 @@ while IFS= read -r route; do
         --arg result SKIPPED_DISABLED_BY_DESIGN --arg reason "$disabled_reason" \
         --argjson readyEndpoints "$endpoint_count" \
         '{namespace:$namespace,route:$route,host:$host,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),readyEndpoints:$readyEndpoints,result:$result,routePass:"NOT_EXECUTED",workloadPass:"NOT_MEASURED",functionalPass:"NOT_EXECUTED",reasons:$reason,disabledByDesign:true}' \
-        | tee -a "$report"
+        | emit_row
       continue
     fi
     tested=$((tested + 1))
@@ -206,10 +211,26 @@ raise SystemExit(0 if addresses and all(address.is_global for address in address
     reason_csv="$(IFS=,; echo "${reasons[*]:-}")"
     route_pass=false
     [[ "$result" == PASS ]] && route_pass=true
-    jq -nc       --arg namespace "$ns" --arg route "$name" --arg host "$host" --arg dnsSource "$dns_source"       --arg accepted "$accepted" --arg resolvedRefs "$refs"       --arg dns "$dns_answers" --arg code "$code" --arg result "$result"       --arg reasons "$reason_csv" --argjson routePass "$route_pass" --argjson readyEndpoints "$endpoint_count"       --argjson httpAttempts "$http_attempts" --argjson kedaManaged "$keda_managed"       '{namespace:$namespace,route:$route,host:$host,dnsSource:$dnsSource,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),dns:$dns,httpStatus:$code,httpAttempts:$httpAttempts,kedaManaged:$kedaManaged,readyEndpoints:$readyEndpoints,result:$result,routePass:$routePass,workloadPass:"NOT_MEASURED",functionalPass:"NOT_EXECUTED",reasons:($reasons|if length > 0 then . else null end),disabledByDesign:false}'       | tee -a "$report"
+    jq -nc       --arg namespace "$ns" --arg route "$name" --arg host "$host" --arg dnsSource "$dns_source"       --arg accepted "$accepted" --arg resolvedRefs "$refs"       --arg dns "$dns_answers" --arg code "$code" --arg result "$result"       --arg reasons "$reason_csv" --argjson routePass "$route_pass" --argjson readyEndpoints "$endpoint_count"       --argjson httpAttempts "$http_attempts" --argjson kedaManaged "$keda_managed"       '{namespace:$namespace,route:$route,host:$host,dnsSource:$dnsSource,accepted:($accepted=="true"),resolvedRefs:($resolvedRefs=="true"),dns:$dns,httpStatus:$code,httpAttempts:$httpAttempts,kedaManaged:$kedaManaged,readyEndpoints:$readyEndpoints,result:$result,routePass:$routePass,workloadPass:"NOT_MEASURED",functionalPass:"NOT_EXECUTED",reasons:($reasons|if length > 0 then . else null end),disabledByDesign:false}'       | emit_row
   done < <(jq -r '.spec.hostnames[]?' <<<"$route")
 done < <(jq -c '.items[]' <<<"$routes")
 
+if [[ "$mode" != full ]]; then
+  evidence="$(evidence_file smoke)"
+  cp "$report" "$evidence"
+  if [[ "$mode" == errors ]]; then
+    jq -r 'select(.result == "FAIL") | "FAIL \(.namespace)/\(.route) \(.host) \(.reasons)"' "$report"
+  fi
+  last_error="$(jq -r 'select(.result == "FAIL") | "\(.host) \(.reasons)"' "$report" | tail -1)"
+  echo "TESTED=$tested"
+  echo "FAILURES=$failures"
+  echo "SKIPPED=$skipped_disabled_by_design"
+  echo "LAST_ERROR=${last_error:-none}"
+  if (( failures == 0 )); then echo "VERIFY=PASS"; else echo "VERIFY=FAIL"; fi
+  echo "EVIDENCE=$evidence"
+  (( failures == 0 ))
+  exit $?
+fi
 echo "RUNTIME_SMOKE_TESTED=$tested"
 echo "RUNTIME_SMOKE_FAILURES=$failures"
 echo "RUNTIME_SMOKE_SKIPPED_DISABLED_BY_DESIGN=$skipped_disabled_by_design"
