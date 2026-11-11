@@ -1,0 +1,786 @@
+{
+ "queue": [
+  {
+   "id": "uuid-PLT-1",
+   "identifier": "PLT-1",
+   "title": "t PLT-1",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Agent personnel"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-2",
+   "identifier": "PLT-2",
+   "title": "t PLT-2",
+   "url": "",
+   "priority": 0,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Factory et automatisation"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:haiku",
+      "name": "agent:haiku"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-3",
+   "identifier": "PLT-3",
+   "title": "t PLT-3",
+   "url": "",
+   "priority": 4,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Factory et automatisation"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:opus",
+      "name": "agent:opus"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-4",
+   "identifier": "PLT-4",
+   "title": "t PLT-4",
+   "url": "",
+   "priority": 2,
+   "createdAt": "2026-11-05T00:00:00Z",
+   "updatedAt": "2026-11-05T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-5",
+   "identifier": "PLT-5",
+   "title": "t PLT-5",
+   "url": "",
+   "priority": 2,
+   "createdAt": "2026-11-02T00:00:00Z",
+   "updatedAt": "2026-11-02T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-6",
+   "identifier": "PLT-6",
+   "title": "t PLT-6",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Services famille"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:haiku",
+      "name": "agent:haiku"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-7",
+   "identifier": "PLT-7",
+   "title": "t PLT-7",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": null,
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-8",
+   "identifier": "PLT-8",
+   "title": "t PLT-8",
+   "url": "",
+   "priority": 0,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": [
+     {
+      "type": "blocks",
+      "issue": {
+       "identifier": "PLT-90",
+       "state": {
+        "type": "completed"
+       }
+      }
+     },
+     {
+      "type": "blocks",
+      "issue": {
+       "identifier": "PLT-91",
+       "state": {
+        "type": "canceled"
+       }
+      }
+     },
+     {
+      "type": "related",
+      "issue": {
+       "identifier": "PLT-92",
+       "state": {
+        "type": "started"
+       }
+      }
+     }
+    ]
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-20",
+   "identifier": "PLT-20",
+   "title": "t PLT-20",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:codex",
+      "name": "agent:codex"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-21",
+   "identifier": "PLT-21",
+   "title": "t PLT-21",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-Needs-operator",
+      "name": "Needs-operator"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-22",
+   "identifier": "PLT-22",
+   "title": "t PLT-22",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-Différé",
+      "name": "Différé"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-23",
+   "identifier": "PLT-23",
+   "title": "t PLT-23",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:cloud",
+      "name": "exec:cloud"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-24",
+   "identifier": "PLT-24",
+   "title": "t PLT-24",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-25",
+   "identifier": "PLT-25",
+   "title": "t PLT-25",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": [
+     {
+      "type": "blocks",
+      "issue": {
+       "identifier": "PLT-93",
+       "state": {
+        "type": "started"
+       }
+      }
+     }
+    ]
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-26",
+   "identifier": "PLT-26",
+   "title": "t PLT-26",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Backlog",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-27",
+   "identifier": "PLT-27",
+   "title": "t PLT-27",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-28",
+   "identifier": "PLT-28",
+   "title": "t PLT-28",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-agent:opus",
+      "name": "agent:opus"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-29",
+   "identifier": "PLT-29",
+   "title": "t PLT-29",
+   "url": "",
+   "priority": 1,
+   "createdAt": "2026-11-01T00:00:00Z",
+   "updatedAt": "2026-11-01T00:00:00Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-wip:claude-cloud",
+      "name": "wip:claude-cloud"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  }
+ ]
+}
