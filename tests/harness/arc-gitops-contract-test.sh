@@ -63,7 +63,7 @@ assert_yq "$runner_values | .securityContext.runAsGroup" '1001'
 assert_yq "$runner_values | .securityContext.fsGroup" '1001'
 assert_yq "$runner_values | .securityContext.fsGroupChangePolicy" 'OnRootMismatch'
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .image" \
-  'ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807'
+  'ghcr.io/smadjapaul/factory-ci-arc@sha256:17ea282d02b71da140ee6b6aa25793fb7c8d02fd44429769861ac8752b27a27f'
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .securityContext.allowPrivilegeEscalation" 'false'
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | (.securityContext.capabilities.drop | join(\",\"))" 'ALL'
 assert_yq "$runner_values | .containers[] | select(.name == \"runner\") | .securityContext.seccompProfile.type" 'RuntimeDefault'
