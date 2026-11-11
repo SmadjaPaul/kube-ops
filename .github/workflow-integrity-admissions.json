@@ -264,6 +264,17 @@
       "reason": "PLT-196 : admission propriétaire de la recette just OUTPUT=summary|errors|full ; aucun changement du gate, du vérificateur ni des protections de branche.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1243,
+      "changeFingerprint": "946e11463421da71bef57e7b9e19af96318afdca3852b0e78aa17038fa6fb050",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-56: contrat ARC étendu au scale set Factory léger sans PostgreSQL (aucun sidecar, image identique, egress minimal).",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-18T12:00:00Z"
     }
   ]
 }
