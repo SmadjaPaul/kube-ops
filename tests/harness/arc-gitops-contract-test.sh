@@ -101,6 +101,12 @@ assert_yq "$light_runner_values | .template.spec.automountServiceAccountToken" '
 assert_yq "$light_runner_values | .template.spec.securityContext.runAsNonRoot" 'true'
 assert_yq "$light_runner_values | .template.spec.securityContext.runAsUser" '1001'
 assert_yq "$light_runner_values | .template.spec.securityContext.fsGroup" '1001'
+assert_yq "$light_runner_values | .template.spec.securityContext.runAsGroup" '1001'
+assert_yq "$light_runner_values | .template.spec | has(\"serviceAccountName\")" 'false'
+assert_yq "$light_runner_values | .template.spec | (has(\"hostNetwork\") or has(\"hostPID\") or has(\"hostIPC\"))" 'false'
+assert_yq "$light_runner_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
+assert_yq "$light_runner_values | .template.spec.containers[0].resources | [.requests.cpu, .requests.memory, .requests.\"ephemeral-storage\", .limits.cpu, .limits.memory, .limits.\"ephemeral-storage\"] | join(\",\")" \
+  '250m,512Mi,512Mi,2,2Gi,4Gi'
 assert_yq "$light_runner_values | (.template.spec.imagePullSecrets | map(.name) | join(\",\"))" 'arc-factory-ghcr-pull'
 # No PostgreSQL (or any other) sidecar and no volume on the light scale set.
 assert_yq "$light_runner_values | .template.spec.containers | length" '1'
@@ -117,6 +123,18 @@ assert_yq "$light_download_policy | .metadata.namespace" 'arc-runners'
 assert_yq "$light_download_policy | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'factory-ci-arc-light'
 assert_yq "$light_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
   'api.nuget.org,files.pythonhosted.org,nodejs.org,pypi.org,raw.githubusercontent.com,registry.npmjs.org,release-assets.githubusercontent.com'
+assert_yq "$light_download_policy | .spec | has(\"enableDefaultDeny\")" 'false'
+assert_yq "$light_download_policy | .spec.egress | length" '2'
+assert_yq "$light_download_policy | [.spec.egress[]?.toFQDNs[]?.matchPattern] | length" '0'
+assert_yq "$light_download_policy | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toCIDRSet[]?, .spec.egress[]?.toEntities[]?, .spec.egress[]?.toServices[]?] | length" '0'
+assert_yq "$light_download_policy | .spec.egress[0].toEndpoints | length" '1'
+assert_yq "$light_download_policy | .spec.egress[0].toEndpoints[0].matchLabels.\"k8s:io.kubernetes.pod.namespace\"" 'kube-system'
+assert_yq "$light_download_policy | .spec.egress[0].toEndpoints[0].matchLabels.\"k8s:k8s-app\"" 'kube-dns'
+assert_yq "$light_download_policy | [.spec.egress[0].toPorts[0].ports[] | (.port + \"/\" + .protocol)] | sort | join(\",\")" \
+  '53/TCP,53/UDP'
+assert_yq "$light_download_policy | [.spec.egress[1].toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" \
+  '443/TCP'
+assert_yq "$light_download_policy | [.spec.egress[1] | keys | .[]] | sort | join(\",\")" 'toFQDNs,toPorts'
 
 homelab_runner_values='select(.kind == "Application" and .metadata.name == "apps-arc-homelab-infra-ci") | .spec.source.helm.valuesObject'
 assert_yq "$homelab_runner_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/homelab-infra'
