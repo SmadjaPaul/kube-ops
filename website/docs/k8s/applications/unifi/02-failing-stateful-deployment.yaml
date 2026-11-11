@@ -52,9 +52,7 @@ spec:
 ###############################################################################
 # Secret with MongoDB credentials
 ###############################################################################
-# To generate your own password base64:
-#   echo -n "mynewpassword" | base64
-# Then replace the below 'c3VwZXJzZWNyZXQK' with your new base64 string.
+# Replace the placeholder locally; do not commit a real password.
 ###############################################################################
 apiVersion: v1
 kind: Secret
@@ -62,8 +60,8 @@ metadata:
   name: unifi-mongo-credentials
   namespace: unifi
 type: Opaque
-data:
-  password: "c3VwZXJzZWNyZXQK"
+stringData:
+  password: "replace-with-a-local-password"
 
 ---
 ###############################################################################
