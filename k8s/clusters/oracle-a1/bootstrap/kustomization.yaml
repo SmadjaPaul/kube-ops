@@ -17,3 +17,41 @@ helmCharts:
     repo: https://argoproj.github.io/argo-helm
     version: 10.3.3
     valuesFile: values.yaml
+
+# Chart 10.3.3 omits hostNetwork/hostPID/hostIPC; k8s/CLAUDE.md requires them
+# explicit. Covers controller (StatefulSet), server, repo-server, redis
+# (Deployments) and the redis-secret-init Job.
+patches:
+  - target: {kind: Deployment}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/hostNetwork
+        value: false
+      - op: add
+        path: /spec/template/spec/hostPID
+        value: false
+      - op: add
+        path: /spec/template/spec/hostIPC
+        value: false
+  - target: {kind: StatefulSet}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/hostNetwork
+        value: false
+      - op: add
+        path: /spec/template/spec/hostPID
+        value: false
+      - op: add
+        path: /spec/template/spec/hostIPC
+        value: false
+  - target: {kind: Job}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/hostNetwork
+        value: false
+      - op: add
+        path: /spec/template/spec/hostPID
+        value: false
+      - op: add
+        path: /spec/template/spec/hostIPC
+        value: false
