@@ -8,6 +8,13 @@ Usage:
   doppler run -- python3 scripts/dispatcher/dispatch.py --lane local [--dry-run]
   python3 scripts/dispatcher/dispatch.py --lane local --dry-run --snapshot FILE
 
+Concurrency: after posting its lock, the dispatcher re-reads the lane's
+wip:claude-<lane> tickets; if another locked ticket sorts before its own
+(updatedAt, identifier), it removes its lock and exits. Remaining limit: Linear
+has no compare-and-set, so two dispatchers that pick the SAME ticket at the
+same moment both see a single lock and both run. Run one dispatcher per lane
+(one scheduler entry) to stay out of that window.
+
 Environment:
   LINEAR_API_KEY   Linear API key (names only in Git; value from Doppler).
   DISPATCH_PERMISSION_MODE  claude --permission-mode (default: auto).
@@ -28,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import selection as sel  # noqa: E402
 
 API_URL = "https://api.linear.app/graphql"
-CLAUDE_TIMEOUT_S = 3 * 60 * 60  # never outlive the lock TTL
+CLAUDE_TIMEOUT_S = 2 * 60 * 60 + 45 * 60  # 2 h 45: stays under the 3 h lock TTL
 
 ISSUE_FIELDS = """
   id identifier title url priority createdAt updatedAt
@@ -162,7 +169,8 @@ def summarize_run(returncode: int, stdout: str, stderr: str) -> dict:
     ok = returncode == 0 and bool(data) and not data.get("is_error") and subtype == "success"
     cause = None
     if not ok:
-        cause = subtype if data else f"exit {returncode}: {(stderr or stdout or '').strip()[-300:]}"
+        # Never copy raw stderr into Linear: it may carry tokens or URLs.
+        cause = subtype if data else f"exit {returncode}, stderr: {len((stderr or '').encode())} octets"
     return {
         "ok": ok,
         "cause": cause,
@@ -207,28 +215,30 @@ def load_snapshot(path: str) -> tuple[list[dict], list[dict]]:
     return data.get("queue", []), data.get("locked", [])
 
 
-def run(args: argparse.Namespace) -> int:
+def run(args: argparse.Namespace, linear: "Linear | None" = None) -> int:
     lane, lock = args.lane, sel.lock_label(args.lane)
     now = sel.utcnow()
     if args.snapshot:
         if not args.dry_run:
             raise DispatchError("--snapshot n'est accepté qu'avec --dry-run")
-        queue, locked, linear = *load_snapshot(args.snapshot), None
+        queue, locked = load_snapshot(args.snapshot)
     else:
-        key = os.environ.get("LINEAR_API_KEY")
-        if not key:
-            raise DispatchError("LINEAR_API_KEY absent : lancer via `doppler run` (nom seul dans Git)")
-        linear = Linear(key)
+        if linear is None:
+            key = os.environ.get("LINEAR_API_KEY")
+            if not key:
+                raise DispatchError("LINEAR_API_KEY absent : lancer via `doppler run` (nom seul dans Git)")
+            linear = Linear(key)
         locked, queue = linear.locked(lane), linear.queue()
 
     prefix = "[dry-run] " if args.dry_run else ""
     active, expired = sel.classify_locks(locked, now)
     for issue in expired:
-        print(f"{prefix}verrou expiré (> 3 h sans commentaire) : {issue['identifier']} -> retrait")
+        print(f"{prefix}verrou expiré (> 3 h sans commentaire) : {issue['identifier']} -> retrait, retour en Todo")
         if linear and not args.dry_run:
             linear.remove_label(issue["id"], linear.label_id(lock))
-            linear.comment(issue["id"], f"Verrou `{lock}` retiré par le dispatcher : "
-                                        "aucun commentaire depuis plus de 3 h (D-12).")
+            linear.set_state(issue["id"], linear.state_id(sel.READY_STATE))
+            linear.comment(issue["id"], f"Verrou `{lock}` retiré par le dispatcher : aucun commentaire "
+                                        "depuis plus de 3 h (D-12). Ticket remis en Todo.")
 
     eligible, rejected = sel.select(queue, lane)
     for issue, reason in rejected:
@@ -248,19 +258,51 @@ def run(args: argparse.Namespace) -> int:
     if args.dry_run:
         print(f"[dry-run] poserait {lock}, passerait {issue['identifier']} In Progress, lancerait claude -p")
         return 0
+    return execute(linear, issue, lane, cmd)
 
+
+def lost_race(locked: list[dict], mine: str) -> str | None:
+    """Return the identifier of an older lock on the lane, if any."""
+    def key(i):
+        return (sel.parse_ts(i.get("updatedAt") or i["createdAt"]), i["identifier"])
+    others = [i for i in locked if i["identifier"] != mine]
+    ours = [i for i in locked if i["identifier"] == mine]
+    if not others:
+        return None
+    if not ours:
+        return min(others, key=key)["identifier"]
+    first = min(locked, key=key)
+    return None if first["identifier"] == mine else first["identifier"]
+
+
+def execute(linear: "Linear", issue: dict, lane: str, cmd: list[str]) -> int:
+    lock = sel.lock_label(lane)
     lock_id = linear.label_id(lock)
     linear.add_label(issue["id"], lock_id)
-    linear.set_state(issue["id"], linear.state_id("In Progress"))
+    result = None
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT_S, check=False)
-        result = summarize_run(proc.returncode, proc.stdout, proc.stderr)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        result = summarize_run(-1, "", f"{type(exc).__name__}: {exc}")
-    try:
+        winner = lost_race(linear.locked(lane), issue["identifier"])
+        if winner:
+            print(f"course perdue : {winner} tient déjà {lock} ; verrou retiré, sortie")
+            return 0
+        linear.set_state(issue["id"], linear.state_id("In Progress"))
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT_S, check=False)
+            result = summarize_run(proc.returncode, proc.stdout, proc.stderr)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            result = summarize_run(-1, "", "")
+            result["cause"] = type(exc).__name__
         if not result["ok"]:
             linear.set_state(issue["id"], linear.state_id(sel.READY_STATE))
         linear.comment(issue["id"], checkpoint_body(issue, lane, result))
+    except BaseException as exc:  # KeyboardInterrupt included: hand the ticket back
+        try:
+            linear.set_state(issue["id"], linear.state_id(sel.READY_STATE))
+            linear.comment(issue["id"], f"Dispatcher interrompu ({type(exc).__name__}) ; "
+                                        "ticket remis en Todo, verrou retiré.")
+        except Exception:  # noqa: BLE001 - best effort, the lock removal below matters most
+            pass
+        raise
     finally:
         linear.remove_label(issue["id"], lock_id)
     print(f"{issue['identifier']} : {'succès' if result['ok'] else 'échec ' + str(result['cause'])}, "
