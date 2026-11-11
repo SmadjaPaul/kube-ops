@@ -1,0 +1,23 @@
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-homelab-infra-hetzner-object-storage
+  namespace: arc-runners
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "Allow the homelab-infra ARC runner to read the Hetzner Object Storage state"
+  endpointSelector:
+    matchLabels:
+      k8s:actions.github.com/scale-set-name: homelab-infra-ci-arc
+  egress:
+    - toFQDNs:
+        - matchName: fsn1.your-objectstorage.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
