@@ -4,4 +4,3 @@ resources:
   - kyverno-policies.yaml
   - templates/k8spspprohibited.yaml
   - gatekeeper-constraints.yaml
-  - falco-custom-rules.yaml

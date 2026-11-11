@@ -1,23 +1,6 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: falco
-  namespace: falco
-  labels:
-    app.kubernetes.io/name: falco
-    app.kubernetes.io/part-of: security
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: falco
-  endpoints:
-  - port: metrics
-    path: /metrics
-    interval: 30s
----
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
   name: gatekeeper
   namespace: gatekeeper-system
   labels:
