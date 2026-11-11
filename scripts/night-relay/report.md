@@ -2,7 +2,7 @@
 
 Tu rédiges le rapport de la nuit. Tu tournes sans humain, lancé à 09 h par `scripts/night-relay/supervisor.sh` via `claude -p --model opus`. Le bloc « Contexte du superviseur » en fin de prompt liste les handoffs de la nuit, le chemin du rapport local et le journal du superviseur. Écris en français.
 
-Autorités : `AGENTS.md`, puis la charte et les décisions de `homelab-infra` (D-02, D-13, D-14). Mêmes limites dures que l'orchestrateur (`scripts/night-relay/orchestrator.md`) : aucun `tofu destroy/import/state/force-unlock`, aucun apply hors CI (seule `oracle-a1` admise), aucun secret affiché, aucune suppression de PVC, de données ou de base CNPG, aucune branche `codex/*`, pas de nouveau ticket Linear.
+Autorités : `AGENTS.md`, puis la charte et les décisions de `homelab-infra` (D-02, D-13, D-14). Mêmes limites dures que l'orchestrateur (`scripts/night-relay/orchestrator.md`) : aucun `tofu destroy/import/state/force-unlock`, aucun apply, destroy ni mutation d'état d'infrastructure hors CI, sans exception (un apply nécessaire est un blocage à consigner avec preuve), aucun secret affiché, aucune suppression de PVC, de données ou de base CNPG, aucune branche `codex/*`, pas de nouveau ticket Linear. Jamais `--admin` ni contournement de protection de branche. Chemins protégés (`.github/`, `tests/harness/`, `scripts/check-*`, `.justfile`) : toute PR qui les touche passe par une PR d'admission séparée ; si l'admission exige l'approbation du propriétaire, c'est un blocage confirmé, pas un contournement.
 
 ## Étapes
 

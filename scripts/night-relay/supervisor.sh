@@ -16,7 +16,10 @@
 #   NIGHT_RELAY_HANDOFF_DIR   handoff dir (default: scripts/night-relay/handoff)
 #   START_HM=2300 STOP_HM=0830 REPORT_HM=0900 REPORT_DEADLINE_HM=1200
 #   MAX_CYCLES=12 MAX_FAILS=3 MIN_CYCLE_SECONDS=1800 ORCH_TIMEOUT=10800 REPORT_TIMEOUT=3600
+#   KILL_GRACE=30             seconds between SIGTERM and SIGKILL (timeout, signal)
 #   QUOTA_FALLBACK_SLEEP=1800 QUOTA_MIN_SLEEP=300 QUOTA_MARGIN=120
+#   QUOTA_MAX_RETRIES=4       consecutive usage-limit retries before counting a failure
+#   LOCK_RETRIES=5            retries (1 s) while the lock pid file is still empty
 #   EMPTY_SLEEP=3600 FAIL_BACKOFF=600 WINDOW_GRACE=1800
 #   LOG_MAX_BYTES=1048576 RUN_MAX_BYTES=262144 RUNS_KEEP=60
 #   CLAUDE_BIN=claude
@@ -50,6 +53,9 @@ MAX_FAILS=${MAX_FAILS:-3}
 MIN_CYCLE_SECONDS=${MIN_CYCLE_SECONDS:-1800}
 ORCH_TIMEOUT=${ORCH_TIMEOUT:-10800}
 REPORT_TIMEOUT=${REPORT_TIMEOUT:-3600}
+KILL_GRACE=${KILL_GRACE:-30}
+QUOTA_MAX_RETRIES=${QUOTA_MAX_RETRIES:-4}
+LOCK_RETRIES=${LOCK_RETRIES:-5}
 QUOTA_FALLBACK_SLEEP=${QUOTA_FALLBACK_SLEEP:-1800}
 QUOTA_MIN_SLEEP=${QUOTA_MIN_SLEEP:-300}
 QUOTA_MARGIN=${QUOTA_MARGIN:-120}
@@ -68,7 +74,10 @@ DRY_RUN_FAIL_ATTEMPTS=${DRY_RUN_FAIL_ATTEMPTS:-}
 DRY_RUN_EMPTY_ATTEMPTS=${DRY_RUN_EMPTY_ATTEMPTS:-}
 
 ATTEMPT=0          # every claude session launched (orchestrator or report)
-QUOTA_WAIT=0       # set by classify_run when a usage limit is detected
+QUOTA_WAIT=0       # set by quota_wait_from when a usage limit is detected
+SESSION_PID=""     # running claude session (killed on signal)
+WATCHDOG_PID=""    # its timeout watchdog
+SESSION_ERR=""     # its stderr file (removed on signal)
 
 # --- clock -----------------------------------------------------------------
 if date --version >/dev/null 2>&1; then GNU_DATE=1; else GNU_DATE=0; fi
@@ -194,6 +203,41 @@ quota_wait_from() { # quota_wait_from FILE... (stdout json + stderr of a FAILED 
 }
 
 # --- one claude session -------------------------------------------------------
+proc_tree() { # proc_tree PID -> PID and all its descendants
+  local c
+  echo "$1"
+  for c in $(pgrep -P "$1" 2>/dev/null); do proc_tree "$c"; done
+}
+
+kill_tree() { # kill_tree PID: SIGTERM the tree, SIGKILL survivors after KILL_GRACE
+  local pids p i
+  pids=$(proc_tree "$1")
+  # shellcheck disable=SC2086 # word splitting wanted
+  kill -TERM $pids 2>/dev/null
+  for (( i = 0; i < KILL_GRACE; i++ )); do
+    for p in $pids; do kill -0 "$p" 2>/dev/null && break; p=""; done
+    [ -n "$p" ] || return 0
+    sleep 1
+  done
+  # shellcheck disable=SC2086
+  kill -KILL $pids 2>/dev/null
+  return 0
+}
+
+stop_watchdog() {
+  [ -n "$WATCHDOG_PID" ] || return 0
+  pkill -P "$WATCHDOG_PID" 2>/dev/null; kill "$WATCHDOG_PID" 2>/dev/null; wait "$WATCHDOG_PID" 2>/dev/null
+  WATCHDOG_PID=""
+}
+
+stop_session() { # on signal/exit: kill the running session, its watchdog, drop its stderr
+  stop_watchdog
+  if [ -n "$SESSION_PID" ]; then kill_tree "$SESSION_PID"; wait "$SESSION_PID" 2>/dev/null; fi
+  SESSION_PID=""
+  if [ -n "$SESSION_ERR" ]; then rm -f "$SESSION_ERR" "$SESSION_ERR.timeout"; fi
+  SESSION_ERR=""
+}
+
 # run_session KIND MODEL PROMPT_FILE OUT_JSON ERR_FILE TIMEOUT HANDOFF_OUT
 # Returns claude's exit code (124 on timeout).
 run_session() {
@@ -203,14 +247,18 @@ run_session() {
     simulate_session "$kind" "$prompt" "$out" "$err" "$handoff" "$timeout"
     return $?
   fi
-  local pid wd rc
+  local rc
+  SESSION_ERR=$err
   (cd "$REPO" && exec "$CLAUDE_BIN" -p --model "$model" --permission-mode bypassPermissions \
      --output-format json <"$prompt") >"$out" 2>"$err" &
-  pid=$!
-  ( sleep "$timeout"; kill -TERM "$pid" 2>/dev/null; touch "$err.timeout" ) &
-  wd=$!
-  wait "$pid"; rc=$?
-  pkill -P "$wd" 2>/dev/null; kill "$wd" 2>/dev/null; wait "$wd" 2>/dev/null
+  SESSION_PID=$!
+  # watchdog: SIGTERM the session tree at timeout, SIGKILL it after KILL_GRACE,
+  # so wait below always returns
+  ( sleep "$timeout"; touch "$err.timeout"; kill_tree "$SESSION_PID" ) &
+  WATCHDOG_PID=$!
+  wait "$SESSION_PID"; rc=$?
+  stop_watchdog
+  SESSION_PID=""
   if [ -f "$err.timeout" ]; then rm -f "$err.timeout"; rc=124; fi
   return "$rc"
 }
@@ -303,7 +351,7 @@ build_prompt() { # build_prompt TEMPLATE OUT then key/value context lines on std
 
 # --- night ------------------------------------------------------------------------
 run_cycles() {
-  local cycles=0 fails=0 t n handoff prev prompt out err rc timeout statut limit
+  local cycles=0 fails=0 quotas=0 t n handoff prev prompt out err rc timeout statut limit
   while :; do
     t=$(now)
     if [ "$t" -ge "$WINDOW_END" ]; then log "fin de fenêtre $(fmt "$WINDOW_END" %H:%M)"; break; fi
@@ -332,6 +380,14 @@ EOF
     log "cycle $NIGHT-$n : lancement orchestrateur (précédent : $(basename "${prev:-aucun}"), timeout ${timeout}s)"
     run_session orchestrator sonnet "$prompt" "$out" "$err" "$timeout" "$handoff"; rc=$?
     if failed "$rc" "$out" && [ ! -f "$handoff" ] && quota_wait_from "$out" "$err"; then
+      quotas=$(( quotas + 1 ))
+    else
+      quotas=0
+    fi
+    if [ "$quotas" -gt "$QUOTA_MAX_RETRIES" ]; then
+      log "limite d'usage : $QUOTA_MAX_RETRIES nouveaux essais consécutifs déjà faits, compté comme échec"
+      quotas=0
+    elif [ "$quotas" -gt 0 ]; then
       rm -f "$err"
       t=$(now)
       if [ $(( t + QUOTA_WAIT )) -ge "$WINDOW_END" ]; then
@@ -366,7 +422,7 @@ EOF
 truncate_file() { local tmp="$1.tmp"; head -c "$RUN_MAX_BYTES" "$1" >"$tmp" && mv -f "$tmp" "$1"; }
 
 run_report() {
-  local report_at=$1 deadline prompt out err rc list report
+  local report_at=$1 deadline prompt out err rc list report quotas=0
   deadline=$(next_at "$REPORT_DEADLINE_HM" "$report_at")
   sleep_until "$report_at"
   report="$HANDOFF_DIR/$NIGHT-rapport.md"
@@ -386,6 +442,11 @@ EOF
     log "rapport : lancement (opus)"
     run_session report opus "$prompt" "$out" "$err" "$REPORT_TIMEOUT" "$report"; rc=$?
     if failed "$rc" "$out" && quota_wait_from "$out" "$err"; then
+      quotas=$(( quotas + 1 ))
+      if [ "$quotas" -gt "$QUOTA_MAX_RETRIES" ]; then
+        log "rapport : limite d'usage, $QUOTA_MAX_RETRIES nouveaux essais déjà faits, abandon"
+        break
+      fi
       if [ $(( $(now) + QUOTA_WAIT )) -ge "$deadline" ]; then
         log "rapport : limite d'usage au-delà de $(fmt "$deadline" %H:%M), abandon"
         break
@@ -397,9 +458,34 @@ EOF
     break
   done
   rm -f "$err"
+  [ -f "$out" ] && [ "$(wc -c <"$out")" -gt "$RUN_MAX_BYTES" ] && truncate_file "$out"
+  prune_runs
   if [ "$DRY_RUN" != 1 ] && command -v osascript >/dev/null 2>&1; then
     osascript -e "display notification \"Rapport de nuit $NIGHT : code ${rc:-?}\" with title \"night-relay\"" >/dev/null 2>&1 || true
   fi
+}
+
+take_lock() { # single instance; a stale lock (dead pid) is taken over
+  local holder i
+  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    holder=""
+    # an empty pid file means another supervisor is taking the lock: retry briefly
+    for (( i = 0; i <= LOCK_RETRIES; i++ )); do
+      holder=$(cat "$LOCK_DIR/pid" 2>/dev/null || true)
+      [ -z "$holder" ] && [ -d "$LOCK_DIR" ] && [ "$i" -lt "$LOCK_RETRIES" ] && { sleep 1; continue; }
+      break
+    done
+    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
+      echo "night-relay: superviseur déjà actif (pid $holder)" >&2
+      exit 1
+    fi
+    rm -rf "$LOCK_DIR"
+    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+      echo "night-relay: verrou pris par un autre superviseur pendant la reprise" >&2
+      exit 1
+    fi
+  fi
+  echo $$ >"$LOCK_DIR/pid.tmp" && mv -f "$LOCK_DIR/pid.tmp" "$LOCK_DIR/pid"
 }
 
 main() {
@@ -408,18 +494,9 @@ main() {
     mkdir -p "$STATE/dry-run"
     [ -f "$CLOCK_FILE" ] || echo "${NIGHT_RELAY_FAKE_NOW:-$(date +%s)}" >"$CLOCK_FILE"
   fi
-  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-    local holder
-    holder=$(cat "$LOCK_DIR/pid" 2>/dev/null || true)
-    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
-      echo "night-relay: superviseur déjà actif (pid $holder)" >&2
-      exit 1
-    fi
-    rm -rf "$LOCK_DIR"; mkdir "$LOCK_DIR"
-  fi
-  echo $$ >"$LOCK_DIR/pid"
-  trap 'rm -rf "$LOCK_DIR"' EXIT
-  trap 'log "signal reçu : arrêt"; exit 130' INT TERM
+  take_lock
+  trap 'stop_session; rm -rf "$LOCK_DIR"' EXIT
+  trap 'log "signal reçu : arrêt de la session en cours"; stop_session; exit 130' INT TERM
 
   local t candidate end
   t=$(now)

@@ -19,23 +19,24 @@ Depuis la racine du dépôt kube-ops, avec Doppler et `gh` authentifiés :
 nohup caffeinate -i bash scripts/night-relay/supervisor.sh >/dev/null 2>&1 &
 ```
 
-Lancé dans la journée, il attend 23 h. Lancé entre 23 h et 08 h 30, il démarre tout de suite. Un verrou (`state/supervisor.lock`) empêche deux superviseurs simultanés. Pour l'arrêter : `kill <pid>` (le pid est dans `state/supervisor.lock/pid`).
+Lancé dans la journée, il attend 23 h. Lancé entre 23 h et 08 h 30, il démarre tout de suite. Un verrou (`state/supervisor.lock`) empêche deux superviseurs simultanés ; un verrou dont le pid est mort est repris. Pour l'arrêter : `kill <pid>` (le pid est dans `state/supervisor.lock/pid`). Le superviseur tue alors la session `claude` en cours et ses sous-processus (SIGTERM, puis SIGKILL après `KILL_GRACE`), son chien de garde, supprime son stderr et libère le verrou.
 
 Les principales variables (voir l'en-tête du script pour la liste complète) :
 
 - `START_HM=2300`, `STOP_HM=0830`, `REPORT_HM=0900` : la fenêtre et l'heure du rapport.
 - `MAX_CYCLES=12`, `MAX_FAILS=3`, `ORCH_TIMEOUT=10800` : les bornes des cycles. Une session ne dépasse jamais 08 h 55.
 - `QUOTA_FALLBACK_SLEEP=1800`, `QUOTA_MIN_SLEEP=300` : l'attente quand l'heure de réinitialisation est inconnue, et l'attente minimale.
+- `QUOTA_MAX_RETRIES=4` : au-delà de ce nombre de limites d'usage consécutives, la tentative compte comme un échec (une limite mal détectée ne contourne pas `MAX_FAILS`).
 - `LOG_MAX_BYTES=1048576`, `RUNS_KEEP=60` : les bornes du journal et des sorties JSON.
 - `NIGHT_RELAY_STATE`, `NIGHT_RELAY_HANDOFF_DIR` : les répertoires d'état et de handoff (par défaut `state/` et `handoff/` ici, ignorés par Git).
 
 ## Comportement
 
 - **Cycle** : le superviseur construit le prompt (`orchestrator.md` + un bloc « Contexte du superviseur » : cycle, handoff précédent, handoff à écrire, fin de fenêtre). Il lance la session, puis lit la première ligne `statut:` du handoff produit.
-- **Limite d'usage** : si la session échoue (code non nul ou `"is_error": true`) avec un message de limite d'usage, le superviseur cherche l'heure de réinitialisation. Il reconnaît `usage limit reached|<epoch>` et `resets 3am` / `resets at 15:30`. Il attend jusqu'à cette heure plus `QUOTA_MARGIN`, puis rejoue le même cycle. Sans heure, il attend `QUOTA_FALLBACK_SLEEP` et réessaie. Si la réinitialisation tombe après 08 h 30, il passe au rapport. Le rapport réessaie jusqu'à 12 h.
+- **Limite d'usage** : si la session échoue (code non nul ou `"is_error": true`) avec un message de limite d'usage, le superviseur cherche l'heure de réinitialisation. Il reconnaît `usage limit reached|<epoch>` et `resets 3am` / `resets at 15:30`. Il attend jusqu'à cette heure plus `QUOTA_MARGIN`, puis rejoue le même cycle. Sans heure, il attend `QUOTA_FALLBACK_SLEEP` et réessaie. Si la réinitialisation tombe après 08 h 30, il passe au rapport. Après `QUOTA_MAX_RETRIES` limites consécutives, la tentative compte comme un échec. Le rapport réessaie jusqu'à 12 h, dans la même borne.
 - **Échec** : une session qui échoue sans handoff reçoit un handoff minimal (`statut: echec`, code de sortie, taille du stderr, jamais son contenu). La chaîne continue après `FAIL_BACKOFF`. Au bout de `MAX_FAILS` échecs consécutifs, le superviseur passe au rapport.
 - **File vide** : avec `statut: file-vide`, il patiente `EMPTY_SLEEP` avant le cycle suivant. Avec `statut: arret`, il n'enchaîne plus.
-- **Journal** : `state/supervisor.log`. Au-delà de `LOG_MAX_BYTES`, il devient `supervisor.log.1`, et l'ancien `.1` est écrasé. Les sorties JSON sont tronquées à `RUN_MAX_BYTES`. Le stderr de `claude` n'est jamais conservé.
+- **Journal** : `state/supervisor.log`. Au-delà de `LOG_MAX_BYTES`, il devient `supervisor.log.1`, et l'ancien `.1` est écrasé. Les sorties JSON (cycles et rapport) sont tronquées à `RUN_MAX_BYTES`, et seules les `RUNS_KEEP` plus récentes sont gardées. Le stderr de `claude` n'est jamais conservé.
 - **Fin** : à 09 h, le rapport reçoit la liste des handoffs de la nuit. Une notification macOS locale signale sa fin.
 
 ## Handoff
@@ -67,10 +68,10 @@ bash scripts/night-relay/test_supervisor.sh       # KEEP=1 conserve le répertoi
 shellcheck scripts/night-relay/*.sh
 ```
 
-Le test vérifie l'enchaînement, la transmission du handoff, l'attente de quota (heure parsée, heure inconnue, limite pendant le rapport), la borne du journal, le handoff d'échec, la file vide, le démarrage après minuit, le verrou et l'heure de déclenchement du rapport. Des binaires `claude`, `doppler`, `curl` et `gh` factices font échouer le test s'ils sont appelés.
+Le test vérifie l'enchaînement, la transmission du handoff, l'attente de quota (heure parsée, heure inconnue, limite pendant le rapport), la borne du journal, le handoff d'échec, la file vide, le démarrage après minuit, le verrou (y compris pid mort ou vide), la borne des limites consécutives, l'heure de déclenchement du rapport et, en mode réel avec un faux `claude`, l'arrêt par signal sans processus fils ni chien de garde survivant. Des binaires `claude`, `doppler`, `curl` et `gh` factices font échouer le test s'ils sont appelés.
 
 ## Limites
 
 - La détection de limite d'usage repose sur le texte du message de `claude`. Ce format n'est pas un contrat stable. En cas de changement, l'attente de repli bornée s'applique.
-- Le timeout sans `timeout(1)` repose sur un chien de garde shell (SIGTERM). Les sous-processus de `claude` qui ignorent ce signal ne sont pas tués.
+- Le timeout sans `timeout(1)` repose sur un chien de garde shell : SIGTERM sur l'arbre de processus de la session, puis SIGKILL après `KILL_GRACE`. Un sous-processus détaché de cet arbre (double fork) n'est pas suivi.
 - La sélection multi-tickets suppose qu'un ticket verrouillé `wip:*` sort du dry-run du dispatcher. Les verrous posés par l'orchestrateur bloquent donc aussi un dispatcher planifié sur la même voie.

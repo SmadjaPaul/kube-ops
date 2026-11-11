@@ -125,6 +125,56 @@ echo $$ >"$WORK/lock/state/supervisor.lock/pid"
 run lock "2026-11-11 22:00"
 check "lock: second supervisor refused" '[ "$(cat $WORK/lock/rc)" = 1 ] && grep -q "déjà actif" "$WORK/lock/stderr"'
 
+# --- 6b. stale lock (dead pid) is taken over; empty pid file taken over after retries
+sh -c 'exit 0' & dead=$!; wait "$dead" || true
+mkdir -p "$WORK/stale/state/supervisor.lock"
+echo "$dead" >"$WORK/stale/state/supervisor.lock/pid"
+run stale "2026-11-12 08:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=600
+check "stale: dead pid lock taken over, night completed" \
+  '[ "$(cat $WORK/stale/rc)" = 0 ] && logs stale | grep -q "fin du superviseur" && [ ! -d "$WORK/stale/state/supervisor.lock" ]'
+mkdir -p "$WORK/emptypid/state/supervisor.lock"
+: >"$WORK/emptypid/state/supervisor.lock/pid"
+run emptypid "2026-11-12 08:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=600 LOCK_RETRIES=1
+check "emptypid: empty pid file taken over after retry" '[ "$(cat $WORK/emptypid/rc)" = 0 ]'
+
+# --- 7. repeated (false) usage limits do not bypass MAX_FAILS
+run quotabound "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="$(seq -s, 1 40)" QUOTA_MAX_RETRIES=2 \
+  QUOTA_FALLBACK_SLEEP=300 MAX_FAILS=2 FAIL_BACKOFF=60
+check "quotabound: quota streak counted as failure" \
+  'logs quotabound | grep -q "compté comme échec" && logs quotabound | grep -q "trop d.échecs consécutifs"'
+q=$(logs quotabound | grep -c "lancement orchestrateur" || true)
+check "quotabound: bounded sessions ($q)" '[ "$q" = 6 ]'
+
+# --- 8. real mode with a fake claude: SIGTERM kills the session tree and its watchdog
+S=$WORK/signal
+mkdir -p "$S/state" "$S/handoff"
+cat >"$WORK/fakeclaude" <<EOF
+#!/usr/bin/env bash
+cat >/dev/null
+sleep 300 & echo \$! >"$S/child.pid"
+echo \$\$ >"$S/claude.pid"
+wait
+EOF
+chmod +x "$WORK/fakeclaude"
+h=$(date -u +%H)
+env TZ=UTC NIGHT_RELAY_REPO="$WORK" NIGHT_RELAY_STATE="$S/state" NIGHT_RELAY_HANDOFF_DIR="$S/handoff" \
+  CLAUDE_BIN="$WORK/fakeclaude" START_HM="$(printf '%02d00' $(( (10#$h + 23) % 24 )))" \
+  STOP_HM="$(printf '%02d00' $(( (10#$h + 3) % 24 )))" MIN_CYCLE_SECONDS=60 ORCH_TIMEOUT=7717 KILL_GRACE=2 \
+  bash "$SUP" >"$S/stdout" 2>"$S/stderr" &
+sup=$!
+for _ in $(seq 1 50); do [ -s "$S/claude.pid" ] && [ -s "$S/child.pid" ] && break; sleep 0.2; done
+sleep 0.5
+kill -TERM "$sup"
+src=0; wait "$sup" || src=$?
+cpid=$(cat "$S/claude.pid" 2>/dev/null || echo 0); kpid=$(cat "$S/child.pid" 2>/dev/null || echo 0)
+check "signal: fake session started" '[ "$cpid" != 0 ] && [ "$kpid" != 0 ]'
+check "signal: supervisor exits 130" '[ "$src" = 130 ]'
+check "signal: no surviving session process" '! kill -0 "$cpid" 2>/dev/null && ! kill -0 "$kpid" 2>/dev/null'
+check "signal: no surviving watchdog" '! pgrep -f "sleep 7717" >/dev/null'
+check "signal: stderr file removed" '! ls "$S"/state/runs/*.err >/dev/null 2>&1'
+check "signal: lock released" '[ ! -d "$S/state/supervisor.lock" ]'
+check "signal: stop logged" 'grep -q "signal reçu" "$S/state/supervisor.log"'
+
 check "no claude/doppler/curl/gh call" '[ ! -f "$WORK/forbidden" ]'
 
 echo "# $PASS ok, $FAIL échec(s)"

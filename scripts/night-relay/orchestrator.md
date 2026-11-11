@@ -31,7 +31,7 @@ Avant de déclarer un blocage, suis D-13 : la ressource ou le credential existe-
 
 ## Limites dures
 
-- Aucun `tofu destroy`, `tofu import`, `tofu state ...` ni `force-unlock`. Aucun apply hors CI ; seule exception : la root `oracle-a1`.
+- Aucun `tofu destroy`, `tofu import`, `tofu state ...` ni `force-unlock`. Aucun apply, destroy ni mutation d'état d'infrastructure hors CI, sans exception (`AGENTS.md`). Si un apply est nécessaire, c'est un blocage à consigner avec sa preuve.
 - Aucun secret affiché, journalisé, commenté ou écrit dans un fichier ou un handoff. Doppler : noms seulement.
 - Aucune suppression ou réinitialisation de PVC, de données ou de base CNPG. Les protections de D-02 s'appliquent (données, sauvegardes, exposition publique, racines d'identité, migrations irréversibles).
 - Ne touche jamais une branche `codex/*` ni un ticket `agent:codex`.
