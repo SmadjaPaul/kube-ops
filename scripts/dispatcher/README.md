@@ -35,3 +35,18 @@ Les tests n'utilisent pas le réseau. Ils tournent sur des fixtures JSON et un f
 - **Course** : après avoir posé son verrou, le dispatcher relit les verrous de la voie. Si un autre verrou est plus ancien, il retire le sien et s'arrête.
   - Limite : Linear n'offre pas de compare-and-set. Deux dispatchers qui prennent le même ticket au même instant passent tous les deux. Il faut donc un seul planificateur par voie.
 - **Fin d'exécution** : le dispatcher écrit un checkpoint (issue, tours, tokens, coût) puis retire le verrou dans tous les cas, interruption comprise. En cas d'échec, il remet le ticket en Todo. Le stderr n'est jamais recopié : seule sa taille l'est.
+
+## Ligne de mesure (PLT-198)
+
+Le checkpoint finit par une ligne stable, lisible par `clé=valeur` :
+
+```
+mesure: in=<n> out=<n> cache_read=<n> cache_create=<n> tours=<n> sous_agents=<n> cout_usd=<x.xxxx> issue=<pr-valide|blocage|echec>
+```
+
+- `in`, `out`, `cache_read`, `cache_create` : tokens d'entrée, de sortie, de cache lu et de cache créé (`usage` du JSON `claude -p`).
+- `tours` : `num_turns`. `cout_usd` : `total_cost_usd` estimé, à 4 décimales.
+- `sous_agents` : nombre dérivé d'un champ `subagents` (liste ou entier) s'il existe dans le JSON ; sinon `n/a`. Le format exact de ce champ n'est pas vérifié hors ligne.
+- `issue` : `echec` si la session n'a pas réussi ; `blocage` si le rapport final contient une ligne `Blocage éventuel : <texte non vide>` ; sinon `pr-valide`. Ce dernier état est la déclaration de la session : la PR n'est pas vérifiée sur GitHub.
+- Une valeur inconnue (session plantée, JSON absent) s'écrit `n/a`, jamais `0`.
+- Les autres lignes du checkpoint (issue, tours, tokens, coût) restent inchangées.
