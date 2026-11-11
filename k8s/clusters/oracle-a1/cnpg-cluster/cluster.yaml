@@ -1,0 +1,26 @@
+# Single shared PostgreSQL for all future Oracle databases (D-2026-11-11-17):
+# one block volume instead of one per application. No backup is configured
+# yet: the Oracle data must stay reconstructible until an off-Oracle backup
+# and a tested restore exist (see README).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-shared
+  namespace: databases
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  instances: 1
+  storage:
+    storageClass: oci-bv
+    size: 50Gi
+  managed:
+    roles:
+      - name: polyfin
+        ensure: present
+        login: true
+        passwordSecret:
+          name: pg-shared-polyfin
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {cpu: "1", memory: 1Gi}
