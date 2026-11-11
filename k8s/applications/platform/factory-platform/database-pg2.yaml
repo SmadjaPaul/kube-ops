@@ -1,0 +1,63 @@
+# PLT-168: replacement for factory-platform-postgresql (hibernated, kept for
+# forensics). Recovered from the Barman archive of the old cluster (serverName
+# factory-platform-postgresql) at the PITR target used for the validated
+# restore factory-platform-recovery/factory-platform-restore-20261104.
+# The bootstrap block is ignored by CNPG once the cluster exists.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: factory-platform-pg2
+  namespace: factory-platform
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7
+  bootstrap:
+    recovery:
+      source: factory-platform-old
+      database: factory
+      owner: factory
+      recoveryTarget:
+        targetTime: "2026-10-29T00:35:32Z"
+  externalClusters:
+    - name: factory-platform-old
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: factory-platform-hetzner-store
+          serverName: factory-platform-postgresql
+  managed:
+    roles:
+      - name: factory_source_ro
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: true
+        inRoles:
+          - pg_read_all_data
+        passwordSecret:
+          name: factory-platform-postgresql-source
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: factory-platform-pg2-store
+  storage:
+    size: 20Gi
+    storageClass: longhorn-bulk
+  walStorage:
+    size: 5Gi
+    storageClass: longhorn-bulk
+    resizeInUseVolumes: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  monitoring:
+    enablePodMonitor: false
+  affinity:
+    enablePodAntiAffinity: false
