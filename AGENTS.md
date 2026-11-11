@@ -14,7 +14,7 @@ Do not add Terraform/OpenTofu here.
 
 ## Read order
 
-Vision and active cross-repo decisions live in `homelab-infra`: `docs/charter.md` and `docs/decisions.md`. Read them once per session; they win over older tickets and docs.
+Vision and active cross-repo decisions live in `homelab-infra`: [charter](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/charter.md) and [decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md). Read them once per session; they win over older tickets and docs.
 
 For a task read: this file → one relevant skill under `.agents/skills/` → only the application/infrastructure subtree being changed. Use `just inventory` before crawling the repository.
 
@@ -122,7 +122,7 @@ For HTTP failures distinguish DNS, TLS, HTTPRoute status, ready EndpointSlices a
 
 ## Safety
 
-Build phase (`homelab-infra/docs/decisions.md` D-2026-11-11-02): for reconstructible, non-critical workloads, `kubectl apply/patch/scale/rollout`, suspending valueless jobs and merging green PRs need no per-action approval; reconcile any imperative change into Git the same day. Agents work on their own `claude/*` or `codex/*` branch, never on another agent's branch. The list below still applies to data, PVCs, backups, secrets, public exposure, identity roots and irreversible migrations.
+Build phase ([decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md) D-2026-11-11-02): for reconstructible, non-critical workloads, `kubectl apply/patch/scale/rollout`, suspending valueless jobs and merging green PRs need no per-action approval; reconcile any imperative change into Git the same day. Agents work on their own claude/ or codex/ branch prefix, never on another agent's branch. The list below still applies to data, PVCs, backups, secrets, public exposure, identity roots and irreversible migrations.
 
 Without explicit operator approval:
 - no apply/delete/patch/edit/scale/restart as durable repair;
