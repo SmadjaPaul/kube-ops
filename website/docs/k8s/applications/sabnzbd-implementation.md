@@ -2,6 +2,15 @@
 title: 'SABnzbd Deployment Notes'
 ---
 
+
+:::warning Retired
+
+Jellyfin, the *arr applications, Seerr and SABnzbd were retired from the desired state on 2026-11-08
+(decision D-2026-11-11-07 in homelab-infra). Polyfin (`tv.smadja.dev`) with AIOStreams is the family media
+front end. This page is kept as a historical reference only; its manifests are not reconciled by Argo CD.
+
+:::
+
 SABnzbd runs as a StatefulSet and keeps its own `sabnzbd.ini`. Environment variables override any option at boot using the `SABNZBD__SECTION__OPTION` pattern.
 
 ## Image

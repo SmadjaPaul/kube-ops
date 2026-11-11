@@ -6,6 +6,14 @@ description: Overview and configuration of the self-managed media services
 
 # Media services stack
 
+:::warning Retired
+
+Jellyfin, the *arr applications, Seerr and SABnzbd were retired from the desired state on 2026-11-08
+(decision D-2026-11-11-07 in homelab-infra). Polyfin (`tv.smadja.dev`) with AIOStreams is the family media
+front end. This page is kept as a historical reference only; its manifests are not reconciled by Argo CD.
+
+:::
+
 This document details the self-managed media services stack, including configuration, resource allocation, and best
 practices.
 
