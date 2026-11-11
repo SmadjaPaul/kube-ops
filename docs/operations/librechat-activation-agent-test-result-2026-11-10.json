@@ -1,0 +1,233 @@
+{
+  "schemaVersion": "agent-test-result/v1",
+  "resultId": "plt165-librechat-activation-2026-11-10-212616z",
+  "producedAt": "2026-11-10T21:26:16Z",
+  "actor": {"kind": "agent", "name": "codex"},
+  "repository": {
+    "name": "SmadjaPaul/kube-ops",
+    "revision": "c294781c70fd96910c517df071abd6c62b7bbc2c",
+    "branch": "codex/plt165-librechat-activation"
+  },
+  "tests": [
+    {
+      "id": "librechat-credential-contract",
+      "name": "LibreChat exact Doppler credential contract",
+      "command": "yq remoteRef.key over LibreChat, Authentik and Agentgateway manifests",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The unique contract is seven keys: CREDS_KEY, CREDS_IV, JWT_SECRET, JWT_REFRESH_SECRET, LLM_KEY, OIDC_CLIENT_SECRET and OPENID_SESSION_SECRET. The disabled Meilisearch dependency is absent; format validation is recorded separately without reading values.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "unique_remote_keys=7; meili_master_key=absent"}
+    },
+    {
+      "id": "librechat-credential-format-checker",
+      "name": "LibreChat credential format checker",
+      "command": "bash tests/harness/librechat-credential-format-test.sh with synthetic fixtures",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The checker returned PASS for synthetic 64-hex CREDS_KEY and 32-hex CREDS_IV, FAIL for invalid fixtures, and never printed a value.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "valid=PASS; invalid=FAIL; missing=NOT_EXECUTED; values=not-displayed"}
+    },
+    {
+      "id": "librechat-chart-render",
+      "name": "LibreChat official chart render with Agentgateway",
+      "command": "helm template ... --version 3.0.0 --namespace librechat --values -",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The pinned official chart rendered authenticated MongoDB, Longhorn persistence, no Ingress, disabled Meilisearch, and the private Agentgateway custom endpoint; no MEILI_MASTER_KEY reference was rendered.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "chart-digest:sha256:5d50ecaf2685295fb5d28da016a964b03610e7897d6e366c0b573086fb23775a; meili_refs=0"}
+    },
+    {
+      "id": "librechat-mongodb-auth-contract",
+      "name": "LibreChat MongoDB authentication static contract",
+      "command": "bash tests/harness/librechat-mongodb-auth-contract-test.sh",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "The chart-managed MongoDB Secret is referenced through secretKeyRef, MONGO_URI is indirect, the authenticated PVC is kept, and no inline password is rendered. This is not runtime restart proof.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "LIBRECHAT_MONGODB_AUTH_CONTRACT=PASS"}
+    },
+    {
+      "id": "librechat-activation-render",
+      "name": "Single LibreChat activation subtree render",
+      "command": "kustomize build k8s/optional/personal-ai-2026/librechat | kubeconform -strict -ignore-missing-schemas -summary",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Five resources rendered, including the private HTTPRoute; one core resource validated and four CRD-backed resources were skipped because their schemas are external.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "resources=5; kubeconform=1-valid-0-invalid-4-skipped"}
+    },
+    {
+      "id": "librechat-supporting-roots",
+      "name": "AI, Authentik and Agentgateway supporting root renders",
+      "command": "kustomize build and kubeconform for k8s/applications/ai, authentik/extra and platform/agentgateway",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "All three changed supporting roots rendered with zero invalid resources; external CRD schemas were the only skipped validations.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "ai=34-valid-0-invalid-34-skipped; auth=1-valid-0-invalid-20-skipped; gateway=5-valid-0-invalid-2-skipped"}
+    },
+    {
+      "id": "documentation-and-harness",
+      "name": "Documentation and agent-result contract checks",
+      "command": "npm run check:documentation; npm run check:agent-harness",
+      "execution": "executed",
+      "status": "PASSED",
+      "classification": "passed",
+      "reason": "Documentation integrity and the versioned agent-test-result contract passed.",
+      "risk": "medium",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "DOC_INTEGRITY=PASS; AGENT_TEST_RESULT_CONTRACT=PASS"}
+    },
+    {
+      "id": "repository-check",
+      "name": "Repository required check suite",
+      "command": "just check",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The suite reached the existing github-atlantis-guard-test.sh failure (`Error: no matches found`) and exited at recipe line 46; no LibreChat-specific assertion reported a failure.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "recipe-line-46; github-atlantis-guard-test.sh"}
+    },
+    {
+      "id": "backup-audit",
+      "name": "Existing backup and restore audit",
+      "command": "just backup-audit",
+      "execution": "executed",
+      "status": "FAILED",
+      "classification": "failed",
+      "reason": "The pre-existing cluster-wide audit reported 32/42 production PVC coverage, CNPG 13/14 coverage, unproven CNPG restore evidence and 35 gaps; no LibreChat workload or data was created.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "command", "reference": "PRODUCTION_PVC_COVERAGE=FAIL; CNPG_RESTORE_PROOF=UNPROVEN; BACKUP_AUDIT_GAPS=35"}
+    },
+    {
+      "id": "librechat-credential-format-live",
+      "name": "Live LibreChat credential format qualification",
+      "command": "owner-side format checker with the seven Doppler values held out of output",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The credentials are not confirmed available. The checker is ready, but no value was read or supplied by the coding agent; missing input is not treated as a pass.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "BLOCKED_UNTIL_OWNER_CONFIRMS_FORMAT_PASS"}
+    },
+    {
+      "id": "librechat-runtime-admission",
+      "name": "LibreChat Argo, ExternalSecrets and runtime admission",
+      "command": "Argo Synced/Healthy, ExternalSecret Ready, pods and private route",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "The activation PR is Draft and the seven LibreChat credentials plus format PASS are not confirmed available. ESO, Argo, pods and user evidence are post-merge gates; the branch has no runtime effect.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "BLOCKED_UNTIL_DOPPLER_KEYS_CONFIRMED"}
+    },
+    {
+      "id": "librechat-mongodb-runtime-stability",
+      "name": "LibreChat MongoDB authentication after restart and Helm reconciliation",
+      "command": "post-merge synthetic marker, approved GitOps restart, then normal Helm/Argo reconciliation and readback",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No admitted LibreChat or MongoDB workload exists. The runbook now requires both transitions and records only resource identity, phase and UTC evidence without Secret data.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "POST_MERGE_ONLY"}
+    },
+    {
+      "id": "librechat-two-user-e2e",
+      "name": "LibreChat two-user Authentik isolation journey",
+      "command": "two Authentik logins, separate conversations, cross-access denial and logout",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No admitted Authentik provider, LibreChat route or workload exists; executing the journey would require the missing credentials and normal activation admission.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    },
+    {
+      "id": "librechat-mongodb-restore",
+      "name": "LibreChat synthetic MongoDB backup and isolated restore",
+      "command": "execute docs/operations/librechat-mongodb-restore-2026.md after activation",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "No admitted MongoDB workload or LibreChat backup artifact exists; the runbook remains preparation only.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "NOT_EXECUTED"}
+    },
+    {
+      "id": "openclaw-credential-dependent-journey",
+      "name": "OpenClaw credential-dependent memory journey",
+      "command": "finish #1171, then A, retain, B, recall, correction and restart",
+      "execution": "not-executed",
+      "status": "BLOCKED",
+      "classification": "unavailable",
+      "reason": "OpenClaw credentials remain an external dependency owned by the other agent; #1171 stays open and its prior static qualifications were not rerun.",
+      "risk": "high",
+      "expectedCi": "required",
+      "evidence": {"kind": "none", "reference": "#298_OPEN; #1171_OPEN"}
+    }
+  ],
+  "summary": {
+    "outcome": "incomplete",
+    "total": 15,
+    "executed": 9,
+    "notExecuted": 6,
+    "passed": 7,
+    "failed": 2,
+    "skipped": 0,
+    "unavailable": 6,
+    "notApplicable": 0
+  },
+  "transmission": {
+    "target": "factory-platform",
+    "eventType": "agent.test.result",
+    "schema": "agent-test-result/v1",
+    "idempotencyKey": "SmadjaPaul/kube-ops@c294781c70fd96910c517df071abd6c62b7bbc2c:plt165-librechat-activation",
+    "payload": {
+      "resultId": "plt165-librechat-activation-2026-11-10-212616z",
+      "repository": "SmadjaPaul/kube-ops",
+      "revision": "c294781c70fd96910c517df071abd6c62b7bbc2c",
+      "tests": [
+        {"id":"librechat-credential-contract","name":"LibreChat exact Doppler credential contract","execution":"executed","status":"PASSED","classification":"passed","reason":"Seven unique keys; Meilisearch dependency absent.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-credential-format-checker","name":"LibreChat credential format checker","execution":"executed","status":"PASSED","classification":"passed","reason":"Synthetic valid/invalid fixtures produced PASS/FAIL without value output.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-chart-render","name":"LibreChat official chart render with Agentgateway","execution":"executed","status":"PASSED","classification":"passed","reason":"Chart rendered with private Agentgateway endpoint and no Meilisearch key reference.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-mongodb-auth-contract","name":"LibreChat MongoDB authentication static contract","execution":"executed","status":"PASSED","classification":"passed","reason":"Secret reference, indirect URI and kept PVC contract passed; runtime proof is separate.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-activation-render","name":"Single LibreChat activation subtree render","execution":"executed","status":"PASSED","classification":"passed","reason":"Five resources rendered and schemas passed where available.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-supporting-roots","name":"AI, Authentik and Agentgateway supporting root renders","execution":"executed","status":"PASSED","classification":"passed","reason":"All changed supporting roots rendered with zero invalid resources.","risk":"high","expectedCi":"required"},
+        {"id":"documentation-and-harness","name":"Documentation and agent-result contract checks","execution":"executed","status":"PASSED","classification":"passed","reason":"Documentation and harness checks passed.","risk":"medium","expectedCi":"required"},
+        {"id":"repository-check","name":"Repository required check suite","execution":"executed","status":"FAILED","classification":"failed","reason":"Pre-existing github-atlantis guard shell failure at recipe line 46.","risk":"high","expectedCi":"required"},
+        {"id":"backup-audit","name":"Existing backup and restore audit","execution":"executed","status":"FAILED","classification":"failed","reason":"Pre-existing cluster-wide backup gaps; no LibreChat data exists.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-credential-format-live","name":"Live LibreChat credential format qualification","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"Credentials are not confirmed and values were not read.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-runtime-admission","name":"LibreChat Argo, ExternalSecrets and runtime admission","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"Draft PR, missing credentials and post-merge-only runtime gates.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-mongodb-runtime-stability","name":"LibreChat MongoDB authentication after restart and Helm reconciliation","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"No admitted workload; post-merge-only proof.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-two-user-e2e","name":"LibreChat two-user Authentik isolation journey","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"No admitted provider, route or workload.","risk":"high","expectedCi":"required"},
+        {"id":"librechat-mongodb-restore","name":"LibreChat synthetic MongoDB backup and isolated restore","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"No admitted workload or backup artifact.","risk":"high","expectedCi":"required"},
+        {"id":"openclaw-credential-dependent-journey","name":"OpenClaw credential-dependent memory journey","execution":"not-executed","status":"BLOCKED","classification":"unavailable","reason":"#298 credentials are owned by the other agent; #1171 remains open.","risk":"high","expectedCi":"required"}
+      ],
+      "summary": {"outcome":"incomplete","total":15,"executed":9,"notExecuted":6,"passed":7,"failed":2,"skipped":0,"unavailable":6,"notApplicable":0}
+    }
+  }
+}
