@@ -13,7 +13,7 @@ Canonical GitOps repository for the Smadja Kubernetes cluster.
 - one schedulable Talos control-plane at `10.0.20.60`;
 - Talos `1.13.10`, Kubernetes `1.36.3`;
 - Gateway API `v1.6.1`;
-- Cilium `1.20.2` with kube-proxy replacement;
+- Cilium `1.20.4` with kube-proxy replacement;
 - Argo CD as the steady-state reconciler;
 - Longhorn is the V1 application storage plane through `longhorn-fast` and `longhorn-bulk`; Proxmox CSI is compatibility/staged only;
 - cert-manager + External Secrets/Doppler;
