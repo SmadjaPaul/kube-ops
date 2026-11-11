@@ -187,6 +187,27 @@
       "reason": "PLT-163 owner-authorized retirement of the active Atlantis runtime and its protected contract harnesses after ARC Polyfin no-op qualification; retain recovery PVC and manual live-tofu path.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1192,
+      "changeFingerprint": "03db999731f091d39059d53a3ca06ad603f5beb24b689eb1001f6c35a1898780",
+      "paths": [
+        ".github/workflows/branch-hygiene.yaml",
+        ".github/workflows/claude.yaml",
+        ".github/workflows/documentation-integrity.yaml",
+        ".github/workflows/e2e-static.yaml",
+        ".github/workflows/factory-acceptance.yaml",
+        ".github/workflows/image-build.yaml",
+        ".github/workflows/polyfin-image-audit.yaml",
+        ".github/workflows/release-please.yml",
+        ".github/workflows/v1-contract.yaml",
+        ".github/workflows/vale.yaml",
+        ".github/workflows/worm-scan.yaml"
+      ],
+      "reason": "PLT-163 owner admission candidate for workflow supply-chain hardening; no gate, verifier or branch protection change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-13T23:59:59Z"
     }
   ]
 }
