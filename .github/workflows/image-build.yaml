@@ -39,8 +39,9 @@ jobs:
         id: detect
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.base_ref }}
-          HEAD_REF: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BEFORE_SHA: ${{ github.event.before }}
           CURRENT_SHA: ${{ github.sha }}
           REQUESTED_IMAGE: ${{ inputs.image }}
@@ -71,13 +72,18 @@ jobs:
               images=$(find images -mindepth 1 -maxdepth 1 -type d ! -name '.*' -exec basename {} \; | sort)
             fi
           elif [[ "$EVENT_NAME" == pull_request ]]; then
-            images=$(image_list "$(git diff --name-only "origin/$BASE_REF" "origin/$HEAD_REF" -- 'images/*')")
+            # A fork branch does not necessarily exist as origin/<head_ref>.
+            # Fetch the GitHub PR ref and verify the exact event head SHA.
+            [[ "$PR_NUMBER" =~ ^[0-9]+$ && "$PR_BASE_SHA" =~ ^[a-f0-9]{40}$ && "$PR_HEAD_SHA" =~ ^[a-f0-9]{40}$ ]] || exit 1
+            git fetch --no-tags origin "pull/$PR_NUMBER/head"
+            [[ "$(git rev-parse FETCH_HEAD)" == "$PR_HEAD_SHA" ]] || exit 1
+            images=$(image_list "$(git diff --name-only "$PR_BASE_SHA" "$PR_HEAD_SHA" -- 'images/*')")
           else
             before="${BEFORE_SHA:-HEAD~1}"
             images=$(image_list "$(git diff --name-only "$before" "$CURRENT_SHA" -- 'images/*')")
           fi
 
-          printf 'images=%s\n' "$(printf '%s\n' "$images" | jq -Rsc 'split("\\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
+          printf 'images=%s\n' "$(printf '%s\n' "$images" | jq -Rsc 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
 
   # Untrusted PR code is built for validation only. It receives no GHCR
   # credentials, cannot publish tags, and has read-only repository access.
