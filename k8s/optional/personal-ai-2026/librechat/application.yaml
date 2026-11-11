@@ -88,11 +88,11 @@ spec:
           seccompProfile: {type: RuntimeDefault}
         volumes:
           - {name: logs, emptyDir: {sizeLimit: 512Mi}}
-          - {name: uploads, emptyDir: {sizeLimit: 1Gi}}
           - {name: tmp, emptyDir: {sizeLimit: 512Mi}}
         volumeMounts:
           - {name: logs, mountPath: /app/api/logs}
-          - {name: uploads, mountPath: /app/uploads}
+          # user files: persistent (existing images PVC, Velero/Kopia-backed), not emptyDir
+          - {name: image-volume, mountPath: /app/uploads, subPath: uploads}
           - {name: tmp, mountPath: /tmp}
         resources:
           requests: {cpu: 100m, memory: 512Mi}
