@@ -23,4 +23,4 @@ spec:
           name: pg-shared-polyfin
   resources:
     requests: {cpu: 100m, memory: 512Mi}
-    limits: {memory: 1Gi}
+    limits: {cpu: "1", memory: 1Gi}

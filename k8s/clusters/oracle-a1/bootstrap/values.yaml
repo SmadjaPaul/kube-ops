@@ -6,6 +6,15 @@ configs:
     application.resourceTrackingMethod: annotation
     admin.enabled: true
     kustomize.buildOptions: '--enable-helm'
+    # Argo CD 3.x no longer assesses child Application health by default;
+    # without it the root would not wait for sync-wave 0 (ESO, CNPG CRDs).
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {status = "Progressing", message = ""}
+      if obj.status ~= nil and obj.status.health ~= nil then
+        hs.status = obj.status.health.status
+        hs.message = obj.status.health.message
+      end
+      return hs
   params:
     server.insecure: true
     controller.diff.server.side: true
@@ -13,6 +22,14 @@ configs:
     controller.sync.timeout.seconds: "1800"
   rbac:
     policy.default: role:readonly
+
+global:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
 
 crds:
   install: true
@@ -29,18 +46,21 @@ controller:
   replicas: 1
   resources:
     requests: {cpu: 25m, memory: 256Mi}
-    limits: {memory: 1Gi}
+    limits: {cpu: "1", memory: 1Gi}
+  emptyDir: {sizeLimit: 1Gi}
 server:
   replicas: 1
   resources:
     requests: {cpu: 10m, memory: 64Mi}
-    limits: {memory: 256Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  emptyDir: {sizeLimit: 256Mi}
 repoServer:
   replicas: 1
   resources:
     requests: {cpu: 25m, memory: 128Mi}
-    limits: {memory: 512Mi}
+    limits: {cpu: "1", memory: 512Mi}
+  emptyDir: {sizeLimit: 2Gi}
 redis:
   resources:
     requests: {cpu: 10m, memory: 32Mi}
-    limits: {memory: 128Mi}
+    limits: {cpu: 250m, memory: 128Mi}

@@ -1,6 +1,8 @@
 # One-time operator bootstrap on the Oracle cluster (never synced by the
-# homelab Argo CD): kubectl apply -k --enable-helm k8s/clusters/oracle-a1/bootstrap
-# Re-run once if the Application/AppProject CRDs were not yet established.
+# homelab Argo CD):
+#   kustomize build --enable-helm k8s/clusters/oracle-a1/bootstrap | kubectl apply --server-side -f -
+# kubectl has no --enable-helm. Re-run the same command once if the
+# Application/AppProject CRDs were not yet established on the first pass.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
