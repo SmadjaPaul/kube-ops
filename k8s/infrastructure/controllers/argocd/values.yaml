@@ -102,6 +102,12 @@ configs:
     # directory. Serialize manifest generation so concurrent applications do
     # not untar the same chart into the same destination.
     reposerver.parallelism.limit: "1"
+    # Bound every sync operation (supported since Argo CD 2.x; chart 10.3.3 /
+    # Argo CD v3.5.1 wires it as ARGOCD_APPLICATION_CONTROLLER_SYNC_TIMEOUT).
+    # A sync stuck "waiting for healthy state" (fenced CNPG Cluster, image
+    # pull failure) fails after 30 min instead of hanging until a manual
+    # Terminate; automated retry/selfHeal then resumes. Default 0 = never.
+    controller.sync.timeout.seconds: "1800"
 
   rbac:
     create: true
