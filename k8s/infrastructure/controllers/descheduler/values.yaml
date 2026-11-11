@@ -1,7 +1,0 @@
-# The v0.36.0 upstream chart expects root-level keys (not a descheduler: map).
-# This single-node Talos cluster has nowhere else to relocate evicted pods.
-# Preserve the CronJob and all chart resources but stop unnecessary 2-minute
-# descheduling cycles. Reconsider only if the cluster becomes multi-node.
-# Rollback: set suspend to false through GitOps.
-kind: CronJob
-suspend: true
