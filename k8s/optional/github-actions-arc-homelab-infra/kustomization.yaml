@@ -8,3 +8,4 @@ resources:
   - opentofu-downloads-networkpolicy.yaml
   - polyfin-api-networkpolicy.yaml
   - polyfin-oci-networkpolicy.yaml
+  - hetzner-object-storage-networkpolicy.yaml

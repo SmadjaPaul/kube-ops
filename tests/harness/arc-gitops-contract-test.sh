@@ -6,6 +6,7 @@ arc_root="$repo_root/k8s/optional/github-actions-arc"
 homelab_arc_root="$repo_root/k8s/optional/github-actions-arc-homelab-infra"
 pilot_arc_root="$repo_root/k8s/optional/github-actions-arc-homelab-iac-pilot"
 aiostreams_network_policy="$repo_root/k8s/applications/media/aiostreams/networkpolicy.yaml"
+hetzner_object_storage_policy="$homelab_arc_root/hetzner-object-storage-networkpolicy.yaml"
 infrastructure_project="$repo_root/k8s/bootstrap/argocd-root/infrastructure-project.yaml"
 applications_project="$repo_root/k8s/bootstrap/argocd-root/applications-project.yaml"
 rendered="$(mktemp)"
@@ -138,6 +139,15 @@ assert_yq_file() {
 
 assert_yq_file '.spec.ingress[] | select(.fromEndpoints[0].matchLabels."k8s:actions.github.com/scale-set-name" == "homelab-iac-pilot-arc") | [.fromEndpoints[0].matchLabels."k8s:io.kubernetes.pod.namespace", .toPorts[]?.ports[]? | (.port + "/" + .protocol)] | join(",")' \
   "$aiostreams_network_policy" 'arc-runners,3000/TCP'
+
+assert_yq_file '.metadata.name' "$hetzner_object_storage_policy" \
+  'arc-runners-homelab-infra-hetzner-object-storage'
+assert_yq_file '.spec.endpointSelector.matchLabels."k8s:actions.github.com/scale-set-name"' \
+  "$hetzner_object_storage_policy" 'homelab-infra-ci-arc'
+assert_yq_file '[.spec.egress[]?.toFQDNs[]?.matchName] | join(",")' \
+  "$hetzner_object_storage_policy" 'fsn1.your-objectstorage.com'
+assert_yq_file '[.spec.egress[]?.toPorts[]?.ports[]? | .port + "/" + .protocol] | join(",")' \
+  "$hetzner_object_storage_policy" '443/TCP'
 
 runner_download_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-node-npm-egress")'
 assert_yq "$runner_download_policy | .metadata.namespace" 'arc-runners'
