@@ -191,7 +191,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 1192,
-      "changeFingerprint": "03db999731f091d39059d53a3ca06ad603f5beb24b689eb1001f6c35a1898780",
+      "changeFingerprint": "e55265f9d695062528fd792398e1bd8d19bfd739dd0ff2f13d894ca6cef1e2db",
       "paths": [
         ".github/workflows/branch-hygiene.yaml",
         ".github/workflows/claude.yaml",
