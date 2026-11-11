@@ -92,10 +92,6 @@ status-app APP:
 diagnose-app APP:
     bash scripts/diagnose-app.sh "{{APP}}"
 
-[doc('Bounded operator recovery: terminate a stuck Argo sync after data-protection checks (D-02/D-13)')]
-argo-terminate-stuck-sync APP MIN_AGE='600' *FLAGS='':
-    bash scripts/argo-terminate-stuck-sync.sh "{{APP}}" "{{MIN_AGE}}" {{FLAGS}}
-
 [doc('Audit runtime PVC/CNPG coverage by Velero/Barman')]
 backup-audit:
     bash scripts/backup-audit.sh
