@@ -1,5 +1,7 @@
 # AGENTS.md — kube-ops operating router
 
+Read `docs/state/cluster-reality.md` first: live cluster reality (what runs, real CPU/RAM, exposure, data class, verdict); regenerate with `bash scripts/cluster-reality.sh`.
+
 Git is the Kubernetes desired-state authority. Argo CD continuously reconciles Git. Runtime tools provide evidence; they are never a second steady-state mutation plane.
 
 ## Authority
