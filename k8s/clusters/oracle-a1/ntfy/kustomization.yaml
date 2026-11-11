@@ -1,0 +1,65 @@
+# Oracle overlay of the shared ntfy base (no copied manifests). Stateless: the
+# cache and auth DB live on an emptyDir and are rebuilt from Doppler on every
+# start. Removed here: PVC (no data on Oracle before PLT-190), Cilium policy
+# (flannel does not enforce policy), HTTPRoute (no Gateway; no public exposure).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ntfy
+resources:
+  - ../../../applications/catalog/ntfy
+  - gatus-user-external-secret.yaml
+
+patches:
+  - target: {kind: PersistentVolumeClaim, name: ntfy-data}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata: {name: ntfy-data}
+  - target: {kind: CiliumNetworkPolicy, name: ntfy}
+    patch: |-
+      $patch: delete
+      apiVersion: cilium.io/v2
+      kind: CiliumNetworkPolicy
+      metadata: {name: ntfy}
+  - target: {kind: HTTPRoute, name: ntfy}
+    patch: |-
+      $patch: delete
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata: {name: ntfy}
+  # Oracle-specific Doppler key (the homelab key APP_NTFY_ADMIN_PASSWORD is not reused).
+  - target: {kind: ExternalSecret, name: ntfy-runtime}
+    patch: |-
+      - {op: replace, path: /spec/data/0/remoteRef/key, value: ORACLE_A1_NTFY_ADMIN_PASSWORD}
+  - target: {kind: Deployment, name: ntfy}
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0
+        value: {name: data, emptyDir: {sizeLimit: 256Mi}}
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1
+        value: {name: NTFY_BASE_URL, value: "http://ntfy.ntfy.svc.cluster.local"}
+      # Publish-only user for Gatus, restricted to the alert topic.
+      - op: add
+        path: /spec/template/spec/initContainers/-
+        value:
+          name: bootstrap-gatus-user
+          image: binwiederhier/ntfy:v2.28.0
+          command: ["sh", "-c"]
+          args:
+            - >-
+              set -eu;
+              ntfy user add --role=user gatus || ntfy user change-pass gatus;
+              ntfy access gatus alerts write-only
+          env:
+            - {name: NTFY_AUTH_FILE, value: /var/lib/ntfy/auth.db}
+          envFrom:
+            - secretRef: {name: ntfy-gatus-user}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+            seccompProfile: {type: RuntimeDefault}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/ntfy}
+            - {name: tmp, mountPath: /tmp}
