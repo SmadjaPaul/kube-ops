@@ -208,6 +208,17 @@
       "reason": "PLT-163 owner admission candidate for workflow supply-chain hardening; no gate, verifier or branch protection change.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-13T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1194,
+      "changeFingerprint": "d5cda0e406699636ddc94f45d11ab8ae3e3f372f69945e4395bb7f153fe87090",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-56 owner admission candidate for the Factory-only ARC image digest adoption; no PVC, other scale set or runtime mutation.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-17T23:59:59Z"
     }
   ]
 }
