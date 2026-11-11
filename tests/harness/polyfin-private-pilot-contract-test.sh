@@ -12,7 +12,11 @@ grep -Eq '^[[:space:]]*-[[:space:]]+polyfin[[:space:]]*$' k8s/applications/media
 }
 
 eq() {
-  got="$(yq -r "$1" "$2" | head -n 1)"
+  # Read the complete yq stream before selecting its first value. Piping to
+  # head under pipefail can terminate yq with SIGPIPE (exit 141) on CI when
+  # the expression emits more than one document.
+  values="$(yq -r "$1" "$2")"
+  got="${values%%$'\n'*}"
   [[ "$got" == "$3" ]] || { echo "POLYFIN_STATIC=FAIL $2 $1 got=$got want=$3" >&2; exit 1; }
 }
 ! grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/kustomization.yaml"
