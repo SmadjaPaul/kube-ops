@@ -1,0 +1,33 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-homelab-iac-pilot-oci-api
+  namespace: arc-runners
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "Allow the pilot apply runner to reach only the OCI control-plane APIs (eu-paris-1 and home region)"
+  endpointSelector:
+    matchLabels:
+      k8s:actions.github.com/scale-set-name: homelab-iac-pilot-arc
+  egress:
+    - toFQDNs:
+        - matchPattern: "identity.*.oci.oraclecloud.com"
+        - matchPattern: "iaas.*.oci.oraclecloud.com"
+        - matchPattern: "containerengine.*.oci.oraclecloud.com"
+        - matchPattern: "limits.*.oci.oraclecloud.com"
+        - matchPattern: "usage.*.oci.oraclecloud.com"
+        - matchPattern: "budget.*.oci.oraclecloud.com"
+        - matchName: identity.eu-paris-1.oraclecloud.com
+        - matchName: iaas.eu-paris-1.oraclecloud.com
+        - matchName: containerengine.eu-paris-1.oraclecloud.com
+        - matchName: limits.eu-paris-1.oraclecloud.com
+        - matchName: usage.eu-paris-1.oraclecloud.com
+        - matchName: budget.eu-paris-1.oraclecloud.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
