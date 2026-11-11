@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: oracle-pilot-media
+  namespace: argocd
+spec:
+  project: oracle-pilot
+  source:
+    repoURL: https://github.com/SmadjaPaul/kube-ops.git
+    targetRevision: main
+    path: k8s/optional/oracle-pilot/workloads
+  destination:
+    name: oracle-pilot
+    namespace: media
+  # Manual sync during the pilot: rollback = delete this Application.
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
