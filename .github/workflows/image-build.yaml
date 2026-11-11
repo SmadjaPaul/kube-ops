@@ -8,8 +8,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - '*-*'
     paths:
       - 'images/**'
 
@@ -22,117 +20,155 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   detect-dockerfiles:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       images: ${{ steps.detect.outputs.images }}
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Detect Dockerfiles
         id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+          REQUESTED_IMAGE: ${{ inputs.image }}
+        shell: bash
         run: |
-          # Handle manual workflow dispatch
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ -n "${{ github.event.inputs.image }}" ]; then
-              # Build specific image from input
-              IMAGE_NAME="${{ github.event.inputs.image }}"
-              if [ -f "images/$IMAGE_NAME/Dockerfile" ]; then
-                JSON=$(echo "$IMAGE_NAME" | jq -R . | jq -s .)
-              else
-                echo "Error: Dockerfile 'images/$IMAGE_NAME/Dockerfile' not found"
+          set -euo pipefail
+
+          image_list() {
+            local changed path image
+            changed="$1"
+            while IFS= read -r path; do
+              [[ -z "$path" || "$path" == *.md || "$path" == *.MD ]] && continue
+              image="${path#images/}"
+              image="${image%%/*}"
+              [[ -n "$image" && -f "images/$image/Dockerfile" ]] && printf '%s\n' "$image"
+            done <<< "$changed" | sort -u
+          }
+
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            if [[ -n "$REQUESTED_IMAGE" ]]; then
+              [[ "$REQUESTED_IMAGE" =~ ^[A-Za-z0-9._-]+$ ]] || {
+                echo 'The manual image input must name one image directory' >&2
                 exit 1
-              fi
+              }
+              test -f "images/$REQUESTED_IMAGE/Dockerfile"
+              images="$REQUESTED_IMAGE"
             else
-              # Build all images when no specific image is provided
-              IMAGES=$(find images -mindepth 1 -maxdepth 1 -type d ! -name '.*' -exec basename {} \; | sort)
-              if [ -n "$IMAGES" ]; then
-                JSON=$(printf '%s\n' "$IMAGES" | jq -R . | jq -s .)
-              else
-                JSON='[]'
-              fi
+              images=$(find images -mindepth 1 -maxdepth 1 -type d ! -name '.*' -exec basename {} \; | sort)
             fi
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}" "origin/${{ github.head_ref }}" -- 'images/*')
-            # Get image directories from changed non-Markdown files
-            IMAGES=$(echo "$CHANGED" | grep -v -E '\.(md|MD)$' | grep -v '^$' | \
-              xargs -n1 dirname | sed 's|images/||' | grep -v '^$' | \
-              while IFS= read -r image; do
-                [ -f "images/$image/Dockerfile" ] && printf '%s\n' "$image"
-              done | sort -u || true)
-            if [ -n "$IMAGES" ]; then
-              JSON=$(printf '%s\n' "$IMAGES" | jq -R . | jq -s .)
-            else
-              JSON='[]'
-            fi
+          elif [[ "$EVENT_NAME" == pull_request ]]; then
+            images=$(image_list "$(git diff --name-only "origin/$BASE_REF" "origin/$HEAD_REF" -- 'images/*')")
           else
-            BEFORE_REF="${{ github.event.before }}"
-            [ -z "$BEFORE_REF" ] && BEFORE_REF="HEAD~1"
-            CHANGED=$(git diff --name-only "$BEFORE_REF" "${{ github.sha }}" -- 'images/*')
-            # Get image directories from changed non-Markdown files
-            IMAGES=$(echo "$CHANGED" | grep -v -E '\.(md|MD)$' | grep -v '^$' | \
-              xargs -n1 dirname | sed 's|images/||' | grep -v '^$' | \
-              while IFS= read -r image; do
-                [ -f "images/$image/Dockerfile" ] && printf '%s\n' "$image"
-              done | sort -u || true)
-            if [ -n "$IMAGES" ]; then
-              JSON=$(printf '%s\n' "$IMAGES" | jq -R . | jq -s .)
-            else
-              JSON='[]'
-            fi
+            before="${BEFORE_SHA:-HEAD~1}"
+            images=$(image_list "$(git diff --name-only "$before" "$CURRENT_SHA" -- 'images/*')")
           fi
 
-          # Remove spaces/newlines before writing to GITHUB_OUTPUT
-          echo "images=$(echo "$JSON" | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+          printf 'images=%s\n' "$(printf '%s\n' "$images" | jq -Rsc 'split("\\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
 
-  build:
+  # Untrusted PR code is built for validation only. It receives no GHCR
+  # credentials, cannot publish tags, and has read-only repository access.
+  build-pr:
+    name: Validate image build (PR, no publish)
     runs-on: ubuntu-latest
     needs: detect-dockerfiles
-    if: needs.detect-dockerfiles.outputs.images != '[]'
+    if: github.event_name == 'pull_request' && needs.detect-dockerfiles.outputs.images != '[]'
+    permissions:
+      contents: read
     strategy:
       matrix:
         image: ${{ fromJson(needs.detect-dockerfiles.outputs.images) }}
       fail-fast: false
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+      - name: Checkout repository and submodules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Verify submodule checkout
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+        run: |
+          set -euo pipefail
+          git submodule status
+          if [[ -d "images/$IMAGE_NAME/upstream" && ! -d "images/$IMAGE_NAME/upstream/requirements" ]]; then
+            echo 'Expected upstream requirements directory is missing' >&2
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build image without publishing
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: images/${{ matrix.image }}
+          file: images/${{ matrix.image }}/Dockerfile
+          pull: true
+          push: false
+          platforms: linux/amd64
+          tags: local/${{ matrix.image }}:pr-${{ github.event.pull_request.number }}
+
+  # Only trusted main pushes and explicit manual dispatches from main may
+  # receive packages:write or authenticate to GHCR.
+  publish:
+    name: Publish image (trusted main only)
+    runs-on: ubuntu-latest
+    needs: detect-dockerfiles
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      needs.detect-dockerfiles.outputs.images != '[]'
+    permissions:
+      contents: read
+      packages: write # Publication is restricted to trusted main push/manual runs below.
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.detect-dockerfiles.outputs.images) }}
+      fail-fast: false
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           submodules: recursive
+          persist-credentials: false
 
       - name: Verify submodule checkout
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
         run: |
-          echo "Checking submodule status..."
+          set -euo pipefail
           git submodule status
-          if [ -d "images/${{ matrix.image }}/upstream" ]; then
-            echo "Listing contents of images/${{ matrix.image }}/upstream:"
-            ls -la "images/${{ matrix.image }}/upstream" || true
-            if [ -d "images/${{ matrix.image }}/upstream/requirements" ]; then
-              echo "✓ Found requirements directory"
-              ls -la "images/${{ matrix.image }}/upstream/requirements" | head -10
-            else
-              echo "⚠ Requirements directory not found!"
-              exit 1
-            fi
+          if [[ -d "images/$IMAGE_NAME/upstream" && ! -d "images/$IMAGE_NAME/upstream/requirements" ]]; then
+            echo 'Expected upstream requirements directory is missing' >&2
+            exit 1
           fi
 
       - name: Set lowercase owner for GHCR
-        run: |
-          echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Log in to GHCR
-        uses: docker/login-action@v4.6.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -140,35 +176,26 @@ jobs:
 
       - name: Extract base image and version tags
         id: image-tags
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
         run: |
-          DOCKERFILE=images/${{ matrix.image }}/Dockerfile
-          FROM_LINE=$(grep -m 1 "^FROM" "$DOCKERFILE")
-          FROM_IMG=$(echo "$FROM_LINE" | sed -E 's/^FROM[[:space:]]+//; s/[[:space:]]+AS[[:space:]].*$//; s/^--platform=[^[:space:]]+[[:space:]]+//')
-          BASE_IMAGE_TAG=$(echo "$FROM_IMG" | awk -F':' 'NF>1{print $NF; next}{print "latest"}')
-          IMAGE_VERSION=$(grep -m1 "ARG IMAGE_VERSION=" "$DOCKERFILE" | cut -d'=' -f2 | sed 's/#.*$//' | xargs || true)
-          [ -z "$IMAGE_VERSION" ] && IMAGE_VERSION="latest"
-
-          # Fixed: Use Bash glob instead of invalid startsWith()
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/tags/*" ]]; then
-            TAG_NAME="${{ github.ref_name }}"
-            TAG_IMAGE_NAME="${TAG_NAME%%-*}"
-            TAG_IMAGE_VERSION="${TAG_NAME#*-}"
-            if [[ "$TAG_IMAGE_NAME" == "${{ matrix.image }}" ]]; then
-              IMAGE_VERSION="$TAG_IMAGE_VERSION"
-            fi
-          fi
-
-          echo "base_tag=$BASE_IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "image_version=$IMAGE_VERSION" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          dockerfile="images/$IMAGE_NAME/Dockerfile"
+          from_line=$(grep -m 1 '^FROM' "$dockerfile")
+          from_image=$(echo "$from_line" | sed -E 's/^FROM[[:space:]]+//; s/[[:space:]]+AS[[:space:]].*$//; s/^--platform=[^[:space:]]+[[:space:]]+//')
+          base_image_tag=$(echo "$from_image" | awk -F':' 'NF>1{print $NF; next}{print "latest"}')
+          image_version=$(grep -m1 'ARG IMAGE_VERSION=' "$dockerfile" | cut -d'=' -f2 | sed 's/#.*$//' | xargs || true)
+          [[ -n "$image_version" ]] || image_version=latest
+          printf 'base_tag=%s\nimage_version=%s\n' "$base_image_tag" "$image_version" >> "$GITHUB_OUTPUT"
 
       - name: Generate revision tag
         id: revision
-        run: |
-          REVISION_TAG="${{ steps.image-tags.outputs.image_version }}-$(echo ${{ github.sha }} | cut -c1-7)"
-          echo "revision_tag=$REVISION_TAG" >> $GITHUB_OUTPUT
+        env:
+          IMAGE_VERSION: ${{ steps.image-tags.outputs.image_version }}
+        run: echo "revision_tag=${IMAGE_VERSION}-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7
+      - name: Build and publish Docker image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: images/${{ matrix.image }}
           file: images/${{ matrix.image }}/Dockerfile
@@ -180,8 +207,7 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ env.OWNER_LC }}/${{ matrix.image }}:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ env.OWNER_LC }}/${{ matrix.image }}:buildcache,mode=max
           tags: |
-            ${{ github.event_name == 'pull_request' && format('ghcr.io/{0}/{1}:pr-{2}', env.OWNER_LC, matrix.image, github.event.number) || '' }}
-            ${{ github.event_name != 'pull_request' && format('ghcr.io/{0}/{1}:latest', env.OWNER_LC, matrix.image) || '' }}
-            ${{ github.event_name != 'pull_request' && format('ghcr.io/{0}/{1}:{2}', env.OWNER_LC, matrix.image, steps.image-tags.outputs.base_tag) || '' }}
-            ${{ github.event_name != 'pull_request' && format('ghcr.io/{0}/{1}:{2}', env.OWNER_LC, matrix.image, steps.image-tags.outputs.image_version) || '' }}
-            ${{ github.event_name != 'pull_request' && format('ghcr.io/{0}/{1}:{2}', env.OWNER_LC, matrix.image, steps.revision.outputs.revision_tag) || '' }}
+            ghcr.io/${{ env.OWNER_LC }}/${{ matrix.image }}:latest
+            ghcr.io/${{ env.OWNER_LC }}/${{ matrix.image }}:${{ steps.image-tags.outputs.base_tag }}
+            ghcr.io/${{ env.OWNER_LC }}/${{ matrix.image }}:${{ steps.image-tags.outputs.image_version }}
+            ghcr.io/${{ env.OWNER_LC }}/${{ matrix.image }}:${{ steps.revision.outputs.revision_tag }}
