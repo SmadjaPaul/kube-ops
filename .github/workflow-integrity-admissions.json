@@ -242,6 +242,17 @@
       "reason": "PLT-193 : admission propriétaire de l'ajustement du contrat de test AIOStreams ; aucun changement runtime.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1240,
+      "changeFingerprint": "915a74a98a5d2f74ea21c6f63d49f0c3fc4e76d6e527c25c0da754c1912f157c",
+      "paths": [
+        "scripts/check-v1-active-contract.sh"
+      ],
+      "reason": "PLT-200: Cilium 1.20.4 security patch baseline (CVE-2026-111943) in the V1 active contract, replacing invalid #1236.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-17T23:59:59Z"
     }
   ]
 }
