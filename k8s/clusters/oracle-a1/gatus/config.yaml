@@ -1,6 +1,6 @@
 # External supervision of PUBLIC homelab routes (HTTPRoute parentRef
 # Gateway/external) from Oracle, over the public internet only: no NetBird,
-# no LAN. LAN-only routes (librechat, aiostreams) are deliberately absent.
+# no LAN. LAN-only routes (tv.smadja.dev Polyfin, librechat, aiostreams) are deliberately absent.
 # State is in memory: history resets on restart (no data on Oracle, PLT-190).
 storage:
   type: memory
@@ -23,12 +23,6 @@ endpoints:
     conditions: ["[STATUS] < 400"]
     alerts: &alerts
       - {type: custom, failure-threshold: 3, success-threshold: 2, send-on-resolved: true, description: "public route down"}
-  - name: tv
-    group: homelab-public
-    url: https://tv.smadja.dev/
-    interval: 1m
-    conditions: ["[STATUS] < 400"]
-    alerts: *alerts
   - name: ntfy
     group: homelab-public
     url: https://ntfy.smadja.dev/v1/health
