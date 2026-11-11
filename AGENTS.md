@@ -1,6 +1,6 @@
 # AGENTS.md — kube-ops operating router
 
-Read `docs/state/cluster-reality.md` first: live cluster reality (what runs, real CPU/RAM, exposure, data class, verdict); regenerate with `bash scripts/cluster-reality.sh`.
+Read `docs/state/cluster-reality.md` only when the task touches the runtime (what runs, real CPU/RAM, exposure, data class, verdict); regenerate with `bash scripts/cluster-reality.sh`.
 
 Git is the Kubernetes desired-state authority. Argo CD continuously reconciles Git. Runtime tools provide evidence; they are never a second steady-state mutation plane.
 
@@ -20,19 +20,6 @@ Vision and active cross-repo decisions live in `homelab-infra`: [charter](https:
 
 For a task read: this file → one relevant skill under `.agents/skills/` → only the application/infrastructure subtree being changed. Use `just inventory` before crawling the repository.
 
-## Current platform
-
-- Talos 1.13.10 / Kubernetes 1.36.3, one schedulable node for V1.
-- Cilium + Gateway API; `Gateway/internal` LAN VIP is `10.0.20.192`.
-- private ExternalDNS derives application names from internal HTTPRoutes and publishes them into UniFi DNS.
-- UniFi DNS is the private application authority; AdGuard is filtering/cache only.
-- Argo CD is the only steady-state Kubernetes reconciler.
-- Longhorn `longhorn-fast` / `longhorn-bulk`.
-- CNPG/Barman and Velero/Kopia -> Hetzner Object Storage.
-- Doppler -> ESO for runtime secrets; never inspect Secret values.
-- Authentik is the identity authority.
-- public access is Cloudflare Tunnel -> Gateway/external.
-
 ## Skill routing
 
 | Task | Entry skill |
@@ -46,7 +33,7 @@ For a task read: this file → one relevant skill under `.agents/skills/` → on
 | backup/restore | `.agents/skills/backup-restore` |
 | incident triage | `.agents/skills/sre-triage` |
 
-`.agents/` is the single shared agent knowledge tree. Do not create parallel Codex/OpenCode prompt trees.
+`.agents/` is the single shared agent knowledge tree. Do not create parallel Codex/OpenCode prompt trees. Claude discovers them through a `skills` symlink in the Claude config directory.
 
 ## Evidence levels
 
@@ -57,12 +44,6 @@ Never collapse these levels:
 4. USER — a real user can authenticate and complete the intended durable action.
 
 A merged PR proves none of levels 2-4 by itself.
-
-## Coding-agent test results
-
-Every PR body lists, in a few lines, the checks that were run (with result) and the checks that were not run (with reason). A missing check is never reported as a pass.
-
-The machine-readable record in `docs/contracts/agent-test-result-v1.schema.json` is required only when the handoff is consumed by the `factory-platform` evidence pipeline (Factory runs). Interactive and orchestrator agents do not produce it (decision D-2026-11-11-12, token budget).
 
 ## Operator Kubernetes access
 
@@ -99,18 +80,9 @@ Prefer repository commands over improvised shell:
 - `just backup-audit`
 - `just e2e-list`
 
-## Runtime evidence order
+## Reference (on demand)
 
-```
-Git desired state
-  -> Argo Application/ApplicationSet
-  -> controller resource status
-  -> Kubernetes workload / Service / EndpointSlice
-  -> Gateway / DNS / TLS
-  -> user journey
-```
-
-For HTTP failures distinguish DNS, TLS, HTTPRoute status, ready EndpointSlices and the application response. Do not debug OAuth while DNS/TLS/backend routing is unproven.
+Current platform, runtime evidence order and PR test-result reporting: `.agents/skills/runtime-observer/SKILL.md`. Every PR body lists checks run (with result) and checks not run (with reason); a missing check is never a pass.
 
 ## Safety
 
