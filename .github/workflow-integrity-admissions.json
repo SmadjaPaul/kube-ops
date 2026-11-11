@@ -253,6 +253,17 @@
       "reason": "PLT-200: Cilium 1.20.4 security patch baseline (CVE-2026-111943) in the V1 active contract, replacing invalid #1236.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-17T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1233,
+      "changeFingerprint": "00650ff734df20c86b136de7702ab468a78936fed1bbf89dd438d79d8ac4e4a1",
+      "paths": [
+        ".justfile"
+      ],
+      "reason": "PLT-196 : admission propriétaire de la recette just OUTPUT=summary|errors|full ; aucun changement du gate, du vérificateur ni des protections de branche.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
     }
   ]
 }
