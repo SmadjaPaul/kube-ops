@@ -9,10 +9,15 @@ configs:
     # Argo CD 3.x no longer assesses child Application health by default;
     # without it the root would not wait for sync-wave 0 (ESO, CNPG CRDs).
     resource.customizations.health.argoproj.io_Application: |
-      hs = {status = "Progressing", message = ""}
-      if obj.status ~= nil and obj.status.health ~= nil then
-        hs.status = obj.status.health.status
-        hs.message = obj.status.health.message
+      hs = {status = "Progressing", message = "Waiting for the child Application to be Synced and Healthy"}
+      if obj.status ~= nil and obj.status.health ~= nil and obj.status.sync ~= nil then
+        if obj.status.health.status == "Healthy" and obj.status.sync.status == "Synced" then
+          hs.status = "Healthy"
+          hs.message = obj.status.health.message or ""
+        elseif obj.status.health.status == "Degraded" then
+          hs.status = "Degraded"
+          hs.message = obj.status.health.message or ""
+        end
       end
       return hs
   params:
@@ -61,6 +66,21 @@ repoServer:
     limits: {cpu: "1", memory: 512Mi}
   emptyDir: {sizeLimit: 2Gi}
 redis:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
   resources:
     requests: {cpu: 10m, memory: 32Mi}
     limits: {cpu: 250m, memory: 128Mi}
+redisSecretInit:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
