@@ -80,6 +80,20 @@ data:
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
+            - key: "$LIBRECHAT_AGENTGATEWAY_KEY"
+              metadata:
+                name: librechat
+                owner: librechat
+              allowedModels:
+                - factory/fast
+              budgets:
+                - name: librechat-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 200000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
       models:
         - name: factory/fast
           provider:
@@ -207,6 +221,11 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: hindsight-personal
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: librechat
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
   egress:
