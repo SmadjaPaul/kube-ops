@@ -32,7 +32,7 @@ Matrix; LibreChat uses the private-only hostname `librechat.smadja.dev`.
 3. In the activation PR, include the Authentik ExternalSecret and blueprint
    in the same reviewed change. The provider has one exact callback,
    `https://librechat.smadja.dev/oauth/openid/callback`, `sub_mode: user_email`,
-   and only the `LibreChat Users` group. No global administrator group is bound
+   and only the existing `family` group (D-2026-11-11-19). No global administrator group is bound
    to the application.
 4. Render the official chart with MongoDB authentication, Longhorn PVCs and
    all local login/registration methods and shared conversation links disabled.

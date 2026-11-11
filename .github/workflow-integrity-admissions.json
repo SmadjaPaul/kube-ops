@@ -219,6 +219,29 @@
       "reason": "PLT-56 owner admission candidate for the Factory-only ARC image digest adoption; no PVC, other scale set or runtime mutation.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-17T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1226,
+      "changeFingerprint": "8f6a3a521dfd94527f67831a9a3edbbc1c192688b778d1aa5363046de28c650e",
+      "paths": [
+        ".github/workflows/claude.yaml",
+        ".justfile"
+      ],
+      "reason": "PLT-192 : admission propriétaire du workflow Claude et de la recette just associée ; aucun changement du gate, du vérificateur ni des protections de branche.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1227,
+      "changeFingerprint": "e1ee99f031b2f9e2796acbbc321c86fd1224602673d1f9ff1b414b24fb2751f5",
+      "paths": [
+        "tests/harness/aiostreams-staged-contract-test.sh"
+      ],
+      "reason": "PLT-193 : admission propriétaire de l'ajustement du contrat de test AIOStreams ; aucun changement runtime.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
     }
   ]
 }
