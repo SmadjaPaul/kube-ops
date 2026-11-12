@@ -1,14 +1,13 @@
-# PLT-214: each Kyverno controller renews its leader-election Lease every 2 s
-# (four Leases, ~2 etcd writes/s, ~11 % of the apiserver's etcd writes, each
-# one a WAL fsync on the Talos system disk). A single replica gains nothing
-# from fast failover: renew every 10 s (Lease 60 s, renew deadline 50 s). A
-# restarted pod waits at most one Lease duration before its controller leads;
-# admission webhooks do not depend on leadership.
+# PLT-214: three Kyverno controllers renew their leader-election Lease every
+# 2 s (background, cleanup, reports: ~1.5 etcd writes/s, each one a WAL fsync
+# on the Talos system disk). A single replica gains nothing from fast
+# failover: renew every 10 s (Lease 60 s, renew deadline 50 s). A restarted
+# pod waits at most one Lease duration before its controller leads. The
+# admission controller keeps the 2 s default: its leader runs the webhook
+# controller that updates webhook rules from policies, and a 60 s delay after
+# a restart could leave a new policy outside the rules (CodeRabbit, #1282).
 admissionController:
   replicas: 1
-  container:
-    extraArgs:
-      leaderElectionRetryPeriod: 10s
   resources:
     requests:
       cpu: 100m
