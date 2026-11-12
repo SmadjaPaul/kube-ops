@@ -71,6 +71,7 @@ kubectl exec pod -- env
 kubectl config view --raw
 kubectl get secret foo -n x -v=8
 kubectl --v=9 get secret foo
+kubectl get pods --vmodule=*=9
 EOF
 
 # --- 3. hook lets ordinary commands through (exit 0)
@@ -93,6 +94,7 @@ kubectl describe secret foo
 kubectl get pods -o wide
 kubectl get secret -n argocd -o name
 kubectl get pods -v=4
+kubectl get pods | grep -v 6
 bash scripts/kubectl-ro.sh get applications -n argocd
 ps aux
 just kube-access-check
@@ -141,7 +143,7 @@ for tool in kubectl doppler; do
   printf '#!/bin/sh\necho "%s" >>"%s/called"\nexit 99\n' "$tool" "$WORK" >"$WORK/bin/$tool"; chmod +x "$WORK/bin/$tool"
 done
 RO="$ROOT/scripts/kubectl-ro.sh"
-for args in "delete pod x" "apply -f x.yaml" "exec pod -- env" "get secret foo -o yaml" "get secrets -ojson" \
+for args in "delete pod x" "apply -f x.yaml" "exec pod -- env" "get secret foo -o yaml" "get secrets -ojson" "get secret -o yaml" "get secret -o" \
             "get secret foo -v=9" "get secret foo --v 8" "get -f s.yaml -o yaml" "get -k ./dir" "get --filename=s.yaml" \
             "get pods --kubeconfig /tmp/k" "get pods --insecure-skip-tls-verify" "get --raw /api" "logs -f pod" "get pods -w"; do
   # shellcheck disable=SC2086 # word splitting wanted

@@ -12,7 +12,7 @@
 # Argo evidence; use this wrapper for anything they do not cover.
 #
 # Refused: any verb outside the list above; Secret contents (get secret with
-# -o/--output, --raw); flags that swap credentials or weaken TLS.
+# -o/--output other than `-o name`, --raw, -v>=6); flags that swap credentials or weaken TLS.
 set -uo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -29,8 +29,14 @@ esac
 
 secret_ref=0
 output_flag=0
+next_is_output=0
 for arg in "${@:2}"; do
   lower=$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')
+  if [ "$next_is_output" = 1 ]; then
+    next_is_output=0
+    [ "$lower" = name ] || output_flag=1
+    continue
+  fi
   case "$lower" in
     --kubeconfig|--kubeconfig=*|--token|--token=*|--as|--as=*|--as-group|--as-group=*|--as-uid|--as-uid=*|\
     --server|--server=*|-s|--user|--user=*|--context|--context=*|--cluster|--cluster=*|\
@@ -49,7 +55,10 @@ for arg in "${@:2}"; do
     -f)
       [ "$verb" != logs ] || refuse "option '-f' : sortie non bornée (utiliser --tail=N)"
       refuse "option '-f' : lecture par fichier non autorisée (nommer la ressource)" ;;
-    -o|--output|-o*|--output=*|--template|--template=*)
+    -oname|--output=name) ;;
+    -o|--output)
+      next_is_output=1 ;;
+    -o*|--output=*|--template|--template=*)
       output_flag=1 ;;
   esac
   # secret / secrets / sec, alone, in a comma list, or as type/name
@@ -58,6 +67,8 @@ for arg in "${@:2}"; do
   fi
 done
 
+# a dangling -o/--output (no value) counts as an output flag
+[ "$next_is_output" = 0 ] || output_flag=1
 if [ "$verb" = get ] && [ "$secret_ref" = 1 ] && [ "$output_flag" = 1 ]; then
   refuse "contenu d'un Secret (get secret avec -o/--output) ; utiliser 'get secret' sans -o ou 'describe secret' (tailles seulement)"
 fi
