@@ -18,6 +18,25 @@ spec:
       locale: C
       localeCType: C
       localeCollate: C
+  # PLT-145: temporary read-only role for the user-count control Job
+  # (mas-user-count-check.yaml). SELECT only via pg_read_all_data. Removed by
+  # PR (ensure: absent) right after the measurement.
+  managed:
+    roles:
+      - name: mas_count_ro
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        replication: false
+        bypassrls: false
+        inherit: true
+        connectionLimit: 2
+        inRoles:
+          - pg_read_all_data
+        passwordSecret:
+          name: matrix-mas-count-ro
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
