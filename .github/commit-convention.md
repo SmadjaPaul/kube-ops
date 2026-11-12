@@ -1,4 +1,4 @@
-Exact commit-message rules that release-please parses
+Exact commit-message rules (Conventional Commits). release-please was retired (PLT-172); the version and changelog columns below are informative only
 
 Element	Required?	Syntax rules release-please enforces	Effect on the version	Changelog section	Spec source
 
