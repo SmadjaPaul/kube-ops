@@ -10,11 +10,15 @@ spec:
     initdb:
       database: romm
       owner: romm
+  # PLT-228: a Cluster has a single WAL archiver; the archive moved from
+  # romm-hetzner-store to romm-r2-store (database-r2.yaml). Rollback: point
+  # barmanObjectName back to romm-hetzner-store, then take a new base backup
+  # there (homelab-infra docs/operations/r2-migration.md).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: romm-hetzner-store
+        barmanObjectName: romm-r2-store
   storage:
     size: 10Gi
     storageClass: longhorn-fast

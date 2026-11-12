@@ -12,4 +12,5 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: romm-hetzner-store
+      # PLT-228: base backups follow the WAL archive to R2.
+      barmanObjectName: romm-r2-store
