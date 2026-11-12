@@ -101,8 +101,11 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
 Before switching `barmanObjectName`, a separate PR adds the R2 environment
 (`AWS_ENDPOINT_URL_S3` from the R2 Secret, and the two checksum variables) to
 the `instanceSidecarConfiguration.env` of the cluster's current Hetzner
-`ObjectStore`, then waits for the rolling restart and `ContinuousArchiving=True`
-on Hetzner. Hetzner keeps working because its explicit `endpointURL` is passed
+`ObjectStore`, then waits for the rolling restart and for an `Archived WAL
+file` log line of the new sidecar to Hetzner, timestamped after the restart
+(`ContinuousArchiving=True` alone can predate the rollout; an idle database
+may need to wait for its next segment, no forced `pg_switch_wal()` from an
+agent). Hetzner keeps working because its explicit `endpointURL` is passed
 as `--endpoint-url`, which wins over the environment. At the cutover the old
 sidecar can then archive its last segment to R2 during shutdown. Otherwise,
 plan for a smart-shutdown wait of up to 3 minutes.
