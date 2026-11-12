@@ -49,7 +49,13 @@ check '.spec.egress[4].toPorts[0].ports | length' "$specific" 1
 check '.spec.egress[4].toPorts[0].ports[0].port' "$specific" 443
 check '.spec.egress[4].toPorts[0].ports[0].protocol' "$specific" TCP
 # Match only active YAML fields, not explanatory comments containing "world:443".
-! grep -Eq '^[[:space:]]*(-[[:space:]]+world([[:space:]]|$)|toEntities:|matchPattern:|toCIDR:|toCIDRSet:[[:space:]]*\[[^]]*0\.0\.0\.0/0)' "$specific"
+if grep -Eq '^[[:space:]]*(-[[:space:]]+world([[:space:]]|$)|toEntities:|matchPattern:|toCIDR:|toCIDRSet:[[:space:]]*\[[^]]*0\.0\.0\.0/0)' "$specific"; then
+  echo 'AIOSTREAMS_EGRESS_STATIC=FAIL aiostreams policy carries world/entity/CIDR/FQDN-pattern egress' >&2
+  exit 1
+fi
 
-! grep -Eq '^[[:space:]]*(-[[:space:]]*world([[:space:]]|$)|toEntities:|toCIDR:)' "$specific"
+if grep -Eq '^[[:space:]]*(-[[:space:]]*world([[:space:]]|$)|toEntities:|toCIDR:)' "$specific"; then
+  echo 'AIOSTREAMS_EGRESS_STATIC=FAIL aiostreams policy carries world/entity/CIDR egress' >&2
+  exit 1
+fi
 echo 'AIOSTREAMS_EGRESS_STATIC=PASS; RUNTIME_DENY=NOT_EXECUTED'
