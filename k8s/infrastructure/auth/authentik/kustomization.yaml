@@ -6,6 +6,8 @@ resources:
 - database-scheduled-backup.yaml
 - backup-pre-reset-20260929.yaml
 - database-objectstore.yaml
+- database-r2.yaml
+- backup-hetzner-precutover.yaml
 - database-hetzner-credentials.yaml
 - podmonitor.yaml
 - httproute.yaml
