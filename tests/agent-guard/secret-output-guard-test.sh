@@ -2,7 +2,7 @@
 # Offline test of the secret-output guardrails (PLT-201 incident, 2026-11-12):
 #   .claude/settings.json + .claude/hooks/secret-output-guard.py (PreToolUse hook)
 #   scripts/doppler-safe.sh + scripts/lib/doppler-mask.py (fake doppler)
-#   scripts/kubectl-ro.sh refusals (before any cluster access)
+#   scripts/kubectl-ro.sh refusals (before any cluster access) and the --raw metrics allowlist
 #   scripts/night-relay/kube-status.sh classification (fake preflight library)
 # No network, no real doppler/kubectl: fakes on PATH record forbidden calls.
 # Usage: bash tests/agent-guard/secret-output-guard-test.sh
@@ -151,6 +151,58 @@ for args in "delete pod x" "apply -f x.yaml" "exec pod -- env" "get secret foo -
   [ "$rc" = 64 ] && ok "kubectl-ro refuse : $args" || ko "kubectl-ro laisse passer : $args ($rc)"
 done
 [ ! -f "$WORK/called" ] && ok "kubectl-ro : refus avant tout appel kubectl/doppler" || ko "kubectl-ro a appelé un outil"
+
+# --- 5b. kubectl-ro.sh get --raw: only the Prometheus/Loki query APIs via the service proxy
+SVC=/api/v1/namespaces/monitoring/services
+PROM=$SVC/kube-prometheus-stack-prometheus:9090/proxy/api/v1
+LOKI=$SVC/loki-gateway:80/proxy/loki/api/v1
+raw_refused=(
+  "/api/v1/secrets" "/api/v1/namespaces/monitoring/secrets" "/apis" "/apis/apps/v1/deployments" "/api" "/metrics"
+  "$SVC/grafana:80/proxy/api/v1/query?query=up" "$SVC/kube-prometheus-stack-prometheus:9090/proxy/api/v1/admin/tsdb/delete_series"
+  "$PROM/query/../../../../secrets" "$PROM/../query" "$PROM/query%2F..%2F..%2Fsecrets" "$PROM/%71uery" "$PROM//query"
+  "$PROM/query?query=up?x" "$PROM/query?query=up#frag" "$PROM/query?x=/api/v1/secrets" "$PROM/query?q=%0a" "$PROM/query?q=up%2"
+  "$PROM/query?query=up{job=\"x\"}" "$PROM/query?query=up x" "$PROM/query/" "$PROM/queryx" "$PROM/label/../values"
+  "$PROM/label/a/b/values" "$PROM/status/config" "$PROM/targets" "$PROM/query;x" "$PROM/query
+/api/v1/secrets"
+  "$SVC/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query/proxy/x" "$SVC/http:kube-prometheus-stack-prometheus:9090/proxy/api/v1/query"
+  "/api/v1/namespaces/kube-system/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query"
+  "/api/v1/namespaces/monitoring/pods/prometheus-0/proxy/api/v1/query" "/api/v1/namespaces/monitoring/pods/x/exec"
+  "/api/v1/namespaces/monitoring/pods/x/portforward" "/api/v1/nodes/n1/proxy/metrics"
+  "$SVC/loki-gateway:80/proxy/api/v1/query" "$SVC/loki-gateway:80/proxy/loki/api/v1/push" "$SVC/loki-gateway:80/proxy/loki/api/v1/tail"
+  "$SVC/loki:3100/proxy/loki/api/v1/delete" "$SVC/loki-gateway:8080/proxy/loki/api/v1/query"
+  "$PROM/query?query=$(printf 'a%.0s' $(seq 1 4100))" "$PROM/query?query=é"
+)
+for p in "${raw_refused[@]}"; do
+  PATH="$WORK/bin:$PATH" bash "$RO" get --raw "$p" >/dev/null 2>&1; rc=$?
+  [ "$rc" = 64 ] && ok "kubectl-ro --raw refuse : ${p:0:90}" || ko "kubectl-ro --raw laisse passer : ${p:0:90} ($rc)"
+done
+for args in "get --raw $PROM/query?query=up -v=9" "get --raw $PROM/query?query=up -o yaml" "get pods --raw $PROM/query" \
+            "get --raw=$PROM/query --kubeconfig /tmp/k" "describe --raw $PROM/query" "logs --raw $PROM/query" "get --raw" \
+            "get --RAW $PROM/query" "get --raw $PROM/query --raw /api/v1/secrets" "get --raw=/api/v1/secrets"; do
+  # shellcheck disable=SC2086 # word splitting wanted
+  PATH="$WORK/bin:$PATH" bash "$RO" $args >/dev/null 2>&1; rc=$?
+  [ "$rc" = 64 ] && ok "kubectl-ro refuse : ${args:0:90}" || ko "kubectl-ro laisse passer : ${args:0:90} ($rc)"
+done
+[ ! -f "$WORK/called" ] && ok "kubectl-ro --raw : refus avant tout appel kubectl/doppler" || ko "kubectl-ro --raw a appelé un outil"
+# allowed forms reach kubectl unchanged (copy of the wrapper with a passing fake preflight)
+mkdir -p "$WORK/ro/scripts/lib" "$WORK/robin"
+cp "$RO" "$WORK/ro/scripts/kubectl-ro.sh"
+printf '%s\n' 'kube_access_cleanup() { :; }' 'require_kube_access() { echo KUBE_ACCESS=PASS; }' >"$WORK/ro/scripts/lib/kube-preflight.sh"
+printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"%s/raw-args"\n' "$WORK" >"$WORK/robin/kubectl"; chmod +x "$WORK/robin/kubectl"
+for p in "$PROM/query?query=sum%28rate%28node_cpu_seconds_total%7Bmode%21%3D%22idle%22%7D%5B5m%5D%29%29" \
+         "$PROM/query_range?query=node_hwmon_temp_celsius&start=2026-11-12T00:00:00Z&end=2026-11-12T06:00:00Z&step=60" \
+         "$PROM/series?match%5B%5D=up" "$PROM/labels" "$PROM/label/__name__/values" "$PROM/query?query=up" \
+         "$LOKI/query_range?query=%7Bnamespace%3D%22monitoring%22%7D&limit=50" "$LOKI/labels" "$LOKI/label/namespace/values" \
+         "$LOKI/series?match%5B%5D=%7Bjob%3D%22x%22%7D" "$SVC/loki:3100/proxy/loki/api/v1/query?query=count_over_time%28%7Ba%3D%22b%22%7D%5B1h%5D%29"; do
+  rm -f "$WORK/raw-args"
+  PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" get --raw "$p" >/dev/null 2>&1; rc=$?
+  [ "$rc" = 0 ] && [ "$(cat "$WORK/raw-args" 2>/dev/null)" = "--request-timeout=30s get --raw $p" ] &&
+    ok "kubectl-ro --raw autorise : ${p:0:90}" || ko "kubectl-ro --raw refuse à tort : ${p:0:90} ($rc)"
+done
+rm -f "$WORK/raw-args"
+PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" get "--raw=$PROM/labels" >/dev/null 2>&1; rc=$?
+[ "$rc" = 0 ] && [ "$(cat "$WORK/raw-args" 2>/dev/null)" = "--request-timeout=30s get --raw=$PROM/labels" ] &&
+  ok "kubectl-ro --raw=<chemin> autorise" || ko "kubectl-ro --raw=<chemin> refuse à tort ($rc)"
 
 # --- 6. kube-status.sh: one non-sensitive line per case (fake preflight libraries)
 mklib() { # mklib NAME RC LINES...

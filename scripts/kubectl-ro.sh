@@ -4,6 +4,7 @@
 # Usage: bash scripts/kubectl-ro.sh <get|describe|logs|top|events|api-resources|version> [args...]
 #   bash scripts/kubectl-ro.sh get applications -n argocd
 #   bash scripts/kubectl-ro.sh logs -n cilium ds/cilium --tail=50
+#   bash scripts/kubectl-ro.sh get --raw '/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=up'
 #
 # Access comes from scripts/lib/kube-preflight.sh (Doppler bootstrap, SHA-256,
 # TLS, API auth): the verified kubeconfig lives in a 0600 temp dir for this
@@ -12,7 +13,11 @@
 # Argo evidence; use this wrapper for anything they do not cover.
 #
 # Refused: any verb outside the list above; Secret contents (get secret with
-# -o/--output other than `-o name`, --raw, -v>=6); flags that swap credentials or weaken TLS.
+# -o/--output other than `-o name`, -v>=6); flags that swap credentials or weaken TLS;
+# --raw except the exact form `get --raw <path>` where <path> is a read-only
+# Prometheus/Loki query API reached through the API server service proxy
+# (monitoring/kube-prometheus-stack-prometheus:9090, monitoring/loki-gateway:80,
+# monitoring/loki:3100). Query strings must be percent-encoded (PromQL/LogQL).
 set -uo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -26,6 +31,40 @@ case "$verb" in
   get|describe|logs|top|events|api-resources|version) ;;
   *) refuse "verbe '$verb' hors liste blanche (lecture seule : get|describe|logs|top|events|api-resources|version)" ;;
 esac
+
+# --- metrics: `get --raw <path>` limited to the monitoring query APIs (PLT-167/187)
+RAW_MAX=4096
+RAW_SVC='/api/v1/namespaces/monitoring/services'
+RAW_LABEL='label/[A-Za-z_][A-Za-z0-9_]*/values'
+RAW_PROM="kube-prometheus-stack-prometheus:9090/proxy/api/v1/(query|query_range|series|labels|$RAW_LABEL)"
+RAW_LOKI="(loki-gateway:80|loki:3100)/proxy/loki/api/v1/(query|query_range|series|labels|$RAW_LABEL)"
+RAW_PATH_RE="^$RAW_SVC/($RAW_PROM|$RAW_LOKI)\$"
+# query: unreserved chars, sub-delims & = + , : and %XX (printable only; no '/', '?', '#')
+RAW_QUERY_RE='^([A-Za-z0-9._~=&+,:-]|%[2-7][0-9A-Fa-f])*$'
+raw_check() { # raw_check PATH -> refuse unless allowed
+  local raw=$1 path query="" LC_ALL=C
+  [ "${#raw}" -le "$RAW_MAX" ] || refuse "--raw : chemin trop long (> $RAW_MAX)"
+  case "$raw" in *..*|*//*|*'#'*|*\\*) refuse "--raw : '..', '//', '#' ou '\\' interdits" ;; esac
+  path=${raw%%\?*}
+  [ "$path" = "$raw" ] || query=${raw#*\?}
+  [[ "$path" =~ $RAW_PATH_RE ]] ||
+    refuse "--raw '$path' : seul le proxy de lecture Prometheus/Loki est autorisé ($RAW_SVC/{kube-prometheus-stack-prometheus:9090|loki-gateway:80|loki:3100}/proxy/.../(query|query_range|series|labels|label/<nom>/values))"
+  [[ "$query" =~ $RAW_QUERY_RE ]] ||
+    refuse "--raw : paramètres de requête invalides (encoder PromQL/LogQL en %XX ; un seul '?', pas de '/' ni de caractère de contrôle)"
+}
+raw_mode=0
+for arg in "${@:2}"; do
+  case "$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')" in --raw|--raw=*) raw_mode=1 ;; esac
+done
+if [ "$raw_mode" = 1 ]; then
+  if [ "$verb" = get ] && [ "$#" = 3 ] && [ "$2" = --raw ]; then
+    raw_check "$3"
+  elif [ "$verb" = get ] && [ "$#" = 2 ] && [ "${2#--raw=}" != "$2" ]; then
+    raw_check "${2#--raw=}"
+  else
+    refuse "--raw : seule la forme exacte 'get --raw <chemin>' est autorisée (aucune autre option)"
+  fi
+fi
 
 secret_ref=0
 output_flag=0
@@ -45,7 +84,7 @@ for arg in "${@:2}"; do
     --insecure-skip-tls-verify|--insecure-skip-tls-verify=*|--certificate-authority|--certificate-authority=*|--tls-server-name|--tls-server-name=*)
       refuse "option '$arg' : TLS non contournable" ;;
     --raw|--raw=*)
-      refuse "option '$arg' : accès API brut non autorisé" ;;
+      [ "$raw_mode" = 1 ] || refuse "option '$arg' : accès API brut non autorisé" ;;
     -v|-v=*|-v[0-9]*|--v|--v=*|--vmodule|--vmodule=*)
       refuse "option '$arg' : la verbosité kubectl affiche les corps HTTP (Secrets compris)" ;;
     -k|-k*|--kustomize|--kustomize=*|--filename|--filename=*|-r|-R|--recursive|--recursive=*|-f?*)
