@@ -42,15 +42,18 @@ spec:
             # charged to the container: the sizeLimits below plus the ~0.8 GiB
             # runner working set must stay under the 4Gi memory limit.
             #   _work           job workspace, checkout, cache archive (~0.45 GB)
-            #   .local/share    mise toolchain restored from the cache (~1.3 GB).
-            #                   Mounted one level above `mise` so the cache
-            #                   tar can create and chmod its own directory.
+            #   .local          mise toolchain restored from the cache (~1.3 GB)
+            #                   under share/, mise state under state/. Mounted
+            #                   above `mise` so the cache tar can create and
+            #                   chmod its own directory, and so the runner user
+            #                   can create `state` (a kubelet-created parent
+            #                   directory is root-owned: PLT-214 first run).
             # /tmp (OpenTofu providers, per-root data) stays on disk: a full
             # validation can unpack more than RAM can hold.
             volumes:
               - name: work
                 emptyDir: {medium: Memory, sizeLimit: 1Gi}
-              - name: local-share
+              - name: local
                 emptyDir: {medium: Memory, sizeLimit: 2Gi}
             containers:
               - name: runner
@@ -58,7 +61,7 @@ spec:
                 command: ["/home/runner/run.sh"]
                 volumeMounts:
                   - {name: work, mountPath: /home/runner/_work}
-                  - {name: local-share, mountPath: /home/runner/.local/share}
+                  - {name: local, mountPath: /home/runner/.local}
                 resources:
                   requests: {cpu: 250m, memory: 1Gi, ephemeral-storage: 512Mi}
                   limits: {cpu: "2", memory: 4Gi, ephemeral-storage: 4Gi}
