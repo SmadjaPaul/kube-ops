@@ -74,6 +74,13 @@ loadBalancer:
   algorithm: maglev
 
 envoy:
+  # Chart 1.20.4 no longer defaults xdsMode to "ads", but the agent ConfigMap
+  # keeps envoy-xds-mode=ads (field still owned by the bootstrap Helm release).
+  # Pin it so the agent and the Envoy bootstrap agree; a split/ADS mismatch
+  # blocks NPDS ACKs, endpoint regeneration and toFQDNs egress (PLT-200).
+  xdsMode: ads
+  # Restart cilium-envoy when its bootstrap ConfigMap changes.
+  rollOutPods: true
   securityContext:
     capabilities:
       keepCapNetBindService: true
