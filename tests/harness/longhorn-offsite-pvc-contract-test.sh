@@ -55,4 +55,33 @@ done
   "$repo_root/k8s/poc/atlantis-plan-only/pvc-retention.yaml" \
   | rg 'pvc-retention|agentgateway-state|atlantis-pilot-data' >/dev/null
 
+# Retired Atlantis recovery volume (PLT-205; absorbs the former dedicated
+# Atlantis retirement tests). The Argo root must keep owning the recovery PVC,
+# must keep it out of prune, and must not carry any workload, route, credential
+# or policy object again.
+atlantis_root="$repo_root/k8s/poc/atlantis-plan-only"
+grep -F -- '- path: k8s/poc/atlantis-plan-only' \
+  "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" >/dev/null
+test "$(find "$atlantis_root" -type f -printf '%f\n' | sort | tr '\n' ' ')" = \
+  'kustomization.yaml namespace.yaml pvc-retention.yaml '
+atlantis_rendered="$(mktemp)"
+trap 'rm -f "$atlantis_rendered"' EXIT
+kustomize build "$atlantis_root" >"$atlantis_rendered"
+test "$(grep -c '^kind:' "$atlantis_rendered")" = 2
+grep -q '^kind: Namespace$' "$atlantis_rendered"
+grep -q '^  name: atlantis-system$' "$atlantis_rendered"
+grep -q '^kind: PersistentVolumeClaim$' "$atlantis_rendered"
+grep -q '^  name: atlantis-pilot-data$' "$atlantis_rendered"
+grep -q 'argocd.argoproj.io/sync-options: Delete=false' "$atlantis_rendered"
+grep -q 'atlantis.smadja.dev/retention: recovery-only' "$atlantis_rendered"
+grep -q 'atlantis.smadja.dev/server: retired' "$atlantis_rendered"
+grep -q 'storageClassName: longhorn-fast' "$atlantis_rendered"
+grep -q 'storage: 5Gi' "$atlantis_rendered"
+! grep -Eq '^kind: (StatefulSet|Deployment|Service|HTTPRoute|ExternalSecret|Secret|ConfigMap|CiliumNetworkPolicy)$' \
+  "$atlantis_rendered"
+! rg -n 'atlantis-servicemonitor|atlantis-observability|atlantis-pilot' \
+  "$repo_root/k8s/infrastructure/monitoring/prometheus-stack/kustomization.yaml" \
+  "$repo_root/k8s/applications/media/aiostreams/networkpolicy.yaml" \
+  "$repo_root/k8s/applications/media/polyfin/networkpolicy.yaml" >/dev/null
+
 printf '%s\n' 'LONGHORN_OFFSITE_PVC_CONTRACT=PASS'
