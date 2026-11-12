@@ -123,12 +123,58 @@ check "fail: next cycle receives the stub" \
 
 # --- 4. empty queue: long pause instead of relaunching immediately
 run empty "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_EMPTY_ATTEMPTS="1,2,3,4,5,6,7,8"
-check "empty: pause logged" 'logs empty | grep -q "file vide : pause"'
+check "empty: pause logged" 'logs empty | grep -q "file vide (cycles inactifs consécutifs : 1) : pause 300s"'
+
+# --- 4b. idle guard: short sessions saying `continue` still back off, longer after 3 in a row
+run idle "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=30 EMPTY_SLEEP=300 \
+  MIN_ACTIVE_SECONDS=120 IDLE_LONG_AFTER=3 IDLE_LONG_SLEEP=900
+I=$WORK/idle
+check "idle: short continue cycle treated as idle" \
+  'logs idle | grep -q "cycle inactif (30s < 120s, statut continue, consécutifs : 1) : pause 300s"'
+check "idle: second idle cycle still EMPTY_SLEEP" 'logs idle | grep -q "consécutifs : 2) : pause 300s"'
+check "idle: 3rd consecutive idle cycle -> long pause" 'logs idle | grep -q "consécutifs : 3) : pause 900s"'
+t1=$(logs idle | grep "lancement orchestrateur" | sed -n 1p | cut -c12-16 || true)
+t2=$(logs idle | grep "lancement orchestrateur" | sed -n 2p | cut -c12-16 || true)
+check "idle: no back-to-back relaunch ($t1 -> $t2)" '[ "$t1" = "23:00" ] && [ "$t2" = "23:05" ]'
+il=$(logs idle | grep -c "lancement orchestrateur" || true)
+check "idle: idle cycles go on all night, MAX_CYCLES not reached ($il sessions)" \
+  '[ "$il" -ge 20 ] && ! logs idle | grep -q "borne MAX_CYCLES"'
+check "idle: stops only at window end" 'logs idle | grep -q "pas de nouveau cycle\|fin de fenêtre"'
+maxp=$(logs idle | grep -Eo "pause [0-9]+s" | tr -dc '0-9\n' | sort -n | tail -1 || true)
+check "idle: long pause bounded (max ${maxp}s <= 900s)" '[ "${maxp:-0}" -le 900 ]'
+run maxcyc "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=600 MAX_CYCLES=3
+check "maxcyc: MAX_CYCLES bounds productive cycles" \
+  'logs maxcyc | grep -q "borne MAX_CYCLES=3 (cycles productifs) atteinte" && [ "$(logs maxcyc | grep -c "lancement orchestrateur")" = 3 ]'
+run active "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=600 MIN_ACTIVE_SECONDS=120
+check "active: long cycles are not idle" '! logs active | grep -q "cycle inactif"'
 
 # --- 5. started inside the window after midnight: same night, immediate start
 run late "2026-11-12 02:00" DRY_RUN_QUOTA_ATTEMPTS=""
 check "late: night is 2026-11-11 and starts at 02:00" \
   'logs late | grep "lancement orchestrateur" | head -1 | grep -q "^2026-11-12T02:00.*2026-11-11-1"'
+
+# --- 5b. preflight retry: a transient failure is retried before declaring Kubernetes unavailable
+cat >"$WORK/flakykube" <<EOF
+#!/usr/bin/env bash
+n=\$(( \$(cat "$WORK/flaky.count" 2>/dev/null || echo 0) + 1 )); echo "\$n" >"$WORK/flaky.count"
+if [ "\$n" = 1 ]; then sleep 7719; fi
+echo "disponible (cluster v9.9.9)"
+EOF
+run retry "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" MAX_CYCLES=1 NIGHT_RELAY_KUBE_STATUS="$WORK/flakykube" \
+  KUBE_CHECK_TIMEOUT=1 KUBE_CHECK_ATTEMPTS=2 KUBE_CHECK_RETRY_DELAY=60 KILL_GRACE=2
+R=$WORK/retry
+check "retry: first timeout logged with retry" \
+  'logs retry | grep -q "tentative 1/2 indisponible (preflight_timeout : 1s), nouvel essai dans 60s"'
+check "retry: second attempt available, given to the prompt" \
+  'grep -q "^- Kubernetes : disponible (cluster v9.9.9)$" "$R/state/dry-run/prompt-1.txt"'
+check "retry: session launched after the retry delay" \
+  'logs retry | grep "lancement orchestrateur" | head -1 | grep -q "^2026-11-11T23:01"'
+check "retry: no surviving preflight" '! pgrep -f "sleep 7719" >/dev/null'
+printf '#!/usr/bin/env bash\necho "indisponible (api_inaccessible : api_unreachable)"\n' >"$WORK/downkube"
+run retrydown "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" MAX_CYCLES=1 NIGHT_RELAY_KUBE_STATUS="$WORK/downkube" \
+  KUBE_CHECK_ATTEMPTS=2 KUBE_CHECK_RETRY_DELAY=60
+check "retrydown: category and attempts in the prompt, session still started" \
+  'grep -q "^- Kubernetes : indisponible (api_inaccessible : api_unreachable) après 2 tentatives$" "$WORK/retrydown/state/dry-run/prompt-1.txt"'
 
 # --- 6. single instance
 mkdir -p "$WORK/lock/state/supervisor.lock"
@@ -171,7 +217,7 @@ chmod +x "$WORK/fakeclaude"
 printf '#!/usr/bin/env bash\nsleep 7718\necho "disponible (trop tard)"\n' >"$WORK/fakekube"
 h=$(date -u +%H)
 env TZ=UTC NIGHT_RELAY_REPO="$WORK" NIGHT_RELAY_STATE="$S/state" NIGHT_RELAY_HANDOFF_DIR="$S/handoff" \
-  CLAUDE_BIN="$WORK/fakeclaude" NIGHT_RELAY_KUBE_STATUS="$WORK/fakekube" KUBE_CHECK_TIMEOUT=1 START_HM="$(printf '%02d00' $(( (10#$h + 23) % 24 )))" \
+  CLAUDE_BIN="$WORK/fakeclaude" NIGHT_RELAY_KUBE_STATUS="$WORK/fakekube" KUBE_CHECK_TIMEOUT=1 KUBE_CHECK_ATTEMPTS=1 START_HM="$(printf '%02d00' $(( (10#$h + 23) % 24 )))" \
   STOP_HM="$(printf '%02d00' $(( (10#$h + 3) % 24 )))" MIN_CYCLE_SECONDS=60 ORCH_TIMEOUT=7717 KILL_GRACE=2 \
   bash "$SUP" >"$S/stdout" 2>"$S/stderr" &
 sup=$!

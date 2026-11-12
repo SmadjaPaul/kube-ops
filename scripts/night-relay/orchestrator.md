@@ -8,7 +8,7 @@ Autorités : `AGENTS.md` de chaque dépôt, puis la charte et les décisions de 
 
 - N'appelle jamais `kubectl` directement : sans le préflight canonique, il retombe sur `localhost:8080`. Pour les preuves Argo, Cube et sauvegardes, utilise `just status-app <app>`, `just diagnose-app <app>`, `just runtime-inventory`, `just backup-audit`. Ils chargent eux-mêmes l'accès (`scripts/lib/kube-preflight.sh`). Pour le reste, en lecture seule : `bash scripts/kubectl-ro.sh <get|describe|logs|top|events> ...`. Ne copie jamais le kubeconfig, n'utilise jamais `~/.kube/config`, ne demande jamais de kubeconfig à Paul.
 - Métriques : `bash scripts/kubectl-ro.sh get --raw <chemin>` sur le proxy Prometheus/Loki (`/api/v1/namespaces/monitoring/services/{kube-prometheus-stack-prometheus:9090|loki-gateway:80}/proxy/...`, API `query|query_range|series|labels|label/<nom>/values`, paramètres encodés %XX) ; tout autre `--raw` est refusé.
-- `Kubernetes : indisponible (...)` : ne tente aucune preuve runtime ni ticket qui exige le cluster. Recopie la raison dans le handoff. Continue les tickets GitHub et Linear sans dépendance runtime. Les preuves manquantes vont dans `## Preuves à compléter`.
+- `Kubernetes : indisponible (...)` (le superviseur a déjà réessayé) : ce n'est **jamais** une raison de ne pas démarrer un ticket. Prends quand même le ticket choisi par le dispatcher (verrou, In Progress) et fais tout ce qui ne demande pas le cluster : lecture Git et manifests, PR, CI, revue, merge, commentaire Linear. Ne lance aucune commande runtime. Chaque preuve ou mesure qui exige le cluster va dans `## Preuves à compléter`, avec la catégorie recopiée de la ligne `Kubernetes :` et la prochaine commande exacte. Si le ticket n'a vraiment aucune partie faisable sans cluster, commente-le (ce qui manque, prochaine commande), retire le verrou, laisse-le In Progress, ajoute sa ligne à `## Preuves à compléter`, puis passe au ticket suivant du dispatcher.
 - Doppler : uniquement via `bash scripts/doppler-safe.sh` (`names`, `has KEY`, `set KEY` avec la valeur sur stdin, `delete KEY`, `run -- <cmd>`). Jamais `doppler secrets` sans `--only-names`, ni `secrets get|download|set|delete` en direct, ni `doppler run -- env|printenv`, ni `printenv`/`env` non filtrés, ni `kubectl get secret -o ...`. Ces commandes impriment des valeurs, même redirigées (stderr, tableaux d'erreur). Le hook `.claude/hooks/secret-output-guard.py` les refuse.
 
 ## Déroulé
@@ -19,7 +19,7 @@ Autorités : `AGENTS.md` de chaque dépôt, puis la charte et les décisions de 
    - Les lignes `à reprendre :` listent les tickets In Progress sans verrou (PR mergée, preuve manquante). Traite-les avant tout nouveau ticket : pose le verrou `wip:claude-<voie>`, laisse le ticket In Progress, complète la preuve.
    - La ligne `choisi :` donne le ticket. Pose aussitôt le label `wip:claude-<voie>` et passe le ticket en In Progress (Linear). Relance le dry-run : le ticket verrouillé est écarté et le suivant apparaît.
    - Ne choisis jamais un ticket à la main, même s'il paraît évident. Ne lance jamais le dispatcher sans `--dry-run` : c'est toi qui délègues.
-   - `file vide` sur les deux voies, aucune ligne `à reprendre :`, rien en cours et aucune preuve à compléter réalisable (Kubernetes indisponible compris) : écris le handoff avec `statut: file-vide` et arrête-toi. Recopie quand même la section `## Preuves à compléter`.
+   - `statut: file-vide` uniquement si le dispatcher ne donne réellement aucune ligne `choisi :` ni `à reprendre :` sur les deux voies, et que rien n'est en cours. Un ticket choisi mais non démarré n'est pas une file vide, même avec Kubernetes indisponible : démarre-le (voir « Accès Kubernetes »). Dans le cas file vide, écris le handoff et arrête-toi ; recopie quand même la section `## Preuves à compléter`.
 3. **Délégation.** Au plus 3 sous-agents en parallèle, un par ticket.
    - Modèle = label `agent:*` du ticket (`agent:haiku` → haiku, `agent:sonnet` → sonnet). Opus seulement si le ticket porte `agent:opus` et touche architecture, sécurité ou IaC, ou après 2 échecs du même ticket avec un modèle plus petit.
    - Chaque sous-agent travaille dans son propre worktree, créé depuis `origin/main` : `../kube-ops-pltNNN` ou `../homelab-infra-pltNNN`, branche `claude/pltNNN-<sujet>`. Jamais dans le dépôt principal, jamais sur une branche existante d'un autre agent.
@@ -43,7 +43,7 @@ Avant de déclarer un blocage, suis D-13 : la ressource ou le credential existe-
 - Aucun `tofu destroy`, `tofu import`, `tofu state ...` ni `force-unlock`. Aucun apply, destroy ni mutation d'état d'infrastructure hors CI, sans exception (`AGENTS.md`). Si un apply est nécessaire, c'est un blocage à consigner avec sa preuve.
 - Aucun secret affiché, journalisé, commenté ou écrit dans un fichier ou un handoff. Doppler : noms seulement.
 - Aucune suppression ou réinitialisation de PVC, de données ou de base CNPG. Les protections de D-02 s'appliquent (données, sauvegardes, exposition publique, racines d'identité, migrations irréversibles).
-- Ne touche jamais une branche `codex/*` ni un ticket `agent:codex`.
+- Branches et PR `codex/*` et `chatgpt/*` (travaux abandonnés, Claude est le worker principal) : traitables comme les autres. Lis d'abord leur contenu (diff, commits non intégrés à `origin/main`). Vérifie l'activité réelle, pas un délai fixe : PR ouverte, push récent, commits non intégrés, worktree local, verrou Linear. Si le travail est utile et non intégré, récupère-le par le circuit normal (revue indépendante, CI, admission, merge), puis nettoie. Sinon, par défaut, ferme la PR et supprime la branche. Les tickets `agent:codex` sont traitables de même. Ne touche jamais aux worktrees `*-hygiene`. Les autres limites dures restent : pas de `--admin`, aucun check ni admission contourné.
 - Linear free tier (250 tickets) : commente plutôt que créer. Ne crée un ticket que si aucun existant ne convient.
 - Ne demande rien à Paul, sauf pour une action qui exige son identité ou sa présence physique (D-14) : dans ce cas, `Needs-operator` + commentaire, puis continue.
 - Ne modifie pas `scripts/night-relay/` pendant la nuit.
@@ -68,6 +68,6 @@ modele: sonnet
 - frictions observées, échecs répétés, idées pour le relais
 ```
 
-La première ligne `statut:` est lue par le superviseur : `continue` (cycle normal), `file-vide` (rien à faire, il patiente), `arret` (incident grave : il n'enchaîne plus).
+La première ligne `statut:` est lue par le superviseur : `continue` (cycle normal), `file-vide` (rien à faire, il patiente), `arret` (incident grave : il n'enchaîne plus). Un cycle de moins de `MIN_ACTIVE_SECONDS` (120 s) est traité comme inactif quel que soit son statut : le superviseur patiente avant le suivant. `continue` sans travail ne relance donc pas un cycle immédiat.
 
 Ta réponse finale tient en 3 lignes : tickets faits, en cours, blocages.
