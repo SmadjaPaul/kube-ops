@@ -49,7 +49,9 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
   archived; production produced no newer segment before recovery ended (the
   idle database switches segments only when WAL is written, at most every
   `archive_timeout` = 5 min). Under write load the loss window is the
-  unarchived part of the current segment, at most 5 minutes.
+  unarchived part of the current segment, at most 5 minutes, while archiving
+  keeps pace. Completed segments not yet uploaded to R2 (archive lag or failed
+  uploads, visible as `ContinuousArchiving=False`) extend the loss window.
 - **Control query** (read-only transaction, counts and `max()` only):
   `in_recovery=false`, 138 user tables, `user=1`, `session=5`,
   `water_intake_entries=15`, `food_entries=4`, newest application timestamp
