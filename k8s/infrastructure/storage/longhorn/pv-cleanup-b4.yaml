@@ -1,0 +1,353 @@
+# One-shot cleanup batch b4 (Paul, 2026-11-12 23:48, PLT-46): exact-name PV + Longhorn volumes.
+# Removed by a follow-up PR. backoffLimit 0: guards are not replayable after the PV delete.
+# kubectl image is distroless (no shell): guards are kubectl waits that fail the Job.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pv-cleanup-b4
+  namespace: longhorn-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pv-cleanup-b4
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumes
+  resourceNames:
+  - pvc-27ad61d8-550b-4c52-a119-d58cf248192a
+  - pvc-291ee586-05a8-4dc4-825c-b13301ae3606
+  - pvc-2c9b046a-9177-4069-8c07-672a346709dd
+  - pvc-2cad047f-67e9-4629-88d6-128c146e9cb0
+  - pvc-370f5fa1-101f-479e-ab89-7805e9e87e59
+  - pvc-39130a95-ff2f-4679-900c-277b6bfd5c4a
+  - pvc-3f03da23-f731-4893-9a8d-7e8b946e990f
+  - pvc-45092d68-79bf-4b29-abaa-59d9902eb703
+  - pvc-45acdc62-9aff-49e7-8c71-acf57cd089ad
+  - pvc-5052b6c5-9815-4123-afe1-8c8f81515c3f
+  - pvc-589782e8-4a0a-430f-90d8-d2161e79787d
+  - pvc-5a47a791-36e6-42a5-8155-785da677fed9
+  - pvc-6a246c82-d533-4870-a6cc-d3592922f8dc
+  - pvc-8a7998ba-7603-41f7-bbeb-18a146a89ad6
+  - pvc-a57e69bd-049d-4f30-879c-5328a3346f65
+  - pvc-aa30cb75-988e-4fbc-9a67-18bb4bc11581
+  - pvc-b05f3dff-df79-416e-a837-396bb4039516
+  - pvc-b082624c-023e-4b4f-a4f1-45c6c9545f0f
+  - pvc-c32ab0fc-51cb-47be-8f77-d1b0b592c2a1
+  - pvc-c351c524-0830-4bad-81dc-0a995d77dfb1
+  - pvc-c5b65bed-9490-4567-8d4a-a707efe46330
+  - pvc-d94dd63a-1c99-4e98-b225-852a026824ef
+  - pvc-ef173b2d-5724-4167-98c5-315a8af6c5d3
+  - pvc-f2e0c2ea-d74b-4fbf-956f-8f42aaabf288
+  - pvc-fd4e5e89-29e9-4383-9549-aa10a0ae6883
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pv-cleanup-b4
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pv-cleanup-b4
+subjects:
+- kind: ServiceAccount
+  name: pv-cleanup-b4
+  namespace: longhorn-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pv-cleanup-b4
+  namespace: longhorn-system
+rules:
+- apiGroups:
+  - longhorn.io
+  resources:
+  - volumes
+  resourceNames:
+  - pvc-27ad61d8-550b-4c52-a119-d58cf248192a
+  - pvc-291ee586-05a8-4dc4-825c-b13301ae3606
+  - pvc-2c9b046a-9177-4069-8c07-672a346709dd
+  - pvc-2cad047f-67e9-4629-88d6-128c146e9cb0
+  - pvc-370f5fa1-101f-479e-ab89-7805e9e87e59
+  - pvc-39130a95-ff2f-4679-900c-277b6bfd5c4a
+  - pvc-3f03da23-f731-4893-9a8d-7e8b946e990f
+  - pvc-45092d68-79bf-4b29-abaa-59d9902eb703
+  - pvc-45acdc62-9aff-49e7-8c71-acf57cd089ad
+  - pvc-5052b6c5-9815-4123-afe1-8c8f81515c3f
+  - pvc-589782e8-4a0a-430f-90d8-d2161e79787d
+  - pvc-5a47a791-36e6-42a5-8155-785da677fed9
+  - pvc-6a246c82-d533-4870-a6cc-d3592922f8dc
+  - pvc-8a7998ba-7603-41f7-bbeb-18a146a89ad6
+  - pvc-a57e69bd-049d-4f30-879c-5328a3346f65
+  - pvc-aa30cb75-988e-4fbc-9a67-18bb4bc11581
+  - pvc-b05f3dff-df79-416e-a837-396bb4039516
+  - pvc-b082624c-023e-4b4f-a4f1-45c6c9545f0f
+  - pvc-c32ab0fc-51cb-47be-8f77-d1b0b592c2a1
+  - pvc-c351c524-0830-4bad-81dc-0a995d77dfb1
+  - pvc-c5b65bed-9490-4567-8d4a-a707efe46330
+  - pvc-d94dd63a-1c99-4e98-b225-852a026824ef
+  - pvc-ef173b2d-5724-4167-98c5-315a8af6c5d3
+  - pvc-f2e0c2ea-d74b-4fbf-956f-8f42aaabf288
+  - pvc-fd4e5e89-29e9-4383-9549-aa10a0ae6883
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pv-cleanup-b4
+  namespace: longhorn-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pv-cleanup-b4
+subjects:
+- kind: ServiceAccount
+  name: pv-cleanup-b4
+  namespace: longhorn-system
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pv-cleanup-b4
+  namespace: longhorn-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pv-cleanup-b4
+    spec:
+      serviceAccountName: pv-cleanup-b4
+      restartPolicy: Never
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+      - name: guard-pv-released
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.status.phase}=Released
+        - --timeout=60s
+        - pv/pvc-27ad61d8-550b-4c52-a119-d58cf248192a
+        - pv/pvc-291ee586-05a8-4dc4-825c-b13301ae3606
+        - pv/pvc-2c9b046a-9177-4069-8c07-672a346709dd
+        - pv/pvc-2cad047f-67e9-4629-88d6-128c146e9cb0
+        - pv/pvc-370f5fa1-101f-479e-ab89-7805e9e87e59
+        - pv/pvc-39130a95-ff2f-4679-900c-277b6bfd5c4a
+        - pv/pvc-3f03da23-f731-4893-9a8d-7e8b946e990f
+        - pv/pvc-45092d68-79bf-4b29-abaa-59d9902eb703
+        - pv/pvc-45acdc62-9aff-49e7-8c71-acf57cd089ad
+        - pv/pvc-5052b6c5-9815-4123-afe1-8c8f81515c3f
+        - pv/pvc-589782e8-4a0a-430f-90d8-d2161e79787d
+        - pv/pvc-5a47a791-36e6-42a5-8155-785da677fed9
+        - pv/pvc-6a246c82-d533-4870-a6cc-d3592922f8dc
+        - pv/pvc-8a7998ba-7603-41f7-bbeb-18a146a89ad6
+        - pv/pvc-a57e69bd-049d-4f30-879c-5328a3346f65
+        - pv/pvc-aa30cb75-988e-4fbc-9a67-18bb4bc11581
+        - pv/pvc-b05f3dff-df79-416e-a837-396bb4039516
+        - pv/pvc-b082624c-023e-4b4f-a4f1-45c6c9545f0f
+        - pv/pvc-c32ab0fc-51cb-47be-8f77-d1b0b592c2a1
+        - pv/pvc-c351c524-0830-4bad-81dc-0a995d77dfb1
+        - pv/pvc-c5b65bed-9490-4567-8d4a-a707efe46330
+        - pv/pvc-d94dd63a-1c99-4e98-b225-852a026824ef
+        - pv/pvc-ef173b2d-5724-4167-98c5-315a8af6c5d3
+        - pv/pvc-f2e0c2ea-d74b-4fbf-956f-8f42aaabf288
+        - pv/pvc-fd4e5e89-29e9-4383-9549-aa10a0ae6883
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-longhorn-detached
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.status.state}=detached
+        - --timeout=60s
+        - -n
+        - longhorn-system
+        - volumes.longhorn.io/pvc-27ad61d8-550b-4c52-a119-d58cf248192a
+        - volumes.longhorn.io/pvc-291ee586-05a8-4dc4-825c-b13301ae3606
+        - volumes.longhorn.io/pvc-2c9b046a-9177-4069-8c07-672a346709dd
+        - volumes.longhorn.io/pvc-2cad047f-67e9-4629-88d6-128c146e9cb0
+        - volumes.longhorn.io/pvc-370f5fa1-101f-479e-ab89-7805e9e87e59
+        - volumes.longhorn.io/pvc-39130a95-ff2f-4679-900c-277b6bfd5c4a
+        - volumes.longhorn.io/pvc-3f03da23-f731-4893-9a8d-7e8b946e990f
+        - volumes.longhorn.io/pvc-45092d68-79bf-4b29-abaa-59d9902eb703
+        - volumes.longhorn.io/pvc-45acdc62-9aff-49e7-8c71-acf57cd089ad
+        - volumes.longhorn.io/pvc-5052b6c5-9815-4123-afe1-8c8f81515c3f
+        - volumes.longhorn.io/pvc-589782e8-4a0a-430f-90d8-d2161e79787d
+        - volumes.longhorn.io/pvc-5a47a791-36e6-42a5-8155-785da677fed9
+        - volumes.longhorn.io/pvc-6a246c82-d533-4870-a6cc-d3592922f8dc
+        - volumes.longhorn.io/pvc-8a7998ba-7603-41f7-bbeb-18a146a89ad6
+        - volumes.longhorn.io/pvc-a57e69bd-049d-4f30-879c-5328a3346f65
+        - volumes.longhorn.io/pvc-aa30cb75-988e-4fbc-9a67-18bb4bc11581
+        - volumes.longhorn.io/pvc-b05f3dff-df79-416e-a837-396bb4039516
+        - volumes.longhorn.io/pvc-b082624c-023e-4b4f-a4f1-45c6c9545f0f
+        - volumes.longhorn.io/pvc-c32ab0fc-51cb-47be-8f77-d1b0b592c2a1
+        - volumes.longhorn.io/pvc-c351c524-0830-4bad-81dc-0a995d77dfb1
+        - volumes.longhorn.io/pvc-c5b65bed-9490-4567-8d4a-a707efe46330
+        - volumes.longhorn.io/pvc-d94dd63a-1c99-4e98-b225-852a026824ef
+        - volumes.longhorn.io/pvc-ef173b2d-5724-4167-98c5-315a8af6c5d3
+        - volumes.longhorn.io/pvc-f2e0c2ea-d74b-4fbf-956f-8f42aaabf288
+        - volumes.longhorn.io/pvc-fd4e5e89-29e9-4383-9549-aa10a0ae6883
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: delete-pv
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - delete
+        - pv
+        - pvc-27ad61d8-550b-4c52-a119-d58cf248192a
+        - pvc-291ee586-05a8-4dc4-825c-b13301ae3606
+        - pvc-2c9b046a-9177-4069-8c07-672a346709dd
+        - pvc-2cad047f-67e9-4629-88d6-128c146e9cb0
+        - pvc-370f5fa1-101f-479e-ab89-7805e9e87e59
+        - pvc-39130a95-ff2f-4679-900c-277b6bfd5c4a
+        - pvc-3f03da23-f731-4893-9a8d-7e8b946e990f
+        - pvc-45092d68-79bf-4b29-abaa-59d9902eb703
+        - pvc-45acdc62-9aff-49e7-8c71-acf57cd089ad
+        - pvc-5052b6c5-9815-4123-afe1-8c8f81515c3f
+        - pvc-589782e8-4a0a-430f-90d8-d2161e79787d
+        - pvc-5a47a791-36e6-42a5-8155-785da677fed9
+        - pvc-6a246c82-d533-4870-a6cc-d3592922f8dc
+        - pvc-8a7998ba-7603-41f7-bbeb-18a146a89ad6
+        - pvc-a57e69bd-049d-4f30-879c-5328a3346f65
+        - pvc-aa30cb75-988e-4fbc-9a67-18bb4bc11581
+        - pvc-b05f3dff-df79-416e-a837-396bb4039516
+        - pvc-b082624c-023e-4b4f-a4f1-45c6c9545f0f
+        - pvc-c32ab0fc-51cb-47be-8f77-d1b0b592c2a1
+        - pvc-c351c524-0830-4bad-81dc-0a995d77dfb1
+        - pvc-c5b65bed-9490-4567-8d4a-a707efe46330
+        - pvc-d94dd63a-1c99-4e98-b225-852a026824ef
+        - pvc-ef173b2d-5724-4167-98c5-315a8af6c5d3
+        - pvc-f2e0c2ea-d74b-4fbf-956f-8f42aaabf288
+        - pvc-fd4e5e89-29e9-4383-9549-aa10a0ae6883
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      containers:
+      - name: delete-longhorn-volumes
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - delete
+        - -n
+        - longhorn-system
+        - volumes.longhorn.io
+        - pvc-27ad61d8-550b-4c52-a119-d58cf248192a
+        - pvc-291ee586-05a8-4dc4-825c-b13301ae3606
+        - pvc-2c9b046a-9177-4069-8c07-672a346709dd
+        - pvc-2cad047f-67e9-4629-88d6-128c146e9cb0
+        - pvc-370f5fa1-101f-479e-ab89-7805e9e87e59
+        - pvc-39130a95-ff2f-4679-900c-277b6bfd5c4a
+        - pvc-3f03da23-f731-4893-9a8d-7e8b946e990f
+        - pvc-45092d68-79bf-4b29-abaa-59d9902eb703
+        - pvc-45acdc62-9aff-49e7-8c71-acf57cd089ad
+        - pvc-5052b6c5-9815-4123-afe1-8c8f81515c3f
+        - pvc-589782e8-4a0a-430f-90d8-d2161e79787d
+        - pvc-5a47a791-36e6-42a5-8155-785da677fed9
+        - pvc-6a246c82-d533-4870-a6cc-d3592922f8dc
+        - pvc-8a7998ba-7603-41f7-bbeb-18a146a89ad6
+        - pvc-a57e69bd-049d-4f30-879c-5328a3346f65
+        - pvc-aa30cb75-988e-4fbc-9a67-18bb4bc11581
+        - pvc-b05f3dff-df79-416e-a837-396bb4039516
+        - pvc-b082624c-023e-4b4f-a4f1-45c6c9545f0f
+        - pvc-c32ab0fc-51cb-47be-8f77-d1b0b592c2a1
+        - pvc-c351c524-0830-4bad-81dc-0a995d77dfb1
+        - pvc-c5b65bed-9490-4567-8d4a-a707efe46330
+        - pvc-d94dd63a-1c99-4e98-b225-852a026824ef
+        - pvc-ef173b2d-5724-4167-98c5-315a8af6c5d3
+        - pvc-f2e0c2ea-d74b-4fbf-956f-8f42aaabf288
+        - pvc-fd4e5e89-29e9-4383-9549-aa10a0ae6883
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 16Mi
