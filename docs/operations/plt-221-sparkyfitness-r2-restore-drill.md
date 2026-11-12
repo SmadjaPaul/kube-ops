@@ -121,6 +121,30 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
   `Ready`, `ContinuousArchiving` true, no archiver error since the restart;
   the drill pod ran PostgreSQL only.
 
+### vikunja/vikunja-postgresql — PLT-221 / PLT-170 (#1323, #1325, #1326, #1330, teardown)
+
+- Rollback base on Hetzner `20261112T2309*` completed 23:09:29Z, before the
+  cutover. Cutover merged 23:13:17Z; `Ready=False` 23:14:47Z to 23:18:22Z
+  (**3 min 35 s**), smart shutdown as for romm and pinepods.
+- The `Backup` CR of the Hetzner pre-cutover base was recreated when the pod
+  restarted and ran again at 23:18:38Z (`20261112T231838`, WAL `…0110`). That
+  WAL went to R2: this second Hetzner base is **not restorable from Hetzner
+  alone**. A Hetzner rollback must target the 23:09 base or a time before
+  23:14:47Z, never "latest". The manifest is removed in this PR; deleting the
+  CR does not delete objects. Same pattern on authentik (#1337).
+- Window without an R2 recovery point: 23:14:47Z to 23:24:04Z (**9 min
+  17 s**, base `20261112T232357`).
+- Drill: merge 23:31:21Z, `Cluster` created 23:34:32Z, `Ready` timeline 2 at
+  23:35:46Z. **RTO 4 min 25 s** (about 74 s of restore after creation).
+- RPO: not measured segment by segment. Last production segment seen archived
+  before the drill: `…0113` at 23:29:05Z; the drill promoted on timeline 2
+  (first checkpoint REDO `…020000000100000016`). `pg_last_xact_replay_timestamp()` null: no
+  transaction replayed after the base backup (idle database).
+- Control job: `in_recovery=false`, 42 tables, `projects=11`,
+  `task_positions=240`, latest `tasks.updated` 2026-11-06 09:25:22, database
+  11.5 MB. Production stayed on timeline 1, `Ready`, `ContinuousArchiving`
+  true; the drill pod ran PostgreSQL only.
+
 ### Precondition for the remaining cutovers
 
 Before switching `barmanObjectName`, a separate PR adds the R2 environment
