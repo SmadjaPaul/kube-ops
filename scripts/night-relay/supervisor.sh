@@ -21,10 +21,14 @@
 #   QUOTA_MAX_RETRIES=4       consecutive usage-limit retries before counting a failure
 #   LOCK_RETRIES=5            retries (1 s) while the lock pid file is still empty
 #   EMPTY_SLEEP=3600 FAIL_BACKOFF=600 WINDOW_GRACE=1800
+#   MIN_ACTIVE_SECONDS=120    a session shorter than this is an idle cycle (whatever its statut)
+#   IDLE_LONG_AFTER=3 IDLE_LONG_SLEEP=900  after IDLE_LONG_AFTER consecutive idle cycles,
+#                             pause IDLE_LONG_SLEEP (never less than EMPTY_SLEEP) instead of EMPTY_SLEEP
 #   LOG_MAX_BYTES=1048576 RUN_MAX_BYTES=262144 RUNS_KEEP=60
 #   CLAUDE_BIN=claude
 #   NIGHT_RELAY_KUBE_STATUS   per-cycle Kubernetes preflight (default: scripts/night-relay/kube-status.sh)
-#   KUBE_CHECK_TIMEOUT=120    bound of that preflight, in seconds
+#   KUBE_CHECK_TIMEOUT=120    bound of one preflight attempt, in seconds
+#   KUBE_CHECK_ATTEMPTS=2 KUBE_CHECK_RETRY_DELAY=60  attempts before declaring it unavailable
 # DRY_RUN scenario knobs (tests):
 #   DRY_RUN_CYCLE_SECONDS=5400  simulated duration of one orchestrator session
 #   DRY_RUN_REPORT_SECONDS=600  simulated duration of the report session
@@ -33,7 +37,8 @@
 #   DRY_RUN_QUOTA_MSG           verbatim limit message (overrides DRY_RUN_QUOTA_RESET_IN)
 #   DRY_RUN_FAIL_ATTEMPTS=""    attempt numbers that fail without writing a handoff
 #   DRY_RUN_EMPTY_ATTEMPTS=""   attempt numbers whose handoff says `statut: file-vide`
-#   DRY_RUN_KUBE="disponible (simulation)"  Kubernetes line given to the prompt (no preflight run)
+#   DRY_RUN_KUBE="disponible (simulation)"  Kubernetes line given to the prompt (no preflight run),
+#                             unless NIGHT_RELAY_KUBE_STATUS is set: that local fake is then run
 
 set -uo pipefail
 
@@ -71,6 +76,12 @@ RUNS_KEEP=${RUNS_KEEP:-60}
 CLAUDE_BIN=${CLAUDE_BIN:-claude}
 KUBE_STATUS_CMD=${NIGHT_RELAY_KUBE_STATUS:-$SCRIPT_DIR/kube-status.sh}
 KUBE_CHECK_TIMEOUT=${KUBE_CHECK_TIMEOUT:-120}
+KUBE_CHECK_ATTEMPTS=${KUBE_CHECK_ATTEMPTS:-2}
+KUBE_CHECK_RETRY_DELAY=${KUBE_CHECK_RETRY_DELAY:-60}
+MIN_ACTIVE_SECONDS=${MIN_ACTIVE_SECONDS:-120}
+IDLE_LONG_AFTER=${IDLE_LONG_AFTER:-3}
+IDLE_LONG_SLEEP=${IDLE_LONG_SLEEP:-900}
+[ "$IDLE_LONG_SLEEP" -ge "$EMPTY_SLEEP" ] || IDLE_LONG_SLEEP=$EMPTY_SLEEP
 
 DRY_RUN_CYCLE_SECONDS=${DRY_RUN_CYCLE_SECONDS:-5400}
 DRY_RUN_REPORT_SECONDS=${DRY_RUN_REPORT_SECONDS:-600}
@@ -317,12 +328,28 @@ simulate_session() { # no network, no claude: fake JSON, fake handoff, simulated
 # One non-sensitive line for the prompt: "disponible (...)" | "indisponible (categorie : RAISON)".
 # kube-status.sh reuses scripts/lib/kube-preflight.sh; only its enum reason is kept.
 # Runs in this shell (sets KUBE_LINE) so a signal can stop it like a session.
+# A transient failure (timeout, API blip) is retried: KUBE_CHECK_ATTEMPTS attempts,
+# KUBE_CHECK_RETRY_DELAY apart, each bounded by KUBE_CHECK_TIMEOUT.
 kube_status() {
-  if [ "$DRY_RUN" = 1 ]; then KUBE_LINE=$DRY_RUN_KUBE; return 0; fi
+  if [ "$DRY_RUN" = 1 ] && [ -z "${NIGHT_RELAY_KUBE_STATUS:-}" ]; then KUBE_LINE=$DRY_RUN_KUBE; return 0; fi
+  local i
+  for (( i = 1; i <= KUBE_CHECK_ATTEMPTS; i++ )); do
+    kube_status_once
+    case "$KUBE_LINE" in disponible*) return 0 ;; esac
+    if [ "$i" -lt "$KUBE_CHECK_ATTEMPTS" ]; then
+      log "préflight Kubernetes : tentative $i/$KUBE_CHECK_ATTEMPTS $KUBE_LINE, nouvel essai dans ${KUBE_CHECK_RETRY_DELAY}s"
+      nap "$KUBE_CHECK_RETRY_DELAY"
+    fi
+  done
+  [ "$KUBE_CHECK_ATTEMPTS" -le 1 ] || KUBE_LINE="$KUBE_LINE après $KUBE_CHECK_ATTEMPTS tentatives"
+}
+
+kube_status_once() {
   local f="$RUNS/kube-status.$$" line
   # a preflight killed by SIGKILL cannot run its cleanup: sweep stale temp kubeconfigs
   find "${TMPDIR:-/tmp}" -maxdepth 1 -type d -name 'kube-ops-operator-access.*' -mmin +360 \
     -exec rm -rf {} + 2>/dev/null
+  rm -f "$f" "$f.timeout"
   (cd "$REPO" && exec bash "$KUBE_STATUS_CMD") >"$f" 2>/dev/null </dev/null &
   SESSION_PID=$!
   ( sleep "$KUBE_CHECK_TIMEOUT"; touch "$f.timeout"; kill_tree "$SESSION_PID" ) >/dev/null 2>&1 &
@@ -385,7 +412,7 @@ build_prompt() { # build_prompt TEMPLATE OUT then key/value context lines on std
 
 # --- night ------------------------------------------------------------------------
 run_cycles() {
-  local cycles=0 fails=0 quotas=0 t n handoff prev prompt out err rc timeout statut limit
+  local cycles=0 fails=0 quotas=0 idle=0 t t0 dur n handoff prev prompt out err rc timeout statut limit pause
   while :; do
     t=$(now)
     if [ "$t" -ge "$WINDOW_END" ]; then log "fin de fenêtre $(fmt "$WINDOW_END" %H:%M)"; break; fi
@@ -415,7 +442,9 @@ EOF
     timeout=$(( limit - t ))
     [ "$timeout" -le "$ORCH_TIMEOUT" ] || timeout=$ORCH_TIMEOUT
     log "cycle $NIGHT-$n : lancement orchestrateur (précédent : $(basename "${prev:-aucun}"), timeout ${timeout}s)"
+    t0=$(now)
     run_session orchestrator sonnet "$prompt" "$out" "$err" "$timeout" "$handoff"; rc=$?
+    dur=$(( $(now) - t0 ))
     if failed "$rc" "$out" && [ ! -f "$handoff" ] && quota_wait_from "$out" "$err"; then
       quotas=$(( quotas + 1 ))
     else
@@ -438,11 +467,23 @@ EOF
     if [ "$rc" -eq 0 ] && [ -f "$handoff" ]; then
       fails=0
       statut=$(grep -m1 -E '^statut:' "$handoff" | sed -E 's/^statut:[[:space:]]*//')
-      log "cycle $NIGHT-$n : ok, statut ${statut:-inconnu}"
-      case "$statut" in
-        arret) log "l'orchestrateur demande l'arrêt"; break ;;
-        file-vide) log "file vide : pause ${EMPTY_SLEEP}s"; nap_in_window "$EMPTY_SLEEP" ;;
-      esac
+      log "cycle $NIGHT-$n : ok, statut ${statut:-inconnu}, durée ${dur}s"
+      if [ "$statut" = arret ]; then log "l'orchestrateur demande l'arrêt"; break; fi
+      # idle guard: an empty queue or a session too short to have produced work
+      # (PR, merge, ticket update) is idle whatever its statut; idle cycles back off
+      if [ "$statut" = file-vide ] || [ "$dur" -lt "$MIN_ACTIVE_SECONDS" ]; then
+        idle=$(( idle + 1 ))
+        pause=$EMPTY_SLEEP
+        [ "$idle" -lt "$IDLE_LONG_AFTER" ] || pause=$IDLE_LONG_SLEEP
+        if [ "$statut" = file-vide ]; then
+          log "file vide (cycles inactifs consécutifs : $idle) : pause ${pause}s"
+        else
+          log "cycle inactif (${dur}s < ${MIN_ACTIVE_SECONDS}s, statut ${statut:-inconnu}, consécutifs : $idle) : pause ${pause}s"
+        fi
+        nap_in_window "$pause"
+      else
+        idle=0
+      fi
     else
       fails=$(( fails + 1 ))
       [ -f "$handoff" ] || stub_handoff "$handoff" "$rc" "$err" "$prev"
