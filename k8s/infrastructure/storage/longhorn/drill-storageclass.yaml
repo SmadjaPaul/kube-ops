@@ -3,7 +3,7 @@
 # recurringJobSelector names a group that has no RecurringJob, which keeps the volume out of the
 # `default` backup group (volumes without any recurring-job label are placed in `default`).
 # Convention: every drill namespace/PVC manifest carries the label homelab/expires-at: "YYYY-MM-DD".
-# scripts/ops/check-drill-expiry.sh (daily CI) fails when a manifest is past that date.
+# scripts/ops/check-drill-expiry.sh (run by hand or by a CI workflow once admitted) fails when a manifest is past that date.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
