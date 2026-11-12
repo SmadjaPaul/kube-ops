@@ -16,8 +16,6 @@ resources:
   - externalsecret.yaml
   - httproutes.yaml
   - networkpolicy.yaml
-  # PLT-145: temporary read-only MAS user-count check, removed by PR.
-  - mas-user-count-check.yaml
 
 helmCharts:
   - name: matrix-stack
