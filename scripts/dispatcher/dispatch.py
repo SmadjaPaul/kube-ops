@@ -15,9 +15,19 @@ has no compare-and-set, so two dispatchers that pick the SAME ticket at the
 same moment both see a single lock and both run. Run one dispatcher per lane
 (one scheduler entry) to stay out of that window.
 
+Night relay options (scripts/night-relay/supervisor.sh):
+  --skip PLT-1,PLT-2      tickets skipped for the rest of the night (never chosen)
+  --expect PLT-1          real run only: run only if the choice is still PLT-1 (exit 3 otherwise)
+  --comment-skip PLT-1 --why TEXT   post the "skipped tonight" comment and exit
+The dry-run prints `progrès : <ID> <fingerprint>` for the chosen ticket: PR
+attachments and non-dispatcher comments, so the supervisor can refuse to rerun
+a ticket whose last run produced nothing.
+
 Environment:
   LINEAR_API_KEY   Linear API key (names only in Git; value from Doppler).
-  DISPATCH_PERMISSION_MODE  claude --permission-mode (default: auto).
+  DISPATCH_PERMISSION_MODE  claude --permission-mode (default: auto; the night
+                   supervisor exports bypassPermissions: a headless session
+                   cannot answer a permission prompt).
 """
 
 from __future__ import annotations
@@ -25,6 +35,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import signal
 import subprocess
 import sys
 import urllib.error
@@ -53,11 +65,29 @@ ISSUES_QUERY = (
     " pageInfo { hasNextPage endCursor } nodes {" + ISSUE_FIELDS + "} } }"
 )
 
-PROMPT = """Ticket Linear {ident} (voie {lane}). Session neuve, une seule tâche.
+PROMPT = """Ticket Linear {ident} (voie {lane}). Session neuve, une seule tâche, sans humain.
 Lis le ticket et tous ses commentaires dans Linear, puis AGENTS.md et la skill citée.
+Travaille dans un worktree neuf depuis origin/main (../kube-ops-{slug}, branche claude/{slug}-<sujet>) ; ne modifie jamais le checkout courant.
 Critères : ceux du ticket ; une branche, une PR, checks listés dans la PR ; aucun autre ticket.
-Si une action exige Paul : label Needs-operator, commentaire, arrêt.
+Ticket large : ne refuse pas et ne le déclare pas « trop large ». Livre la première tranche livrable (une PR ciblée, preuve visée RUNTIME), puis commente le découpage restant dans le ticket.
+Ne merge pas et ne passe pas Done : la revue indépendante, le merge et la preuve suivent ta session. Commente le ticket (PR, preuve visée, reste à faire).
+Limites dures : aucun apply hors CI, aucun secret affiché (Doppler via scripts/doppler-safe.sh, Kubernetes via just status-app ou scripts/kubectl-ro.sh), aucune suppression de PVC, de base CNPG ou de données, jamais --admin. Si une action exige Paul : label Needs-operator, commentaire, arrêt.
 Sortie en 5 lignes : PR, état du ticket, checks, blocage éventuel, suite."""
+
+# Comments written by the relay itself (dispatcher, supervisor, night review):
+# never count as progress, or the review's own comments would re-arm a ticket.
+DISPATCHER_PREFIXES = ("**Checkpoint dispatcher**", "Dispatcher interrompu", "Verrou `", "Relais de nuit :",
+                       "Revue de nuit :")
+
+LIMIT_RE = re.compile(r"usage limit|limit reached|hit your (usage )?limit|rate_limit_error"
+                      r"|out of extra usage|limit will reset", re.I)
+RESET_RE = re.compile(r"limit reached\|[0-9]{10}|resets?(?: at)? [0-9]{1,2}(?::[0-9]{2})? ?(?:am|pm)?", re.I)
+
+PROGRESS_QUERY = (
+    "query($id: String!) { issue(id: $id) { id identifier"
+    " attachments(first: 100) { nodes { url } }"
+    " comments(first: 100) { nodes { createdAt body } } } }"
+)
 
 
 class DispatchError(RuntimeError):
@@ -142,6 +172,12 @@ class Linear:
         self.gql("mutation($i: String!, $s: String!) { issueUpdate(id: $i, input: {stateId: $s}) { success } }",
                  {"i": issue_id, "s": state_id})
 
+    def issue_detail(self, ident: str) -> dict:
+        issue = self.gql(PROGRESS_QUERY, {"id": ident})["issue"]
+        if not issue:
+            raise DispatchError(f"ticket Linear introuvable : {ident}")
+        return issue
+
     def comment(self, issue_id: str, body: str) -> None:
         self.gql("mutation($i: String!, $b: String!) { commentCreate(input: {issueId: $i, body: $b}) { success } }",
                  {"i": issue_id, "b": body})
@@ -161,8 +197,39 @@ def claude_command(issue: dict, lane: str) -> list[str]:
     mode = os.environ.get("DISPATCH_PERMISSION_MODE", "auto")
     if mode:
         cmd += ["--permission-mode", mode]
-    cmd.append(PROMPT.format(ident=issue["identifier"], lane=lane))
+    ident = issue["identifier"]
+    cmd.append(PROMPT.format(ident=ident, lane=lane, slug=ident.lower().replace("-", "")))
     return cmd
+
+
+def progress_fingerprint(issue: dict) -> str:
+    """Stable summary of the work visible on a ticket: PR links and non-dispatcher comments.
+
+    Unchanged between two runs means the last run left no trace (no PR, no comment).
+    """
+    urls = [a.get("url") or "" for a in (issue.get("attachments") or {}).get("nodes", [])]
+    prs = sum(1 for u in urls if "/pull/" in u)
+    own = [c for c in (issue.get("comments") or {}).get("nodes", [])
+           if not (c.get("body") or "").lstrip().startswith(DISPATCHER_PREFIXES)]
+    last = max((c["createdAt"] for c in own), default="-")
+    return f"pr={prs} liens={len(urls)} commentaires={len(own)} dernier={last}"
+
+
+def usage_limit_hint(run: dict, stderr: str) -> str | None:
+    """Usage-limit fragment of a FAILED run, for the supervisor's wait logic.
+
+    Only the matched fragments are printed (never raw stderr or the full result).
+    """
+    if run["ok"]:
+        return None
+    # a long final message is the session's own prose (it may discuss rate limits):
+    # only a short result, as the CLI's limit message is, is considered
+    result = run["result"] if len(run["result"]) <= 300 else ""
+    text = f"{result}\n{stderr or ''}"[:65536]
+    if not LIMIT_RE.search(text):
+        return None
+    reset = RESET_RE.search(text)
+    return "usage limit" + (f", {reset.group(0)}" if reset else "")
 
 
 BLOCAGE_NONE = {"", "aucun", "aucune", "non", "rien", "-", "n/a"}
@@ -312,16 +379,27 @@ def run(args: argparse.Namespace, linear: "Linear | None" = None) -> int:
     for issue in sel.resume_candidates(in_progress, lane):
         print(f"à reprendre : {describe(issue)} (In Progress sans verrou : preuve RECONCILED/RUNTIME ou PR à terminer)")
 
+    skip = set(getattr(args, "skip", None) or [])
+    expect = getattr(args, "expect", None)
     eligible, rejected = sel.select(queue, lane)
     for issue, reason in rejected:
         print(f"écarté : {issue['identifier']} ({reason})")
+    for issue in [i for i in eligible if i["identifier"] in skip]:
+        print(f"écarté : {issue['identifier']} (sauté cette nuit par le superviseur)")
+    eligible = [i for i in eligible if i["identifier"] not in skip]
     if not eligible:
         print(f"file vide pour la voie {lane}")
         return 0
     issue = eligible[0]
+    if expect and issue["identifier"] != expect:
+        print(f"choix changé : {issue['identifier']} au lieu de {expect} ; aucune exécution")
+        return 3
     cmd = claude_command(issue, lane)
     print(f"choisi : {describe(issue)}")
     print("commande : " + " ".join(cmd[:-1]) + " '<prompt>'")
+    if args.dry_run:
+        detail = issue if args.snapshot or linear is None else linear.issue_detail(issue["identifier"])
+        print(f"progrès : {issue['identifier']} {progress_fingerprint(detail)}")
 
     if active:
         held = ", ".join(i["identifier"] for i in active)
@@ -350,9 +428,9 @@ def lost_race(locked: list[dict], mine: str) -> str | None:
 def execute(linear: "Linear", issue: dict, lane: str, cmd: list[str]) -> int:
     lock = sel.lock_label(lane)
     lock_id = linear.label_id(lock)
-    linear.add_label(issue["id"], lock_id)
     result = None
     try:
+        linear.add_label(issue["id"], lock_id)  # inside try: a SIGTERM here still unlocks
         winner = lost_race(linear.locked(lane), issue["identifier"])
         if winner:
             print(f"course perdue : {winner} tient déjà {lock} ; verrou retiré, sortie")
@@ -361,6 +439,9 @@ def execute(linear: "Linear", issue: dict, lane: str, cmd: list[str]) -> int:
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT_S, check=False)
             result = summarize_run(proc.returncode, proc.stdout, proc.stderr)
+            hint = usage_limit_hint(result, proc.stderr)
+            if hint:
+                print(f"limite d'usage : {hint}")
         except (OSError, subprocess.TimeoutExpired) as exc:
             result = summarize_run(-1, "", "")
             result["cause"] = type(exc).__name__
@@ -382,13 +463,51 @@ def execute(linear: "Linear", issue: dict, lane: str, cmd: list[str]) -> int:
     return 0 if result["ok"] else 1
 
 
+SKIP_NOTE = ("Relais de nuit : {ident} est sauté pour le reste de la nuit ({why}). "
+             "Le superviseur ne le relance plus cette nuit ; il revient dans la file la nuit suivante.")
+
+
+def comment_skip(ident: str, why: str, linear: "Linear | None" = None) -> int:
+    if linear is None:
+        key = os.environ.get("LINEAR_API_KEY")
+        if not key:
+            raise DispatchError("LINEAR_API_KEY absent : lancer via `doppler run` (nom seul dans Git)")
+        linear = Linear(key)
+    issue = linear.issue_detail(ident)
+    linear.comment(issue["id"], SKIP_NOTE.format(ident=ident, why=why))
+    print(f"commentaire de saut posé : {ident}")
+    return 0
+
+
+def _ident(value: str) -> str:
+    if not re.fullmatch(r"[A-Z]+-[0-9]+", value):
+        raise argparse.ArgumentTypeError(f"identifiant invalide : {value}")
+    return value
+
+
+def _ids(value: str) -> list[str]:
+    return [_ident(v.strip()) for v in value.split(",") if v.strip()]
+
+
+def _sigterm(signum, frame):  # noqa: ARG001
+    # SIGTERM (supervisor timeout or stop) -> SystemExit, so execute() hands the ticket back
+    raise SystemExit(143)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Dispatcher Linear déterministe (D-12/D-20)")
     parser.add_argument("--lane", choices=sel.LANES, required=True)
     parser.add_argument("--dry-run", action="store_true", help="lecture seule : aucun verrou, aucune exécution")
     parser.add_argument("--snapshot", help="JSON {queue, locked} au format GraphQL, au lieu de l'API (dry-run)")
+    parser.add_argument("--skip", type=_ids, default=[], help="PLT-1,PLT-2 : tickets jamais choisis (sautés cette nuit)")
+    parser.add_argument("--expect", type=_ident, help="exécution réelle : n'exécuter que si le choix est encore ce ticket (sinon code 3)")
+    parser.add_argument("--comment-skip", type=_ident, metavar="ID", help="poster le commentaire de saut sur ce ticket, puis sortir")
+    parser.add_argument("--why", default="décision du superviseur", help="raison du saut (--comment-skip)")
     args = parser.parse_args(argv)
+    signal.signal(signal.SIGTERM, _sigterm)
     try:
+        if args.comment_skip:
+            return comment_skip(args.comment_skip, args.why[:200])
         return run(args)
     except DispatchError as exc:
         print(f"dispatch: {exc}", file=sys.stderr)

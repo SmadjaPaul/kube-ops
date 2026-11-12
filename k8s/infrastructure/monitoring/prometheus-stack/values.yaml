@@ -6,10 +6,21 @@ kubeProxy:
 
 # The chart's availability group evaluates 30-day recording rules while this
 # homelab retains 10 days. No repository or live dashboard/rule consumer was
-# found for these recordings; keep burn-rate recording rules and SLO alerts.
+# found for these recordings.
+# PLT-187 (2026-11-12): the burn-rate group re-reads 1d/3d windows of ~8k
+# apiserver SLI histogram series every 30s. Since 2026-11-11 ~18Z it took
+# 30-37s per 30s cycle (missed iterations), with the Go heap pinned at the
+# 1Gi limit: ~370 major page faults/s, ~500 MB/s continuous reads on the
+# Longhorn Prometheus PVC and instance-manager CPU 0.26 -> 2.4 cores. No
+# repository dashboard/rule consumes apiserver_request:burnrate*, and the SLO
+# alerts (KubeAPIErrorBudgetBurn) only read those recordings while Alertmanager
+# has no receiver. Raw apiserver metrics stay scraped. Revert both to true to
+# restore them (then raise Prometheus memory first).
 defaultRules:
   rules:
     kubeApiserverAvailability: false
+    kubeApiserverBurnrate: false
+    kubeApiserverSlos: false
 
 # Edge/single-node budget: apiserver exposes ~68k series and accounts for
 # ~2,274 accepted samples/s at the observed 30s scrape cadence (Phase 2).

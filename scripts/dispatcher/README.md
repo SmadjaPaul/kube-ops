@@ -18,7 +18,19 @@ bash scripts/doppler-safe.sh run -- python3 scripts/dispatcher/dispatch.py --lan
 python3 scripts/dispatcher/dispatch.py --lane local --dry-run --snapshot scripts/dispatcher/tests/fixtures/snapshot-2026-11-11.json
 ```
 
-`LINEAR_API_KEY` doit être présent dans l'environnement. Le dépôt ne contient que ce nom, et la valeur vient de Doppler. `DISPATCH_PERMISSION_MODE` règle `claude --permission-mode` (par défaut : `auto`).
+`LINEAR_API_KEY` doit être présent dans l'environnement. Le dépôt ne contient que ce nom, et la valeur vient de Doppler. `DISPATCH_PERMISSION_MODE` règle `claude --permission-mode` (par défaut : `auto`). Le relais de nuit exporte `bypassPermissions` : sans humain, une demande de permission ne peut pas être accordée (voir `scripts/night-relay/README.md`).
+
+Options du relais de nuit (`scripts/night-relay/supervisor.sh`) :
+
+- `--skip PLT-1,PLT-2` : tickets jamais choisis (sautés pour la nuit).
+- `--expect PLT-1` : exécution réelle seulement si le choix est encore ce ticket ; sinon code 3, sans verrou.
+- `--comment-skip PLT-1 --why TEXTE` : poste le commentaire « sauté pour la nuit » et sort.
+- Le dry-run affiche `progrès : <ID> pr=… liens=… commentaires=… dernier=…` pour le ticket choisi (PR liées et commentaires hors dispatcher). Une exécution en échec par limite d'usage affiche `limite d'usage : usage limit[, resets …]`.
+- SIGTERM pendant une exécution : le ticket est remis en Todo, commenté, et le verrou retiré.
+
+Codes de sortie : 0 (succès ou rien à faire), 1 (session `claude` en échec), 2 (erreur Linear ou configuration), 3 (choix changé, `--expect`).
+
+Le prompt de session demande un worktree neuf depuis `origin/main` et, pour un ticket large, la première tranche livrable (une PR ciblée, preuve visée RUNTIME) plutôt qu'un refus. La session ne merge pas et ne passe pas Done : la revue de nuit s'en charge.
 
 ## Tests
 
