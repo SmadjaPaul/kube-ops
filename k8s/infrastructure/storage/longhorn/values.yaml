@@ -71,6 +71,9 @@ defaultBackupStore:
   # cible R2. Rollback = revert de cette PR (cible Hetzner et secret intacts).
   backupTarget: s3://homelab-backup-longhorn@auto/
   backupTargetCredentialSecret: longhorn-r2-credentials
+  # Rollback configuration (kept in Git, objects intact; swap these two lines in):
+  #   backupTarget: s3://smadja-dev-homelab-backups@fsn1/longhorn/
+  #   backupTargetCredentialSecret: longhorn-hetzner-credentials
   pollInterval: 300
 
 networkPolicies:
