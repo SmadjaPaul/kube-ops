@@ -39,7 +39,8 @@ RAW_LABEL='label/[A-Za-z_][A-Za-z0-9_]*/values'
 RAW_PROM="kube-prometheus-stack-prometheus:9090/proxy/api/v1/(query|query_range|series|labels|$RAW_LABEL)"
 RAW_LOKI="(loki-gateway:80|loki:3100)/proxy/loki/api/v1/(query|query_range|series|labels|$RAW_LABEL)"
 RAW_PATH_RE="^$RAW_SVC/($RAW_PROM|$RAW_LOKI)\$"
-# query: unreserved chars, sub-delims & = + , : and %XX (printable only; no '/', '?', '#')
+# query: unreserved chars, & = + , : and printable %XX (literal '/', '?', '#' refused; %2F/%3F
+# only reach the backend as decoded query values, never the proxied path)
 RAW_QUERY_RE='^([A-Za-z0-9._~=&+,:-]|%[2-7][0-9A-Fa-f])*$'
 raw_check() { # raw_check PATH -> refuse unless allowed
   local raw=$1 path query="" LC_ALL=C
@@ -76,9 +77,20 @@ for arg in "${@:2}"; do
     [ "$lower" = name ] || output_flag=1
     continue
   fi
+  case "$arg" in
+    # kubectl (pflag) reads --a_b as --a-b: normalize before matching
+    --*) lower=${lower//_/-} ;;
+    # grouped short flags (-Aoyaml = -A -o yaml, -Av8, -Rf dir) would dodge the checks below:
+    # only value-taking shorthands may carry a suffix (-oname, -nmonitoring, -lapp=x, -cname, -Lcol)
+    -[!-]?*)
+      case "$arg" in
+        -[onlcL]*) ;;
+        *) refuse "option '$arg' : options courtes groupées ou collées interdites (les séparer : -A -o ...)" ;;
+      esac ;;
+  esac
   case "$lower" in
     --kubeconfig|--kubeconfig=*|--token|--token=*|--as|--as=*|--as-group|--as-group=*|--as-uid|--as-uid=*|\
-    --server|--server=*|-s|--user|--user=*|--context|--context=*|--cluster|--cluster=*|\
+    --server|--server=*|-s|-s*|--user|--user=*|--context|--context=*|--cluster|--cluster=*|\
     --client-key|--client-key=*|--client-certificate|--client-certificate=*|--username|--username=*|--password|--password=*)
       refuse "option '$arg' : l'accès vient uniquement de kube-preflight.sh" ;;
     --insecure-skip-tls-verify|--insecure-skip-tls-verify=*|--certificate-authority|--certificate-authority=*|--tls-server-name|--tls-server-name=*)

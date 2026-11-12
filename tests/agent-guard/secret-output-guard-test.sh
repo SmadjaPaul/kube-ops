@@ -145,7 +145,11 @@ done
 RO="$ROOT/scripts/kubectl-ro.sh"
 for args in "delete pod x" "apply -f x.yaml" "exec pod -- env" "get secret foo -o yaml" "get secrets -ojson" "get secret -o yaml" "get secret -o" \
             "get secret foo -v=9" "get secret foo --v 8" "get -f s.yaml -o yaml" "get -k ./dir" "get --filename=s.yaml" \
-            "get pods --kubeconfig /tmp/k" "get pods --insecure-skip-tls-verify" "get --raw /api" "logs -f pod" "get pods -w"; do
+            "get pods --kubeconfig /tmp/k" "get pods --insecure-skip-tls-verify" "get --raw /api" "logs -f pod" "get pods -w" \
+            "get secrets -Aoyaml" "get secrets -Ao yaml" "get pods -Av8" "get pods -Av=8" "logs -pv8 pod" "get pods -wv8" \
+            "get -Rf dir" "get pods --insecure_skip_tls_verify" "get pods --as_uid=x" "get pods --client_key=k" \
+            "get pods --as_group=g" "get pods --certificate_authority=c" "get pods --tls_server_name=x" "get pods -shttps://x" \
+            "get pods -A=true"; do
   # shellcheck disable=SC2086 # word splitting wanted
   PATH="$WORK/bin:$PATH" bash "$RO" $args >/dev/null 2>&1; rc=$?
   [ "$rc" = 64 ] && ok "kubectl-ro refuse : $args" || ko "kubectl-ro laisse passer : $args ($rc)"
@@ -203,6 +207,13 @@ rm -f "$WORK/raw-args"
 PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" get "--raw=$PROM/labels" >/dev/null 2>&1; rc=$?
 [ "$rc" = 0 ] && [ "$(cat "$WORK/raw-args" 2>/dev/null)" = "--request-timeout=30s get --raw=$PROM/labels" ] &&
   ok "kubectl-ro --raw=<chemin> autorise" || ko "kubectl-ro --raw=<chemin> refuse à tort ($rc)"
+for args in "get pods -A -o wide" "get pods -nmonitoring -owide" "get secret -oname" "get pods -l app=x -L tier" \
+            "logs -n x pod -c c --tail=5 -p" "get secrets -A" "top pods -A --sort-by=cpu"; do
+  rm -f "$WORK/raw-args"
+  # shellcheck disable=SC2086 # word splitting wanted
+  PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" $args >/dev/null 2>&1; rc=$?
+  [ "$rc" = 0 ] && [ -f "$WORK/raw-args" ] && ok "kubectl-ro autorise : $args" || ko "kubectl-ro refuse à tort : $args ($rc)"
+done
 
 # --- 6. kube-status.sh: one non-sensitive line per case (fake preflight libraries)
 mklib() { # mklib NAME RC LINES...
