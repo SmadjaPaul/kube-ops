@@ -37,6 +37,12 @@ kubeApiServer:
 grafana:
   serviceMonitor:
     interval: 60s
+    # PLT-212 lot 1: no dashboard, rule or alert reads Grafana's own histograms
+    # (~3.7k series). Counters/gauges, go_* and process_* stay scraped.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "grafana_.*_bucket|grafana_feature_toggles_info"
   # The chart's full default catalogue is not the operational interface. The
   # curated ConfigMaps in grafana-catalog.yaml retain the useful signals while
   # keeping upstream metrics, rules and alerting untouched.
@@ -114,6 +120,26 @@ kube-state-metrics:
     monitor:
       http:
         interval: 45s
+  # PLT-212 lot 1: families with no consumer in live rules or in the repo
+  # (rules, dashboards, scripts). kube_replicaset_owner, kube_pod_status_*
+  # used by alerts and kube_pod_container_status_* stay exported.
+  metricDenylist:
+    - kube_pod_status_scheduled
+    - kube_pod_status_scheduled_time
+    - kube_pod_status_qos_class
+    - kube_pod_tolerations
+    - kube_pod_service_account
+    - kube_pod_scheduler
+    - kube_pod_restart_policy
+    - kube_pod_created
+    - kube_replicaset_created
+    - kube_replicaset_metadata_generation
+    - kube_replicaset_spec_replicas
+    - kube_replicaset_status_fully_labeled_replicas
+    - kube_replicaset_status_observed_generation
+    - kube_replicaset_status_ready_replicas
+    - kube_replicaset_status_replicas
+    - kube_replicaset_status_terminating_replicas
 
 kubeStateMetrics:
   resources:
@@ -130,6 +156,13 @@ kubelet:
     # 30s preserves the existing metric families and 5m rule/dashboard
     # windows while halving cAdvisor's scrape frequency.
     cAdvisorInterval: 30s
+    # PLT-212 lot 1: kubelet probe latency histograms (~3.5k series) have no
+    # consumer. prober_probe_total (probe failures) stays scraped. The cAdvisor
+    # drops live in kubelet-cardinality-patch.json (chart defaults preserved).
+    probesMetricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "prober_probe_duration_seconds_bucket"
 
 prometheusOperator:
   resources:
@@ -212,6 +245,13 @@ alertmanager:
       minAvailable: 1
 
 prometheus-node-exporter:
+  # PLT-212 lot 1: ~150 Cilium lxc* host-side veths x ~30 node_network_*
+  # families (~4k series) duplicate per-pod cAdvisor network metrics. Physical
+  # (eth0), cilium_* and lo interfaces stay exported; the chart's *_excluding_
+  # virtual recordings only ever looked at non-veth devices.
+  extraArgs:
+    - --collector.netdev.device-exclude=^lxc.*$
+    - --collector.netclass.ignored-devices=^lxc.*$
   tolerations:
     - key: "gpu"
       operator: "Equal"
