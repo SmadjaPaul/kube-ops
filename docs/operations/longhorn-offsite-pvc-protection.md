@@ -42,10 +42,14 @@ PVCs are explicitly marked as the recurring-job source:
 detached volumes every night (PV Released, DR exercises) for an identical
 incremental backup. A detached volume cannot be written: its latest Longhorn
 backups (retain 7, never pruned while no new backup is taken) still hold its
-content. The retained data-only PVCs above (atlantis-pilot-data,
-listmonk-uploads, twenty-storage) already have completed backups taken while
-detached. When such a volume is attached again, the nightly job backs it up as
-usual. Set the value back to `true` to restore the attach/backup/detach cycle.
+content. atlantis-pilot-data (PVC Bound, unmounted) and the PVs of
+listmonk-uploads and twenty-storage (PVCs deleted since 2026-11-03, PV
+Released) already have completed backups taken after their last mount. When
+such a volume is attached again, the nightly job backs it up as usual.
+Residual risk: a volume written and detached again between two 03:17 runs is
+not backed up until it is attached at run time; Velero file-system backups do
+not cover a PVC without a running pod either. Set the value back to `true` to
+restore the attach/backup/detach cycle.
 
 Configuration alone is not protection. Each volume is `PROTECTED` only after:
 

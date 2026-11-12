@@ -54,13 +54,16 @@ defaultSettings:
   # Detached volumes are not attached for recurring backups (PLT-187).
   # Evidence 2026-11-12: 99 detached volumes = 87 PV Released without PVC,
   # 4 Released whose PVC name now binds another PV, 4 DR-exercise volumes
-  # without PV, 4 Bound but unmounted (executor and atlantis-system covered by
-  # daily Velero schedules, rustical-data superseded by rustical-data-bulk,
-  # atlantis-apps-data faulted with no backup either way). A detached volume
-  # cannot be written, so its existing Longhorn backups (no retention pruning
-  # runs without a new backup) still hold its latest content; attached volumes
-  # keep their nightly backups unchanged. Revert to true to restore the nightly
-  # attach/backup/detach cycle.
+  # without PV, 4 Bound but unmounted. For executor/data-executor-0,
+  # atlantis-system/atlantis-pilot-data and rustical-pilot/rustical-data the
+  # last completed Longhorn backup is newer than the last pod mount
+  # (lastPodRefAt); Velero file-system backups do not cover them without a pod.
+  # atlantis-apps-data is faulted with no backup either way. A detached volume
+  # cannot be written, and existing backups are not pruned while no new backup
+  # is taken. Residual risk: a volume written and detached again between two
+  # 03:17 runs (executor scaled 0/0, future mastra-sandbox workspaces) is not
+  # backed up until it is attached at run time. Revert to true to restore the
+  # nightly attach/backup/detach cycle.
   allowRecurringJobWhileVolumeDetached: false
 
 defaultBackupStore:
