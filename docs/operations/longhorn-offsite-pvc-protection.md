@@ -34,8 +34,8 @@ PVCs are explicitly marked as the recurring-job source:
   must run `PRAGMA integrity_check` and a read-only application-level check.
 - `atlantis-system/atlantis-pilot-data` — protect the dormant pilot state;
   GitHub App readiness remains a separate blocker.
-- `listmonk/listmonk-uploads` — retained, unmounted data-only PVC.
-- `twenty/twenty-storage` — retained, unmounted data-only PVC.
+- `listmonk/listmonk-uploads` — PVC deleted 2026-11-03; PV Released, data-only.
+- `twenty/twenty-storage` — PVC deleted 2026-11-03; PV Released, data-only.
 
 `allowRecurringJobWhileVolumeDetached` is disabled since PLT-187
 (2026-11-12). With the `default` group job it attached about 95 orphaned
