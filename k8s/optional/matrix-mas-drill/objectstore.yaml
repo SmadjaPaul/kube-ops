@@ -16,6 +16,9 @@ spec:
     env:
       - name: AWS_DEFAULT_REGION
         value: fsn1
+    resources:
+      requests: {cpu: 50m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 512Mi}
   configuration:
     destinationPath: s3://smadja-dev-homelab-backups/cnpg/matrix-mas-clean
     endpointURL: https://fsn1.your-objectstorage.com
