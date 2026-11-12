@@ -125,6 +125,110 @@ spec:
         volumeMounts:
         - name: tmp
           mountPath: /tmp
+      - name: guard-handle-romm
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.csi.volumeHandle}=pvc-2b8f07a2-7040-4155-a3b1-a78c94cdef84
+        - --timeout=60s
+        - pv/pvc-2b8f07a2-7040-4155-a3b1-a78c94cdef84
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-claim-romm
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.name}=romm-postgresql-restore-1
+        - --timeout=60s
+        - pv/pvc-2b8f07a2-7040-4155-a3b1-a78c94cdef84
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-handle-pinepods
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.csi.volumeHandle}=pvc-587aa957-063b-4366-8701-fcb03c9796d3
+        - --timeout=60s
+        - pv/pvc-587aa957-063b-4366-8701-fcb03c9796d3
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-claim-pinepods
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.name}=pinepods-db-restore-1
+        - --timeout=60s
+        - pv/pvc-587aa957-063b-4366-8701-fcb03c9796d3
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
       - name: guard-longhorn-detached
         image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
         args:
