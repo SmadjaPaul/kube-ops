@@ -19,6 +19,13 @@ spec:
         ensure: present
         login: true
         createrole: true
+  # Barman plugin activation is required: ObjectStore + ScheduledBackup alone
+  # do not enable WAL archiving or base backups on this Cluster.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: sparkyfitness-hetzner-store
   storage:
     storageClass: longhorn-bulk
     size: 5Gi

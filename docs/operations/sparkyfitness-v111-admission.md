@@ -58,8 +58,14 @@ upstream change or a separately tested admission control is required.
   `APP_SPARKYFITNESS_DB_APP_PASSWORD` match the runtime restricted role.
   The CNPG `sparkyfitness-db-app` secret provides migration owner
   credentials separately.
-- Scoped S3 credentials for Barman, full CNPG restore and uploads PVC
-  Velero/Kopia restore are REQUIRED. No shared Hetzner catch-all key.
+- Barman (PLT-147): the Cluster archives WAL and takes a weekly base
+  backup through the `barman-cloud.cloudnative-pg.io` plugin into
+  `s3://smadja-dev-homelab-backups/cnpg/sparkyfitness`, with the shared
+  `HETZNER_S3_*` keys like the other CNPG clusters (polyfin model).
+  The dedicated `APP_SPARKYFITNESS_CNPG_S3_*` keys never existed in
+  Doppler `cluster/prd`; a scoped key remains a hardening follow-up, not a
+  precondition for having a backup. Full CNPG restore and uploads PVC
+  Velero/Kopia restore are still REQUIRED before family use.
 - The upstream chart resolves the server and frontend to these immutable
   GHCR references; keep both digests in the Argo values and re-check them
   when the chart revision changes:
@@ -74,3 +80,35 @@ upstream change or a separately tested admission control is required.
   data deletion/export, 2FA fallback, admin restriction and restore.
 
 STATIC render/CI, RECONCILED, RUNTIME and USER proofs are separate gates.
+
+## Isolated CNPG restore scenario (PLT-92, not executed)
+
+Prerequisites: `ScheduledBackup` or an on-demand `Backup` is `completed`,
+`Cluster` condition `ContinuousArchiving=True` and
+`status.firstRecoverabilityPoint` is set. Run it only inside an approved
+PLT-92 window.
+
+1. Branch `claude/plt92-sparkyfitness-restore`: add a dormant root
+   `k8s/optional/sparkyfitness-restore/` modelled on
+   `k8s/optional/personal-ai-2026/hindsight-restore/`: namespace
+   `sparkyfitness-restore-<date>` labelled
+   `backup.smadja.dev/restore-drill: "true"`, ExternalSecret
+   `HETZNER_S3_*`, ObjectStore pointing at the same `destinationPath`
+   **without** a WAL archiver Cluster or ScheduledBackup.
+2. `Cluster sparkyfitness-db-restore`: `bootstrap.recovery.source:
+   sparkyfitness-source`, `externalClusters[0].plugin` =
+   `barman-cloud.cloudnative-pg.io` with `barmanObjectName` = restore
+   ObjectStore and `serverName: sparkyfitness-db`. Use a `recoveryTarget`
+   (`backupID` or `targetTime`) to measure RPO. Do not declare `plugins`
+   with `isWALArchiver` on the restored cluster: it must never write into
+   the source prefix.
+3. CiliumNetworkPolicy: no application ingress; operator only.
+4. Proof (read-only): restored Cluster `Ready`, `pg_restore`-free row
+   counts on a few key tables (users, food entries, exercise entries)
+   compared with the source at the recovery target, timestamps and UIDs.
+   Record `RESTORE=PASS`, RPO (target vs last archived WAL) and RTO
+   (Cluster creation to Ready).
+5. Teardown in the same window: remove the root from Git; Argo prunes the
+   namespace. The S3 source prefix is never deleted or rewritten.
+
+Until then: `CNPG_RESTORE_PASS=NOT_PROVEN`.
