@@ -290,7 +290,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 1255,
-      "changeFingerprint": "dd3533c632439bc3432baa74266a9009b491ba02db521e82912f79c4ea3189c8",
+      "changeFingerprint": "4d2c8adde9cbb248c827d5803574c92634b43063297a1b00a678fa9a67e45eca",
       "paths": [
         "tests/harness/longhorn-offsite-pvc-contract-test.sh"
       ],
