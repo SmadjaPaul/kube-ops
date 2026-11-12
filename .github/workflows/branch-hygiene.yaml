@@ -117,9 +117,10 @@ jobs:
           echo "MERGED_ALREADY_GONE_COUNT=$already_gone"
 
       - name: Checkout repository for ancestry cleanup
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Delete branches fully contained in main
         shell: bash

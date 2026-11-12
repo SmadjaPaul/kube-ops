@@ -43,7 +43,7 @@ grep -F 'storage: 1Gi' "$immich_pvc" >/dev/null
 
 for file in \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
-  "$repo_root/k8s/poc/atlantis-plan-only/pvc-backup-patch.yaml" \
+  "$repo_root/k8s/poc/atlantis-plan-only/pvc-retention.yaml" \
   "$repo_root/k8s/applications/business/invoice-ninja/storage.yaml" \
   "$repo_root/k8s/applications/catalog/sure/storage.yaml"; do
   grep -F 'recurring-job.longhorn.io/source: enabled' "$file" >/dev/null
@@ -52,7 +52,7 @@ done
 
 ! rg -n 'storageClassName:|resources:|dataStorage:|numberOfReplicas:|defaultDataPath:' \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
-  "$repo_root/k8s/poc/atlantis-plan-only/pvc-backup-patch.yaml" \
-  | rg 'pvc-backup-patch|agentgateway-state|atlantis-pilot-data' >/dev/null
+  "$repo_root/k8s/poc/atlantis-plan-only/pvc-retention.yaml" \
+  | rg 'pvc-retention|agentgateway-state|atlantis-pilot-data' >/dev/null
 
 printf '%s\n' 'LONGHORN_OFFSITE_PVC_CONTRACT=PASS'

@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: hindsight-db-initial-20261110
+  namespace: hindsight-personal
+  labels:
+    backup.smadja.dev/purpose: personal-ai-hindsight-activation
+spec:
+  cluster:
+    name: hindsight-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: hindsight-hetzner-store

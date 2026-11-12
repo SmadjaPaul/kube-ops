@@ -77,6 +77,14 @@ alloy:
       }
 
       loki.process "pods" {
+        // SparkyFitness official images can emit sensitive integration
+        // diagnostics directly to stdout/stderr. Keep Kubernetes probes and
+        // metrics unchanged, but do not ingest these application streams into
+        // Loki (or its retention/backups).
+        stage.match {
+          selector = `{namespace="wellness", pod=~"sparkyfitness-(server|garmin)-.*"}`
+          action   = "drop"
+        }
         stage.static_labels {
           values = {
             cluster = "homeops",

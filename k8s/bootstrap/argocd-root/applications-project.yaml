@@ -34,11 +34,19 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: home-assistant
       server: https://kubernetes.default.svc
+    - namespace: hindsight-personal
+      server: https://kubernetes.default.svc
+    - namespace: hindsight-restore-20261110
+      server: https://kubernetes.default.svc
     - namespace: immich
       server: https://kubernetes.default.svc
     - namespace: invoice-ninja
       server: https://kubernetes.default.svc
     - namespace: it-tools
+      server: https://kubernetes.default.svc
+    # PLT-181: LibreChat namespace resources are rendered by apps-ai; the
+    # Application itself is owned by AppProject personal-ai-pilot.
+    - namespace: librechat
       server: https://kubernetes.default.svc
     # PLT-141: isolated opt-in Rollouts fixture; never grant tenant namespaces broadly.
     - namespace: argo-rollouts-demo

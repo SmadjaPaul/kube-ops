@@ -45,3 +45,10 @@ test('reject majors, prerelease-0.x, other files and critical dependencies', () 
     {...good, manager: 'docker'}, {...good, depType: 'devDependencies'}
   ]) assert.equal(eligible(change), false, JSON.stringify(change));
 });
+
+test('Polyfin image updates stay manual after the image audit', () => {
+  const polyfin = cfg.packageRules.find((r) => r.matchPackageNames?.includes('ghcr.io/moodiness/polyfin'));
+  assert.ok(polyfin);
+  assert.equal(polyfin.automerge, false);
+  assert.equal(polyfin.platformAutomerge, false);
+});

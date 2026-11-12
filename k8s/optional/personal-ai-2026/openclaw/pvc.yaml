@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openclaw-personal-home
+  namespace: openclaw-personal
+  labels:
+    backup.velero.io/backup-tier: GFS
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-bulk
+  resources:
+    requests:
+      storage: 10Gi

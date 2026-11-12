@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "AIOSTREAMS_STAGE=FAIL: assertion failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 root=k8s/applications/media
 pkg="$root/aiostreams"
 grep -Fxq -- '- aiostreams' "$root/kustomization.yaml"
@@ -32,7 +33,7 @@ fi
 # PLT-135 cutover: keep the same Argo-managed HTTPRoute object/identity.
 # No simultaneous second tv.smadja.dev route: PruneLast is irrelevant.
 family="$pkg/family-http-route.yaml"
-grep -Fxq -- '- family-http-route.yaml' "$pkg/kustomization.yaml"
+grep -Eq '^[[:space:]]*-[[:space:]]+family-http-route\.yaml[[:space:]]*$' "$pkg/kustomization.yaml"
 yq -e '.apiVersion == "gateway.networking.k8s.io/v1" and .kind == "HTTPRoute" and .metadata.name == "aiostreams-family" and .metadata.namespace == "media"' "$family" >/dev/null
 [[ "$(yq -r '.spec.hostnames | join(",")' "$family")" == "tv.smadja.dev" ]]
 [[ "$(yq -r '.spec.parentRefs[].name' "$family" | LC_ALL=C sort | tr '\n' ',')" == "external,internal," ]]

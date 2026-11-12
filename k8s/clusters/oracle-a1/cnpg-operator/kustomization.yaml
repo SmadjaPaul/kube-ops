@@ -1,0 +1,29 @@
+# Oracle-specific operator install. The homelab base is not reused: it ships a
+# PodMonitor/PrometheusRule and the Barman plugin (needs cert-manager), none of
+# which exist on the Oracle cluster. Chart version tracks the homelab base.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+helmCharts:
+  - name: cloudnative-pg
+    releaseName: cloudnative-pg
+    namespace: cnpg-system
+    version: 0.28.2
+    repo: https://cloudnative-pg.github.io/charts
+    includeCRDs: true
+    valuesFile: values.yaml
+
+# Chart 0.28.2 omits hostPID/hostIPC (and hostNetwork when false); set them explicitly.
+patches:
+  - target: {kind: Deployment}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/hostNetwork
+        value: false
+      - op: add
+        path: /spec/template/spec/hostPID
+        value: false
+      - op: add
+        path: /spec/template/spec/hostIPC
+        value: false

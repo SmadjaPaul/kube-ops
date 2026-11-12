@@ -1,10 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Synthetic bootstrap. Keep S3 backup resources staged in backup.yaml, not admitted
-# until dedicated credentials and the CNPG plugin are intentionally enabled.
+# backup.yaml: CNPG Barman plugin (WAL + weekly base backup) on the shared
+# Hetzner S3 credentials, same model as media/polyfin (PLT-147).
 resources:
   - namespace.yaml
   - database.yaml
+  - backup.yaml
   - external-secret.yaml
   - networkpolicy.yaml
   - argo-application.yaml

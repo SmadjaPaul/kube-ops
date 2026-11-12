@@ -77,6 +77,35 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    - toFQDNs:
+        - matchName: wger.de
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # External providers used by the v1.11 food and exercise search flows.
+    # Keep this list explicit; do not replace it with public CIDR egress.
+    - toFQDNs:
+        - matchName: api.nal.usda.gov
+        - matchName: api.webapp.prod.blv.foodcase-services.com
+        - matchName: dataportal.livsmedelsverket.se
+        - matchName: food-nutrition.canada.ca
+        - matchName: raw.githubusercontent.com
+        - matchName: search.openfoodfacts.org
+        - matchName: world.openfoodfacts.org
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Native Mealie recipe provider: access only the internal application pod.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: mealie
+            app.kubernetes.io/name: mealie
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: TCP
     # Cilium Gateway hairpin: permit the in-cluster Authentik backend leg
     # used by the private Gateway for OIDC discovery and callbacks.
     - toEndpoints:
@@ -113,4 +142,46 @@ spec:
       toPorts:
         - ports:
             - port: "8000"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sparkyfitness-garmin
+  namespace: wellness
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: sparkyfitness
+      app.kubernetes.io/component: garmin
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: wellness
+            sparkyfitness.io/server: "true"
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: sso.garmin.com
+        - matchName: connect.garmin.com
+        - matchName: connectapi.garmin.com
+        - matchName: mobile.integration.garmin.com
+        - matchName: diauth.garmin.com
+        - matchName: ghs.garmin.com
+      toPorts:
+        - ports:
+            - port: "443"
               protocol: TCP

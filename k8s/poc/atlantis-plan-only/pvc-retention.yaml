@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: atlantis-pilot-data
+  namespace: atlantis-system
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false
+  labels:
+    atlantis.smadja.dev/retention: recovery-only
+    atlantis.smadja.dev/server: retired
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/persistent-offsite-backup: enabled
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: longhorn-fast

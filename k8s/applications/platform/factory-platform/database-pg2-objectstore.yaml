@@ -1,0 +1,28 @@
+# PLT-168: archive of the promoted cluster. Separate path so the old
+# (corrupted) timeline in factory-platform-hetzner-store is never mixed in.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: factory-platform-pg2-store
+  namespace: factory-platform
+spec:
+  retentionPolicy: "14d"
+  instanceSidecarConfiguration:
+    env:
+      - name: AWS_DEFAULT_REGION
+        value: fsn1
+  configuration:
+    destinationPath: s3://smadja-dev-homelab-backups/cnpg/factory-platform-pg2
+    endpointURL: https://fsn1.your-objectstorage.com
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-hetzner-credentials
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-hetzner-credentials
+        key: AWS_SECRET_ACCESS_KEY
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip

@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-arc-factory-ci-light
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: applications
+  source:
+    repoURL: ghcr.io/actions/actions-runner-controller-charts
+    chart: gha-runner-scale-set
+    targetRevision: 0.15.0
+    helm:
+      releaseName: factory-ci-arc-light
+      valuesObject:
+        githubConfigUrl: https://github.com/SmadjaPaul/factory-platform
+        githubConfigSecret: arc-github-app
+        # PLT-56: Factory jobs that never open a database connection (static
+        # TypeScript/contract/scanner checks and the CI scope selector) run
+        # here instead of `factory-ci-arc`, so they no longer start, initdb and
+        # tear down a PostgreSQL 18 sidecar per job. Integration and dbt jobs
+        # keep using `factory-ci-arc`. Same image, identity and hardening;
+        # scale-to-zero, one extra idle listener (~1m CPU, ~9Mi observed).
+        minRunners: 0
+        maxRunners: 2
+        controllerServiceAccount:
+          namespace: arc-systems
+          name: arc-gha-rs-controller
+        template:
+          spec:
+            automountServiceAccountToken: false
+            # Kubelet-only GHCR pull credential, not mounted inside runner containers.
+            imagePullSecrets:
+              - name: arc-factory-ghcr-pull
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1001
+              runAsGroup: 1001
+              fsGroup: 1001
+              fsGroupChangePolicy: OnRootMismatch
+            containers:
+              - name: runner
+                # Keep in lockstep with runner-application.yaml (same digest,
+                # same rollback to the official runner digest).
+                image: ghcr.io/smadjapaul/factory-ci-arc@sha256:17ea282d02b71da140ee6b6aa25793fb7c8d02fd44429769861ac8752b27a27f
+                command: ["/home/runner/run.sh"]
+                resources:
+                  requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}
+                  limits: {cpu: "2", memory: 2Gi, ephemeral-storage: 4Gi}
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities: {drop: ["ALL"]}
+                  seccompProfile: {type: RuntimeDefault}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: arc-runners
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

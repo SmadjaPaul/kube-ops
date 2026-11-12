@@ -13,6 +13,9 @@ resources:
   - polyfin-oidc-externalsecret.yaml
   - sparkyfitness-oidc-externalsecret.yaml
   - bookorbit-oidc-externalsecret.yaml
+  # LibreChat activation PR: this reference is intentionally present only on
+  # the Draft activation branch until APP_LIBRECHAT_OIDC_CLIENT_SECRET exists.
+  - librechat-oidc-externalsecret.dormant.yaml
 
 generatorOptions:
   disableNameSuffixHash: false
@@ -62,3 +65,4 @@ configMapGenerator:
       - ./blueprints/apps-polyfin.yaml
       - ./blueprints/apps-bookorbit.yaml
       - ./blueprints/apps-sparkyfitness.yaml
+      - ./blueprints/apps-librechat.dormant.yaml

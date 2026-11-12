@@ -55,9 +55,8 @@ metadata:
   name: unifi-mongo-credentials
   namespace: unifi
 type: Opaque
-data:
-  # Example password: `echo supersecret | base64 -o-` => 'c3VwZXJzZWNyZXQK'
-  password: "c3VwZXJzZWNyZXQK"
+stringData:
+  password: "replace-with-a-local-password"
 
 ---
 ###############################################################################

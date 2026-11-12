@@ -24,11 +24,12 @@ spec:
         - ports:
             - port: "3000"
               protocol: TCP
+    # The private ARC pilot is a read-only Terraform/OpenTofu planner. Keep
+    # this identity and port-specific; do not grant the public ARC pool access.
     - fromEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: atlantis-system
-            k8s:app: atlantis
-            k8s:release: atlantis-pilot
+            k8s:io.kubernetes.pod.namespace: arc-runners
+            k8s:actions.github.com/scale-set-name: homelab-iac-pilot-arc
       toPorts:
         - ports:
             - port: "3000"

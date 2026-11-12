@@ -1,0 +1,48 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-factory-light-download-egress
+  namespace: arc-runners
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "Allow only the light Factory ARC runner to download pinned runtimes and locked Node/Python dependencies"
+  # Subset of arc-runners-node-npm-egress: no Cloud SDK, dbt or DuckDB hosts,
+  # because database/integration jobs never run on this scale set. GitHub
+  # domains come from arc-runners-github-egress (all runner pods).
+  endpointSelector:
+    matchLabels:
+      k8s:actions.github.com/scale-set-name: factory-ci-arc-light
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        # Official-runner rollback: pinned Node and Python distributions.
+        - matchName: nodejs.org
+        - matchName: release-assets.githubusercontent.com
+        - matchName: raw.githubusercontent.com
+        # Rollback-only scanner install from PyPI.
+        - matchName: files.pythonhosted.org
+        - matchName: pypi.org
+        # onnxruntime-node resolves its Linux GPU package from the public NuGet feed.
+        - matchName: api.nuget.org
+        # npm ci resolves the lockfile from the public npm registry.
+        - matchName: registry.npmjs.org
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

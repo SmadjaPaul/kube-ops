@@ -1,0 +1,92 @@
+{
+ "queue": [
+  {
+   "id": "uuid-PLT-198",
+   "identifier": "PLT-198",
+   "title": "Tokens 4/4 : mesurer tokens, tours et coût par ticket et comparer avant/après",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-11T21:24:38.563Z",
+   "updatedAt": "2026-11-11T21:24:38.563Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:haiku",
+      "name": "agent:haiku"
+     },
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  }
+ ],
+ "locked": [
+  {
+   "id": "uuid-PLT-197",
+   "identifier": "PLT-197",
+   "title": "t PLT-197",
+   "url": "",
+   "priority": 2,
+   "createdAt": "2026-11-11T21:24:35.942Z",
+   "updatedAt": "2026-11-11T21:36:09.850Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:opus",
+      "name": "agent:opus"
+     },
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-wip:claude-local",
+      "name": "wip:claude-local"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  }
+ ]
+}
