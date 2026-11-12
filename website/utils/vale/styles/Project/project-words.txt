@@ -321,3 +321,4 @@ pooler
 OpenAI-compatible
 Qdrant
 vLLM
+commitlint
