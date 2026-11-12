@@ -20,5 +20,5 @@ spec:
       - backups.postgresql.cnpg.io
       - scheduledbackups.postgresql.cnpg.io
     defaultVolumesToFsBackup: true
-    storageLocation: default
+    storageLocation: r2
     ttl: 336h

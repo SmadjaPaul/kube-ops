@@ -42,18 +42,21 @@ configuration:
       provider: aws
       bucket: smadja-dev-homelab-backups
       prefix: velero
-      default: true
+      # PLT-222 (decision Paul 12/11, PLT-219) : Hetzner devient lecture seule.
+      # Les anciennes sauvegardes restent restaurables ; plus d'ecriture ni de
+      # ramasse-miettes cote Hetzner. Aucun objet n'est supprime.
+      default: false
+      accessMode: ReadOnly
       config:
         region: fsn1
         s3ForcePathStyle: "false"
         s3Url: https://fsn1.your-objectstorage.com
-    # PLT-222: Cloudflare R2 (jurisdiction eu), added NEXT TO the Hetzner BSL.
-    # Not default: schedules keep `storageLocation: default` until the R2
-    # backup + isolated restore is proven (docs/operations/r2-migration.md, step 6).
+    # PLT-222: Cloudflare R2 (jurisdiction eu), BSL par defaut (step 6 de
+    # docs/operations/r2-migration.md). Tous les Schedules la ciblent.
     - name: r2
       provider: aws
       bucket: homelab-backup-velero
-      default: false
+      default: true
       accessMode: ReadWrite
       credential:
         name: velero-r2-credentials
