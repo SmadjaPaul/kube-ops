@@ -16,16 +16,16 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: cube
-          image: cubejs/cube@sha256:a84bae164de5d6b6a8ab3f5e6bb55f62a17dbc31021aa85d8a226ebc1e52eb5c
+          image: cubejs/cube@sha256:3bb957753fc834a8143b48dfef467e6ab13c21a710e6a7b5fb484d7f9d6e76d8
           ports: [{name: http, containerPort: 4000}]
           env:
             - {name: CUBEJS_DB_TYPE, value: postgres}
             - {name: CUBEJS_DEV_MODE, value: "false"}
             - {name: CUBEJS_TELEMETRY, value: "false"}
             - {name: CUBEJS_CUBESTORE_HOST, value: factory-cubestore.factory-platform.svc.cluster.local}
-            - {name: CUBEJS_DB_HOST, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-app, key: host}}}
-            - {name: CUBEJS_DB_PORT, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-app, key: port}}}
-            - {name: CUBEJS_DB_NAME, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-app, key: dbname}}}
+            - {name: CUBEJS_DB_HOST, valueFrom: {secretKeyRef: {name: factory-platform-pg2-app, key: host}}}
+            - {name: CUBEJS_DB_PORT, valueFrom: {secretKeyRef: {name: factory-platform-pg2-app, key: port}}}
+            - {name: CUBEJS_DB_NAME, valueFrom: {secretKeyRef: {name: factory-platform-pg2-app, key: dbname}}}
             - {name: CUBEJS_DB_USER, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-source, key: username}}}
             - {name: CUBEJS_DB_PASS, valueFrom: {secretKeyRef: {name: factory-platform-postgresql-source, key: password}}}
             - {name: CUBEJS_API_SECRET, valueFrom: {secretKeyRef: {name: factory-cube-auth, key: CUBEJS_API_SECRET}}}

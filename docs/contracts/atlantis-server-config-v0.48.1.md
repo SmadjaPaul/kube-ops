@@ -1,5 +1,9 @@
 # Atlantis OSS v0.48.1 server contract
 
+> Historical record. This contract documents the former pilot and is not an
+> active deployment contract. The server and its credential projections were
+> retired after ARC qualification; see `atlantis-retirement-v1.md`.
+
 **Status:** isolated `terraform/atlantis-pilot` qualified on 2026-10-22;
 the twelve production roots remain pending individual qualification.
 

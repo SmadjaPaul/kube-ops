@@ -6,31 +6,6 @@ This page explains how GitHub Actions, Renovate, and Dependabot keep this homela
 
 ## GitHub Actions Workflows (`.github/workflows/`)
 
-### Release Automation (`release-please.yml`)
-
-- **File:** `.github/workflows/release-please.yml`
-- **Purpose:** Automate versioning and releases using [Release Please](https://github.com/googleapis/release-please-action) and conventional commit messages.
-- **How it works:**
-  1. Push commits to `main` using [Conventional Commits](https://www.conventionalcommits.org/).
-  2. Release Please scans commit messages for changes:
-     - `feat:` triggers a minor version bump.
-     - `fix:` triggers a patch bump.
-     - `BREAKING CHANGE:` triggers a major bump.
-  3. A release pull request (PR) is created or updated, including:
-     - Updated `CHANGELOG.md`
-     - Proposed new version (Git tag or version file)
-  4. Merge the release PR to `main`:
-     - Release Please creates a GitHub Release with the new tag and changelog.
-- **Why:**
-  - **Automated releases and changelogs:** No more manual versioning or writing changelogs.
-  - **Enforces commit conventions:** Keeps commit history clear and structured.
-  - **Release PRs:** Adds a review step before a release is finalized.
-- **Permissions:**
-  - `contents: write` (for tags/changelog updates)
-  - `pull-requests: write` (for PRs)
-- **Note:**
-  - Uses a basic versioning scheme (`release-type: simple`). Suitable for single package projects.
-
 ### Docker Image Build (`image-build.yaml`)
 
 - **File:** `.github/workflows/image-build.yaml`

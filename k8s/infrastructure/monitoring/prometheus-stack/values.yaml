@@ -6,10 +6,21 @@ kubeProxy:
 
 # The chart's availability group evaluates 30-day recording rules while this
 # homelab retains 10 days. No repository or live dashboard/rule consumer was
-# found for these recordings; keep burn-rate recording rules and SLO alerts.
+# found for these recordings.
+# PLT-187 (2026-11-12): the burn-rate group re-reads 1d/3d windows of ~8k
+# apiserver SLI histogram series every 30s. Since 2026-11-11 ~18Z it took
+# 30-37s per 30s cycle (missed iterations), with the Go heap pinned at the
+# 1Gi limit: ~370 major page faults/s, ~500 MB/s continuous reads on the
+# Longhorn Prometheus PVC and instance-manager CPU 0.26 -> 2.4 cores. No
+# repository dashboard/rule consumes apiserver_request:burnrate*, and the SLO
+# alerts (KubeAPIErrorBudgetBurn) only read those recordings while Alertmanager
+# has no receiver. Raw apiserver metrics stay scraped. Revert both to true to
+# restore them (then raise Prometheus memory first).
 defaultRules:
   rules:
     kubeApiserverAvailability: false
+    kubeApiserverBurnrate: false
+    kubeApiserverSlos: false
 
 # Edge/single-node budget: apiserver exposes ~68k series and accounts for
 # ~2,274 accepted samples/s at the observed 30s scrape cadence (Phase 2).
@@ -26,6 +37,12 @@ kubeApiServer:
 grafana:
   serviceMonitor:
     interval: 60s
+    # PLT-212 lot 1: no dashboard, rule or alert reads Grafana's own histograms
+    # (~3.7k series). Counters/gauges, go_* and process_* stay scraped.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "grafana_.*_bucket|grafana_feature_toggles_info"
   # The chart's full default catalogue is not the operational interface. The
   # curated ConfigMaps in grafana-catalog.yaml retain the useful signals while
   # keeping upstream metrics, rules and alerting untouched.
@@ -103,6 +120,26 @@ kube-state-metrics:
     monitor:
       http:
         interval: 45s
+  # PLT-212 lot 1: families with no consumer in live rules or in the repo
+  # (rules, dashboards, scripts). kube_replicaset_owner, kube_pod_status_*
+  # used by alerts and kube_pod_container_status_* stay exported.
+  metricDenylist:
+    - kube_pod_status_scheduled
+    - kube_pod_status_scheduled_time
+    - kube_pod_status_qos_class
+    - kube_pod_tolerations
+    - kube_pod_service_account
+    - kube_pod_scheduler
+    - kube_pod_restart_policy
+    - kube_pod_created
+    - kube_replicaset_created
+    - kube_replicaset_metadata_generation
+    - kube_replicaset_spec_replicas
+    - kube_replicaset_status_fully_labeled_replicas
+    - kube_replicaset_status_observed_generation
+    - kube_replicaset_status_ready_replicas
+    - kube_replicaset_status_replicas
+    - kube_replicaset_status_terminating_replicas
 
 kubeStateMetrics:
   resources:
@@ -119,6 +156,13 @@ kubelet:
     # 30s preserves the existing metric families and 5m rule/dashboard
     # windows while halving cAdvisor's scrape frequency.
     cAdvisorInterval: 30s
+    # PLT-212 lot 1: kubelet probe latency histograms (~3.5k series) have no
+    # consumer. prober_probe_total (probe failures) stays scraped. The cAdvisor
+    # drops live in kubelet-cardinality-patch.json (chart defaults preserved).
+    probesMetricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "prober_probe_duration_seconds_bucket"
 
 prometheusOperator:
   resources:
@@ -158,7 +202,8 @@ prometheus:
     # node_exporter on a private LAN endpoint, firewall-restricted to the
     # Talos monitoring traffic. No exporter is installed by this repo change.
     # Never expose unauthenticated node_exporter through Cloudflare.
-    # Default collectors read kernel counters/hwmon; no SMART polling.
+    # Default collectors read kernel counters/hwmon; NVMe health comes from the
+    # host textfile collector (nvme_*, read-only smart-log, PLT-216); no smartctl.
     additionalScrapeConfigs:
       - job_name: proxmox-host
         scrape_interval: 30s
@@ -201,6 +246,17 @@ alertmanager:
       minAvailable: 1
 
 prometheus-node-exporter:
+  # PLT-212 lot 1: ~150 Cilium lxc* host-side veths x ~30 node_network_*
+  # families (~4k series) duplicate per-pod cAdvisor network metrics. Physical
+  # (eth0), cilium_* and lo interfaces stay exported; the chart's *_excluding_
+  # virtual recordings only ever looked at non-veth devices.
+  # Helm replaces list values: the chart's two filesystem exclusions are
+  # repeated here verbatim (kube-prometheus-stack 88.3.0 defaults).
+  extraArgs:
+    - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run/containerd/.+|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|erofs)$
+    - --collector.netdev.device-exclude=^lxc.*$
+    - --collector.netclass.ignored-devices=^lxc.*$
   tolerations:
     - key: "gpu"
       operator: "Equal"

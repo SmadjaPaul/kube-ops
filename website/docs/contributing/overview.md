@@ -107,7 +107,7 @@ Before opening a pull request, please run these checks on any files you've modif
 
 1. **Open an Issue (For Big Changes):** If you're planning to add a new application or make a significant architectural change, please [open an issue](https://github.com/SmadjaPaul/kube-ops/issues/new) first. For small changes like version bumps or typo fixes, you can go straight to a PR.
 2. **Create a Branch:** Start your work from an up-to-date `main` branch in your fork.
-3. **Commit Your Changes:** I use **Conventional Commits** to automate releases and generate changelogs. Please follow this format strictly. Your PR title must also follow this format.
+3. **Commit Your Changes:** I use **Conventional Commits**, enforced by commitlint. Please follow this format strictly. Your PR title must also follow this format.
    - **Format:** `type(scope): description`
    - **Examples:**
        - `feat(k8s): add new monitoring stack`

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "AIOSTREAMS_STAGE=FAIL: assertion failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 root=k8s/applications/media
 pkg="$root/aiostreams"
 grep -Fxq -- '- aiostreams' "$root/kustomization.yaml"
@@ -10,6 +11,7 @@ grep -Fq 'ghcr.io/viren070/aiostreams:v2.37.0@sha256:bcfd8580695a50c8f464578a0e2
 grep -Fq 'value: "false"' "$pkg/deployment.yaml"
 grep -Fq "FORCE_PROXY_ENABLED" "$pkg/deployment.yaml"
 grep -Fq "AIOSTREAMS_AUTH_REQUIRED" "$pkg/deployment.yaml"
+grep -A1 -F "name: LOG_SENSITIVE_INFO" "$pkg/deployment.yaml" | grep -Fq 'value: "false"'
 grep -Fq "name: JELLYFIN_PIN_SIGN_IN" "$pkg/deployment.yaml"
 grep -A1 -F "name: JELLYFIN_PIN_SIGN_IN" "$pkg/deployment.yaml" | grep -Fq 'value: "false"'
 grep -Fq "AIOSTREAMS_OIDC_ENABLED" "$pkg/deployment.yaml"
@@ -31,7 +33,7 @@ fi
 # PLT-135 cutover: keep the same Argo-managed HTTPRoute object/identity.
 # No simultaneous second tv.smadja.dev route: PruneLast is irrelevant.
 family="$pkg/family-http-route.yaml"
-grep -Fxq -- '- family-http-route.yaml' "$pkg/kustomization.yaml"
+grep -Eq '^[[:space:]]*-[[:space:]]+family-http-route\.yaml[[:space:]]*$' "$pkg/kustomization.yaml"
 yq -e '.apiVersion == "gateway.networking.k8s.io/v1" and .kind == "HTTPRoute" and .metadata.name == "aiostreams-family" and .metadata.namespace == "media"' "$family" >/dev/null
 [[ "$(yq -r '.spec.hostnames | join(",")' "$family")" == "tv.smadja.dev" ]]
 [[ "$(yq -r '.spec.parentRefs[].name' "$family" | LC_ALL=C sort | tr '\n' ',')" == "external,internal," ]]
@@ -55,7 +57,10 @@ auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-polyfin.yaml
 [[ "$(yq -r '.entries[] | select(.id == "polyfin_application") | .attrs.meta_launch_url' "$auth")" == "https://tv.smadja.dev" ]]
 grep -Fq 'client_secret: !Env POLYFIN_OIDC_CLIENT_SECRET' "$auth"
 # Ensure historical Polyfin route remains disabled, preventing duplicate hostname claims.
-! grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/polyfin/kustomization.yaml"
+if grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/polyfin/kustomization.yaml"; then
+  echo 'AIOSTREAMS_STAGE=FAIL: historical Polyfin http-route.yaml must stay out of the kustomization' >&2
+  exit 1
+fi
 if grep -Fq -- '- name: external' "$pkg/http-route.yaml"; then
   echo "AIOSTREAMS_STAGE=FAIL: staged route must not attach to Gateway/external" >&2
   exit 1

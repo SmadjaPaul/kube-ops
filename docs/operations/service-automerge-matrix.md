@@ -38,8 +38,6 @@ No LLM belongs on the normal deterministic patch path.
 | `catalog/stirling-pdf` | Deployment and Longhorn 2-Gi config PVC; immutable semver-like tag currently `3.0.0` | Tier B, patch only after config backup/restore and smoke; not in Tier A |
 | `catalog/ntfy` | Longhorn PVC with SQLite auth/cache DB; init bootstrap changes credentials; used in alerting path | Tier C; preserve alert delivery and restore; not automatically merged based on SemVer |
 | `catalog/paperless` | Longhorn data/media PVCs + PostgreSQL; image `paperless-ngx:3.2.1` | Tier C: migrations + DB/files consistency and restore must be qualified |
-| `media/jellyfin` | StatefulSet, local data, OIDC plugin downloaded and checksum-verified during init | Tier C: plugin compatibility, auth, playback and rollback not just version check |
-| `media/jellyseerr` | StatefulSet with config PVC and custom preview OIDC image; app init updates settings | Tier C: preview digest can change semantics; no automatic merge |
 | `media/decypharr` | PVC + shared media mount + TorBox/Radarr/Sonarr integration; pinned digest | Tier C: end-to-end download/Arr side-effects require tests |
 | `platform/agentgateway` | PVC + credentials, model routing and budget/security controls; pinned digest | Tier C: critical dependency of the software factory, not a disposable stateless service |
 | `infrastructure/{network,storage,database,auth,controllers}` | Cilium, Longhorn, CNPG, Authentik, Argo, ESO etc. | Tier D: explicit operator admission for CRDs, upgrade compatibility, recovery and maintenance window |

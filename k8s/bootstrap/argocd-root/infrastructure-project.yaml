@@ -79,6 +79,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: node-feature-discovery
       server: https://kubernetes.default.svc
+    # PLT-217 : Deployment openclaw-operator suspendu (replicas 0), ré-adopté par infra-controllers.
+    - namespace: openclaw-operator-system
+      server: https://kubernetes.default.svc
     - namespace: open-webui
       server: https://kubernetes.default.svc
     - namespace: opencode
@@ -90,6 +93,8 @@ spec:
     - namespace: arc-runners
       server: https://kubernetes.default.svc
     - namespace: atlantis-system
+      server: https://kubernetes.default.svc
+    - namespace: atlantis-apps
       server: https://kubernetes.default.svc
     - namespace: paperless
       server: https://kubernetes.default.svc

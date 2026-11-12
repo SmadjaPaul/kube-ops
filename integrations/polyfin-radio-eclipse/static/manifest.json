@@ -1,8 +1,8 @@
 {
   "id": "dev.smadja.radio-france",
   "name": "Radio France — direct",
-  "version": "0.1.0",
-  "description": "Huit radios publiques de Radio France, URLs audio officielles ; aucune passerelle audio.",
+  "version": "0.2.0",
+  "description": "Radio France : FIP et ses 12 webradios, France Inter, Info, Musique et Mouv’ ; flux MP3 officiels directs, vignettes statiques.",
   "contentType": "music",
   "resources": [
     "catalog"

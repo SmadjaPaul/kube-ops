@@ -44,9 +44,14 @@ data:
               allowedModels:
                 - factory/fast
                 - factory/code
-              # MiniMax Token Plan owns the 5-hour and weekly quota windows.
-              # Mastra retains per-run budgets, concurrency and bounded retry.
-              # No PAYG fallback is configured for these routes.
+              budgets:
+                - name: factory-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 1000000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
             - key: "$GPT_RESEARCHER_API_KEY"
               metadata:
                 name: gpt-researcher
@@ -58,6 +63,34 @@ data:
                   limit:
                     unit: Tokens
                     amount: 2000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
+            - key: "$HINDSIGHT_AGENTGATEWAY_KEY"
+              metadata:
+                name: hindsight-personal
+                owner: hindsight-personal
+              allowedModels:
+                - factory/fast
+              budgets:
+                - name: hindsight-personal-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 200000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
+            - key: "$LIBRECHAT_AGENTGATEWAY_KEY"
+              metadata:
+                name: librechat
+                owner: librechat
+              allowedModels:
+                - factory/fast
+              budgets:
+                - name: librechat-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 200000
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
@@ -110,7 +143,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: gpt-researcher-routing-v1
+        checksum/agentgateway-runtime: personal-ai-hindsight-1-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -121,7 +154,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: agentgateway
-          image: cr.agentgateway.dev/agentgateway@sha256:9d3e6044ddcdc0878b1787f77bd401252b95e22684203fb5e874c4c42d2ed90c
+          image: cr.agentgateway.dev/agentgateway@sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
           args: ["-f", "/config/config.yaml"]
           workingDir: /data
           envFrom:
@@ -183,6 +216,16 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: gpt-researcher
             app.kubernetes.io/name: gpt-researcher
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: hindsight-personal
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: librechat
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
   egress:

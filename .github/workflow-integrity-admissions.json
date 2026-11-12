@@ -3,14 +3,15 @@
   "admissions": [
     {
       "repository": "SmadjaPaul/kube-ops",
-      "pr": 1018,
-      "changeFingerprint": "dc25c87e13f6de03be078205a58230ff24af13b024145b04dcf22d925ab01f18",
+      "pr": 1181,
+      "changeFingerprint": "7b55db1c3398a033b2b74d36f2fdeecf810438d295537e55d8901dbf68862341",
       "paths": [
-        ".github/workflows/polyfin-downstream-build.yaml"
+        "tests/harness/librechat-credential-format-test.sh",
+        "tests/harness/librechat-mongodb-auth-contract-test.sh"
       ],
-      "reason": "PLT-134: owner-authorized Polyfin v0.61.1 signed candidate workflow and Trixie zlib backport qualification.",
+      "reason": "PLT-165 owner admission for LibreChat credential-format and MongoDB auth contract harnesses.",
       "approvedBy": "SmadjaPaul",
-      "expiresAt": "2026-11-10T23:59:59Z"
+      "expiresAt": "2026-11-13T23:59:59Z"
     },
     {
       "repository": "SmadjaPaul/kube-ops",
@@ -73,7 +74,7 @@
     {
       "repository": "SmadjaPaul/kube-ops",
       "pr": 1059,
-      "changeFingerprint": "10692f9a8bbd928ff4a6df4182a126f3892877bb1c40490249b9b536d15524b9",
+      "changeFingerprint": "8b69ef238fe6e07e1976b570c11c3cd045de4caf7f297a1196ee9e3e639e805d",
       "paths": [
         "tests/harness/bookorbit-staged-contract-test.sh",
         "tests/harness/decypharr-torbox-staged-test.sh",
@@ -82,6 +83,231 @@
       "reason": "PLT-122: owner-reviewed protected BookOrbit/Decypharr tests, including strict Velero opt-in to data volume; production rollout remains gated by backup and login proof.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-14T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1095,
+      "changeFingerprint": "a5ddf70cf915a6d2231fd242b714af3edb521f1b6af2495d6f4b4c1db9b6e3d1",
+      "paths": [
+        "tests/harness/aiostreams-staged-contract-test.sh"
+      ],
+      "reason": "PLT-153: owner-authorized explicit AIOStreams sensitive-log disablement and matching contract assertion; no image, route, network, or credential changes.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-15T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1105,
+      "changeFingerprint": "fbdeee1b394ce3f6589addd087fa6677aea666359d94c0a4c86a70b38b6d3845",
+      "paths": [
+        "scripts/check-atlantis-dispatch-contract.sh"
+      ],
+      "reason": "PLT-89/90/91: owner-authorized pilot-only Atlantis apply denial before ARC cutover; preserve apply for github, aiostreams and polyfin.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-15T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1148,
+      "changeFingerprint": "8ca27b52fc6380c78a44500b7cdf3727b7c5b7ed98968f188b156e547953c7fc",
+      "paths": [
+        "tests/harness/github-atlantis-guard-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact Atlantis admission for the reviewed ARC diagnostic and installer helper paths; no root, provider or writer authority change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1149,
+      "changeFingerprint": "7a1c1d8754b3f6f621a7a8bf10a5ee2af542f3544b8c5c1d752ea4078cafa9cd",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact ARC capacity contract update; keep the existing hardened runner and network boundary while allowing one concurrent read-only validation or plan.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1153,
+      "changeFingerprint": "cb54d9954e6fcb34858d65fec50c7c75bd5ed10405bc50ba5f90270dd7f6f8d5",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact ARC private pilot capacity contract; preserve the candidate network and credential boundaries while allowing one concurrent read-only plan.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1156,
+      "changeFingerprint": "4581ac8eb606656b07e76b1852f6a88e196d49872968e7c9e46149d44a6a6e46",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact provider egress admission for read-only ARC qualification; preserve bounded public Doppler and private AIOStreams access with no writer or apply change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1159,
+      "changeFingerprint": "26f400f941287b400721382927b6b77d676db917588c370f50c39db8d3e558c4",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact endpoint-port admission for read-only ARC qualification; preserve bounded Cloudflare API and AIOStreams workload access with no writer or apply change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1161,
+      "changeFingerprint": "d0473ad8b3abbec500fac70863a0d99c8b511de63aab63a7c058b603b9a1830e",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-163: owner-authorized exact destination ingress admission for the private ARC read-only AIOStreams plan; retain the existing workload boundary and no writer or apply change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1188,
+      "changeFingerprint": "18e6e33c4c72e9890f3d79eb876bedf1d933159dba0a79d0513527b13971522e",
+      "paths": [
+        "package.json",
+        "scripts/check-atlantis-dispatch-contract.sh",
+        "tests/harness/atlantis-dispatch.test.mjs",
+        "tests/harness/atlantis-plan-only-test.sh",
+        "tests/harness/github-atlantis-guard-test.sh",
+        "tests/harness/longhorn-offsite-pvc-contract-test.sh"
+      ],
+      "reason": "PLT-163 owner-authorized retirement of the active Atlantis runtime and its protected contract harnesses after ARC Polyfin no-op qualification; retain recovery PVC and manual live-tofu path.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1192,
+      "changeFingerprint": "e55265f9d695062528fd792398e1bd8d19bfd739dd0ff2f13d894ca6cef1e2db",
+      "paths": [
+        ".github/workflows/branch-hygiene.yaml",
+        ".github/workflows/claude.yaml",
+        ".github/workflows/documentation-integrity.yaml",
+        ".github/workflows/e2e-static.yaml",
+        ".github/workflows/factory-acceptance.yaml",
+        ".github/workflows/image-build.yaml",
+        ".github/workflows/polyfin-image-audit.yaml",
+        ".github/workflows/release-please.yml",
+        ".github/workflows/v1-contract.yaml",
+        ".github/workflows/vale.yaml",
+        ".github/workflows/worm-scan.yaml"
+      ],
+      "reason": "PLT-163 owner admission candidate for workflow supply-chain hardening; no gate, verifier or branch protection change.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-13T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1194,
+      "changeFingerprint": "d5cda0e406699636ddc94f45d11ab8ae3e3f372f69945e4395bb7f153fe87090",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-56 owner admission candidate for the Factory-only ARC image digest adoption; no PVC, other scale set or runtime mutation.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-17T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1226,
+      "changeFingerprint": "8f6a3a521dfd94527f67831a9a3edbbc1c192688b778d1aa5363046de28c650e",
+      "paths": [
+        ".github/workflows/claude.yaml",
+        ".justfile"
+      ],
+      "reason": "PLT-192 : admission propriétaire du workflow Claude et de la recette just associée ; aucun changement du gate, du vérificateur ni des protections de branche.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1227,
+      "changeFingerprint": "e1ee99f031b2f9e2796acbbc321c86fd1224602673d1f9ff1b414b24fb2751f5",
+      "paths": [
+        "tests/harness/aiostreams-staged-contract-test.sh"
+      ],
+      "reason": "PLT-193 : admission propriétaire de l'ajustement du contrat de test AIOStreams ; aucun changement runtime.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1240,
+      "changeFingerprint": "915a74a98a5d2f74ea21c6f63d49f0c3fc4e76d6e527c25c0da754c1912f157c",
+      "paths": [
+        "scripts/check-v1-active-contract.sh"
+      ],
+      "reason": "PLT-200: Cilium 1.20.4 security patch baseline (CVE-2026-111943) in the V1 active contract, replacing invalid #1236.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-17T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1233,
+      "changeFingerprint": "00650ff734df20c86b136de7702ab468a78936fed1bbf89dd438d79d8ac4e4a1",
+      "paths": [
+        ".justfile"
+      ],
+      "reason": "PLT-196 : admission propriétaire de la recette just OUTPUT=summary|errors|full ; aucun changement du gate, du vérificateur ni des protections de branche.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-16T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1243,
+      "changeFingerprint": "946e11463421da71bef57e7b9e19af96318afdca3852b0e78aa17038fa6fb050",
+      "paths": [
+        "tests/harness/arc-gitops-contract-test.sh"
+      ],
+      "reason": "PLT-56: contrat ARC étendu au scale set Factory léger sans PostgreSQL (aucun sidecar, image identique, egress minimal).",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-18T12:00:00Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1252,
+      "changeFingerprint": "b25f760be7f48081f8907acdbd44121c7753b1ab11dc5d0a8426b9d220ac14dc",
+      "paths": [
+        "tests/harness/polyfin-private-pilot-contract-test.sh"
+      ],
+      "reason": "PLT-46: contrat Polyfin pilote privé, lecture complète du flux yq au lieu de yq | head (SIGPIPE 141 sous pipefail). Reprise de #1196.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-18T12:00:00Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1255,
+      "changeFingerprint": "4d2c8adde9cbb248c827d5803574c92634b43063297a1b00a678fa9a67e45eca",
+      "paths": [
+        "tests/harness/longhorn-offsite-pvc-contract-test.sh"
+      ],
+      "reason": "PLT-187 M2: Longhorn allowRecurringJobWhileVolumeDetached true->false, harness assertion updated accordingly.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-17T02:31:03Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1259,
+      "changeFingerprint": "49527b04f8c9b1c678cee475bb6e84fb3c11709bd49bcfe7493d28320b50a5d7",
+      "paths": [
+        "tests/harness/inventory-graph.test.mjs"
+      ],
+      "reason": "PLT-46: Perplexica dormant retiré ; le test d'inventaire vérifie qu'il n'est ni actif ni candidat dormant (modèle BabyBuddy).",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-18T12:00:00Z"
     }
   ]
 }

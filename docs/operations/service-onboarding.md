@@ -29,4 +29,4 @@ Authority: [AGENTS.md](../../AGENTS.md). Keep upstream Kubernetes/Helm/Kustomize
 
 ## Existing exception (2026-10-21)
 
-`k8s/applications/restore` is referenced by the ApplicationSet but absent from Git, tracked by a narrow static-test waiver. Do **not** remove that Argo path without runtime owner/prune evidence. Listmonk/Twenty are retention-only Argo Applications and Paperclip still owns data rollback state. Dormant manifest deletion remains subject to an operator decision.
+`k8s/applications/restore` is referenced by the ApplicationSet but absent from Git, tracked by a narrow static-test waiver. Do **not** remove that Argo path without runtime owner/prune evidence. Listmonk and Twenty have no Git manifest and no Argo Application; their Released `Retain` PVs (for example `twenty/twenty-postgresql-1`) are data to keep. Paperclip has no Git manifest; its Released `Retain` PV `paperclip-data` still holds rollback data. Dormant manifest deletion remains subject to an operator decision.

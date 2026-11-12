@@ -35,9 +35,12 @@ defaultSettings:
   v2DataEngine: false
   defaultReplicaCount: '{"v1":"1","v2":"1"}'
   # The single fast disk already carries existing 1-replica volumes whose
-  # scheduled capacity is above physical usage. 175% provides bounded virtual
-  # headroom for the current 80GiB faulted set without changing replica count.
-  storageOverProvisioningPercentage: 175
+  # scheduled capacity is above physical usage. 180% provides bounded virtual
+  # headroom for the current set while retaining the 10% physical free-space
+  # guard. This small increase is required to admit the already-qualified
+  # Polyfin PVC expansion; it does not change the disk, replica count, or
+  # physical free-space threshold.
+  storageOverProvisioningPercentage: 180
   storageMinimalAvailablePercentage: 10
   defaultDataLocality: best-effort
   createDefaultDiskLabeledNodes: true
@@ -48,9 +51,20 @@ defaultSettings:
   # The current node carries many mostly-idle services, so reserve 6% for the
   # V1 data plane initially and validate it with real I/O before further tuning.
   guaranteedInstanceManagerCPU: '{"v1":"6","v2":"0"}'
-  # Only volumes explicitly assigned the persistent-offsite-backup recurring
-  # job may be attached temporarily for a backup while detached.
-  allowRecurringJobWhileVolumeDetached: true
+  # Detached volumes are not attached for recurring backups (PLT-187).
+  # Evidence 2026-11-12: 99 detached volumes = 87 PV Released without PVC,
+  # 4 Released whose PVC name now binds another PV, 4 DR-exercise volumes
+  # without PV, 4 Bound but unmounted. For executor/data-executor-0,
+  # atlantis-system/atlantis-pilot-data and rustical-pilot/rustical-data the
+  # last completed Longhorn backup is newer than the last pod mount
+  # (lastPodRefAt); Velero file-system backups do not cover them without a pod.
+  # atlantis-apps-data is faulted with no backup either way. A detached volume
+  # cannot be written, and existing backups are not pruned while no new backup
+  # is taken. Residual risk: a volume written and detached again between two
+  # 03:17 runs (executor scaled 0/0, future mastra-sandbox workspaces) is not
+  # backed up until it is attached at run time. Revert to true to restore the
+  # nightly attach/backup/detach cycle.
+  allowRecurringJobWhileVolumeDetached: false
 
 defaultBackupStore:
   # Reuse the existing Hetzner Object Storage bucket with a Longhorn-specific

@@ -3,13 +3,18 @@ kind: Kustomization
 
 resources:
 - project.yaml
+- ../../optional/personal-ai-2026/hindsight
+# The isolated restore drill is private and admitted by the root AppProject;
+# its separate namespace has no Service, route, or application writer.
+- ../../optional/personal-ai-2026/hindsight-restore
+- ../../optional/personal-ai-2026/librechat
 - karakeep
 - opencode
 - gpt-researcher
 - executor
 
 # Intentionally disabled from the V1 active catalog:
-# - perplexica: decommissioned in favor of Mastra research tools.
+# - perplexica: decommissioned in favor of Mastra research tools; manifests removed (PLT-46).
 # - vllm-embed: inactive CPU embedder; migration to pgvector/search TBD.
 # - pocket-tts: local CPU TTS is too expensive on the current single-node host.
 

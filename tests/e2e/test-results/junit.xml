@@ -1,0 +1,26 @@
+<testsuites id="" name="" tests="4" failures="0" skipped="4" errors="0" time="0.12738999999999992">
+<testsuite name="argocd.spec.ts" timestamp="2026-11-12T09:27:49.980Z" hostname="" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="ARGO_SSO_E2E readonly user can list apps but has no admin UI" classname="argocd.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="authentik.spec.ts" timestamp="2026-11-12T09:27:49.980Z" hostname="" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="AUTHENTIK_LOGIN_SUCCESS and non-admin authorization" classname="authentik.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="home-assistant.spec.ts" timestamp="2026-11-12T09:27:49.980Z" hostname="" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="HOME_ASSISTANT_UI_READY reaches login/onboarding/dashboard" classname="home-assistant.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="openwebui.spec.ts" timestamp="2026-11-12T09:27:49.980Z" hostname="" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="OPENWEBUI_E2E reaches authenticated main UI without model call" classname="openwebui.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

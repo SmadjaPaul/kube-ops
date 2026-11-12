@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/component: dbt
 spec:
   schedule: "5,35 * * * *"
+  suspend: true
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
   successfulJobsHistoryLimit: 2
@@ -41,7 +42,7 @@ spec:
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
-                      name: factory-platform-postgresql-app
+                      name: factory-platform-pg2-app
                       key: uri
                 - name: OTEL_EXPORTER_OTLP_ENDPOINT
                   value: http://alloy.monitoring.svc.cluster.local:4318
@@ -58,12 +59,12 @@ spec:
                 - name: DBT_HOST
                   valueFrom:
                     secretKeyRef:
-                      name: factory-platform-postgresql-app
+                      name: factory-platform-pg2-app
                       key: host
                 - name: DBT_PORT
                   valueFrom:
                     secretKeyRef:
-                      name: factory-platform-postgresql-app
+                      name: factory-platform-pg2-app
                       key: port
                 - name: DBT_USER
                   valueFrom:
@@ -78,7 +79,7 @@ spec:
                 - name: DBT_DBNAME
                   valueFrom:
                     secretKeyRef:
-                      name: factory-platform-postgresql-app
+                      name: factory-platform-pg2-app
                       key: dbname
               securityContext:
                 allowPrivilegeEscalation: false

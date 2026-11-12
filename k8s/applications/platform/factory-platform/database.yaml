@@ -1,8 +1,26 @@
+# PLT-213: kept in Git on purpose. Removing it (21449dd8) left a live Cluster
+# that carries the apps-platform tracking id but has no desired state: Argo saw
+# a permanent "requires pruning" resource (skipped by Prune=false) and re-ran a
+# no-op sync every ~5 min (438 syncs/24 h). Delete this file only together with
+# the live Cluster, once the forensic data is deliberately retired.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: factory-platform-postgresql
   namespace: factory-platform
+  annotations:
+    # PLT-168: instance crashloops since 2026-10-29 (PANIC replication checkpoint
+    # wrong magic). CNPG refuses hibernation on an unhealthy cluster, so the
+    # instance is fenced instead: PostgreSQL stays stopped, PGDATA/WAL PVCs are
+    # kept intact for forensics. Owner: Paul. Remove only once
+    # factory-platform-pg2 (PITR 2026-10-29T00:35:32Z) is promoted or this data
+    # is deliberately retired.
+    cnpg.io/fencedInstances: '["*"]'
+    # Never let Argo prune this Cluster: CNPG would delete its PVCs with it.
+    argocd.argoproj.io/sync-options: Prune=false
+    # PLT-213: the fenced instance is expected to be unhealthy; do not let it
+    # drive the apps-platform health.
+    argocd.argoproj.io/ignore-healthcheck: "true"
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7

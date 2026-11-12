@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - external-secrets.yaml
+  - cnpg-operator.yaml
+  - cnpg-cluster.yaml
+  - cloudflared.yaml
+  - media.yaml
+  - ntfy.yaml
+  - gatus.yaml

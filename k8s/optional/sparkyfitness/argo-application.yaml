@@ -27,8 +27,14 @@ spec:
         config:
           timezone: Europe/Paris
           frontendUrl: https://fitness.smadja.dev
-          disableSignup: true
-          forceEmailLogin: true
+          # Suppress application logger output. Direct console diagnostics are
+          # additionally excluded from Loki by the shared Alloy pipeline.
+          logLevel: SILENT
+          # OIDC auto-provisioning is limited by the Authentik application
+          # bindings to the family and authentik-admins groups.
+          disableSignup: false
+          disableEmailLogin: true
+          forceEmailLogin: false
           oidc:
             enabled: true
             providerSlug: authentik
@@ -39,13 +45,21 @@ spec:
             issuerUrl: https://auth.smadja.dev/application/o/sparkyfitness//
             scope: "openid email profile groups"
             adminGroup: authentik-admins
-            # The upstream user.create.before hook blocks all registrations when
-            # disableSignup is true, INCLUDING OIDC auto-registration.
-            # Pre-provision family accounts and link SSO before closed admission.
-            autoRegister: false
+            autoRegister: true
             autoRedirect: false
             secrets:
               existingSecret: sparkyfitness-oidc
+          garmin:
+            enabled: true
+            isChinaRegion: false
+            networkPolicy:
+              to:
+                - matchName: sso.garmin.com
+                - matchName: connect.garmin.com
+                - matchName: connectapi.garmin.com
+                - matchName: mobile.integration.garmin.com
+                - matchName: diauth.garmin.com
+                - matchName: ghs.garmin.com
         server:
           replicas: 1
           image:
@@ -89,6 +103,18 @@ spec:
             limits:
               cpu: 300m
               memory: 256Mi
+        garmin:
+          replicas: 1
+          image:
+            tag: v1.11.0
+            digest: sha256:7f4c69b0c7e4090a66c79f0580f49a55792206a38a66e09c1ca84150fda9ee74
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
         networkPolicy:
           enabled: false
         ingress:

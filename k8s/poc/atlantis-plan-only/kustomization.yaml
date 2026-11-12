@@ -1,75 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# This directory is reconciled by the infrastructure ApplicationSet. The
-# Atlantis workload is an isolated pilot; backend credentials are delivered
-# by the dedicated ExternalSecret below and never include operator credentials.
+# This directory remains reconciled by the infrastructure ApplicationSet only
+# to retain the existing recovery volume. The Atlantis server, hooks, routes,
+# credentials and policy projections were retired after ARC qualification.
 resources:
   - namespace.yaml
-  - github-app-external-secret.yaml
-  - github-iac-external-secret.yaml
-  - pilot-backend-external-secret.yaml
-  - aiostreams-provider-external-secret.yaml
-  - polyfin-backend-external-secret.yaml
-  - polyfin-admin-external-secret.yaml
-  - webhook-route.yaml
-  - network-policy.yaml
-
-configMapGenerator:
-  - name: atlantis-pilot-conftest
-    files:
-      - policies/pilot.rego
-  - name: atlantis-github-repository-safety
-    files:
-      - policies/github-repository-safety.rego
-  - name: atlantis-server-admission
-    files:
-      - scripts/github-atlantis-guard.sh
-
-generatorOptions:
-  disableNameSuffixHash: true
-
-patches:
-  - target:
-      version: v1
-      kind: ConfigMap
-      name: atlantis-pilot-conftest
-    patch: |-
-      - op: add
-        path: /metadata/namespace
-        value: atlantis-system
-  - target:
-      version: v1
-      kind: ConfigMap
-      name: atlantis-github-repository-safety
-    patch: |-
-      - op: add
-        path: /metadata/namespace
-        value: atlantis-system
-  - target:
-      version: v1
-      kind: ConfigMap
-      name: atlantis-server-admission
-    patch: |-
-      - op: add
-        path: /metadata/namespace
-        value: atlantis-system
-  - path: statefulset-patch.yaml
-    target:
-      group: apps
-      version: v1
-      kind: StatefulSet
-      name: atlantis-pilot
-  - path: pvc-backup-patch.yaml
-    target:
-      version: v1
-      kind: PersistentVolumeClaim
-      name: atlantis-pilot-data
-
-helmCharts:
-  - name: atlantis
-    repo: https://runatlantis.github.io/helm-charts
-    version: 6.16.1
-    releaseName: atlantis-pilot
-    namespace: atlantis-system
-    valuesFile: values.yaml
+  - pvc-retention.yaml

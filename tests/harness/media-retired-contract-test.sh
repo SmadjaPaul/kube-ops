@@ -2,16 +2,22 @@
 set -euo pipefail
 m=k8s/applications/media/kustomization.yaml
 v=k8s/infrastructure/controllers/velero/schedules/kustomization.yaml
-! grep -Eq '^[[:space:]]*-[[:space:]]*(sabnzbd|audiobookshelf)[[:space:]]*$' "$m"
-! grep -Eq '^[[:space:]]*-[[:space:]]*daily-(sabnzbd|audiobookshelf)\.yaml' "$v"
+if grep -Eq '^[[:space:]]*-[[:space:]]*(sabnzbd|audiobookshelf)[[:space:]]*$' "$m"; then
+  echo 'MEDIA_DECOMMISSION_STATIC=FAIL retired sabnzbd/audiobookshelf still listed in the media kustomization' >&2
+  exit 1
+fi
+if grep -Eq '^[[:space:]]*-[[:space:]]*daily-(sabnzbd|audiobookshelf)\.yaml' "$v"; then
+  echo 'MEDIA_DECOMMISSION_STATIC=FAIL retired daily-sabnzbd/audiobookshelf Velero schedules still listed' >&2
+  exit 1
+fi
 grep -Fxq -- '- media-share-pvc.yaml' "$m"
 grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"
 grep -Fxq -- '- bookorbit' "$m"
-! grep -Fxq -- '- decypharr' "$m"
+if grep -Fxq -- '- decypharr' "$m"; then echo 'MEDIA_RETIRED=FAIL: forbidden match at line 16' >&2; exit 1; fi
 grep -Fxq -- '- aiostreams' "$m"
 grep -Fxq -- '- audiobookrequest' "$m"
 grep -Fxq -- '- polyfin' "$m"
-! grep -Fxq -- '- allow-arr-to-decypharr.yaml' k8s/infrastructure/network/policies/applications/media/media/kustomization.yaml
+if grep -Fxq -- '- allow-arr-to-decypharr.yaml' k8s/infrastructure/network/policies/applications/media/media/kustomization.yaml; then echo 'MEDIA_RETIRED=FAIL: forbidden match at line 20' >&2; exit 1; fi
 script=scripts/media-retired-pvc-cleanup.sh
 bash -n "$script"
 grep -Fq 'ALLOW_EMPTY_MEDIA_PVC_DELETION' "$script"

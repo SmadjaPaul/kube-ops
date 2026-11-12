@@ -1,0 +1,18 @@
+[
+  {
+    "op": "test",
+    "path": "/spec/endpoints/1/path",
+    "value": "/metrics/cadvisor"
+  },
+  {
+    "op": "add",
+    "path": "/spec/endpoints/1/metricRelabelings/-",
+    "value": {
+      "action": "drop",
+      "regex": "container_(blkio_device_usage_total|memory_failures_total)",
+      "sourceLabels": [
+        "__name__"
+      ]
+    }
+  }
+]

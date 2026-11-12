@@ -22,9 +22,13 @@ spec:
           - path: k8s/infrastructure/auth
           - path: k8s/infrastructure/database
           - path: k8s/infrastructure/security
+          # Retention-only path: preserves the retired Atlantis recovery PVC;
+          # it no longer deploys an Atlantis server.
           - path: k8s/poc/atlantis-plan-only
+          - path: k8s/poc/atlantis-apps
           - path: k8s/optional/github-actions-arc
           - path: k8s/optional/github-actions-arc-homelab-infra
+          - path: k8s/optional/github-actions-arc-homelab-iac-pilot
   template:
     metadata:
       name: 'infra-{{ path.basename }}'
@@ -39,6 +43,16 @@ spec:
         targetRevision: main
         path: '{{ path }}'
         kustomize: {}
+      # PLT-213: External Secrets (creationPolicy Merge) copies the ExternalSecret's
+      # Argo tracking-id onto argocd-secret, so it never equals the Secret's own
+      # id and the app stays OutOfSync. Exact name and one annotation only.
+      ignoreDifferences:
+        - group: ""
+          kind: Secret
+          namespace: argocd
+          name: argocd-secret
+          jsonPointers:
+            - /metadata/annotations/argocd.argoproj.io~1tracking-id
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:

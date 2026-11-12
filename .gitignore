@@ -11,9 +11,10 @@ output
 *.tfstate
 *.tfstate.*
 
+# This GitOps repository is public: never commit Terraform variables.
 *.tfvars
 *.tfvars.json
-!*.auto.tfvars
+*.auto.tfvars
 *.lock.hcl
 
 override.tf
@@ -35,6 +36,7 @@ override.tf.json
 
 node_modules/
 package-lock.json
+!images/openclaw-personal/package-lock.json
 validation_errors.json
 k8s/argocd/charts/
 k8s/.env

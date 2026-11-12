@@ -1,5 +1,7 @@
 # AGENTS.md — kube-ops operating router
 
+Read `docs/state/cluster-reality.md` only when the task touches the runtime (what runs, real CPU/RAM, exposure, data class, verdict); regenerate with `bash scripts/cluster-reality.sh`.
+
 Git is the Kubernetes desired-state authority. Argo CD continuously reconciles Git. Runtime tools provide evidence; they are never a second steady-state mutation plane.
 
 ## Authority
@@ -14,20 +16,9 @@ Do not add Terraform/OpenTofu here.
 
 ## Read order
 
+Vision and active cross-repo decisions live in `homelab-infra`: [charter](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/charter.md) and [decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md). Read them once per session; they win over older tickets and docs.
+
 For a task read: this file → one relevant skill under `.agents/skills/` → only the application/infrastructure subtree being changed. Use `just inventory` before crawling the repository.
-
-## Current platform
-
-- Talos 1.13.10 / Kubernetes 1.36.3, one schedulable node for V1.
-- Cilium + Gateway API; `Gateway/internal` LAN VIP is `10.0.20.192`.
-- private ExternalDNS derives application names from internal HTTPRoutes and publishes them into UniFi DNS.
-- UniFi DNS is the private application authority; AdGuard is filtering/cache only.
-- Argo CD is the only steady-state Kubernetes reconciler.
-- Longhorn `longhorn-fast` / `longhorn-bulk`.
-- CNPG/Barman and Velero/Kopia -> Hetzner Object Storage.
-- Doppler -> ESO for runtime secrets; never inspect Secret values.
-- Authentik is the identity authority.
-- public access is Cloudflare Tunnel -> Gateway/external.
 
 ## Skill routing
 
@@ -42,7 +33,7 @@ For a task read: this file → one relevant skill under `.agents/skills/` → on
 | backup/restore | `.agents/skills/backup-restore` |
 | incident triage | `.agents/skills/sre-triage` |
 
-`.agents/` is the single shared agent knowledge tree. Do not create parallel Codex/OpenCode prompt trees.
+`.agents/` is the single shared agent knowledge tree. Do not create parallel Codex/OpenCode prompt trees. Claude discovers them through a `skills` symlink in the Claude config directory.
 
 ## Evidence levels
 
@@ -53,22 +44,6 @@ Never collapse these levels:
 4. USER — a real user can authenticate and complete the intended durable action.
 
 A merged PR proves none of levels 2-4 by itself.
-
-## Coding-agent test results
-
-Every coding-agent handoff must carry a machine-readable test result, even when
-some checks were not run. Use the versioned contract in
-`docs/contracts/agent-test-result-v1.schema.json` and include one record per
-planned check. Each record must distinguish `executed` from `not-executed`, use
-the classification `passed`, `failed`, `skipped`, `unavailable`, or
-`not-applicable`, and state its reason, risk, and expected CI treatment.
-
-Hooks may generate or transport this record, but they are advisory only. The
-agent instructions and handoff remain responsible for producing the result and
-for calling out missing, unavailable, or out-of-scope checks. Never turn a
-missing hook artifact into an implied pass. The `transmission` projection is
-the transport shape for the separate `factory-platform` evidence consumer; it
-does not authorize telemetry/runtime changes in this repository.
 
 ## Operator Kubernetes access
 
@@ -104,30 +79,36 @@ Prefer repository commands over improvised shell:
 - `just diagnose-app <argo-app>`
 - `just backup-audit`
 - `just e2e-list`
+- `bash scripts/kubectl-ro.sh <get|describe|logs|top|events|api-resources|version> ...` (ad hoc read-only kubectl through `scripts/lib/kube-preflight.sh`; never call `kubectl` without it)
+- `bash scripts/doppler-safe.sh <names|has|set|delete|run>` (Doppler entry point for agents; masks values of 8+ characters only, not base64/URL-encoded forms)
 
-## Runtime evidence order
+## Reference (on demand)
 
-```
-Git desired state
-  -> Argo Application/ApplicationSet
-  -> controller resource status
-  -> Kubernetes workload / Service / EndpointSlice
-  -> Gateway / DNS / TLS
-  -> user journey
-```
-
-For HTTP failures distinguish DNS, TLS, HTTPRoute status, ready EndpointSlices and the application response. Do not debug OAuth while DNS/TLS/backend routing is unproven.
+Current platform, runtime evidence order and PR test-result reporting: `.agents/skills/runtime-observer/SKILL.md`. Every PR body lists checks run (with result) and checks not run (with reason); a missing check is never a pass.
 
 ## Safety
 
+Build phase ([decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md) D-2026-11-11-02): for reconstructible, non-critical workloads, `kubectl apply/patch/scale/rollout`, suspending valueless jobs and merging green PRs need no per-action approval; reconcile any imperative change into Git the same day. Agents work on their own claude/ or codex/ branch prefix, never on another agent's branch. The list below still applies to data, PVCs, backups, secrets, public exposure, identity roots and irreversible migrations.
+
+Bounded operator recovery commands run autonomously, with no click or per-action approval (D-2026-11-11-02, D-2026-11-11-13). Each one checks its own preconditions and data protections and refuses otherwise:
+- `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]`: terminate a sync stuck on hooks/health once no unprotected PVC/PV/CNPG Cluster/ObjectStore/non-empty namespace would be pruned.
+
+The Argo MCP stays read-only observation (`role:readonly`). Operations go through these commands only, never through the MCP account.
+
 Without explicit operator approval:
-- no apply/delete/patch/edit/scale/restart as durable repair;
+- no apply/delete/patch/edit/scale/restart as durable repair, outside the bounded recovery commands above and the build-phase exceptions;
 - no infrastructure apply/destroy/state mutation;
 - no Secret value reads or credential printing;
 - no TLS bypass with `-k`;
 - no PVC deletion/reinitialization;
 - no new public exposure, privilege escalation, identity-root rotation or irreversible migration;
 - no disabling desired apps merely to make Argo green.
+
+Secret output (enforced by `.claude/hooks/secret-output-guard.py`, applies with or without approval):
+- run Doppler through `scripts/doppler-safe.sh`; never run `doppler secrets` without `--only-names`, nor `doppler secrets get|download|set|delete` directly: they print values, even with `--silent`, on stdout and stderr;
+- never run `doppler run -- env|printenv`, bare `printenv`, `env`, `set` or `export -p`; list names only (`env | cut -d= -f1`);
+- never run `kubectl get secret` with `-o`/`--output` (except `-o name`), nor any `kubectl -v=6` or higher; use `kubectl describe secret` for key names and sizes;
+- redirecting stdout alone does not count as protection: stderr, error tables and transcripts keep the values.
 
 Bounded read-only `kubectl get/describe/logs` is evidence. Durable repair is branch -> checks -> PR -> merge -> Argo -> runtime proof.
 

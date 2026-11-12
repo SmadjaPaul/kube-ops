@@ -22,7 +22,7 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: factory-platform
-            cnpg.io/cluster: factory-platform-postgresql
+            cnpg.io/cluster: factory-platform-pg2
       toPorts:
         - ports: [{port: "5432", protocol: TCP}]
     - toEndpoints:

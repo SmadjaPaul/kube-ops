@@ -19,7 +19,9 @@ spec:
         # it is never mounted in the runner container.
         githubConfigSecret: arc-github-app
         minRunners: 0
-        maxRunners: 1
+        # Validation and admitted read-only plans use the same hardened scale set.
+        # Keep two warm slots so a plan cannot serialize behind repository CI.
+        maxRunners: 2
         controllerServiceAccount:
           namespace: arc-systems
           name: arc-gha-rs-controller
@@ -32,13 +34,37 @@ spec:
               runAsGroup: 1001
               fsGroup: 1001
               fsGroupChangePolicy: OnRootMismatch
+            # PLT-214: the runner's disposable data (job workspace, cache
+            # archive, mise toolchain) is rebuilt by every job, but written to
+            # the container layer it cost ~2.8 GB per job on the Talos system
+            # disk (vm-101-disk-0, ~99 % of it journaled by the ZIL on the
+            # Proxmox NVMe). Keep it in RAM instead. Memory-backed emptyDir is
+            # charged to the container: the sizeLimits below plus the ~0.8 GiB
+            # runner working set must stay under the 4Gi memory limit.
+            #   _work           job workspace, checkout, cache archive (~0.45 GB)
+            #   .local          mise toolchain restored from the cache (~1.3 GB)
+            #                   under share/, mise state under state/. Mounted
+            #                   above `mise` so the cache tar can create and
+            #                   chmod its own directory, and so the runner user
+            #                   can create `state` (a kubelet-created parent
+            #                   directory is root-owned: PLT-214 first run).
+            # /tmp (OpenTofu providers, per-root data) stays on disk: a full
+            # validation can unpack more than RAM can hold.
+            volumes:
+              - name: work
+                emptyDir: {medium: Memory, sizeLimit: 1Gi}
+              - name: local
+                emptyDir: {medium: Memory, sizeLimit: 2Gi}
             containers:
               - name: runner
-                image: ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807
+                image: ghcr.io/smadjapaul/homelab-infra-ci-runner:latest-c8d2926@sha256:9f82220afa489f9d0dd76214abc561471826f6a1848dae056868d5211afbd9c5
                 command: ["/home/runner/run.sh"]
+                volumeMounts:
+                  - {name: work, mountPath: /home/runner/_work}
+                  - {name: local, mountPath: /home/runner/.local}
                 resources:
-                  requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}
-                  limits: {cpu: "2", memory: 2Gi, ephemeral-storage: 4Gi}
+                  requests: {cpu: 250m, memory: 1Gi, ephemeral-storage: 512Mi}
+                  limits: {cpu: "2", memory: 4Gi, ephemeral-storage: 4Gi}
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities: {drop: ["ALL"]}

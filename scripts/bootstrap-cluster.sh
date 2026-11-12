@@ -28,9 +28,12 @@ if kubectl -n argocd get application root >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "== Cilium 1.20.2 =="
+# Single source of truth: the Argo-managed Cilium chart pin.
+CILIUM_VERSION="$(awk '/^ *- name: cilium$/{f=1} f && /^ *version:/{print $2; exit}' k8s/infrastructure/network/cilium/kustomization.yaml)"
+[ -n "$CILIUM_VERSION" ] || { echo "ERROR: Cilium chart version not found" >&2; exit 2; }
+echo "== Cilium ${CILIUM_VERSION} =="
 helm repo add cilium https://helm.cilium.io --force-update >/dev/null
-helm upgrade --install cilium cilium/cilium   --version 1.20.2   --namespace kube-system   -f k8s/infrastructure/network/cilium/values.yaml   --wait --timeout 10m
+helm upgrade --install cilium cilium/cilium   --version "$CILIUM_VERSION"   --namespace kube-system   -f k8s/infrastructure/network/cilium/values.yaml   --wait --timeout 10m
 kubectl -n kube-system rollout status daemonset/cilium --timeout=5m
 kubectl -n kube-system rollout status deployment/cilium-operator --timeout=5m
 

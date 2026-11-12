@@ -3,18 +3,17 @@ kind: Kustomization
 
 resources:
 - project.yaml
+- kube-system
 - argocd
 - argocd-mcp
 - grafana-mcp
-- holmes
 - cert-manager
-- descheduler
 - external-secrets
 - reloader
 - keda
 - metrics-server
 - vpa
 - velero
-- node-feature-discovery
 - agent-sandbox
 - argo-rollouts
+- openclaw-operator

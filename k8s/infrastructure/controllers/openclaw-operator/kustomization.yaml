@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# PLT-217: openclaw-operator suspendu (replicas: 0). Seul le Deployment est
+# ré-adopté ; CRD openclaw.rocks, RBAC, Service, namespaces et données restent
+# hors périmètre GitOps (non touchés).
+resources:
+  - deployment.yaml

@@ -1,0 +1,11 @@
+# One Database per application; add new databases here with their role.
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: polyfin
+  namespace: databases
+spec:
+  name: polyfin
+  owner: polyfin
+  cluster:
+    name: pg-shared

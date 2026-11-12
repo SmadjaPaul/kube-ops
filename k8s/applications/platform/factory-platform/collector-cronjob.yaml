@@ -8,6 +8,11 @@ metadata:
     app.kubernetes.io/component: github-collector
 spec:
   schedule: "0,30 * * * *"
+  # Temporary suspension (PLT-168), not removal. Reason: CNPG factory-platform-postgresql
+  # down since 2026-10-29; the collector fails every 30 min with retries.
+  # Owner: Paul. Reactivation: factory-platform-pg2 verified healthy, then one controlled run.
+  # Still part of the vision: Factory delivery metrics for model evaluation.
+  suspend: true
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
   successfulJobsHistoryLimit: 2
@@ -42,7 +47,7 @@ spec:
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
-                      name: factory-platform-postgresql-app
+                      name: factory-platform-pg2-app
                       key: uri
                 - name: FACTORY_TENANT_ID
                   value: smadja-internal

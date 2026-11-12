@@ -7,18 +7,29 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 ## Components
 
 - `arc-systems` namespace: Helm controller, chart-managed service account and cluster RBAC. The 0.15.0 controller render creates `arc-gha-rs-controller`.
-- `arc-runners` namespace: two repository-scoped ephemeral runner scale sets. `factory-ci-arc` remains min=0/max=3 with its existing PostgreSQL sidecar; `homelab-infra-ci-arc` is a separate min=0/max=1 scale set with no service container. Factory runner manifests are not modified by the homelab addition.
+- `arc-runners` namespace: repository-scoped ephemeral runner scale sets. `factory-ci-arc` remains min=0/max=3 with its existing PostgreSQL sidecar; `homelab-infra-ci-arc` is a separate min=0/max=2 scale set with no service container. Factory runner manifests are not modified by the homelab addition. `factory-ci-arc-light` (PLT-56) is a third Factory scale set, min=0/max=2, same image and hardening but **no PostgreSQL sidecar**: Factory jobs that never connect to a database (static checks, CI scope selection) run there; integration/dbt jobs stay on `factory-ci-arc`. Its egress is `arc-runners-factory-light-download-egress`, a subset of the Factory download policy without Cloud SDK, dbt or DuckDB hosts. The namespace ResourceQuota is unchanged and still bounds total concurrent CI pods.
 - ESO secret `arc-github-app`: dedicated GitHub App credentials, provisioned through existing Doppler ClusterSecretStore; keys `APP_GITHUB_ARC_ID`, `APP_GITHUB_ARC_INSTALLATION_ID`, `APP_GITHUB_ARC_PRIVATE_KEY`.
-- Runner pods: non-privileged, no mounted Kubernetes API token, pinned runner image, cpu/memory/ephemeral-storage limits. The optional Cilium policies allow only DNS and the GitHub HTTPS domains required by the pilot.
+- ESO secret `arc-factory-ghcr-pull`: separate *kubelet-only* `kubernetes.io/dockerconfigjson` pull credential in `arc-runners`, backed by Doppler key `APP_FACTORY_ARC_GHCR_READ_TOKEN`. Provision a dedicated **read:packages-only** GHCR classic PAT with access to the private `factory-ci-arc` package; it must not have `repo`, `write:packages` or other unnecessary scopes. Do not reuse the GitHub App private key or the general Factory/Mastra GHCR token. Only the Factory runner template references this pull secret; other scale sets remain unchanged. This pull secret is not mounted into runner containers.
+- Runner pods: non-privileged, no mounted Kubernetes API token, pinned runner image, cpu/memory/ephemeral-storage limits. `factory-ci-arc` uses the PLT-56 prebuilt image digest; the other scale sets remain on the official runner digest. The optional Cilium policies allow only DNS and the GitHub HTTPS domains required by the pilot.
 
 ## Pinned artifacts and GitHub App contract
 
 - Controller chart `0.15.0`: `sha256:20a369215b8c2ed981c4c0c75e56e6009564d51fffcbbd314d5da0ef82de253a`.
 - Runner scale-set chart `0.15.0`: `sha256:bdfdad17cf8e45ae064c73ed6764f0c75d4bf71a6e2912e6363a43d6dfc787de`.
-- Runner image `2.338.0`: `sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807`.
+- Factory runner image `ghcr.io/smadjapaul/factory-ci-arc` (PLT-56 release for source `a263844966b6299017fd47a953f912fd933c4978`): `sha256:17ea282d02b71da140ee6b6aa25793fb7c8d02fd44429769861ac8752b27a27f`.
+- Rollback runner image `ghcr.io/actions/actions-runner:2.338.0`: `sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807`.
 - PostgreSQL image `18-alpine` (multi-architecture index): `sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873`.
 - The official image currently has no OCI `USER` field; the pod therefore sets `runAsUser: 70` and `runAsGroup: 70`, matching the image's Alpine `postgres` account. `PGDATA` remains the image default `/var/lib/postgresql/18/docker` on the pod's disposable container filesystem; no PVC is mounted.
-- For repository-scoped registration, the dedicated GitHub App needs Repository `Administration: Read and write` and `Metadata: Read-only`. Organization `Self-hosted runners: Read and write` is only needed for organization-scoped registration. The existing ARC App is acceptable only after its installation is restricted to `factory-platform` and `homelab-infra`; the Atlantis, IaC, Factory source-control and Codex Connector Apps are never reused.
+- For repository-scoped registration, the dedicated GitHub App needs Repository `Administration: Read and write` and `Metadata: Read-only`. Organization `Self-hosted runners: Read and write` is only needed for organization-scoped registration. The existing ARC App is acceptable only after its installation is restricted to `factory-platform` and `homelab-infra`; the retired Atlantis App, the IaC, Factory source-control and Codex Connector Apps are never reused.
+
+## GHCR private-image pull gate (PLT-56)
+
+The promoted Factory runner image is private in GHCR and failed to pull with `401 Unauthorized` during canary run `43031793529`. Do not make it public or retry the canary as a workaround. The pull credential is referenced by the Kubernetes *pod template*, not supplied through `githubConfigSecret` (which is exclusively for ARC registration).
+
+1. Owner provisions `APP_FACTORY_ARC_GHCR_READ_TOKEN` in the existing Doppler environment with the minimum `read:packages` permission and confirmed access to `ghcr.io/smadjapaul/factory-ci-arc`. Never print the token or registry auth data in CI, logs, PRs or Linear. Check the token's actual scopes without disclosing its value.
+2. Confirm `ExternalSecret/arc-factory-ghcr-pull` is Ready, and its target Secret exists in `arc-runners` with `type=kubernetes.io/dockerconfigjson`. Do not print or decode `.dockerconfigjson`.
+3. Confirm ARC Helm renders `template.spec.imagePullSecrets` into the ephemeral runner pod (not only the ARC listener/controller). On a single deliberate pilot run, verify pod image pull and `runner` readiness before running a trusted workflow.
+4. Bound the canary to one trusted workflow/job; the current `maxRunners: 3` and PR triggers do not themselves enforce single-runner isolation. Keep the existing thermal stop and rollback to the official pinned digest. Do not claim CPU/IO improvements until the workflow actually runs and comparable before/after windows are captured.
 
 ## Blocking gates before activation
 

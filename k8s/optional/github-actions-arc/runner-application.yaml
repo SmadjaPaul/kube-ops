@@ -26,6 +26,9 @@ spec:
         template:
           spec:
             automountServiceAccountToken: false
+            # Kubelet-only GHCR pull credential, not mounted inside runner containers.
+            imagePullSecrets:
+              - name: arc-factory-ghcr-pull
             securityContext:
               runAsNonRoot: true
               runAsUser: 1001
@@ -34,7 +37,10 @@ spec:
               fsGroupChangePolicy: OnRootMismatch
             containers:
               - name: runner
-                image: ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807
+                # PLT-56 promotion-only release, built from factory-platform
+                # a263844966b6299017fd47a953f912fd933c4978. Roll back to the
+                # official runner digest recorded in the previous revision.
+                image: ghcr.io/smadjapaul/factory-ci-arc@sha256:17ea282d02b71da140ee6b6aa25793fb7c8d02fd44429769861ac8752b27a27f
                 command: ["/home/runner/run.sh"]
                 resources:
                   requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}

@@ -21,7 +21,7 @@ test('new minor rule scopes to 5 stable website dependencies only', async () => 
   assert.deepEqual(rule.matchUpdateTypes, ['minor']);
   assert.deepEqual([...rule.matchPackageNames].sort(), [...packages].sort());
   assert.equal(rule.matchCurrentVersion, '!/^0\\./');
-  assert.equal(rule.minimumReleaseAge, '14 days');
+  assert.equal(rule.minimumReleaseAge, '3 days');
   assert.equal(rule.rangeStrategy, 'bump');
   assert.equal(rule.automerge, true);
   assert.equal(rule.automergeType, 'pr');
@@ -44,4 +44,11 @@ test('reject majors, prerelease-0.x, other files and critical dependencies', () 
     {...good, file: 'package.json'}, {...good, name: '@docusaurus/core'},
     {...good, manager: 'docker'}, {...good, depType: 'devDependencies'}
   ]) assert.equal(eligible(change), false, JSON.stringify(change));
+});
+
+test('Polyfin image updates stay manual after the image audit', () => {
+  const polyfin = cfg.packageRules.find((r) => r.matchPackageNames?.includes('ghcr.io/moodiness/polyfin'));
+  assert.ok(polyfin);
+  assert.equal(polyfin.automerge, false);
+  assert.equal(polyfin.platformAutomerge, false);
 });

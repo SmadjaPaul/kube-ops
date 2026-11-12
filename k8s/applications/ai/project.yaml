@@ -11,6 +11,8 @@ spec:
       server: '*'
     - namespace: 'opencode'
       server: '*'
+    - namespace: 'hindsight-personal'
+      server: '*'
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'

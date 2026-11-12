@@ -23,17 +23,14 @@ inventory:
 [doc('Run deterministic clusterless V1 + backup validation')]
 check:
     npm run check
-    bash tests/harness/jellyfin-oidc-contract-test.sh
     bash tests/harness/grafana-dashboard-contract-test.sh
     bash tests/harness/grafana-tctl-contract-test.sh
     bash tests/harness/backup-audit-contract-test.sh
     bash tests/harness/dr-synth-cleanup-contract-test.sh
-    bash tests/harness/atlantis-plan-only-test.sh
     bash tests/harness/kube-preflight-test.sh
     bash tests/harness/affected-tests-test.sh
     bash tests/harness/runtime-smoke-test.sh
     bash tests/harness/argo-orphan-contract-test.sh
-    bash tests/harness/github-atlantis-guard-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
     bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh
@@ -80,17 +77,18 @@ kube-access-check:
 runtime-inventory:
     bash scripts/runtime-inventory.sh
 
-[doc('Probe every discovered internal HTTPRoute')]
-runtime-smoke:
-    bash scripts/runtime-smoke.sh
+[doc('Probe every discovered internal HTTPRoute; OUTPUT=summary|errors|full')]
+runtime-smoke OUTPUT="summary":
+    OUTPUT="{{OUTPUT}}" bash scripts/runtime-smoke.sh
+    if [ "{{OUTPUT}}" = full ]; then bash scripts/github-queued-runs-check.sh; else bash scripts/github-queued-runs-check.sh | sed -n 1p; fi
 
-[doc('Show bounded read-only status for one Argo Application')]
-status-app APP:
-    bash scripts/status-app.sh "{{APP}}"
+[doc('Show bounded read-only status for one Argo Application; OUTPUT=summary|errors|full')]
+status-app APP OUTPUT="summary":
+    bash scripts/status-app.sh "{{APP}}" "{{OUTPUT}}"
 
-[doc('Collect bounded downstream diagnostics for one Argo Application')]
-diagnose-app APP:
-    bash scripts/diagnose-app.sh "{{APP}}"
+[doc('Collect bounded downstream diagnostics for one Argo Application; OUTPUT=summary|errors|full')]
+diagnose-app APP OUTPUT="summary":
+    bash scripts/diagnose-app.sh "{{APP}}" "{{OUTPUT}}"
 
 [doc('Audit runtime PVC/CNPG coverage by Velero/Barman')]
 backup-audit:

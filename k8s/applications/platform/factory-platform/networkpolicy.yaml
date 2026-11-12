@@ -39,7 +39,7 @@ spec:
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: factory-platform
-            cnpg.io/cluster: factory-platform-postgresql
+            cnpg.io/cluster: factory-platform-pg2
       toPorts:
         - ports:
             - port: "5432"
@@ -69,8 +69,10 @@ metadata:
 spec:
   description: "Allow Factory Platform CNPG WAL/base backups to Hetzner Object Storage."
   endpointSelector:
-    matchLabels:
-      cnpg.io/cluster: factory-platform-postgresql
+    matchExpressions:
+      - key: cnpg.io/cluster
+        operator: In
+        values: [factory-platform-postgresql, factory-platform-pg2]
   egress:
     - toEndpoints:
         - matchLabels:

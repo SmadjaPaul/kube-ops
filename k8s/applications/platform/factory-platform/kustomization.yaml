@@ -9,8 +9,11 @@ resources:
   - database-s3-credentials.yaml
   - database-source-credentials.yaml
   - database-objectstore.yaml
+  - database-pg2-objectstore.yaml
   - database.yaml
-  - database-scheduled-backup.yaml
+  - database-pg2.yaml
+  - database-pg2-scheduled-backup.yaml
+  - database-pg2-initial-backup.yaml
   - deployment.yaml
   - service.yaml
   - servicemonitor.yaml

@@ -1,0 +1,124 @@
+# PLT-217 : suspension de l'operator OpenClaw. Il redémarrait ~8 fois/h
+# (cache OpenClawInstance jamais synchronisé : les namespaces de --watch-namespaces
+# n'existent plus) et aucune CR OpenClawInstance n'existe.
+# Rollback de la suspension : remettre replicas: 1.
+# Retirer ce dossier de la kustomization sort seulement le Deployment de la gestion
+# GitOps (Prune/Delete=false le laissent en place, à son dernier replicas : 0).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-operator
+  namespace: openclaw-operator-system
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    app.kubernetes.io/instance: openclaw-operator
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: openclaw-operator
+    app.kubernetes.io/version: 0.40.0
+    control-plane: controller-manager
+    helm.sh/chart: openclaw-operator-0.40.0
+spec:
+  replicas: 0
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: openclaw-operator
+      app.kubernetes.io/name: openclaw-operator
+      control-plane: controller-manager
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        app.kubernetes.io/instance: openclaw-operator
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: openclaw-operator
+        app.kubernetes.io/version: 0.40.0
+        control-plane: controller-manager
+        helm.sh/chart: openclaw-operator-0.40.0
+    spec:
+      containers:
+        - name: manager
+          image: ghcr.io/paperclipinc/openclaw-operator:v0.40.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /manager
+          args:
+            - --leader-elect
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=:8443
+            - --metrics-secure=true
+            - --zap-log-level=info
+            - --watch-namespaces=openclaw,openclaw-talos-personal,openclaw-talos-ops,openclaw-talos-test
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /readyz
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          ports:
+            - containerPort: 8081
+              name: health
+              protocol: TCP
+            - containerPort: 8443
+              name: metrics
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: openclaw-operator
+      terminationGracePeriodSeconds: 10

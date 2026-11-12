@@ -1,0 +1,15 @@
+# PLT-168: first base backup of factory-platform-pg2 right after the PITR
+# restore, so the new serverName is recoverable before the weekly schedule.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: factory-platform-pg2-initial-20261111
+  namespace: factory-platform
+spec:
+  cluster:
+    name: factory-platform-pg2
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: factory-platform-pg2-store
