@@ -110,8 +110,10 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
 - **RPO: at most about 3 min, within the 5 min bound.** Recovery replayed
   through `…0A3C`, archived 22:15:51Z. Production archived the next segment,
   `…0A3D`, at 22:30:51Z, after recovery ended at about 22:29:00Z. With
-  `archive_timeout` at 5 min, the first unarchived write was at the earliest
-  22:25:51Z. `pg_last_xact_replay_timestamp()` returned null: no transaction
+  `archive_timeout` at 5 min and no archive lag (the archiver logged no
+  error), the first unarchived write was at the earliest 22:25:51Z; the
+  archive time of `…0A3D` is an upper bound of its switch time, so archive lag
+  would widen this window. `pg_last_xact_replay_timestamp()` returned null: no transaction
   was replayed after the base backup.
 - Control query: `in_recovery=false`, 42 tables, `Users=2`, `Playlists=13`,
   `schema_migrations=57`, database 10.7 MB. Production stayed on timeline 1,
