@@ -123,7 +123,7 @@ check "fail: next cycle receives the stub" \
 
 # --- 4. empty queue: long pause instead of relaunching immediately
 run empty "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_EMPTY_ATTEMPTS="1,2,3,4,5,6,7,8"
-check "empty: pause logged" 'logs empty | grep -q "file vide (cycles inactifs consécutifs : 1) : pause 3600s"'
+check "empty: pause logged" 'logs empty | grep -q "file vide (cycles inactifs consécutifs : 1) : pause 300s"'
 
 # --- 4b. idle guard: short sessions saying `continue` still back off, longer after 3 in a row
 run idle "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=30 EMPTY_SLEEP=300 \
@@ -137,7 +137,13 @@ t1=$(logs idle | grep "lancement orchestrateur" | sed -n 1p | cut -c12-16 || tru
 t2=$(logs idle | grep "lancement orchestrateur" | sed -n 2p | cut -c12-16 || true)
 check "idle: no back-to-back relaunch ($t1 -> $t2)" '[ "$t1" = "23:00" ] && [ "$t2" = "23:05" ]'
 il=$(logs idle | grep -c "lancement orchestrateur" || true)
-check "idle: sessions bounded by MAX_CYCLES ($il)" '[ "$il" -le 12 ]'
+check "idle: idle cycles go on all night, MAX_CYCLES not reached ($il sessions)" \
+  '[ "$il" -ge 20 ] && ! logs idle | grep -q "borne MAX_CYCLES"'
+check "idle: stops only at window end" 'logs idle | grep -q "pas de nouveau cycle\|fin de fenêtre"'
+check "idle: long pause bounded (never more than 900s)" '! logs idle | grep -Eq "pause (9[0-9][1-9]|[0-9]{4,})s"'
+run maxcyc "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=600 MAX_CYCLES=3
+check "maxcyc: MAX_CYCLES bounds productive cycles" \
+  'logs maxcyc | grep -q "borne MAX_CYCLES=3 (cycles productifs) atteinte" && [ "$(logs maxcyc | grep -c "lancement orchestrateur")" = 3 ]'
 run active "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=600 MIN_ACTIVE_SECONDS=120
 check "active: long cycles are not idle" '! logs active | grep -q "cycle inactif"'
 

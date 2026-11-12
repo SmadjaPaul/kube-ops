@@ -15,12 +15,12 @@
 #   NIGHT_RELAY_STATE         state dir: log, runs, lock (default: scripts/night-relay/state)
 #   NIGHT_RELAY_HANDOFF_DIR   handoff dir (default: scripts/night-relay/handoff)
 #   START_HM=2300 STOP_HM=0830 REPORT_HM=0900 REPORT_DEADLINE_HM=1200
-#   MAX_CYCLES=12 MAX_FAILS=3 MIN_CYCLE_SECONDS=1800 ORCH_TIMEOUT=10800 REPORT_TIMEOUT=3600
+#   MAX_CYCLES=40 MAX_FAILS=3 MIN_CYCLE_SECONDS=1800 ORCH_TIMEOUT=10800 REPORT_TIMEOUT=3600
 #   KILL_GRACE=30             seconds between SIGTERM and SIGKILL (timeout, signal)
 #   QUOTA_FALLBACK_SLEEP=1800 QUOTA_MIN_SLEEP=300 QUOTA_MARGIN=120
 #   QUOTA_MAX_RETRIES=4       consecutive usage-limit retries before counting a failure
 #   LOCK_RETRIES=5            retries (1 s) while the lock pid file is still empty
-#   EMPTY_SLEEP=3600 FAIL_BACKOFF=600 WINDOW_GRACE=1800
+#   EMPTY_SLEEP=300 FAIL_BACKOFF=600 WINDOW_GRACE=1800
 #   MIN_ACTIVE_SECONDS=120    a session shorter than this is an idle cycle (whatever its statut)
 #   IDLE_LONG_AFTER=3 IDLE_LONG_SLEEP=900  after IDLE_LONG_AFTER consecutive idle cycles,
 #                             pause IDLE_LONG_SLEEP (never less than EMPTY_SLEEP) instead of EMPTY_SLEEP
@@ -56,7 +56,7 @@ START_HM=${START_HM:-2300}
 STOP_HM=${STOP_HM:-0830}
 REPORT_HM=${REPORT_HM:-0900}
 REPORT_DEADLINE_HM=${REPORT_DEADLINE_HM:-1200}
-MAX_CYCLES=${MAX_CYCLES:-12}
+MAX_CYCLES=${MAX_CYCLES:-40}  # productive cycles only: idle and failed cycles are bounded elsewhere
 MAX_FAILS=${MAX_FAILS:-3}
 MIN_CYCLE_SECONDS=${MIN_CYCLE_SECONDS:-1800}
 ORCH_TIMEOUT=${ORCH_TIMEOUT:-10800}
@@ -67,7 +67,7 @@ LOCK_RETRIES=${LOCK_RETRIES:-5}
 QUOTA_FALLBACK_SLEEP=${QUOTA_FALLBACK_SLEEP:-1800}
 QUOTA_MIN_SLEEP=${QUOTA_MIN_SLEEP:-300}
 QUOTA_MARGIN=${QUOTA_MARGIN:-120}
-EMPTY_SLEEP=${EMPTY_SLEEP:-3600}
+EMPTY_SLEEP=${EMPTY_SLEEP:-300}
 FAIL_BACKOFF=${FAIL_BACKOFF:-600}
 WINDOW_GRACE=${WINDOW_GRACE:-1800}
 LOG_MAX_BYTES=${LOG_MAX_BYTES:-1048576}
@@ -334,25 +334,29 @@ kube_status() {
   if [ "$DRY_RUN" = 1 ] && [ -z "${NIGHT_RELAY_KUBE_STATUS:-}" ]; then KUBE_LINE=$DRY_RUN_KUBE; return 0; fi
   local i
   for (( i = 1; i <= KUBE_CHECK_ATTEMPTS; i++ )); do
-    kube_status_once
+    kube_status_once "$i"
     case "$KUBE_LINE" in disponible*) return 0 ;; esac
     if [ "$i" -lt "$KUBE_CHECK_ATTEMPTS" ]; then
       log "préflight Kubernetes : tentative $i/$KUBE_CHECK_ATTEMPTS $KUBE_LINE, nouvel essai dans ${KUBE_CHECK_RETRY_DELAY}s"
-      nap "$KUBE_CHECK_RETRY_DELAY"
+      nap_in_window "$KUBE_CHECK_RETRY_DELAY"
     fi
   done
   [ "$KUBE_CHECK_ATTEMPTS" -le 1 ] || KUBE_LINE="$KUBE_LINE après $KUBE_CHECK_ATTEMPTS tentatives"
 }
 
-kube_status_once() {
-  local f="$RUNS/kube-status.$$" line
+kube_status_once() { # kube_status_once ATTEMPT
+  # one file per attempt: a late watchdog of attempt N cannot mark attempt N+1 as timed out
+  local f="$RUNS/kube-status.$$.$1" line pid
   # a preflight killed by SIGKILL cannot run its cleanup: sweep stale temp kubeconfigs
   find "${TMPDIR:-/tmp}" -maxdepth 1 -type d -name 'kube-ops-operator-access.*' -mmin +360 \
     -exec rm -rf {} + 2>/dev/null
   rm -f "$f" "$f.timeout"
   (cd "$REPO" && exec bash "$KUBE_STATUS_CMD") >"$f" 2>/dev/null </dev/null &
   SESSION_PID=$!
-  ( sleep "$KUBE_CHECK_TIMEOUT"; touch "$f.timeout"; kill_tree "$SESSION_PID" ) >/dev/null 2>&1 &
+  pid=$SESSION_PID
+  # mark a timeout only if the preflight is still running (stop_watchdog may kill
+  # the sleep first, letting this subshell go on for an instant)
+  ( sleep "$KUBE_CHECK_TIMEOUT"; kill -0 "$pid" 2>/dev/null || exit 0; touch "$f.timeout"; kill_tree "$pid" ) >/dev/null 2>&1 &
   WATCHDOG_PID=$!
   wait "$SESSION_PID" 2>/dev/null
   stop_watchdog
@@ -419,7 +423,7 @@ run_cycles() {
     if [ $(( WINDOW_END - t )) -lt "$MIN_CYCLE_SECONDS" ]; then
       log "moins de ${MIN_CYCLE_SECONDS}s avant la fin de fenêtre : pas de nouveau cycle"; break
     fi
-    if [ "$cycles" -ge "$MAX_CYCLES" ]; then log "borne MAX_CYCLES=$MAX_CYCLES atteinte"; break; fi
+    if [ "$cycles" -ge "$MAX_CYCLES" ]; then log "borne MAX_CYCLES=$MAX_CYCLES (cycles productifs) atteinte"; break; fi
     n=$(next_index "$NIGHT")
     handoff="$HANDOFF_DIR/$NIGHT-$n.md"
     prev=$(latest_handoff)
@@ -427,6 +431,7 @@ run_cycles() {
     out="$RUNS/$NIGHT-$n.json"
     err="$RUNS/$NIGHT-$n.err"
     kube_status
+    t=$(now)  # the preflight (with its retry) may have taken minutes
     log "cycle $NIGHT-$n : Kubernetes $KUBE_LINE"
     build_prompt "$SCRIPT_DIR/orchestrator.md" "$prompt" <<EOF
 - Cycle : $NIGHT-$n
@@ -463,7 +468,8 @@ EOF
       nap "$QUOTA_WAIT"
       continue
     fi
-    cycles=$(( cycles + 1 ))
+    # cycles counts productive cycles only (MAX_CYCLES): an idle cycle backs off but
+    # never ends the night (window end); a failure is bounded by MAX_FAILS
     if [ "$rc" -eq 0 ] && [ -f "$handoff" ]; then
       fails=0
       statut=$(grep -m1 -E '^statut:' "$handoff" | sed -E 's/^statut:[[:space:]]*//')
@@ -483,6 +489,7 @@ EOF
         nap_in_window "$pause"
       else
         idle=0
+        cycles=$(( cycles + 1 ))
       fi
     else
       fails=$(( fails + 1 ))

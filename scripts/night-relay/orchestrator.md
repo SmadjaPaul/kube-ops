@@ -43,7 +43,7 @@ Avant de déclarer un blocage, suis D-13 : la ressource ou le credential existe-
 - Aucun `tofu destroy`, `tofu import`, `tofu state ...` ni `force-unlock`. Aucun apply, destroy ni mutation d'état d'infrastructure hors CI, sans exception (`AGENTS.md`). Si un apply est nécessaire, c'est un blocage à consigner avec sa preuve.
 - Aucun secret affiché, journalisé, commenté ou écrit dans un fichier ou un handoff. Doppler : noms seulement.
 - Aucune suppression ou réinitialisation de PVC, de données ou de base CNPG. Les protections de D-02 s'appliquent (données, sauvegardes, exposition publique, racines d'identité, migrations irréversibles).
-- Ne touche jamais une branche `codex/*` ni un ticket `agent:codex`.
+- Branches et PR `codex/*` et `chatgpt/*` (travaux abandonnés, Claude est le worker principal) : traitables comme les autres. Lis d'abord leur contenu (diff, commits non intégrés à `origin/main`). Vérifie l'activité réelle, pas un délai fixe : PR ouverte, push récent, commits non intégrés, worktree local, verrou Linear. Si le travail est utile et non intégré, récupère-le par le circuit normal (revue indépendante, CI, admission, merge), puis nettoie. Sinon, par défaut, ferme la PR et supprime la branche. Les tickets `agent:codex` sont traitables de même. Ne touche jamais aux worktrees `*-hygiene`. Les autres limites dures restent : pas de `--admin`, aucun check ni admission contourné.
 - Linear free tier (250 tickets) : commente plutôt que créer. Ne crée un ticket que si aucun existant ne convient.
 - Ne demande rien à Paul, sauf pour une action qui exige son identité ou sa présence physique (D-14) : dans ce cas, `Needs-operator` + commentaire, puis continue.
 - Ne modifie pas `scripts/night-relay/` pendant la nuit.
