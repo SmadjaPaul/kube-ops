@@ -2,8 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # backup-r2.yaml: CNPG Barman plugin store on Cloudflare R2, active WAL
 # archive and weekly base backup target (PLT-221, R2 pilot cluster).
-# backup.yaml: Hetzner store kept as rollback target and the ScheduledBackup
-# (PLT-147).
+# backup.yaml: weekly ScheduledBackup (PLT-147), targeting the R2 store.
+# PLT-219: Hetzner store and credentials removed (objects deleted, lot 1).
 resources:
   - namespace.yaml
   - database.yaml
