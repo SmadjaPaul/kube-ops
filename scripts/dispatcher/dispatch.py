@@ -101,6 +101,13 @@ class Linear:
             "labels": {"some": {"name": {"eq": sel.READY_LABEL}}},
         })
 
+    def in_progress(self) -> list[dict]:
+        return self.issues({
+            "team": {"key": {"eq": sel.TEAM_KEY}},
+            "state": {"name": {"eq": sel.RESUME_STATE}},
+            "labels": {"some": {"name": {"eq": sel.READY_LABEL}}},
+        })
+
     def locked(self, lane: str) -> list[dict]:
         return self.issues({
             "team": {"key": {"eq": sel.TEAM_KEY}},
@@ -268,9 +275,9 @@ def describe(issue: dict) -> str:
     return f"{issue['identifier']} [{project}, prio {issue.get('priority') or 0}] {issue['title']}"
 
 
-def load_snapshot(path: str) -> tuple[list[dict], list[dict]]:
+def load_snapshot(path: str) -> tuple[list[dict], list[dict], list[dict]]:
     data = json.loads(Path(path).read_text())
-    return data.get("queue", []), data.get("locked", [])
+    return data.get("queue", []), data.get("locked", []), data.get("in_progress", [])
 
 
 def run(args: argparse.Namespace, linear: "Linear | None" = None) -> int:
@@ -279,7 +286,7 @@ def run(args: argparse.Namespace, linear: "Linear | None" = None) -> int:
     if args.snapshot:
         if not args.dry_run:
             raise DispatchError("--snapshot n'est accepté qu'avec --dry-run")
-        queue, locked = load_snapshot(args.snapshot)
+        queue, locked, in_progress = load_snapshot(args.snapshot)
     else:
         if linear is None:
             key = os.environ.get("LINEAR_API_KEY")
@@ -287,6 +294,8 @@ def run(args: argparse.Namespace, linear: "Linear | None" = None) -> int:
                 raise DispatchError("LINEAR_API_KEY absent : lancer via `doppler run` (nom seul dans Git)")
             linear = Linear(key)
         locked, queue = linear.locked(lane), linear.queue()
+        # read-only extra query, dry-run only: the real run path is unchanged
+        in_progress = linear.in_progress() if args.dry_run else []
 
     prefix = "[dry-run] " if args.dry_run else ""
     active, expired = sel.classify_locks(locked, now)
@@ -297,6 +306,11 @@ def run(args: argparse.Namespace, linear: "Linear | None" = None) -> int:
             linear.set_state(issue["id"], linear.state_id(sel.READY_STATE))
             linear.comment(issue["id"], f"Verrou `{lock}` retiré par le dispatcher : aucun commentaire "
                                         "depuis plus de 3 h (D-12). Ticket remis en Todo.")
+
+    # In Progress without lock (merged PR, evidence missing): the orchestrator
+    # resumes these before new tickets, under the same wip lock (PLT-201).
+    for issue in sel.resume_candidates(in_progress, lane):
+        print(f"à reprendre : {describe(issue)} (In Progress sans verrou : preuve RECONCILED/RUNTIME ou PR à terminer)")
 
     eligible, rejected = sel.select(queue, lane)
     for issue, reason in rejected:

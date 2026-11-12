@@ -1,0 +1,256 @@
+{
+ "queue": [],
+ "locked": [],
+ "in_progress": [
+  {
+   "id": "uuid-PLT-200",
+   "identifier": "PLT-200",
+   "title": "PLT-200 test",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-11T20:00:00.000Z",
+   "updatedAt": "2026-11-11T20:00:00.000Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-301",
+   "identifier": "PLT-301",
+   "title": "PLT-301 test",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-11T20:00:00.000Z",
+   "updatedAt": "2026-11-11T20:00:00.000Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-wip:claude-local",
+      "name": "wip:claude-local"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-302",
+   "identifier": "PLT-302",
+   "title": "PLT-302 test",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-11T20:00:00.000Z",
+   "updatedAt": "2026-11-11T20:00:00.000Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-303",
+   "identifier": "PLT-303",
+   "title": "PLT-303 test",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-11T20:00:00.000Z",
+   "updatedAt": "2026-11-11T20:00:00.000Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:cloud",
+      "name": "exec:cloud"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-304",
+   "identifier": "PLT-304",
+   "title": "PLT-304 test",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-11T20:00:00.000Z",
+   "updatedAt": "2026-11-11T20:00:00.000Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "In Progress",
+    "type": "started"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     },
+     {
+      "id": "l-Needs-operator",
+      "name": "Needs-operator"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  },
+  {
+   "id": "uuid-PLT-305",
+   "identifier": "PLT-305",
+   "title": "PLT-305 test",
+   "url": "",
+   "priority": 3,
+   "createdAt": "2026-11-11T20:00:00.000Z",
+   "updatedAt": "2026-11-11T20:00:00.000Z",
+   "team": {
+    "key": "PLT"
+   },
+   "state": {
+    "name": "Todo",
+    "type": "unstarted"
+   },
+   "project": {
+    "name": "Socle sain"
+   },
+   "labels": {
+    "nodes": [
+     {
+      "id": "l-exec:local",
+      "name": "exec:local"
+     },
+     {
+      "id": "l-agent:sonnet",
+      "name": "agent:sonnet"
+     },
+     {
+      "id": "l-Agent-ready",
+      "name": "Agent-ready"
+     }
+    ]
+   },
+   "inverseRelations": {
+    "nodes": []
+   },
+   "comments": {
+    "nodes": []
+   }
+  }
+ ]
+}
