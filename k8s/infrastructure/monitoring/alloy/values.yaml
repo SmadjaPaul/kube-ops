@@ -85,6 +85,48 @@ alloy:
           selector = `{namespace="wellness", pod=~"sparkyfitness-(server|garmin)-.*"}`
           action   = "drop"
         }
+        // PLT-212 lot 2: drop high-volume, low-value repeated lines before
+        // ingestion. Measured over 6h on 2026-11-12 (626 MB ingested in total);
+        // errors, warnings, security alerts and backup/restore evidence are
+        // never matched. See docs/operations/telemetry-policy.md.
+        //
+        // Falco keeps emitting these events to falcosidekick and to its
+        // Prometheus counters; only the Loki copy of CI runner pods (which
+        // download and execute tools by design) is dropped. 154k events,
+        // ~390 MB/6h during CI bursts. Events from every other namespace and
+        // every other rule stay in Loki.
+        stage.match {
+          selector            = `{namespace="falco", container="falco"} |= "Executing binary not part of base image" |= "k8s_ns_name=arc-runners"`
+          action              = "drop"
+          drop_counter_reason = "falco_arc_runner_exec"
+        }
+        // Alloy's own "opened log stream" INFO line, re-emitted in a loop for a
+        // CrashLoopBackOff pod (10.2 MB/6h). The crash loop itself stays visible
+        // through kube_pod_container_status_restarts_total.
+        stage.match {
+          selector            = `{namespace="monitoring", container="alloy"} |= "opened log stream"`
+          action              = "drop"
+          drop_counter_reason = "alloy_opened_log_stream"
+        }
+        // MongoDB per-connection chatter (17.8 MB/6h of 18.9 MB). Authentication
+        // and error lines are kept.
+        stage.match {
+          selector            = `{namespace="librechat", container="mongodb"} |~ "Connection accepted|Connection ended|client metadata"`
+          action              = "drop"
+          drop_counter_reason = "mongodb_connection_chatter"
+        }
+        // Argo CD routine reconcile INFO lines (6.3 MB/6h) and repo-server INFO
+        // (12.4 MB/6h). WARN/ERROR lines and sync results are kept.
+        stage.match {
+          selector            = `{namespace="argocd", container="application-controller"} |~ "Reconciliation completed|No status changes|Refreshing app status|Skipping auto-sync|Comparing app state"`
+          action              = "drop"
+          drop_counter_reason = "argocd_controller_routine_info"
+        }
+        stage.match {
+          selector            = `{namespace="argocd", container="repo-server"} |= "level=info"`
+          action              = "drop"
+          drop_counter_reason = "argocd_repo_server_info"
+        }
         stage.static_labels {
           values = {
             cluster = "homeops",
