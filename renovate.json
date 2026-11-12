@@ -519,7 +519,7 @@
       "platformAutomerge": true
     },
     {
-      "description": "PLT-172 composants sensibles (CNI, OS, stockage, identite, base, sauvegarde, CRD, GitOps, DNS/edge, hyperviseur) : 14 jours, jamais d'automerge, qualification avant merge",
+      "description": "PLT-172 composants sensibles (CNI, OS, stockage, identite, base, sauvegarde, CRD, GitOps, edge Cloudflare, hyperviseur) : 14 jours, jamais d'automerge, qualification avant merge",
       "matchPackageNames": [
         "/cilium/",
         "/talos/",
@@ -536,6 +536,46 @@
         "/cloudflare/",
         "/proxmox/",
         "/kubernetes\\/kubernetes/"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": false,
+      "platformAutomerge": false
+    },
+    {
+      "description": "PLT-172 providers IaC (changement de comportement, plan ou etat) : 14 jours, jamais d'automerge",
+      "matchManagers": [
+        "terraform"
+      ],
+      "matchDepTypes": [
+        "provider",
+        "required_provider"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": false,
+      "platformAutomerge": false
+    },
+    {
+      "description": "PLT-172 providers utilitaires (random, null, local, time, external, archive) patch/minor : delai court, merge manuel apres CI verte",
+      "matchManagers": [
+        "terraform"
+      ],
+      "matchDepTypes": [
+        "provider",
+        "required_provider"
+      ],
+      "matchPackageNames": [
+        "/hashicorp\\/(random|null|local|time|external|archive)$/"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "PLT-172 dependances de workflows CI (.github) : 14 jours, revue, jamais d'automerge",
+      "matchManagers": [
+        "github-actions"
       ],
       "minimumReleaseAge": "14 days",
       "automerge": false,
