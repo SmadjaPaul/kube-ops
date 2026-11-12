@@ -17,6 +17,8 @@ spec:
     - secretKey: AWS_SECRET_ACCESS_KEY
       remoteRef: { key: HETZNER_S3_SECRET_ACCESS_KEY }
 ---
+# PLT-221: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to vikunja-r2-store). Kept as the rollback target with its backups.
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
@@ -45,4 +47,5 @@ spec:
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
-    parameters: { barmanObjectName: vikunja-hetzner-store }
+    # PLT-221: base backups follow the WAL archive to R2.
+    parameters: { barmanObjectName: vikunja-r2-store }

@@ -9,11 +9,15 @@ spec:
     initdb:
       database: vikunja
       owner: vikunja
+  # PLT-221: a Cluster has a single WAL archiver; the archive moved from
+  # vikunja-hetzner-store to vikunja-r2-store (backup-r2.yaml). Rollback: point
+  # barmanObjectName back to vikunja-hetzner-store, then take a new base backup
+  # there (rollback point: Backup vikunja-postgresql-hetzner-precutover-20261113).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: vikunja-hetzner-store
+        barmanObjectName: vikunja-r2-store
   storage:
     size: 5Gi
     storageClass: longhorn-fast
