@@ -55,6 +55,7 @@ spec:
               SQL
               # RPO evidence; best effort (some functions may need pg_monitor).
               psql "$PGURI" -At <<'SQL' || true
+              SELECT 'last_replayed_xact=' || coalesce(pg_last_xact_replay_timestamp()::text, 'null');
               SELECT 'current_walfile=' || pg_walfile_name(pg_current_wal_lsn());
               SELECT 'checkpoint_timeline=' || timeline_id || ' redo_walfile=' || redo_wal_file || ' checkpoint_time=' || checkpoint_time FROM pg_control_checkpoint();
               SELECT 'postmaster_start=' || pg_postmaster_start_time();
