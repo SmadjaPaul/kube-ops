@@ -106,5 +106,8 @@ jobs:
       - name: Validate ARC GitOps contract
         run: bash tests/harness/arc-gitops-contract-test.sh
 
+      - name: Validate Longhorn off-site PVC and retired Atlantis recovery volume contract
+        run: bash tests/harness/longhorn-offsite-pvc-contract-test.sh
+
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh
