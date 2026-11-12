@@ -35,7 +35,7 @@ Its full web UI is routed through the **internal Gateway**. Only the signed GitH
 
 Cloud Build/GHCR work is tracked in [factory-platform PR #54](https://github.com/SmadjaPaul/factory-platform/pull/54) and [homelab-infra PR #127](https://github.com/SmadjaPaul/homelab-infra/pull/127). PRs are *proposals*, not automatically deployed capability.
 
-Paperclip is being decommissioned via [kube-ops PR #494](https://github.com/SmadjaPaul/kube-ops/pull/494). Historical Paperclip instructions must not be treated as current operating guidance.
+Paperclip is retired from the desired state (application, operator and Velero schedule removed; retained data is tracked separately). Historical Paperclip instructions must not be treated as current operating guidance.
 
 ## Organization and operating model
 
