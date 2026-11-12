@@ -275,6 +275,17 @@
       "reason": "PLT-56: contrat ARC étendu au scale set Factory léger sans PostgreSQL (aucun sidecar, image identique, egress minimal).",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-18T12:00:00Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1252,
+      "changeFingerprint": "b25f760be7f48081f8907acdbd44121c7753b1ab11dc5d0a8426b9d220ac14dc",
+      "paths": [
+        "tests/harness/polyfin-private-pilot-contract-test.sh"
+      ],
+      "reason": "PLT-46: contrat Polyfin pilote privé, lecture complète du flux yq au lieu de yq | head (SIGPIPE 141 sous pipefail). Reprise de #1196.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-18T12:00:00Z"
     }
   ]
 }
