@@ -140,7 +140,8 @@ il=$(logs idle | grep -c "lancement orchestrateur" || true)
 check "idle: idle cycles go on all night, MAX_CYCLES not reached ($il sessions)" \
   '[ "$il" -ge 20 ] && ! logs idle | grep -q "borne MAX_CYCLES"'
 check "idle: stops only at window end" 'logs idle | grep -q "pas de nouveau cycle\|fin de fenêtre"'
-check "idle: long pause bounded (never more than 900s)" '! logs idle | grep -Eq "pause (9[0-9][1-9]|[0-9]{4,})s"'
+maxp=$(logs idle | grep -Eo "pause [0-9]+s" | tr -dc '0-9\n' | sort -n | tail -1 || true)
+check "idle: long pause bounded (max ${maxp}s <= 900s)" '[ "${maxp:-0}" -le 900 ]'
 run maxcyc "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_CYCLE_SECONDS=600 MAX_CYCLES=3
 check "maxcyc: MAX_CYCLES bounds productive cycles" \
   'logs maxcyc | grep -q "borne MAX_CYCLES=3 (cycles productifs) atteinte" && [ "$(logs maxcyc | grep -c "lancement orchestrateur")" = 3 ]'
