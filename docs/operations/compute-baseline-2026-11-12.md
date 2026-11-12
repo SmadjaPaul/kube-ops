@@ -18,8 +18,8 @@ Prometheus d'environ 10 jours). Chiffres arrondis.
   processus QEMU, métrique par VM Proxmox. L'API Proxmox n'a pas été
   interrogée. Le CPU « hôte » ci-dessous vient du node-exporter de l'hôte
   (job `proxmox-host`).
-- `container_fs_reads_bytes_total` de Prometheus et de l'instance-manager est
-  surestimé (voir « Artefacts ») : ne pas l'utiliser comme charge disque.
+- `container_fs_reads_bytes_total` de Prometheus et de l'instance-manager ne
+  correspond pas à la charge disque physique (voir « Artefacts »).
 
 ## Ce qui était déjà prouvé (PLT-56, PLT-187, PLT-168, PLT-208)
 
@@ -44,7 +44,7 @@ Prometheus d'environ 10 jours). Chiffres arrondis.
 
 | Mesure | Valeur | Requête |
 |---|---|---|
-| Tctl actuel | 87–88,5 °C | `node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3"}` |
+| Tctl actuel | 87–88,5 °C | `node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"}` |
 | Tctl moyenne 7 j / 24 h | 88,0 / 89,6 °C | `avg_over_time(…[7d])`, `[1d]` |
 | Tctl p95 / max 7 j | 99,9 / 100,4 °C | `quantile_over_time(0.95,…[7d])`, `max_over_time` |
 | Part du temps au-dessus de 85 / 90 / 95 °C (7 j) | 63 % / 33 % / 11 % | `avg_over_time((… > bool 95)[7d:5m])` |
@@ -101,10 +101,13 @@ additionner les deux lignes : l'hôte contient déjà la VM.
 | ZIL (sans SLOG) | 11,0 MB/s, 47 commits/s | `node_zfs_zil_zil_itx_metaslab_normal_bytes` |
 | Longhorn, écritures frontales (tous volumes) | 0,92 MB/s | `sum(avg_over_time(longhorn_volume_write_throughput[24h]))` |
 
-Amplification : 10,9 MB/s logiques deviennent 21,6 MB/s physiques, soit ×2,0.
-Le ZIL reçoit autant d'octets que la VM écrit (11,0 MB/s `needcopy`,
-`indirect` à 0) : chaque écriture de la VM est écrite deux fois (ZIL puis
-groupe de transactions).
+Amplification apparente : 10,9 MB/s logiques pour 21,6 MB/s physiques, soit
+×2,0. Le ZIL reçoit autant d'octets que la VM écrit (11,0 MB/s `needcopy`,
+`indirect` à 0). Le mécanisme « chaque écriture est écrite deux fois (ZIL puis
+groupe de transactions) » est l'explication la plus cohérente, mais reste une
+HYPOTHÈSE : ces trois taux agrégés n'attribuent pas les écritures physiques à
+la VM et au ZIL (autres écritures de l'hôte, comportement ZFS). Une mesure par
+dataset/zvol avant et après changement le confirmera.
 
 Origine des 10,9 MB/s de la VM, par `container_fs_writes_bytes_total` (somme
 pods : 6,9 MB/s) :
@@ -120,7 +123,7 @@ pods : 6,9 MB/s) :
 | Non attribué (≈ 4 MB/s) | hypothèse : téléchargements d'images containerd, journaux nœud, etcd |
 
 À 391 Go/j, les runners représentent environ 41 % des écritures de la VM ; avec
-l'amplification ZFS, environ 780 Go/j physiques (≈ 36 % du NVMe).
+l'amplification ZFS, environ 780 Go/j physiques (≈ 42 % du NVMe).
 
 Endurance : l'usure SMART n'est pas dans Prometheus. À 1,26–1,86 To/j,
 confirmer l'indice « pourcentage utilisé » et le TBW du SSD (CT1000P310SSD8)
@@ -186,8 +189,8 @@ Prometheus : 177 k séries actives (plage 150–221 k sur 7 j), 4,3 k échantill
   Les 39 « non Running » = 30 Failed + 9 Pending, tous résiduels :
   - Failed : 18 dans `factory-platform` (dbt et collector, CronJobs suspendus
     depuis ; pods en erreur conservés), 6 dans le drill `invoice-ninja…-v2`
-    (CronJob de sauvegarde logique encore actif à 04:15), 5 dans `dr-protect-*`
-    et `openclaw-restore-drill-…-v4`.
+    (CronJob de sauvegarde logique encore actif à 04:15), 6 dans `dr-protect-*`
+    (5) et `openclaw-restore-drill-…-v4` (1).
   - Pending : 8 dans `invoice-ninja-restore-drill-20261009`, 1 dans `-v2`.
   Aucun n'est un incident de production.
 - PVC : 91 Bound, 10 Pending. Les 10 sont dans les drills de restauration
@@ -222,7 +225,7 @@ B basse (hypothèse).
 | 1 | Longhorn instance-manager | CPU, réseau local | 0,92 cœur (22 CPU-h/j), p95 2,48, base 0,3 ; 3,1 GiB | rafales ≈ 8 h/j + base | relecture du TSDB Prometheus par le groupe burnrate | H (alignement), causalité à confirmer | #1256 (fait), PLT-208 règles bornées |
 | 2 | Noyau et services hors pods (VM) | CPU | ≈ 1,5 cœur (system 1,40, irq+softirq 0,43) | permanent | iSCSI/volumes, réseau, kubelet/containerd/Talos | B | profiler après baisse de la charge ; réduire #1, #3 |
 | 3 | Runners ARC | I/O disque | 391 Go/j ; 4,5 MB/s ; CPU 0,11 (2,6 CPU-h/j) | ponctuel (191 pods) | `_work`, outils et caches réinstallés dans chaque pod | M-H | emptyDir en mémoire ou cache partagé, caches mise/pip/npm |
-| 4 | ZFS sur l'hôte | I/O disque NVMe | 21,6 MB/s physiques pour 10,9 logiques (×2) | permanent | écritures synchrones : ZIL puis txg, sans SLOG | H (ZIL = écritures VM) | `logbias=throughput` sur le zvol ou SLOG ; à tester |
+| 4 | ZFS sur l'hôte | I/O disque NVMe | 21,6 MB/s physiques pour 10,9 logiques (×2) | permanent | écritures synchrones : ZIL puis txg, sans SLOG | M (corrélation, mécanisme à confirmer) | `logbias=throughput` sur le zvol ou SLOG ; à tester |
 | 5 | kube-apiserver | CPU, RAM | 0,34 cœur (p95 0,59) ; 3,67 GiB | permanent | 46 req/s, 9,7 PUT lease/s, 4,6 SSAR/s, 1 412 watchers | M | identifier les clients, espacer les leases |
 | 6 | Cilium (agents) | CPU | 0,30 cœur (p95 0,76) | permanent | 1,26 régénérations d'endpoint/s, 703 flux Hubble/s | M | réduire Hubble, ajuster les politiques FQDN |
 | 7 | Argo CD controller | CPU | 0,16 cœur (max 1,08) ; 0,85 GiB | permanent + pics | boucles de sync de 2 apps OutOfSync | M-H | corriger les écarts, `ignoreDifferences`, retry |
@@ -273,11 +276,14 @@ HYPOTHÈSES (non prouvées) :
 ## Artefacts de mesure
 
 - `container_fs_reads_bytes_total` du conteneur Prometheus (142 MB/s sur 24 h)
-  et de l'instance-manager (135 MB/s) est supérieur au disque réel de la VM
-  (9,1 MB/s lus sur `sda`) : à ignorer. Utiliser `node_disk_*` du volume.
-- `longhorn_volume_read_throughput` du volume Prometheus (168 MB/s moyen)
-  souffre du même biais ; `longhorn_volume_write_throughput` est cohérent
-  (0,92 MB/s au total).
+  et de l'instance-manager (135 MB/s) est supérieur aux lectures de `sda`
+  (9,1 MB/s) : ces compteurs ne mesurent pas la même couche (lecture logique,
+  caches) que le disque physique. Un surcomptage n'est pas établi ; ne pas les
+  lire comme charge disque physique, utiliser `node_disk_*` du volume
+  (`sdbs` : 14,6 MB/s en moyenne 1 h).
+- `longhorn_volume_read_throughput` du volume Prometheus (168 MB/s moyen) est
+  dans le même cas ; `longhorn_volume_write_throughput` est cohérent (0,92
+  MB/s au total).
 - `node_hwmon_power_*` mesure le socket (capteur du GPU intégré), pas la prise.
 
 ## Plan d'optimisation priorisé
@@ -303,9 +309,9 @@ conditions comparables.
 
 ```
 # Tctl, p95, part de temps > 95 °C
-node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3"}
-quantile_over_time(0.95, node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3"}[7d])
-avg_over_time((node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3"} > bool 95)[7d:5m])
+node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"}
+quantile_over_time(0.95, node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"}[7d])
+avg_over_time((node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"} > bool 95)[7d:5m])
 # CPU hôte et VM
 avg_over_time((16 - sum(rate(node_cpu_seconds_total{job="proxmox-host",mode="idle"}[5m])))[24h:15m])
 avg_over_time((12 - sum(rate(node_cpu_seconds_total{job="node-exporter",mode="idle"}[5m])))[24h:15m])
