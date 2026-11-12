@@ -52,7 +52,7 @@ MAP = {
     "karakeep": ("IRR?", "GARDER", "marque-pages ; à confirmer"),
     "vikunja": ("IRR?", "GARDER", "tâches ; à confirmer"),
     "auth": ("IRR", "GARDER", "Authentik = autorité d'identité"),
-    "openclaw-operator-system": ("REC", "GARDER", "opérateur OpenClaw (pilote agents, D-08)"),
+    "openclaw-operator-system": ("REC", "GARDER", "opérateur OpenClaw desired state SUSPENDU via GitOps (replicas 0, PLT-217) ; CRD openclaw.rocks conservées"),
     # --- reconstructibles utiles
     "mqtt": ("REC", "GARDER", "bus domotique ; cible N100 (D-11, proposée)"),
     "ntfy": ("REC", "GARDER", "notifications"),

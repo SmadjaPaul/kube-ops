@@ -15,3 +15,4 @@ resources:
 - velero
 - agent-sandbox
 - argo-rollouts
+- openclaw-operator
