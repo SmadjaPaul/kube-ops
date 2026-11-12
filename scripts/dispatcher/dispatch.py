@@ -74,8 +74,10 @@ Ne merge pas et ne passe pas Done : la revue indépendante, le merge et la preuv
 Limites dures : aucun apply hors CI, aucun secret affiché (Doppler via scripts/doppler-safe.sh, Kubernetes via just status-app ou scripts/kubectl-ro.sh), aucune suppression de PVC, de base CNPG ou de données, jamais --admin. Si une action exige Paul : label Needs-operator, commentaire, arrêt.
 Sortie en 5 lignes : PR, état du ticket, checks, blocage éventuel, suite."""
 
-# Comments written by the dispatcher itself: never count as progress.
-DISPATCHER_PREFIXES = ("**Checkpoint dispatcher**", "Dispatcher interrompu", "Verrou `", "Relais de nuit :")
+# Comments written by the relay itself (dispatcher, supervisor, night review):
+# never count as progress, or the review's own comments would re-arm a ticket.
+DISPATCHER_PREFIXES = ("**Checkpoint dispatcher**", "Dispatcher interrompu", "Verrou `", "Relais de nuit :",
+                       "Revue de nuit :")
 
 LIMIT_RE = re.compile(r"usage limit|limit reached|hit your (usage )?limit|rate_limit_error"
                       r"|out of extra usage|limit will reset", re.I)
@@ -220,7 +222,10 @@ def usage_limit_hint(run: dict, stderr: str) -> str | None:
     """
     if run["ok"]:
         return None
-    text = f"{run['result']}\n{stderr or ''}"[:65536]
+    # a long final message is the session's own prose (it may discuss rate limits):
+    # only a short result, as the CLI's limit message is, is considered
+    result = run["result"] if len(run["result"]) <= 300 else ""
+    text = f"{result}\n{stderr or ''}"[:65536]
     if not LIMIT_RE.search(text):
         return None
     reset = RESET_RE.search(text)
@@ -423,9 +428,9 @@ def lost_race(locked: list[dict], mine: str) -> str | None:
 def execute(linear: "Linear", issue: dict, lane: str, cmd: list[str]) -> int:
     lock = sel.lock_label(lane)
     lock_id = linear.label_id(lock)
-    linear.add_label(issue["id"], lock_id)
     result = None
     try:
+        linear.add_label(issue["id"], lock_id)  # inside try: a SIGTERM here still unlocks
         winner = lost_race(linear.locked(lane), issue["identifier"])
         if winner:
             print(f"course perdue : {winner} tient déjà {lock} ; verrou retiré, sortie")

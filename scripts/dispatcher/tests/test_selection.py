@@ -195,7 +195,8 @@ class ProgressTests(unittest.TestCase):
                  "comments": {"nodes": [
                      {"createdAt": "2026-11-12T01:00:00Z", "body": "PR #12 ouverte"},
                      {"createdAt": "2026-11-12T02:00:00Z", "body": "**Checkpoint dispatcher** (voie local)"},
-                     {"createdAt": "2026-11-12T03:00:00Z", "body": "Relais de nuit : PLT-1 est sauté"}]}}
+                     {"createdAt": "2026-11-12T03:00:00Z", "body": "Relais de nuit : PLT-1 est sauté"},
+                     {"createdAt": "2026-11-12T04:00:00Z", "body": "Revue de nuit : session sans PR"}]}}
         self.assertEqual(dispatch.progress_fingerprint(issue),
                          "pr=1 liens=2 commentaires=1 dernier=2026-11-12T01:00:00Z")
 
@@ -414,6 +415,15 @@ class RealRunTests(unittest.TestCase):
         self.assertIn("limite d'usage : usage limit, resets 3am", buf.getvalue())
         self.assertNotIn("SECRET", buf.getvalue())
         self.assertEqual(fake.states[self.top], "Todo")
+
+    def test_long_session_prose_about_rate_limits_is_not_a_usage_limit(self):
+        prose = json.dumps({"subtype": "error_max_turns", "is_error": True,
+                            "result": "LiteLLM renvoie rate_limit_error. " + "x" * 400})
+        buf = io.StringIO()
+        proc = mock.Mock(returncode=1, stdout=prose, stderr="")
+        with mock.patch.object(dispatch.subprocess, "run", return_value=proc), redirect_stdout(buf):
+            dispatch.run(self.args, linear=FakeLinear(self.queue))
+        self.assertNotIn("limite d'usage", buf.getvalue())
 
     def test_plain_failure_prints_no_usage_limit(self):
         buf = io.StringIO()

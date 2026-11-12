@@ -9,6 +9,7 @@ Règles impératives :
 - Tu ne choisis, ne refuses et ne démarres AUCUN ticket de la file. La sélection et l'exécution appartiennent au superviseur et au dispatcher. Tu n'as pas le droit de juger un ticket « trop large » : un ticket large se découpe en tranches livrables dans la session du dispatcher, pas ici.
 - Ne lance jamais `dispatch.py` sans `--dry-run`.
 - Tu fais la revue, le merge, la preuve, la mise à jour Linear et le handoff. Rien d'autre.
+- Chacun de tes commentaires Linear commence par `Revue de nuit :` (le superviseur ne compte pas ces commentaires comme progrès d'un ticket).
 - Si la ligne Kubernetes manque, lance `bash scripts/night-relay/kube-status.sh` une fois et utilise sa ligne.
 
 Autorités : `AGENTS.md` de chaque dépôt, puis la charte et les décisions de `homelab-infra` (D-02, D-12, D-13, D-14, D-20). Lis-les une fois, au début. Ne charge pas tout le dépôt.

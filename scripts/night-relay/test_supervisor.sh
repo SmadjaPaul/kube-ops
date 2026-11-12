@@ -262,7 +262,7 @@ done <"$FQ/queue"
 if [ -n "$expect" ] && [ "$expect" != "$first" ]; then echo "choix changé"; exit 3; fi
 echo "choisi : $first [Socle sain, prio 2] titre"
 if [ "$dry" = 1 ]; then
-  echo "progrès : $first pr=0 liens=0 commentaires=0 dernier=-"
+  echo "progrès : $first pr=0 liens=0 commentaires=$(cat "$FQ/prog.$first" 2>/dev/null || echo 0) dernier=-"
   [ ! -f "$FQ/busy" ] || echo "voie local occupée par PLT-999 : aucun verrou posé, aucune exécution"
   exit 0
 fi
@@ -273,6 +273,7 @@ rm -f "$FQ/running"
 if has "$first" "${FAKE_QUOTA_ONCE:-}" && [ ! -f "$FQ/quota.$first" ]; then
   touch "$FQ/quota.$first"; echo "limite d'usage : usage limit, resets 3am"; echo "$first : échec error, None tours"; exit 1
 fi
+if has "$first" "${FAKE_PROGRESS:-}"; then echo $(( $(cat "$FQ/prog.$first" 2>/dev/null || echo 0) + 1 )) >"$FQ/prog.$first"; fi
 if has "$first" "${FAKE_FAIL:-}"; then echo "$first : échec error_max_turns, 8 tours"; exit 1; fi
 has "$first" "${FAKE_STAY:-}" || { grep -vx "$first" "$FQ/queue" >"$FQ/q.tmp"; mv "$FQ/q.tmp" "$FQ/queue"; }
 echo "$first : succès, 5 tours, coût 0.2"
@@ -317,6 +318,10 @@ drun noprog "PLT-7" FAKE_STAY=PLT-7
 check "noprog: no rerun without progress" '[ "$(logs noprog | grep -c "dispatcher réel : PLT-7 ")" = 1 ]'
 check "noprog: skipped with reason and commented" \
   'logs noprog | grep -q "ticket PLT-7 sauté pour la nuit : aucun progrès" && grep -qx PLT-7 "$WORK/noprog/state/fq/skipnotes"'
+
+drun progress "PLT-8" FAKE_STAY=PLT-8 FAKE_PROGRESS=PLT-8 MAX_CYCLES=1 MAX_RUNS_PER_CYCLE=2
+check "progress: a ticket that left a new comment may run again" \
+  '[ "$(logs progress | grep -c "dispatcher réel : PLT-8 ")" = 2 ] && ! logs progress | grep -q "PLT-8 sauté"'
 
 drun dquota "PLT-5" FAKE_QUOTA_ONCE=PLT-5
 check "dquota: usage limit during a run waits for the reset" 'logs dquota | grep -q "réinitialisation à 03:00"'
