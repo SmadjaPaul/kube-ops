@@ -25,5 +25,5 @@ spec:
       - scheduledbackups.postgresql.cnpg.io
       - objectstores.barmancloud.cnpg.io
     defaultVolumesToFsBackup: true
-    storageLocation: default
+    storageLocation: r2
     ttl: 336h

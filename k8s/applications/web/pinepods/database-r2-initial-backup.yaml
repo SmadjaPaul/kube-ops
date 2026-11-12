@@ -1,0 +1,17 @@
+# PLT-221: first base backup of pinepods-db on R2, right after the WAL archive
+# switch. Closes the window without an R2 recovery point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: pinepods-db-r2-initial-20261112
+  namespace: pinepods
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: pinepods-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: pinepods-r2-store
