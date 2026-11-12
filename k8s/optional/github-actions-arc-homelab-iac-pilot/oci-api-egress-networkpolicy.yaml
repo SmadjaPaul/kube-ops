@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: github-actions-arc
     policy-type: github-actions-arc
 spec:
-  description: "Allow the pilot apply runner to reach only the OCI control-plane APIs (eu-paris-1 and home region)"
+  description: "Allow the pilot runner (oracle-a1 apply, oracle-cloud plan) to reach only the OCI control-plane APIs it needs (eu-paris-1 and home region)"
   endpointSelector:
     matchLabels:
       k8s:actions.github.com/scale-set-name: homelab-iac-pilot-arc
@@ -27,6 +27,12 @@ spec:
         - matchName: limits.eu-paris-1.oraclecloud.com
         - matchName: usage.eu-paris-1.oraclecloud.com
         - matchName: budget.eu-paris-1.oraclecloud.com
+        # PLT-55: the oracle-cloud plan also manages Object Storage buckets and
+        # lifecycle policies, a log group, an ONS topic and a Bastion.
+        - matchName: objectstorage.eu-paris-1.oraclecloud.com
+        - matchName: logging.eu-paris-1.oci.oraclecloud.com
+        - matchName: notification.eu-paris-1.oci.oraclecloud.com
+        - matchName: bastion.eu-paris-1.oci.oraclecloud.com
       toPorts:
         - ports:
             - port: "443"
