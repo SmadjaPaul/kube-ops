@@ -14,7 +14,6 @@ resources:
   - recurring-job.yaml
   - recurring-job-default-group.yaml
   - immich-redis-recurring-job.yaml
-  - openclaw-retire-b5b.yaml
 
 helmCharts:
   - name: longhorn
