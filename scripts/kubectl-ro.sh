@@ -39,7 +39,8 @@ RAW_LABEL='label/[A-Za-z_][A-Za-z0-9_]*/values'
 RAW_PROM="kube-prometheus-stack-prometheus:9090/proxy/api/v1/(query|query_range|series|labels|$RAW_LABEL)"
 RAW_LOKI="(loki-gateway:80|loki:3100)/proxy/loki/api/v1/(query|query_range|series|labels|$RAW_LABEL)"
 RAW_PATH_RE="^$RAW_SVC/($RAW_PROM|$RAW_LOKI)\$"
-# query: unreserved chars, sub-delims & = + , : and %XX (printable only; no '/', '?', '#')
+# query: unreserved chars, & = + , : and printable %XX (literal '/', '?', '#' refused; %2F/%3F
+# only reach the backend as decoded query values, never the proxied path)
 RAW_QUERY_RE='^([A-Za-z0-9._~=&+,:-]|%[2-7][0-9A-Fa-f])*$'
 raw_check() { # raw_check PATH -> refuse unless allowed
   local raw=$1 path query="" LC_ALL=C
@@ -76,12 +77,26 @@ for arg in "${@:2}"; do
     [ "$lower" = name ] || output_flag=1
     continue
   fi
+  case "$arg" in
+    # kubectl (pflag) reads --a_b as --a-b: normalize before matching
+    --*) lower=${lower//_/-} ;;
+    # grouped short flags (-Aoyaml = -A -o yaml, -Av8, -Rf dir) would dodge the checks below:
+    # only value-taking shorthands may carry a suffix (-oname, -nmonitoring, -lapp=x, -cname, -Lcol)
+    -[!-]?*)
+      case "$arg" in
+        -[onlcL]*) ;;
+        *) refuse "option '$arg' : options courtes groupées ou collées interdites (les séparer : -A -o ...)" ;;
+      esac ;;
+  esac
   case "$lower" in
     --kubeconfig|--kubeconfig=*|--token|--token=*|--as|--as=*|--as-group|--as-group=*|--as-uid|--as-uid=*|\
-    --server|--server=*|-s|--user|--user=*|--context|--context=*|--cluster|--cluster=*|\
+    --server|--server=*|-s|-s*|--user|--user=*|--context|--context=*|--cluster|--cluster=*|\
     --client-key|--client-key=*|--client-certificate|--client-certificate=*|--username|--username=*|--password|--password=*)
       refuse "option '$arg' : l'accès vient uniquement de kube-preflight.sh" ;;
-    --insecure-skip-tls-verify|--insecure-skip-tls-verify=*|--certificate-authority|--certificate-authority=*|--tls-server-name|--tls-server-name=*)
+    --kuberc|--kuberc=*|--profile|--profile=*|--profile-output|--profile-output=*|--cache-dir|--cache-dir=*|\
+    --as-user-extra|--as-user-extra=*|--log-file|--log-file=*|--log-dir|--log-dir=*|--log-backtrace-at|--log-backtrace-at=*)
+      refuse "option '$arg' : préférences/impersonation/écriture de fichiers non autorisées" ;;
+    --insecure-skip-tls-verify|--insecure-skip-tls-verify=*|--insecure-skip-tls-verify-backend|--insecure-skip-tls-verify-backend=*|--certificate-authority|--certificate-authority=*|--tls-server-name|--tls-server-name=*)
       refuse "option '$arg' : TLS non contournable" ;;
     --raw|--raw=*)
       [ "$raw_mode" = 1 ] || refuse "option '$arg' : accès API brut non autorisé" ;;
@@ -97,7 +112,7 @@ for arg in "${@:2}"; do
     -oname|--output=name) ;;
     -o|--output)
       next_is_output=1 ;;
-    -o*|--output=*|--template|--template=*)
+    -o*|--output=*|--template|--template=*|--sort-by|--sort-by=*)
       output_flag=1 ;;
   esac
   # secret / secrets / sec, alone, in a comma list, or as type/name
@@ -112,6 +127,8 @@ if [ "$verb" = get ] && [ "$secret_ref" = 1 ] && [ "$output_flag" = 1 ]; then
   refuse "contenu d'un Secret (get secret avec -o/--output) ; utiliser 'get secret' sans -o ou 'describe secret' (tailles seulement)"
 fi
 
+# kuberc preferences (~/.kube/kuberc) could add -o yaml or aliases behind the guard
+export KUBERC=off
 # never inherit an ambient/pre-validated kubeconfig: always the canonical copy
 unset KUBECONFIG KUBE_ACCESS_CANONICALIZED KUBE_ACCESS_BOOTSTRAP KUBE_ACCESS_SOURCE KUBE_ACCESS_TMPDIR
 # shellcheck source=/dev/null
