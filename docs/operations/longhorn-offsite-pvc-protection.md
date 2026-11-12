@@ -19,8 +19,9 @@ ESO creates `longhorn-hetzner-credentials` in `longhorn-system` from the same
 two Doppler keys already used by Velero. No credential value is stored in Git.
 The endpoint is the existing non-secret Hetzner endpoint.
 
-The cluster target is `BackupTarget/default`, available against the existing
-Hetzner S3 endpoint. The protection changes do not change a PVC volume size,
+The cluster target is `BackupTarget/default`, declared in `backup-target.yaml`.
+Since PLT-222 it points to Cloudflare R2 (`homelab-backup-longhorn`); before, it
+pointed to the existing Hetzner S3 endpoint, whose objects are left intact. The protection changes do not change a PVC volume size,
 StorageClass, replica count or data path. The Immich Redis PVC only gains
 Longhorn recurring-job source labels; no application restart is required.
 
