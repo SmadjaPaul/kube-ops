@@ -47,6 +47,8 @@ spec:
         # mise verifies Ruby artifact attestations against Sigstore's TUF trust root.
         - matchName: tuf-repo-cdn.sigstore.dev
         - matchName: mise.jdx.dev
+        # mise resolves tool version lists here; without it each lookup times out (~20 s, PLT-207).
+        - matchName: mise-versions.jdx.dev
         - matchName: pypi.org
         - matchName: files.pythonhosted.org
         - matchName: registry.npmjs.org
