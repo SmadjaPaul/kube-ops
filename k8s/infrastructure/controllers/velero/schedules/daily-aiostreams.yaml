@@ -22,5 +22,5 @@ spec:
       - events
       - storageclasses.storage.k8s.io
     defaultVolumesToFsBackup: true
-    storageLocation: default
+    storageLocation: r2
     ttl: 336h
