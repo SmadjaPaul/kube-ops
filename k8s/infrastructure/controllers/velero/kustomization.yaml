@@ -10,7 +10,6 @@ resources:
   - repository-config.yaml
   - auto-cleanup-jobs-policy.yaml
   - maintenance-job-config.yaml
-  - backup-smoke-20260929.yaml
   - prometheusrule.yaml
 
 helmCharts:

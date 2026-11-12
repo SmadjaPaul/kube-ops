@@ -1,0 +1,12 @@
+# PLT-213: kube-system still carries the infra-controllers tracking id from the
+# retired descheduler manifests (06f813e4). Without a desired manifest Argo tried
+# to prune it on every sync ("this namespace may not be deleted"), failing the
+# sync in a loop. Keep it declared and never prunable.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+  labels:
+    dev.peekoff: controllers
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
