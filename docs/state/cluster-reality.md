@@ -84,7 +84,7 @@
 | metrics-server | infra-controllers | OUI 1/1 | 0.002/0.002 | 35/83 | aucune | socle | **GARDER** : métriques HPA/top |
 | monitoring | infra-monitoring | OUI 11/11 | 0.102/0.191 | 1941/2226 | alertmanager.smadja.dev [LAN]; grafana.smadja.dev [LAN] +1 OIDC | socle (PVC 2/40Gi) | **GARDER** : Prometheus/Loki/Grafana ; Tempo/Alloy à justifier |
 | node-feature-discovery | infra-controllers | OUI 3/3 | 0.001/0.003 | 35/123 | aucune | socle | **ALLÉGER** : D-06 : contrôleur à retirer sur preuve (coût mesuré, consommateur réel) ou à justifier |
-| openclaw-operator-system | openclaw-operator | NON CrashLoop x1 | 0.003/0.005 | 13/53 | aucune | reconstructible | **GARDER** : opérateur OpenClaw SUSPENDU via GitOps (replicas 0, PLT-217) ; CRD openclaw.rocks conservées |
+| openclaw-operator-system | openclaw-operator | NON CrashLoop x1 | 0.003/0.005 | 13/53 | aucune | reconstructible | **GARDER** : opérateur OpenClaw desired state SUSPENDU via GitOps (replicas 0, PLT-217) ; CRD openclaw.rocks conservées |
 | reloader | infra-controllers | OUI 1/1 | 0.000/0.005 | 26/60 | aucune | socle | **GARDER** : rollout sur changement de secret |
 | trivy-system | infra-security | OUI 1/1 | 0.011/0.161 | 400/627 | aucune | socle | **ALLÉGER** : D-06 : contrôleur à retirer sur preuve (coût mesuré, consommateur réel) ou à justifier |
 | velero | infra-controllers | OUI 2/2 | 0.005/0.043 | 269/507 | aucune | socle | **GARDER** : sauvegarde Kopia (D-05) |

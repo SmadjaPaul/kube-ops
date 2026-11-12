@@ -1,8 +1,9 @@
 # PLT-217 : suspension de l'operator OpenClaw. Il redémarrait ~8 fois/h
 # (cache OpenClawInstance jamais synchronisé : les namespaces de --watch-namespaces
 # n'existent plus) et aucune CR OpenClawInstance n'existe.
-# Rollback : remettre replicas: 1 (ou retirer ce dossier de la kustomization ;
-# Prune/Delete=false laissent alors le Deployment en place).
+# Rollback de la suspension : remettre replicas: 1.
+# Retirer ce dossier de la kustomization sort seulement le Deployment de la gestion
+# GitOps (Prune/Delete=false le laissent en place, à son dernier replicas : 0).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -108,8 +109,15 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       securityContext:
         runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: openclaw-operator
