@@ -10,18 +10,22 @@ safe owner-aware scheduling mechanism.
 ## Native capability and target
 
 The installed Longhorn chart is 1.12.1. Its native `defaultBackupStore`
-configuration supports an S3-compatible target, a credential Secret and a
-poll interval. The target is the existing Hetzner bucket
-`smadja-dev-homelab-backups`, under the `longhorn/` prefix. Velero continues
-to own its existing `velero/` prefix.
+configuration (rendered into the `longhorn-default-resource` ConfigMap, which
+longhorn-manager applies to `BackupTarget/default` at start and on change)
+supports an S3-compatible target, a credential Secret and a poll interval.
 
-ESO creates `longhorn-hetzner-credentials` in `longhorn-system` from the same
-two Doppler keys already used by Velero. No credential value is stored in Git.
-The endpoint is the existing non-secret Hetzner endpoint.
+Since PLT-222 (decision PLT-219) the single backup target is Cloudflare R2:
+bucket `homelab-backup-longhorn`, `s3://homelab-backup-longhorn@auto/`, with
+the Secret `longhorn-r2-credentials`. ESO builds it in `longhorn-system` from
+the Doppler keys `R2_LONGHORN_WRITER_ACCESS_KEY_ID`,
+`R2_LONGHORN_WRITER_SECRET_ACCESS_KEY` and `R2_S3_ENDPOINT` (non secret). No
+credential value is stored in Git.
 
-The cluster target is `BackupTarget/default`, declared in `backup-target.yaml`.
-Since PLT-222 it points to Cloudflare R2 (`homelab-backup-longhorn`); before, it
-pointed to the existing Hetzner S3 endpoint, whose objects are left intact. The protection changes do not change a PVC volume size,
+Rollback configuration: the Hetzner bucket `smadja-dev-homelab-backups` under
+the `longhorn/` prefix, with `longhorn-hetzner-credentials` (kept in Git). Its
+objects are left intact; Velero's old `velero/` prefix is also untouched.
+
+The protection changes do not change a PVC volume size,
 StorageClass, replica count or data path. The Immich Redis PVC only gains
 Longhorn recurring-job source labels; no application restart is required.
 

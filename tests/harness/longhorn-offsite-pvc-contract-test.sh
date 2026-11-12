@@ -12,8 +12,6 @@ immich_pvc="$repo_root/k8s/applications/media/immich/immich-redis/redis-pvc-labe
 
 grep -F 'version: 1.12.1' "$longhorn/kustomization.yaml" >/dev/null
 grep -F 'backupTarget: s3://homelab-backup-longhorn@auto/' "$values" >/dev/null
-grep -F 'backupTargetURL: s3://homelab-backup-longhorn@auto/' "$longhorn/backup-target.yaml" >/dev/null
-grep -F 'credentialSecret: longhorn-r2-credentials' "$longhorn/backup-target.yaml" >/dev/null
 grep -F 'backupTargetCredentialSecret: longhorn-r2-credentials' "$values" >/dev/null
 grep -F 'allowRecurringJobWhileVolumeDetached: false' "$values" >/dev/null
 grep -F 'key: HETZNER_S3_ACCESS_KEY_ID' "$credentials" >/dev/null
