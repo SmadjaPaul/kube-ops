@@ -12,4 +12,5 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: authentik-hetzner-store
+      # PLT-221: base backups follow the WAL archive to R2.
+      barmanObjectName: authentik-r2-store
