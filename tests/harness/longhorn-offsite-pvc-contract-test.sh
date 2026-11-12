@@ -16,7 +16,10 @@ grep -F 'backupTargetCredentialSecret: longhorn-r2-credentials' "$values" >/dev/
 grep -F 'allowRecurringJobWhileVolumeDetached: false' "$values" >/dev/null
 grep -F 'key: HETZNER_S3_ACCESS_KEY_ID' "$credentials" >/dev/null
 grep -F 'key: HETZNER_S3_SECRET_ACCESS_KEY' "$credentials" >/dev/null
-! rg -n 'AWS_ACCESS_KEY_ID: [A-Za-z0-9+/=]{16,}|AWS_SECRET_ACCESS_KEY: [A-Za-z0-9+/=]{16,}' "$credentials" >/dev/null
+if rg -n 'AWS_ACCESS_KEY_ID: [A-Za-z0-9+/=]{16,}|AWS_SECRET_ACCESS_KEY: [A-Za-z0-9+/=]{16,}' "$credentials" >/dev/null; then
+  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: inline Longhorn backup credential found in backup-credentials.yaml' >&2
+  exit 1
+fi
 grep -F 'kind: RecurringJob' "$job" >/dev/null
 grep -F 'task: backup' "$job" >/dev/null
 grep -F 'retain: 7' "$job" >/dev/null
@@ -31,7 +34,10 @@ grep -F 'redis-pvc-labels.yaml' "$repo_root/k8s/applications/media/immich/immich
 # Regressions: the StatefulSet volumeClaimTemplates are immutable after creation.
 # Apply recurring backup labels only to the existing standalone PVC.
 redis_dir="$repo_root/k8s/applications/media/immich/immich-redis"
-! rg -n 'recurring-backup-patch|volumeClaimTemplates|kind: StatefulSet' "$redis_dir/kustomization.yaml" >/dev/null
+if rg -n 'recurring-backup-patch|volumeClaimTemplates|kind: StatefulSet' "$redis_dir/kustomization.yaml" >/dev/null; then
+  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: immich-redis kustomization must not patch the immutable StatefulSet volumeClaimTemplates' >&2
+  exit 1
+fi
 test ! -e "$redis_dir/recurring-backup-patch.yaml"
 grep -F 'kind: PersistentVolumeClaim' "$immich_pvc" >/dev/null
 grep -F 'name: redis-data-immich-redis-master-0' "$immich_pvc" >/dev/null
@@ -50,10 +56,18 @@ for file in \
   grep -F 'recurring-job.longhorn.io/persistent-offsite-backup: enabled' "$file" >/dev/null
 done
 
-! rg -n 'storageClassName:|resources:|dataStorage:|numberOfReplicas:|defaultDataPath:' \
-  "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
-  "$repo_root/k8s/poc/atlantis-plan-only/pvc-retention.yaml" \
-  | rg 'pvc-retention|agentgateway-state|atlantis-pilot-data' >/dev/null
+# PLT-210: the former `! rg ... | rg 'pvc-retention|agentgateway-state|...'`
+# assertion could never pass once effective: it matched the file name that rg
+# prefixes to each hit, and both files legitimately declare a full PVC spec.
+# Keep the intent (the retained PVCs keep an explicit, unchanged storage tier)
+# as a positive check on the PVC objects themselves.
+agentgateway_sc="$(yq -r 'select(.kind == "PersistentVolumeClaim" and .metadata.name == "agentgateway-state") | .spec.storageClassName' \
+  "$repo_root/k8s/applications/platform/agentgateway/resources.yaml")"
+atlantis_sc="$(yq -r '.spec.storageClassName' "$repo_root/k8s/poc/atlantis-plan-only/pvc-retention.yaml")"
+if [[ "$agentgateway_sc" != 'longhorn-fast' || "$atlantis_sc" != 'longhorn-fast' ]]; then
+  echo "LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retained PVC storage tier changed (agentgateway-state=$agentgateway_sc atlantis-pilot-data=$atlantis_sc)" >&2
+  exit 1
+fi
 
 # Retired Atlantis recovery volume (PLT-205; absorbs the former dedicated
 # Atlantis retirement tests). The Argo root must keep owning the recovery PVC,
@@ -77,11 +91,17 @@ grep -q 'atlantis.smadja.dev/retention: recovery-only' "$atlantis_rendered"
 grep -q 'atlantis.smadja.dev/server: retired' "$atlantis_rendered"
 grep -q 'storageClassName: longhorn-fast' "$atlantis_rendered"
 grep -q 'storage: 5Gi' "$atlantis_rendered"
-! grep -Eq '^kind: (StatefulSet|Deployment|Service|HTTPRoute|ExternalSecret|Secret|ConfigMap|CiliumNetworkPolicy)$' \
-  "$atlantis_rendered"
-! rg -n 'atlantis-servicemonitor|atlantis-observability|atlantis-pilot' \
+if grep -Eq '^kind: (StatefulSet|Deployment|Service|HTTPRoute|ExternalSecret|Secret|ConfigMap|CiliumNetworkPolicy)$' \
+  "$atlantis_rendered"; then
+  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retired Atlantis root renders a workload, route or credential object' >&2
+  exit 1
+fi
+if rg -n 'atlantis-servicemonitor|atlantis-observability|atlantis-pilot' \
   "$repo_root/k8s/infrastructure/monitoring/prometheus-stack/kustomization.yaml" \
   "$repo_root/k8s/applications/media/aiostreams/networkpolicy.yaml" \
-  "$repo_root/k8s/applications/media/polyfin/networkpolicy.yaml" >/dev/null
+  "$repo_root/k8s/applications/media/polyfin/networkpolicy.yaml" >/dev/null; then
+  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: obsolete Atlantis reference reintroduced' >&2
+  exit 1
+fi
 
 printf '%s\n' 'LONGHORN_OFFSITE_PVC_CONTRACT=PASS'

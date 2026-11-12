@@ -1,0 +1,18 @@
+# PLT-221: first base backup of sparkyfitness-db on R2, taken right after the
+# WAL archive switch (ContinuousArchiving=True on R2, 2026-11-12 19:53Z), so the
+# R2 archive is restorable before the first weekly ScheduledBackup.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: sparkyfitness-r2-initial-20261112
+  namespace: wellness
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: sparkyfitness-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: sparkyfitness-r2-store

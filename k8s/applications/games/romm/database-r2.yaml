@@ -1,0 +1,76 @@
+# PLT-228: CNPG Barman WAL archive and base backups of romm/romm-postgresql
+# on Cloudflare R2 (bucket homelab-backup-cnpg, jurisdiction eu), following the
+# PLT-221 sparkyfitness pilot (R2 migration PLT-219, runbook homelab-infra
+# docs/operations/r2-migration.md).
+#
+# Identity: the per-bucket writer (Object Read & Write on homelab-backup-cnpg
+# only). The endpoint comes from Doppler R2_S3_ENDPOINT through the same
+# Secret, so the account id is never written in this public repository:
+# barman-cloud runs without --endpoint-url and boto3 reads AWS_ENDPOINT_URL_S3.
+#
+# Objects land under s3://homelab-backup-cnpg/romm/romm-postgresql/
+# (serverName defaults to the Cluster name). The Hetzner store in database-objectstore.yaml
+# is kept untouched until a restore from R2 is proven.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: romm-cnpg-r2-credentials
+  namespace: romm
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-cluster
+    kind: ClusterSecretStore
+  target:
+    name: romm-cnpg-r2-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef:
+        key: R2_CNPG_WRITER_ACCESS_KEY_ID
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef:
+        key: R2_CNPG_WRITER_SECRET_ACCESS_KEY
+    - secretKey: AWS_ENDPOINT_URL_S3
+      remoteRef:
+        key: R2_S3_ENDPOINT
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: romm-r2-store
+  namespace: romm
+spec:
+  retentionPolicy: "14d"
+  instanceSidecarConfiguration:
+    env:
+      # plugin-barman-cloud v0.11.0 ships barman 3.17.0 with boto3 1.42.37:
+      # its default flexible CRC checksums are not all supported by R2.
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_DEFAULT_REGION
+        value: auto
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef:
+            name: romm-cnpg-r2-credentials
+            key: AWS_ENDPOINT_URL_S3
+    resources:
+      requests: {cpu: 50m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 512Mi}
+  configuration:
+    destinationPath: s3://homelab-backup-cnpg/romm
+    s3Credentials:
+      accessKeyId:
+        name: romm-cnpg-r2-credentials
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: romm-cnpg-r2-credentials
+        key: AWS_SECRET_ACCESS_KEY
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip
