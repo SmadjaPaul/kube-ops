@@ -169,7 +169,8 @@ prometheus:
     # node_exporter on a private LAN endpoint, firewall-restricted to the
     # Talos monitoring traffic. No exporter is installed by this repo change.
     # Never expose unauthenticated node_exporter through Cloudflare.
-    # Default collectors read kernel counters/hwmon; no SMART polling.
+    # Default collectors read kernel counters/hwmon; NVMe health comes from the
+    # host textfile collector (nvme_*, read-only smart-log, PLT-216); no smartctl.
     additionalScrapeConfigs:
       - job_name: proxmox-host
         scrape_interval: 30s

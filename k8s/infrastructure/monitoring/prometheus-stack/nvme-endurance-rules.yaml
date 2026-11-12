@@ -1,0 +1,137 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nvme-endurance
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: nvme.endurance
+      rules:
+        # critical: real incident or imminent risk on the Proxmox host SSD.
+        - alert: NvmeCriticalWarning
+          expr: nvme_critical_warning{job="proxmox-host"} > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "NVMe {{ $labels.device }} reports a SMART critical warning"
+            description: >-
+              The controller raised critical_warning={{ $value }} on the
+              Proxmox host (spare below threshold, temperature, reliability,
+              read-only mode or volatile memory backup). Runbook first step:
+              read the drive with nvme smart-log, check recent backups.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        - alert: NvmeSpareBelowThreshold
+          expr: >-
+            nvme_available_spare_ratio{job="proxmox-host"}
+            <= nvme_available_spare_threshold_ratio{job="proxmox-host"}
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "NVMe {{ $labels.device }} spare capacity reached its threshold"
+            description: >-
+              Available spare is {{ $value | humanizePercentage }} at or below the
+              drive's own threshold: plan the replacement now.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        - alert: NvmeWearCritical
+          expr: nvme_percentage_used_ratio{job="proxmox-host"} >= 0.9
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            summary: "NVMe {{ $labels.device }} has used 90 % of its rated endurance"
+            description: >-
+              percentage_used is {{ $value | humanizePercentage }}. The rated
+              endurance (220 TBW for the Crucial P310 1 TB) is nearly consumed:
+              replace the drive and check that backups are restorable.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        # warning: persistent anomaly.
+        - alert: NvmeWearHigh
+          expr: nvme_percentage_used_ratio{job="proxmox-host"} >= 0.5
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "NVMe {{ $labels.device }} has used half of its rated endurance"
+            description: >-
+              percentage_used is {{ $value | humanizePercentage }}. Reduce the
+              write volume or schedule the replacement.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        - alert: NvmeMediaErrors
+          expr: increase(nvme_media_errors_total{job="proxmox-host"}[1d]) > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "NVMe {{ $labels.device }} logged new media or data-integrity errors"
+            description: >-
+              {{ $value | humanize }} new media errors in 24 h. Check zpool
+              status for checksum errors and the nvme error log.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        - alert: NvmeTemperatureHigh
+          expr: nvme_temperature_celsius{job="proxmox-host"} > 70
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "NVMe {{ $labels.device }} is above 70 C"
+            description: >-
+              Drive temperature {{ $value | humanize }} C for 15 minutes
+              (operating limit of the P310 is 70 C): thermal throttling and
+              wear risk. Correlate with the CPU Tctl and the case airflow.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        # info: optimisation or non-urgent anomaly.
+        - alert: NvmeWriteRateAboveBudget
+          expr: >-
+            sum(rate(node_disk_written_bytes_total{job="proxmox-host",device="nvme0n1"}[1d]))
+            > 5.8e6
+          for: 1h
+          labels:
+            severity: info
+          annotations:
+            summary: "Host NVMe writes exceed 0.5 TB/day"
+            description: >-
+              {{ $value | humanize }}B/s over 24 h. A 220 TBW drive lasts five
+              years only below about 0.12 TB/day (about 1.4 MB/s). Find the
+              writers (PLT-211 baseline) before the wear alerts fire.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        - alert: NvmeWearProjectionUnder90Days
+          expr: >-
+            predict_linear(nvme_percentage_used_ratio{job="proxmox-host"}[7d], 90 * 24 * 3600) >= 1
+          for: 6h
+          labels:
+            severity: info
+          annotations:
+            summary: "NVMe {{ $labels.device }} could reach 100 % used within 90 days at the current rate"
+            description: >-
+              Linear extrapolation of percentage_used over 7 days (integer
+              steps, indicative only, not a failure date).
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        - alert: NvmeUnsafeShutdown
+          expr: increase(nvme_unsafe_shutdowns_total{job="proxmox-host"}[1d]) > 0
+          labels:
+            severity: info
+          annotations:
+            summary: "NVMe {{ $labels.device }} recorded an unsafe shutdown in the last 24 h"
+            description: >-
+              The host lost power or reset without a clean shutdown. Correlate
+              with the host reboot causes (PLT-215).
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
+        - alert: NvmeHealthTelemetryMissing
+          expr: >-
+            (time() - max(node_textfile_mtime_seconds{job="proxmox-host",file="nvme.prom"}) > 3600)
+            or absent(node_textfile_mtime_seconds{job="proxmox-host",file="nvme.prom"})
+          for: 30m
+          labels:
+            severity: info
+          annotations:
+            summary: "NVMe health metrics are missing or stale on the Proxmox host"
+            description: >-
+              No fresh nvme.prom textfile from the host. The absence of NVMe
+              alerts is then not a sign of health. The host collector is
+              installed by the homelab-infra proxmox_node_exporter role
+              (proxmox_node_exporter_enable_nvme_health).
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
