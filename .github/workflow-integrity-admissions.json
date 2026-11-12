@@ -289,6 +289,17 @@
     },
     {
       "repository": "SmadjaPaul/kube-ops",
+      "pr": 1255,
+      "changeFingerprint": "4d2c8adde9cbb248c827d5803574c92634b43063297a1b00a678fa9a67e45eca",
+      "paths": [
+        "tests/harness/longhorn-offsite-pvc-contract-test.sh"
+      ],
+      "reason": "PLT-187 M2: Longhorn allowRecurringJobWhileVolumeDetached true->false, harness assertion updated accordingly.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-17T02:31:03Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
       "pr": 1259,
       "changeFingerprint": "49527b04f8c9b1c678cee475bb6e84fb3c11709bd49bcfe7493d28320b50a5d7",
       "paths": [
