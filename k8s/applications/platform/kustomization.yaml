@@ -8,6 +8,8 @@ resources:
   - mastra-factory
   - mastra-sandbox
   - matrix
+  # PLT-202: isolated read-only CNPG recovery drill of the prod MAS database.
+  - ../../optional/matrix-mas-drill
   - rustical-pilot
   - ../../optional/sparkyfitness
   # Hermes foundation is intentionally active with an empty tenant registry.

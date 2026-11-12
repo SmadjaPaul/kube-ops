@@ -59,6 +59,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: matrix
       server: https://kubernetes.default.svc
+    - namespace: matrix-mas-drill
+      server: https://kubernetes.default.svc
     - namespace: mealie
       server: https://kubernetes.default.svc
     - namespace: media

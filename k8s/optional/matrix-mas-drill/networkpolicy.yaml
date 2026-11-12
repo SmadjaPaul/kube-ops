@@ -1,0 +1,49 @@
+# No ingress except the CNPG operator status port and same-namespace traffic;
+# egress limited to DNS, kube-apiserver and the Hetzner object storage endpoint.
+# No Service here is consumed by MAS or exposed through a Gateway.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: matrix-mas-drill
+  namespace: matrix-mas-drill
+  labels: {policy-type: platform}
+spec:
+  description: "PLT-202 isolated MAS recovery drill: no external ingress, egress only to DNS, API server and Hetzner S3."
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix-mas-drill
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+            app.kubernetes.io/name: cloudnative-pg
+      toPorts:
+        - ports:
+            - {port: "8000", protocol: TCP}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix-mas-drill
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+            - {port: "6443", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchName: fsn1.your-objectstorage.com
+        - matchName: smadja-dev-homelab-backups.fsn1.your-objectstorage.com
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
