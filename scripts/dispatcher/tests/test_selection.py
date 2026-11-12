@@ -8,7 +8,7 @@ import io
 import json
 import sys
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -86,7 +86,22 @@ class ClaudeCommandTests(unittest.TestCase):
         self.assertEqual(args["--output-format"], "json")
         self.assertIn("--max-budget-usd", args)
         self.assertIn("PLT-2", cmd[-1])
-        self.assertLessEqual(len(cmd[-1].splitlines()), 5)
+        self.assertLessEqual(len(cmd[-1].splitlines()), 8)
+
+    def test_prompt_slices_large_tickets_instead_of_refusing(self):
+        queue = load("queue.json")["queue"]
+        prompt = dispatch.claude_command(queue[0], "local")[-1]
+        self.assertIn("première tranche livrable", prompt)
+        self.assertIn("ne refuse pas", prompt)
+        self.assertIn("RUNTIME", prompt)
+        self.assertIn("worktree neuf depuis origin/main", prompt)
+        self.assertIn("aucun apply hors CI", prompt)
+
+    def test_permission_mode_comes_from_environment(self):
+        queue = load("queue.json")["queue"]
+        with mock.patch.dict("os.environ", {"DISPATCH_PERMISSION_MODE": "bypassPermissions"}):
+            cmd = dispatch.claude_command(queue[0], "local")
+        self.assertEqual(cmd[cmd.index("--permission-mode") + 1], "bypassPermissions")
 
     def test_table_covers_the_three_models(self):
         self.assertEqual(
@@ -174,6 +189,20 @@ class RunSummaryTests(unittest.TestCase):
         self.assertTrue(dispatch.has_blocker("**Blocage éventuel** : Doppler absent"))
 
 
+class ProgressTests(unittest.TestCase):
+    def test_fingerprint_ignores_dispatcher_comments(self):
+        issue = {"attachments": {"nodes": [{"url": "https://github.com/o/r/pull/12"}, {"url": "https://x/doc"}]},
+                 "comments": {"nodes": [
+                     {"createdAt": "2026-11-12T01:00:00Z", "body": "PR #12 ouverte"},
+                     {"createdAt": "2026-11-12T02:00:00Z", "body": "**Checkpoint dispatcher** (voie local)"},
+                     {"createdAt": "2026-11-12T03:00:00Z", "body": "Relais de nuit : PLT-1 est sauté"}]}}
+        self.assertEqual(dispatch.progress_fingerprint(issue),
+                         "pr=1 liens=2 commentaires=1 dernier=2026-11-12T01:00:00Z")
+
+    def test_fingerprint_of_empty_ticket(self):
+        self.assertEqual(dispatch.progress_fingerprint({}), "pr=0 liens=0 commentaires=0 dernier=-")
+
+
 class DryRunTests(unittest.TestCase):
     """End-to-end dry-run on a snapshot: no key, no network, no subprocess."""
 
@@ -215,6 +244,21 @@ class DryRunTests(unittest.TestCase):
         self.assertIn("à reprendre : PLT-200", out)
         self.assertNotIn("PLT-301", out)
         self.assertIn("file vide pour la voie local", out)
+
+    def test_skip_list_is_never_chosen_and_progress_is_printed(self):
+        snap = str(FIX / "snapshot-2026-11-11.json")
+        with mock.patch.object(sel, "utcnow", return_value=sel.parse_ts("2026-11-12T01:00:00Z")):
+            code, out = self._run("--lane", "local", "--dry-run", "--snapshot", snap)
+            self.assertIn("choisi : PLT-198", out)
+            self.assertRegex(out, r"progrès : PLT-198 pr=\d+ liens=\d+ commentaires=\d+ dernier=")
+            code, out = self._run("--lane", "local", "--dry-run", "--snapshot", snap, "--skip", "PLT-198")
+        self.assertEqual(code, 0)
+        self.assertIn("écarté : PLT-198 (sauté cette nuit par le superviseur)", out)
+        self.assertNotIn("choisi : PLT-198", out)
+
+    def test_invalid_skip_identifier_is_rejected(self):
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self._run("--lane", "local", "--dry-run", "--skip", "PLT-1;rm")
 
     def test_snapshot_requires_dry_run_and_missing_key_fails_cleanly(self):
         snap = str(FIX / "snapshot-2026-11-11.json")
@@ -260,6 +304,9 @@ class FakeLinear:
     def comment(self, issue_id, body):
         self.comments.append((issue_id, body))
 
+    def issue_detail(self, ident):
+        return {"id": f"uuid-{ident}", "identifier": ident}
+
 
 SUCCESS = json.dumps({"subtype": "success", "is_error": False, "num_turns": 3, "result": "ok",
                       "total_cost_usd": 0.1, "usage": {"input_tokens": 1, "output_tokens": 2}})
@@ -271,7 +318,7 @@ class RealRunTests(unittest.TestCase):
     def setUp(self):
         self.queue = load("queue.json")["queue"]
         self.top = "uuid-PLT-5"
-        self.args = dispatch.argparse.Namespace(lane="local", dry_run=False, snapshot=None)
+        self.args = dispatch.argparse.Namespace(lane="local", dry_run=False, snapshot=None, skip=[], expect=None)
 
     def _run(self, fake, proc_stdout=SUCCESS, proc_rc=0, proc_stderr=""):
         proc = mock.Mock(returncode=proc_rc, stdout=proc_stdout, stderr=proc_stderr)
@@ -339,6 +386,57 @@ class RealRunTests(unittest.TestCase):
             self._run(fake)
         self.assertEqual(fake.states[stale["id"]], "Todo")
         self.assertTrue(any(i == stale["id"] and "remis en Todo" in b for i, b in fake.comments))
+
+    def test_expect_mismatch_does_not_lock_or_run(self):
+        self.args.expect = "PLT-4"  # PLT-5 sorts first
+        fake = FakeLinear(self.queue)
+        code, sp = self._run(fake)
+        self.assertEqual(code, 3)
+        sp.assert_not_called()
+        self.assertEqual(fake.labels, {})
+
+    def test_expect_match_and_skip_run_the_expected_ticket(self):
+        self.args.expect, self.args.skip = "PLT-4", ["PLT-5"]
+        fake = FakeLinear(self.queue)
+        code, sp = self._run(fake)
+        self.assertEqual(code, 0)
+        self.assertIn("PLT-4", sp.call_args[0][0][-1])
+        self.assertEqual(fake.states["uuid-PLT-4"], "In Progress")
+
+    def test_usage_limit_prints_only_the_reset_fragment(self):
+        fake = FakeLinear(self.queue)
+        limit = json.dumps({"subtype": "success", "is_error": True, "result": "You've hit your limit · resets 3am"})
+        buf = io.StringIO()
+        proc = mock.Mock(returncode=1, stdout=limit, stderr="token lin_api_SECRET")
+        with mock.patch.object(dispatch.subprocess, "run", return_value=proc), redirect_stdout(buf):
+            code = dispatch.run(self.args, linear=fake)
+        self.assertEqual(code, 1)
+        self.assertIn("limite d'usage : usage limit, resets 3am", buf.getvalue())
+        self.assertNotIn("SECRET", buf.getvalue())
+        self.assertEqual(fake.states[self.top], "Todo")
+
+    def test_plain_failure_prints_no_usage_limit(self):
+        buf = io.StringIO()
+        proc = mock.Mock(returncode=1, stdout="", stderr="boom")
+        with mock.patch.object(dispatch.subprocess, "run", return_value=proc), redirect_stdout(buf):
+            dispatch.run(self.args, linear=FakeLinear(self.queue))
+        self.assertNotIn("limite d'usage", buf.getvalue())
+
+    def test_comment_skip_posts_one_note(self):
+        fake = FakeLinear(self.queue)
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(dispatch.comment_skip("PLT-172", "2 échecs consécutifs", linear=fake), 0)
+        self.assertEqual(len(fake.comments), 1)
+        self.assertEqual(fake.comments[0][0], "uuid-PLT-172")
+        self.assertTrue(fake.comments[0][1].startswith("Relais de nuit : PLT-172 est sauté"))
+
+    def test_sigterm_becomes_system_exit_so_the_ticket_is_handed_back(self):
+        fake = FakeLinear(self.queue)
+        with mock.patch.object(dispatch, "summarize_run", side_effect=lambda *a: dispatch._sigterm(15, None)):
+            with self.assertRaises(SystemExit):
+                self._run(fake)
+        self.assertUnlocked(fake)
+        self.assertEqual(fake.states[self.top], "Todo")
 
     def test_timeout_stays_under_lock_ttl(self):
         self.assertLess(dispatch.CLAUDE_TIMEOUT_S, sel.LOCK_TTL.total_seconds())
