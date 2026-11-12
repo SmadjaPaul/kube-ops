@@ -174,6 +174,37 @@ An admission for #947 does not constitute approval to remove the Longhorn
 global recurring job; the 19 primary-coverage gaps still need a separate
 recoverability decision.
 
+## PLT-210 scope (after owner bootstrap)
+
+The gate protects what defines trusted CI execution, not every contract test.
+
+| Class | Paths | Rule |
+| --- | --- | --- |
+| Protected | `.github/workflows/*`, `.github/actions/*`, `package.json` (commitlint bumps exempt), `docs/contracts/agent-test-result-v1.schema.json`, `scripts/check-v1-active-contract.sh`, `scripts/select-v1-contract-roots.sh`, `scripts/backup-static-contract.sh`, `scripts/check-agent-harness-contract.sh`, `scripts/check-documentation-integrity.mjs` | Any change needs an exact owner admission |
+| Guarded | other `tests/harness/*` and `scripts/check-*` | Additions and extensions are free. Deletion, or fewer non-comment assertion markers (`assert*`, `fail*`, `die`, `exit 1-9`, `\|\| {`, `expect(`, `raise SystemExit`, `process.exit(1-9)`), needs an admission |
+| Free | everything else, including `.justfile` (no required check runs it) | No admission |
+
+The admission fingerprint binds only the blocked paths (path, status, modes,
+blobs). A rebase, a merge of `main` or a fix to a non-blocked file keeps the
+admission; any change to an admitted file invalidates it.
+
+Compute a fingerprint from the repository root:
+
+```bash
+PYTHONPATH=.github/actions/workflow-integrity python3 -c '
+import sys, verify as g
+base, head = sys.argv[1], sys.argv[2]
+blocked = g.blocked_paths(g.changed_paths(base, head), base, head)
+print(blocked)
+print(g.change_fingerprint(base, head, blocked))' "$BASE_SHA" "$HEAD_SHA"
+```
+
+Residual risk, accepted by the owner: a guarded test can still be weakened
+by an edit that keeps its marker count (for example, a looser pattern). The
+marker heuristic targets accidental weakening by agents, not a hostile author:
+agents already act under the owner identity, so the registry itself is a
+procedural barrier, not cryptographic proof of an independent human decision.
+
 ## Boundaries
 
 This mechanism admits changes to protected code paths; it does **not**
