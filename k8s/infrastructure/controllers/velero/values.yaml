@@ -6,7 +6,7 @@ deployNodeAgent: true
 snapshotsEnabled: false
 initContainers:
   - name: velero-plugin-for-aws
-    image: velero/velero-plugin-for-aws:v1.14.1
+    image: velero/velero-plugin-for-aws:v1.14.4
     imagePullPolicy: IfNotPresent
     volumeMounts:
       - mountPath: /target
@@ -29,6 +29,12 @@ configuration:
   uploaderConfig:
     # Keep WAN pressure and local disk contention bounded on the single node.
     parallelFilesUpload: 2
+  # R2 does not support every flexible checksum of recent AWS SDKs (aws-sdk-go-v2).
+  extraEnvVars:
+    - name: AWS_REQUEST_CHECKSUM_CALCULATION
+      value: when_required
+    - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+      value: when_required
   backupRepositoryConfigMap: velero-repository-config
   repoMaintenanceJobConfigMap: velero-repo-maintenance-job-config
   backupStorageLocation:
@@ -41,6 +47,22 @@ configuration:
         region: fsn1
         s3ForcePathStyle: "false"
         s3Url: https://fsn1.your-objectstorage.com
+    # PLT-222: Cloudflare R2 (jurisdiction eu), added NEXT TO the Hetzner BSL.
+    # Not default: schedules keep `storageLocation: default` until the R2
+    # backup + isolated restore is proven (docs/operations/r2-migration.md, step 6).
+    - name: r2
+      provider: aws
+      bucket: homelab-backup-velero
+      default: false
+      accessMode: ReadWrite
+      credential:
+        name: velero-r2-credentials
+        key: cloud
+      config:
+        region: auto
+        s3ForcePathStyle: "true"
+        # Endpoint R2, juridiction eu. L'account ID n'est pas un credential.
+        s3Url: https://a98efb1065ad3ae6b7259dce75f2a980.eu.r2.cloudflarestorage.com
   repositoryMaintenanceJob:
     repositoryConfigData:
       name: "velero-repo-maintenance"
@@ -74,6 +96,11 @@ resources:
     memory: 1Gi
 
 nodeAgent:
+  extraEnvVars:
+    - name: AWS_REQUEST_CHECKSUM_CALCULATION
+      value: when_required
+    - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+      value: when_required
   tolerations:
     - key: "gpu"
       operator: "Equal"
