@@ -24,6 +24,8 @@ if [ ! -r "$LIB" ]; then
   exit 0
 fi
 
+# never inherit an ambient/pre-validated kubeconfig: always the canonical copy
+unset KUBECONFIG KUBE_ACCESS_CANONICALIZED KUBE_ACCESS_BOOTSTRAP KUBE_ACCESS_SOURCE KUBE_ACCESS_TMPDIR
 # shellcheck source=/dev/null
 source "$LIB"
 set +e

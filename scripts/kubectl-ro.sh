@@ -40,10 +40,15 @@ for arg in "${@:2}"; do
       refuse "option '$arg' : TLS non contournable" ;;
     --raw|--raw=*)
       refuse "option '$arg' : accès API brut non autorisé" ;;
+    -v|-v=*|-v[0-9]*|--v|--v=*|--vmodule|--vmodule=*)
+      refuse "option '$arg' : la verbosité kubectl affiche les corps HTTP (Secrets compris)" ;;
+    -k|-k*|--kustomize|--kustomize=*|--filename|--filename=*|-r|-R|--recursive|--recursive=*|-f?*)
+      refuse "option '$arg' : lecture par fichier/kustomize non autorisée (nommer la ressource)" ;;
     -w|--watch|--watch=*|--watch-only|--watch-only=*|--follow|--follow=*)
       refuse "option '$arg' : sortie non bornée (pas de watch/follow)" ;;
     -f)
-      [ "$verb" != logs ] || refuse "option '-f' : sortie non bornée (utiliser --tail=N)" ;;
+      [ "$verb" != logs ] || refuse "option '-f' : sortie non bornée (utiliser --tail=N)"
+      refuse "option '-f' : lecture par fichier non autorisée (nommer la ressource)" ;;
     -o|--output|-o*|--output=*|--template|--template=*)
       output_flag=1 ;;
   esac
@@ -57,6 +62,8 @@ if [ "$verb" = get ] && [ "$secret_ref" = 1 ] && [ "$output_flag" = 1 ]; then
   refuse "contenu d'un Secret (get secret avec -o/--output) ; utiliser 'get secret' sans -o ou 'describe secret' (tailles seulement)"
 fi
 
+# never inherit an ambient/pre-validated kubeconfig: always the canonical copy
+unset KUBECONFIG KUBE_ACCESS_CANONICALIZED KUBE_ACCESS_BOOTSTRAP KUBE_ACCESS_SOURCE KUBE_ACCESS_TMPDIR
 # shellcheck source=/dev/null
 source "$HERE/lib/kube-preflight.sh"
 set +e

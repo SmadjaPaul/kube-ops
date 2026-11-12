@@ -11,6 +11,9 @@ doppler run -p infrastructure -c prd -- python3 scripts/dispatcher/dispatch.py -
 # Exécution réelle d'un seul ticket
 doppler run -p infrastructure -c prd -- python3 scripts/dispatcher/dispatch.py --lane local
 
+# Même dry-run pour un agent (sortie masquée, AGENTS.md)
+bash scripts/doppler-safe.sh run -- python3 scripts/dispatcher/dispatch.py --lane local --dry-run
+
 # Dry-run hors réseau, sur un instantané de la file
 python3 scripts/dispatcher/dispatch.py --lane local --dry-run --snapshot scripts/dispatcher/tests/fixtures/snapshot-2026-11-11.json
 ```

@@ -320,6 +320,9 @@ simulate_session() { # no network, no claude: fake JSON, fake handoff, simulated
 kube_status() {
   if [ "$DRY_RUN" = 1 ]; then KUBE_LINE=$DRY_RUN_KUBE; return 0; fi
   local f="$RUNS/kube-status.$$" line
+  # a preflight killed by SIGKILL cannot run its cleanup: sweep stale temp kubeconfigs
+  find "${TMPDIR:-/tmp}" -maxdepth 1 -type d -name 'kube-ops-operator-access.*' -mmin +360 \
+    -exec rm -rf {} + 2>/dev/null
   (cd "$REPO" && exec bash "$KUBE_STATUS_CMD") >"$f" 2>/dev/null </dev/null &
   SESSION_PID=$!
   ( sleep "$KUBE_CHECK_TIMEOUT"; touch "$f.timeout"; kill_tree "$SESSION_PID" ) >/dev/null 2>&1 &

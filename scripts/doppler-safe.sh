@@ -64,7 +64,7 @@ case "$sub" in
   delete)
     [ "${#args[@]}" -ge 1 ] || die "delete KEY..."
     for k in "${args[@]}"; do valid_key "$k"; done
-    "$DOPPLER" secrets delete "${args[@]}" -p "$PROJECT" -c "$CONFIG" -y --silent >/dev/null 2>&1
+    "$DOPPLER" secrets delete "${args[@]}" -p "$PROJECT" -c "$CONFIG" -y --silent </dev/null >/dev/null 2>&1
     rc=$?
     list=$(names) || list=""
     left=0

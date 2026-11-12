@@ -118,6 +118,8 @@ RULES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bdoppler\b.*\brun\b.*--command\b"),
      "doppler run --command : passer par scripts/doppler-safe.sh run -- <cmd>"),
     (re.compile(r"\bkubectl\b.*\bconfig\s+view\b.*--raw\b"), "kubectl config view --raw affiche les credentials"),
+    (re.compile(r"\bkubectl\b.*\s--?v(=|\s+)?([6-9]|[1-9][0-9])\b"),
+     "kubectl -v>=6 affiche les corps HTTP (données des Secrets comprises)"),
     (re.compile(r"\bkubectl\b.*\bexec\b.*\s--\s.*\b(env|printenv)\b"),
      "kubectl exec ... env/printenv affiche les variables du conteneur"),
 ]
@@ -132,7 +134,7 @@ DOPPLER_RUN_DUMP = re.compile(
 )
 KUBECTL_SECRET_OUT = re.compile(r"\bkubectl\b.*\bget\b")
 SECRET_WORD = re.compile(r"(^|[\s,/])(secret|secrets|sec)($|[\s,/.])", re.I)
-OUTPUT_FLAG = re.compile(r"(^|\s)(-o\S*|--output\S*|--template\S*)")
+OUTPUT_FLAG = re.compile(r"(^|\s)(-o(?!\s*=?\s*name\b)\S*|--output(?!\s*=?\s*name\b)\S*|--template\S*)")
 NAMES_ONLY_PIPE = re.compile(r"^\s*(cut\s+-d\s*['\"]?=['\"]?\s*-f\s*1|sed\s+(-E\s+)?['\"]?s/=\.\*//['\"]?)\s*$")
 
 

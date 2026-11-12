@@ -69,6 +69,8 @@ kubectl -n argocd get secrets -ojsonpath='{.data}'
 kubectl get secret/foo --output=json
 kubectl exec pod -- env
 kubectl config view --raw
+kubectl get secret foo -n x -v=8
+kubectl --v=9 get secret foo
 EOF
 
 # --- 3. hook lets ordinary commands through (exit 0)
@@ -89,6 +91,8 @@ set -euo pipefail; ls
 kubectl get secrets -n argocd
 kubectl describe secret foo
 kubectl get pods -o wide
+kubectl get secret -n argocd -o name
+kubectl get pods -v=4
 bash scripts/kubectl-ro.sh get applications -n argocd
 ps aux
 just kube-access-check
@@ -138,6 +142,7 @@ for tool in kubectl doppler; do
 done
 RO="$ROOT/scripts/kubectl-ro.sh"
 for args in "delete pod x" "apply -f x.yaml" "exec pod -- env" "get secret foo -o yaml" "get secrets -ojson" \
+            "get secret foo -v=9" "get secret foo --v 8" "get -f s.yaml -o yaml" "get -k ./dir" "get --filename=s.yaml" \
             "get pods --kubeconfig /tmp/k" "get pods --insecure-skip-tls-verify" "get --raw /api" "logs -f pod" "get pods -w"; do
   # shellcheck disable=SC2086 # word splitting wanted
   PATH="$WORK/bin:$PATH" bash "$RO" $args >/dev/null 2>&1; rc=$?
