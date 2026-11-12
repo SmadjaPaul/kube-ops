@@ -9,6 +9,7 @@ resources:
   - storageclasses.yaml
   - sandbox-storageclass.yaml
   - workspace-storageclass.yaml
+  - drill-storageclass.yaml
   - backup-credentials.yaml
   - backup-credentials-r2.yaml
   - recurring-job.yaml
