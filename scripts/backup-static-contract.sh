@@ -5,6 +5,9 @@ for cmd in kustomize yq jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $c
 bash tests/harness/velero-storage-tier-test.sh
 bash tests/harness/velero-resource-modifier-test.sh
 bash tests/harness/cnpg-gap-backup-contract-test.sh
+# PLT-202: restore drills read prod Barman prefixes with a writable key; forbid
+# any archiving/backup/retention configuration in them.
+bash scripts/restore-drill-readonly-contract.sh
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
