@@ -73,3 +73,39 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
   Locks) is a homelab-infra change, not part of this drill.
 - The other CNPG clusters move one by one with the same pattern, each with its
   own isolated drill; see PLT-221.
+
+## Next clusters
+
+### romm/romm-postgresql — PLT-228 (#1303, #1305, #1306, teardown)
+
+- Cutover merged 20:55:20Z. **Unplanned outage of about 4 min** (`Ready=False`
+  20:56:57Z to 21:00:56Z): during shutdown, the old instance tried to archive
+  segment `…0370` with the new R2 configuration, but its sidecar still had
+  the Hetzner environment (no `AWS_ENDPOINT_URL_S3`), so `barman-cloud-wal-archive`
+  failed (exit 4) until the smart shutdown timeout. The new instance archived
+  the segment to R2 at 21:00:48Z; no WAL was lost. The pilot had no pending
+  segment at shutdown, which hid this.
+- Window without an R2 recovery point: 20:56:57Z to 21:06:54Z (9 min 57 s,
+  base `20261112T210645`). Hetzner stays restorable up to segment `…036F`.
+- Drill: merge 21:15:39Z, `Cluster` created 21:18:13Z, `Ready` timeline 2 at
+  21:19:20Z. **RTO 3 min 41 s** (67 s of restore). **RPO: no archived write
+  lost** (replayed through `…0374`, last segment archived by production at
+  21:11:56Z; none newer before recovery ended).
+- Control query: `in_recovery=false`, 29 tables, `users=1`, `roms=22`,
+  `play_sessions=12`, `saves=8`, database 11.5 MB. Production stayed on
+  timeline 1, `Ready`, `ContinuousArchiving` true, no archiver error after the
+  restart; the drill pod ran PostgreSQL only.
+
+### Precondition for the remaining cutovers
+
+Before switching `barmanObjectName`, a separate PR adds the R2 environment
+(`AWS_ENDPOINT_URL_S3` from the R2 Secret, and the two checksum variables) to
+the `instanceSidecarConfiguration.env` of the cluster's current Hetzner
+`ObjectStore`, then waits for the rolling restart and for an `Archived WAL
+file` log line of the new sidecar to Hetzner, timestamped after the restart
+(`ContinuousArchiving=True` alone can predate the rollout; an idle database
+may need to wait for its next segment, no forced `pg_switch_wal()` from an
+agent). Hetzner keeps working because its explicit `endpointURL` is passed
+as `--endpoint-url`, which wins over the environment. At the cutover the old
+sidecar can then archive its last segment to R2 during shutdown. Otherwise,
+plan for a smart-shutdown wait of up to 3 minutes.
