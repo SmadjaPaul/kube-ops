@@ -150,7 +150,8 @@ for args in "delete pod x" "apply -f x.yaml" "exec pod -- env" "get secret foo -
             "get -Rf dir" "get pods --insecure_skip_tls_verify" "get pods --as_uid=x" "get pods --client_key=k" \
             "get pods --as_group=g" "get pods --certificate_authority=c" "get pods --tls_server_name=x" "get pods -shttps://x" \
             "get pods -A=true" "get secrets --kuberc=/tmp/kr" "get secrets --kuberc /tmp/kr" "get pods --as-user-extra=a=b" \
-            "get pods --profile=cpu" "get pods --profile-output=/tmp/p" "get pods --cache-dir=/tmp/c" "get pods --log-file=/tmp/l"; do
+            "get pods --profile=cpu" "get pods --profile-output=/tmp/p" "get pods --cache-dir=/tmp/c" "get pods --log-file=/tmp/l" \
+            "get secrets --insecure-skip-tls-verify-backend" "logs pod --insecure_skip_tls_verify_backend=true" "get secrets --sort-by=.data.x"; do
   # shellcheck disable=SC2086 # word splitting wanted
   PATH="$WORK/bin:$PATH" bash "$RO" $args >/dev/null 2>&1; rc=$?
   [ "$rc" = 64 ] && ok "kubectl-ro refuse : $args" || ko "kubectl-ro laisse passer : $args ($rc)"

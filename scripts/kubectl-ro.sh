@@ -96,7 +96,7 @@ for arg in "${@:2}"; do
     --kuberc|--kuberc=*|--profile|--profile=*|--profile-output|--profile-output=*|--cache-dir|--cache-dir=*|\
     --as-user-extra|--as-user-extra=*|--log-file|--log-file=*|--log-dir|--log-dir=*|--log-backtrace-at|--log-backtrace-at=*)
       refuse "option '$arg' : préférences/impersonation/écriture de fichiers non autorisées" ;;
-    --insecure-skip-tls-verify|--insecure-skip-tls-verify=*|--certificate-authority|--certificate-authority=*|--tls-server-name|--tls-server-name=*)
+    --insecure-skip-tls-verify|--insecure-skip-tls-verify=*|--insecure-skip-tls-verify-backend|--insecure-skip-tls-verify-backend=*|--certificate-authority|--certificate-authority=*|--tls-server-name|--tls-server-name=*)
       refuse "option '$arg' : TLS non contournable" ;;
     --raw|--raw=*)
       [ "$raw_mode" = 1 ] || refuse "option '$arg' : accès API brut non autorisé" ;;
@@ -112,7 +112,7 @@ for arg in "${@:2}"; do
     -oname|--output=name) ;;
     -o|--output)
       next_is_output=1 ;;
-    -o*|--output=*|--template|--template=*)
+    -o*|--output=*|--template|--template=*|--sort-by|--sort-by=*)
       output_flag=1 ;;
   esac
   # secret / secrets / sec, alone, in a comma list, or as type/name
@@ -127,6 +127,8 @@ if [ "$verb" = get ] && [ "$secret_ref" = 1 ] && [ "$output_flag" = 1 ]; then
   refuse "contenu d'un Secret (get secret avec -o/--output) ; utiliser 'get secret' sans -o ou 'describe secret' (tailles seulement)"
 fi
 
+# kuberc preferences (~/.kube/kuberc) could add -o yaml or aliases behind the guard
+export KUBERC=off
 # never inherit an ambient/pre-validated kubeconfig: always the canonical copy
 unset KUBECONFIG KUBE_ACCESS_CANONICALIZED KUBE_ACCESS_BOOTSTRAP KUBE_ACCESS_SOURCE KUBE_ACCESS_TMPDIR
 # shellcheck source=/dev/null
@@ -143,5 +145,4 @@ fi
 # the preflight may have replaced the EXIT trap; keep both cleanups
 trap 'kube_access_cleanup; rm -f "$status_file"' EXIT
 
-# kuberc preferences (~/.kube/kuberc) could add -o yaml or aliases behind the guard
-KUBERC=off kubectl --request-timeout=30s "$@"
+kubectl --request-timeout=30s "$@"
