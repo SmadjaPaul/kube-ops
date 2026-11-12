@@ -107,7 +107,8 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
 - Drill: merge 22:26:09Z, `Cluster` created 22:28:10Z, `Ready` timeline 2 at
   22:29:14Z. **RTO 3 min 5 s** (64 s of restore, 20Gi volume for about 2.5 GB
   used on a 60Gi production volume).
-- **RPO: at most about 3 min, within the 5 min bound.** Recovery replayed
+- **RPO: about 3 min assuming no archive lag (switch time of `…0A3D` not
+  measured independently).** Recovery replayed
   through `…0A3C`, archived 22:15:51Z. Production archived the next segment,
   `…0A3D`, at 22:30:51Z, after recovery ended at about 22:29:00Z. With
   `archive_timeout` at 5 min and no archive lag (the archiver logged no
