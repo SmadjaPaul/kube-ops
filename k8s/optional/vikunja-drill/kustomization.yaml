@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# PLT-221: isolated, read-only CNPG recovery drill of vikunja-postgresql
+# from its Cloudflare R2 archive (pilot cluster of the R2 migration). Uses the
+# R2 restore-ro identity (Object Read only on homelab-backup-cnpg). Nothing here
+# archives, backs up or prunes: no Cluster spec.plugins, no (Scheduled)Backup,
+# no ObjectStore retentionPolicy. Remove this directory by PR after the drill.
+resources:
+  - namespace.yaml
+  - networkpolicy.yaml
+  - externalsecret.yaml
+  - objectstore.yaml
+  - cluster.yaml
+  - check-job.yaml
