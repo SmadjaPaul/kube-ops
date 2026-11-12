@@ -45,7 +45,8 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 </k8s_backup>
 <k8s_cnpg>
 - Use ObjectStore CRD with barman-cloud plugin only.
-- Continuous WAL and base backups target Hetzner Object Storage; do not reintroduce MinIO or Backblaze B2.
+- Continuous WAL and base backups are migrating from Hetzner Object Storage to Cloudflare R2 bucket homelab-backup-cnpg (decision PLT-219, runbook homelab-infra docs/operations/r2-migration.md), one Cluster at a time; do not reintroduce MinIO or Backblaze B2.
+- A migrated Cluster points plugins barmanObjectName and its ScheduledBackup to an R2 ObjectStore with the per-bucket writer identity, endpoint from Doppler R2_S3_ENDPOINT, and AWS_REQUEST_CHECKSUM_CALCULATION and AWS_RESPONSE_CHECKSUM_VALIDATION set to when_required; keep its Hetzner ObjectStore as rollback target until an R2 restore is proven.
 - Set plugin isWALArchiver true.
 - Use ScheduledBackup method plugin with pluginConfiguration name barman-cloud.cloudnative-pg.io.
 </k8s_cnpg>

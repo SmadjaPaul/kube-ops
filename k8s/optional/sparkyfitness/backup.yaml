@@ -19,6 +19,9 @@ spec:
       remoteRef:
         key: HETZNER_S3_SECRET_ACCESS_KEY
 ---
+# PLT-221: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to sparkyfitness-r2-store). Kept as the rollback target; its objects
+# stay in Hetzner, and no plugin sidecar applies its retentionPolicy anymore.
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
@@ -56,4 +59,5 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: sparkyfitness-hetzner-store
+      # PLT-221: base backups follow the WAL archive to R2.
+      barmanObjectName: sparkyfitness-r2-store
