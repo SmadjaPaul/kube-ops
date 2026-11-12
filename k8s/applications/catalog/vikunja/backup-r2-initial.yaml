@@ -1,0 +1,17 @@
+# PLT-221: first base backup of vikunja-postgresql on R2, right after the WAL
+# archive switch. Closes the window without an R2 recovery point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: vikunja-postgresql-r2-initial-20261113
+  namespace: vikunja
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: vikunja-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: vikunja-r2-store
