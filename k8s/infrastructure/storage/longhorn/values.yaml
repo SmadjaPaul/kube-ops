@@ -67,10 +67,13 @@ defaultSettings:
   allowRecurringJobWhileVolumeDetached: false
 
 defaultBackupStore:
-  # Reuse the existing Hetzner Object Storage bucket with a Longhorn-specific
-  # prefix; Velero owns the separate `velero/` prefix.
-  backupTarget: s3://smadja-dev-homelab-backups@fsn1/longhorn/
-  backupTargetCredentialSecret: longhorn-hetzner-credentials
+  # PLT-222 (DRAFT, ne pas fusionner avant validation Velero + CNPG/PLT-221) :
+  # cible R2. Rollback = revert de cette PR (cible Hetzner et secret intacts).
+  backupTarget: s3://homelab-backup-longhorn@auto/
+  backupTargetCredentialSecret: longhorn-r2-credentials
+  # Rollback configuration (kept in Git, objects intact; swap these two lines in):
+  #   backupTarget: s3://smadja-dev-homelab-backups@fsn1/longhorn/
+  #   backupTargetCredentialSecret: longhorn-hetzner-credentials
   pollInterval: 300
 
 networkPolicies:
