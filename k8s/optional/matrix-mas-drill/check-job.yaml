@@ -47,9 +47,16 @@ spec:
               SELECT 'public_tables=' || count(*) FROM pg_tables WHERE schemaname = 'public';
               SELECT format('SELECT %L || count(*) FROM public.%I', 'count.' || tablename || '=', tablename)
                 FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename \gexec
-              SELECT format('SELECT %L || coalesce(max(created_at)::text, ''null'') FROM public.%I', 'max_created_at.' || table_name || '=', table_name)
+              SELECT format('SELECT %L || coalesce(max(%I)::text, ''null'') FROM public.%I', 'max_ts.' || table_name || '.' || column_name || '=', column_name, table_name)
                 FROM information_schema.columns
-                WHERE table_schema = 'public' AND column_name = 'created_at' ORDER BY table_name \gexec
+                WHERE table_schema = 'public' AND data_type = 'timestamp with time zone'
+                ORDER BY table_name, column_name \gexec
+              SQL
+              # RPO evidence; best effort (some functions may need pg_monitor).
+              psql "$PGURI" -At <<'SQL' || true
+              SELECT 'current_walfile=' || pg_walfile_name(pg_current_wal_lsn());
+              SELECT 'checkpoint_timeline=' || timeline_id || ' redo_walfile=' || redo_wal_file || ' checkpoint_time=' || checkpoint_time FROM pg_control_checkpoint();
+              SELECT 'postmaster_start=' || pg_postmaster_start_time();
               SQL
           resources:
             requests: {cpu: 10m, memory: 32Mi}
