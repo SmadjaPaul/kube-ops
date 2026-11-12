@@ -19,7 +19,7 @@ def example(**changes):
         "repository": gate.REPOSITORY,
         "pr": 949,
         "changeFingerprint": "f" * 64,
-        "paths": ["tests/harness/backup-audit-contract-test.sh"],
+        "paths": ["scripts/check-v1-active-contract.sh"],
         "reason": "PLT-56: validated contract additions",
         "approvedBy": gate.OWNER,
         "expiresAt": "2026-11-06T13:00:00Z",
@@ -88,7 +88,7 @@ class AdmissionContract(unittest.TestCase):
         del old["changeFingerprint"]
         raw = json.dumps(doc)
         self.assertEqual(len(gate.validate_registry(raw, NOW)), 1)
-        paths = ["tests/harness/backup-audit-contract-test.sh"]
+        paths = ["scripts/check-v1-active-contract.sh"]
         with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
              patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
@@ -117,10 +117,19 @@ class AdmissionContract(unittest.TestCase):
         self.assertEqual(len(gate.validate_registry(json.dumps(doc), NOW, True)), 2)
 
     def test_protected_path_matching(self):
-        self.assertTrue(gate.protected("tests/harness/backup-audit-contract-test.sh"))
         self.assertTrue(gate.protected(".github/workflows/workflow-integrity.yaml"))
+        self.assertTrue(gate.protected(".github/actions/workflow-integrity/verify.py"))
+        for path in gate.REQUIRED_ENTRYPOINTS:
+            with self.subTest(path=path):
+                self.assertTrue(gate.protected(path))
+        self.assertFalse(gate.protected("tests/harness/backup-audit-contract-test.sh"))
+        self.assertTrue(gate.guarded("tests/harness/backup-audit-contract-test.sh"))
+        self.assertTrue(gate.guarded("scripts/check-atlantis-dispatch-contract.sh"))
+        self.assertFalse(gate.guarded("scripts/check-v1-active-contract.sh"))
+        self.assertFalse(gate.protected(".justfile"))
         self.assertFalse(gate.protected("docs/operations/backup-audit.md"))
         self.assertFalse(gate.protected(gate.REGISTRY))
+        self.assertTrue(gate.admissible("tests/harness/backup-audit-contract-test.sh"))
 
     def test_rename_cannot_hide_protected_source_path(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -148,7 +157,8 @@ class AdmissionContract(unittest.TestCase):
                 paths = gate.changed_paths(base, head)
             self.assertIn("tests/harness/protected.sh", paths)
             self.assertIn("docs/moved-protected.sh", paths)
-            self.assertTrue(any(gate.protected(path) for path in paths))
+            with patch.object(gate, "git_bytes", side_effect=git):
+                self.assertEqual(gate.blocked_paths(paths, base, head), ["tests/harness/protected.sh"])
 
     def test_late_base_admission_is_not_a_pr_change(self):
         # A registry-only owner PR can land on main after a protected PR was
@@ -250,7 +260,7 @@ class AdmissionContract(unittest.TestCase):
 
     def test_head_sha_binds_event_but_not_admission_key(self):
         document = json.dumps(example())
-        paths = ["tests/harness/backup-audit-contract-test.sh"]
+        paths = ["scripts/check-v1-active-contract.sh"]
         with patch.object(gate, "git_bytes", return_value=b"0" * 40), \
              patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
@@ -261,7 +271,7 @@ class AdmissionContract(unittest.TestCase):
 
     def test_exact_authorization_and_expiration(self):
         document = json.dumps(example())
-        paths = ["tests/harness/backup-audit-contract-test.sh"]
+        paths = ["scripts/check-v1-active-contract.sh"]
         with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
              patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
@@ -272,7 +282,7 @@ class AdmissionContract(unittest.TestCase):
 
     def test_reject_changed_content(self):
         document = json.dumps(example())
-        paths = ["tests/harness/backup-audit-contract-test.sh"]
+        paths = ["scripts/check-v1-active-contract.sh"]
         with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
              patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="e" * 64), \
@@ -283,8 +293,8 @@ class AdmissionContract(unittest.TestCase):
     def test_reject_added_protected_file(self):
         document = json.dumps(example())
         paths = [
-            "tests/harness/backup-audit-contract-test.sh",
-            "tests/harness/new-protected-test.sh",
+            "scripts/check-v1-active-contract.sh",
+            ".github/workflows/new-protected.yaml",
         ]
         with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
              patch.object(gate, "changed_paths", return_value=paths), \
@@ -296,8 +306,8 @@ class AdmissionContract(unittest.TestCase):
     def test_reject_deleted_protected_file(self):
         document = json.dumps(example())
         paths = [
-            "tests/harness/backup-audit-contract-test.sh",
-            "tests/harness/removed-protected-test.sh",
+            "scripts/check-v1-active-contract.sh",
+            ".github/workflows/removed-protected.yaml",
         ]
         with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
              patch.object(gate, "changed_paths", return_value=paths), \
@@ -311,7 +321,7 @@ class AdmissionContract(unittest.TestCase):
              patch.object(
                  gate,
                  "changed_paths",
-                 return_value=["tests/harness/backup-audit-contract-test.sh"],
+                 return_value=["scripts/check-v1-active-contract.sh"],
              ):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(repo="attacker/kube-ops"), NOW)
@@ -319,8 +329,8 @@ class AdmissionContract(unittest.TestCase):
     def test_reject_incomplete_admitted_path_set(self):
         document = json.dumps(example())
         paths = [
-            "tests/harness/backup-audit-contract-test.sh",
-            "tests/harness/atlantis-plan-only-test.sh",
+            "scripts/check-v1-active-contract.sh",
+            "scripts/backup-static-contract.sh",
         ]
         with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
              patch.object(gate, "changed_paths", return_value=paths), \
@@ -331,13 +341,57 @@ class AdmissionContract(unittest.TestCase):
 
     def test_reject_expired_base_entry(self):
         document = json.dumps(example(expiresAt="2026-11-05T12:00:00Z"))
-        paths = ["tests/harness/backup-audit-contract-test.sh"]
+        paths = ["scripts/check-v1-active-contract.sh"]
         with patch.object(gate, "git_bytes", return_value=b"a" * 40), \
              patch.object(gate, "changed_paths", return_value=paths), \
              patch.object(gate, "change_fingerprint", return_value="f" * 64), \
              patch.object(Path, "read_text", return_value=document):
             with self.assertRaises(SystemExit):
                 gate.verify(self._args(), NOW)
+
+    def _repo(self, root):
+        def git(*args):
+            return subprocess.check_output(
+                ["git", "-C", str(root), *args], stderr=subprocess.DEVNULL
+            )
+
+        def commit(message):
+            git("add", "-A")
+            git("commit", "-qm", message)
+            return git("rev-parse", "HEAD").decode().strip()
+
+        git("init", "-q")
+        git("config", "user.email", "tests@example.invalid")
+        git("config", "user.name", "CI Test")
+        return git, commit
+
+    def test_contract_test_growth_is_free_but_weakening_is_blocked(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            git, commit = self._repo(root)
+            test = root / "tests" / "harness" / "contract-test.sh"
+            test.parent.mkdir(parents=True)
+            test.write_text('grep -q a f || { echo FAIL; exit 1; }\n')
+            base = commit("base")
+            (root / "tests" / "harness" / "new-test.sh").write_text("exit 1\n")
+            test.write_text('grep -q b f || { echo FAIL; exit 1; }\ngrep -q c f || exit 1\n')
+            grown = commit("add and extend contract tests")
+            with patch.object(gate, "git_bytes", side_effect=git):
+                self.assertEqual(gate.blocked_paths(gate.changed_paths(base, grown), base, grown), [])
+            test.write_text('grep -q b f || true\n# exit 1 assert fail\n')
+            weakened = commit("weaken contract test")
+            with patch.object(gate, "git_bytes", side_effect=git):
+                self.assertEqual(
+                    gate.blocked_paths(gate.changed_paths(base, weakened), base, weakened),
+                    ["tests/harness/contract-test.sh"],
+                )
+            test.unlink()
+            deleted = commit("delete contract test")
+            with patch.object(gate, "git_bytes", side_effect=git):
+                self.assertIn(
+                    "tests/harness/contract-test.sh",
+                    gate.blocked_paths(gate.changed_paths(base, deleted), base, deleted),
+                )
 
     def test_fingerprint_survives_registry_merge_and_branch_sync(self):
         with tempfile.TemporaryDirectory() as temp:

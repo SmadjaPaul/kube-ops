@@ -46,11 +46,55 @@ def safe_path(path):
     return all(part not in ("", ".", "..") for part in path.split("/"))
 
 
+# PLT-210: files that define what trusted CI executes and which checks are
+# required. Any change to them needs an exact owner admission.
+REQUIRED_ENTRYPOINTS = (
+    CONTRACT,
+    "package.json",
+    "scripts/check-v1-active-contract.sh",
+    "scripts/select-v1-contract-roots.sh",
+    "scripts/backup-static-contract.sh",
+    "scripts/check-agent-harness-contract.sh",
+    "scripts/check-documentation-integrity.mjs",
+)
+# Contract tests are ordinary code: adding or extending them is free. Deleting
+# one, or reducing its assertion markers, needs an owner admission.
+GUARDED_PREFIXES = ("tests/harness/", "scripts/check-")
+ASSERTION_MARKER = re.compile(
+    r"\b(?:assert\w*|fail\w*|die)\b|\bexit\s+[1-9]|\|\|\s*\{|\bexpect\(|"
+    r"raise\s+SystemExit|process\.exit\(\s*[1-9]"
+)
+COMMENT_LINE = re.compile(r"\s*(?:#|//)")
+
+
 def protected(path):
-    return (
-        path.startswith((".github/workflows/", ".github/actions/", "tests/harness/", "scripts/check-"))
-        or path in (".justfile", CONTRACT, "package.json")
-    )
+    return path.startswith((".github/workflows/", ".github/actions/")) or path in REQUIRED_ENTRYPOINTS
+
+
+def guarded(path):
+    return path.startswith(GUARDED_PREFIXES) and not protected(path)
+
+
+def admissible(path):
+    return protected(path) or guarded(path)
+
+
+def assertion_markers(revision, path):
+    """Count non-comment assertion markers; None when the file is absent."""
+    try:
+        data = git_bytes("show", f"{revision}:{path}")
+    except subprocess.CalledProcessError:
+        return None
+    lines = data.decode("utf-8", "replace").splitlines()
+    return sum(1 for line in lines if not COMMENT_LINE.match(line) and ASSERTION_MARKER.search(line))
+
+
+def weakens(path, ancestor, head):
+    before = assertion_markers(ancestor, path)
+    if before is None:
+        return False
+    after = assertion_markers(head, path)
+    return after is None or after < before
 
 
 def merge_base(base, head):
@@ -116,9 +160,15 @@ def package_change_is_exempt(base, head):
 
 
 def blocked_paths(paths, base, head):
-    return sorted(p for p in paths if protected(p) and (
-        p != "package.json" or not package_change_is_exempt(base, head)
-    ))
+    ancestor = merge_base(base, head)
+    blocked = []
+    for path in paths:
+        if protected(path):
+            if path != "package.json" or not package_change_is_exempt(base, head):
+                blocked.append(path)
+        elif guarded(path) and weakens(path, ancestor, head):
+            blocked.append(path)
+    return sorted(blocked)
 
 
 def parse_utc(value):
@@ -155,7 +205,7 @@ def validate_registry(raw, now, require_fresh=False):
             raise ValueError("invalid reason")
         if not isinstance(paths, list) or not paths or len(paths) > 40:
             raise ValueError("invalid path list")
-        if any(not safe_path(p) or not protected(p) or p in (SELF, REGISTRY) or p.startswith(GATE_DIR) for p in paths):
+        if any(not safe_path(p) or not admissible(p) or p in (SELF, REGISTRY) or p.startswith(GATE_DIR) for p in paths):
             raise ValueError("paths must be exact protected paths, never the gate or registry")
         if len(paths) != len(set(paths)):
             raise ValueError("duplicate path")
