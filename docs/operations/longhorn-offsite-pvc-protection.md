@@ -34,13 +34,22 @@ PVCs are explicitly marked as the recurring-job source:
   must run `PRAGMA integrity_check` and a read-only application-level check.
 - `atlantis-system/atlantis-pilot-data` — protect the dormant pilot state;
   GitHub App readiness remains a separate blocker.
-- `listmonk/listmonk-uploads` — retained, unmounted data-only PVC.
-- `twenty/twenty-storage` — retained, unmounted data-only PVC.
+- `listmonk/listmonk-uploads` — PVC deleted 2026-11-03; PV Released, data-only.
+- `twenty/twenty-storage` — PVC deleted 2026-11-03; PV Released, data-only.
 
-`allowRecurringJobWhileVolumeDetached` is enabled because the two retained
-PVCs are currently detached. Longhorn may temporarily attach a labeled volume
-to create its snapshot/backup. This is not a blanket backup policy: only
-volumes explicitly carrying the recurring-job label are selected.
+`allowRecurringJobWhileVolumeDetached` is disabled since PLT-187
+(2026-11-12). With the `default` group job it attached about 95 orphaned
+detached volumes every night (PV Released, DR exercises) for an identical
+incremental backup. A detached volume cannot be written: its latest Longhorn
+backups (retain 7, never pruned while no new backup is taken) still hold its
+content. atlantis-pilot-data (PVC Bound, unmounted) and the PVs of
+listmonk-uploads and twenty-storage (PVCs deleted since 2026-11-03, PV
+Released) already have completed backups taken after their last mount. When
+such a volume is attached again, the nightly job backs it up as usual.
+Residual risk: a volume written and detached again between two 03:17 runs is
+not backed up until it is attached at run time; Velero file-system backups do
+not cover a PVC without a running pod either. Set the value back to `true` to
+restore the attach/backup/detach cycle.
 
 Configuration alone is not protection. Each volume is `PROTECTED` only after:
 
