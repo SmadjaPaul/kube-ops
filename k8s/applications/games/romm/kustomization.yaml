@@ -9,6 +9,7 @@ resources:
   - database-r2.yaml
   - database.yaml
   - database-scheduled-backup.yaml
+  - database-r2-initial-backup.yaml
   - pvcs.yaml
   - deployment.yaml
   - service.yaml
