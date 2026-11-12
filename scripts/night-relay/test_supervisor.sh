@@ -34,7 +34,7 @@ run() { # run NAME START [VAR=VALUE...]
   local dir=$WORK/$name
   mkdir -p "$dir"
   local rc=0
-  env DRY_RUN=1 NIGHT_RELAY_FAKE_NOW="$(epoch "$start")" \
+  env DRY_RUN=1 NIGHT_RELAY_FAKE_NOW="$(epoch "$start")" REVIEW_IDLE_INTERVAL=0 \
     NIGHT_RELAY_STATE="$dir/state" NIGHT_RELAY_HANDOFF_DIR="$dir/handoff" \
     CLAUDE_BIN="$WORK/bin/claude" "$@" bash "$SUP" >"$dir/stdout" 2>"$dir/stderr" || rc=$?
   echo "$rc" >"$dir/rc"
@@ -217,7 +217,7 @@ chmod +x "$WORK/fakeclaude"
 printf '#!/usr/bin/env bash\nsleep 7718\necho "disponible (trop tard)"\n' >"$WORK/fakekube"
 h=$(date -u +%H)
 env TZ=UTC NIGHT_RELAY_REPO="$WORK" NIGHT_RELAY_STATE="$S/state" NIGHT_RELAY_HANDOFF_DIR="$S/handoff" \
-  CLAUDE_BIN="$WORK/fakeclaude" NIGHT_RELAY_KUBE_STATUS="$WORK/fakekube" KUBE_CHECK_TIMEOUT=1 KUBE_CHECK_ATTEMPTS=1 START_HM="$(printf '%02d00' $(( (10#$h + 23) % 24 )))" \
+  CLAUDE_BIN="$WORK/fakeclaude" NIGHT_RELAY_DISPATCH=true NIGHT_RELAY_KUBE_STATUS="$WORK/fakekube" KUBE_CHECK_TIMEOUT=1 KUBE_CHECK_ATTEMPTS=1 START_HM="$(printf '%02d00' $(( (10#$h + 23) % 24 )))" \
   STOP_HM="$(printf '%02d00' $(( (10#$h + 3) % 24 )))" MIN_CYCLE_SECONDS=60 ORCH_TIMEOUT=7717 KILL_GRACE=2 \
   bash "$SUP" >"$S/stdout" 2>"$S/stderr" &
 sup=$!
@@ -236,6 +236,111 @@ check "signal: stop logged" 'grep -q "signal reçu" "$S/state/supervisor.log"'
 check "signal: slow preflight bounded, reason in the prompt" \
   'grep -q "^- Kubernetes : indisponible (preflight_timeout : 1s)$" "$S/prompt.txt"'
 check "signal: no surviving preflight" '! pgrep -f "sleep 7718" >/dev/null'
+
+# --- 9. execution stage: the supervisor runs the real dispatcher itself (fake dispatch.py)
+# Queue in <state>/fq/queue; FAKE_FAIL, FAKE_STAY (success but stays in Todo, no progress),
+# FAKE_QUOTA_ONCE (usage limit on the first run) are comma lists of tickets.
+cat >"$WORK/fakedispatch" <<'EOF'
+#!/usr/bin/env bash
+FQ=$NIGHT_RELAY_STATE/fq
+echo "$* perm=${DISPATCH_PERMISSION_MODE:-}" >>"$FQ/calls"
+skip="" expect="" dry=0 cskip=""
+while [ $# -gt 0 ]; do
+  case $1 in --skip) skip=$2; shift ;; --expect) expect=$2; shift ;; --dry-run) dry=1 ;;
+    --comment-skip) cskip=$2; shift ;; --why) shift ;; esac
+  shift
+done
+has() { case ",$2," in *",$1,"*) return 0 ;; esac; return 1; }
+if [ -n "$cskip" ]; then echo "$cskip" >>"$FQ/skipnotes"; echo "commentaire de saut posé : $cskip"; exit 0; fi
+first=""
+while read -r t; do
+  [ -n "$t" ] || continue
+  if has "$t" "$skip"; then echo "écarté : $t (sauté cette nuit par le superviseur)"; continue; fi
+  first=$t; break
+done <"$FQ/queue"
+[ -n "$first" ] || { echo "file vide pour la voie local"; exit 0; }
+if [ -n "$expect" ] && [ "$expect" != "$first" ]; then echo "choix changé"; exit 3; fi
+echo "choisi : $first [Socle sain, prio 2] titre"
+if [ "$dry" = 1 ]; then
+  echo "progrès : $first pr=0 liens=0 commentaires=$(cat "$FQ/prog.$first" 2>/dev/null || echo 0) dernier=-"
+  [ ! -f "$FQ/busy" ] || echo "voie local occupée par PLT-999 : aucun verrou posé, aucune exécution"
+  exit 0
+fi
+[ ! -f "$FQ/running" ] || echo PARALLELE >>"$FQ/calls"
+touch "$FQ/running"
+echo $(( $(cat "$NIGHT_RELAY_STATE/clock") + ${FAKE_RUN_SECONDS:-1800} )) >"$NIGHT_RELAY_STATE/clock"
+rm -f "$FQ/running"
+if has "$first" "${FAKE_QUOTA_ONCE:-}" && [ ! -f "$FQ/quota.$first" ]; then
+  touch "$FQ/quota.$first"; echo "limite d'usage : usage limit, resets 3am"; echo "$first : échec error, None tours"; exit 1
+fi
+if has "$first" "${FAKE_PROGRESS:-}"; then echo $(( $(cat "$FQ/prog.$first" 2>/dev/null || echo 0) + 1 )) >"$FQ/prog.$first"; fi
+if has "$first" "${FAKE_FAIL:-}"; then echo "$first : échec error_max_turns, 8 tours"; exit 1; fi
+has "$first" "${FAKE_STAY:-}" || { grep -vx "$first" "$FQ/queue" >"$FQ/q.tmp"; mv "$FQ/q.tmp" "$FQ/queue"; }
+echo "$first : succès, 5 tours, coût 0.2"
+EOF
+chmod +x "$WORK/fakedispatch"
+drun() { # drun NAME "QUEUE" [VAR=VALUE...]: night from 23:00 with the fake dispatcher
+  local name=$1 q=$2; shift 2
+  mkdir -p "$WORK/$name/state/fq"
+  # shellcheck disable=SC2086 # word splitting wanted (queue list)
+  printf '%s\n' $q >"$WORK/$name/state/fq/queue"
+  run "$name" "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" NIGHT_RELAY_DISPATCH="$WORK/fakedispatch" "$@"
+}
+calls() { cat "$WORK/$1/state/fq/calls" 2>/dev/null; }
+line_of() { logs "$1" | grep -n "$2" | head -1 | cut -d: -f1; }
+
+drun disp "PLT-1 PLT-2" MAX_CYCLES=2
+D=$WORK/disp
+check "disp: real dispatcher launched at 23:00 for the dry-run choice" \
+  'logs disp | grep "dispatcher réel : PLT-1 " | grep -q "^2026-11-11T23:00"'
+check "disp: runs happen before the review" \
+  '[ "$(line_of disp "dispatcher réel : PLT-2")" -lt "$(line_of disp "lancement orchestrateur")" ]'
+check "disp: each ticket run exactly once, in order" \
+  '[ "$(logs disp | grep -c "dispatcher réel : PLT-1 ")" = 1 ] && [ "$(logs disp | grep -c "dispatcher réel : PLT-2 ")" = 1 ]'
+check "disp: real run pinned to the dry-run choice (--expect)" \
+  'calls disp | grep -q -- "--lane local --expect PLT-1"'
+check "disp: dispatcher gets bypassPermissions" \
+  '! calls disp | grep -v -- "perm=bypassPermissions$" | grep -q .'
+check "disp: never two runs at once" '! calls disp | grep -q PARALLELE'
+check "disp: review is opus and gets the runs" \
+  'logs disp | grep -q "lancement orchestrateur (revue opus" && grep -q "PLT-1 : session terminée (succès)" "$D/state/dry-run/prompt-1.txt" && grep -q "PLT-2 : session terminée" "$D/state/dry-run/prompt-1.txt"'
+check "disp: next review no longer lists them" 'grep -q "^  - aucune$" "$D/state/dry-run/prompt-2.txt"'
+
+drun tfail "PLT-9 PLT-3" FAKE_FAIL=PLT-9 TICKET_MAX_FAILS=2 FAIL_BACKOFF=60
+check "tfail: failing ticket run TICKET_MAX_FAILS times only" '[ "$(logs tfail | grep -c "dispatcher réel : PLT-9 ")" = 2 ]'
+check "tfail: consecutive failures counted per ticket" 'logs tfail | grep -q "PLT-9 échec (code 1, échecs consécutifs du ticket 2/2)"'
+check "tfail: skipped for the night, commented once" \
+  '[ -f "$WORK/tfail/state/tickets/2026-11-11/PLT-9.skip" ] && [ "$(cat "$WORK/tfail/state/fq/skipnotes")" = PLT-9 ]'
+check "tfail: later dry-runs exclude it" 'calls tfail | grep -q -- "--dry-run --skip PLT-9"'
+check "tfail: next ticket still runs" 'logs tfail | grep -q "dispatcher : PLT-3 terminé (succès)"'
+
+drun noprog "PLT-7" FAKE_STAY=PLT-7
+check "noprog: no rerun without progress" '[ "$(logs noprog | grep -c "dispatcher réel : PLT-7 ")" = 1 ]'
+check "noprog: skipped with reason and commented" \
+  'logs noprog | grep -q "ticket PLT-7 sauté pour la nuit : aucun progrès" && grep -qx PLT-7 "$WORK/noprog/state/fq/skipnotes"'
+
+drun progress "PLT-8" FAKE_STAY=PLT-8 FAKE_PROGRESS=PLT-8 MAX_CYCLES=1 MAX_RUNS_PER_CYCLE=2
+check "progress: a ticket that left a new comment may run again" \
+  '[ "$(logs progress | grep -c "dispatcher réel : PLT-8 ")" = 2 ] && ! logs progress | grep -q "PLT-8 sauté"'
+
+drun dquota "PLT-5" FAKE_QUOTA_ONCE=PLT-5
+check "dquota: usage limit during a run waits for the reset" 'logs dquota | grep -q "réinitialisation à 03:00"'
+check "dquota: same ticket rerun after the reset, not counted as a failure" \
+  '[ "$(logs dquota | grep -c "dispatcher réel : PLT-5 ")" = 2 ] && ! logs dquota | grep -q "PLT-5 échec" && logs dquota | grep "dispatcher réel : PLT-5 " | sed -n 2p | grep -q "^2026-11-12T03:0"'
+
+mkdir -p "$WORK/busy/state/fq"; touch "$WORK/busy/state/fq/busy"
+drun busy "PLT-1"
+check "busy: lane held by another agent -> no real run" \
+  '! logs busy | grep -q "dispatcher réel" && logs busy | grep -q "voie local occupée (occupée par PLT-999"'
+
+drun maxruns "PLT-1 PLT-2 PLT-3 PLT-4" MAX_RUNS_PER_CYCLE=2 FAKE_RUN_SECONDS=600
+check "maxruns: review after MAX_RUNS_PER_CYCLE runs" \
+  'logs maxruns | grep -q "2 exécutions (MAX_RUNS_PER_CYCLE)" && [ "$(line_of maxruns "lancement orchestrateur")" -lt "$(line_of maxruns "dispatcher réel : PLT-3")" ]'
+
+run idlereview "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" REVIEW_IDLE_INTERVAL=3600 DRY_RUN_EMPTY_ATTEMPTS="$(seq -s, 1 40)"
+ir=$(logs idlereview | grep -c "lancement orchestrateur" || true)
+check "idlereview: empty queue -> at most one review per hour ($ir)" \
+  '[ "$ir" -ge 2 ] && [ "$ir" -le 11 ] && logs idlereview | grep -q "pas de revue"'
 
 check "no claude/doppler/curl/gh call" '[ ! -f "$WORK/forbidden" ]'
 
