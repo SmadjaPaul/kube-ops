@@ -138,10 +138,19 @@ def _changed_records(base, head):
     return sorted(records, key=lambda record: (record["path"], record["status"]))
 
 
-def change_fingerprint(base, head):
-    """Hash all changed paths, statuses, modes/types and Git blobs."""
+def change_fingerprint(base, head, paths=None):
+    """Hash changed paths, statuses, modes/types and Git blobs.
+
+    PLT-210: with ``paths`` (the blocked set), only those records are bound,
+    so a rebase or a fix to an unprotected file keeps the admission valid while
+    any change to an admitted file still invalidates it.
+    """
+    records = _changed_records(base, head)
+    if paths is not None:
+        wanted = set(paths)
+        records = [record for record in records if record["path"] in wanted]
     canonical = json.dumps(
-        _changed_records(base, head),
+        records,
         ensure_ascii=True,
         separators=(",", ":"),
         sort_keys=True,
@@ -253,7 +262,7 @@ def verify(args, now=None):
     except (OSError, ValueError, UnicodeError) as exc:
         deny(f"BASE_REGISTRY_INVALID:{exc}")
     try:
-        fingerprint = change_fingerprint(args.base_sha, args.head_ref)
+        fingerprint = change_fingerprint(args.base_sha, args.head_ref, blocked)
     except ValueError as exc:
         deny(f"INVALID_PR_GRAPH:{exc}")
     matches = [row for row in entries if row["repository"] == args.repo

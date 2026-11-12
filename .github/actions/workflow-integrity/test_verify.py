@@ -467,7 +467,19 @@ class AdmissionContract(unittest.TestCase):
             changed_head = git("rev-parse", "HEAD").decode().strip()
             with patch.object(gate, "git_bytes", side_effect=git):
                 second = gate.change_fingerprint(base, changed_head)
+                scoped_first = gate.change_fingerprint(base, protected_head, ["tests/protected.sh"])
+                scoped_second = gate.change_fingerprint(base, changed_head, ["tests/protected.sh"])
             self.assertNotEqual(first, second)
+            # PLT-210: the admission binds only the blocked paths.
+            self.assertEqual(scoped_first, scoped_second)
+            (root / "tests" / "protected.sh").write_text("changed after admission\n")
+            git("add", ".")
+            git("commit", "-qm", "protected change after admission")
+            later = git("rev-parse", "HEAD").decode().strip()
+            with patch.object(gate, "git_bytes", side_effect=git):
+                self.assertNotEqual(
+                    scoped_first, gate.change_fingerprint(base, later, ["tests/protected.sh"])
+                )
 
     def test_fingerprint_distinguishes_same_lines_at_different_positions(self):
         with tempfile.TemporaryDirectory() as temp:
