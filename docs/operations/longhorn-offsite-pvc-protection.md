@@ -25,6 +25,26 @@ Rollback configuration: the Hetzner bucket `smadja-dev-homelab-backups` under
 the `longhorn/` prefix, with `longhorn-hetzner-credentials` (kept in Git). Its
 objects are left intact; Velero's old `velero/` prefix is also untouched.
 
+### Detached volumes after the R2 switch (PLT-222)
+
+`allowRecurringJobWhileVolumeDetached` stays `false`: a detached volume is not
+backed up by the recurring jobs, and Velero file-system backups do not cover a
+PVC without a running pod. Their last Longhorn backup therefore exists **only in
+the Hetzner bucket** (`longhorn/` prefix); Longhorn no longer lists it once the
+target is R2, and R2 holds no backup of them until they are attached again.
+Known at the switch (12/11/2026, non exhaustive, from the live listing):
+`atlantis-system/atlantis-pilot-data`, `listmonk/listmonk-uploads`,
+`listmonk/listmonk-postgresql-1`, `twenty/twenty-storage`,
+`actual-budget/actual-data`, `babybuddy/config-babybuddy-0`,
+`bulwark/bulwark-data`, `chatwoot/chatwoot-postgresql-1`, the three
+`dawarich` volumes and `executor/data-executor-0`;
+`atlantis-apps/atlantis-apps-data` is faulted and has no backup at all.
+To reach the Hetzner copies, swap the rollback configuration back in
+(`values.yaml`) and let longhorn-manager resync the target; nothing is deleted.
+To protect such a volume on R2, attach it (scale its workload up, or attach it
+through a bounded Longhorn operation) and let the next recurring job run, then
+check the backup on R2 before any Hetzner cleanup.
+
 The protection changes do not change a PVC volume size,
 StorageClass, replica count or data path. The Immich Redis PVC only gains
 Longhorn recurring-job source labels; no application restart is required.
