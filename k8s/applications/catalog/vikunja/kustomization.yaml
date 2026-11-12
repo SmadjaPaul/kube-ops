@@ -4,6 +4,8 @@ resources:
   - namespace.yaml
   - database.yaml
   - backup.yaml
+  - backup-r2.yaml
+  - backup-hetzner-precutover.yaml
   - externalsecret.yaml
   - deployment.yaml
   - service-route.yaml
