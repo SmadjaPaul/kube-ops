@@ -1,0 +1,18 @@
+# PLT-228: first base backup of romm-postgresql on R2, right after the WAL
+# archive switch (ContinuousArchiving=True on R2, 2026-11-12 21:00:48Z). Closes
+# the window without an R2 recovery point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: romm-postgresql-r2-initial-20261112
+  namespace: romm
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: romm-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: romm-r2-store
