@@ -4,6 +4,7 @@ namespace: media
 resources:
   - cluster.yaml
   - backup.yaml
+  - backup-r2.yaml
   - external-secret.yaml
   - radios-configmap.yaml
   - pvc.yaml

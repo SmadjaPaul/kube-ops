@@ -19,6 +19,9 @@ spec:
       remoteRef:
         key: HETZNER_S3_SECRET_ACCESS_KEY
 ---
+# PLT-227: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to polyfin-r2-store). Kept as the rollback target with its existing
+# backups; no plugin sidecar applies its retentionPolicy anymore.
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
@@ -56,7 +59,8 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: polyfin-hetzner-store
+      # PLT-227: base backups follow the WAL archive to R2.
+      barmanObjectName: polyfin-r2-store
 ---
 # One-shot evidence backup for the private pilot; the weekly schedule remains
 # the steady-state policy after this qualification completes.
