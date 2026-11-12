@@ -96,6 +96,28 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
   timeline 1, `Ready`, `ContinuousArchiving` true, no archiver error after the
   restart; the drill pod ran PostgreSQL only.
 
+### pinepods/pinepods-db — PLT-221 (#1309, #1312, #1314, teardown)
+
+- Cutover merged 22:01:23Z, outside 19:00–23:00 Paris. Planned outage
+  accepted by the coordinator: `Ready=False` 22:02:49Z to 22:07:09Z
+  (4 min 20 s), same smart-shutdown cause as romm. First R2 segment
+  `…0A39` at 22:07:01Z.
+- Window without an R2 recovery point: 22:02:49Z to 22:10:50Z (8 min 1 s,
+  base `20261112T221042`).
+- Drill: merge 22:26:09Z, `Cluster` created 22:28:10Z, `Ready` timeline 2 at
+  22:29:14Z. **RTO 3 min 5 s** (64 s of restore, 20Gi volume for about 2.5 GB
+  used on a 60Gi production volume).
+- **RPO: at most about 3 min, within the 5 min bound.** Recovery replayed
+  through `…0A3C`, archived 22:15:51Z. Production archived the next segment,
+  `…0A3D`, at 22:30:51Z, after recovery ended at about 22:29:00Z. With
+  `archive_timeout` at 5 min, the first unarchived write was at the earliest
+  22:25:51Z. `pg_last_xact_replay_timestamp()` returned null: no transaction
+  was replayed after the base backup.
+- Control query: `in_recovery=false`, 42 tables, `Users=2`, `Playlists=13`,
+  `schema_migrations=57`, database 10.7 MB. Production stayed on timeline 1,
+  `Ready`, `ContinuousArchiving` true, no archiver error since the restart;
+  the drill pod ran PostgreSQL only.
+
 ### Precondition for the remaining cutovers
 
 Before switching `barmanObjectName`, a separate PR adds the R2 environment
