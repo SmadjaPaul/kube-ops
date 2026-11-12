@@ -79,10 +79,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: rustical-pilot
       server: https://kubernetes.default.svc
-    # PLT-228: temporary isolated R2 restore drill of romm/romm-postgresql;
-    # removed by PR once the drill root is pruned.
-    - namespace: romm-drill
-      server: https://kubernetes.default.svc
     - namespace: wellness
       server: https://kubernetes.default.svc
     - namespace: searxng
