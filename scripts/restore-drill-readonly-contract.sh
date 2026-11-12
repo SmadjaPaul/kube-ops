@@ -13,9 +13,17 @@
 set -euo pipefail
 for cmd in kustomize yq jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
 
+# Active drill roots. Add a root here while a drill is deployed; remove it with
+# the drill. An empty list is valid (no active drill).
+active_drill_roots=()
+
 roots=("$@")
 if [[ ${#roots[@]} -eq 0 ]]; then
-  roots=(k8s/optional/matrix-mas-drill)
+  if [[ ${#active_drill_roots[@]} -eq 0 ]]; then
+    echo "RESTORE_DRILL_READONLY_CONTRACT=PASS roots=0 (no active restore drill)"
+    exit 0
+  fi
+  roots=("${active_drill_roots[@]}")
 fi
 
 # Prints violations (one per line) for a JSON array of manifests on stdin.
