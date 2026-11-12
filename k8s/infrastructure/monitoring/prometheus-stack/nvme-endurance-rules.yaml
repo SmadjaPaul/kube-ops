@@ -122,8 +122,8 @@ spec:
             runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
         - alert: NvmeHealthTelemetryMissing
           expr: >-
-            (time() - max(node_textfile_mtime_seconds{job="proxmox-host",file="nvme.prom"}) > 3600)
-            or absent(node_textfile_mtime_seconds{job="proxmox-host",file="nvme.prom"})
+            (time() - max(node_textfile_mtime_seconds{job="proxmox-host",file=~"(.*/)?nvme\\.prom"}) > 3600)
+            or absent(node_textfile_mtime_seconds{job="proxmox-host",file=~"(.*/)?nvme\\.prom"})
           for: 30m
           labels:
             severity: info

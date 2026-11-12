@@ -44,7 +44,7 @@ these rules as visible in Grafana and Alertmanager only.
 
 1. Read the drive on the host: `nvme smart-log /dev/nvme0n1` (percentage_used,
    available_spare, media_errors, unsafe_shutdowns, temperature, data units).
-2. `zpool status -v nvme`: any checksum error confirms a media problem.
+2. `zpool status -v nvme`: a nonzero `CKSUM` count is not proof of a failing SSD (memory, cabling or controller faults give the same symptom); investigate corruption, correlate with the NVMe error log and media errors, and scrub.
 3. Confirm the latest backups (Velero, CNPG) before any replacement.
 4. Reduce the writers first (runners, containerd, logs: PLT-214, PLT-216 ZFS
    `logbias` study in homelab-infra `docs/operations/zvol-logbias-validation.md`).
