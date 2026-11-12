@@ -5,8 +5,15 @@
 #   nohup caffeinate -i bash scripts/night-relay/supervisor.sh &
 #
 # One night per run: waits for the window (default 23:00-08:30, local time),
-# chains orchestrator sessions one by one (each gets the previous handoff),
-# waits out usage limits, then launches the report at 09:00 and exits.
+# then runs cycles one by one. A cycle has two stages:
+#   1. execution (no LLM decides): while the dispatcher dry-run gives a
+#      `choisi :` ticket, the supervisor itself runs the REAL dispatcher for
+#      that ticket (lock wip:claude-<lane>, model from the ticket label,
+#      bounded `claude -p`, checkpoint). One lane, one ticket at a time.
+#   2. review: one orchestrator session (ORCH_MODEL, default opus) reviews and
+#      merges the PRs, completes RECONCILED/RUNTIME evidence, writes the handoff.
+#      It never selects or refuses a ticket.
+# Usage limits are waited out; at 09:00 the report runs, then the script exits.
 #
 # Environment (all optional):
 #   DRY_RUN=1                 no network, no claude: simulated cycles and clock
@@ -25,7 +32,17 @@
 #   IDLE_LONG_AFTER=3 IDLE_LONG_SLEEP=900  after IDLE_LONG_AFTER consecutive idle cycles,
 #                             pause IDLE_LONG_SLEEP (never less than EMPTY_SLEEP) instead of EMPTY_SLEEP
 #   LOG_MAX_BYTES=1048576 RUN_MAX_BYTES=262144 RUNS_KEEP=60
-#   CLAUDE_BIN=claude
+#   CLAUDE_BIN=claude ORCH_MODEL=opus  model of the review session
+# Execution stage (dispatcher):
+#   NIGHT_RELAY_DISPATCH      dispatcher command (default: bash scripts/doppler-safe.sh run --
+#                             python3 scripts/dispatcher/dispatch.py; DRY_RUN: unset = empty queue)
+#   DISPATCH_LANE=local DISPATCH_DRY_TIMEOUT=300 DISPATCH_TIMEOUT=10500 (> the dispatcher's own 2 h 45)
+#   DISPATCH_PERMISSION_MODE=bypassPermissions  exported to the dispatcher's claude -p
+#                             (a headless session cannot answer a permission prompt; the limits
+#                             are the hooks and wrappers: secret-output-guard, doppler-safe, kubectl-ro)
+#   MAX_RUNS_PER_CYCLE=3      real runs before a review
+#   TICKET_MAX_FAILS=MAX_FAILS consecutive failures of one ticket before it is skipped for the night
+#   REVIEW_IDLE_INTERVAL=3600 without any run, at most one review per interval
 #   NIGHT_RELAY_KUBE_STATUS   per-cycle Kubernetes preflight (default: scripts/night-relay/kube-status.sh)
 #   KUBE_CHECK_TIMEOUT=120    bound of one preflight attempt, in seconds
 #   KUBE_CHECK_ATTEMPTS=2 KUBE_CHECK_RETRY_DELAY=60  attempts before declaring it unavailable
@@ -74,6 +91,19 @@ LOG_MAX_BYTES=${LOG_MAX_BYTES:-1048576}
 RUN_MAX_BYTES=${RUN_MAX_BYTES:-262144}
 RUNS_KEEP=${RUNS_KEEP:-60}
 CLAUDE_BIN=${CLAUDE_BIN:-claude}
+ORCH_MODEL=${ORCH_MODEL:-opus}
+DISPATCH_LANE=${DISPATCH_LANE:-local}
+DISPATCH_DRY_TIMEOUT=${DISPATCH_DRY_TIMEOUT:-300}
+DISPATCH_TIMEOUT=${DISPATCH_TIMEOUT:-10500}
+MAX_RUNS_PER_CYCLE=${MAX_RUNS_PER_CYCLE:-3}
+TICKET_MAX_FAILS=${TICKET_MAX_FAILS:-$MAX_FAILS}
+REVIEW_IDLE_INTERVAL=${REVIEW_IDLE_INTERVAL:-3600}
+export DISPATCH_PERMISSION_MODE=${DISPATCH_PERMISSION_MODE:-bypassPermissions}
+if [ "$DRY_RUN" = 1 ]; then
+  DISPATCH_CMD=${NIGHT_RELAY_DISPATCH:-}
+else
+  DISPATCH_CMD=${NIGHT_RELAY_DISPATCH:-bash scripts/doppler-safe.sh run -- python3 scripts/dispatcher/dispatch.py}
+fi
 KUBE_STATUS_CMD=${NIGHT_RELAY_KUBE_STATUS:-$SCRIPT_DIR/kube-status.sh}
 KUBE_CHECK_TIMEOUT=${KUBE_CHECK_TIMEOUT:-120}
 KUBE_CHECK_ATTEMPTS=${KUBE_CHECK_ATTEMPTS:-2}
@@ -96,6 +126,13 @@ SESSION_PID=""     # running claude session (killed on signal)
 WATCHDOG_PID=""    # its timeout watchdog
 SESSION_ERR=""     # its stderr file (removed on signal)
 KUBE_LINE=""       # last Kubernetes preflight line (kube_status)
+DISPATCH_SEQ=0     # dispatcher calls (run file names)
+EXEC_RUNS=0        # real dispatcher runs of the last execution stage
+EXEC_STATE=""      # idle | busy | error | stop
+EXEC_SUMMARY=""    # one line per run/skip of the last execution stage
+PENDING=""         # runs/skips not yet given to a successful review
+DRY_OUT=""         # last dispatcher dry-run output
+LAST_REVIEW=0      # epoch of the last review session
 
 # --- clock -----------------------------------------------------------------
 if date --version >/dev/null 2>&1; then GNU_DATE=1; else GNU_DATE=0; fi
@@ -188,7 +225,7 @@ failed() { # failed RC OUT_JSON: non-zero exit or "is_error": true in the result
 quota_wait_from() { # quota_wait_from FILE... (stdout json + stderr of a FAILED run)
   local text t reset="" hm h m ap
   text=$(cat "$@" 2>/dev/null | head -c 65536)
-  if ! grep -Eiq 'usage limit|limit reached|hit your (usage )?limit|rate_limit_error|out of extra usage|limit will reset|resets? at' <<<"$text"; then
+  if ! grep -Eiq "limite d'usage :|usage limit|limit reached|hit your (usage )?limit|rate_limit_error|out of extra usage|limit will reset|resets? at" <<<"$text"; then
     return 1
   fi
   t=$(now)
@@ -371,6 +408,152 @@ kube_status_once() { # kube_status_once ATTEMPT
   KUBE_LINE=$line
 }
 
+# --- execution stage: the supervisor runs the real dispatcher ---------------------
+run_bounded() { # run_bounded TIMEOUT OUT CMD... -> rc (124 on timeout); stdout+stderr to OUT, cwd REPO
+  local timeout=$1 out=$2 pid rc
+  shift 2
+  rm -f "$out.timeout"
+  (cd "$REPO" && exec "$@") >"$out" 2>&1 </dev/null &
+  SESSION_PID=$!
+  pid=$SESSION_PID
+  ( sleep "$timeout"; kill -0 "$pid" 2>/dev/null || exit 0; touch "$out.timeout"; kill_tree "$pid" ) >/dev/null 2>&1 &
+  WATCHDOG_PID=$!
+  wait "$SESSION_PID"; rc=$?
+  stop_watchdog
+  SESSION_PID=""
+  if [ -f "$out.timeout" ]; then rm -f "$out.timeout"; rc=124; fi
+  return "$rc"
+}
+
+dispatch() { # dispatch TIMEOUT OUT DISPATCH_ARGS... -> rc of dispatch.py (0 ok, 1 run failed, 2 error, 3 choice changed)
+  local timeout=$1 out=$2 cmd
+  shift 2
+  if [ -z "$DISPATCH_CMD" ]; then  # DRY_RUN without a fake dispatcher: no network, empty queue
+    echo "file vide pour la voie $DISPATCH_LANE" >"$out"
+    return 0
+  fi
+  read -ra cmd <<<"$DISPATCH_CMD"
+  run_bounded "$timeout" "$out" "${cmd[@]}" "$@"
+}
+
+skip_list() { # tickets skipped for the rest of the night, comma-separated
+  local f out=""
+  for f in "$TICKETS"/*.skip; do
+    [ -e "$f" ] || continue
+    f=${f##*/}
+    out+="${out:+,}${f%.skip}"
+  done
+  echo "$out"
+}
+
+skip_ticket() { # skip_ticket ID REASON: never rerun tonight, comment the ticket once
+  local id=$1 why=$2 rc
+  echo "$why" >"$TICKETS/$id.skip"
+  log "ticket $id sauté pour la nuit : $why"
+  DISPATCH_SEQ=$(( DISPATCH_SEQ + 1 ))
+  dispatch "$DISPATCH_DRY_TIMEOUT" "$RUNS/$NIGHT-d$DISPATCH_SEQ.skip.txt" \
+    --lane "$DISPATCH_LANE" --comment-skip "$id" --why "$why"; rc=$?
+  [ "$rc" -eq 0 ] || log "ticket $id : commentaire de saut non posé (code $rc)"
+}
+
+note() { EXEC_SUMMARY+="  - $*"$'\n'; }
+
+# exec_stage: while the dry-run designates a ticket, run the real dispatcher for it.
+# Sequential: one lane, one ticket, one dispatcher at a time. Sets EXEC_RUNS,
+# EXEC_STATE, EXEC_SUMMARY, DRY_OUT.
+exec_stage() {
+  local iter=0 quotas=0 rc dry out chosen fp skips limit timeout t fails
+  EXEC_RUNS=0 EXEC_STATE=idle EXEC_SUMMARY=""
+  while :; do
+    iter=$(( iter + 1 ))
+    if [ "$iter" -gt $(( MAX_RUNS_PER_CYCLE * 4 + QUOTA_MAX_RETRIES + 2 )) ]; then
+      log "dispatcher : borne d'itérations du cycle atteinte"; break
+    fi
+    if [ "$EXEC_RUNS" -ge "$MAX_RUNS_PER_CYCLE" ]; then
+      log "dispatcher : $EXEC_RUNS exécutions (MAX_RUNS_PER_CYCLE) : place à la revue"; break
+    fi
+    t=$(now)
+    if [ $(( WINDOW_END - t )) -lt "$MIN_CYCLE_SECONDS" ]; then
+      log "dispatcher : moins de ${MIN_CYCLE_SECONDS}s avant la fin de fenêtre : pas de nouveau ticket"; break
+    fi
+    skips=$(skip_list)
+    DISPATCH_SEQ=$(( DISPATCH_SEQ + 1 ))
+    dry="$RUNS/$NIGHT-d$DISPATCH_SEQ.dry.txt"
+    # shellcheck disable=SC2086 # optional --skip pair
+    dispatch "$DISPATCH_DRY_TIMEOUT" "$dry" --lane "$DISPATCH_LANE" --dry-run ${skips:+--skip "$skips"}; rc=$?
+    DRY_OUT=$dry
+    if [ "$rc" -ne 0 ]; then
+      log "dispatcher (dry-run) : échec (code $rc)"; EXEC_STATE=error; break
+    fi
+    chosen=$(grep -Eo '^choisi : [A-Z]+-[0-9]+' "$dry" | head -1 | sed 's/^choisi : //')
+    if [ -z "$chosen" ]; then
+      log "dispatcher : aucun ticket choisi pour la voie $DISPATCH_LANE"; break
+    fi
+    if grep -q 'occupée par' "$dry"; then
+      log "dispatcher : $chosen choisi mais voie $DISPATCH_LANE occupée ($(grep -Eo 'occupée par [A-Z0-9, -]+' "$dry" | head -1)) : aucune exécution"
+      EXEC_STATE=busy; break
+    fi
+    fp=$(grep -E "^progrès : $chosen " "$dry" | head -1 | sed "s/^progrès : $chosen //")
+    if [ -n "$fp" ] && [ -f "$TICKETS/$chosen.fp" ] && [ "$(cat "$TICKETS/$chosen.fp")" = "$fp" ]; then
+      skip_ticket "$chosen" "aucun progrès (ni PR ni commentaire) depuis sa dernière exécution"
+      note "$chosen : sauté, aucun progrès depuis sa dernière exécution"
+      continue
+    fi
+    limit=$(( WINDOW_END + WINDOW_GRACE ))
+    [ "$limit" -le $(( REPORT_AT - 300 )) ] || limit=$(( REPORT_AT - 300 ))
+    timeout=$(( limit - t ))
+    [ "$timeout" -le "$DISPATCH_TIMEOUT" ] || timeout=$DISPATCH_TIMEOUT
+    DISPATCH_SEQ=$(( DISPATCH_SEQ + 1 ))
+    out="$RUNS/$NIGHT-d$DISPATCH_SEQ.run.txt"
+    log "dispatcher réel : $chosen (voie $DISPATCH_LANE, permission $DISPATCH_PERMISSION_MODE, timeout ${timeout}s)"
+    # shellcheck disable=SC2086
+    dispatch "$timeout" "$out" --lane "$DISPATCH_LANE" --expect "$chosen" ${skips:+--skip "$skips"}; rc=$?
+    if [ "$rc" -eq 3 ] || { [ "$rc" -eq 0 ] && grep -q '^file vide' "$out"; }; then
+      log "dispatcher : choix changé depuis le dry-run, nouvelle lecture"; continue
+    fi
+    if grep -q 'occupée par\|course perdue' "$out"; then
+      log "dispatcher : $chosen non lancé, voie $DISPATCH_LANE prise entre-temps"; EXEC_STATE=busy; break
+    fi
+    if [ "$rc" -eq 0 ] && grep -q "^$chosen : succès" "$out"; then
+      EXEC_RUNS=$(( EXEC_RUNS + 1 )); quotas=0
+      rm -f "$TICKETS/$chosen.fails"
+      echo "$fp" >"$TICKETS/$chosen.fp"
+      log "dispatcher : $chosen terminé (succès)"
+      note "$chosen : session terminée (succès), sortie $out"
+      continue
+    fi
+    if [ "$rc" -ne 0 ] && grep -q "^limite d'usage :" "$out" && quota_wait_from "$out"; then
+      quotas=$(( quotas + 1 ))
+      if [ "$quotas" -le "$QUOTA_MAX_RETRIES" ]; then
+        if [ $(( $(now) + QUOTA_WAIT )) -ge "$WINDOW_END" ]; then
+          log "réinitialisation après la fin de fenêtre : arrêt des cycles"; EXEC_STATE=stop; break
+        fi
+        nap "$QUOTA_WAIT"
+        continue
+      fi
+      log "limite d'usage : $QUOTA_MAX_RETRIES nouveaux essais consécutifs déjà faits, compté comme échec"
+      quotas=0
+    fi
+    if [ "$rc" -eq 124 ] || grep -q "^$chosen : échec" "$out"; then
+      EXEC_RUNS=$(( EXEC_RUNS + 1 ))
+      fails=$(( $(cat "$TICKETS/$chosen.fails" 2>/dev/null || echo 0) + 1 ))
+      echo "$fails" >"$TICKETS/$chosen.fails"
+      rm -f "$TICKETS/$chosen.fp"
+      log "dispatcher : $chosen échec (code $rc, échecs consécutifs du ticket $fails/$TICKET_MAX_FAILS)"
+      note "$chosen : échec (code $rc, $fails/$TICKET_MAX_FAILS), sortie $out"
+      if [ "$fails" -ge "$TICKET_MAX_FAILS" ]; then
+        skip_ticket "$chosen" "$fails échecs consécutifs"
+      else
+        nap_in_window "$FAIL_BACKOFF"
+      fi
+      continue
+    fi
+    log "dispatcher : erreur de l'outil (code $rc) sur $chosen, sortie $out"
+    EXEC_STATE=error; break
+  done
+  PENDING+=$EXEC_SUMMARY
+}
+
 # --- handoffs -------------------------------------------------------------------
 handoff_indices() { # handoff_indices NIGHT -> cycle numbers, ascending
   local f b
@@ -431,25 +614,50 @@ run_cycles() {
     out="$RUNS/$NIGHT-$n.json"
     err="$RUNS/$NIGHT-$n.err"
     kube_status
-    t=$(now)  # the preflight (with its retry) may have taken minutes
     log "cycle $NIGHT-$n : Kubernetes $KUBE_LINE"
+    exec_stage
+    if [ "$EXEC_STATE" = stop ]; then break; fi
+    if [ "$EXEC_STATE" = error ]; then
+      fails=$(( fails + 1 ))
+      log "cycle $NIGHT-$n : dispatcher en échec (échecs consécutifs $fails/$MAX_FAILS)"
+      if [ "$fails" -ge "$MAX_FAILS" ]; then log "trop d'échecs consécutifs : arrêt des cycles"; break; fi
+      nap_in_window "$FAIL_BACKOFF"
+      continue
+    fi
+    t=$(now)  # the preflight and the runs may have taken hours
+    if [ "$EXEC_RUNS" -eq 0 ] && [ -z "$PENDING" ] && [ $(( t - LAST_REVIEW )) -lt "$REVIEW_IDLE_INTERVAL" ]; then
+      idle=$(( idle + 1 ))
+      pause=$EMPTY_SLEEP
+      [ "$idle" -lt "$IDLE_LONG_AFTER" ] || pause=$IDLE_LONG_SLEEP
+      log "aucune exécution, dernière revue il y a $(( t - LAST_REVIEW ))s (< ${REVIEW_IDLE_INTERVAL}s) : pas de revue, pause ${pause}s (inactifs consécutifs : $idle)"
+      nap_in_window "$pause"
+      prune_runs
+      continue
+    fi
+    # a session may overrun the window by WINDOW_GRACE, but never past REPORT_AT - 5 min
+    limit=$(( WINDOW_END + WINDOW_GRACE ))
+    [ "$limit" -le $(( REPORT_AT - 300 )) ] || limit=$(( REPORT_AT - 300 ))
+    if [ $(( limit - t )) -lt 600 ]; then log "moins de 600s avant la limite des sessions : pas de revue, le rapport reprendra"; break; fi
     build_prompt "$SCRIPT_DIR/orchestrator.md" "$prompt" <<EOF
 - Cycle : $NIGHT-$n
 - Handoff précédent : ${prev:-aucun}
 - Handoff à écrire : $handoff
-- Fin de fenêtre : $(fmt "$WINDOW_END" '%Y-%m-%d %H:%M') (heure locale) ; ne lance plus de nouveau ticket après.
+- Fin de fenêtre : $(fmt "$WINDOW_END" '%Y-%m-%d %H:%M') (heure locale)
 - Dépôt : $REPO
 - Kubernetes : $KUBE_LINE
+- Exécutions du dispatcher depuis la dernière revue (voie $DISPATCH_LANE) :
+${PENDING:-  - aucune}
+- Tickets sautés cette nuit par le superviseur : $(skip_list | sed 's/^$/aucun/')
+- Dernier dry-run du dispatcher ($(basename "${DRY_OUT:-aucun}")) :
+$(grep -E '^(à reprendre|choisi|progrès|file vide|voie .* occupée)' "${DRY_OUT:-/dev/null}" 2>/dev/null | cut -c1-200 | sed 's/^/  /' || true)
 EOF
-    # a session may overrun the window by WINDOW_GRACE, but never past REPORT_AT - 5 min
-    limit=$(( WINDOW_END + WINDOW_GRACE ))
-    [ "$limit" -le $(( REPORT_AT - 300 )) ] || limit=$(( REPORT_AT - 300 ))
     timeout=$(( limit - t ))
     [ "$timeout" -le "$ORCH_TIMEOUT" ] || timeout=$ORCH_TIMEOUT
-    log "cycle $NIGHT-$n : lancement orchestrateur (précédent : $(basename "${prev:-aucun}"), timeout ${timeout}s)"
+    log "cycle $NIGHT-$n : lancement orchestrateur (revue $ORCH_MODEL, précédent : $(basename "${prev:-aucun}"), timeout ${timeout}s)"
     t0=$(now)
-    run_session orchestrator sonnet "$prompt" "$out" "$err" "$timeout" "$handoff"; rc=$?
+    run_session orchestrator "$ORCH_MODEL" "$prompt" "$out" "$err" "$timeout" "$handoff"; rc=$?
     dur=$(( $(now) - t0 ))
+    LAST_REVIEW=$(now)
     if failed "$rc" "$out" && [ ! -f "$handoff" ] && quota_wait_from "$out" "$err"; then
       quotas=$(( quotas + 1 ))
     else
@@ -472,12 +680,13 @@ EOF
     # never ends the night (window end); a failure is bounded by MAX_FAILS
     if [ "$rc" -eq 0 ] && [ -f "$handoff" ]; then
       fails=0
+      PENDING=""
       statut=$(grep -m1 -E '^statut:' "$handoff" | sed -E 's/^statut:[[:space:]]*//')
       log "cycle $NIGHT-$n : ok, statut ${statut:-inconnu}, durée ${dur}s"
       if [ "$statut" = arret ]; then log "l'orchestrateur demande l'arrêt"; break; fi
       # idle guard: an empty queue or a session too short to have produced work
       # (PR, merge, ticket update) is idle whatever its statut; idle cycles back off
-      if [ "$statut" = file-vide ] || [ "$dur" -lt "$MIN_ACTIVE_SECONDS" ]; then
+      if [ "$EXEC_RUNS" -eq 0 ] && { [ "$statut" = file-vide ] || [ "$dur" -lt "$MIN_ACTIVE_SECONDS" ]; }; then
         idle=$(( idle + 1 ))
         pause=$EMPTY_SLEEP
         [ "$idle" -lt "$IDLE_LONG_AFTER" ] || pause=$IDLE_LONG_SLEEP
@@ -594,9 +803,11 @@ main() {
   fi
   WINDOW_END=$(next_at "$STOP_HM" "$NIGHT_START")
   NIGHT=$(fmt "$NIGHT_START" %Y-%m-%d)
+  TICKETS=$STATE/tickets/$NIGHT  # per-night ticket state: .fails, .fp (progress), .skip
+  mkdir -p "$TICKETS"
   REPORT_AT=$(next_at "$REPORT_HM" "$NIGHT_START")
   local report_at=$REPORT_AT
-  log "démarrage (DRY_RUN=$DRY_RUN) : nuit $NIGHT, fenêtre $(fmt "$NIGHT_START" '%d %H:%M')-$(fmt "$WINDOW_END" '%d %H:%M'), rapport $(fmt "$report_at" '%d %H:%M')"
+  log "démarrage (DRY_RUN=$DRY_RUN, revue $ORCH_MODEL, dispatcher voie $DISPATCH_LANE) : nuit $NIGHT, fenêtre $(fmt "$NIGHT_START" '%d %H:%M')-$(fmt "$WINDOW_END" '%d %H:%M'), rapport $(fmt "$report_at" '%d %H:%M')"
   sleep_until "$NIGHT_START"
   run_cycles
   run_report "$report_at"

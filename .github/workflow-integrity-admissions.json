@@ -286,6 +286,17 @@
       "reason": "PLT-46: contrat Polyfin pilote privé, lecture complète du flux yq au lieu de yq | head (SIGPIPE 141 sous pipefail). Reprise de #1196.",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-18T12:00:00Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1259,
+      "changeFingerprint": "49527b04f8c9b1c678cee475bb6e84fb3c11709bd49bcfe7493d28320b50a5d7",
+      "paths": [
+        "tests/harness/inventory-graph.test.mjs"
+      ],
+      "reason": "PLT-46: Perplexica dormant retiré ; le test d'inventaire vérifie qu'il n'est ni actif ni candidat dormant (modèle BabyBuddy).",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-18T12:00:00Z"
     }
   ]
 }

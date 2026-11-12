@@ -14,7 +14,7 @@ resources:
 - executor
 
 # Intentionally disabled from the V1 active catalog:
-# - perplexica: decommissioned in favor of Mastra research tools.
+# - perplexica: decommissioned in favor of Mastra research tools; manifests removed (PLT-46).
 # - vllm-embed: inactive CPU embedder; migration to pgvector/search TBD.
 # - pocket-tts: local CPU TTS is too expensive on the current single-node host.
 
