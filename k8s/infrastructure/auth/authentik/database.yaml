@@ -10,11 +10,16 @@ spec:
     initdb:
       database: app
       owner: app
+  # PLT-221: a Cluster has a single WAL archiver; the archive moved from
+  # authentik-hetzner-store to authentik-r2-store (database-r2.yaml). Rollback:
+  # point barmanObjectName back to authentik-hetzner-store, then take a new base
+  # backup there (rollback point: Backup
+  # authentik-postgresql-hetzner-precutover-20261113).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: authentik-hetzner-store
+        barmanObjectName: authentik-r2-store
   storage:
     size: 40Gi
     storageClass: longhorn-fast
