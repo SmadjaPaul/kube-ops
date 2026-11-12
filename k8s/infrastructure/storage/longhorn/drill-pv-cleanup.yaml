@@ -2,6 +2,8 @@
 # PLT-202 Matrix MAS drill (12 Gi, longhorn-bulk, reconstructible restore data),
 # plus their two detached, never-scheduled, backup-less Longhorn volumes.
 # RBAC is limited by exact name. This file is removed by a follow-up PR.
+# backoffLimit 0 on purpose: the guards are not replayable after the PV delete,
+# a partial failure is handled explicitly (follow-up PR), never retried blindly.
 # kubectl image is distroless (no shell): guards are kubectl waits that fail the
 # Job, and delete commands name each object explicitly.
 apiVersion: v1
@@ -80,7 +82,7 @@ metadata:
   name: drill-pv-cleanup-20261112
   namespace: longhorn-system
 spec:
-  backoffLimit: 1
+  backoffLimit: 0
   activeDeadlineSeconds: 300
   template:
     metadata:
@@ -120,7 +122,8 @@ spec:
             cpu: 10m
             memory: 32Mi
           limits:
-            memory: 128Mi
+            cpu: 100m
+      memory: 128Mi
         env:
         - name: HOME
           value: /tmp
@@ -146,7 +149,8 @@ spec:
             cpu: 10m
             memory: 32Mi
           limits:
-            memory: 128Mi
+            cpu: 100m
+      memory: 128Mi
         env:
         - name: HOME
           value: /tmp
@@ -174,7 +178,8 @@ spec:
             cpu: 10m
             memory: 32Mi
           limits:
-            memory: 128Mi
+            cpu: 100m
+      memory: 128Mi
         env:
         - name: HOME
           value: /tmp
@@ -199,7 +204,8 @@ spec:
             cpu: 10m
             memory: 32Mi
           limits:
-            memory: 128Mi
+            cpu: 100m
+      memory: 128Mi
         env:
         - name: HOME
           value: /tmp
@@ -227,7 +233,8 @@ spec:
             cpu: 10m
             memory: 32Mi
           limits:
-            memory: 128Mi
+            cpu: 100m
+      memory: 128Mi
         env:
         - name: HOME
           value: /tmp
