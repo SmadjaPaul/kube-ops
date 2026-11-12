@@ -9,6 +9,7 @@ resources:
   - database.yaml
   - backup.yaml
   - backup-r2.yaml
+  - backup-r2-initial.yaml
   - external-secret.yaml
   - networkpolicy.yaml
   - argo-application.yaml
