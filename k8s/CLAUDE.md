@@ -40,7 +40,7 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 - Avoid wildcard DNS certificates.
 </k8s_network>
 <k8s_backup>
-- Use Velero with Kopia filesystem backups; targets Hetzner Object Storage (https://fsn1.your-objectstorage.com).
+- Use Velero with Kopia filesystem backups; the default BackupStorageLocation `r2` targets Cloudflare R2 bucket homelab-backup-velero (decision PLT-219/PLT-222, 12/11/2026). The Hetzner BSL `default` is ReadOnly (old backups stay restorable, nothing is deleted until a separate decision). Longhorn's single backup target is R2 bucket homelab-backup-longhorn.
 - Use Velero restore before PV retain recovery; use PV retain recovery when Velero restore fails.
 </k8s_backup>
 <k8s_cnpg>
@@ -73,7 +73,7 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 <k8s_media>
 - Media PVCs use longhorn-fast or longhorn-bulk on the V1 single-node topology; no NFS, no TrueNAS.
 - Avoid introducing NFS merely to preserve an upstream RWX shape; revisit cross-node storage when the topology does.
-- Velero/Kopia backs up media state to Hetzner Object Storage; do not back up large media libraries as Kubernetes volumes.
+- Velero/Kopia backs up media state to Cloudflare R2; do not back up large media libraries as Kubernetes volumes.
 </k8s_media>
 
 <k8s_games>
