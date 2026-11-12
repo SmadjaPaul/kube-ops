@@ -1,0 +1,60 @@
+# PLT-202: read-only control query on the restored drill database.
+# Prints table row counts and max(created_at) only (no row content), in a
+# read-only transaction, from the drill namespace to the drill cluster.
+# Removed with the whole drill directory by the teardown PR.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: matrix-mas-drill-check
+  namespace: matrix-mas-drill
+  labels:
+    restore.smadja.dev/purpose: isolated-read-only-recovery
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        restore.smadja.dev/purpose: isolated-read-only-recovery
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 26
+        runAsGroup: 26
+        fsGroup: 26
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: check
+          image: ghcr.io/cloudnative-pg/postgresql:17.7
+          env:
+            - name: PGURI
+              valueFrom:
+                secretKeyRef: {name: matrix-mas-clean-restore-app, key: uri}
+            - name: PGOPTIONS
+              value: "-c default_transaction_read_only=on"
+          command: ["/bin/bash", "-ec"]
+          args:
+            - |
+              psql "$PGURI" -v ON_ERROR_STOP=1 -At <<'SQL'
+              SELECT 'in_recovery=' || pg_is_in_recovery();
+              SELECT 'tx_read_only=' || current_setting('transaction_read_only');
+              SELECT 'db_size_bytes=' || pg_database_size(current_database());
+              SELECT 'public_tables=' || count(*) FROM pg_tables WHERE schemaname = 'public';
+              SELECT format('SELECT %L || count(*) FROM public.%I', 'count.' || tablename || '=', tablename)
+                FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename \gexec
+              SELECT format('SELECT %L || coalesce(max(created_at)::text, ''null'') FROM public.%I', 'max_created_at.' || table_name || '=', table_name)
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND column_name = 'created_at' ORDER BY table_name \gexec
+              SQL
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

@@ -10,3 +10,4 @@ resources:
   - objectstore.yaml
   - cluster.yaml
   - networkpolicy.yaml
+  - check-job.yaml
