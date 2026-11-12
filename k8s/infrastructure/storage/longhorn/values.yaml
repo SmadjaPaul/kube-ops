@@ -51,9 +51,17 @@ defaultSettings:
   # The current node carries many mostly-idle services, so reserve 6% for the
   # V1 data plane initially and validate it with real I/O before further tuning.
   guaranteedInstanceManagerCPU: '{"v1":"6","v2":"0"}'
-  # Only volumes explicitly assigned the persistent-offsite-backup recurring
-  # job may be attached temporarily for a backup while detached.
-  allowRecurringJobWhileVolumeDetached: true
+  # Detached volumes are not attached for recurring backups (PLT-187).
+  # Evidence 2026-11-12: 99 detached volumes = 87 PV Released without PVC,
+  # 4 Released whose PVC name now binds another PV, 4 DR-exercise volumes
+  # without PV, 4 Bound but unmounted (executor and atlantis-system covered by
+  # daily Velero schedules, rustical-data superseded by rustical-data-bulk,
+  # atlantis-apps-data faulted with no backup either way). A detached volume
+  # cannot be written, so its existing Longhorn backups (no retention pruning
+  # runs without a new backup) still hold its latest content; attached volumes
+  # keep their nightly backups unchanged. Revert to true to restore the nightly
+  # attach/backup/detach cycle.
+  allowRecurringJobWhileVolumeDetached: false
 
 defaultBackupStore:
   # Reuse the existing Hetzner Object Storage bucket with a Longhorn-specific

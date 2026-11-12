@@ -37,10 +37,15 @@ PVCs are explicitly marked as the recurring-job source:
 - `listmonk/listmonk-uploads` — retained, unmounted data-only PVC.
 - `twenty/twenty-storage` — retained, unmounted data-only PVC.
 
-`allowRecurringJobWhileVolumeDetached` is enabled because the two retained
-PVCs are currently detached. Longhorn may temporarily attach a labeled volume
-to create its snapshot/backup. This is not a blanket backup policy: only
-volumes explicitly carrying the recurring-job label are selected.
+`allowRecurringJobWhileVolumeDetached` is disabled since PLT-187
+(2026-11-12). With the `default` group job it attached about 95 orphaned
+detached volumes every night (PV Released, DR exercises) for an identical
+incremental backup. A detached volume cannot be written: its latest Longhorn
+backups (retain 7, never pruned while no new backup is taken) still hold its
+content. The retained data-only PVCs above (atlantis-pilot-data,
+listmonk-uploads, twenty-storage) already have completed backups taken while
+detached. When such a volume is attached again, the nightly job backs it up as
+usual. Set the value back to `true` to restore the attach/backup/detach cycle.
 
 Configuration alone is not protection. Each volume is `PROTECTED` only after:
 
