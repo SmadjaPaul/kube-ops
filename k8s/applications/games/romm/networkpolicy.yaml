@@ -63,7 +63,7 @@ metadata:
   labels:
     policy-type: games-audit
 spec:
-  description: "Allow RomM CNPG WAL/base backups to Cloudflare R2 (active) and Hetzner Object Storage (rollback)."
+  description: "Allow RomM CNPG WAL/base backups to Cloudflare R2."
   endpointSelector:
     matchLabels:
       cnpg.io/cluster: romm-postgresql
@@ -79,7 +79,6 @@ spec:
             - port: "53"
               protocol: TCP
     - toFQDNs:
-        - matchName: fsn1.your-objectstorage.com
         # PLT-228: R2 EU S3 endpoint, path or virtual-hosted style; the
         # account id label stays out of this public repository.
         - matchPattern: "*.eu.r2.cloudflarestorage.com"
