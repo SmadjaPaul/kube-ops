@@ -202,6 +202,20 @@ class DryRunTests(unittest.TestCase):
         self.assertIn("verrou expiré", out)
         self.assertIn("poserait wip:claude-local", out)
 
+    def test_resume_candidates_in_progress_without_lock(self):
+        issues = load("resume.json")["in_progress"]
+        self.assertEqual([i["identifier"] for i in sel.resume_candidates(issues, "local")], ["PLT-200"])
+        self.assertEqual([i["identifier"] for i in sel.resume_candidates(issues, "cloud")], ["PLT-303"])
+
+    def test_dry_run_lists_tickets_to_resume_before_empty_queue(self):
+        snap = str(FIX / "resume.json")
+        with mock.patch.object(sel, "utcnow", return_value=sel.parse_ts("2026-11-12T01:00:00Z")):
+            code, out = self._run("--lane", "local", "--dry-run", "--snapshot", snap)
+        self.assertEqual(code, 0)
+        self.assertIn("à reprendre : PLT-200", out)
+        self.assertNotIn("PLT-301", out)
+        self.assertIn("file vide pour la voie local", out)
+
     def test_snapshot_requires_dry_run_and_missing_key_fails_cleanly(self):
         snap = str(FIX / "snapshot-2026-11-11.json")
         self.assertEqual(self._run("--lane", "local", "--snapshot", snap)[0], 2)

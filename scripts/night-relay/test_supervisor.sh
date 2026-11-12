@@ -73,6 +73,17 @@ check "main: report written" '[ -f "$M/handoff/2026-11-11-rapport.md" ]'
 check "main: report prompt lists night handoffs" \
   'grep -q "$M/handoff/2026-11-11-1.md" "$M/state/runs/2026-11-11-rapport.prompt.md"'
 check "main: lock released" '[ ! -d "$M/state/supervisor.lock" ]'
+check "main: prompt carries the Kubernetes line" \
+  'grep -q "^- Kubernetes : disponible (simulation)$" "$M/state/dry-run/prompt-1.txt"'
+check "main: Kubernetes status logged per cycle" '[ "$(logs main | grep -c ": Kubernetes disponible")" -ge 4 ]'
+
+# --- 1c. Kubernetes unavailable: structured reason in the prompt, cycles go on
+run kubedown "2026-11-11 23:00" DRY_RUN_QUOTA_ATTEMPTS="" DRY_RUN_KUBE="indisponible (api_inaccessible : api_unreachable)"
+K=$WORK/kubedown
+check "kubedown: reason given to the orchestrator" \
+  'grep -q "^- Kubernetes : indisponible (api_inaccessible : api_unreachable)$" "$K/state/dry-run/prompt-1.txt"'
+check "kubedown: cycles continue (GitHub/Linear work does not need the cluster)" \
+  '[ "$(find "$K/handoff" -name "2026-11-11-[0-9]*.md" | wc -l | tr -d " ")" -ge 4 ] && [ "$(cat $K/rc)" = 0 ]'
 
 # --- 1b. bounded log: tiny LOG_MAX_BYTES forces rotation, one old file kept
 run logbound "2026-11-11 22:00" LOG_MAX_BYTES=400
@@ -150,15 +161,17 @@ S=$WORK/signal
 mkdir -p "$S/state" "$S/handoff"
 cat >"$WORK/fakeclaude" <<EOF
 #!/usr/bin/env bash
-cat >/dev/null
+cat >"$S/prompt.txt"
 sleep 300 & echo \$! >"$S/child.pid"
 echo \$\$ >"$S/claude.pid"
 wait
 EOF
 chmod +x "$WORK/fakeclaude"
+# slow fake preflight: the supervisor must bound it and still start the session
+printf '#!/usr/bin/env bash\nsleep 7718\necho "disponible (trop tard)"\n' >"$WORK/fakekube"
 h=$(date -u +%H)
 env TZ=UTC NIGHT_RELAY_REPO="$WORK" NIGHT_RELAY_STATE="$S/state" NIGHT_RELAY_HANDOFF_DIR="$S/handoff" \
-  CLAUDE_BIN="$WORK/fakeclaude" START_HM="$(printf '%02d00' $(( (10#$h + 23) % 24 )))" \
+  CLAUDE_BIN="$WORK/fakeclaude" NIGHT_RELAY_KUBE_STATUS="$WORK/fakekube" KUBE_CHECK_TIMEOUT=1 START_HM="$(printf '%02d00' $(( (10#$h + 23) % 24 )))" \
   STOP_HM="$(printf '%02d00' $(( (10#$h + 3) % 24 )))" MIN_CYCLE_SECONDS=60 ORCH_TIMEOUT=7717 KILL_GRACE=2 \
   bash "$SUP" >"$S/stdout" 2>"$S/stderr" &
 sup=$!
@@ -174,6 +187,9 @@ check "signal: no surviving watchdog" '! pgrep -f "sleep 7717" >/dev/null'
 check "signal: stderr file removed" '! ls "$S"/state/runs/*.err >/dev/null 2>&1'
 check "signal: lock released" '[ ! -d "$S/state/supervisor.lock" ]'
 check "signal: stop logged" 'grep -q "signal reçu" "$S/state/supervisor.log"'
+check "signal: slow preflight bounded, reason in the prompt" \
+  'grep -q "^- Kubernetes : indisponible (preflight_timeout : 1s)$" "$S/prompt.txt"'
+check "signal: no surviving preflight" '! pgrep -f "sleep 7718" >/dev/null'
 
 check "no claude/doppler/curl/gh call" '[ ! -f "$WORK/forbidden" ]'
 

@@ -79,6 +79,8 @@ Prefer repository commands over improvised shell:
 - `just diagnose-app <argo-app>`
 - `just backup-audit`
 - `just e2e-list`
+- `bash scripts/kubectl-ro.sh <get|describe|logs|top|events> ...` (ad hoc read-only kubectl through `scripts/lib/kube-preflight.sh`; never call `kubectl` without it)
+- `bash scripts/doppler-safe.sh <names|has|set|delete|run>` (the only Doppler entry point for agents)
 
 ## Reference (on demand)
 
@@ -101,6 +103,12 @@ Without explicit operator approval:
 - no PVC deletion/reinitialization;
 - no new public exposure, privilege escalation, identity-root rotation or irreversible migration;
 - no disabling desired apps merely to make Argo green.
+
+Secret output (enforced by `.claude/hooks/secret-output-guard.py`, applies with or without approval):
+- run Doppler through `scripts/doppler-safe.sh`; never run `doppler secrets` without `--only-names`, nor `doppler secrets get|download|set|delete` directly: they print values, even with `--silent`, on stdout and stderr;
+- never run `doppler run -- env|printenv`, bare `printenv`, `env`, `set` or `export -p`; list names only (`env | cut -d= -f1`);
+- never run `kubectl get secret` with `-o`/`--output`; use `kubectl describe secret` for key names and sizes;
+- redirecting stdout alone does not count as protection: stderr, error tables and transcripts keep the values.
 
 Bounded read-only `kubectl get/describe/logs` is evidence. Durable repair is branch -> checks -> PR -> merge -> Argo -> runtime proof.
 

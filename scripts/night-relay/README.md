@@ -7,6 +7,7 @@ Le superviseur `supervisor.sh` est un script shell sans LLM. De 23 h 00 à 08 h 
 | `supervisor.sh` | boucle de nuit, attente de quota, journal borné, rapport |
 | `orchestrator.md` | prompt d'un cycle (`claude -p --model sonnet --permission-mode bypassPermissions --output-format json`) |
 | `report.md` | prompt du rapport de 9 h (`claude -p --model opus`, même mode de permission) |
+| `kube-status.sh` | préflight Kubernetes d'un cycle : une ligne non sensible (`disponible (...)` / `indisponible (catégorie : raison)`) |
 | `test_supervisor.sh` | test hors réseau du superviseur |
 
 La sélection des tickets passe par le dispatcher existant (`scripts/dispatcher/dispatch.py --dry-run`). Il n'y a pas de seconde logique de file.
@@ -32,7 +33,10 @@ Les principales variables (voir l'en-tête du script pour la liste complète) :
 
 ## Comportement
 
-- **Cycle** : le superviseur construit le prompt (`orchestrator.md` + un bloc « Contexte du superviseur » : cycle, handoff précédent, handoff à écrire, fin de fenêtre). Il lance la session, puis lit la première ligne `statut:` du handoff produit.
+- **Cycle** : le superviseur lance d'abord `kube-status.sh` (borné par `KUBE_CHECK_TIMEOUT=120`). Il construit ensuite le prompt (`orchestrator.md` + un bloc « Contexte du superviseur » : cycle, handoff précédent, handoff à écrire, fin de fenêtre, ligne `Kubernetes : ...`). Il lance la session, puis lit la première ligne `statut:` du handoff produit.
+- **Accès Kubernetes** : `kube-status.sh` réutilise `scripts/lib/kube-preflight.sh` (Doppler, empreinte SHA-256, TLS, authentification API). Il ne garde que la raison énumérée : `auth_doppler_absente`, `api_inaccessible`, `credential_rejete`, `credential_canonique_invalide`, `outil_manquant`, `preflight_timeout`. Indisponible, le cycle continue sur les tickets GitHub et Linear ; les preuves runtime attendent. Dans la session, les preuves Argo et Cube passent par `just status-app`, `just diagnose-app` et `just runtime-inventory`. Le reste passe par `bash scripts/kubectl-ro.sh <get|describe|logs|top|events> ...` (lecture seule, kubeconfig temporaire du préflight, jamais copié). Un `kubectl` appelé directement tombe sur `localhost:8080` : c'était l'erreur du premier handoff (2026-11-11-2).
+- **Secrets** : Doppler passe uniquement par `scripts/doppler-safe.sh`. Le hook `.claude/hooks/secret-output-guard.py` (déclaré dans `.claude/settings.json`) refuse les commandes qui impriment des valeurs. Test : `bash tests/agent-guard/secret-output-guard-test.sh`.
+- **Preuves à compléter** : un ticket mergé sans preuve RECONCILED/RUNTIME reste In Progress. Il figure dans la section `## Preuves à compléter` du handoff, et le cycle suivant la reprend en premier. Le dry-run du dispatcher liste aussi ces tickets (`à reprendre :`, In Progress sans verrou).
 - **Limite d'usage** : si la session échoue (code non nul ou `"is_error": true`) avec un message de limite d'usage, le superviseur cherche l'heure de réinitialisation. Il reconnaît `usage limit reached|<epoch>` et `resets 3am` / `resets at 15:30`. Il attend jusqu'à cette heure plus `QUOTA_MARGIN`, puis rejoue le même cycle. Sans heure, il attend `QUOTA_FALLBACK_SLEEP` et réessaie. Si la réinitialisation tombe après 08 h 30, il passe au rapport. Après `QUOTA_MAX_RETRIES` limites consécutives, la tentative compte comme un échec. Le rapport réessaie jusqu'à 12 h, dans la même borne.
 - **Échec** : une session qui échoue sans handoff reçoit un handoff minimal (`statut: echec`, code de sortie, taille du stderr, jamais son contenu). La chaîne continue après `FAIL_BACKOFF`. Au bout de `MAX_FAILS` échecs consécutifs, le superviseur passe au rapport.
 - **File vide** : avec `statut: file-vide`, il patiente `EMPTY_SLEEP` avant le cycle suivant. Avec `statut: arret`, il n'enchaîne plus.
@@ -49,6 +53,7 @@ cycle: <date>-<N>
 modele: sonnet
 ## Faits
 ## En cours
+## Preuves à compléter    PR mergée, app Argo, niveau atteint, niveau manquant, raison
 ## Blocages (preuve)      commande, erreur, chemins essayés (D-13)
 ## Quota
 ## Améliorations
@@ -68,10 +73,11 @@ bash scripts/night-relay/test_supervisor.sh       # KEEP=1 conserve le répertoi
 shellcheck scripts/night-relay/*.sh
 ```
 
-Le test vérifie l'enchaînement, la transmission du handoff, l'attente de quota (heure parsée, heure inconnue, limite pendant le rapport), la borne du journal, le handoff d'échec, la file vide, le démarrage après minuit, le verrou (y compris pid mort ou vide), la borne des limites consécutives, l'heure de déclenchement du rapport et, en mode réel avec un faux `claude`, l'arrêt par signal sans processus fils ni chien de garde survivant. Des binaires `claude`, `doppler`, `curl` et `gh` factices font échouer le test s'ils sont appelés.
+Le test vérifie la ligne Kubernetes du prompt (disponible, indisponible, préflight lent borné), l'enchaînement, la transmission du handoff, l'attente de quota (heure parsée, heure inconnue, limite pendant le rapport), la borne du journal, le handoff d'échec, la file vide, le démarrage après minuit, le verrou (y compris pid mort ou vide), la borne des limites consécutives, l'heure de déclenchement du rapport et, en mode réel avec un faux `claude`, l'arrêt par signal sans processus fils ni chien de garde survivant. Des binaires `claude`, `doppler`, `curl` et `gh` factices font échouer le test s'ils sont appelés.
 
 ## Limites
 
+- Le superviseur ne relit pas `supervisor.sh` en cours de nuit : une modification du préflight prend effet au lancement suivant. Les prompts (`orchestrator.md`, `report.md`) sont relus à chaque cycle.
 - La détection de limite d'usage repose sur le texte du message de `claude`. Ce format n'est pas un contrat stable. En cas de changement, l'attente de repli bornée s'applique.
 - Le timeout sans `timeout(1)` repose sur un chien de garde shell : SIGTERM sur l'arbre de processus de la session, puis SIGKILL après `KILL_GRACE`. Un sous-processus détaché de cet arbre (double fork) n'est pas suivi.
 - La sélection multi-tickets suppose qu'un ticket verrouillé `wip:*` sort du dry-run du dispatcher. Les verrous posés par l'orchestrateur bloquent donc aussi un dispatcher planifié sur la même voie.

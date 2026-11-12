@@ -23,6 +23,8 @@
 #   EMPTY_SLEEP=3600 FAIL_BACKOFF=600 WINDOW_GRACE=1800
 #   LOG_MAX_BYTES=1048576 RUN_MAX_BYTES=262144 RUNS_KEEP=60
 #   CLAUDE_BIN=claude
+#   NIGHT_RELAY_KUBE_STATUS   per-cycle Kubernetes preflight (default: scripts/night-relay/kube-status.sh)
+#   KUBE_CHECK_TIMEOUT=120    bound of that preflight, in seconds
 # DRY_RUN scenario knobs (tests):
 #   DRY_RUN_CYCLE_SECONDS=5400  simulated duration of one orchestrator session
 #   DRY_RUN_REPORT_SECONDS=600  simulated duration of the report session
@@ -31,6 +33,7 @@
 #   DRY_RUN_QUOTA_MSG           verbatim limit message (overrides DRY_RUN_QUOTA_RESET_IN)
 #   DRY_RUN_FAIL_ATTEMPTS=""    attempt numbers that fail without writing a handoff
 #   DRY_RUN_EMPTY_ATTEMPTS=""   attempt numbers whose handoff says `statut: file-vide`
+#   DRY_RUN_KUBE="disponible (simulation)"  Kubernetes line given to the prompt (no preflight run)
 
 set -uo pipefail
 
@@ -66,18 +69,22 @@ LOG_MAX_BYTES=${LOG_MAX_BYTES:-1048576}
 RUN_MAX_BYTES=${RUN_MAX_BYTES:-262144}
 RUNS_KEEP=${RUNS_KEEP:-60}
 CLAUDE_BIN=${CLAUDE_BIN:-claude}
+KUBE_STATUS_CMD=${NIGHT_RELAY_KUBE_STATUS:-$SCRIPT_DIR/kube-status.sh}
+KUBE_CHECK_TIMEOUT=${KUBE_CHECK_TIMEOUT:-120}
 
 DRY_RUN_CYCLE_SECONDS=${DRY_RUN_CYCLE_SECONDS:-5400}
 DRY_RUN_REPORT_SECONDS=${DRY_RUN_REPORT_SECONDS:-600}
 DRY_RUN_QUOTA_ATTEMPTS=${DRY_RUN_QUOTA_ATTEMPTS-2}
 DRY_RUN_FAIL_ATTEMPTS=${DRY_RUN_FAIL_ATTEMPTS:-}
 DRY_RUN_EMPTY_ATTEMPTS=${DRY_RUN_EMPTY_ATTEMPTS:-}
+DRY_RUN_KUBE=${DRY_RUN_KUBE:-disponible (simulation)}
 
 ATTEMPT=0          # every claude session launched (orchestrator or report)
 QUOTA_WAIT=0       # set by quota_wait_from when a usage limit is detected
 SESSION_PID=""     # running claude session (killed on signal)
 WATCHDOG_PID=""    # its timeout watchdog
 SESSION_ERR=""     # its stderr file (removed on signal)
+KUBE_LINE=""       # last Kubernetes preflight line (kube_status)
 
 # --- clock -----------------------------------------------------------------
 if date --version >/dev/null 2>&1; then GNU_DATE=1; else GNU_DATE=0; fi
@@ -306,6 +313,30 @@ simulate_session() { # no network, no claude: fake JSON, fake handoff, simulated
   return 0
 }
 
+# --- Kubernetes preflight (per cycle) ----------------------------------------------
+# One non-sensitive line for the prompt: "disponible (...)" | "indisponible (categorie : RAISON)".
+# kube-status.sh reuses scripts/lib/kube-preflight.sh; only its enum reason is kept.
+# Runs in this shell (sets KUBE_LINE) so a signal can stop it like a session.
+kube_status() {
+  if [ "$DRY_RUN" = 1 ]; then KUBE_LINE=$DRY_RUN_KUBE; return 0; fi
+  local f="$RUNS/kube-status.$$" line
+  (cd "$REPO" && exec bash "$KUBE_STATUS_CMD") >"$f" 2>/dev/null </dev/null &
+  SESSION_PID=$!
+  ( sleep "$KUBE_CHECK_TIMEOUT"; touch "$f.timeout"; kill_tree "$SESSION_PID" ) >/dev/null 2>&1 &
+  WATCHDOG_PID=$!
+  wait "$SESSION_PID" 2>/dev/null
+  stop_watchdog
+  SESSION_PID=""
+  line=$(head -1 "$f" 2>/dev/null | tr -cd 'A-Za-z0-9 ():._+-' | cut -c1-120)
+  [ -f "$f.timeout" ] && line="indisponible (preflight_timeout : ${KUBE_CHECK_TIMEOUT}s)"
+  rm -f "$f" "$f.timeout"
+  case "$line" in
+    disponible*|indisponible*) ;;
+    *) line="indisponible (inconnu : sortie du preflight illisible)" ;;
+  esac
+  KUBE_LINE=$line
+}
+
 # --- handoffs -------------------------------------------------------------------
 handoff_indices() { # handoff_indices NIGHT -> cycle numbers, ascending
   local f b
@@ -365,12 +396,15 @@ run_cycles() {
     prompt="$RUNS/$NIGHT-$n.prompt.md"
     out="$RUNS/$NIGHT-$n.json"
     err="$RUNS/$NIGHT-$n.err"
+    kube_status
+    log "cycle $NIGHT-$n : Kubernetes $KUBE_LINE"
     build_prompt "$SCRIPT_DIR/orchestrator.md" "$prompt" <<EOF
 - Cycle : $NIGHT-$n
 - Handoff précédent : ${prev:-aucun}
 - Handoff à écrire : $handoff
 - Fin de fenêtre : $(fmt "$WINDOW_END" '%Y-%m-%d %H:%M') (heure locale) ; ne lance plus de nouveau ticket après.
 - Dépôt : $REPO
+- Kubernetes : $KUBE_LINE
 EOF
     # a session may overrun the window by WINDOW_GRACE, but never past REPORT_AT - 5 min
     limit=$(( WINDOW_END + WINDOW_GRACE ))

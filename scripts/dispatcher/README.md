@@ -28,6 +28,7 @@ Les tests n'utilisent pas le réseau. Ils tournent sur des fixtures JSON et un f
 ## Règles
 
 - **Éligibilité** : un ticket de l'équipe PLT au statut Todo, avec les labels Agent-ready, un seul `agent:haiku|sonnet|opus` et `exec:<voie>`. Il ne porte ni Needs-operator, ni Différé, ni `agent:codex`, ni `wip:*`, et n'a aucun bloqueur `blocks` non terminé.
+- **À reprendre** (dry-run seulement) : les tickets In Progress de la voie, avec Agent-ready, un seul `agent:*` et sans `wip:*`, s'affichent en lignes `à reprendre :`. C'est le cas d'une PR mergée dont la preuve RECONCILED/RUNTIME manque. L'orchestrateur de nuit les reprend avant la file. L'exécution réelle n'en tient pas compte.
 - **Tri** : d'abord le projet selon D-10, puis la priorité (sans priorité en dernier), puis la date de création.
 - **Bornes** : la table `MODEL_TABLE` de `selection.py` fixe l'effort, les tours et le budget en USD par modèle. Le timeout de `claude` est de 2 h 45, sous le TTL de 3 h du verrou.
 - **Verrou actif sur la voie** : le dispatcher ne démarre pas.

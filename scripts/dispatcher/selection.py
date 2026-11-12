@@ -19,6 +19,7 @@ MODEL_TABLE = {
 
 TEAM_KEY = "PLT"
 READY_STATE = "Todo"
+RESUME_STATE = "In Progress"
 READY_LABEL = "Agent-ready"
 EXCLUDED_LABELS = {"Needs-operator", "Différé", "agent:codex"}
 LANES = ("local", "cloud")
@@ -84,6 +85,33 @@ def rejection_reason(issue: dict, lane: str) -> str | None:
     if blockers:
         return "bloqué par " + ", ".join(blockers)
     return None
+
+
+def resume_candidates(issues: list[dict], lane: str) -> list[dict]:
+    """In Progress tickets of `lane` that nobody holds (no wip:* lock).
+
+    Typical case: PR merged, RECONCILED/RUNTIME evidence still missing (PLT-200).
+    The queue only takes Todo tickets, so without this list such a ticket is
+    orphaned. Same rules as the queue except the state; sorted the same way.
+    """
+    if lane not in LANES:
+        raise ValueError(f"voie inconnue : {lane}")
+    out = []
+    for issue in issues:
+        labels = set(label_names(issue))
+        if (issue.get("team") or {}).get("key", TEAM_KEY) != TEAM_KEY:
+            continue
+        if (issue.get("state") or {}).get("name") != RESUME_STATE:
+            continue
+        if READY_LABEL not in labels or labels & EXCLUDED_LABELS:
+            continue
+        if len(labels & MODEL_TABLE.keys()) != 1 or f"exec:{lane}" not in labels:
+            continue
+        if any(name.startswith("wip:") for name in labels):
+            continue
+        out.append(issue)
+    out.sort(key=sort_key)
+    return out
 
 
 def project_rank(issue: dict) -> int:
