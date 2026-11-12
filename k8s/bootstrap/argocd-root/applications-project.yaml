@@ -79,10 +79,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: rustical-pilot
       server: https://kubernetes.default.svc
-    # PLT-221: temporary isolated R2 restore drill of wellness/sparkyfitness-db;
-    # removed by PR once the drill root is pruned.
-    - namespace: sparkyfitness-drill
-      server: https://kubernetes.default.svc
     - namespace: wellness
       server: https://kubernetes.default.svc
     - namespace: searxng
