@@ -43,6 +43,16 @@ spec:
         targetRevision: main
         path: '{{ path }}'
         kustomize: {}
+      # PLT-213: External Secrets (creationPolicy Merge) copies the ExternalSecret's
+      # Argo tracking-id onto argocd-secret, so it never equals the Secret's own
+      # id and the app stays OutOfSync. Exact name and one annotation only.
+      ignoreDifferences:
+        - group: ""
+          kind: Secret
+          namespace: argocd
+          name: argocd-secret
+          jsonPointers:
+            - /metadata/annotations/argocd.argoproj.io~1tracking-id
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:

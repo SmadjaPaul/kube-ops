@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
 - project.yaml
+- kube-system
 - argocd
 - argocd-mcp
 - grafana-mcp

@@ -10,6 +10,7 @@ resources:
   - database-source-credentials.yaml
   - database-objectstore.yaml
   - database-pg2-objectstore.yaml
+  - database.yaml
   - database-pg2.yaml
   - database-pg2-scheduled-backup.yaml
   - database-pg2-initial-backup.yaml
