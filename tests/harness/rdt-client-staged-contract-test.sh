@@ -11,8 +11,9 @@ check() {
 }
 
 [[ -f "$pkg/kustomization.yaml" ]] || fail "missing staged package"
-! grep -Eq '^[[:space:]]*-[[:space:]]+rdt-client([[:space:]]|$)' "$root/kustomization.yaml" ||
+if grep -Eq '^[[:space:]]*-[[:space:]]+rdt-client([[:space:]]|$)' "$root/kustomization.yaml"; then
   fail "RDT-Client must not appear in active Media root"
+fi
 [[ ! -e "$pkg/http-route.yaml" ]] || fail "no public/private HTTPRoute before auth qualification"
 [[ ! -e "$pkg/networkpolicy.yaml" ]] ||
   fail "network policy must be qualified with live TorBox CDN evidence before admission"

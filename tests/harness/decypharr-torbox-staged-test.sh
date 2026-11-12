@@ -7,7 +7,10 @@ secret="$root/decypharr/external-secret.yaml"
 media="$root/kustomization.yaml"
 pol="k8s/infrastructure/network/policies/applications/media/media"
 grep -Fxq -- '- decypharr' "$media"
-! grep -Eq '^[[:space:]]*-[[:space:]]*qbittorrent([[:space:]]|$)' "$media"
+if grep -Eq '^[[:space:]]*-[[:space:]]*qbittorrent([[:space:]]|$)' "$media"; then
+  echo 'DECYPHARR_TORBOX_STAGED=FAIL: qbittorrent must not be listed in the media kustomization' >&2
+  exit 1
+fi
 test ! -e "$root/qbittorrent/kustomization.yaml"
 grep -Fq 'APP_TORBOX_API_KEY' "$secret"
 grep -Fq 'APP_RADARR_API_KEY' "$secret"

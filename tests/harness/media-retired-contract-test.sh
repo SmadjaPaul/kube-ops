@@ -2,8 +2,14 @@
 set -euo pipefail
 m=k8s/applications/media/kustomization.yaml
 v=k8s/infrastructure/controllers/velero/schedules/kustomization.yaml
-! grep -Eq '^[[:space:]]*-[[:space:]]*(sabnzbd|audiobookshelf)[[:space:]]*$' "$m"
-! grep -Eq '^[[:space:]]*-[[:space:]]*daily-(sabnzbd|audiobookshelf)\.yaml' "$v"
+if grep -Eq '^[[:space:]]*-[[:space:]]*(sabnzbd|audiobookshelf)[[:space:]]*$' "$m"; then
+  echo 'MEDIA_DECOMMISSION_STATIC=FAIL retired sabnzbd/audiobookshelf still listed in the media kustomization' >&2
+  exit 1
+fi
+if grep -Eq '^[[:space:]]*-[[:space:]]*daily-(sabnzbd|audiobookshelf)\.yaml' "$v"; then
+  echo 'MEDIA_DECOMMISSION_STATIC=FAIL retired daily-sabnzbd/audiobookshelf Velero schedules still listed' >&2
+  exit 1
+fi
 grep -Fxq -- '- media-share-pvc.yaml' "$m"
 grep -Fxq -- '- decypharr' "$m"
 grep -Fxq -- '- aiostreams' "$m"

@@ -15,6 +15,9 @@ grep -Fq 'AIOSTREAMS_OIDC_CLIENT_SECRET' "$root/oidc-deployment-patch.dormant.ya
 grep -Fq 'https://auth.smadja.dev/application/o/aiostreams/' "$root/oidc-deployment-patch.dormant.yaml"
 grep -Fq 'authentik-admins=admin' "$root/oidc-deployment-patch.dormant.yaml"
 grep -Fq 'value: ""' "$root/oidc-deployment-patch.dormant.yaml"
-! grep -Eq '^[[:space:]]*(-[[:space:]]*world([[:space:]]|$)|toEntities:|toCIDR:)' "$root/networkpolicy.yaml"
+if grep -Eq '^[[:space:]]*(-[[:space:]]*world([[:space:]]|$)|toEntities:|toCIDR:)' "$root/networkpolicy.yaml"; then
+  echo 'AIOSTREAMS_OIDC=FAIL aiostreams network policy must not carry world/entity/CIDR egress' >&2
+  exit 1
+fi
 grep -Fq 'value: "true"' "$root/oidc-deployment-patch.dormant.yaml"
 echo "AIOSTREAMS_OIDC=PASS STATIC / ACTIVE; LOGIN IS RUNTIME-ONLY"

@@ -19,7 +19,10 @@ eq() {
   got="${values%%$'\n'*}"
   [[ "$got" == "$3" ]] || { echo "POLYFIN_STATIC=FAIL $2 $1 got=$got want=$3" >&2; exit 1; }
 }
-! grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/kustomization.yaml"
+if grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/kustomization.yaml"; then
+  echo 'POLYFIN_STATIC=FAIL historical Polyfin http-route.yaml must stay out of the kustomization' >&2
+  exit 1
+fi
 jq -e '.perimeter.hostname == null and .perimeter.routeStatus == "disabled"' \
   .github/polyfin/private-pilot-admission.json >/dev/null
 eq '.spec.template.spec.automountServiceAccountToken' "$root/deployment.yaml" false
@@ -78,8 +81,14 @@ eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/mo
 [[ "$(jq '[.acceptedFindings[] | select(.id == "CVE-2026-6653")] | length' .github/polyfin/private-pilot-admission.json)" == '1' ]] || {
   echo 'POLYFIN_STATIC=FAIL CRITICAL CVE-2026-6653 must remain separate' >&2; exit 1
 }
-! grep -Eq '^[[:space:]]*-[[:space:]]+name:[[:space:]]+external[[:space:]]*$' "$root/http-route.yaml"
-! grep -Eq '^[[:space:]]*toEntities:|^[[:space:]]*matchPattern:|^[[:space:]]*toCIDR:|0\.0\.0\.0/0|^[[:space:]]*-[[:space:]]+world' "$root/networkpolicy.yaml"
+if grep -Eq '^[[:space:]]*-[[:space:]]+name:[[:space:]]+external[[:space:]]*$' "$root/http-route.yaml"; then
+  echo 'POLYFIN_STATIC=FAIL Polyfin route must not attach to the external Gateway' >&2
+  exit 1
+fi
+if grep -Eq '^[[:space:]]*toEntities:|^[[:space:]]*matchPattern:|^[[:space:]]*toCIDR:|0\.0\.0\.0/0|^[[:space:]]*-[[:space:]]+world' "$root/networkpolicy.yaml"; then
+  echo 'POLYFIN_STATIC=FAIL Polyfin network policy must not carry world/CIDR/entity egress' >&2
+  exit 1
+fi
 jq -r '.acceptedFindings[] | "target\t" + .id + "\tpkg\t1\t" + (if .disposition == "fixed-required" then "1.0" else "UNFIXED" end) + "\tHIGH\t" + (if .disposition == "fixed-required" then "fixed" else "affected" end)' .github/polyfin/private-pilot-admission.json > "$tmpfindings"
 bash scripts/polyfin-admission-check.sh \
   --image 'ghcr.io/moodiness/polyfin:0.61.1@sha256:1e55720ea21bca9448ddbdd80a21251622d21448ee2e31974ad18ae2a9f6c975' \

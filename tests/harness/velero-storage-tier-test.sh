@@ -47,7 +47,10 @@ done
 for file in \
   "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml" \
   "$repo_root/k8s/applications/media/sabnzbd/statefulset.yaml"; do
-  ! grep -F 'velero.io/exclude-from-backup' "$file" >/dev/null
+  if grep -F 'velero.io/exclude-from-backup' "$file" >/dev/null; then
+    echo "VELERO_STORAGE_TIER_CONTRACT=FAIL: StatefulSet $file must not carry velero.io/exclude-from-backup" >&2
+    exit 1
+  fi
 done
 grep -F 'backup.velero.io/backup-volumes-excludes: meilisearch-data' \
   "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml" >/dev/null
@@ -61,15 +64,30 @@ grep -F 'backup.velero.io/backup-volumes-excludes: downloads,backups' \
   "$repo_root/k8s/applications/web/pinepods/deployment.yaml" >/dev/null
 grep -F 'backup.velero.io/backup-volumes-excludes: media' \
   "$repo_root/k8s/applications/media/audiobookshelf/statefulset.yaml" >/dev/null
-! grep -F 'backup.smadja.dev/strategy: rebuildable' \
-  "$repo_root/k8s/applications/ai/executor/statefulset.yaml" >/dev/null
-! grep -F 'backup.smadja.dev/strategy: rebuildable' \
-  "$repo_root/k8s/infrastructure/monitoring/prometheus-stack/values.yaml" >/dev/null
-! grep -F 'backup.velero.io/backup-volumes-excludes: data' \
-  "$repo_root/k8s/applications/ai/executor/statefulset.yaml" >/dev/null
-! test -e "$repo_root/k8s/infrastructure/monitoring/loki/pvc-backup-policy-patch.yaml"
-! grep -Fxq '  - daily-monitoring.yaml' \
-  "$velero_root/schedules/kustomization.yaml"
+if grep -F 'backup.smadja.dev/strategy: rebuildable' \
+  "$repo_root/k8s/applications/ai/executor/statefulset.yaml" >/dev/null; then
+  echo 'VELERO_STORAGE_TIER_CONTRACT=FAIL: executor StatefulSet must not be marked rebuildable' >&2
+  exit 1
+fi
+if grep -F 'backup.smadja.dev/strategy: rebuildable' \
+  "$repo_root/k8s/infrastructure/monitoring/prometheus-stack/values.yaml" >/dev/null; then
+  echo 'VELERO_STORAGE_TIER_CONTRACT=FAIL: prometheus-stack values must not be marked rebuildable' >&2
+  exit 1
+fi
+if grep -F 'backup.velero.io/backup-volumes-excludes: data' \
+  "$repo_root/k8s/applications/ai/executor/statefulset.yaml" >/dev/null; then
+  echo 'VELERO_STORAGE_TIER_CONTRACT=FAIL: executor data volume must not be excluded from backup' >&2
+  exit 1
+fi
+if [[ -e "$repo_root/k8s/infrastructure/monitoring/loki/pvc-backup-policy-patch.yaml" ]]; then
+  echo 'VELERO_STORAGE_TIER_CONTRACT=FAIL: loki pvc-backup-policy-patch.yaml must stay absent' >&2
+  exit 1
+fi
+if grep -Fxq '  - daily-monitoring.yaml' \
+  "$velero_root/schedules/kustomization.yaml"; then
+  echo 'VELERO_STORAGE_TIER_CONTRACT=FAIL: daily-monitoring.yaml must not be scheduled' >&2
+  exit 1
+fi
 grep -Fxq '  - daily-executor.yaml' \
   "$velero_root/schedules/kustomization.yaml"
 grep -F 'app: karakeep-web' \
