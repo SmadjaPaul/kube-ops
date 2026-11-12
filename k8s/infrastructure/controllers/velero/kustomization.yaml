@@ -7,6 +7,7 @@ resources:
   - externalsecret.yaml
   - restore-pvc-isolation.yaml
   - schedules/
+  - drills/plt222-ntfy-r2-backup.yaml
   - repository-config.yaml
   - auto-cleanup-jobs-policy.yaml
   - maintenance-job-config.yaml

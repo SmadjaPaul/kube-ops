@@ -1,0 +1,25 @@
+# PLT-222 : preuve de sauvegarde Velero/Kopia vers R2 (BSL `r2`) sur un
+# namespace peu critique. Lance hors des fenetres de backup (03:17, 04:25).
+# Le Restore isole est declare dans une PR suivante, une fois ce Backup Completed.
+# Retrait : PR de nettoyage (supprimer ce Backup supprime seulement ce backup de drill).
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: plt222-ntfy-r2-20261112
+  namespace: velero
+  labels:
+    backup-tier: drill
+    backup-app: ntfy
+    plt: "222"
+spec:
+  storageLocation: r2
+  includedNamespaces:
+    - ntfy
+  includedResources:
+    - '*'
+  excludedResources:
+    - events
+    - storageclasses.storage.k8s.io
+  defaultVolumesToFsBackup: true
+  snapshotVolumes: false
+  ttl: 336h
