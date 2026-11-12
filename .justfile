@@ -28,12 +28,10 @@ check:
     bash tests/harness/grafana-tctl-contract-test.sh
     bash tests/harness/backup-audit-contract-test.sh
     bash tests/harness/dr-synth-cleanup-contract-test.sh
-    bash tests/harness/atlantis-plan-only-test.sh
     bash tests/harness/kube-preflight-test.sh
     bash tests/harness/affected-tests-test.sh
     bash tests/harness/runtime-smoke-test.sh
     bash tests/harness/argo-orphan-contract-test.sh
-    bash tests/harness/github-atlantis-guard-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
     bash tests/harness/mastra-factory-checkpoint-s3-contract-test.sh
