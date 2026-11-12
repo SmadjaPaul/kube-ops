@@ -93,6 +93,9 @@ for arg in "${@:2}"; do
     --server|--server=*|-s|-s*|--user|--user=*|--context|--context=*|--cluster|--cluster=*|\
     --client-key|--client-key=*|--client-certificate|--client-certificate=*|--username|--username=*|--password|--password=*)
       refuse "option '$arg' : l'accès vient uniquement de kube-preflight.sh" ;;
+    --kuberc|--kuberc=*|--profile|--profile=*|--profile-output|--profile-output=*|--cache-dir|--cache-dir=*|\
+    --as-user-extra|--as-user-extra=*|--log-file|--log-file=*|--log-dir|--log-dir=*|--log-backtrace-at|--log-backtrace-at=*)
+      refuse "option '$arg' : préférences/impersonation/écriture de fichiers non autorisées" ;;
     --insecure-skip-tls-verify|--insecure-skip-tls-verify=*|--certificate-authority|--certificate-authority=*|--tls-server-name|--tls-server-name=*)
       refuse "option '$arg' : TLS non contournable" ;;
     --raw|--raw=*)
@@ -140,4 +143,5 @@ fi
 # the preflight may have replaced the EXIT trap; keep both cleanups
 trap 'kube_access_cleanup; rm -f "$status_file"' EXIT
 
-kubectl --request-timeout=30s "$@"
+# kuberc preferences (~/.kube/kuberc) could add -o yaml or aliases behind the guard
+KUBERC=off kubectl --request-timeout=30s "$@"

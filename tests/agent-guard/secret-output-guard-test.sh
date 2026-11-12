@@ -149,7 +149,8 @@ for args in "delete pod x" "apply -f x.yaml" "exec pod -- env" "get secret foo -
             "get secrets -Aoyaml" "get secrets -Ao yaml" "get pods -Av8" "get pods -Av=8" "logs -pv8 pod" "get pods -wv8" \
             "get -Rf dir" "get pods --insecure_skip_tls_verify" "get pods --as_uid=x" "get pods --client_key=k" \
             "get pods --as_group=g" "get pods --certificate_authority=c" "get pods --tls_server_name=x" "get pods -shttps://x" \
-            "get pods -A=true"; do
+            "get pods -A=true" "get secrets --kuberc=/tmp/kr" "get secrets --kuberc /tmp/kr" "get pods --as-user-extra=a=b" \
+            "get pods --profile=cpu" "get pods --profile-output=/tmp/p" "get pods --cache-dir=/tmp/c" "get pods --log-file=/tmp/l"; do
   # shellcheck disable=SC2086 # word splitting wanted
   PATH="$WORK/bin:$PATH" bash "$RO" $args >/dev/null 2>&1; rc=$?
   [ "$rc" = 64 ] && ok "kubectl-ro refuse : $args" || ko "kubectl-ro laisse passer : $args ($rc)"
@@ -192,7 +193,7 @@ done
 mkdir -p "$WORK/ro/scripts/lib" "$WORK/robin"
 cp "$RO" "$WORK/ro/scripts/kubectl-ro.sh"
 printf '%s\n' 'kube_access_cleanup() { :; }' 'require_kube_access() { echo KUBE_ACCESS=PASS; }' >"$WORK/ro/scripts/lib/kube-preflight.sh"
-printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"%s/raw-args"\n' "$WORK" >"$WORK/robin/kubectl"; chmod +x "$WORK/robin/kubectl"
+printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"%s/raw-args"\necho "$KUBERC" >"%s/kuberc"\n' "$WORK" "$WORK" >"$WORK/robin/kubectl"; chmod +x "$WORK/robin/kubectl"
 for p in "$PROM/query?query=sum%28rate%28node_cpu_seconds_total%7Bmode%21%3D%22idle%22%7D%5B5m%5D%29%29" \
          "$PROM/query_range?query=node_hwmon_temp_celsius&start=2026-11-12T00:00:00Z&end=2026-11-12T06:00:00Z&step=60" \
          "$PROM/series?match%5B%5D=up" "$PROM/labels" "$PROM/label/__name__/values" "$PROM/query?query=up" \
@@ -207,6 +208,7 @@ rm -f "$WORK/raw-args"
 PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" get "--raw=$PROM/labels" >/dev/null 2>&1; rc=$?
 [ "$rc" = 0 ] && [ "$(cat "$WORK/raw-args" 2>/dev/null)" = "--request-timeout=30s get --raw=$PROM/labels" ] &&
   ok "kubectl-ro --raw=<chemin> autorise" || ko "kubectl-ro --raw=<chemin> refuse à tort ($rc)"
+[ "$(cat "$WORK/kuberc" 2>/dev/null)" = off ] && ok "kubectl-ro : KUBERC=off (préférences kuberc ignorées)" || ko "kubectl-ro : KUBERC non désactivé"
 for args in "get pods -A -o wide" "get pods -nmonitoring -owide" "get secret -oname" "get pods -l app=x -L tier" \
             "logs -n x pod -c c --tail=5 -p" "get secrets -A" "top pods -A --sort-by=cpu"; do
   rm -f "$WORK/raw-args"
