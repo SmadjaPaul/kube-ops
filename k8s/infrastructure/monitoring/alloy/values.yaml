@@ -94,9 +94,10 @@ alloy:
         // Prometheus counters; only the Loki copy of CI runner pods (which
         // download and execute tools by design) is dropped. 154k events,
         // ~390 MB/6h during CI bursts. Events from every other namespace and
-        // every other rule stay in Loki.
+        // every other rule stay in Loki. The namespace match is token-bounded so
+        // that e.g. arc-runners-production is not dropped.
         stage.match {
-          selector            = `{namespace="falco", container="falco"} |= "Executing binary not part of base image" |= "k8s_ns_name=arc-runners"`
+          selector            = `{namespace="falco", container="falco"} |= "Executing binary not part of base image" |~ "k8s_ns_name=arc-runners([^a-zA-Z0-9_-]|$)"`
           action              = "drop"
           drop_counter_reason = "falco_arc_runner_exec"
         }
@@ -116,9 +117,11 @@ alloy:
           drop_counter_reason = "mongodb_connection_chatter"
         }
         // Argo CD routine reconcile INFO lines (6.3 MB/6h) and repo-server INFO
-        // (12.4 MB/6h). WARN/ERROR lines and sync results are kept.
+        // (12.4 MB/6h). Only level=info lines are matched, so WARN/ERROR lines (such
+        // as "Skipping auto-sync: failed previous sync attempt") and sync results
+        // are kept.
         stage.match {
-          selector            = `{namespace="argocd", container="application-controller"} |~ "Reconciliation completed|No status changes|Refreshing app status|Skipping auto-sync|Comparing app state"`
+          selector            = `{namespace="argocd", container="application-controller"} |= "level=info" |~ "Reconciliation completed|No status changes|Refreshing app status|Skipping auto-sync|Comparing app state"`
           action              = "drop"
           drop_counter_reason = "argocd_controller_routine_info"
         }
