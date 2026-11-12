@@ -61,9 +61,8 @@ configuration:
       config:
         region: auto
         s3ForcePathStyle: "true"
-        # TODO(PLT-222): replace R2_ACCOUNT_ID_TODO by the Cloudflare account ID
-        # (non secret; same value as R2_S3_ENDPOINT in Doppler cluster/prd).
-        s3Url: https://R2_ACCOUNT_ID_TODO.eu.r2.cloudflarestorage.com
+        # Endpoint R2, juridiction eu. L'account ID n'est pas un credential.
+        s3Url: https://a98efb1065ad3ae6b7259dce75f2a980.eu.r2.cloudflarestorage.com
   repositoryMaintenanceJob:
     repositoryConfigData:
       name: "velero-repo-maintenance"
