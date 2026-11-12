@@ -56,6 +56,11 @@ configuration:
     - name: r2
       provider: aws
       bucket: homelab-backup-velero
+      # PLT-222: le bucket contient archive/hetzner-legacy/ (copies de sortie
+      # Hetzner, a conserver). Velero refuse un bucket dont la racine contient
+      # un dossier inconnu ("invalid top-level directories: [archive]") : le
+      # prefix isole Velero dans velero/ et laisse archive/ intact.
+      prefix: velero
       default: true
       accessMode: ReadWrite
       credential:
