@@ -21,7 +21,7 @@ test('new minor rule scopes to 5 stable website dependencies only', async () => 
   assert.deepEqual(rule.matchUpdateTypes, ['minor']);
   assert.deepEqual([...rule.matchPackageNames].sort(), [...packages].sort());
   assert.equal(rule.matchCurrentVersion, '!/^0\\./');
-  assert.equal(rule.minimumReleaseAge, '14 days');
+  assert.equal(rule.minimumReleaseAge, '3 days');
   assert.equal(rule.rangeStrategy, 'bump');
   assert.equal(rule.automerge, true);
   assert.equal(rule.automergeType, 'pr');

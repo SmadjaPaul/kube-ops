@@ -211,7 +211,7 @@
         "minor"
       ],
       "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
@@ -270,7 +270,7 @@
         "minor"
       ],
       "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "automergeType": "pr"
     },
     {
@@ -311,7 +311,7 @@
         "minor"
       ],
       "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
@@ -365,7 +365,7 @@
         "patch"
       ],
       "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "automerge": true,
       "platformAutomerge": true,
       "automergeType": "pr"
@@ -413,7 +413,7 @@
         "patch"
       ],
       "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
@@ -433,7 +433,7 @@
         "patch",
         "minor"
       ],
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
@@ -458,7 +458,7 @@
         "patch"
       ],
       "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "rangeStrategy": "bump",
       "automerge": true,
       "automergeType": "pr",
@@ -483,7 +483,7 @@
       "matchUpdateTypes": [
         "patch"
       ],
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "rangeStrategy": "bump",
       "automerge": true,
       "automergeType": "pr",
@@ -512,11 +512,43 @@
         "minor"
       ],
       "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "14 days",
+      "minimumReleaseAge": "3 days",
       "rangeStrategy": "bump",
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
+    },
+    {
+      "description": "PLT-172 composants sensibles (CNI, OS, stockage, identite, base, sauvegarde, CRD, GitOps, DNS/edge, hyperviseur) : 14 jours, jamais d'automerge, qualification avant merge",
+      "matchPackageNames": [
+        "/cilium/",
+        "/talos/",
+        "/longhorn/",
+        "/authentik/",
+        "/cloudnative-pg/",
+        "/cnpg/",
+        "/barman/",
+        "/velero/",
+        "/argo-cd/",
+        "/argoproj/",
+        "/cert-manager/",
+        "/external-secrets/",
+        "/cloudflare/",
+        "/proxmox/",
+        "/kubernetes\\/kubernetes/"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": false,
+      "platformAutomerge": false
+    },
+    {
+      "description": "PLT-172 toute mise a jour majeure : 14 jours, jamais d'automerge",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "minimumReleaseAge": "14 days",
+      "automerge": false,
+      "platformAutomerge": false
     }
   ],
   "kubernetes": {
@@ -526,5 +558,6 @@
     ]
   },
   "platformAutomerge": false,
-  "ignoreTests": false
+  "ignoreTests": false,
+  "minimumReleaseAge": "3 days"
 }
