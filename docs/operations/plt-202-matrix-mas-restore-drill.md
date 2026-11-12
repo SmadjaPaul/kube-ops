@@ -66,14 +66,18 @@ All times UTC, 2026-11-12. Evidence levels follow
   the Argo AppProject gating (avoidable by merging the AppProject destination
   first) and 24 min is WAL replay of about 1 090 segments (4.5 days of WAL)
   at about 45 to 50 segments per minute.
-- **RPO: 3 min 14 s measured, at most about 5 min structural.** The last
-  segment available when recovery ended (19:10:48) was
-  `000000010000000600000092`, archived at 19:08:29. Timeline 2 started right
-  after it (control checkpoint `redo_wal_file=000000020000000600000095`, after
-  segment switches). The newest committed write in the restored database is
-  19:07:34 (`queue_workers.last_seen_at`). The production `archive_timeout`
-  is 5 minutes: segments land every 5 minutes (`…8D` 18:43:28 through `…94`
-  19:18:29).
+- **RPO, by WAL position: about 2 min 19 s at recovery end, at most about
+  5 min structural.** Recovery replayed through the last archived segment,
+  `000000010000000600000092` (archived 19:08:29); the next one, `…93`, was
+  archived at 19:13:29, after recovery ended at 19:10:48. Timeline 2 starts
+  after `…92` (control checkpoint `redo_wal_file=000000020000000600000095`
+  after segment switches). Production writes not yet in an archived segment
+  are the loss window: 2 min 19 s at recovery end, bounded by the production
+  `archive_timeout` of 5 minutes (segments `…8D` 18:43:28 through `…94`
+  19:18:29). The newest application timestamp in the restored database,
+  19:07:34 (`queue_workers.last_seen_at`), is consistent with replay through
+  `…92` but is not a commit timestamp; the exact last replayed commit time
+  was in the recovery pod log, deleted by CNPG before capture.
 - **Control query** (read-only transaction, counts only):
   `in_recovery=false`, 34 public tables, 167 `_sqlx_migrations` rows,
   `queue_jobs=3085`, `queue_schedules=20`, `oauth2_clients=1`,
