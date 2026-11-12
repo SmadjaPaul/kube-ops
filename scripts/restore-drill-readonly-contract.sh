@@ -42,7 +42,7 @@ violations() {
     + [$docs[] | select(
           (.apiVersion == "postgresql.cnpg.io/v1" and (.kind == "Backup" or .kind == "ScheduledBackup"))
           or ((.apiVersion // "") | startswith("velero.io/"))
-          or (.kind == "HTTPRoute" or .kind == "Gateway" or .kind == "Ingress")
+          or (.kind | IN("HTTPRoute", "GRPCRoute", "TCPRoute", "TLSRoute", "UDPRoute", "Gateway", "Ingress"))
           or (.kind == "Service" and (.spec.type == "LoadBalancer" or .spec.type == "NodePort"))
         ) | "forbidden object \(.kind)/\(.metadata.name)"]
     | .[]
@@ -69,6 +69,7 @@ for root in "${roots[@]}"; do
     '(.[] | select(.kind == "ObjectStore")) .spec.retentionPolicy = "1d"'
     '(.[] | select(.kind == "ObjectStore")) .spec.configuration.serverName = "x"'
     '. + [{"apiVersion": "postgresql.cnpg.io/v1", "kind": "ScheduledBackup", "metadata": {"name": "x"}}]'
+    '. + [{"apiVersion": "gateway.networking.k8s.io/v1alpha2", "kind": "TCPRoute", "metadata": {"name": "x"}}]'
   )
   for mutation in "${mutations[@]}"; do
     if [[ -z "$(jq "$mutation" "$tmp/render.json" | violations)" ]]; then
