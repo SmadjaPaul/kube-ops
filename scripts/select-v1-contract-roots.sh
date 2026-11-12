@@ -19,11 +19,21 @@ fi
 
 [[ -n "$changed_files" ]] || { echo all; exit 0; }
 
+# Render-neutral paths cannot change any kustomize output: the owner admission
+# registry is data read only by the trusted workflow-integrity gate. A PR made
+# only of such paths renders exactly what main already validated, so it gets
+# the smallest active root as a toolchain smoke render (PLT-210). Any other
+# path, known or unknown, keeps its scoped or complete render.
+smoke_root=k8s/infrastructure/network/policies/auth
 full=false
+neutral=false
 declare -A roots=()
 while IFS= read -r path; do
   [[ -n "$path" ]] || continue
   case "$path" in
+    .github/workflow-integrity-admissions.json)
+      neutral=true
+      ;;
     .github/*|AGENTS.md|README.md|package.json|package-lock.json|\
     scripts/check-v1-active-contract.sh|scripts/select-v1-contract-roots.sh|\
     k8s/bootstrap/*|k8s/infrastructure/controllers/*|k8s/infrastructure/storage/*|\
@@ -61,7 +71,11 @@ while IFS= read -r path; do
   esac
 done <<<"$changed_files"
 
-if [[ "$full" == true || ${#roots[@]} -eq 0 ]]; then
+if [[ "$full" == true ]]; then
+  echo all
+elif [[ ${#roots[@]} -eq 0 && "$neutral" == true ]]; then
+  echo "$smoke_root"
+elif [[ ${#roots[@]} -eq 0 ]]; then
   echo all
 else
   printf '%s\n' "${!roots[@]}" | sort | paste -sd, -
