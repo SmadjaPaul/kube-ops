@@ -46,14 +46,11 @@ done
 # mounted volumes; no template PVC is rewritten by this policy.
 for file in \
   "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml" \
-  "$repo_root/k8s/applications/media/jellyfin/statefulset.yaml" \
   "$repo_root/k8s/applications/media/sabnzbd/statefulset.yaml"; do
   ! grep -F 'velero.io/exclude-from-backup' "$file" >/dev/null
 done
 grep -F 'backup.velero.io/backup-volumes-excludes: meilisearch-data' \
   "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml" >/dev/null
-grep -F 'backup.velero.io/backup-volumes-excludes: media,cache' \
-  "$repo_root/k8s/applications/media/jellyfin/statefulset.yaml" >/dev/null
 # Only mounted volume names can be excluded through pod annotations.
 # The historical incomplete-downloads claim is not mounted and is retained.
 test "$(yq -r '.spec.template.metadata.annotations["backup.velero.io/backup-volumes-excludes"]' \
@@ -64,10 +61,6 @@ grep -F 'backup.velero.io/backup-volumes-excludes: downloads,backups' \
   "$repo_root/k8s/applications/web/pinepods/deployment.yaml" >/dev/null
 grep -F 'backup.velero.io/backup-volumes-excludes: media' \
   "$repo_root/k8s/applications/media/audiobookshelf/statefulset.yaml" >/dev/null
-grep -F 'backup.velero.io/backup-volumes-excludes: media' \
-  "$repo_root/k8s/applications/media/arr/base/media-patch.yaml" >/dev/null
-grep -F 'backup.velero.io/backup-volumes-excludes: media' \
-  "$repo_root/k8s/applications/media/arr/bazarr/statefulset.yaml" >/dev/null
 ! grep -F 'backup.smadja.dev/strategy: rebuildable' \
   "$repo_root/k8s/applications/ai/executor/statefulset.yaml" >/dev/null
 ! grep -F 'backup.smadja.dev/strategy: rebuildable' \

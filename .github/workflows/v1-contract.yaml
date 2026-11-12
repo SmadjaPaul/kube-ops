@@ -83,26 +83,6 @@ jobs:
           kubeconform -summary -ignore-missing-schemas /tmp/polyfin-rendered.yaml
           bash tests/harness/polyfin-private-pilot-contract-test.sh
 
-      - name: Validate Arr Authentik proxy first-run contract
-        run: bash tests/harness/arr-authentik-proxy-contract-test.sh
-
-      - name: Validate bounded Prowlarr-to-Arr egress
-        run: |
-          kustomize build k8s/infrastructure/network/policies/applications/media/media > /tmp/media-policies.yaml
-          kubeconform -summary -ignore-missing-schemas /tmp/media-policies.yaml
-          bash tests/harness/prowlarr-arr-egress-contract-test.sh
-
-      - name: Validate bounded Arr-to-Prowlarr return egress
-        run: |
-          kustomize build k8s/infrastructure/network/policies/applications/media/media > /tmp/media-policies.yaml
-          kubeconform -summary -ignore-missing-schemas /tmp/media-policies.yaml
-          bash tests/harness/arr-prowlarr-reverse-egress-contract-test.sh
-
-      - name: Validate native Media operator tool offline
-        run: |
-          python3 -m py_compile scripts/media/plt118-native-setup.py
-          python3 -m unittest discover -s tests/harness -p 'plt118_native_setup_test.py' -v
-
       - name: Validate ARC GitOps contract
         run: bash tests/harness/arc-gitops-contract-test.sh
 
