@@ -1,0 +1,18 @@
+# PLT-221: fresh Hetzner base backup taken right before the R2 cutover of
+# vikunja-postgresql. It is the rollback point: after the cutover, Hetzner
+# stays restorable up to this backup plus the WAL archived before the switch.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: vikunja-postgresql-hetzner-precutover-20261113
+  namespace: vikunja
+  labels:
+    backup.smadja.dev/purpose: r2-cutover-rollback
+spec:
+  cluster:
+    name: vikunja-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: vikunja-hetzner-store
