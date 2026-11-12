@@ -1,0 +1,69 @@
+# PLT-221: read-only control query on the restored drill database.
+# Prints table row counts and max(created_at) only (no row content), in a
+# read-only transaction, from the drill namespace to the drill cluster.
+# Removed with the whole drill directory by the teardown PR.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vikunja-drill-check
+  namespace: vikunja-drill
+  labels:
+    restore.smadja.dev/purpose: isolated-read-only-recovery
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        restore.smadja.dev/purpose: isolated-read-only-recovery
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 26
+        runAsGroup: 26
+        fsGroup: 26
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: check
+          image: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+          env:
+            - name: PGURI
+              valueFrom:
+                secretKeyRef: {name: vikunja-postgresql-restore-app, key: uri}
+            - name: PGOPTIONS
+              value: "-c default_transaction_read_only=on"
+          command: ["/bin/bash", "-ec"]
+          args:
+            - |
+              psql "$PGURI" -v ON_ERROR_STOP=1 -At <<'SQL'
+              SELECT 'in_recovery=' || pg_is_in_recovery();
+              SELECT 'tx_read_only=' || current_setting('transaction_read_only');
+              SELECT 'db_size_bytes=' || pg_database_size(current_database());
+              SELECT 'user_tables=' || count(*) FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema');
+              SELECT format('SELECT %L || count(*) FROM %I.%I', 'count.' || schemaname || '.' || tablename || '=', schemaname, tablename)
+                FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') ORDER BY schemaname, tablename \gexec
+              SELECT format('SELECT %L || coalesce(max(%I)::text, ''null'') FROM %I.%I', 'max_ts.' || table_schema || '.' || table_name || '.' || column_name || '=', column_name, table_schema, table_name)
+                FROM information_schema.columns
+                WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+                  AND data_type IN ('timestamp with time zone', 'timestamp without time zone')
+                ORDER BY table_schema, table_name, column_name \gexec
+              SQL
+              # RPO evidence; best effort (some functions may need pg_monitor).
+              psql "$PGURI" -At <<'SQL' || true
+              SELECT 'last_replayed_xact=' || coalesce(pg_last_xact_replay_timestamp()::text, 'null');
+              SELECT 'current_walfile=' || pg_walfile_name(pg_current_wal_lsn());
+              SELECT 'checkpoint_timeline=' || timeline_id || ' redo_walfile=' || redo_wal_file || ' checkpoint_time=' || checkpoint_time FROM pg_control_checkpoint();
+              SELECT 'postmaster_start=' || pg_postmaster_start_time();
+              SQL
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
