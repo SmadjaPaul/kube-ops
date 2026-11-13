@@ -152,6 +152,12 @@ case "$verb" in
     cmd=(apply --server-side --field-manager=agent-operator -n "$ns" -f "$file") ;;
   *) refuse "verbe '$verb' hors liste (patch|scale|restart|undo|set-image|suspend|resume|delete|apply)" ;;
 esac
+if [ "$dry" = 1 ] && [ "$verb" = restart ]; then
+  # « kubectl rollout restart » n'a pas de --dry-run : même effet (annotation
+  # restartedAt du template), simulé côté serveur par un patch.
+  cmd=(patch "$kind/$name" -n "$ns" --type=strategic \
+    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}}}}}")
+fi
 [ "$dry" = 0 ] || cmd+=(--dry-run=server)
 
 if [ "${KUBECTL_RW_PLAN:-0}" = 1 ]; then
