@@ -1,0 +1,18 @@
+# PLT-244: first base backup of paperless-postgresql on R2, right after the WAL
+# archive switch (#1369, first WAL on R2 at 17:13:51Z). Closes
+# the window without an R2 recovery point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: paperless-postgresql-r2-initial-20261113
+  namespace: paperless
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: paperless-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: paperless-r2-store
