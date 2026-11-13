@@ -94,7 +94,7 @@ Allowed without per-action approval, inside the admitted scope (reconstructible,
 - `kubectl apply/patch/scale/rollout/restart`, suspending Jobs, deleting reconstructible workloads;
 - merging green PRs through the normal flow;
 - the already-authorized cleanups and deletions (PLT-46, PLT-94) inside their exact perimeter;
-- the bounded recovery commands (D-2026-11-11-13), each of which checks its own preconditions and data protections and refuses otherwise: `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]` terminates a sync stuck on hooks/health once no unprotected PVC/PV/CNPG Cluster/ObjectStore/non-empty namespace would be pruned;
+- the bounded recovery commands (D-2026-11-11-13), each of which checks its own preconditions and data protections and refuses otherwise: `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]` terminates a sync stuck on hooks/health once no unprotected PVC/PV/CNPG Cluster/ObjectStore/VolumeSnapshot, nor a namespace holding PVC/CNPG Cluster/ObjectStore/VolumeSnapshot objects, would be pruned (other resources are not blocked). The script verifies data protection only: it runs under the canonical operator identity as an interim exception until PLT-237, and the caller must check beforehand that the Application is inside the admitted scope;
 - OpenTofu plan and apply through ARC CI on the admitted roots, triggered by the agent (homelab-infra side).
 
 Every mutation follows three obligations:
