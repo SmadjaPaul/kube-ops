@@ -19,7 +19,7 @@ spec:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: bookorbit-hetzner-store
+        barmanObjectName: bookorbit-r2-store
   storage:
     size: 10Gi
     storageClass: longhorn-fast

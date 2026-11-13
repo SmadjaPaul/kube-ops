@@ -2,14 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-# Arr, Seerr and Jellyfin retired from active media on 2026-11-08.
-# Historical manifests are retained for audit, but no longer included by GitOps.
-# Keep media-share, AIOStreams, Polyfin, Decypharr and other live media clients intact.
+# Owner-approved retirement: Arr, Seerr, Jellyfin and Decypharr are absent.
+# Preserve shared media-share, Polyfin and AIOStreams for BookOrbit and video.
 - namespace.yaml
 - project.yaml
 - media-share-pvc.yaml
 - media-layout-job.yaml
-- decypharr
+- bookorbit
 - immich
 - audiobookrequest
 - aiostreams
