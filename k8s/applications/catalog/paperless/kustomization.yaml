@@ -5,6 +5,5 @@ resources:
   - database.yaml
   - backup.yaml
   - database-r2.yaml
-  - backup-hetzner-precutover.yaml
   - runtime.yaml
   - app.yaml

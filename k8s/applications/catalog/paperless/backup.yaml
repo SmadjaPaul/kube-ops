@@ -15,6 +15,10 @@ spec:
 ---
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
+# PLT-244: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to paperless-r2-store). Kept as the rollback target with its existing
+# backups (pre-cutover base 20261113T165722); no plugin sidecar applies its
+# retentionPolicy anymore.
 metadata: { name: paperless-hetzner-store, namespace: paperless }
 spec:
   retentionPolicy: "14d"
@@ -60,4 +64,5 @@ spec:
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
-    parameters: { barmanObjectName: paperless-hetzner-store }
+    # PLT-244: base backups follow the WAL archive to R2.
+    parameters: { barmanObjectName: paperless-r2-store }
