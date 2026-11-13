@@ -142,10 +142,12 @@ case "$verb" in
       [ -z "$dns" ] || [ "$dns" = "$ns" ] || refuse "apply : namespace '$dns' différent de '$ns'"
       [[ "$dn" =~ $DNS ]] || refuse "apply : nom '$dn' invalide"
     done <<<"$docs"
-    images=$(yq -N '.. | select(tag == "!!map" and has("image")) | .image' "$file" 2>/dev/null) ||
+    images=$(yq -N '(.spec.template.spec // .spec.jobTemplate.spec.template.spec // {}) |
+      ((.containers // []) + (.initContainers // [])) | .[] | (.image // "<absente>")' "$file" 2>/dev/null) ||
       refuse "apply : lecture des images impossible"
     while read -r img; do
-      [ -z "$img" ] || pinned_image "$img" || refuse "apply : image '$img' non épinglée"
+      [ -n "$img" ] || continue
+      pinned_image "$img" || refuse "apply : image '$img' non épinglée"
     done <<<"$images"
     cmd=(apply --server-side --field-manager=agent-operator -n "$ns" -f "$file") ;;
   *) refuse "verbe '$verb' hors liste (patch|scale|restart|undo|set-image|suspend|resume|delete|apply)" ;;

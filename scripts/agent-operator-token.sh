@@ -82,11 +82,12 @@ verify_agent() {
   # d'un Deployment qui référence un Secret ; la policy doit la refuser.
   local probe out
   probe='{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"name":"agent-operator-guard-probe","namespace":"media"},"spec":{"selector":{"matchLabels":{"app":"probe"}},"template":{"metadata":{"labels":{"app":"probe"}},"spec":{"containers":[{"name":"c","image":"registry.k8s.io/pause:3.10","envFrom":[{"secretRef":{"name":"agent-operator-guard-probe"}}]}]}}}}'
-  out=$(kubectl --request-timeout=15s create --dry-run=server -o name -f - <<<"$probe" 2>&1)
-  if grep -q "agent-operator-guard" <<<"$out"; then
+  if out=$(kubectl --request-timeout=15s create --dry-run=server -o name -f - <<<"$probe" 2>&1); then
+    echo "CHECK admission dry-run accepté : agent-operator-guard n'applique pas Deny FAIL"; fails=1
+  elif grep -q "ValidatingAdmissionPolicy 'agent-operator-guard' with binding 'agent-operator-guard' denied request" <<<"$out"; then
     echo "CHECK admission dry-run (Deployment + secretRef) refusé par agent-operator-guard PASS"
   else
-    echo "CHECK admission dry-run non refusé par agent-operator-guard FAIL"; fails=1
+    echo "CHECK admission dry-run refusé pour une autre raison (RBAC, API) : enforcement non prouvé FAIL"; fails=1
   fi
   return "$fails"
 }
@@ -132,9 +133,15 @@ check_obj clusterrolebinding/agent-operator-cluster-read
 check_obj validatingadmissionpolicy/agent-operator-guard
 check_obj validatingadmissionpolicybinding/agent-operator-guard
 for ns in $admitted; do check_obj rolebinding/agent-operator-workload -n "$ns"; done
-actions=$(kubectl --request-timeout=15s get validatingadmissionpolicybinding agent-operator-guard \
-  -o jsonpath='{.spec.validationActions}' 2>/dev/null)
-if [[ "$actions" == *Deny* ]]; then echo "PRE binding validationActions=$actions PASS"; else echo "PRE binding validationActions='$actions' FAIL"; pre=1; fi
+binding=$(kubectl --request-timeout=15s get validatingadmissionpolicybinding agent-operator-guard \
+  -o jsonpath='{.spec.policyName}|{.spec.validationActions}|{.spec.matchResources}' 2>/dev/null)
+IFS='|' read -r b_policy b_actions b_match <<<"$binding"
+if [ "$b_policy" = agent-operator-guard ] && [[ "$b_actions" == *Deny* ]] && [ -z "$b_match" ]; then
+  echo "PRE binding policyName=$b_policy validationActions=$b_actions matchResources=(toutes) PASS"
+else
+  echo "PRE binding policyName='$b_policy' validationActions='$b_actions' matchResources='$b_match' FAIL (Deny sans restriction attendu)"
+  pre=1
+fi
 for app in infra-security apps-platform; do
   st=$(kubectl --request-timeout=15s get application "$app" -n argocd \
     -o jsonpath='{.status.sync.status}/{.status.health.status}/{.status.sync.revision}' 2>/dev/null)
@@ -185,11 +192,18 @@ digest=$(_kube_access_digest "$work/kubeconfig") || die "empreinte impossible" 5
 # Paire précédente conservée (fichiers 0600 du dossier temporaire, jamais
 # affichés) pour la restaurer si la seconde écriture échoue : une rotation
 # ratée ne doit pas casser la copie encore utilisable.
+# Première émission (clé absente) : rien à préserver. Clé présente mais non
+# sauvegardable, ou état Doppler illisible : rotation abandonnée.
 had_prev=0
-if [ "$(bash "$HERE/doppler-safe.sh" has "$SECRET" 2>/dev/null)" = present ] &&
-  doppler secrets get "$SECRET" --project infrastructure --config prd --plain >"$work/prev" 2>/dev/null; then
-  had_prev=1
-fi
+bash "$HERE/doppler-safe.sh" has "$SECRET" >/dev/null 2>&1
+case $? in
+  0)
+    doppler secrets get "$SECRET" --project infrastructure --config prd --plain >"$work/prev" 2>/dev/null && [ -s "$work/prev" ] ||
+      die "sauvegarde de la copie actuelle impossible : rotation abandonnée (rien n'a changé)" 6
+    had_prev=1 ;;
+  1) ;;
+  *) die "état Doppler illisible : rotation abandonnée (rien n'a changé)" 6 ;;
+esac
 bash "$HERE/doppler-safe.sh" set "$SECRET" <"$work/kubeconfig" || die "écriture Doppler $SECRET impossible (rien n'a changé)" 6
 if ! printf %s "$digest" | bash "$HERE/doppler-safe.sh" set "${SECRET}_SHA256"; then
   if [ "$had_prev" = 1 ] && bash "$HERE/doppler-safe.sh" set "$SECRET" <"$work/prev"; then

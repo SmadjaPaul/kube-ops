@@ -78,6 +78,9 @@ for msg in agent-protected 'cnpg.io/cluster' persistentVolumeClaimRetentionPolic
   grep -q "$msg" "$VAP" || ko "policy sans contrôle $msg"
 done
 ok "policy : contrôles protégé/CNPG/rétention PVC/Secret/SA/hôte présents"
+check "policy : gel des credentials dans l'expression UPDATE" \
+  grep -qF '!variables.oldCarriesCredentials || variables.newSpec == variables.oldSpec' "$VAP"
+check "policy : PVC refusées à la création" grep -qF 'has(v.persistentVolumeClaim) || has(v.ephemeral)' "$VAP"
 
 # 6. wrapper kubectl-rw.sh (mode plan : contrôles sans cluster)
 W=scripts/kubectl-rw.sh
@@ -129,6 +132,10 @@ refused "apply d'un Secret" apply "$ns1" "$tmp/secret.yaml"
 refused "apply vers un autre namespace" apply "$ns1" "$tmp/otherns.yaml"
 printf 'apiVersion: apps/v1\nkind: Deployment\nmetadata: {name: d}\nspec: {template: {spec: {containers: [{name: c, image: "nginx"}]}}}\n' >"$tmp/unpinned.yaml"
 refused "apply d'une image non épinglée" apply "$ns1" "$tmp/unpinned.yaml"
+printf 'apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: c, labels: {image: backend}}\nspec: {jobTemplate: {spec: {template: {spec: {initContainers: [{name: i, image: "busybox"}], containers: [{name: c, image: "busybox:1.37"}]}}}}}\n' >"$tmp/cj-init.yaml"
+refused "apply : initContainer CronJob non épinglé" apply "$ns1" "$tmp/cj-init.yaml"
+printf 'apiVersion: apps/v1\nkind: Deployment\nmetadata: {name: d, labels: {image: backend}}\nspec: {template: {spec: {containers: [{name: c, image: "busybox:1.37"}]}}}\n' >"$tmp/label-image.yaml"
+expect_plan "apply : label image ignoré" "apply --server-side" apply "$ns1" "$tmp/label-image.yaml"
 expect_plan "apply serveur-side" "apply --server-side --field-manager=agent-operator -n $ns1 -f" apply "$ns1" "$tmp/ok.yaml"
 check "kubectl-ro.sh inchangé par PLT-237 (aucune écriture)" bash -c "! grep -qE '^\s*(apply|patch|delete|scale)\)' scripts/kubectl-ro.sh"
 
