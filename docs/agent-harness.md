@@ -192,7 +192,7 @@ authority/evidence rules; do not follow an untracked or missing role file.
 A prompt is not a security boundary. The target enforcement layers are:
 
 - GitHub App permissions for branch/PR write access;
-- Kubernetes RBAC for read-only runtime evidence;
+- Kubernetes RBAC: read-only runtime evidence by default, plus the limited-rights write identity of PLT-237 for operation-scoped mutations (AGENTS.md Safety);
 - LiteLLM virtual keys for logical-model/budget access;
 - network policy for reachable services;
 - Paperclip connector/tool policies only after the installed Paperclip version

@@ -113,6 +113,8 @@ Reinforced protections, per operation and per resource (explicit approval from P
 - irreversible migrations;
 - disabling desired apps merely to make Argo green.
 
+Local executors (Mac) use the native macOS shell, never `device_bash` nor the Linux VM. The `night-relay` supervisor is retired (PLT-236) and must not be relaunched; the coordinator cascade drives the work.
+
 Always forbidden: `--admin` or any bypass of a protection or required check, TLS disabled or `-k`, displaying or committing a secret, reading Secret values, `device_bash` and the Mac Linux VM, OpenTofu apply outside CI.
 
 Secret output (enforced by `.claude/hooks/secret-output-guard.py`, applies in every mode):
