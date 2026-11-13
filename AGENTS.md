@@ -92,7 +92,7 @@ Current platform, runtime evidence order and PR test-result reporting: `.agents/
 Engineering agents write A2A messages, handoffs, reports to Paul, Linear comments, PR descriptions, review reports and new technical documentation in STE80, the Atlas engineering convention ([full text](https://github.com/SmadjaPaul/Atlas/blob/main/policies/communication-style.md)). It does not apply to end-user products and their prompts (LibreChat, Hermes, personal agents, SaaS users). Core:
 
 - One idea per sentence. Short sentences. Active voice; name the actor. One term per concept; no synonyms. Precise verbs.
-- Separate facts, hypotheses, decisions and actions. Evidence before conclusion. State what is done and what remains.
+- Separate facts, hypotheses, decisions and actions. Back every conclusion with evidence: state the conclusion in one sentence first, then the evidence; never conclude beyond the evidence. State what is done and what remains.
 - No vague adjectives, no filler. Never drop a condition needed to understand a result. Reports to Paul are in French by default: conclusion first.
 - Statuses: `PASS`, `FAIL`, `BLOCKED`, `NOT_TESTED`, `NOT_PROVEN`. Evidence levels: `STATIC` < `CI` < `RECONCILED` < `RUNTIME` < `USER`. An open PR is not merged; `CI PASS` is not deployed; merged is not runtime verified.
 - Handoff fields: `Objective`, `Status`, `Changes`, `Evidence`, `Blockers`, `NextAction`.
