@@ -148,6 +148,32 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
   11.5 MB. Production stayed on timeline 1, `Ready`, `ContinuousArchiving`
   true; the drill pod ran PostgreSQL only.
 
+### auth/authentik-postgresql-restored — PLT-221 (#1328, #1332, #1337, #1342, #1343, teardown)
+
+- Rollback base on Hetzner `20261112T2329*` completed 23:29:29Z (WAL
+  `…2100000063`). Cutover merged 23:38:12Z (00:38 Paris, night window);
+  database `Ready=False` 23:41:29Z to 23:45:55Z (**4 min 26 s**). The
+  authentik server failed its liveness probe once and restarted; the worker
+  logged database errors only between 23:43Z and 23:45:36Z.
+- Same pre-cutover `Backup` CR re-run as on vikunja: `20261112T234612` (WAL
+  `…68`, archived to R2) is not restorable from Hetzner alone. Manifest
+  removed in #1337. Hetzner rollback: the 23:29 base with no recovery target.
+- Window without an R2 recovery point: 23:41:29Z to 00:05:48Z (**24 min
+  19 s**, base `20261113T000509`, WAL `…6D`): the ScheduledBackup is weekly and
+  the on-demand R2 base was merged after the cutover.
+- SSO after the cutover (RUNTIME, 00:08Z): OIDC discovery 200, flow executor
+  `default-authentication-flow` served the identification stage (session
+  created in the database), outpost API calls 200. No complete end-user
+  login was observed in the night window.
+- Drill: merge 00:19:44Z, `Cluster` created 00:21:50Z, `Ready`
+  timeline 2 at 00:23:00Z. **RTO 3 min 16 s** (about 70 s of restore).
+- Control job: `in_recovery=false`, 230 tables, database 145 MB,
+  `authentik_core_user=7` (6 active), 49 applications, 50 OAuth2 providers,
+  latest event 2026-11-12 22:49:14Z. Recovery promoted on timeline 2 at
+  `…2100000073` after production archived `…70` at 00:20:49Z. Production
+  stayed on timeline 1, `Ready`, `ContinuousArchiving` true, no archiver
+  error; the drill pod ran PostgreSQL only.
+
 ### Precondition for the remaining cutovers
 
 Before switching `barmanObjectName`, a separate PR adds the R2 environment
