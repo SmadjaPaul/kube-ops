@@ -13,11 +13,16 @@ spec:
     initdb:
       database: sure
       owner: sure
+  # PLT-245: a Cluster has a single WAL archiver; the archive moved from
+  # sure-hetzner-store to sure-r2-store (database-r2.yaml). Rollback: point
+  # barmanObjectName back to sure-hetzner-store, restore from the Hetzner base
+  # 20261113T181527 (backupID, never "latest"), then take a new base backup there
+  # (homelab-infra docs/operations/r2-migration.md).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: sure-hetzner-store
+        barmanObjectName: sure-r2-store
   storage:
     size: 10Gi
     storageClass: longhorn-fast
