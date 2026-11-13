@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Bounded cleanup (PLT-94/PLT-250): exactly five Released Longhorn PVs that Paul
-# declared abandoned on 2026-11-13 (PLT-94 comment). Each PV is pinned by name AND
-# UID; a recreated object with the same name is refused.
+# Bounded cleanup (PLT-94/PLT-250): exactly eight Longhorn PVs that Paul declared
+# abandoned on 2026-11-13 (PLT-94 comment, then chat: Atlantis retired, executor
+# abandoned). Each PVC/PV is pinned by name AND UID; a recreated object with the
+# same name is refused. Phase 1 releases three Bound PVCs (atlantis-pilot-data,
+# atlantis-apps-data, data-executor-0) when no pod mounts them; Argo may recreate
+# the two retention PVCs empty, bound to new PVs. rustical-data is out of scope.
 # Default read-only (inspect). Deletion requires --execute and
 # ALLOW_RELEASED_PV_DELETION=yes. For each PV, at execution time:
 #   - phase Released, reclaimPolicy Retain, driver driver.longhorn.io;
@@ -32,6 +35,16 @@ TARGETS=(
   "pvc-af862e58-67ba-4260-b20d-ac931c20d6cb 9a5e962f-221a-4679-ab53-493e283ac621 auth/authentik-postgresql-restored-1-wal"
   "pvc-3d1c5946-3690-4285-92fd-fb877722c03d 6ebb2888-4745-45a5-ab3f-bf7166eadfcd authentik-drill/authentik-postgresql-restore-1"
   "pvc-e51c05dd-42a7-4093-ac00-5391fcaf2b9d aad393a4-a045-4a3a-adcd-965b0affae81 vikunja-drill/vikunja-postgresql-restore-1"
+  "pvc-24ed83e6-2ac2-486f-8f6a-37ea3d064731 8b1e05af-7ec5-4758-803f-f3be14c6ce3a atlantis-system/atlantis-pilot-data"
+  "pvc-3a789334-6113-459f-92de-9bc541dfac55 d2a9ecac-fa82-41b2-accf-73c73708b631 atlantis-apps/atlantis-apps-data"
+  "pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716 11a9d2b2-5a46-43ff-acb2-600da4992557 executor/data-executor-0"
+)
+
+# Phase 1 — PVC still Bound: namespace name pvc-uid pv
+RELEASE=(
+  "atlantis-system atlantis-pilot-data 24ed83e6-2ac2-486f-8f6a-37ea3d064731 pvc-24ed83e6-2ac2-486f-8f6a-37ea3d064731"
+  "atlantis-apps atlantis-apps-data 3a789334-6113-459f-92de-9bc541dfac55 pvc-3a789334-6113-459f-92de-9bc541dfac55"
+  "executor data-executor-0 dee0d6ef-edab-493b-bb94-56a2c98c9716 pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716"
 )
 
 # shellcheck source=lib/kube-preflight.sh
@@ -76,6 +89,39 @@ delete_with_preconditions() {
 }
 
 fail=0
+pending_release=" "
+for r in "${RELEASE[@]}"; do
+  read -r rns rname ruid rpv <<<"$r"
+  set +e
+  pvc=$(get_json pvc "$rname" -n "$rns"); rc=$?
+  set -e
+  if (( rc == 4 )); then echo "PVC $rns/$rname ABSENT"; continue; fi
+  (( rc == 0 )) || { echo "PVC $rns/$rname BLOCKED: lecture impossible"; fail=1; continue; }
+  if [[ "$(jq -r .metadata.uid <<<"$pvc")" != "$ruid" ]]; then
+    # Recréé par Argo (rétention) : l'ancien PV est déjà libéré, rien à faire ici.
+    echo "PVC $rns/$rname recréé (uid différent), ancien PV traité en phase 2"; continue
+  fi
+  reasons=()
+  [[ "$(jq -r '.spec.volumeName // ""' <<<"$pvc")" == "$rpv" ]] || reasons+=("volumeName inattendu")
+  if users=$(kubectl --request-timeout=30s get pods -n "$rns" -o json |
+    jq -r --arg c "$rname" '[.items[] | select(any(.spec.volumes[]?; .persistentVolumeClaim.claimName == $c)) | .metadata.name] | join(",")'); then
+    [[ -z "$users" ]] || reasons+=("monté par $users")
+  else
+    reasons+=("lecture des pods impossible")
+  fi
+  if (( ${#reasons[@]} )); then echo "PVC $rns/$rname BLOCKED: ${reasons[*]}"; fail=1; continue; fi
+  echo "PVC $rns/$rname ELIGIBLE (libère $rpv)"
+  if [[ "$mode" != delete ]]; then pending_release+="$rpv "; continue; fi
+  delete_with_preconditions "/api/v1/namespaces/$rns/persistentvolumeclaims/$rname" "$ruid" \
+    "$(jq -r .metadata.resourceVersion <<<"$pvc")"
+  for _ in $(seq 1 24); do
+    phase=$(kubectl --request-timeout=15s get pv "$rpv" -o jsonpath='{.status.phase}' 2>/dev/null || true)
+    [[ "$phase" == Released ]] && break
+    sleep 5
+  done
+  echo "PVC $rns/$rname DELETED, PV $rpv phase=${phase:-?}"
+done
+
 for t in "${TARGETS[@]}"; do
   read -r name uid claim <<<"$t"
   set +e
@@ -95,6 +141,9 @@ for t in "${TARGETS[@]}"; do
     continue
   elif (( rc != 0 )); then
     echo "PV $name BLOCKED: lecture impossible"; fail=1; continue
+  fi
+  if [[ "$pending_release" == *" $name "* ]]; then
+    echo "PV $name ELIGIBLE après libération du PVC (inspection)"; continue
   fi
   reasons=()
   [[ "$(jq -r .metadata.uid <<<"$pv")" == "$uid" ]] || reasons+=("uid différent")
