@@ -2,7 +2,9 @@ apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 # PLT-249: no longer referenced by the Cluster nor the ScheduledBackup (archive
 # moved to hindsight-r2-store). Kept as the rollback target with its existing
-# backups (pre-cutover base 20261113T204129).
+# backups (pre-cutover base 20261113T204129). Its retentionPolicy (14d) only
+# runs when a plugin sidecar uses this store again (rollback): before such a
+# rollback, re-check that base 20261113T204129 is still needed or keep it.
 metadata:
   name: hindsight-hetzner-store
   namespace: hindsight-personal
