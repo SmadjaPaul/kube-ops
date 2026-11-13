@@ -79,9 +79,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: rustical-pilot
       server: https://kubernetes.default.svc
-    # PLT-221: temporary isolated R2 restore drill of vikunja/vikunja-postgresql;
+    # PLT-221: temporary isolated R2 restore drill of auth/authentik-postgresql-restored;
     # removed by PR once the drill root is pruned.
-    - namespace: vikunja-drill
+    - namespace: authentik-drill
       server: https://kubernetes.default.svc
     - namespace: wellness
       server: https://kubernetes.default.svc
