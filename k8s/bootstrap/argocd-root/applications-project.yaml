@@ -91,6 +91,10 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: sure
       server: https://kubernetes.default.svc
+    # PLT-245: temporary isolated R2 restore drill of sure/sure-postgresql;
+    # removed by PR once the drill root is pruned.
+    - namespace: sure-drill
+      server: https://kubernetes.default.svc
     - namespace: trilium
       server: https://kubernetes.default.svc
     - namespace: vikunja
