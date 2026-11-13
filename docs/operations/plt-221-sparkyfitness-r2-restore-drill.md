@@ -225,3 +225,32 @@ and drill destination), #1362 (drill), this PR (teardown).
   were not kept). Production stayed on timeline 1, `Ready`,
   `ContinuousArchiving` and `LastBackupSucceeded` true; the drill had no
   Barman sidecar.
+
+## paperless/paperless-postgresql (PLT-244, 2026-11-13)
+
+PRs: #1365 (R2 store declared, Hetzner sidecar prepared), #1367 (restart),
+#1368 (pre-cutover base), #1369 (cutover), #1370 (on-demand R2 base and
+drill destination), #1371 (drill), this PR (teardown).
+
+- Unlike immich, the operator did not recreate the pod after #1365 (the
+  Hetzner store had no `instanceSidecarConfiguration` before). `paperless`
+  is outside the `kubectl-rw.sh` scope, so the restart went through Git:
+  `kubectl.kubernetes.io/restartedAt` on the Cluster (#1367).
+- **That plain restart cut the database for 3 min 9 s** (16:43:33Z to
+  16:46:42Z): the outage of about 3 minutes is the smart-shutdown wait for
+  client connections, not a failed final archive. The sidecar precondition
+  therefore does not shorten it; only a fast shutdown or a planned window
+  would. WAL `…1F00000010` was archived to Hetzner at 16:51:33Z with the
+  `us-east-1` environment.
+- Hetzner rollback point: base `20261113T165722` (backupID, never `latest`).
+- Cutover (#1369): stop at 17:05:36Z, `Ready` at 17:08:59Z, **outage
+  3 min 23 s**. First WAL on R2: `…1F00000016` at 17:13:51Z.
+- R2 base `20261113T172103` (end WAL `…19`) completed at 17:21:13Z. Window
+  without an R2 recovery point: **15 min 37 s**.
+- Drill: merge 17:28:34Z, `Cluster` created 17:34:14Z, `Ready` timeline 2 at
+  17:35:21Z. **RTO 6 min 47 s from the merge, 1 min 7 s of restore.**
+- Control job: `in_recovery=false`, 74 tables, database 20 MB, `auth_user=2`,
+  `documents_document=14`, latest document added 2026-10-03 22:40Z. Production
+  had archived `…1A` (17:26:14Z) before the drill; the drill promoted on
+  timeline 2 (current segment `…0200001F0000001D`). Production stayed on
+  timeline 1, `Ready`, `ContinuousArchiving` and `LastBackupSucceeded` true.
