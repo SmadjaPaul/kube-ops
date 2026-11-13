@@ -187,3 +187,41 @@ agent). Hetzner keeps working because its explicit `endpointURL` is passed
 as `--endpoint-url`, which wins over the environment. At the cutover the old
 sidecar can then archive its last segment to R2 during shutdown. Otherwise,
 plan for a smart-shutdown wait of up to 3 minutes.
+
+## immich/immich-postgresql (PLT-243, 2026-11-13)
+
+PRs: #1356 (R2 store declared, Hetzner sidecar prepared, pre-cutover base),
+#1358 (pre-cutover base retried), #1359 (cutover), #1361 (on-demand R2 base
+and drill destination), #1362 (drill), this PR (teardown).
+
+- Precondition (#1356): the Hetzner store sidecar got `AWS_ENDPOINT_URL_S3`
+  (R2 Secret), the checksum variables and `AWS_DEFAULT_REGION=us-east-1`
+  (R2 rejects `fsn1`). The operator recreated the pod by itself (Ready
+  15:25:26Z, under 30 s); WAL `…02B5` was then archived to Hetzner at
+  15:30:17Z with that environment: **Hetzner accepts `us-east-1`**.
+- The first pre-cutover Backup failed (15:24:58Z) because it ran while the
+  operator recreated the pod: never merge a sidecar change and a Backup in
+  the same PR. Retried as `…-20261113-b`, Hetzner base `20261113T153727`.
+  It is the Hetzner rollback point (backupID, never `latest`).
+- Cutover (#1359, merge 15:43:19Z): the old pod stopped at 15:44:51Z, the new
+  one was created at 15:47:47Z and Ready at 15:48:14Z: **outage about
+  3 min 23 s**. The precondition did not shorten it. The old pod's logs are
+  gone, so the cause (failed final archive or smart shutdown waiting for the
+  Immich client connections) is not proven. First WAL on R2: `…02BA` at
+  15:48:31Z.
+- Known anomaly reproduced: the `gap-remediation-20261019` Backup CR, pinned
+  by `tests/harness/cnpg-gap-backup-contract-test.sh`, ran again after the
+  restart to Hetzner (`20261113T154828`) while WAL already went to R2. That
+  base cannot be restored from Hetzner alone; do not use it for a rollback.
+- R2 base `20261113T155503` (WAL `…02BF`) completed at 15:55:29Z. Window
+  without an R2 recovery point: **about 10 min 38 s**.
+- Drill: merge 16:03:12Z, `Cluster` created 16:07:55Z, `Ready` timeline 2 at
+  16:09:09Z. **RTO 5 min 57 s from the merge, 1 min 14 s of restore.**
+- Control job: `in_recovery=false`, 66 tables, database 135 MB, `user=2`,
+  `asset=1019`, latest `asset.createdAt` 2026-11-04 16:32Z. Production had
+  archived `…02C1` (16:00:33Z) as its last segment before the drill; the
+  drill promoted on timeline 2 (current segment `…0200000002000000C4`), which
+  is consistent with a replay up to `…C1` (inferred: the recovery job logs
+  were not kept). Production stayed on timeline 1, `Ready`,
+  `ContinuousArchiving` and `LastBackupSucceeded` true; the drill had no
+  Barman sidecar.
