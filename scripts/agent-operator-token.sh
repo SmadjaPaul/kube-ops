@@ -144,8 +144,10 @@ else
 fi
 # Synced/Healthy sur une révision qui contient les manifestes PLT-237.
 git -C "$ROOT" fetch -q origin main 2>/dev/null || echo "ARGO git fetch impossible : contrôle sur l'historique local"
-for pair in infra-security:k8s/infrastructure/security/agent-operator/validatingadmissionpolicy.yaml \
-  apps-platform:k8s/applications/platform/agent-operator-access/rolebindings.yaml; do
+# Les manifestes à la révision Argo doivent être identiques à ceux de cette
+# copie de travail (même policy, même RBAC, mêmes RoleBindings).
+for pair in infra-security:k8s/infrastructure/security/agent-operator \
+  apps-platform:k8s/applications/platform/agent-operator-access; do
   app=${pair%%:*}
   path=${pair#*:}
   st=$(kubectl --request-timeout=15s get application "$app" -n argocd \
@@ -155,6 +157,8 @@ for pair in infra-security:k8s/infrastructure/security/agent-operator/validating
     echo "ARGO $app '$st' FAIL (Synced/Healthy attendu)"; pre=1
   elif [[ ! "$rev" =~ ^[0-9a-f]{40}$ ]] || ! git -C "$ROOT" cat-file -e "$rev:$path" 2>/dev/null; then
     echo "ARGO $app $st FAIL (révision sans $path)"; pre=1
+  elif ! git -C "$ROOT" diff --quiet "$rev" -- "$path" 2>/dev/null; then
+    echo "ARGO $app $st FAIL ($path diffère de cette copie de travail : mettre la copie à jour ou attendre la réconciliation)"; pre=1
   else
     echo "ARGO $app $st PASS"
   fi
