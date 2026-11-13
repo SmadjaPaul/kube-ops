@@ -8,6 +8,7 @@ kind: Kustomization
 # token Doppler n'existent pas (wave 1 sans token : le health check de la racine
 # bloquerait ntfy, wave 2, et gatus, wave 3).
 resources:
+  - guardrails.yaml
   - external-secrets.yaml
   - cnpg-operator.yaml
   - ntfy.yaml
