@@ -1,0 +1,17 @@
+# PLT-221: first base backup of authentik-postgresql-restored on R2, right after
+# the WAL archive switch (#1332). Closes the window without an R2 recovery point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: authentik-postgresql-r2-initial-20261113
+  namespace: auth
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: authentik-postgresql-restored
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: authentik-r2-store
