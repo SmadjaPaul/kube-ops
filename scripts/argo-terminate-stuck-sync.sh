@@ -52,6 +52,21 @@ fi
 #    Refuse if any resource Argo would prune is data-bearing and unprotected.
 # CNPG Backup/ScheduledBackup CRs are metadata: deleting them never removes the
 # object-store data, so they are not data-bearing here.
+# Count objects of a kind in a namespace. An absent CRD counts as 0; any other
+# error (access, API) prints "unknown", which is never 0, so the guard refuses.
+count_kind() {
+  local ns="$1" res="$2" listing
+  if ! listing="$("${K[@]}" -n "$ns" get "$res" -o name 2>&1)"; then
+    if grep -qiE "doesn't have a resource type|no matches for kind" <<<"$listing"; then
+      echo 0
+    else
+      echo unknown
+    fi
+    return 0
+  fi
+  if [[ -z "$listing" ]]; then echo 0; else wc -l <<<"$listing" | tr -d ' '; fi
+}
+
 data_kinds='^(PersistentVolumeClaim|PersistentVolume|Cluster|ObjectStore|VolumeSnapshot|VolumeSnapshotContent|Namespace)$'
 refusals=0
 while IFS='|' read -r kind group ns name; do
@@ -64,9 +79,11 @@ while IFS='|' read -r kind group ns name; do
     out PRUNE_PROTECTED "$ref"; continue
   fi
   if [[ "$kind" == Namespace ]]; then
-    pvcs="$("${K[@]}" -n "$name" get pvc -o name 2>/dev/null | wc -l | tr -d ' ')"
-    cnpg="$("${K[@]}" -n "$name" get clusters.postgresql.cnpg.io -o name 2>/dev/null | wc -l | tr -d ' ')"
-    if [[ "$pvcs" == 0 && "$cnpg" == 0 ]]; then
+    pvcs="$(count_kind "$name" pvc)"
+    cnpg="$(count_kind "$name" clusters.postgresql.cnpg.io)"
+    stores="$(count_kind "$name" objectstores.barmancloud.cnpg.io)"
+    snaps="$(count_kind "$name" volumesnapshots.snapshot.storage.k8s.io)"
+    if [[ "$pvcs" == 0 && "$cnpg" == 0 && "$stores" == 0 && "$snaps" == 0 ]]; then
       out PRUNE_ALLOWED_EMPTY_NAMESPACE "$name"; continue
     fi
   fi

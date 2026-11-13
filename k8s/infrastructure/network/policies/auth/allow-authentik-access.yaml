@@ -154,6 +154,10 @@ spec:
   egress:
   - toFQDNs:
     - matchName: "fsn1.your-objectstorage.com"
+    # PLT-221: R2 EU S3 endpoint, path or virtual-hosted style; the account id
+    # label stays out of this public repository.
+    - matchPattern: "*.eu.r2.cloudflarestorage.com"
+    - matchPattern: "homelab-backup-cnpg.*.eu.r2.cloudflarestorage.com"
     toPorts:
     - ports:
       - port: "443"

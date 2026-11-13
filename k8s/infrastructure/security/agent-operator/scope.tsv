@@ -1,0 +1,42 @@
+# PLT-237 — namespaces où l'identité agent-operator peut écrire (source unique).
+# Lu par scripts/kubectl-rw.sh. tests/agent-guard/agent-operator-identity-test.sh
+# vérifie que cette liste est identique aux RoleBindings
+# (k8s/applications/platform/agent-operator-access/rolebindings.yaml) et à la
+# variable `admitted` de la policy (validatingadmissionpolicy.yaml).
+#
+# Critère d'admission (D-2026-11-13-01, ticket PLT-237) : workloads
+# reconstructibles seulement. Source : classe de données de
+# docs/state/cluster-reality.md (runtime du 2026-11-11, D-05), recoupée avec
+# les racines Argo actives (k8s/applications/*, AppProject « applications »)
+# qui déclarent chaque namespace. À recouper avec `just runtime-inventory`.
+#
+# Exclus, aucune écriture :
+# - identité : auth (Authentik), matrix ;
+# - données irremplaçables ou « à confirmer » : hindsight-personal,
+#   home-assistant, immich, invoice-ninja, karakeep, mealie, paperless, romm,
+#   rustical-pilot, sure, trilium, vikunja, wellness ;
+# - socle et réseau structurant : kube-system, cilium-secrets, gateway,
+#   cloudflared, external-dns-private, argocd, cert-manager, external-secrets,
+#   longhorn-system, csi-proxmox, velero, cnpg-system, kyverno,
+#   gatekeeper-system, falco, trivy-system, monitoring, keda, reloader,
+#   arc-systems, arc-runners, agent-sandbox-system, agent-observers,
+#   agent-operator ;
+# - drills, namespaces non observés ou optionnels : authentik-drill,
+#   hindsight-restore-20261110, librechat, hermes-personal, atlantis-*.
+#
+# namespace	classe (cluster-reality 2026-11-11)	racine Argo
+agentgateway	socle applicatif, PVC 1Gi reconstructible	apps-platform
+executor	reconstructible (0 réplica)	apps-ai
+factory-platform	reconstructible	apps-platform
+gpt-researcher	reconstructible	apps-ai
+it-tools	reconstructible, sans état	apps-tools
+mastra-factory	reconstructible	apps-platform
+mastra-sandbox	reconstructible (sandboxes Factory)	apps-platform
+media	reconstructible	apps-media
+mqtt	reconstructible	apps-automation
+ntfy	reconstructible	apps-catalog
+open-connector	reconstructible	apps-platform
+opencode	reconstructible	apps-ai
+pinepods	reconstructible	apps-web
+searxng	reconstructible, sans état	apps-catalog
+stirling-pdf	reconstructible	apps-catalog

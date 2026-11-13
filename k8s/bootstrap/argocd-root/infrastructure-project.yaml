@@ -19,6 +19,9 @@ spec:
     # Scope infrastructure orphan monitoring to namespaces rendered by the
     # infrastructure roots. Restore drills and unrelated tenant namespaces
     # are intentionally outside this project boundary.
+    # PLT-237: agent-operator ServiceAccount (k8s/infrastructure/security/agent-operator).
+    - namespace: agent-operator
+      server: https://kubernetes.default.svc
     - namespace: agent-observers
       server: https://kubernetes.default.svc
     - namespace: argocd
@@ -78,9 +81,6 @@ spec:
     - namespace: mqtt
       server: https://kubernetes.default.svc
     - namespace: node-feature-discovery
-      server: https://kubernetes.default.svc
-    # PLT-217 : Deployment openclaw-operator suspendu (replicas 0), ré-adopté par infra-controllers.
-    - namespace: openclaw-operator-system
       server: https://kubernetes.default.svc
     - namespace: open-webui
       server: https://kubernetes.default.svc

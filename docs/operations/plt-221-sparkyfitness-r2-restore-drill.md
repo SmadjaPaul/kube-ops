@@ -121,6 +121,59 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
   `Ready`, `ContinuousArchiving` true, no archiver error since the restart;
   the drill pod ran PostgreSQL only.
 
+### vikunja/vikunja-postgresql — PLT-221 / PLT-170 (#1323, #1325, #1326, #1330, teardown)
+
+- Rollback base on Hetzner `20261112T2309*` completed 23:09:29Z, before the
+  cutover. Cutover merged 23:13:17Z; `Ready=False` 23:14:47Z to 23:18:22Z
+  (**3 min 35 s**), smart shutdown as for romm and pinepods.
+- The `Backup` CR of the Hetzner pre-cutover base was recreated when the pod
+  restarted and ran again at 23:18:38Z (`20261112T231838`, WAL `…0110`). That
+  WAL went to R2: this second Hetzner base is **not restorable from Hetzner
+  alone**. A Hetzner rollback must target the 23:09 base explicitly, never
+  "latest". The last segment archived to Hetzner before the cutover was not
+  recorded, so do not set a `recovery_target_time` after 23:09: recover from
+  the 23:09 base with no target (replay to the end of the Hetzner WAL), after
+  checking that the Hetzner WAL sequence from that base has no gap. The manifest is removed in this PR; deleting the
+  CR does not delete objects. Same pattern on authentik (#1337).
+- Window without an R2 recovery point: 23:14:47Z to 23:24:04Z (**9 min
+  17 s**, base `20261112T232357`).
+- Drill: merge 23:31:21Z, `Cluster` created 23:34:32Z, `Ready` timeline 2 at
+  23:35:46Z. **RTO 4 min 25 s** (about 74 s of restore after creation).
+- RPO: not measured segment by segment. Last production segment seen archived
+  before the drill: `…0113` at 23:29:05Z; the drill promoted on timeline 2
+  (first checkpoint REDO `…020000000100000016`). `pg_last_xact_replay_timestamp()` null: no
+  transaction replayed after the base backup (idle database).
+- Control job: `in_recovery=false`, 42 tables, `projects=11`,
+  `task_positions=240`, latest `tasks.updated` 2026-11-06 09:25:22, database
+  11.5 MB. Production stayed on timeline 1, `Ready`, `ContinuousArchiving`
+  true; the drill pod ran PostgreSQL only.
+
+### auth/authentik-postgresql-restored — PLT-221 (#1328, #1332, #1337, #1342, #1343, teardown)
+
+- Rollback base on Hetzner `20261112T2329*` completed 23:29:29Z (WAL
+  `…2100000063`). Cutover merged 23:38:12Z (00:38 Paris, night window);
+  database `Ready=False` 23:41:29Z to 23:45:55Z (**4 min 26 s**). The
+  authentik server failed its liveness probe once and restarted; the worker
+  logged database errors only between 23:43Z and 23:45:36Z.
+- Same pre-cutover `Backup` CR re-run as on vikunja: `20261112T234612` (WAL
+  `…68`, archived to R2) is not restorable from Hetzner alone. Manifest
+  removed in #1337. Hetzner rollback: the 23:29 base with no recovery target.
+- Window without an R2 recovery point: 23:41:29Z to 00:05:48Z (**24 min
+  19 s**, base `20261113T000509`, WAL `…6D`): the ScheduledBackup is weekly and
+  the on-demand R2 base was merged after the cutover.
+- SSO after the cutover (RUNTIME, 00:08Z): OIDC discovery 200, flow executor
+  `default-authentication-flow` served the identification stage (session
+  created in the database), outpost API calls 200. No complete end-user
+  login was observed in the night window.
+- Drill: merge 00:19:44Z, `Cluster` created 00:21:50Z, `Ready`
+  timeline 2 at 00:23:00Z. **RTO 3 min 16 s** (about 70 s of restore).
+- Control job: `in_recovery=false`, 230 tables, database 145 MB,
+  `authentik_core_user=7` (6 active), 49 applications, 50 OAuth2 providers,
+  latest event 2026-11-12 22:49:14Z. Recovery promoted on timeline 2 at
+  `…2100000073` after production archived `…70` at 00:20:49Z. Production
+  stayed on timeline 1, `Ready`, `ContinuousArchiving` true, no archiver
+  error; the drill pod ran PostgreSQL only.
+
 ### Precondition for the remaining cutovers
 
 Before switching `barmanObjectName`, a separate PR adds the R2 environment
