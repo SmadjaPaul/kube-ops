@@ -66,7 +66,8 @@ while IFS='|' read -r kind group ns name; do
   if [[ "$kind" == Namespace ]]; then
     pvcs="$("${K[@]}" -n "$name" get pvc -o name 2>/dev/null | wc -l | tr -d ' ')"
     cnpg="$("${K[@]}" -n "$name" get clusters.postgresql.cnpg.io -o name 2>/dev/null | wc -l | tr -d ' ')"
-    if [[ "$pvcs" == 0 && "$cnpg" == 0 ]]; then
+    stores="$("${K[@]}" -n "$name" get objectstores.barmancloud.cnpg.io,volumesnapshots.snapshot.storage.k8s.io -o name 2>/dev/null | wc -l | tr -d ' ')"
+    if [[ "$pvcs" == 0 && "$cnpg" == 0 && "$stores" == 0 ]]; then
       out PRUNE_ALLOWED_EMPTY_NAMESPACE "$name"; continue
     fi
   fi
