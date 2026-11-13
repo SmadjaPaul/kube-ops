@@ -20,7 +20,10 @@ assert_contains 'value: /data/media/books' "$pkg/app.yaml"
 assert_contains 'APP_BOOKORBIT_BOOK_REQUEST_ENCRYPTION_KEY' "$pkg/external-secret.yaml"
 assert_contains 'APP_BOOKORBIT_JWT_SECRET' "$pkg/external-secret.yaml"
 # Velero must back up only the BookOrbit data volume, not the shared 2-TiB media.
-assert_contains 'backup.velero.io/backup-volumes: data' "$pkg/app.yaml"
+if ! grep -Eq '^[[:space:]]*backup\.velero\.io/backup-volumes:[[:space:]]*"?data"?[[:space:]]*(#.*)?$' "$pkg/app.yaml"; then
+  echo "BOOKORBIT_BACKUP_SCOPE=FAIL: backup-volumes must be exactly 'data'" >&2
+  exit 1
+fi
 velero=k8s/infrastructure/controllers/velero/schedules/daily-bookorbit.yaml
 assert_contains 'defaultVolumesToFsBackup: false' "$velero"
 assert_contains 'snapshotVolumes: false' "$velero"

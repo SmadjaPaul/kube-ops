@@ -9,6 +9,8 @@ resources:
 - media-share-pvc.yaml
 - media-layout-job.yaml
 - bookorbit
+# Retired Decypharr: only its state PVC stays rendered, with Prune=false, so Argo never prunes it.
+- decypharr/pvc.yaml
 - immich
 - audiobookrequest
 - aiostreams

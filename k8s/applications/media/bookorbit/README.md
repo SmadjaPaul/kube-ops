@@ -133,13 +133,13 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
    exact-SHA PR imports BookOrbit to Media root, after explicit go gate.
 5. Bootstrap local superuser, hardening, Authentik/OIDC browser test with
    user/admin isolation and recovery login before disabling local.
-6. Qualify Decypharr no-category qBittorrent login for a **dedicated
+6. **Historical, non-blocking (Decypharr retired, PLT-251):** qualify Decypharr no-category qBittorrent login for a **dedicated
    BookOrbit identity** without bypassing `use_auth=true`. Verify protected
    `/api/v2/torrents/info?category=bookorbit` not just `/app/version`.
    Do not send BookOrbit credentials as argv, logs or PR content.
-7. Cilium BookOrbit->Decypharr 8282 and explicit Decypharr ingress
+7. **Historical, non-blocking (Decypharr retired):** Cilium BookOrbit->Decypharr 8282 and explicit Decypharr ingress
    from BookOrbit only; prove allow/deny with runtime tests.
-8. Confirm configured category `bookorbit`, file ownership + identity path
+8. **Historical, non-blocking (no downloader):** confirm configured category `bookorbit`, file ownership + identity path
    mapping + hardlink test. Keep automated searching off and queue
    non-destructive until safe, authorized source exists.
 9. End-to-end with freely redistributable fixture: request, approve, search
