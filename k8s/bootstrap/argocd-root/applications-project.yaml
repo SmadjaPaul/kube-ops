@@ -55,10 +55,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: mastra-factory
       server: https://kubernetes.default.svc
-    # PLT-246: temporary isolated R2 restore drill of mastra-factory/mastra-factory-postgresql;
-    # removed by PR once the drill root is pruned.
-    - namespace: mastra-factory-drill
-      server: https://kubernetes.default.svc
     - namespace: mastra-sandbox
       server: https://kubernetes.default.svc
     - namespace: matrix
