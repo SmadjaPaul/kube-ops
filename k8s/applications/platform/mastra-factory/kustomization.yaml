@@ -11,6 +11,7 @@ resources:
   - database-s3-credentials.yaml
   - database-objectstore.yaml
   - database-r2.yaml
+  - database-hetzner-precutover-backup.yaml
   - database.yaml
   - database-scheduled-backup.yaml
   - deployment.yaml
