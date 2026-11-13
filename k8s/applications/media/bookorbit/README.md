@@ -64,9 +64,11 @@ this directory into the Media root. It is intentionally a runbook contract;
 this staged PR performs no Kubernetes mutation and no credentialed probe.
 
 1. **Static:** run `kustomize build k8s/applications/media/bookorbit`, the
-   staged contract, and `just check`. Confirm that the root still omits
-   `bookorbit`, the route has only `Gateway/internal`, and `backup.yaml` has
-   only the two dedicated BookOrbit CNPG key names.
+   staged contract, and `just check`. Confirm that the Media root
+   imports `bookorbit`, the route has only `Gateway/internal`, and
+   `backup.yaml` uses the R2 contract (`R2_CNPG_WRITER_ACCESS_KEY_ID`,
+   `R2_CNPG_WRITER_SECRET_ACCESS_KEY`, `R2_S3_ENDPOINT`) with no Hetzner
+   identity.
 2. **ESO/CNPG readiness:** with the canonical operator access harness, verify
    only metadata/status: `doppler-cluster` Ready, the R2 remote key
    names present, `bookorbit-runtime` and the CNPG credential Secret Ready,
