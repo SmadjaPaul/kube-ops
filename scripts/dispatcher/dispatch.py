@@ -15,7 +15,7 @@ has no compare-and-set, so two dispatchers that pick the SAME ticket at the
 same moment both see a single lock and both run. Run one dispatcher per lane
 (one scheduler entry) to stay out of that window.
 
-Night relay options (scripts/night-relay/supervisor.sh):
+Selection options (formerly driven by the night-relay supervisor, retired in PLT-236; manual use only):
   --skip PLT-1,PLT-2      tickets skipped for the rest of the night (never chosen)
   --expect PLT-1          real run only: run only if the choice is still PLT-1 (exit 3 otherwise)
   --comment-skip PLT-1 --why TEXT   post the "skipped tonight" comment and exit
@@ -25,9 +25,7 @@ a ticket whose last run produced nothing.
 
 Environment:
   LINEAR_API_KEY   Linear API key (names only in Git; value from Doppler).
-  DISPATCH_PERMISSION_MODE  claude --permission-mode (default: auto; the night
-                   supervisor exports bypassPermissions: a headless session
-                   cannot answer a permission prompt).
+  DISPATCH_PERMISSION_MODE  claude --permission-mode (default: auto).
 """
 
 from __future__ import annotations
