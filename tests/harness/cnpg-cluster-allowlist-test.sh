@@ -10,15 +10,16 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 list_clusters() {
-  find "$repo_root/k8s" -name '*.yaml' | LC_ALL=C sort | while IFS= read -r f; do
+  find "$repo_root/k8s" \( -name '*.yaml' -o -name '*.yml' \) | LC_ALL=C sort | while IFS= read -r f; do
     awk -v file="${f#"$repo_root"/}" '
       function flush() { if (kind == "Cluster" && api ~ /^postgresql\.cnpg\.io\// && name != "") print name " " file; kind = ""; api = ""; name = ""; inmeta = 0 }
+      function val(v) { gsub(/^["\x27]|["\x27]$/, "", v); return v }
       /^---/ { flush(); next }
-      /^kind:[ ]/ { kind = $2 }
-      /^apiVersion:[ ]/ { api = $2 }
+      /^kind:[ ]/ { kind = val($2) }
+      /^apiVersion:[ ]/ { api = val($2) }
       /^metadata:/ { inmeta = 1; next }
       /^[^ #]/ { inmeta = 0 }
-      inmeta && /^  name:[ ]/ && name == "" { name = $2 }
+      inmeta && /^  name:[ ]/ && name == "" { name = val($2) }
       END { flush() }' "$f"
   done
 }
