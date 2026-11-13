@@ -40,6 +40,10 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: immich
       server: https://kubernetes.default.svc
+    # PLT-243: temporary isolated R2 restore drill of immich/immich-postgresql;
+    # removed by PR once the drill root is pruned.
+    - namespace: immich-drill
+      server: https://kubernetes.default.svc
     - namespace: invoice-ninja
       server: https://kubernetes.default.svc
     - namespace: it-tools
