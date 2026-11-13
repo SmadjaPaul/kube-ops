@@ -109,7 +109,16 @@ case "$verb" in
     allow_kinds deployment statefulset
     [ "$#" -eq 1 ] && [[ "$1" =~ ^[0-9]{1,3}$ ]] || refuse "scale : REPLICAS entier (0-999) attendu"
     cmd=(patch "$kind/$name" -n "$ns" --type=merge -p "{\"spec\":{\"replicas\":$((10#$1))}}") ;;
-  restart|undo)
+  restart)
+    # Même patch que `kubectl rollout restart` (annotation restartedAt du
+    # template), écrit explicitement : `rollout restart` n'accepte pas
+    # --dry-run sur kubectl 1.35, ce qui cassait `--dry-run restart` (PLT-241).
+    allow_kinds deployment statefulset daemonset
+    [ "$#" -eq 0 ] || refuse "$verb ne prend pas d'argument"
+    restarted_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    cmd=(patch "$kind/$name" -n "$ns" --type=merge
+      -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$restarted_at\"}}}}}") ;;
+  undo)
     allow_kinds deployment statefulset daemonset
     [ "$#" -eq 0 ] || refuse "$verb ne prend pas d'argument"
     cmd=(rollout "$verb" "$kind/$name" -n "$ns") ;;
