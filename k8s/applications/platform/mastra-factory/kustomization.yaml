@@ -10,6 +10,7 @@ resources:
   - checkpoint-s3-externalsecret.dormant.yaml
   - database-s3-credentials.yaml
   - database-objectstore.yaml
+  - database-r2.yaml
   - database.yaml
   - database-scheduled-backup.yaml
   - deployment.yaml
