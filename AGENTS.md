@@ -87,6 +87,17 @@ Prefer repository commands over improvised shell:
 
 Current platform, runtime evidence order and PR test-result reporting: `.agents/skills/runtime-observer/SKILL.md`. Every PR body lists checks run (with result) and checks not run (with reason); a missing check is never a pass.
 
+## Communication (STE80)
+
+Engineering agents write A2A messages, handoffs, reports to Paul, Linear comments, PR descriptions, review reports and new technical documentation in STE80, the Atlas engineering convention ([full text](https://github.com/SmadjaPaul/Atlas/blob/main/policies/communication-style.md)). It does not apply to end-user products and their prompts (LibreChat, Hermes, personal agents, SaaS users). Core:
+
+- One idea per sentence. Short sentences. Active voice; name the actor. One term per concept; no synonyms. Precise verbs.
+- Separate facts, hypotheses, decisions and actions. Back every conclusion with evidence: state the conclusion in one sentence first, then the evidence; never conclude beyond the evidence. State what is done and what remains.
+- No vague adjectives, no filler. Never drop a condition needed to understand a result. Reports to Paul are in French by default: conclusion first.
+- Statuses: `PASS`, `FAIL`, `BLOCKED`, `NOT_TESTED`, `NOT_PROVEN`. Evidence levels: `STATIC` < `CI` < `RECONCILED` < `RUNTIME` < `USER`. An open PR is not merged; `CI PASS` is not deployed; merged is not runtime verified.
+- Handoff fields: `Objective`, `Status`, `Changes`, `Evidence`, `Blockers`, `NextAction`.
+- Never rewrite code, identifiers, configuration, logs, structured data, quotes or existing machine contracts for style.
+
 ## Safety
 
 Full-auto build phase (decision D-2026-11-13-01 and D-2026-11-11-02 in [decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md); Linear PLT-235): the agent decides and executes without per-action approval. Safety is per operation and per resource, not a general ban on mutation. Agents work on their own claude/ or codex/ branch prefix, never on another agent's branch.
