@@ -2,10 +2,12 @@
 # immich-postgresql. It is the rollback point: after the cutover, Hetzner
 # stays restorable up to the switch (this base plus the WAL archived before it).
 # A rollback targets this backupID or a precise time, never "latest".
+# Suffix -b: the first attempt (-20261113) failed at 15:24:58Z because the
+# operator was recreating the pod for the new sidecar environment (#1356).
 apiVersion: postgresql.cnpg.io/v1
 kind: Backup
 metadata:
-  name: immich-postgresql-hetzner-precutover-20261113
+  name: immich-postgresql-hetzner-precutover-20261113-b
   namespace: immich
   labels:
     backup.smadja.dev/purpose: r2-cutover-rollback
