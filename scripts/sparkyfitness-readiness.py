@@ -27,8 +27,7 @@ CHECKS = {
                                     "APP_SPARKYFITNESS_OIDC_CLIENT_SECRET",
                                     "APP_SPARKYFITNESS_DB_APP_USERNAME",
                                     "APP_SPARKYFITNESS_DB_APP_PASSWORD"]),
-    "backup": ("backup.yaml", ["HETZNER_S3_ACCESS_KEY_ID",
-                               "HETZNER_S3_SECRET_ACCESS_KEY",
+    "backup": ("backup.yaml", ["sparkyfitness-r2-store",
                                "sparkyfitness-postgresql-weekly"]),
     "policy": ("networkpolicy.yaml", ["sparkyfitness-server", "sparkyfitness-db-access"]),
 }
@@ -41,8 +40,8 @@ ALLOWED = {
     "application": ("argocd", "personal-sparkyfitness"),
     "cluster": ("wellness", "sparkyfitness-db"),
     "externalsecret": ("wellness", ["sparkyfitness-runtime", "sparkyfitness-oidc",
-                                   "sparkyfitness-appdb", "sparkyfitness-cnpg-hetzner-credentials"]),
-    "objectstore": ("wellness", "sparkyfitness-hetzner-store"),
+                                   "sparkyfitness-appdb", "sparkyfitness-cnpg-r2-credentials"]),
+    "objectstore": ("wellness", "sparkyfitness-r2-store"),
     "scheduledbackup": ("wellness", "sparkyfitness-postgresql-weekly"),
 }
 
