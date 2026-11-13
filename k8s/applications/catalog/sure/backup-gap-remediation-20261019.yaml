@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: sure-postgresql-gap-remediation-20261019
+  namespace: sure
+  labels:
+    backup.smadja.dev/purpose: gap-remediation
+spec:
+  cluster:
+    name: sure-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: sure-hetzner-store
