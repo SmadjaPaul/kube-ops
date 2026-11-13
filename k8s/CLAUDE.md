@@ -3,7 +3,7 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 <Global_rules>
 - Use subagents when possible to save context.
 - Prefer to use skills when relevant.
-- Apply all cluster changes through GitOps and Argo CD unless the user approves manual kustomize and kubectl.
+- Apply durable cluster changes through GitOps and Argo CD. Imperative kubectl is allowed per operation inside the admitted scope defined in AGENTS.md Safety (runtime verification and same-day Git reconciliation required; write identity from PLT-237, read-only default until deployed).
 - Always explicitly set pod spec hostNetwork false, hostPID false, hostIPC false; pod securityContext runAsNonRoot true, runAsUser, runAsGroup, fsGroup, fsGroupChangePolicy OnRootMismatch; container securityContext allowPrivilegeEscalation false, readOnlyRootFilesystem true, capabilities.drop ["ALL"]; and container resources cpu/memory requests and limits, even with custom values.
   - Note: hostNetwork, hostPID, and hostIPC are pod spec fields, not PodSecurityContext fields.
 - Workloads must specify limits for emptyDir and all resource volumes.
