@@ -18,6 +18,26 @@ kind: ObjectStore
 metadata: { name: sure-hetzner-store, namespace: sure }
 spec:
   retentionPolicy: "14d"
+  # PLT-245 (prep before the R2 cutover, lesson of the romm 4 min outage):
+  # the sidecar environment is fixed when the pod starts, so during the
+  # cutover the old pod archives its last WAL to R2 with THIS environment.
+  # It must already carry what R2 needs (endpoint read from the R2 Secret, a
+  # region R2 accepts, boto3 checksums when_required). The explicit endpointURL
+  # below keeps Hetzner as the target of this store.
+  instanceSidecarConfiguration:
+    env:
+      - name: AWS_DEFAULT_REGION
+        value: us-east-1
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef:
+            name: sure-cnpg-r2-credentials
+            key: AWS_ENDPOINT_URL_S3
+            optional: true
   configuration:
     destinationPath: s3://smadja-dev-homelab-backups/cnpg/sure
     endpointURL: https://fsn1.your-objectstorage.com
