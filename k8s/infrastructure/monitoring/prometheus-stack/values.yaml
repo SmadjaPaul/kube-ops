@@ -14,12 +14,18 @@ kubeProxy:
 # Longhorn Prometheus PVC and instance-manager CPU 0.26 -> 2.4 cores. No
 # repository dashboard/rule consumes apiserver_request:burnrate*, and the SLO
 # alerts (KubeAPIErrorBudgetBurn) only read those recordings while Alertmanager
-# has no receiver. Raw apiserver metrics stay scraped. Revert both to true to
-# restore them (then raise Prometheus memory first).
+# has no receiver. Raw apiserver metrics stay scraped.
+# PLT-208 (2026-11-13): #1256 validated at runtime (instance-manager night CPU
+# 0.32-0.42 cores, PVC reads 365 -> 0 MB/s). Prometheus memory is raised
+# (limit 1Gi -> 2Gi; working set peaked at 1007 MiB pinned at the old limit,
+# now ~780 MiB) and ONLY the burn-rate group is re-enabled. Availability and
+# SLO groups stay off (30d windows vs 10d retention, no consumer). Rollback
+# criteria: rule evaluation > 30s, working set > 1.6Gi or PVC reads > 50 MB/s
+# -> set kubeApiserverBurnrate back to false.
 defaultRules:
   rules:
     kubeApiserverAvailability: false
-    kubeApiserverBurnrate: false
+    kubeApiserverBurnrate: true
     kubeApiserverSlos: false
 
 # Edge/single-node budget: apiserver exposes ~68k series and accounts for
@@ -223,10 +229,10 @@ prometheus:
     resources:
       requests:
         cpu: 100m
-        memory: 512Mi
+        memory: 1Gi
       limits:
         cpu: 1000m
-        memory: 1Gi
+        memory: 2Gi
   podDisruptionBudget:
     enabled: false
     minAvailable: 1

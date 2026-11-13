@@ -1,0 +1,192 @@
+# PLT-237 — garde-fou d'admission de l'identité agent-operator.
+# Indépendant du RBAC : même si un rôle devient trop large, toute écriture de
+# system:serviceaccount:agent-operator:agent-operator est refusée hors de ce
+# périmètre. Ne concerne aucune autre identité (matchConditions).
+# Liste `admitted` = scope.tsv (vérifié par tests/agent-guard/agent-operator-identity-test.sh).
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: agent-operator-guard
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["*"]
+        apiVersions: ["*"]
+        operations: ["*"]
+        resources: ["*/*"]
+        scope: "*"
+    # Auto-diagnostic de l'agent (kubectl auth whoami / can-i) : sans effet.
+    excludeResourceRules:
+      - apiGroups: [authentication.k8s.io]
+        apiVersions: ["*"]
+        operations: [CREATE]
+        resources: [selfsubjectreviews]
+      - apiGroups: [authorization.k8s.io]
+        apiVersions: ["*"]
+        operations: [CREATE]
+        resources: [selfsubjectaccessreviews, selfsubjectrulesreviews]
+  matchConditions:
+    - name: agent-operator-identity
+      expression: request.userInfo.username == 'system:serviceaccount:agent-operator:agent-operator'
+  variables:
+    - name: admitted
+      expression: >-
+        ['agentgateway', 'executor', 'factory-platform', 'gpt-researcher',
+        'it-tools', 'mastra-factory', 'mastra-sandbox', 'media', 'mqtt', 'ntfy',
+        'open-connector', 'opencode', 'pinepods', 'searxng', 'stirling-pdf']
+    - name: target
+      expression: >-
+        request.resource.group + '/' + request.resource.resource +
+        (has(request.subResource) && request.subResource != '' ? '/' + request.subResource : '')
+    - name: templated
+      expression: >-
+        request.operation in ['CREATE', 'UPDATE'] &&
+        variables.target in ['apps/deployments', 'apps/statefulsets', 'apps/daemonsets', 'batch/jobs', 'batch/cronjobs']
+    # Les variables suivantes ne sont évaluées que si `templated` est vrai.
+    - name: newSpec
+      expression: >-
+        request.resource.resource == 'cronjobs' ?
+        object.spec.jobTemplate.spec.template.spec : object.spec.template.spec
+    - name: oldSpec
+      expression: >-
+        request.resource.resource == 'cronjobs' ?
+        oldObject.spec.jobTemplate.spec.template.spec : oldObject.spec.template.spec
+    - name: newContainers
+      expression: >-
+        variables.newSpec.containers +
+        (has(variables.newSpec.initContainers) ? variables.newSpec.initContainers : [])
+    - name: oldContainers
+      expression: >-
+        variables.oldSpec.containers +
+        (has(variables.oldSpec.initContainers) ? variables.oldSpec.initContainers : [])
+    - name: newVolumes
+      expression: "has(variables.newSpec.volumes) ? variables.newSpec.volumes : []"
+    - name: oldVolumes
+      expression: "has(variables.oldSpec.volumes) ? variables.oldSpec.volumes : []"
+    - name: newSecretEnv
+      expression: >-
+        variables.newContainers.map(c, has(c.env) ?
+        c.env.filter(e, has(e.valueFrom) && has(e.valueFrom.secretKeyRef)) : [])
+        .filter(l, size(l) > 0)
+    - name: oldSecretEnv
+      expression: >-
+        variables.oldContainers.map(c, has(c.env) ?
+        c.env.filter(e, has(e.valueFrom) && has(e.valueFrom.secretKeyRef)) : [])
+        .filter(l, size(l) > 0)
+    - name: newSecretEnvFrom
+      expression: >-
+        variables.newContainers.map(c, has(c.envFrom) ?
+        c.envFrom.filter(f, has(f.secretRef)) : []).filter(l, size(l) > 0)
+    - name: oldSecretEnvFrom
+      expression: >-
+        variables.oldContainers.map(c, has(c.envFrom) ?
+        c.envFrom.filter(f, has(f.secretRef)) : []).filter(l, size(l) > 0)
+    - name: newServiceAccount
+      expression: >-
+        has(variables.newSpec.serviceAccountName) ? variables.newSpec.serviceAccountName :
+        (has(variables.newSpec.serviceAccount) ? variables.newSpec.serviceAccount : 'default')
+    - name: oldServiceAccount
+      expression: >-
+        has(variables.oldSpec.serviceAccountName) ? variables.oldSpec.serviceAccountName :
+        (has(variables.oldSpec.serviceAccount) ? variables.oldSpec.serviceAccount : 'default')
+    - name: newHostFlags
+      expression: >-
+        [has(variables.newSpec.hostNetwork) && variables.newSpec.hostNetwork,
+        has(variables.newSpec.hostPID) && variables.newSpec.hostPID,
+        has(variables.newSpec.hostIPC) && variables.newSpec.hostIPC]
+    - name: oldHostFlags
+      expression: >-
+        [has(variables.oldSpec.hostNetwork) && variables.oldSpec.hostNetwork,
+        has(variables.oldSpec.hostPID) && variables.oldSpec.hostPID,
+        has(variables.oldSpec.hostIPC) && variables.oldSpec.hostIPC]
+    - name: newPrivileged
+      expression: >-
+        variables.newContainers.filter(c, has(c.securityContext) &&
+        has(c.securityContext.privileged) && c.securityContext.privileged).map(c, c.name)
+    - name: oldPrivileged
+      expression: >-
+        variables.oldContainers.filter(c, has(c.securityContext) &&
+        has(c.securityContext.privileged) && c.securityContext.privileged).map(c, c.name)
+    # Un template qui porte déjà des credentials (Secret en env/envFrom/volume,
+    # volume projeté, ServiceAccount dédié) est gelé : changer image, commande ou
+    # arguments permettrait de les exfiltrer par pods/log.
+    - name: oldCarriesCredentials
+      expression: >-
+        size(variables.oldSecretEnv) > 0 || size(variables.oldSecretEnvFrom) > 0 ||
+        variables.oldServiceAccount != 'default' ||
+        variables.oldVolumes.exists(v, has(v.secret) || has(v.projected) || has(v.csi))
+  validations:
+    - expression: request.namespace in variables.admitted
+      reason: Forbidden
+      message: "agent-operator : namespace hors périmètre ou objet cluster-scoped (scope.tsv)"
+    - expression: >-
+        variables.target in ['apps/deployments', 'apps/statefulsets', 'apps/daemonsets',
+        'apps/replicasets', 'batch/jobs', 'batch/cronjobs', '/pods']
+      reason: Forbidden
+      message: "agent-operator : ressource hors périmètre (workloads, Jobs, Pods seulement ; jamais Secret, PVC, RBAC, réseau)"
+    - expression: >-
+        (object == null || !has(object.metadata.labels) ||
+        !('smadja.dev/agent-protected' in object.metadata.labels) ||
+        object.metadata.labels['smadja.dev/agent-protected'] != 'true') &&
+        (oldObject == null || !has(oldObject.metadata.labels) ||
+        !('smadja.dev/agent-protected' in oldObject.metadata.labels) ||
+        oldObject.metadata.labels['smadja.dev/agent-protected'] != 'true') &&
+        (namespaceObject == null || !has(namespaceObject.metadata.labels) ||
+        !('smadja.dev/agent-protected' in namespaceObject.metadata.labels) ||
+        namespaceObject.metadata.labels['smadja.dev/agent-protected'] != 'true')
+      reason: Forbidden
+      message: "agent-operator : objet ou namespace étiqueté smadja.dev/agent-protected=true"
+    - expression: >-
+        variables.target != '/pods' || oldObject == null ||
+        !has(oldObject.metadata.labels) || !('cnpg.io/cluster' in oldObject.metadata.labels)
+      reason: Forbidden
+      message: "agent-operator : pod de base CNPG (passer par l'opérateur CNPG, pas par une suppression de pod)"
+    - expression: >-
+        variables.target != 'apps/statefulsets' ||
+        ([object, oldObject].filter(o, o != null).all(o,
+        !has(o.spec.persistentVolumeClaimRetentionPolicy) ||
+        ((!has(o.spec.persistentVolumeClaimRetentionPolicy.whenDeleted) ||
+        o.spec.persistentVolumeClaimRetentionPolicy.whenDeleted != 'Delete') &&
+        (!has(o.spec.persistentVolumeClaimRetentionPolicy.whenScaled) ||
+        o.spec.persistentVolumeClaimRetentionPolicy.whenScaled != 'Delete'))))
+      reason: Forbidden
+      message: "agent-operator : StatefulSet dont la rétention des PVC vaut Delete (suppression de données)"
+    - expression: >-
+        !variables.templated || request.operation != 'CREATE' ||
+        (size(variables.newSecretEnv) == 0 && size(variables.newSecretEnvFrom) == 0 &&
+        !variables.newVolumes.exists(v, has(v.secret) || has(v.projected) || has(v.csi) ||
+        has(v.hostPath) || has(v.persistentVolumeClaim) || has(v.ephemeral)) &&
+        variables.newServiceAccount == 'default' &&
+        !variables.newHostFlags.exists(f, f) && size(variables.newPrivileged) == 0)
+      reason: Forbidden
+      message: "agent-operator : création d'un workload qui référence un Secret, un PVC, un ServiceAccount, un hostPath ou un accès hôte (passer par GitOps)"
+    - expression: >-
+        !variables.templated || request.operation != 'UPDATE' ||
+        (variables.newVolumes == variables.oldVolumes &&
+        variables.newSecretEnv == variables.oldSecretEnv &&
+        variables.newSecretEnvFrom == variables.oldSecretEnvFrom &&
+        variables.newServiceAccount == variables.oldServiceAccount &&
+        [0, 1, 2].all(i, !variables.newHostFlags[i] || variables.oldHostFlags[i]) &&
+        variables.newPrivileged.all(n, n in variables.oldPrivileged))
+      reason: Forbidden
+      message: "agent-operator : modification des volumes, des références de Secret, du ServiceAccount ou de l'accès hôte (passer par GitOps)"
+    - expression: >-
+        !variables.templated || request.operation != 'UPDATE' ||
+        !variables.oldCarriesCredentials || variables.newSpec == variables.oldSpec
+      reason: Forbidden
+      message: "agent-operator : workload porteur de credentials, pod template gelé (seuls réplicas, restart et suspend ; image et commande par GitOps)"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-guard
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-guard
+  validationActions: [Deny]
