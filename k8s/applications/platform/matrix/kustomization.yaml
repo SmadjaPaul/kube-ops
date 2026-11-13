@@ -9,7 +9,6 @@ resources:
   - database-mas-clean.yaml
   - database-objectstores.yaml
   - database-synapse-r2.yaml
-  - backup-synapse-hetzner-precutover.yaml
   - database-scheduled-backups.yaml
   - database-mas-clean-initial-backup-20261105.yaml
   - backup-gap-remediation-20261020.yaml

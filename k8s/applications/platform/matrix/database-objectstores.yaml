@@ -1,5 +1,10 @@
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
+# PLT-247: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to matrix-synapse-r2-store). Kept as the rollback target with its
+# existing backups (pre-cutover base 20261113T223943). Its retentionPolicy (14d)
+# only runs when a plugin sidecar uses this store again (rollback): before such
+# a rollback, re-check that base 20261113T223943 is still needed or keep it.
 metadata:
   name: matrix-synapse-hetzner-store
   namespace: matrix
