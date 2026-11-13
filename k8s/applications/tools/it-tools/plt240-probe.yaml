@@ -22,10 +22,15 @@ spec:
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 65535
         runAsGroup: 65535
+        fsGroup: 65535
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:
