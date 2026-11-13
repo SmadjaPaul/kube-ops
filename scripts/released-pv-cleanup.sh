@@ -39,12 +39,62 @@ source "$(dirname "$0")/lib/kube-preflight.sh"
 require_kube_access >/dev/null
 trap 'kube_access_cleanup' EXIT
 
-bound_volumes="$(kubectl --request-timeout=30s get pvc -A -o json | jq -r '.items[].spec.volumeName // empty')"
+# get_json KIND NAME [ns] -> prints JSON; exit 0 found, 4 NotFound, 5 other error
+get_json() {
+  local out err
+  err=$(mktemp)
+  if out=$(kubectl --request-timeout=15s get "$@" -o json 2>"$err"); then rm -f "$err"; printf '%s' "$out"; return 0; fi
+  if grep -q '(NotFound)' "$err"; then rm -f "$err"; return 4; fi
+  sed 's/^/  /' "$err" >&2; rm -f "$err"; return 5
+}
+
+# lh_check NAME -> echo "detached" | "absent", or exit non-zero with a reason on stderr
+lh_check() {
+  local lh rc state tickets
+  lh=$(get_json volumes.longhorn.io "$1" -n longhorn-system); rc=$?
+  if (( rc == 4 )); then echo absent; return 0; fi
+  (( rc == 0 )) || { echo "lecture volume Longhorn impossible" >&2; return 1; }
+  state=$(jq -r '.status.state // ""' <<<"$lh")
+  [[ "$state" == detached ]] || { echo "volume Longhorn '${state:-sans état}'" >&2; return 1; }
+  va=$(get_json volumeattachments.longhorn.io "$1" -n longhorn-system); rc=$?
+  if (( rc == 0 )); then
+    tickets=$(jq -r '(.spec.attachmentTickets // {}) | length' <<<"$va")
+    [[ "$tickets" == 0 ]] || { echo "$tickets ticket(s) d'attachement Longhorn" >&2; return 1; }
+  elif (( rc != 4 )); then
+    echo "lecture des tickets d'attachement impossible" >&2; return 1
+  fi
+  echo detached
+}
+
+# delete_with_preconditions PATH UID RESOURCE_VERSION
+delete_with_preconditions() {
+  local body
+  body=$(mktemp)
+  printf '{"kind":"DeleteOptions","apiVersion":"v1","preconditions":{"uid":"%s","resourceVersion":"%s"}}' "$2" "$3" >"$body"
+  kubectl --request-timeout=30s delete --raw "$1" -f "$body" >/dev/null
+  local rc=$?; rm -f "$body"; return $rc
+}
+
 fail=0
 for t in "${TARGETS[@]}"; do
   read -r name uid claim <<<"$t"
-  if ! pv="$(kubectl --request-timeout=15s get pv "$name" -o json 2>/dev/null)"; then
-    echo "PV $name ABSENT (déjà supprimé)"; continue
+  set +e
+  pv=$(get_json pv "$name"); rc=$?
+  set -e
+  if (( rc == 4 )); then
+    # PV déjà supprimé : vérifier que le volume Longhorn l'est aussi (reprise d'une exécution interrompue).
+    if ! lh_state=$(lh_check "$name"); then echo "PV $name ABSENT, volume Longhorn BLOCKED"; fail=1; continue; fi
+    if [[ "$lh_state" == absent ]]; then echo "PV $name ABSENT, volume Longhorn absent"; continue; fi
+    echo "PV $name ABSENT, volume Longhorn detached restant"
+    if [[ "$mode" == delete ]]; then
+      kubectl --request-timeout=30s -n longhorn-system delete volumes.longhorn.io "$name" --wait=false
+      echo "LONGHORN $name DELETED"
+    else
+      fail=1
+    fi
+    continue
+  elif (( rc != 0 )); then
+    echo "PV $name BLOCKED: lecture impossible"; fail=1; continue
   fi
   reasons=()
   [[ "$(jq -r .metadata.uid <<<"$pv")" == "$uid" ]] || reasons+=("uid différent")
@@ -52,18 +102,31 @@ for t in "${TARGETS[@]}"; do
   [[ "$(jq -r .spec.persistentVolumeReclaimPolicy <<<"$pv")" == Retain ]] || reasons+=("reclaimPolicy non Retain")
   [[ "$(jq -r '.spec.csi.driver // ""' <<<"$pv")" == driver.longhorn.io ]] || reasons+=("driver non Longhorn")
   [[ "$(jq -r '.spec.claimRef.namespace + "/" + .spec.claimRef.name' <<<"$pv")" == "$claim" ]] || reasons+=("claimRef inattendu")
-  grep -qxF "$name" <<<"$bound_volumes" && reasons+=("un PVC référence ce PV")
-  lh="$(kubectl --request-timeout=15s -n longhorn-system get volumes.longhorn.io "$name" -o json 2>/dev/null || echo '{}')"
-  lh_state="$(jq -r '.status.state // "absent"' <<<"$lh")"
-  [[ "$lh_state" == detached || "$lh_state" == absent ]] || reasons+=("volume Longhorn $lh_state")
+  # PVC relus juste avant la décision, pour chaque cible ; échec de lecture = blocage.
+  if bound_volumes=$(kubectl --request-timeout=30s get pvc -A -o json | jq -er '[.items[].spec.volumeName // empty] | .[]?'); then
+    grep -qxF "$name" <<<"$bound_volumes" && reasons+=("un PVC référence ce PV")
+  else
+    [[ -n "${bound_volumes:-}" ]] || reasons+=("lecture des PVC impossible")
+  fi
+  lh_err=$(mktemp)
+  set +e
+  lh_state=$(lh_check "$name" 2>"$lh_err"); lh_rc=$?
+  set -e
+  if (( lh_rc != 0 )); then reasons+=("$(cat "$lh_err")"); fi
+  rm -f "$lh_err"
   if (( ${#reasons[@]} )); then
     echo "PV $name BLOCKED: ${reasons[*]}"; fail=1; continue
   fi
   echo "PV $name ELIGIBLE claim=$claim longhorn=$lh_state"
   [[ "$mode" == delete ]] || continue
-  kubectl --request-timeout=30s delete pv "$name" --wait=true --timeout=120s
+  rv=$(jq -r .metadata.resourceVersion <<<"$pv")
+  delete_with_preconditions "/api/v1/persistentvolumes/$name" "$uid" "$rv"
+  kubectl --request-timeout=130s wait --for=delete "pv/$name" --timeout=120s >/dev/null 2>&1 || true
   if [[ "$lh_state" == detached ]]; then
-    kubectl --request-timeout=30s -n longhorn-system delete volumes.longhorn.io "$name" --wait=false
+    lh_state=$(lh_check "$name")
+    if [[ "$lh_state" == detached ]]; then
+      kubectl --request-timeout=30s -n longhorn-system delete volumes.longhorn.io "$name" --wait=false
+    fi
   fi
   echo "PV $name DELETED"
 done
