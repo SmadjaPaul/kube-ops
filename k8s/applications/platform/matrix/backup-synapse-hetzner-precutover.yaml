@@ -2,10 +2,12 @@
 # matrix-synapse-postgresql. It is the rollback point: after the cutover,
 # Hetzner stays restorable up to the switch (this base plus the WAL archived
 # before it). A rollback targets this backupID or a precise time, never "latest".
+# Suffix -b: the first attempt (-20261113) failed at pod recreation for the new
+# sidecar environment (#1402).
 apiVersion: postgresql.cnpg.io/v1
 kind: Backup
 metadata:
-  name: matrix-synapse-postgresql-hetzner-precutover-20261113
+  name: matrix-synapse-postgresql-hetzner-precutover-20261113-b
   namespace: matrix
   labels:
     backup.smadja.dev/purpose: r2-cutover-rollback
