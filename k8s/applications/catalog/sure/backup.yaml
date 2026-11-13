@@ -15,6 +15,9 @@ spec:
 ---
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
+# PLT-245: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to sure-r2-store). Kept as the rollback target with its existing
+# backups (pre-cutover base 20261113T181527).
 metadata: { name: sure-hetzner-store, namespace: sure }
 spec:
   retentionPolicy: "14d"
@@ -57,4 +60,5 @@ spec:
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
-    parameters: { barmanObjectName: sure-hetzner-store }
+    # PLT-245: base backups follow the WAL archive to R2.
+    parameters: { barmanObjectName: sure-r2-store }
