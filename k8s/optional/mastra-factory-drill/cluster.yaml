@@ -1,0 +1,42 @@
+# Recovery replays the R2 base backup + every archived WAL (no recoveryTarget)
+# and promotes. No spec.plugins and no backup section: this cluster never
+# archives. Same PostgreSQL image as production.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: mastra-factory-postgresql-restore
+  namespace: mastra-factory-drill
+  labels:
+    restore.smadja.dev/purpose: isolated-read-only-recovery
+    backup.smadja.dev/restore-drill: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7
+  inheritedMetadata:
+    labels:
+      restore.smadja.dev/purpose: isolated-read-only-recovery
+  bootstrap:
+    recovery:
+      source: mastra-factory-postgresql
+      database: mastra
+      owner: mastra
+  externalClusters:
+    - name: mastra-factory-postgresql
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: mastra-factory-r2-source
+          serverName: mastra-factory-postgresql
+  storage:
+    size: 20Gi
+    storageClass: longhorn-bulk
+  ephemeralVolumesSizeLimit:
+    temporaryData: 1Gi
+    shm: 256Mi
+  resources:
+    requests: {cpu: 50m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  affinity:
+    enablePodAntiAffinity: false
