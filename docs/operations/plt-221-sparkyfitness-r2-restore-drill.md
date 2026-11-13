@@ -129,8 +129,10 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
 - The `Backup` CR of the Hetzner pre-cutover base was recreated when the pod
   restarted and ran again at 23:18:38Z (`20261112T231838`, WAL `…0110`). That
   WAL went to R2: this second Hetzner base is **not restorable from Hetzner
-  alone**. A Hetzner rollback must target the 23:09 base or a time before
-  23:14:47Z, never "latest". The manifest is removed in this PR; deleting the
+  alone**. A Hetzner rollback must target the 23:09 base explicitly, never
+  "latest". The last segment archived to Hetzner before the cutover was not
+  recorded: before any point-in-time target after 23:09, list the WAL under
+  the Hetzner prefix and stop at the last segment present there. The manifest is removed in this PR; deleting the
   CR does not delete objects. Same pattern on authentik (#1337).
 - Window without an R2 recovery point: 23:14:47Z to 23:24:04Z (**9 min
   17 s**, base `20261112T232357`).
