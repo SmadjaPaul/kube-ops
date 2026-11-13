@@ -3,6 +3,11 @@ kind: Cluster
 metadata:
   name: paperless-postgresql
   namespace: paperless
+  annotations:
+    # PLT-244: rolling restart (same mechanism as `kubectl cnpg restart`) so
+    # the barman sidecar picks up the environment added to
+    # paperless-hetzner-store in #1365; the operator did not restart it.
+    kubectl.kubernetes.io/restartedAt: "2026-11-13T16:45:00Z"
 spec:
   instances: 1
   bootstrap:
