@@ -88,6 +88,39 @@ delete_with_preconditions() {
   local rc=$?; rm -f "$body"; return $rc
 }
 
+# expected PV UID and former claim, from TARGETS
+pv_uid() { local t n u c; for t in "${TARGETS[@]}"; do read -r n u c <<<"$t"; [[ "$n" == "$1" ]] && { echo "$u"; return; }; done; }
+pv_claim() { local t n u c; for t in "${TARGETS[@]}"; do read -r n u c <<<"$t"; [[ "$n" == "$1" ]] && { echo "$c"; return; }; done; }
+
+# pv_static_reasons PV_JSON UID CLAIM -> one reason per line (identity, Retain, driver, claimRef)
+pv_static_reasons() {
+  [[ "$(jq -r .metadata.uid <<<"$1")" == "$2" ]] || echo "uid différent"
+  [[ "$(jq -r .spec.persistentVolumeReclaimPolicy <<<"$1")" == Retain ]] || echo "reclaimPolicy non Retain"
+  [[ "$(jq -r '.spec.csi.driver // ""' <<<"$1")" == driver.longhorn.io ]] || echo "driver non Longhorn"
+  [[ "$(jq -r '.spec.claimRef.namespace + "/" + .spec.claimRef.name' <<<"$1")" == "$3" ]] || echo "claimRef inattendu"
+}
+
+# pvc_refs PV -> "ns/name" of every PVC whose spec.volumeName is PV; non-zero on read error
+pvc_refs() {
+  local all
+  all=$(kubectl --request-timeout=30s get pvc -A -o json) || return 1
+  jq -r --arg pv "$1" '.items[] | select(.spec.volumeName == $pv) | .metadata.namespace + "/" + .metadata.name' <<<"$all"
+}
+
+# lh_reasons PV -> sets globals lh_state (detached|absent) and lh_why (blocking reason, empty if none)
+lh_state=""
+lh_why=""
+lh_reasons() {
+  local err rc
+  err=$(mktemp)
+  set +e
+  lh_state=$(lh_check "$1" 2>"$err"); rc=$?
+  set -e
+  lh_why=""
+  (( rc == 0 )) || lh_why=$(cat "$err")
+  rm -f "$err"
+}
+
 fail=0
 pending_release=" "
 for r in "${RELEASE[@]}"; do
@@ -109,11 +142,23 @@ for r in "${RELEASE[@]}"; do
   else
     reasons+=("lecture des pods impossible")
   fi
+  # Le PV doit être validé AVANT de supprimer le PVC (un PV Delete serait récupéré aussitôt).
+  set +e
+  pv=$(get_json pv "$rpv"); rc=$?
+  set -e
+  if (( rc == 0 )); then
+    while IFS= read -r why; do [[ -n "$why" ]] && reasons+=("PV : $why"); done < <(pv_static_reasons "$pv" "$(pv_uid "$rpv")" "$rns/$rname")
+    [[ "$(jq -r .status.phase <<<"$pv")" == Bound ]] || reasons+=("PV non Bound")
+  else
+    reasons+=("lecture du PV impossible")
+  fi
+  lh_reasons "$rpv"; why=$lh_why; [[ -z "$why" ]] || reasons+=("$why")
   if (( ${#reasons[@]} )); then echo "PVC $rns/$rname BLOCKED: ${reasons[*]}"; fail=1; continue; fi
   echo "PVC $rns/$rname ELIGIBLE (libère $rpv)"
   if [[ "$mode" != delete ]]; then pending_release+="$rpv "; continue; fi
   delete_with_preconditions "/api/v1/namespaces/$rns/persistentvolumeclaims/$rname" "$ruid" \
     "$(jq -r .metadata.resourceVersion <<<"$pvc")"
+  phase=""
   for _ in $(seq 1 24); do
     phase=$(kubectl --request-timeout=15s get pv "$rpv" -o jsonpath='{.status.phase}' 2>/dev/null || true)
     [[ "$phase" == Released ]] && break
@@ -128,9 +173,12 @@ for t in "${TARGETS[@]}"; do
   pv=$(get_json pv "$name"); rc=$?
   set -e
   if (( rc == 4 )); then
-    # PV déjà supprimé : vérifier que le volume Longhorn l'est aussi (reprise d'une exécution interrompue).
-    if ! lh_state=$(lh_check "$name"); then echo "PV $name ABSENT, volume Longhorn BLOCKED"; fail=1; continue; fi
+    # PV déjà supprimé : reprise d'une exécution interrompue, volume Longhorn éventuel.
+    lh_reasons "$name"; why=$lh_why
+    if [[ -n "$why" ]]; then echo "PV $name ABSENT, volume Longhorn BLOCKED: $why"; fail=1; continue; fi
     if [[ "$lh_state" == absent ]]; then echo "PV $name ABSENT, volume Longhorn absent"; continue; fi
+    if ! refs=$(pvc_refs "$name"); then echo "PV $name ABSENT, lecture des PVC impossible"; fail=1; continue; fi
+    if [[ -n "$refs" ]]; then echo "PV $name ABSENT, volume Longhorn BLOCKED: référencé par $refs"; fail=1; continue; fi
     echo "PV $name ABSENT, volume Longhorn detached restant"
     if [[ "$mode" == delete ]]; then
       kubectl --request-timeout=30s -n longhorn-system delete volumes.longhorn.io "$name" --wait=false
@@ -142,37 +190,34 @@ for t in "${TARGETS[@]}"; do
   elif (( rc != 0 )); then
     echo "PV $name BLOCKED: lecture impossible"; fail=1; continue
   fi
-  if [[ "$pending_release" == *" $name "* ]]; then
-    echo "PV $name ELIGIBLE après libération du PVC (inspection)"; continue
-  fi
   reasons=()
-  [[ "$(jq -r .metadata.uid <<<"$pv")" == "$uid" ]] || reasons+=("uid différent")
-  [[ "$(jq -r .status.phase <<<"$pv")" == Released ]] || reasons+=("phase non Released")
-  [[ "$(jq -r .spec.persistentVolumeReclaimPolicy <<<"$pv")" == Retain ]] || reasons+=("reclaimPolicy non Retain")
-  [[ "$(jq -r '.spec.csi.driver // ""' <<<"$pv")" == driver.longhorn.io ]] || reasons+=("driver non Longhorn")
-  [[ "$(jq -r '.spec.claimRef.namespace + "/" + .spec.claimRef.name' <<<"$pv")" == "$claim" ]] || reasons+=("claimRef inattendu")
-  # PVC relus juste avant la décision, pour chaque cible ; échec de lecture = blocage.
-  if bound_volumes=$(kubectl --request-timeout=30s get pvc -A -o json | jq -er '[.items[].spec.volumeName // empty] | .[]?'); then
-    grep -qxF "$name" <<<"$bound_volumes" && reasons+=("un PVC référence ce PV")
-  else
-    [[ -n "${bound_volumes:-}" ]] || reasons+=("lecture des PVC impossible")
+  while IFS= read -r why; do [[ -n "$why" ]] && reasons+=("$why"); done < <(pv_static_reasons "$pv" "$uid" "$claim")
+  lh_reasons "$name"; why=$lh_why; [[ -z "$why" ]] || reasons+=("$why")
+  pending=0
+  [[ "$pending_release" == *" $name "* ]] && pending=1
+  if (( ! pending )); then
+    # Phase et références PVC : différées seulement pour un PV dont le PVC sera libéré en phase 1.
+    [[ "$(jq -r .status.phase <<<"$pv")" == Released ]] || reasons+=("phase non Released")
+    if refs=$(pvc_refs "$name"); then
+      [[ -z "$refs" ]] || reasons+=("référencé par $refs")
+    else
+      reasons+=("lecture des PVC impossible")
+    fi
   fi
-  lh_err=$(mktemp)
-  set +e
-  lh_state=$(lh_check "$name" 2>"$lh_err"); lh_rc=$?
-  set -e
-  if (( lh_rc != 0 )); then reasons+=("$(cat "$lh_err")"); fi
-  rm -f "$lh_err"
   if (( ${#reasons[@]} )); then
     echo "PV $name BLOCKED: ${reasons[*]}"; fail=1; continue
   fi
+  if (( pending )); then echo "PV $name ELIGIBLE après libération du PVC (inspection)"; continue; fi
   echo "PV $name ELIGIBLE claim=$claim longhorn=$lh_state"
   [[ "$mode" == delete ]] || continue
   rv=$(jq -r .metadata.resourceVersion <<<"$pv")
   delete_with_preconditions "/api/v1/persistentvolumes/$name" "$uid" "$rv"
-  kubectl --request-timeout=130s wait --for=delete "pv/$name" --timeout=120s >/dev/null 2>&1 || true
+  if ! kubectl --request-timeout=130s wait --for=delete "pv/$name" --timeout=120s >/dev/null; then
+    echo "PV $name INCOMPLETE: toujours présent après 120 s, volume Longhorn conservé"; fail=1; continue
+  fi
   if [[ "$lh_state" == detached ]]; then
-    lh_state=$(lh_check "$name")
+    lh_reasons "$name"; why=$lh_why
+    if [[ -n "$why" ]]; then echo "PV $name DELETED, volume Longhorn BLOCKED: $why"; fail=1; continue; fi
     if [[ "$lh_state" == detached ]]; then
       kubectl --request-timeout=30s -n longhorn-system delete volumes.longhorn.io "$name" --wait=false
     fi
