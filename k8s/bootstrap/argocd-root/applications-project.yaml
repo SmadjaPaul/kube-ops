@@ -59,6 +59,10 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: matrix
       server: https://kubernetes.default.svc
+    # PLT-247: temporary isolated R2 restore drill of matrix/matrix-synapse-postgresql;
+    # removed by PR once the drill root is pruned.
+    - namespace: matrix-synapse-drill
+      server: https://kubernetes.default.svc
     - namespace: mealie
       server: https://kubernetes.default.svc
     - namespace: media
