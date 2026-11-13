@@ -1,5 +1,5 @@
-# Recovery replays the R2 base backup + every archived WAL (no recoveryTarget)
-# and promotes. No spec.plugins and no backup section: this cluster never
+# Recovery restores the R2 base backup 20261113T233317 (pinned by backupID)
+# and replays every archived WAL after it, then promotes. No spec.plugins and no backup section: this cluster never
 # archives. Same PostgreSQL image as production.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -22,6 +22,8 @@ spec:
       source: matrix-synapse-postgresql
       database: synapse
       owner: synapse
+      recoveryTarget:
+        backupID: "20261113T233317"
   externalClusters:
     - name: matrix-synapse-postgresql
       plugin:

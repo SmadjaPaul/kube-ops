@@ -52,6 +52,13 @@ spec:
                 WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
                   AND data_type IN ('timestamp with time zone', 'timestamp without time zone')
                 ORDER BY table_schema, table_name, column_name \gexec
+              -- Synapse stores event times as epoch milliseconds (bigint); generated
+              -- only for the columns that exist, so a missing table cannot fail the Job.
+              SELECT format('SELECT %L || coalesce(max(%I)::text, ''null'') FROM %I.%I', 'max_epoch_ms.' || table_schema || '.' || table_name || '.' || column_name || '=', column_name, table_schema, table_name)
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'events'
+                  AND column_name IN ('origin_server_ts', 'received_ts')
+                ORDER BY column_name \gexec
               SQL
               # RPO evidence; best effort (some functions may need pg_monitor).
               psql "$PGURI" -At <<'SQL' || true
