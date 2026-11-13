@@ -131,8 +131,9 @@ All times UTC, 2026-11-12. Evidence levels follow `acceptance-levels.md`.
   WAL went to R2: this second Hetzner base is **not restorable from Hetzner
   alone**. A Hetzner rollback must target the 23:09 base explicitly, never
   "latest". The last segment archived to Hetzner before the cutover was not
-  recorded: before any point-in-time target after 23:09, list the WAL under
-  the Hetzner prefix and stop at the last segment present there. The manifest is removed in this PR; deleting the
+  recorded, so do not set a `recovery_target_time` after 23:09: recover from
+  the 23:09 base with no target (replay to the end of the Hetzner WAL), after
+  checking that the Hetzner WAL sequence from that base has no gap. The manifest is removed in this PR; deleting the
   CR does not delete objects. Same pattern on authentik (#1337).
 - Window without an R2 recovery point: 23:14:47Z to 23:24:04Z (**9 min
   17 s**, base `20261112T232357`).
