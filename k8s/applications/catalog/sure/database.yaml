@@ -3,6 +3,10 @@ kind: Cluster
 metadata:
   name: sure-postgresql
   namespace: sure
+  annotations:
+    # PLT-245: rolling restart (same mechanism as `kubectl cnpg restart`) so the
+    # barman sidecar picks up the environment added to sure-hetzner-store in #1374.
+    kubectl.kubernetes.io/restartedAt: "2026-11-13T18:05:00Z"
 spec:
   instances: 1
   bootstrap:
