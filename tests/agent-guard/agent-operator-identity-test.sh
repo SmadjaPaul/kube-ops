@@ -98,7 +98,8 @@ expect_plan() { # expect_plan DESC MOTIF ARGS...
   out=$(plan "$@") && grep -qE -- "$pat" <<<"$out" && ok "rw plan : $d" || ko "rw plan : $d => ${out:-refus}"
 }
 expect_plan "scale = patch spec.replicas" "patch deployment/web -n $ns1 --type=merge -p .*replicas.*:2" scale "$ns1" deploy/web 2
-expect_plan "restart" "rollout restart deployment/web -n $ns1\$" restart "$ns1" deployment/web
+expect_plan "restart = patch restartedAt" "patch deployment/web -n $ns1 --type=merge -p .*kubectl.kubernetes.io/restartedAt" restart "$ns1" deployment/web
+expect_plan "undo" "rollout undo deployment/web -n $ns1\$" undo "$ns1" deployment/web
 expect_plan "suspend cronjob" 'suspend.*:true' suspend "$ns1" cj/backup
 expect_plan "delete pod sans --force" "delete pod/x-1 -n $ns1 --wait=false\$" delete "$ns1" pod/x-1
 expect_plan "dry-run serveur" '--dry-run=server$' --dry-run restart "$ns1" deploy/web
