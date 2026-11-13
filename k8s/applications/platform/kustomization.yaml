@@ -12,8 +12,6 @@ resources:
   # PLT-237: write RoleBindings of the agent-operator identity (scope.tsv).
   - agent-operator-access
   - ../../optional/sparkyfitness
-  # PLT-245: temporary isolated R2 restore drill, removed by PR after proof.
-  - ../../optional/sure-drill
   # Hermes foundation is intentionally active with an empty tenant registry.
   # Tenant admission remains a separate, identity- and secret-gated change.
   - ../../optional/hermes-personal
