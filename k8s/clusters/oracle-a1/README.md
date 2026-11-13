@@ -6,7 +6,7 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | Path | Role |
 | --- | --- |
 | `bootstrap/` | One-time operator `kustomize build --enable-helm k8s/clusters/oracle-a1/bootstrap \| kubectl apply --server-side -f -` (re-run once for CRD establishment): Argo CD, AppProject `oracle-a1`, root Application. Not synced by any Argo CD. |
-| `apps/` | Root Application target (the only path it reads): child Applications, ordered by sync-wave. |
+| `apps/` | Root Application target (the only path it reads): child Applications, ordered by sync-wave. `cnpg-cluster` and `media` are kept out of `apps/kustomization.yaml` until PLT-190 (backup + restore proven off Oracle). |
 | `external-secrets/` | Overlay on the shared ESO + `ClusterSecretStore/doppler-cluster` base. |
 | `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster. One `Database` + role per application. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
