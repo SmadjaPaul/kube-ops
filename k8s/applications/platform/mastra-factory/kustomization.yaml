@@ -11,6 +11,7 @@ resources:
   - database-s3-credentials.yaml
   - database-objectstore.yaml
   - database-r2.yaml
+  - database-r2-initial-backup.yaml
   - database.yaml
   - database-scheduled-backup.yaml
   - deployment.yaml
