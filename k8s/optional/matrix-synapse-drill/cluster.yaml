@@ -1,0 +1,44 @@
+# Recovery restores the R2 base backup 20261113T233317 (pinned by backupID)
+# and replays every archived WAL after it, then promotes. No spec.plugins and no backup section: this cluster never
+# archives. Same PostgreSQL image as production.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: matrix-synapse-postgresql-restore
+  namespace: matrix-synapse-drill
+  labels:
+    restore.smadja.dev/purpose: isolated-read-only-recovery
+    backup.smadja.dev/restore-drill: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:44c64899a6fb61c01b56a91322cb9cfdc955aa5fd1c8f34ff3a0a9f51664a202
+  inheritedMetadata:
+    labels:
+      restore.smadja.dev/purpose: isolated-read-only-recovery
+  bootstrap:
+    recovery:
+      source: matrix-synapse-postgresql
+      database: synapse
+      owner: synapse
+      recoveryTarget:
+        backupID: "20261113T233317"
+  externalClusters:
+    - name: matrix-synapse-postgresql
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: matrix-synapse-r2-source
+          serverName: matrix-synapse-postgresql
+  storage:
+    size: 20Gi
+    storageClass: longhorn-bulk
+  ephemeralVolumesSizeLimit:
+    temporaryData: 1Gi
+    shm: 256Mi
+  resources:
+    requests: {cpu: 50m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  affinity:
+    enablePodAntiAffinity: false
