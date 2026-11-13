@@ -8,6 +8,7 @@ resources:
   - backup-gap-remediation-20261019.yaml
   - database-objectstore.yaml
   - database-r2.yaml
+  - database-r2-initial-backup.yaml
   - database-hetzner-credentials.yaml
   - podmonitor.yaml
   - serviceaccount.yaml
