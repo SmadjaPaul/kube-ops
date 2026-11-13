@@ -7,4 +7,5 @@ resources:
   - trivy-operator
   - falco
   - policies
+  - agent-operator
   - monitoring.yaml

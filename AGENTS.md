@@ -80,6 +80,7 @@ Prefer repository commands over improvised shell:
 - `just backup-audit`
 - `just e2e-list`
 - `bash scripts/kubectl-ro.sh <get|describe|logs|top|events|api-resources|version> ...` (ad hoc read-only kubectl through `scripts/lib/kube-preflight.sh`; the default access path until the limited-rights write identity and write wrapper of PLT-237 are deployed; never call `kubectl` without the preflight)
+- `bash scripts/kubectl-rw.sh [--dry-run] <patch|scale|restart|undo|set-image|suspend|resume|delete|apply> <namespace> <target> [arg]` (bounded writes with the limited `agent-operator` identity of PLT-237: admitted namespaces from `k8s/infrastructure/security/agent-operator/scope.tsv`, admission policy `agent-operator-guard`, runtime verification, journal and GitOps reminder; usable once `scripts/agent-operator-token.sh --provision` has distributed its kubeconfig through Doppler)
 - `bash scripts/doppler-safe.sh <names|has|set|delete|run>` (Doppler entry point for agents; masks values of 8+ characters only, not base64/URL-encoded forms)
 
 ## Reference (on demand)
