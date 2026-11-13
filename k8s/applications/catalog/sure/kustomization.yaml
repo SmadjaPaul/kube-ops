@@ -4,6 +4,7 @@ resources:
   - namespace.yaml
   - database.yaml
   - backup.yaml
+  - backup-hetzner-precutover.yaml
   - database-r2.yaml
   - backup-gap-remediation-20261019.yaml
   - runtime.yaml
