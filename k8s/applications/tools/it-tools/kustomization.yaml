@@ -7,3 +7,4 @@ resources:
 - http-route.yaml
 - interceptorroute.yaml
 - namespace.yaml
+- plt240-probe.yaml
