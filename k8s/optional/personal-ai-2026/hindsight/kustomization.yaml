@@ -7,6 +7,7 @@ resources:
   - database.yaml
   - objectstore.yaml
   - database-r2.yaml
+  - hetzner-precutover-backup.yaml
   - initialbackup.yaml
   - scheduledbackup.yaml
   - networkpolicy.yaml
