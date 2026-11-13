@@ -46,7 +46,7 @@ spec:
               add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
             seccompProfile: { type: RuntimeDefault }
           resources:
-            requests: { cpu: 100m, memory: 512Mi }
+            requests: { cpu: 25m, memory: 512Mi }
             limits: { cpu: "1", memory: 1536Mi }
           startupProbe:
             tcpSocket: { port: fpm }

@@ -21,7 +21,7 @@ spec:
   storage: {size: 10Gi, storageClass: longhorn-bulk}
   walStorage: {size: 5Gi, storageClass: longhorn-bulk}
   resources:
-    requests: {cpu: 100m, memory: 256Mi}
+    requests: {cpu: 25m, memory: 256Mi}
     limits: {cpu: "1", memory: 1Gi}
   affinity:
     enablePodAntiAffinity: false
