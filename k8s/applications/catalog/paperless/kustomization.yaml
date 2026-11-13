@@ -4,5 +4,6 @@ resources:
   - namespace.yaml
   - database.yaml
   - backup.yaml
+  - database-r2.yaml
   - runtime.yaml
   - app.yaml
