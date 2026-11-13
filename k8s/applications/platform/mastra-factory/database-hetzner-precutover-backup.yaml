@@ -1,0 +1,21 @@
+# PLT-246: fresh Hetzner base backup taken before the R2 cutover of
+# mastra-factory-postgresql. It is the rollback point: after the cutover,
+# Hetzner stays restorable up to the switch (this base plus the WAL archived
+# before it). A rollback targets this backupID or a precise time, never "latest".
+# Removed from the repository by the cutover PR (the CR could otherwise run
+# again after the restart, PLT-221 anomaly); the backup itself stays on Hetzner.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: mastra-factory-postgresql-hetzner-precutover-20261113
+  namespace: mastra-factory
+  labels:
+    backup.smadja.dev/purpose: r2-cutover-rollback
+spec:
+  cluster:
+    name: mastra-factory-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: mastra-factory-hetzner-store
