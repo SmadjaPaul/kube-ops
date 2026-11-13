@@ -12,4 +12,5 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: immich-hetzner-store
+      # PLT-243: base backups follow the WAL archive to R2.
+      barmanObjectName: immich-r2-store
