@@ -199,6 +199,16 @@ journal() { # journal STATUT
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$who" "$head" "$verb" "$ns" "$target" "$dry" "$arg_digest" "$1" >>"$log"
 }
 
+# restart est un patch restartedAt : garder le refus de `rollout restart` sur un
+# Deployment en pause (sinon l'annotation attendrait silencieusement un resume).
+if [ "$verb" = restart ] && [ "$kind" = deployment ]; then
+  paused=$(kubectl --request-timeout=15s get "$kind/$name" -n "$ns" -o jsonpath='{.spec.paused}' 2>/dev/null)
+  if [ "$paused" = true ]; then
+    journal "REFUSED paused"
+    refuse "restart : $kind/$name est en pause (lancer d'abord un resume par GitOps)"
+  fi
+fi
+
 kubectl --request-timeout=30s "${cmd[@]}"
 rc=$?
 if [ "$rc" != 0 ]; then
