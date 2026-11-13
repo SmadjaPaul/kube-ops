@@ -4,9 +4,11 @@ kind: Kustomization
 # au bootstrap. cnpg-cluster.yaml (pg-shared) et media.yaml (Polyfin,
 # AIOStreams, PVC) restent hors de la racine jusqu'à PLT-190 : sauvegarde
 # CNPG hors Oracle (R2) et restauration prouvée hors Oracle.
+# PLT-254 : cloudflared.yaml reste hors de la racine tant que le tunnel et son
+# token Doppler n'existent pas (wave 1 sans token : le health check de la racine
+# bloquerait ntfy, wave 2, et gatus, wave 3).
 resources:
   - external-secrets.yaml
   - cnpg-operator.yaml
-  - cloudflared.yaml
   - ntfy.yaml
   - gatus.yaml
