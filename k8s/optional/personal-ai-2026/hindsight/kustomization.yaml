@@ -6,6 +6,7 @@ resources:
   - externalsecrets.yaml
   - database.yaml
   - objectstore.yaml
+  - database-r2.yaml
   - initialbackup.yaml
   - scheduledbackup.yaml
   - networkpolicy.yaml
