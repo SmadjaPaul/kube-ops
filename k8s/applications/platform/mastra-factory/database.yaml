@@ -3,6 +3,10 @@ kind: Cluster
 metadata:
   name: mastra-factory-postgresql
   namespace: mastra-factory
+  annotations:
+    # PLT-246: rolling restart (same mechanism as `kubectl cnpg restart`) so the
+    # barman sidecar picks up the environment added to mastra-factory-hetzner-store.
+    kubectl.kubernetes.io/restartedAt: "2026-11-13T19:30:00Z"
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7
