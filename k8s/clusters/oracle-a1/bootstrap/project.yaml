@@ -16,6 +16,13 @@ spec:
     - {server: https://kubernetes.default.svc, namespace: media}
     - {server: https://kubernetes.default.svc, namespace: ntfy}
     - {server: https://kubernetes.default.svc, namespace: gatus}
-  # Operators ship CRDs, ClusterRoles and webhooks; namespaces stay bounded above.
+  # Explicit list (PLT-254): CRDs, RBAC, webhooks and Namespaces shipped by ESO,
+  # CNPG, ntfy and gatus, plus the ClusterSecretStore of the ESO base.
   clusterResourceWhitelist:
-    - {group: "*", kind: "*"}
+    - {group: "", kind: Namespace}
+    - {group: apiextensions.k8s.io, kind: CustomResourceDefinition}
+    - {group: rbac.authorization.k8s.io, kind: ClusterRole}
+    - {group: rbac.authorization.k8s.io, kind: ClusterRoleBinding}
+    - {group: admissionregistration.k8s.io, kind: ValidatingWebhookConfiguration}
+    - {group: admissionregistration.k8s.io, kind: MutatingWebhookConfiguration}
+    - {group: external-secrets.io, kind: ClusterSecretStore}
