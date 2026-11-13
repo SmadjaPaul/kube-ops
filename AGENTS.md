@@ -2,7 +2,7 @@
 
 Read `docs/state/cluster-reality.md` only when the task touches the runtime (what runs, real CPU/RAM, exposure, data class, verdict); regenerate with `bash scripts/cluster-reality.sh`.
 
-Git is the Kubernetes desired-state authority. Argo CD continuously reconciles Git. Runtime tools provide evidence; they are never a second steady-state mutation plane.
+Git is the Kubernetes desired-state authority. Argo CD continuously reconciles Git. Runtime tools provide evidence and, within the per-operation rules in Safety, execute changes; every durable runtime change is reconciled into Git so the cluster never diverges from desired state.
 
 ## Authority
 
@@ -79,7 +79,7 @@ Prefer repository commands over improvised shell:
 - `just diagnose-app <argo-app>`
 - `just backup-audit`
 - `just e2e-list`
-- `bash scripts/kubectl-ro.sh <get|describe|logs|top|events|api-resources|version> ...` (ad hoc read-only kubectl through `scripts/lib/kube-preflight.sh`; never call `kubectl` without it)
+- `bash scripts/kubectl-ro.sh <get|describe|logs|top|events|api-resources|version> ...` (ad hoc read-only kubectl through `scripts/lib/kube-preflight.sh`; the default access path until the limited-rights write identity and write wrapper of PLT-237 are deployed; never call `kubectl` without the preflight)
 - `bash scripts/doppler-safe.sh <names|has|set|delete|run>` (Doppler entry point for agents; masks values of 8+ characters only, not base64/URL-encoded forms)
 
 ## Reference (on demand)
@@ -88,29 +88,40 @@ Current platform, runtime evidence order and PR test-result reporting: `.agents/
 
 ## Safety
 
-Build phase ([decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md) D-2026-11-11-02): for reconstructible, non-critical workloads, `kubectl apply/patch/scale/rollout`, suspending valueless jobs and merging green PRs need no per-action approval; reconcile any imperative change into Git the same day. Agents work on their own claude/ or codex/ branch prefix, never on another agent's branch. The list below still applies to data, PVCs, backups, secrets, public exposure, identity roots and irreversible migrations.
+Full-auto build phase (decision D-2026-11-13-01 and D-2026-11-11-02 in [decisions](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md); Linear PLT-235): the agent decides and executes without per-action approval. Safety is per operation and per resource, not a general ban on mutation. Agents work on their own claude/ or codex/ branch prefix, never on another agent's branch.
 
-Bounded operator recovery commands run autonomously, with no click or per-action approval (D-2026-11-11-02, D-2026-11-11-13). Each one checks its own preconditions and data protections and refuses otherwise:
-- `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]`: terminate a sync stuck on hooks/health once no unprotected PVC/PV/CNPG Cluster/ObjectStore/non-empty namespace would be pruned.
+Allowed without per-action approval, inside the admitted scope (reconstructible, non-critical namespaces and applications):
+- `kubectl apply/patch/scale/rollout/restart`, suspending Jobs, deleting reconstructible workloads;
+- merging green PRs through the normal flow;
+- the already-authorized cleanups and deletions (PLT-46, PLT-94) inside their exact perimeter;
+- the bounded recovery commands (D-2026-11-11-13), each of which checks its own preconditions and data protections and refuses otherwise: `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]` terminates a sync stuck on hooks/health once no unprotected PVC/PV/CNPG Cluster/ObjectStore/non-empty namespace would be pruned;
+- OpenTofu plan and apply through ARC CI on the admitted roots, triggered by the agent (homelab-infra side).
 
-The Argo MCP stays read-only observation (`role:readonly`). Operations go through these commands only, never through the MCP account.
+Every mutation follows three obligations:
+1. Scope: only admitted namespaces/applications and a limited-rights identity.
+2. Runtime verification: observe the result (Argo, workload, Service/EndpointSlice, Gateway, DNS/TLS) and report the evidence level.
+3. GitOps reconciliation: any durable change is committed to Git (branch -> checks -> PR -> merge -> Argo) the same day, so cluster and Git never diverge.
 
-Without explicit operator approval:
-- no apply/delete/patch/edit/scale/restart as durable repair, outside the bounded recovery commands above and the build-phase exceptions;
-- no infrastructure apply/destroy/state mutation;
-- no Secret value reads or credential printing;
-- no TLS bypass with `-k`;
-- no PVC deletion/reinitialization;
-- no new public exposure, privilege escalation, identity-root rotation or irreversible migration;
-- no disabling desired apps merely to make Argo green.
+Write access path: the limited-rights write identity and the write wrapper are delivered by PLT-237 (agent RBAC). Until they are deployed, read-only access through `scripts/kubectl-ro.sh` stays the default and mutations go through Git and the bounded recovery commands. This repository does not invent another write tool.
 
-Secret output (enforced by `.claude/hooks/secret-output-guard.py`, applies with or without approval):
+The Argo MCP stays read-only observation (`role:readonly`); operations never go through the MCP account.
+
+Reinforced protections, per operation and per resource (explicit approval from Paul required):
+- irreplaceable data: never delete the only copy of a datum, copy it to R2 first; no PVC deletion/reinitialization or backup deletion outside the cases already authorized (PLT-46, PLT-94, abandoned applications listed in the project instructions);
+- identity resources (Authentik, Matrix) and root secrets, including identity-root rotation;
+- structural network changes (Cilium, Gateway, DNS, cluster access) and new public exposure or privilege escalation;
+- irreversible migrations;
+- disabling desired apps merely to make Argo green.
+
+Always forbidden: `--admin` or any bypass of a protection or required check, TLS disabled or `-k`, displaying or committing a secret, reading Secret values, `device_bash` and the Mac Linux VM, OpenTofu apply outside CI.
+
+Secret output (enforced by `.claude/hooks/secret-output-guard.py`, applies in every mode):
 - run Doppler through `scripts/doppler-safe.sh`; never run `doppler secrets` without `--only-names`, nor `doppler secrets get|download|set|delete` directly: they print values, even with `--silent`, on stdout and stderr;
 - never run `doppler run -- env|printenv`, bare `printenv`, `env`, `set` or `export -p`; list names only (`env | cut -d= -f1`);
 - never run `kubectl get secret` with `-o`/`--output` (except `-o name`), nor any `kubectl -v=6` or higher; use `kubectl describe secret` for key names and sizes;
 - redirecting stdout alone does not count as protection: stderr, error tables and transcripts keep the values.
 
-Bounded read-only `kubectl get/describe/logs` is evidence. Durable repair is branch -> checks -> PR -> merge -> Argo -> runtime proof.
+Bounded `kubectl get/describe/logs` is evidence. A durable change is complete only after the Git reconciliation and the runtime proof above.
 
 ## Validation
 
