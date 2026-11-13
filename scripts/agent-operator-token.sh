@@ -142,13 +142,22 @@ else
   echo "PRE binding policyName='$b_policy' validationActions='$b_actions' matchResources='$b_match' FAIL (Deny sans restriction attendu)"
   pre=1
 fi
-for app in infra-security apps-platform; do
+# Synced/Healthy sur une révision qui contient les manifestes PLT-237.
+git -C "$ROOT" fetch -q origin main 2>/dev/null || echo "ARGO git fetch impossible : contrôle sur l'historique local"
+for pair in infra-security:k8s/infrastructure/security/agent-operator/validatingadmissionpolicy.yaml \
+  apps-platform:k8s/applications/platform/agent-operator-access/rolebindings.yaml; do
+  app=${pair%%:*}
+  path=${pair#*:}
   st=$(kubectl --request-timeout=15s get application "$app" -n argocd \
     -o jsonpath='{.status.sync.status}/{.status.health.status}/{.status.sync.revision}' 2>/dev/null)
-  case "$st" in
-    Synced/Healthy/*) echo "ARGO $app $st PASS" ;;
-    *) echo "ARGO $app '$st' FAIL (Synced/Healthy attendu)"; pre=1 ;;
-  esac
+  rev=${st##*/}
+  if [[ "$st" != Synced/Healthy/* ]]; then
+    echo "ARGO $app '$st' FAIL (Synced/Healthy attendu)"; pre=1
+  elif [[ ! "$rev" =~ ^[0-9a-f]{40}$ ]] || ! git -C "$ROOT" cat-file -e "$rev:$path" 2>/dev/null; then
+    echo "ARGO $app $st FAIL (révision sans $path)"; pre=1
+  else
+    echo "ARGO $app $st PASS"
+  fi
 done
 [ "$pre" = 0 ] || die "préconditions non réunies : attendre la réconciliation Argo (aucun jeton émis)" 3
 [ "$mode" = --check-cluster ] && { echo "AGENT_OPERATOR_CLUSTER=PASS"; exit 0; }
