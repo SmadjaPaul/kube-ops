@@ -1,0 +1,52 @@
+# No ingress except the CNPG operator status port and same-namespace traffic;
+# egress limited to DNS, kube-apiserver and the R2 EU S3 endpoint (path or
+# virtual-hosted style for homelab-backup-cnpg). The account id label is a
+# wildcard to keep it out of this public repository.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: matrix-synapse-drill
+  namespace: matrix-synapse-drill
+  labels: {policy-type: platform}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-13"
+spec:
+  description: "PLT-247 isolated matrix-synapse recovery drill: no external ingress, egress only to DNS, API server and R2 EU S3."
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix-synapse-drill
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+            app.kubernetes.io/name: cloudnative-pg
+      toPorts:
+        - ports:
+            - {port: "8000", protocol: TCP}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix-synapse-drill
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+            - {port: "6443", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchPattern: "*.eu.r2.cloudflarestorage.com"
+        - matchPattern: "homelab-backup-cnpg.*.eu.r2.cloudflarestorage.com"
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
