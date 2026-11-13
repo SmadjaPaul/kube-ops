@@ -15,7 +15,7 @@ for cmd in kustomize yq jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $c
 
 # Active drill roots. Add a root here while a drill is deployed; remove it with
 # the drill. An empty list is valid (no active drill).
-active_drill_roots=()
+active_drill_roots=(k8s/optional/immich-drill)
 
 roots=("$@")
 if [[ ${#roots[@]} -eq 0 ]]; then
