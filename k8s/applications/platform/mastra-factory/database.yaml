@@ -18,11 +18,12 @@ spec:
         - CREATE EXTENSION IF NOT EXISTS vector
   # PLT-246: a Cluster has a single WAL archiver; the archive moved from
   # mastra-factory-hetzner-store to mastra-factory-r2-store (database-r2.yaml).
-  # Rollback: point barmanObjectName back to mastra-factory-hetzner-store, restore
-  # from the Hetzner base 20261113T193506 (backupID, never "latest"), then take a
-  # new base backup there (homelab-infra docs/operations/r2-migration.md).
-  # WARNING: writes made after the cutover only have their WAL on R2; a Hetzner
-  # rollback restores up to the switch unless the R2 WAL is also made available.
+  # Rollback of the archive destination only (healthy database, R2 archiving
+  # failing): point barmanObjectName back to mastra-factory-hetzner-store and take
+  # a new base backup there; do NOT restore, nothing is lost. Hetzner base
+  # 20261113T193506 (backupID, never "latest") is reserved for database recovery
+  # (homelab-infra docs/operations/r2-migration.md); writes made after the cutover
+  # only have their WAL on R2, so such a recovery needs the R2 WAL too.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
