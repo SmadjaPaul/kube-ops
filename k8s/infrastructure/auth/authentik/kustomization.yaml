@@ -7,7 +7,7 @@ resources:
 - backup-pre-reset-20260929.yaml
 - database-objectstore.yaml
 - database-r2.yaml
-- backup-hetzner-precutover.yaml
+- backup-r2-initial.yaml
 - database-hetzner-credentials.yaml
 - podmonitor.yaml
 - httproute.yaml

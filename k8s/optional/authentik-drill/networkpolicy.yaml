@@ -5,18 +5,18 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: vikunja-drill
-  namespace: vikunja-drill
+  name: authentik-drill
+  namespace: authentik-drill
   labels: {policy-type: platform}
   annotations:
     argocd.argoproj.io/sync-wave: "-13"
 spec:
-  description: "PLT-221 isolated vikunja recovery drill: no external ingress, egress only to DNS, API server and R2 EU S3."
+  description: "PLT-221 isolated authentik recovery drill: no external ingress, egress only to DNS, API server and R2 EU S3."
   endpointSelector: {}
   ingress:
     - fromEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: vikunja-drill
+            k8s:io.kubernetes.pod.namespace: authentik-drill
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: cnpg-system
@@ -27,7 +27,7 @@ spec:
   egress:
     - toEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: vikunja-drill
+            k8s:io.kubernetes.pod.namespace: authentik-drill
     - toEntities: [kube-apiserver]
       toPorts:
         - ports:

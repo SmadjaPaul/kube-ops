@@ -1,0 +1,23 @@
+# PLT-46: StorageClass for drills, restore proofs and pilots.
+# reclaimPolicy Delete: deleting the PVC deletes the PV and the Longhorn volume (no Released leftovers).
+# recurringJobSelector names a group that has no RecurringJob, which keeps the volume out of the
+# `default` backup group (volumes without any recurring-job label are placed in `default`).
+# Convention: every drill namespace/PVC manifest carries the label homelab/expires-at: "YYYY-MM-DD".
+# Expired drills are removed from Git by hand (no automated check: a new workflow needs an exact-base admission).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-drill
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  numberOfReplicas: "1"
+  fsType: ext4
+  dataEngine: v1
+  dataLocality: best-effort
+  diskSelector: fast
+  recurringJobSelector: '[{"name":"drill-no-backup","isGroup":true}]'

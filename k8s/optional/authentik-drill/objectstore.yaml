@@ -1,11 +1,11 @@
 # Read-only recovery source. Same destinationPath as
-# the production vikunja R2 ObjectStore. No retentionPolicy, no serverName, and never
+# the production authentik R2 ObjectStore. No retentionPolicy, no serverName, and never
 # referenced by a Cluster spec.plugins entry or a (Scheduled)Backup.
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: vikunja-r2-source
-  namespace: vikunja-drill
+  name: authentik-r2-source
+  namespace: authentik-drill
   labels:
     restore.smadja.dev/purpose: isolated-read-only-recovery
   annotations:
@@ -26,7 +26,7 @@ spec:
       requests: {cpu: 50m, memory: 128Mi}
       limits: {cpu: 500m, memory: 512Mi}
   configuration:
-    destinationPath: s3://homelab-backup-cnpg/vikunja
+    destinationPath: s3://homelab-backup-cnpg/authentik
     s3Credentials:
       accessKeyId: {name: cnpg-r2-restore-ro, key: AWS_ACCESS_KEY_ID}
       secretAccessKey: {name: cnpg-r2-restore-ro, key: AWS_SECRET_ACCESS_KEY}

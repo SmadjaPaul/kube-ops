@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: vikunja-drill
+  name: authentik-drill
   annotations:
     # Before the CiliumNetworkPolicy (-13) and the other drill resources.
     argocd.argoproj.io/sync-wave: "-14"

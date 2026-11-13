@@ -11,7 +11,7 @@ resources:
   - rustical-pilot
   - ../../optional/sparkyfitness
   # PLT-221: temporary isolated R2 restore drill, removed by PR after proof.
-  - ../../optional/vikunja-drill
+  - ../../optional/authentik-drill
   # Hermes foundation is intentionally active with an empty tenant registry.
   # Tenant admission remains a separate, identity- and secret-gated change.
   - ../../optional/hermes-personal
