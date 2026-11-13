@@ -93,20 +93,32 @@ spec:
       expression: >-
         has(variables.oldSpec.serviceAccountName) ? variables.oldSpec.serviceAccountName :
         (has(variables.oldSpec.serviceAccount) ? variables.oldSpec.serviceAccount : 'default')
-    - name: newHostAccess
+    - name: newHostFlags
       expression: >-
-        (has(variables.newSpec.hostNetwork) && variables.newSpec.hostNetwork) ||
-        (has(variables.newSpec.hostPID) && variables.newSpec.hostPID) ||
-        (has(variables.newSpec.hostIPC) && variables.newSpec.hostIPC) ||
-        variables.newContainers.exists(c, has(c.securityContext) &&
-        has(c.securityContext.privileged) && c.securityContext.privileged)
-    - name: oldHostAccess
+        [has(variables.newSpec.hostNetwork) && variables.newSpec.hostNetwork,
+        has(variables.newSpec.hostPID) && variables.newSpec.hostPID,
+        has(variables.newSpec.hostIPC) && variables.newSpec.hostIPC]
+    - name: oldHostFlags
       expression: >-
-        (has(variables.oldSpec.hostNetwork) && variables.oldSpec.hostNetwork) ||
-        (has(variables.oldSpec.hostPID) && variables.oldSpec.hostPID) ||
-        (has(variables.oldSpec.hostIPC) && variables.oldSpec.hostIPC) ||
-        variables.oldContainers.exists(c, has(c.securityContext) &&
-        has(c.securityContext.privileged) && c.securityContext.privileged)
+        [has(variables.oldSpec.hostNetwork) && variables.oldSpec.hostNetwork,
+        has(variables.oldSpec.hostPID) && variables.oldSpec.hostPID,
+        has(variables.oldSpec.hostIPC) && variables.oldSpec.hostIPC]
+    - name: newPrivileged
+      expression: >-
+        variables.newContainers.filter(c, has(c.securityContext) &&
+        has(c.securityContext.privileged) && c.securityContext.privileged).map(c, c.name)
+    - name: oldPrivileged
+      expression: >-
+        variables.oldContainers.filter(c, has(c.securityContext) &&
+        has(c.securityContext.privileged) && c.securityContext.privileged).map(c, c.name)
+    # Un template qui porte déjà des credentials (Secret en env/envFrom/volume,
+    # volume projeté, ServiceAccount dédié) est gelé : changer image, commande ou
+    # arguments permettrait de les exfiltrer par pods/log.
+    - name: oldCarriesCredentials
+      expression: >-
+        size(variables.oldSecretEnv) > 0 || size(variables.oldSecretEnvFrom) > 0 ||
+        variables.oldServiceAccount != 'default' ||
+        variables.oldVolumes.exists(v, has(v.secret) || has(v.projected) || has(v.csi))
   validations:
     - expression: request.namespace in variables.admitted
       reason: Forbidden
@@ -146,19 +158,27 @@ spec:
     - expression: >-
         !variables.templated || request.operation != 'CREATE' ||
         (size(variables.newSecretEnv) == 0 && size(variables.newSecretEnvFrom) == 0 &&
-        !variables.newVolumes.exists(v, has(v.secret) || has(v.projected) || has(v.csi) || has(v.hostPath)) &&
-        variables.newServiceAccount == 'default' && !variables.newHostAccess)
+        !variables.newVolumes.exists(v, has(v.secret) || has(v.projected) || has(v.csi) ||
+        has(v.hostPath) || has(v.persistentVolumeClaim) || has(v.ephemeral)) &&
+        variables.newServiceAccount == 'default' &&
+        !variables.newHostFlags.exists(f, f) && size(variables.newPrivileged) == 0)
       reason: Forbidden
-      message: "agent-operator : création d'un workload qui référence un Secret, un ServiceAccount, un hostPath ou un accès hôte (passer par GitOps)"
+      message: "agent-operator : création d'un workload qui référence un Secret, un PVC, un ServiceAccount, un hostPath ou un accès hôte (passer par GitOps)"
     - expression: >-
         !variables.templated || request.operation != 'UPDATE' ||
         (variables.newVolumes == variables.oldVolumes &&
         variables.newSecretEnv == variables.oldSecretEnv &&
         variables.newSecretEnvFrom == variables.oldSecretEnvFrom &&
         variables.newServiceAccount == variables.oldServiceAccount &&
-        (!variables.newHostAccess || variables.oldHostAccess))
+        [0, 1, 2].all(i, !variables.newHostFlags[i] || variables.oldHostFlags[i]) &&
+        variables.newPrivileged.all(n, n in variables.oldPrivileged))
       reason: Forbidden
       message: "agent-operator : modification des volumes, des références de Secret, du ServiceAccount ou de l'accès hôte (passer par GitOps)"
+    - expression: >-
+        !variables.templated || request.operation != 'UPDATE' ||
+        !variables.oldCarriesCredentials || variables.newSpec == variables.oldSpec
+      reason: Forbidden
+      message: "agent-operator : workload porteur de credentials, pod template gelé (seuls réplicas, restart et suspend ; image et commande par GitOps)"
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

@@ -73,7 +73,8 @@ check "policy failurePolicy Fail" test "$(yq -N 'select(.kind == "ValidatingAdmi
 check "binding Deny" test "$(yq -N 'select(.kind == "ValidatingAdmissionPolicyBinding") | .spec.validationActions | join(",")' "$VAP")" = Deny
 check "matchCondition = identité agent exacte" grep -q "request.userInfo.username == 'system:serviceaccount:agent-operator:agent-operator'" "$VAP"
 check "policy : pas de sous-ressource scale admise" bash -c "! grep -q \"/scale'\" '$VAP'"
-for msg in agent-protected 'cnpg.io/cluster' persistentVolumeClaimRetentionPolicy secretKeyRef secretRef serviceAccountName hostNetwork; do
+for msg in agent-protected 'cnpg.io/cluster' persistentVolumeClaimRetentionPolicy secretKeyRef secretRef serviceAccountName hostNetwork \
+  persistentVolumeClaim oldCarriesCredentials 'variables.newSpec == variables.oldSpec' oldPrivileged; do
   grep -q "$msg" "$VAP" || ko "policy sans contrôle $msg"
 done
 ok "policy : contrôles protégé/CNPG/rétention PVC/Secret/SA/hôte présents"
@@ -111,6 +112,9 @@ refused "scale non entier" scale "$ns1" deploy/web -1
 refused "scale d'un DaemonSet" scale "$ns1" ds/x 0
 refused "suspend d'un Deployment" suspend "$ns1" deploy/web
 refused "image latest" set-image "$ns1" deploy/web app=nginx:latest
+refused "image sans tag" set-image "$ns1" deploy/web app=nginx
+refused "image registry:port sans tag" set-image "$ns1" deploy/web app=registry.local:5000/x
+expect_plan "image par digest" 'set image' set-image "$ns1" deploy/web app=ghcr.io/x/y@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 refused "patch non JSON" patch "$ns1" deploy/web 'spec: {}'
 refused "patch json non tableau" patch "$ns1" deploy/web '{}' json
 refused "nom invalide" delete "$ns1" pod/X_Y
@@ -123,6 +127,8 @@ printf 'apiVersion: apps/v1\nkind: Deployment\nmetadata: {name: d, namespace: au
 printf 'apiVersion: apps/v1\nkind: Deployment\nmetadata: {name: d}\n---\napiVersion: batch/v1\nkind: CronJob\nmetadata: {name: c, namespace: %s}\n' "$ns1" >"$tmp/ok.yaml"
 refused "apply d'un Secret" apply "$ns1" "$tmp/secret.yaml"
 refused "apply vers un autre namespace" apply "$ns1" "$tmp/otherns.yaml"
+printf 'apiVersion: apps/v1\nkind: Deployment\nmetadata: {name: d}\nspec: {template: {spec: {containers: [{name: c, image: "nginx"}]}}}\n' >"$tmp/unpinned.yaml"
+refused "apply d'une image non épinglée" apply "$ns1" "$tmp/unpinned.yaml"
 expect_plan "apply serveur-side" "apply --server-side --field-manager=agent-operator -n $ns1 -f" apply "$ns1" "$tmp/ok.yaml"
 check "kubectl-ro.sh inchangé par PLT-237 (aucune écriture)" bash -c "! grep -qE '^\s*(apply|patch|delete|scale)\)' scripts/kubectl-ro.sh"
 

@@ -78,6 +78,16 @@ verify_agent() {
   done
   can yes delete pods -n media
   can yes patch cronjobs -n media
+  # can-i ne prouve pas l'admission : création en dry-run serveur (aucun effet)
+  # d'un Deployment qui référence un Secret ; la policy doit la refuser.
+  local probe out
+  probe='{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"name":"agent-operator-guard-probe","namespace":"media"},"spec":{"selector":{"matchLabels":{"app":"probe"}},"template":{"metadata":{"labels":{"app":"probe"}},"spec":{"containers":[{"name":"c","image":"registry.k8s.io/pause:3.10","envFrom":[{"secretRef":{"name":"agent-operator-guard-probe"}}]}]}}}}'
+  out=$(kubectl --request-timeout=15s create --dry-run=server -o name -f - <<<"$probe" 2>&1)
+  if grep -q "agent-operator-guard" <<<"$out"; then
+    echo "CHECK admission dry-run (Deployment + secretRef) refusé par agent-operator-guard PASS"
+  else
+    echo "CHECK admission dry-run non refusé par agent-operator-guard FAIL"; fails=1
+  fi
   return "$fails"
 }
 
@@ -122,10 +132,16 @@ check_obj clusterrolebinding/agent-operator-cluster-read
 check_obj validatingadmissionpolicy/agent-operator-guard
 check_obj validatingadmissionpolicybinding/agent-operator-guard
 for ns in $admitted; do check_obj rolebinding/agent-operator-workload -n "$ns"; done
+actions=$(kubectl --request-timeout=15s get validatingadmissionpolicybinding agent-operator-guard \
+  -o jsonpath='{.spec.validationActions}' 2>/dev/null)
+if [[ "$actions" == *Deny* ]]; then echo "PRE binding validationActions=$actions PASS"; else echo "PRE binding validationActions='$actions' FAIL"; pre=1; fi
 for app in infra-security apps-platform; do
   st=$(kubectl --request-timeout=15s get application "$app" -n argocd \
     -o jsonpath='{.status.sync.status}/{.status.health.status}/{.status.sync.revision}' 2>/dev/null)
-  echo "ARGO $app $st"
+  case "$st" in
+    Synced/Healthy/*) echo "ARGO $app $st PASS" ;;
+    *) echo "ARGO $app '$st' FAIL (Synced/Healthy attendu)"; pre=1 ;;
+  esac
 done
 [ "$pre" = 0 ] || die "préconditions non réunies : attendre la réconciliation Argo (aucun jeton émis)" 3
 [ "$mode" = --check-cluster ] && { echo "AGENT_OPERATOR_CLUSTER=PASS"; exit 0; }
@@ -166,8 +182,22 @@ rm -f "$work/token" "$work/op.json"
 KUBECONFIG="$work/kubeconfig" verify_agent || die "le nouveau jeton ne respecte pas le périmètre : rien n'est écrit dans Doppler" 5
 digest=$(_kube_access_digest "$work/kubeconfig") || die "empreinte impossible" 5
 
-bash "$HERE/doppler-safe.sh" set "$SECRET" <"$work/kubeconfig" || die "écriture Doppler $SECRET impossible" 6
-printf %s "$digest" | bash "$HERE/doppler-safe.sh" set "${SECRET}_SHA256" || die "écriture Doppler ${SECRET}_SHA256 impossible" 6
+# Paire précédente conservée (fichiers 0600 du dossier temporaire, jamais
+# affichés) pour la restaurer si la seconde écriture échoue : une rotation
+# ratée ne doit pas casser la copie encore utilisable.
+had_prev=0
+if [ "$(bash "$HERE/doppler-safe.sh" has "$SECRET" 2>/dev/null)" = present ] &&
+  doppler secrets get "$SECRET" --project infrastructure --config prd --plain >"$work/prev" 2>/dev/null; then
+  had_prev=1
+fi
+bash "$HERE/doppler-safe.sh" set "$SECRET" <"$work/kubeconfig" || die "écriture Doppler $SECRET impossible (rien n'a changé)" 6
+if ! printf %s "$digest" | bash "$HERE/doppler-safe.sh" set "${SECRET}_SHA256"; then
+  if [ "$had_prev" = 1 ] && bash "$HERE/doppler-safe.sh" set "$SECRET" <"$work/prev"; then
+    die "écriture ${SECRET}_SHA256 impossible : paire précédente restaurée, relancer --provision" 6
+  fi
+  die "écriture ${SECRET}_SHA256 impossible et paire précédente non restaurable : relancer --provision avant tout usage" 6
+fi
+rm -f "$work/prev"
 rm -f "$work/kubeconfig"
 echo "AGENT_TOKEN=PROVISIONED expires=$expires sha256=${digest:0:12}…"
 

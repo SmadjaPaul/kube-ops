@@ -77,6 +77,15 @@ if [ "$verb" != apply ]; then
   [[ "$name" =~ $DNS ]] || refuse "nom '$name' invalide (DNS-1123)"
 fi
 
+pinned_image() { # pinned_image IMAGE : tag explicite (ni latest ni main) ou digest
+  local img=$1 last
+  case "$img" in *@sha256:*) return 0 ;; esac
+  last=${img##*/}
+  case "$last" in *:*) ;; *) return 1 ;; esac
+  case "${last##*:}" in ''|latest|main) return 1 ;; esac
+  return 0
+}
+
 allow_kinds() { # allow_kinds K... : refuse si $kind n'est pas dans la liste
   local k
   for k in "$@"; do [ "$kind" = "$k" ] && return 0; done
@@ -108,7 +117,7 @@ case "$verb" in
     allow_kinds deployment statefulset daemonset cronjob
     [ "$#" -eq 1 ] && [[ "$1" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?=[A-Za-z0-9][A-Za-z0-9._/:@-]*$ ]] ||
       refuse "set-image : CONTAINER=IMAGE attendu"
-    case "${1#*=}" in *:latest|*:main) refuse "image non épinglée (latest/main interdits)" ;; esac
+    pinned_image "${1#*=}" || refuse "image non épinglée (tag explicite ou digest requis ; latest/main interdits)"
     cmd=(set image "$kind/$name" -n "$ns" "$1") ;;
   suspend|resume)
     allow_kinds job cronjob
@@ -133,6 +142,11 @@ case "$verb" in
       [ -z "$dns" ] || [ "$dns" = "$ns" ] || refuse "apply : namespace '$dns' différent de '$ns'"
       [[ "$dn" =~ $DNS ]] || refuse "apply : nom '$dn' invalide"
     done <<<"$docs"
+    images=$(yq -N '.. | select(tag == "!!map" and has("image")) | .image' "$file" 2>/dev/null) ||
+      refuse "apply : lecture des images impossible"
+    while read -r img; do
+      [ -z "$img" ] || pinned_image "$img" || refuse "apply : image '$img' non épinglée"
+    done <<<"$images"
     cmd=(apply --server-side --field-manager=agent-operator -n "$ns" -f "$file") ;;
   *) refuse "verbe '$verb' hors liste (patch|scale|restart|undo|set-image|suspend|resume|delete|apply)" ;;
 esac
@@ -202,17 +216,30 @@ case "$verb" in
     [ "$got" = "$want" ] || verify=FAIL
     echo "VERIFY $kind/$name spec.suspend=$got (attendu $want)" ;;
   delete)
-    if kubectl --request-timeout=15s get "$kind/$name" -n "$ns" -o jsonpath='{.metadata.deletionTimestamp}' >/dev/null 2>&1; then
-      echo "VERIFY $kind/$name en cours de suppression (finalizers ou arrêt gracieux)"
-    else
+    if dts=$(kubectl --request-timeout=15s get "$kind/$name" -n "$ns" -o jsonpath='{.metadata.deletionTimestamp}' 2>"$status_file"); then
+      if [ -n "$dts" ]; then
+        echo "VERIFY $kind/$name en cours de suppression depuis $dts (finalizers ou arrêt gracieux)"
+      else
+        echo "VERIFY $kind/$name toujours présent sans suppression en cours"
+        verify=FAIL
+      fi
+    elif grep -q 'NotFound' "$status_file"; then
       echo "VERIFY $kind/$name absent"
+    else
+      echo "VERIFY $kind/$name : contrôle impossible ($(head -1 "$status_file"))"
+      verify=FAIL
     fi ;;
 esac
 for rt in "${rollout_targets[@]}"; do
   kubectl --request-timeout=0 rollout status "$rt" -n "$ns" --timeout="$ROLLOUT_TIMEOUT" || verify=FAIL
 done
 
-journal "OK verify=$verify"
-echo "KUBECTL_RW=PASS VERIFY=$verify"
+if [ "$verify" = PASS ]; then
+  journal "OK verify=PASS"
+  echo "KUBECTL_RW=PASS VERIFY=PASS"
+else
+  journal "VERIFY_FAIL (commande appliquée, résultat runtime non établi)"
+  echo "KUBECTL_RW=FAIL VERIFY=FAIL (commande appliquée, résultat runtime non établi)" >&2
+fi
 echo "RAPPEL : Argo selfHeal annule tout champ géré par Git. Changement durable => PR GitOps le jour même (branche -> checks -> PR -> merge -> Argo -> preuve runtime)."
 [ "$verify" = PASS ] || exit 3
