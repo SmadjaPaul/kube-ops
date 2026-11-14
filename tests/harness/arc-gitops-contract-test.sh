@@ -168,6 +168,16 @@ assert_yq "$homelab_download_policy | .spec.endpointSelector.matchLabels.\"k8s:a
 assert_yq "$homelab_download_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
   'api.cloudflare.com,api.doppler.com,api.github.com,api.nuget.org,codeload.github.com,files.pythonhosted.org,github-registry-files.githubusercontent.com,github-releases.githubusercontent.com,github.com,mise-versions.jdx.dev,mise.jdx.dev,nodejs.org,objects-origin.githubusercontent.com,objects.githubusercontent.com,pypi.org,raw.githubusercontent.com,registry.npmjs.org,registry.opentofu.org,registry.terraform.io,release-assets.githubusercontent.com,releases.hashicorp.com,tuf-repo-cdn.sigstore.dev'
 
+# PLT-296/PLT-298: LAN egress for plans is one /32 and one port per API, nothing else.
+for lan_policy in 'proxmox-api|10.0.20.51/32|8006/TCP' 'unifi-api|10.0.20.1/32|443/TCP'; do
+  IFS='|' read -r lan_name lan_cidr lan_port <<<"$lan_policy"
+  lan_expr="select(.kind == \"CiliumNetworkPolicy\" and .metadata.name == \"arc-runners-homelab-infra-$lan_name\")"
+  assert_yq "$lan_expr | .spec.endpointSelector.matchLabels.\"k8s:actions.github.com/scale-set-name\"" 'homelab-infra-ci-arc'
+  assert_yq "$lan_expr | .spec.egress | length" '1'
+  assert_yq "$lan_expr | [.spec.egress[0].toCIDR[]] | join(\",\")" "$lan_cidr"
+  assert_yq "$lan_expr | [.spec.egress[0].toPorts[].ports[] | (.port + \"/\" + .protocol)] | join(\",\")" "$lan_port"
+done
+
 pilot_network_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-homelab-iac-pilot-egress")'
 assert_yq "$pilot_network_policy | [.spec.egress[]?.toEndpoints[]? | select(.matchLabels.\"k8s:app.kubernetes.io/name\" == \"aiostreams\") | .matchLabels.\"k8s:io.kubernetes.pod.namespace\"] | join(\",\")" 'media'
 assert_yq "$pilot_network_policy | [.spec.egress[] | select(.toEndpoints[0].matchLabels.\"k8s:app.kubernetes.io/name\" == \"aiostreams\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" '3000/TCP'

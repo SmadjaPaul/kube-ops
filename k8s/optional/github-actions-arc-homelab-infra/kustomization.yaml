@@ -11,4 +11,6 @@ resources:
   - hetzner-object-storage-networkpolicy.yaml
   - grafana-cloud-networkpolicy.yaml
   - netbird-networkpolicy.yaml
+  - proxmox-api-networkpolicy.yaml
+  - unifi-api-networkpolicy.yaml
   - migadu-stripe-networkpolicy.yaml
