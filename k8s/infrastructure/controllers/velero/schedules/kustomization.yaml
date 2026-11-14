@@ -10,9 +10,6 @@ resources:
   - daily-immich.yaml
   - daily-audiobookrequest.yaml
   - daily-karakeep.yaml
-  # Owner ACCEPT_LOSS applies only to two identified Longhorn Executor volumes.
-  # Keep the daily schedule for all future Executor data.
-  - daily-executor.yaml
   - daily-pinepods.yaml
   - daily-mqtt.yaml
   - daily-gpt-researcher.yaml
