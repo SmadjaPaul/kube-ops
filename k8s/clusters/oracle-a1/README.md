@@ -76,6 +76,15 @@ Activation order (each step proven before the next):
    (`k8s/optional/hindsight-oke-drill`), same counts.
 4. Hostname activation (Paul), then agent cutover.
 
-Rollback: remove `hindsight.yaml` from the root. `prune: false` keeps the
-Cluster and PVC; deleting them is a separate, explicit operation. The homelab
-instance is never modified from this tree.
+Rollback, in this order (the root prunes only the child Application object,
+which has no resources finalizer, so its resources would keep running):
+1. Git: set `api.replicaCount: 0` in `hindsight/values.yaml`; wait for the API
+   Deployment at 0 replicas.
+2. Git: remove `hindsight.yaml` from the root. The Cluster and its PVC stay
+   (`Prune=false,Delete=false`); deleting them is a separate, explicit
+   operation (a copy, never the only one while the homelab is the writer).
+The homelab instance is never modified from this tree.
+
+NetworkPolicy enforcement on OKE (PLT-258) is not a prerequisite of the drill:
+the API requires a Bearer key and PostgreSQL requires a password over TLS.
+It is listed as a residual risk of the hostname activation (PLT-304).

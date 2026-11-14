@@ -18,3 +18,11 @@ helmCharts:
     releaseName: hindsight
     namespace: hindsight
     valuesFile: values.yaml
+
+# The chart omits hostNetwork/hostPID/hostIPC; set them explicitly.
+patches:
+  - target: {kind: Deployment}
+    patch: |-
+      - {op: add, path: /spec/template/spec/hostNetwork, value: false}
+      - {op: add, path: /spec/template/spec/hostPID, value: false}
+      - {op: add, path: /spec/template/spec/hostIPC, value: false}
