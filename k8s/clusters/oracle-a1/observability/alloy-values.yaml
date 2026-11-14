@@ -164,9 +164,17 @@ alloy:
       }
 
       loki.process "pods" {
-        stage.match {
-          selector            = `{namespace=~".+"} |~ "(?i)(level=\"?(info|debug|trace)\\b|\"level\":\"(info|debug|trace)\")"`
-          action              = "drop"
+        // Parsed severity field (logfmt or JSON `level`): info/debug/trace
+        // lines are dropped even if their message contains "error".
+        stage.logfmt {
+          mapping = { "severity" = "level" }
+        }
+        stage.json {
+          expressions = { severity = "level" }
+        }
+        stage.drop {
+          source              = "severity"
+          expression          = "(?i)^(info|debug|trace)$"
           drop_counter_reason = "grafana_cloud_low_severity_field"
         }
         stage.match {
