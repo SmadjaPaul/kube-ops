@@ -11,8 +11,15 @@ SELECT 'rows=' || table_name || ':' ||
  WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
  ORDER BY table_name;
 SELECT 'banks_md5=' || coalesce(md5(string_agg(b::text, '|' ORDER BY b::text)), 'empty') FROM public.banks b;
-SELECT 'roles_md5=' || md5(string_agg(rolname || ':' || rolcanlogin || ':' || rolsuper || ':' || rolcreatedb, '|' ORDER BY rolname))
+SELECT 'roles_md5=' || md5(string_agg(concat_ws(':', rolname, rolcanlogin, rolsuper, rolcreatedb,
+         rolcreaterole, rolreplication, rolbypassrls, rolinherit), '|' ORDER BY rolname))
   FROM pg_roles WHERE rolname !~ '^(pg_|cnpg_|streaming_replica$|postgres$)';
-SELECT 'grants_md5=' || md5(string_agg(grantee || ':' || table_name || ':' || privilege_type, '|' ORDER BY grantee, table_name, privilege_type))
-  FROM information_schema.role_table_grants WHERE table_schema = 'public';
+SELECT 'memberships_md5=' || coalesce(md5(string_agg(concat_ws(':', r.rolname, m.rolname, a.admin_option, a.inherit_option, a.set_option),
+         '|' ORDER BY r.rolname, m.rolname)), 'none')
+  FROM pg_auth_members a JOIN pg_roles r ON r.oid = a.roleid JOIN pg_roles m ON m.oid = a.member
+ WHERE m.rolname !~ '^(pg_|cnpg_|streaming_replica$|postgres$)';
+-- relacl keeps PUBLIC grants and grant options (role names, not OIDs).
+SELECT 'acl_md5=' || md5(string_agg(c.relname || ':' || c.relkind || ':' || coalesce(c.relacl::text, 'default'), '|' ORDER BY c.relname))
+  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+ WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p', 'v', 'm', 'S');
 SELECT 'owner=' || tableowner || ':' || count(*) FROM pg_tables WHERE schemaname = 'public' GROUP BY tableowner ORDER BY 1;

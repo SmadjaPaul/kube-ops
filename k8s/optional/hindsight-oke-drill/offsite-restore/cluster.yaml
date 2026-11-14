@@ -15,7 +15,7 @@ spec:
       source: hindsight-oke
       database: hindsight
       owner: hindsight
-      secret: {name: hindsight-db-offsite-app}
+      # No secret: CNPG generates hindsight-db-offsite-app for the drill.
   externalClusters:
     - name: hindsight-oke
       plugin:

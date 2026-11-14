@@ -8,7 +8,7 @@ components:
 patches:
   - target: {kind: Job, name: hindsight-fingerprint}
     patch: |-
-      - {op: replace, path: /spec/template/spec/containers/0/env/0/value, value: hindsight-db-ro}
+      - {op: replace, path: /spec/template/spec/containers/0/env/0/value, value: hindsight-db-rw}
       - {op: replace, path: /spec/template/spec/containers/0/env/4/valueFrom/secretKeyRef/name, value: hindsight-db-app}
       - {op: replace, path: /spec/template/spec/containers/0/env/5/valueFrom/secretKeyRef/name, value: hindsight-db-app}
       - {op: replace, path: /spec/template/spec/volumes/1/secret/secretName, value: hindsight-db-ca}

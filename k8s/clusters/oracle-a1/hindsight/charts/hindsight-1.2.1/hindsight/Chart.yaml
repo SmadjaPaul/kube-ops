@@ -1,0 +1,13 @@
+apiVersion: v2
+appVersion: 1.2.1
+description: Hindsight helm chart
+keywords:
+- ai
+- memory
+- llm
+- agents
+maintainers:
+- name: Hindsight Team
+name: hindsight
+type: application
+version: 1.2.1
