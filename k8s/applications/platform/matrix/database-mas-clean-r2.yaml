@@ -8,9 +8,9 @@
 # Secret, so the account id is never written in this public repository.
 #
 # Objects land under s3://homelab-backup-cnpg/matrix-mas-clean/matrix-mas-postgresql-clean/
-# (serverName defaults to the Cluster name). The Hetzner store in
-# database-objectstores.yaml stays the active WAL archive until the cutover PR
-# and is kept for rollback.
+# (serverName defaults to the Cluster name). Active WAL archive and base backup
+# target since the cutover PR; the Hetzner store in database-objectstores.yaml
+# is kept for rollback.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
