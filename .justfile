@@ -51,6 +51,7 @@ check:
     bash tests/harness/bookorbit-staged-contract-test.sh
     bash tests/harness/media-retired-contract-test.sh
     bash tests/harness/d-recovery-contract-test.sh
+    bash tests/harness/cnpg-cluster-allowlist-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:
