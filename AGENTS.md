@@ -32,6 +32,7 @@ For a task read: this file → one relevant skill under `.agents/skills/` → on
 | OIDC/Auth | `.agents/skills/oidc-integration` |
 | backup/restore | `.agents/skills/backup-restore` |
 | incident triage | `.agents/skills/sre-triage` |
+| ticket start/end memory (Hindsight) | `.agents/skills/agent-memory` |
 
 `.agents/` is the single shared agent knowledge tree. Do not create parallel Codex/OpenCode prompt trees. Claude discovers them through a `skills` symlink in the Claude config directory.
 
