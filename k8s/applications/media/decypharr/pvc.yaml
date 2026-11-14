@@ -3,6 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: decypharr-state
   namespace: media
+  annotations:
+    # PLT-251: Decypharr is retired but this PVC is data; Argo must never prune it.
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   accessModes:
     - ReadWriteOnce

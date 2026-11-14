@@ -1,8 +1,6 @@
-# BookOrbit — ADMISSION_PAUSED; staged only, NOT deployed
+# BookOrbit — 2026-11-08 owner-approved admission candidate; runtime NOT proven
 
-**Decision hold (2026-10-27, PLT-122):** Do not promote this candidate or
-provision BookOrbit-specific S3 credentials, CNPG databases, or secrets while
-the reading stack is reassessed. This is a reversible *pause*, not an
+**Historical decision hold (2026-10-27, PLT-122), superseded by owner approval on 2026-11-08:** The previous ADMISSION_PAUSED gate was a hold on architecture selection. The owner now chooses BookOrbit 3.6.0 as the only new reader and explicitly retires Decypharr, without introducing any replacement downloader while awaiting official upstream TorBox support. This is a reversible *pause*, not an
 authorization to delete the staged manifests or any persistent data.
 
 The maintainer has publicly acknowledged previously creating BookLore
@@ -28,7 +26,7 @@ new architecture decision and a separate reviewed admission PR. Retain all
 static safety contracts in the meantime.
 
 Updated staged candidate: **BookOrbit v3.6.0** (published 2026-10-28).
-The default Media root intentionally does not include `- bookorbit`.
+The deployment proposal imports `- bookorbit` in its dedicated draft admission branch; this does not prove that Argo, ESO, CNPG, the worker blueprint or the user's OIDC session is Ready.
 A dedicated admission PR, image digest and runtime tests are mandatory.
 
 ## Current qualification boundary (2026-10-25)
@@ -44,12 +42,10 @@ A dedicated admission PR, image digest and runtime tests are mandatory.
 - **PVC backup gate:** `bookorbit-data` needs an explicit Velero/Kopia
   filesystem-backup schedule and a restore probe in the admission change.
   The current media schedules do not provide a BookOrbit-specific selector.
-- **Identity gate:** the staged Barman manifest requires
-  `APP_BOOKORBIT_CNPG_S3_ACCESS_KEY_ID` and
-  `APP_BOOKORBIT_CNPG_S3_SECRET_ACCESS_KEY`. These names are a contract for a
-  dedicated, prefix-scoped credential that must be provisioned and qualified
-  in `homelab-infra` before admission; the shared `HETZNER_S3_*` identity is
-  explicitly forbidden. No secret value belongs in this repo.
+- **Identity gate:** the Barman manifest uses the per-bucket Cloudflare R2
+  writer (`R2_CNPG_WRITER_*` and `R2_S3_ENDPOINT` in Doppler, bucket
+  `homelab-backup-cnpg`), like Immich and Vikunja (PLT-219/PLT-73). Nothing
+  goes to Hetzner. No secret value belongs in this repo.
 - **Private admission:** the staged HTTPRoute attaches only to
   `Gateway/internal`. Adding `Gateway/external` is a separate reviewed
   exposure decision and is not part of BookOrbit admission.
@@ -59,8 +55,7 @@ A dedicated admission PR, image digest and runtime tests are mandatory.
 
 The admission PR must sequence the dedicated backup identity, PVC backup and
 restore proof, ESO readiness, CNPG health/extensions, and only then the
-Argo import. Decypharr ingress remains closed until the dedicated
-no-category authentication and protected category requests are proven.
+Argo import. No Decypharr or torrent client is part of the approved BookOrbit deployment. Wait for official upstream BookOrbit native TorBox support; manual Book Dock imports are allowed.
 
 ## Private restore/admission procedure (prepared, not executed)
 
@@ -69,18 +64,20 @@ this directory into the Media root. It is intentionally a runbook contract;
 this staged PR performs no Kubernetes mutation and no credentialed probe.
 
 1. **Static:** run `kustomize build k8s/applications/media/bookorbit`, the
-   staged contract, and `just check`. Confirm that the root still omits
-   `bookorbit`, the route has only `Gateway/internal`, and `backup.yaml` has
-   only the two dedicated BookOrbit CNPG key names.
+   staged contract, and `just check`. Confirm that the Media root
+   imports `bookorbit`, the route has only `Gateway/internal`, and
+   `backup.yaml` uses the R2 contract (`R2_CNPG_WRITER_ACCESS_KEY_ID`,
+   `R2_CNPG_WRITER_SECRET_ACCESS_KEY`, `R2_S3_ENDPOINT`) with no Hetzner
+   identity.
 2. **ESO/CNPG readiness:** with the canonical operator access harness, verify
-   only metadata/status: `doppler-cluster` Ready, both dedicated remote key
+   only metadata/status: `doppler-cluster` Ready, the R2 remote key
    names present, `bookorbit-runtime` and the CNPG credential Secret Ready,
    CNPG healthy, PostgreSQL 18 extensions installed, WAL archiving active,
    ObjectStore healthy, and a completed ScheduledBackup. Never print Secret
-   values or use the shared `HETZNER_S3_*` keys as a fallback.
+   values or substitute another identity as a fallback.
 3. **CNPG restore probe:** restore the newest completed BookOrbit Barman
    backup into an isolated, disposable namespace/cluster using the same
-   dedicated identity and `cnpg` recovery procedure. Verify the cluster is
+   R2 identity and `cnpg` recovery procedure. Verify the cluster is
    Ready, the `bookorbit` database opens, all four required extensions exist,
    and a sentinel row/checksum matches. Record RPO/RTO and delete only the
    disposable restore after evidence capture.
@@ -89,10 +86,10 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
    verify a sentinel file, UID/GID 2501 ownership, `/appdata` readability,
    and the `/data/book-dock` plus `/data/media/books` path contract. Do not
    delete or reinitialize the production claim.
-5. **Private admission:** add only `- bookorbit` to the Media root in a
-   separate exact-SHA PR after the preceding gates pass. Keep Decypharr
-   ingress, external HTTPRoute attachment, indexer/source egress and automatic
-   searching disabled until their independent tests pass.
+5. **Private admission:** merge the dedicated BookOrbit admission PR only after
+   all preceding gates pass. Keep Gateway/external, indexer/source egress and
+   automatic searching disabled. The owner has approved this target, but tests
+   and runtime evidence must precede promotion.
 
 ## Upstream-verified features
 
@@ -138,13 +135,13 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
    exact-SHA PR imports BookOrbit to Media root, after explicit go gate.
 5. Bootstrap local superuser, hardening, Authentik/OIDC browser test with
    user/admin isolation and recovery login before disabling local.
-6. Qualify Decypharr no-category qBittorrent login for a **dedicated
+6. **Historical, non-blocking (Decypharr retired, PLT-251):** qualify Decypharr no-category qBittorrent login for a **dedicated
    BookOrbit identity** without bypassing `use_auth=true`. Verify protected
    `/api/v2/torrents/info?category=bookorbit` not just `/app/version`.
    Do not send BookOrbit credentials as argv, logs or PR content.
-7. Cilium BookOrbit->Decypharr 8282 and explicit Decypharr ingress
+7. **Historical, non-blocking (Decypharr retired):** Cilium BookOrbit->Decypharr 8282 and explicit Decypharr ingress
    from BookOrbit only; prove allow/deny with runtime tests.
-8. Confirm configured category `bookorbit`, file ownership + identity path
+8. **Historical, non-blocking (no downloader):** confirm configured category `bookorbit`, file ownership + identity path
    mapping + hardlink test. Keep automated searching off and queue
    non-destructive until safe, authorized source exists.
 9. End-to-end with freely redistributable fixture: request, approve, search
