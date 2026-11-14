@@ -16,6 +16,15 @@ patches:
       - {op: add, path: /spec/template/spec/hostPID, value: false}
       - {op: add, path: /spec/template/spec/hostIPC, value: false}
       - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 10001
+          fsGroup: 10001
+          fsGroupChangePolicy: OnRootMismatch
+          seccompProfile: {type: RuntimeDefault}
+      - op: add
         path: /spec/template/spec/containers/0/resources
         value:
           requests: {cpu: 10m, memory: 64Mi}
