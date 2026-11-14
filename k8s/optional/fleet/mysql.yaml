@@ -29,6 +29,19 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: fleet-mysql
+      annotations:
+        # Consistent logical dump before Velero copies the volume: the dump
+        # lives on the data volume, outside the datadir. Restore from
+        # /var/lib/mysql/dump/fleet.sql first; a restore drill is required
+        # before activation (PLT-315).
+        pre.hook.backup.velero.io/container: mysql
+        pre.hook.backup.velero.io/timeout: 5m
+        pre.hook.backup.velero.io/command: >-
+          ["/bin/sh", "-ec", "umask 077; mkdir -p /var/lib/mysql/dump;
+          MYSQL_PWD=\"$MYSQL_PASSWORD\" mysqldump --host=127.0.0.1 --user=fleet --protocol=tcp
+          --single-transaction --quick --skip-lock-tables --no-tablespaces --routines --events --triggers
+          fleet > /var/lib/mysql/dump/.fleet.sql.tmp; test -s /var/lib/mysql/dump/.fleet.sql.tmp;
+          mv /var/lib/mysql/dump/.fleet.sql.tmp /var/lib/mysql/dump/fleet.sql"]
     spec:
       hostNetwork: false
       hostPID: false

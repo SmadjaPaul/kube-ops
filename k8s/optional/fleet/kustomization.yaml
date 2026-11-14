@@ -14,5 +14,4 @@ resources:
   - fleet.yaml
   - http-route.yaml
   - networkpolicy.yaml
-  - backup-logical.yaml
   - backup.yaml
