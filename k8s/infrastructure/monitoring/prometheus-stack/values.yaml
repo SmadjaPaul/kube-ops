@@ -173,7 +173,7 @@ kubelet:
 prometheusOperator:
   resources:
     requests:
-      cpu: 100m
+      cpu: 25m
       memory: 128Mi
     limits:
       cpu: 200m
@@ -189,10 +189,9 @@ prometheus:
     # 464 GiB available at capture time. 20Gi leaves operational headroom while
     # retentionSize=14GB bounds TSDB growth below the PVC capacity; re-evaluate
     # after a full week of persisted history.
-    # Migration gate: the current live TSDB is emptyDir. The first StatefulSet
-    # replacement will lose that ephemeral history because this PR does not
-    # migrate it. Merge/reconcile requires explicit operator acceptance of that
-    # history loss; no PVC or existing backup is deleted by this change.
+    # Migration done: the live TSDB is on PVC prometheus-...-db-...-0
+    # (longhorn-fast, 20Gi, Bound since 2026-10-22, verified 2026-11-14), so a
+    # pod replacement keeps the history.
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -228,7 +227,7 @@ prometheus:
             prometheus: k8s
     resources:
       requests:
-        cpu: 100m
+        cpu: 200m
         memory: 1Gi
       limits:
         cpu: 1000m

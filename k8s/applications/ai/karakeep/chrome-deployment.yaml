@@ -43,7 +43,7 @@ spec:
             - --window-size=1440,900
           resources:
             requests:
-              cpu: '100m'
+              cpu: '25m'
               memory: '256Mi'
             limits:
               cpu: '300m'

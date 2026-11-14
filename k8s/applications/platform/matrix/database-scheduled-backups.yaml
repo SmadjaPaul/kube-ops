@@ -11,7 +11,8 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: matrix-synapse-hetzner-store
+      # PLT-247: base backups follow the WAL archive to R2.
+      barmanObjectName: matrix-synapse-r2-store
 ---
 ---
 apiVersion: postgresql.cnpg.io/v1

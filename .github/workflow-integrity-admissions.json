@@ -3,65 +3,6 @@
   "admissions": [
     {
       "repository": "SmadjaPaul/kube-ops",
-      "pr": 1181,
-      "changeFingerprint": "7b55db1c3398a033b2b74d36f2fdeecf810438d295537e55d8901dbf68862341",
-      "paths": [
-        "tests/harness/librechat-credential-format-test.sh",
-        "tests/harness/librechat-mongodb-auth-contract-test.sh"
-      ],
-      "reason": "PLT-165 owner admission for LibreChat credential-format and MongoDB auth contract harnesses.",
-      "approvedBy": "SmadjaPaul",
-      "expiresAt": "2026-11-13T23:59:59Z"
-    },
-    {
-      "repository": "SmadjaPaul/kube-ops",
-      "pr": 1032,
-      "changeFingerprint": "7ad20a5e7a41d6dcecf148e0dfcf28d138ffb3564c240103f83b64935661bb86",
-      "paths": [
-        ".github/workflows/polyfin-image-audit.yaml",
-        "tests/harness/polyfin-private-pilot-admission-test.sh",
-        "tests/harness/polyfin-private-pilot-contract-test.sh"
-      ],
-      "reason": "PLT-134/135: owner-authorized official Polyfin 0.61.1 image audit and admission contract update.",
-      "approvedBy": "SmadjaPaul",
-      "expiresAt": "2026-11-13T23:59:59Z"
-    },
-    {
-      "repository": "SmadjaPaul/kube-ops",
-      "pr": 1046,
-      "changeFingerprint": "c49ef35c7a41f20e69f7ba999f267f4907dd4f94255287618d4787ba7f0975cf",
-      "paths": [
-        ".github/workflows/v1-contract.yaml",
-        "tests/harness/polyfin-tv-migration-contract-test.sh"
-      ],
-      "reason": "PLT-135: owner-authorized staged Polyfin public canary contract; public security admission remains separate.",
-      "approvedBy": "SmadjaPaul",
-      "expiresAt": "2026-11-13T23:59:59Z"
-    },
-    {
-      "repository": "SmadjaPaul/kube-ops",
-      "pr": 1049,
-      "changeFingerprint": "0c4d23ebb32c36621451ef2f38be9f78f796d7ff8090f034f7b54428c1c5195c",
-      "paths": [
-        "tests/harness/aiostreams-staged-contract-test.sh"
-      ],
-      "reason": "PLT-135: owner-authorized exact in-place tv HTTPRoute contract; 8-digit git raw object IDs as verified against prior admitted #1046 fingerprint, public risk separate.",
-      "approvedBy": "SmadjaPaul",
-      "expiresAt": "2026-11-13T23:59:59Z"
-    },
-    {
-      "repository": "SmadjaPaul/kube-ops",
-      "pr": 1054,
-      "changeFingerprint": "c4f3d90ac86ce7cca27173cf59957094a5ea73f3b6e5def143ef5be1c8e32c62",
-      "paths": [
-        "tests/harness/github-atlantis-guard-test.sh"
-      ],
-      "reason": "PLT-135: owner-authorized exact Atlantis allowlist test for the Polyfin provider lockfile admission.",
-      "approvedBy": "SmadjaPaul",
-      "expiresAt": "2026-11-12T23:59:59Z"
-    },
-    {
-      "repository": "SmadjaPaul/kube-ops",
       "pr": 1060,
       "changeFingerprint": "359069214579322a1e9272335c52295aba69ac85a15f368a6ca3680210d3e329",
       "paths": [
@@ -190,27 +131,6 @@
     },
     {
       "repository": "SmadjaPaul/kube-ops",
-      "pr": 1192,
-      "changeFingerprint": "e55265f9d695062528fd792398e1bd8d19bfd739dd0ff2f13d894ca6cef1e2db",
-      "paths": [
-        ".github/workflows/branch-hygiene.yaml",
-        ".github/workflows/claude.yaml",
-        ".github/workflows/documentation-integrity.yaml",
-        ".github/workflows/e2e-static.yaml",
-        ".github/workflows/factory-acceptance.yaml",
-        ".github/workflows/image-build.yaml",
-        ".github/workflows/polyfin-image-audit.yaml",
-        ".github/workflows/release-please.yml",
-        ".github/workflows/v1-contract.yaml",
-        ".github/workflows/vale.yaml",
-        ".github/workflows/worm-scan.yaml"
-      ],
-      "reason": "PLT-163 owner admission candidate for workflow supply-chain hardening; no gate, verifier or branch protection change.",
-      "approvedBy": "SmadjaPaul",
-      "expiresAt": "2026-11-13T23:59:59Z"
-    },
-    {
-      "repository": "SmadjaPaul/kube-ops",
       "pr": 1194,
       "changeFingerprint": "d5cda0e406699636ddc94f45d11ab8ae3e3f372f69945e4395bb7f153fe87090",
       "paths": [
@@ -308,6 +228,53 @@
       "reason": "PLT-46: Perplexica dormant retiré ; le test d'inventaire vérifie qu'il n'est ni actif ni candidat dormant (modèle BabyBuddy).",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-18T12:00:00Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1389,
+      "changeFingerprint": "b1229db3e871445b60327f9dbaa517fdb803875e2973862cca2d9eb78f3fb4d5",
+      "paths": [
+        ".justfile",
+        "tests/harness/cnpg-cluster-allowlist-test.sh"
+      ],
+      "reason": "PLT-267 : garde CNPG, manifestes .yml et valeurs entre guillemets, lot A approuvé par Paul le 14/11",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-20T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1391,
+      "changeFingerprint": "d5240190522cc6b5eb84bd416da1459ef97c354a0c8c4d61169275ad6588c4c9",
+      "paths": [
+        "tests/harness/alertmanager-ntfy-staged-test.mjs"
+      ],
+      "reason": "PLT-263 : Watchdog dead-man switch vers Healthchecks.io en mode staged, lot A approuvé par Paul le 14/11",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-20T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1347,
+      "changeFingerprint": "a01a0f99a0a0134ad66d45df179a84f2cbdedb8b90f8ab38118e44851fd05eb9",
+      "paths": [
+        ".github/workflows/v1-contract.yaml",
+        ".justfile"
+      ],
+      "reason": "PLT-242 : test agent-operator-identity dans just check et v1-contract, lot A approuvé par Paul le 14/11",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-20T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1344,
+      "changeFingerprint": "042f1f0d850db7e7fffa8171aca121574541e6214ca2dcde683672021de99ff8",
+      "paths": [
+        "tests/harness/paperclip-retirement-stage.test.mjs",
+        "tests/harness/velero-storage-tier-test.sh"
+      ],
+      "reason": "PLT-46 : retrait de l'executor, contrats Paperclip et Velero, lot A approuvé par Paul le 14/11",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-20T23:59:59Z"
     }
   ]
 }
