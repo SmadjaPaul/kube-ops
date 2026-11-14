@@ -79,7 +79,7 @@ spec:
             existingSecret: sparkyfitness-appdb
           resources:
             requests:
-              cpu: 100m
+              cpu: 25m
               memory: 256Mi
             limits:
               cpu: "1"
@@ -110,7 +110,7 @@ spec:
             digest: sha256:7f4c69b0c7e4090a66c79f0580f49a55792206a38a66e09c1ca84150fda9ee74
           resources:
             requests:
-              cpu: 100m
+              cpu: 25m
               memory: 128Mi
             limits:
               cpu: 500m
@@ -129,6 +129,11 @@ spec:
     server: https://kubernetes.default.svc
     namespace: wellness
   syncPolicy:
+    # PLT-282 : sans sync automatisé, le rightsizing de #1390 n'a jamais été
+    # appliqué. Prune reste désactivé (PVC uploads/backup, base CNPG externe).
+    automated:
+      prune: false
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

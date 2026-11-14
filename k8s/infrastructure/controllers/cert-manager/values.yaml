@@ -17,7 +17,7 @@ resources:
     cpu: 75m
     memory: 96Mi
   requests:
-    cpu: 75m
+    cpu: 25m
     memory: 96Mi
 replicaCount: 1
 
@@ -32,7 +32,7 @@ webhook:
       cpu: 125m
       memory: 144Mi
     requests:
-      cpu: 125m
+      cpu: 25m
       memory: 144Mi
   securityContext:
     runAsNonRoot: true
@@ -44,6 +44,6 @@ cainjector:
       cpu: 200m
       memory: 256Mi
     requests:
-      cpu: 100m
+      cpu: 25m
       memory: 128Mi
   replicaCount: 1
