@@ -52,7 +52,7 @@ FULL AUTO (D-2026-11-13-01 as amended by D-2026-11-14-02 to -05): decide and exe
 Protections, one operation at a time with Paul's agreement:
 
 - irreplaceable data: never the only copy, copy to R2 first; PVC/backup deletion only inside the authorized cleanups (PLT-46, PLT-94);
-- identity resources (Authentik, Matrix) and root-secret rotation;
+- identity resources (Authentik, Matrix); rotation, deletion or replacement of an existing root secret;
 - structural network (Cilium, Gateway, DNS, cluster access) and new public exposure or privilege escalation;
 - irreversible migration;
 - disabling a desired app to turn Argo green.

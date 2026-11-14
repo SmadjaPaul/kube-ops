@@ -10,4 +10,4 @@ description: Check whether Cilium network policy drops traffic for a namespace o
 3. Measure drops in Prometheus through `bash scripts/kubectl-ro.sh get --raw` on the monitoring query API: `sum by (reason) (rate(hubble_drop_total[5m]))`. A rise of `POLICY_DENIED` that matches the failure is evidence. These metrics carry no namespace label by default: they show that drops exist, not which pair.
 4. Per-flow proof (`hubble observe --namespace <ns> --verdict DROPPED`) needs a Hubble relay port-forward, which no repository wrapper admits. Without it, report the flow verdict as `NOT_PROVEN` and name the missing capability.
 
-A zero drop rate does not prove that a namespace's traffic flows: it needs separate evidence (application logs, a successful request, `just runtime-smoke`). Without it, report `NOT_PROVEN`.
+A zero drop rate does not prove that a namespace's traffic flows: it needs evidence that covers the investigated pair, such as a successful request from the source workload to the destination in application logs. Without it, report `NOT_PROVEN`.
