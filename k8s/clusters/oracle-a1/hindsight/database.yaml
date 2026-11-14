@@ -1,0 +1,66 @@
+# PLT-301: dedicated CNPG cluster for Hindsight on Oracle. Not pg-shared: a
+# physical recovery from the homelab Barman archive creates a whole cluster,
+# it cannot land inside another cluster.
+#
+# Bootstrap = recovery of the homelab archive (latest WAL available on R2).
+# The homelab cluster keeps running and stays the only writer until the
+# cutover sub-issue of PLT-301. Rollback: remove this Application from the
+# Oracle root; the homelab data is never touched from here.
+#
+# Image: same PostgreSQL 17.7 standard trixie as the homelab, pinned to the
+# multi-arch INDEX digest. The homelab pin sha256:44c64899... is the amd64-only
+# manifest and does not run on the A1 (arm64) node.
+#
+# Storage: one oci-bv volume of 50Gi (OCI minimum, PLT-183), no separate WAL
+# volume (it would cost another 50Gi of the 200Gi Always Free block quota).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: hindsight-db
+  namespace: hindsight
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:e079dae5253fa6ed26fc65fda06d515af764dbec392dd4b46b17ab11eebd8131
+  bootstrap:
+    recovery:
+      source: hindsight-homelab
+      database: hindsight
+      owner: hindsight
+      secret: {name: hindsight-db-app}
+  externalClusters:
+    - name: hindsight-homelab
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: hindsight-homelab-r2-ro
+          serverName: hindsight-db
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: hindsight-oke-r2
+        serverName: hindsight-db
+  storage: {size: 50Gi, storageClass: oci-bv}
+  resources:
+    requests: {cpu: 50m, memory: 384Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  affinity:
+    enablePodAntiAffinity: false
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: hindsight-db-daily
+  namespace: hindsight
+spec:
+  schedule: "0 40 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster: {name: hindsight-db}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: hindsight-oke-r2

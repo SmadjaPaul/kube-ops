@@ -16,6 +16,9 @@ spec:
     - {server: https://kubernetes.default.svc, namespace: media}
     - {server: https://kubernetes.default.svc, namespace: ntfy}
     - {server: https://kubernetes.default.svc, namespace: gatus}
+    # PLT-301: CNPG barman-cloud prerequisites and Hindsight.
+    - {server: https://kubernetes.default.svc, namespace: cert-manager}
+    - {server: https://kubernetes.default.svc, namespace: hindsight}
   # Explicit list (PLT-254): CRDs, RBAC, webhooks and Namespaces shipped by ESO,
   # CNPG, ntfy and gatus, plus the ClusterSecretStore of the ESO base.
   clusterResourceWhitelist:

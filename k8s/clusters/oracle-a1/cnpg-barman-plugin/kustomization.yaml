@@ -1,0 +1,31 @@
+# PLT-301: CNPG barman-cloud plugin on Oracle (same release as the homelab base
+# k8s/infrastructure/database/cloudnative-pg). Separate Application at a later
+# sync-wave than cert-manager: the manifest ships an Issuer and Certificates.
+# Images ghcr.io/cloudnative-pg/plugin-barman-cloud{,-sidecar}:v0.11.0 publish
+# linux/arm64 (registry index checked 2026-11-14).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.11.0/manifest.yaml
+
+# The release manifest ships `resources: {}` and no host flags.
+patches:
+  - target: {kind: Deployment, name: barman-cloud}
+    patch: |-
+      - {op: add, path: /spec/template/spec/hostNetwork, value: false}
+      - {op: add, path: /spec/template/spec/hostPID, value: false}
+      - {op: add, path: /spec/template/spec/hostIPC, value: false}
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 10001
+          fsGroup: 10001
+          fsGroupChangePolicy: OnRootMismatch
+          seccompProfile: {type: RuntimeDefault}
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests: {cpu: 10m, memory: 64Mi}
+          limits: {cpu: 200m, memory: 256Mi}
