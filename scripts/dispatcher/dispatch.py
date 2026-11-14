@@ -264,8 +264,8 @@ def kube_access_gate(args: argparse.Namespace, linear: "Linear | None", prefligh
                 linear = Linear(key)
             posted = notify_incident(linear, incident, reason, now)
             print(f"incident {incident} : {'commentaire posé' if posted else 'commentaire récent, rien posé'}")
-        except DispatchError as exc:  # the skip stays a clean exit 0
-            print(f"dispatch: {exc}", file=sys.stderr)
+        except (DispatchError, urllib.error.URLError, OSError) as exc:  # the skip stays a clean exit 0
+            print(f"dispatch: incident non notifié ({type(exc).__name__})", file=sys.stderr)
     return True
 
 

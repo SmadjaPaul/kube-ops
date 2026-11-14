@@ -5,6 +5,7 @@ No network, no kubectl, no Doppler: Linear is a fake and the preflight is simula
 
 import io
 import sys
+import urllib.error
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timedelta, timezone
@@ -26,8 +27,9 @@ def iso(delta):
 
 
 class IncidentLinear(FakeLinear):
-    def __init__(self, queue, comments=(), fail_recent=False):
+    def __init__(self, queue, comments=(), fail_recent=False, transport_error=False):
         super().__init__(queue)
+        self.transport_error = transport_error
         self.incident_comments = list(comments)
         self.fail_recent = fail_recent
         self.since = None
@@ -36,6 +38,8 @@ class IncidentLinear(FakeLinear):
         return []
 
     def recent_comments(self, ident, since):
+        if self.transport_error:
+            raise urllib.error.URLError("connection refused")
         if self.fail_recent:
             raise dispatch.DispatchError("Linear HTTP 500")
         self.since = since
@@ -117,6 +121,12 @@ class PreflightGateTests(unittest.TestCase):
         code, out = self._run(args(), fake, lambda: (False, "api_unreachable"))
         self.assertEqual(code, 0)
         self.assertIn("DISPATCH_SKIPPED=kube_access_blocked", out)
+
+    def test_transport_failure_keeps_exit_zero(self):
+        fake = IncidentLinear(self.queue, transport_error=True)
+        code, out = self._run(args(), fake, lambda: (False, "api_unreachable"))
+        self.assertEqual((code, fake.comments), (0, []))
+        self.assertIn("DISPATCH_SKIPPED=kube_access_blocked", out.splitlines())
 
     def test_pass_continues_to_the_existing_flow(self):
         fake = IncidentLinear(self.queue)

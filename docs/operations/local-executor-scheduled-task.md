@@ -50,21 +50,26 @@ INTERDITS ABSOLUS
 1. Dans un clone à jour de kube-ops (git fetch origin), lance :
    bash scripts/doppler-safe.sh run -- python3 scripts/dispatcher/dispatch.py --lane local --require-kube-access --incident PLT-283
 2. Si la sortie contient la ligne DISPATCH_SKIPPED=kube_access_blocked : arrête-toi. Sors sans rien d'autre. Ne pose aucun verrou. Ne prends aucun ticket. Ne crée pas d'autre commentaire : le dispatcher a déjà commenté PLT-283 si nécessaire (au plus une fois par 3 h).
-3. Sinon, le dispatcher choisit un ticket, pose le verrou wip:claude-local (un seul par voie, TTL 3 h) et lance la session d'exécution. Ne contourne ni la sélection ni les verrous. Si un verrou wip:claude-local actif existe, ne démarre pas.
+3. Sinon, le dispatcher choisit un ticket, pose le verrou wip:claude-local (un seul par voie, TTL 3 h) et lance la session d'exécution (étape 2). Ne contourne ni la sélection ni les verrous. Si un verrou wip:claude-local actif existe, ne démarre pas.
 
-ÉTAPE 2 : exécution du ticket (session lancée par le dispatcher)
-1. Lis AGENTS.md et CLAUDE.md de kube-ops, puis l'entrée de skill indiquée. Lance just inventory avant d'inspecter d'autres chemins.
-2. Crée un worktree isolé neuf depuis origin/main. Ne travaille jamais dans le clone principal.
-3. Accès cluster : uniquement bash scripts/kubectl-ro.sh pour lire, bash scripts/kubectl-rw.sh pour muter, et seulement dans un périmètre admis et réconcilié par Git. Avant tout usage live, source scripts/lib/kube-preflight.sh et appelle require_kube_access (équivalent de just kube-access-check).
-4. Fais le plus petit changement qui répond au ticket. Valide (just check, tests ciblés). Commit avec le trailer d'attribution en vigueur. Pousse la branche, ouvre une PR non draft au corps STE80 en français.
-5. Attends les checks. Merge en squash seulement si tous les checks sont verts et sans remarque CodeRabbit actionnable. Attends 15 min au plus.
-6. Après le merge, collecte la preuve RUNTIME en lecture seule (Argo, Kubernetes, DNS/TLS selon le ticket). Une PR ouverte n'est pas mergée. CI PASS n'est pas déployé. Mergé n'est pas vérifié en runtime.
-7. Si le ticket est irréversible, touche des données irremplaçables, l'identité (Authentik, Matrix), des secrets racine, le réseau structurel ou une ressource prevent_destroy : arrête-toi, commente, ajoute Needs-operator.
+ÉTAPE 2 : session d'exécution (lancée par le dispatcher avec son propre prompt)
+Le dispatcher lance une session enfant `claude -p` avec dispatch.PROMPT. Cette session fait le travail et ouvre la PR. Elle ne merge pas et ne passe pas le ticket à Done. Tu ne lui transmets pas ces droits : la revue reste indépendante de l'auteur.
+Rappel de ce que la session enfant doit respecter (déjà dans son prompt) :
+1. Lire AGENTS.md et CLAUDE.md de kube-ops, lancer just inventory.
+2. Travailler dans un worktree isolé neuf depuis origin/main.
+3. Lire le cluster avec scripts/kubectl-ro.sh, muter avec scripts/kubectl-rw.sh, seulement dans un périmètre admis et réconcilié par Git. Avant tout usage live : source scripts/lib/kube-preflight.sh puis require_kube_access.
+4. Valider (just check), committer avec le trailer d'attribution, pousser, ouvrir une PR non draft au corps STE80 en français.
+Si le ticket est irréversible, touche des données irremplaçables, l'identité (Authentik, Matrix), des secrets racine, le réseau structurel ou une ressource prevent_destroy : la session s'arrête et ajoute Needs-operator.
 
-ÉTAPE 3 : clôture
-1. Poste sur le ticket un compte rendu STE80 avec les champs Objective, Status, Changes, Evidence, Blockers, NextAction. Statuts : PASS, FAIL, BLOCKED, NOT_TESTED, NOT_PROVEN. Niveaux de preuve : STATIC, CI, RECONCILED, RUNTIME, USER.
-2. Passe le ticket à Done seulement si la preuve exigée par le ticket est au niveau requis. Sinon laisse-le ouvert avec le blocage nommé.
-3. Retire le verrou wip:claude-local dans tous les cas (le dispatcher le fait aussi).
+ÉTAPE 3 : suite par toi, la session parente, après le retour de dispatch.py
+Tu es une session distincte de l'auteur de la PR. Tu es donc le relecteur indépendant. Toi seul peux merger et clore.
+1. Lis le compte rendu du dispatcher (ticket, PR, ligne mesure). Si aucune PR n'existe ou si la session a échoué : commente le ticket avec le blocage nommé, laisse-le ouvert, passe à l'étape 4.
+2. Relis le diff de la PR. Vérifie qu'aucun chemin protégé n'a changé et qu'aucun secret n'apparaît. Sinon : commente la PR, n'effectue pas le merge, ajoute Needs-operator au ticket.
+3. Attends les checks, 15 min au plus. Merge en squash seulement si tous les checks sont verts et sans remarque CodeRabbit actionnable.
+4. Après le merge, collecte la preuve en lecture seule (Argo, Kubernetes, DNS/TLS selon le ticket) avec scripts/kubectl-ro.sh. Une PR ouverte n'est pas mergée. CI PASS n'est pas déployé. Mergé n'est pas vérifié en runtime.
+5. Poste sur le ticket un compte rendu STE80 avec les champs Objective, Status, Changes, Evidence, Blockers, NextAction. Statuts : PASS, FAIL, BLOCKED, NOT_TESTED, NOT_PROVEN. Niveaux de preuve : STATIC, CI, RECONCILED, RUNTIME, USER.
+6. Passe le ticket à Done seulement si la preuve exigée par le ticket est au niveau requis. Sinon laisse-le ouvert avec le blocage nommé.
+7. Vérifie que le verrou wip:claude-local est retiré. Le dispatcher le retire dans tous les cas.
 
 SORTIE : 5 lignes maximum : ticket, PR, checks, état du ticket, suite.
 ````
@@ -75,7 +80,7 @@ Le dispositif est validé quand les cinq preuves suivantes existent pour un mêm
 
 1. Un ticket `exec:local` en Todo est pris par la tâche planifiée elle-même (tir de la tâche), pas par un lancement manuel. Preuve : le commentaire de checkpoint du dispatcher et le verrou `wip:claude-local` posé par ce tir.
 2. L'accès cluster était `KUBE_ACCESS=PASS` au moment de la prise (préflight).
-3. Le ticket est exécuté : PR mergée en squash, checks verts, aucune remarque CodeRabbit actionnable.
+3. Le ticket est exécuté : la session enfant ouvre la PR ; la tâche parente la merge en squash, checks verts, aucune remarque CodeRabbit actionnable.
 4. Le ticket est clos (Done) avec une preuve au niveau exigé, `RUNTIME` si le ticket le demande, dans un compte rendu STE80.
 5. Paul n'est intervenu à aucune étape après l'approbation du prompt. Le verrou est retiré à la fin.
 
