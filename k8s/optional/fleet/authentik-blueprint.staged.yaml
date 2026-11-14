@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# NOT ACTIVE: Authentik change (D-2026-11-14-06 point 3, Paul's agreement).
+# Import into the Authentik blueprint generator only after the decision.
+# Validate model and field names against the Authentik 2026.8 blueprint schema
+# before import (no SAML blueprint exists yet in this repository).
+version: 1
+metadata:
+  name: Apps - Fleet
+entries:
+  - id: fleet_saml_provider
+    model: authentik_providers_saml.samlprovider
+    identifiers:
+      name: k8s.smadja.dev/identity/fleet
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      acs_url: https://fleet.smadja.dev/api/v1/fleet/sso/callback
+      audience: https://fleet.smadja.dev
+      issuer: authentik
+      sp_binding: post
+      signing_kp: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      name_id_mapping: !Find
+        - authentik_providers_saml.samlpropertymapping
+        - [managed, "goauthentik.io/providers/saml/email"]
+      property_mappings:
+        - !Find [authentik_providers_saml.samlpropertymapping, [managed, "goauthentik.io/providers/saml/email"]]
+        - !Find [authentik_providers_saml.samlpropertymapping, [managed, "goauthentik.io/providers/saml/name"]]
+  - id: fleet_application
+    model: authentik_core.application
+    identifiers: {slug: fleet}
+    attrs:
+      name: Fleet
+      group: Administration
+      meta_launch_url: https://fleet.smadja.dev
+      provider: !KeyOf fleet_saml_provider
+      policy_engine_mode: any
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf fleet_application, group: !Find [authentik_core.group, [name, "admin"]]}
+    attrs: {order: 10}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf fleet_application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
+    attrs: {order: 100}

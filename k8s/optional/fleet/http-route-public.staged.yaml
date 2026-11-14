@@ -1,0 +1,30 @@
+# NOT ACTIVE: new public exposure (D-2026-11-14-06 point 2, Paul's agreement).
+# Agent endpoints only; UI and admin API stay on Gateway/internal.
+# NOT_PROVEN: the prefix list must be checked against the Fleet docs of the
+# deployed version before activation (PLT identity T5).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: fleet-agents-public
+  namespace: fleet
+spec:
+  parentRefs:
+    - name: external
+      namespace: gateway
+  hostnames:
+    - fleet.smadja.dev
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /api/osquery/}
+        - path: {type: PathPrefix, value: /api/v1/osquery/}
+        - path: {type: PathPrefix, value: /api/fleet/orbit/}
+        - path: {type: PathPrefix, value: /api/fleet/device/}
+        - path: {type: PathPrefix, value: /api/latest/fleet/device/}
+        - path: {type: PathPrefix, value: /api/v1/fleet/device/}
+        - path: {type: PathPrefix, value: /device/}
+        - path: {type: PathPrefix, value: /mdm/apple/}
+        - path: {type: PathPrefix, value: /api/mdm/apple/}
+        - path: {type: PathPrefix, value: /assets/}
+      backendRefs:
+        - name: fleet
+          port: 80
