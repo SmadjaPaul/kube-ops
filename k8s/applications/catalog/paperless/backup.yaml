@@ -15,9 +15,36 @@ spec:
 ---
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
+# PLT-244: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to paperless-r2-store). Kept as the rollback target with its existing
+# backups (pre-cutover base 20261113T165722); no plugin sidecar applies its
+# retentionPolicy anymore.
 metadata: { name: paperless-hetzner-store, namespace: paperless }
 spec:
   retentionPolicy: "14d"
+  # PLT-244 (prep before the R2 cutover, lesson of the romm 4 min outage):
+  # the sidecar environment is fixed when the pod starts, so during the
+  # cutover the old pod archives its last WAL to R2 with THIS environment.
+  # It must therefore already carry what R2 needs: its endpoint (read from
+  # the R2 Secret, account id kept out of this public repository), a region
+  # R2 accepts (us-east-1, accepted by Hetzner too: PLT-243) and boto3
+  # checksums on when_required. The explicit endpointURL below keeps Hetzner
+  # as the target of this store.
+  instanceSidecarConfiguration:
+    env:
+      - name: AWS_DEFAULT_REGION
+        value: us-east-1
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef:
+            name: paperless-cnpg-r2-credentials
+            key: AWS_ENDPOINT_URL_S3
+            # The pod must not wait for ESO if the Secret lags the restart.
+            optional: true
   configuration:
     destinationPath: s3://smadja-dev-homelab-backups/cnpg/paperless
     endpointURL: https://fsn1.your-objectstorage.com
@@ -37,4 +64,5 @@ spec:
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
-    parameters: { barmanObjectName: paperless-hetzner-store }
+    # PLT-244: base backups follow the WAL archive to R2.
+    parameters: { barmanObjectName: paperless-r2-store }

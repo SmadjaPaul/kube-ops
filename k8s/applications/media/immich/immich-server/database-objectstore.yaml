@@ -1,3 +1,7 @@
+# PLT-243: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to immich-r2-store). Kept as the rollback target with its existing
+# backups (pre-cutover base 20261113T153727); no plugin sidecar applies its
+# retentionPolicy anymore.
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
@@ -6,9 +10,26 @@ metadata:
 spec:
   retentionPolicy: "14d"
   instanceSidecarConfiguration:
+    # PLT-243 (prep before the R2 cutover, lesson of the romm 4 min outage):
+    # the sidecar environment is fixed when the pod starts, so during the
+    # cutover the old pod archives its last WAL to R2 with THIS environment.
+    # It must therefore already carry what R2 needs: its endpoint (read from
+    # the R2 Secret, account id kept out of this public repository), a region
+    # R2 accepts (us-east-1; fsn1 is rejected with InvalidRegionName) and
+    # boto3 checksums on when_required. The explicit endpointURL below keeps
+    # Hetzner as the target of this store.
     env:
       - name: AWS_DEFAULT_REGION
-        value: fsn1
+        value: us-east-1
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef:
+            name: immich-cnpg-r2-credentials
+            key: AWS_ENDPOINT_URL_S3
   configuration:
     destinationPath: s3://smadja-dev-homelab-backups/cnpg/immich
     endpointURL: https://fsn1.your-objectstorage.com
