@@ -15,7 +15,8 @@ with identical banks and roles. The homelab source is only read.
 
 Fingerprint lines: server version, extensions, row count per public table,
 `banks_md5` (all columns of every bank), `roles_md5` (privilege attributes),
-`memberships_md5`, `acl_md5` (table ACLs, PUBLIC and grant options included), table owners.
+`memberships_md5`, `schema_acl`, `acl_md5` (relations with owner, PUBLIC and grant
+options included), `routine_acl_md5`, `database_acl`, table owners.
 
 ## Procedure (one PR per import, one PR per removal)
 

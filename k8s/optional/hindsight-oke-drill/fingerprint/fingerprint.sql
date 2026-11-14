@@ -18,8 +18,17 @@ SELECT 'memberships_md5=' || coalesce(md5(string_agg(concat_ws(':', r.rolname, m
          '|' ORDER BY r.rolname, m.rolname)), 'none')
   FROM pg_auth_members a JOIN pg_roles r ON r.oid = a.roleid JOIN pg_roles m ON m.oid = a.member
  WHERE m.rolname !~ '^(pg_|cnpg_|streaming_replica$|postgres$)';
--- relacl keeps PUBLIC grants and grant options (role names, not OIDs).
-SELECT 'acl_md5=' || md5(string_agg(c.relname || ':' || c.relkind || ':' || coalesce(c.relacl::text, 'default'), '|' ORDER BY c.relname))
+-- ACLs keep PUBLIC grants and grant options (role names, not OIDs); owners
+-- are part of each entry because a NULL ACL means "owner default".
+SELECT 'schema_acl=' || nspname || ':' || pg_get_userbyid(nspowner) || ':' || coalesce(nspacl::text, 'default')
+  FROM pg_namespace WHERE nspname = 'public';
+SELECT 'acl_md5=' || md5(string_agg(concat_ws(':', c.relname, c.relkind, pg_get_userbyid(c.relowner), coalesce(c.relacl::text, 'default')),
+         '|' ORDER BY c.relname))
   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
  WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p', 'v', 'm', 'S');
+SELECT 'routine_acl_md5=' || coalesce(md5(string_agg(concat_ws(':', p.oid::regprocedure::text, pg_get_userbyid(p.proowner), coalesce(p.proacl::text, 'default')),
+         '|' ORDER BY p.oid::regprocedure::text)), 'none')
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public';
+SELECT 'database_acl=' || pg_get_userbyid(datdba) || ':' || coalesce(datacl::text, 'default')
+  FROM pg_database WHERE datname = current_database();
 SELECT 'owner=' || tableowner || ':' || count(*) FROM pg_tables WHERE schemaname = 'public' GROUP BY tableowner ORDER BY 1;
