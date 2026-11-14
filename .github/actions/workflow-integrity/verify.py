@@ -59,14 +59,31 @@ REQUIRED_ENTRYPOINTS = (
     "scripts/check-agent-harness-contract.sh",
     "scripts/check-documentation-integrity.mjs",
 )
-# Contract tests are ordinary code: adding or extending them is free. Deleting
-# one, or reducing its assertion markers, needs an owner admission.
+# Contract tests are ordinary code: adding a test file or appending checks is
+# free. Any change that can weaken an existing one needs an owner admission
+# (see weakens()).
 GUARDED_PREFIXES = ("tests/harness/", "scripts/check-")
 ASSERTION_MARKER = re.compile(
     r"\b(?:assert\w*|fail\w*|die)\b|\bexit\s+[1-9]|\|\|\s*\{|\bexpect\(|"
     r"raise\s+SystemExit|process\.exit\(\s*[1-9]"
 )
 COMMENT_LINE = re.compile(r"\s*(?:#|//)")
+# Added lines in an existing guarded test that can neutralize the assertions
+# it keeps: early exit, skip/only, dead-code wrappers, error suppression and
+# redefinition of commands or assertion helpers. Fail-closed: a hit needs an
+# admission even when the intent is benign.
+NEUTRALIZER = re.compile(
+    r"\bexit(?:\s+0)?\s*(?:[;)&|#]|$)|\bexit\s+0\b|\breturn\s+0\b|^\s*return\s*;?\s*$|"
+    r"\b(?:sys\.exit|os\._exit|process\.exit)\(\s*0?\s*\)|"
+    r"\bskip\w*|\.only\b|\.todo\b|/\*|"
+    r"(?:^|[;&|]\s*)(?::|true)\s*<<|\bif\s+(?:false|False|0)\b|\bwhile\s+false\b|"
+    r"\bset\s+\+[a-zA-Z]*e|\bset\s+-o\s+no|\|\|\s*(?:true\b|:(?:\s|;|$))|"
+    r"\btrap\b|\balias\b|\bunset\s+-f\b|"
+    r"^\s*(?:function\s+)?[A-Za-z_][\w.-]*\s*\(\)\s*(?:\{|$)|"
+    r"\b(?:const|let|var|function)\s+(?:assert|fail\w*|expect|test|it|describe)\b|"
+    r"\b(?:assert|test|it|describe)\.\w+\s*="
+)
+REGULAR_MODES = ("100644", "100755")
 
 
 def protected(path):
@@ -91,12 +108,41 @@ def assertion_markers(revision, path):
     return sum(1 for line in lines if not COMMENT_LINE.match(line) and ASSERTION_MARKER.search(line))
 
 
+def tree_mode(revision, path):
+    data = git_bytes("ls-tree", "-z", revision, "--", path)
+    entry = data.split(b"\0", 1)[0]
+    return entry.split(b" ", 1)[0].decode("ascii") if entry else None
+
+
 def weakens(path, ancestor, head):
+    """Fail-closed: only appends of non-neutralizing lines stay free.
+
+    Blocks deletion, a mode or file-type change, fewer assertion markers, a
+    removed or rewritten assertion-marker line, and an added line matching
+    NEUTRALIZER. A new file cannot weaken an existing check and stays free.
+    """
     before = assertion_markers(ancestor, path)
     if before is None:
         return False
     after = assertion_markers(head, path)
-    return after is None or after < before
+    if after is None or after < before:
+        return True
+    old_mode, new_mode = tree_mode(ancestor, path), tree_mode(head, path)
+    if old_mode != new_mode or new_mode not in REGULAR_MODES:
+        return True
+    diff = git_bytes(
+        "diff", "--no-renames", "--no-ext-diff", "--no-textconv", "--unified=0",
+        ancestor, head, "--", path,
+    ).decode("utf-8", "replace")
+    for line in diff.splitlines():
+        if line.startswith(("+++", "---")):
+            continue
+        text = line[1:]
+        if line.startswith("-") and not COMMENT_LINE.match(text) and ASSERTION_MARKER.search(text):
+            return True
+        if line.startswith("+") and not COMMENT_LINE.match(text) and NEUTRALIZER.search(text):
+            return True
+    return False
 
 
 def merge_base(base, head):

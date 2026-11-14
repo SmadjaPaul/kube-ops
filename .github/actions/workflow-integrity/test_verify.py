@@ -399,7 +399,7 @@ class AdmissionContract(unittest.TestCase):
             test.write_text('grep -q a f || { echo FAIL; exit 1; }\n')
             base = commit("base")
             (root / "tests" / "harness" / "new-test.sh").write_text("exit 1\n")
-            test.write_text('grep -q b f || { echo FAIL; exit 1; }\ngrep -q c f || exit 1\n')
+            test.write_text('grep -q a f || { echo FAIL; exit 1; }\ngrep -q c f || exit 1\n')
             grown = commit("add and extend contract tests")
             with patch.object(gate, "git_bytes", side_effect=git):
                 self.assertEqual(gate.blocked_paths(gate.changed_paths(base, grown), base, grown), [])
@@ -417,6 +417,55 @@ class AdmissionContract(unittest.TestCase):
                     "tests/harness/contract-test.sh",
                     gate.blocked_paths(gate.changed_paths(base, deleted), base, deleted),
                 )
+
+    def test_marker_preserving_weakening_is_blocked(self):
+        original = (
+            '#!/usr/bin/env bash\nset -euo pipefail\n'
+            'grep -q a f || { echo FAIL; exit 1; }\n[ "$x" = y ] || die "mismatch"\n'
+        )
+        body = original.split("\n", 1)[1]
+        edits = {
+            "trivial assertion": lambda p: p.write_text(original.replace("grep -q a f", "true")),
+            "early exit 0": lambda p: p.write_text("#!/usr/bin/env bash\nexit 0\n" + body),
+            "heredoc wrapper": lambda p: p.write_text("#!/usr/bin/env bash\n: <<'X'\n" + body + "X\n"),
+            "dead branch": lambda p: p.write_text("#!/usr/bin/env bash\nif false; then\n" + body + "fi\n"),
+            "errexit off": lambda p: p.write_text(original.replace("set -euo pipefail", "set +e")),
+            "marker strings": lambda p: p.write_text("#!/usr/bin/env bash\necho assert\necho fail\necho die\n"),
+            "helper redefined": lambda p: p.write_text(original + "die() { :; }\n"),
+            "chmod": lambda p: p.chmod(0o644),
+            "symlink": lambda p: (p.unlink(), p.symlink_to("assert-fail-die.sh")),
+            "emptied": lambda p: p.write_text(""),
+        }
+        for name, edit in edits.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                git, commit = self._repo(root)
+                test = root / "tests" / "harness" / "contract-test.sh"
+                test.parent.mkdir(parents=True)
+                test.write_text(original)
+                test.chmod(0o755)
+                base = commit("base")
+                edit(test)
+                head = commit(name)
+                with patch.object(gate, "git_bytes", side_effect=git):
+                    self.assertEqual(
+                        gate.blocked_paths(gate.changed_paths(base, head), base, head),
+                        ["tests/harness/contract-test.sh"],
+                    )
+
+    def test_appending_checks_to_existing_test_stays_free(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            git, commit = self._repo(root)
+            test = root / "tests" / "harness" / "contract.test.mjs"
+            test.parent.mkdir(parents=True)
+            test.write_text("import assert from 'node:assert/strict'\nassert.equal(1, 1)\n")
+            base = commit("base")
+            with test.open("a") as handle:
+                handle.write("// new check\nassert.equal(read('x'), 'y')\n")
+            head = commit("append")
+            with patch.object(gate, "git_bytes", side_effect=git):
+                self.assertEqual(gate.blocked_paths(gate.changed_paths(base, head), base, head), [])
 
     def test_fingerprint_survives_registry_merge_and_branch_sync(self):
         with tempfile.TemporaryDirectory() as temp:
