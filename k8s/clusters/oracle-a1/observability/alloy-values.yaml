@@ -115,7 +115,7 @@ alloy:
         rule {
           source_labels = ["__name__", "phase"]
           separator     = ";"
-          regex         = "kube_pod_status_phase;(Running|Succeeded)"
+          regex         = "kube_pod_status_phase;Running"
           action        = "drop"
         }
         rule {
