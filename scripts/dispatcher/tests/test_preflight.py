@@ -159,6 +159,24 @@ class RecentCommentsPaginationTests(unittest.TestCase):
         comment.assert_not_called()
         self.assertEqual(gql.call_args_list[1][0][1]["after"], "c1")
 
+    def _page(self, cursor):
+        return {"issue": {"id": "u", "comments": {
+            "nodes": [], "pageInfo": {"hasNextPage": True, "endCursor": cursor}}}}
+
+    def test_page_limit_with_more_pages_is_incomplete(self):
+        pages = [self._page(f"c{i}") for i in range(dispatch.MAX_COMMENT_PAGES)]
+        linear = dispatch.Linear("fake-key")
+        with mock.patch.object(linear, "gql", side_effect=pages):
+            with self.assertRaises(dispatch.DispatchError):
+                linear.recent_comments("PLT-283", iso(timedelta(hours=3)))
+
+    def test_missing_or_stuck_cursor_is_rejected(self):
+        for pages in ([self._page(None)], [self._page("c1"), self._page("c1")]):
+            linear = dispatch.Linear("fake-key")
+            with mock.patch.object(linear, "gql", side_effect=pages):
+                with self.assertRaises(dispatch.DispatchError):
+                    linear.recent_comments("PLT-283", iso(timedelta(hours=3)))
+
 
 class KubeAccessCheckTests(unittest.TestCase):
     def _check(self, rc, out="", err="", exc=None):

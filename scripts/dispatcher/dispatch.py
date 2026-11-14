@@ -207,9 +207,12 @@ class Linear:
             nodes += issue["comments"]["nodes"]
             page = issue["comments"].get("pageInfo") or {}
             if not page.get("hasNextPage"):
-                break
-            cursor = page.get("endCursor")
-        return issue["id"], nodes
+                return issue["id"], nodes
+            next_cursor = page.get("endCursor")
+            if not next_cursor or next_cursor == cursor:
+                raise DispatchError(f"pagination Linear invalide : {ident}")
+            cursor = next_cursor
+        raise DispatchError(f"historique de commentaires incomplet : {ident}")
 
     def comment(self, issue_id: str, body: str) -> None:
         self.gql("mutation($i: String!, $b: String!) { commentCreate(input: {issueId: $i, body: $b}) { success } }",
