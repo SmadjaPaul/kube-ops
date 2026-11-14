@@ -13,7 +13,17 @@ base_rel=${1:?usage: scaffold-oke-app.sh BASE_REL NAME NAMESPACE}; name=${2:?nam
 [[ $base_rel != *..* && $base_rel != /* ]] || { echo "ERROR: BASE_REL must stay under k8s/applications" >&2; exit 2; }
 base="$root/k8s/applications/$base_rel"
 [[ -f $base/kustomization.yaml ]] || { echo "ERROR: no kustomization at k8s/applications/$base_rel" >&2; exit 2; }
-if grep -rEqs '^kind: (PersistentVolumeClaim|Cluster)$|volumeClaimTemplates' "$base"; then
+# Data scan: the rendered manifests when kustomize is available (follows every resource
+# reference), else the base folder only. Quoted kinds are matched too.
+kind_re='^[[:space:]]*kind:[[:space:]]*["'"'"']?(PersistentVolumeClaim|Cluster)["'"'"']?[[:space:]]*$|volumeClaimTemplates'
+if command -v kustomize >/dev/null; then
+  rendered=$(kustomize build --enable-helm "$base" 2>/dev/null) || { echo "ERROR: kustomize build failed for $base_rel" >&2; exit 2; }
+  scan_hit=0; grep -Eqs "$kind_re" <<<"$rendered" && scan_hit=1
+else
+  echo "NOTE: kustomize absent; data scan limited to the base folder (CI renders the full tree)." >&2
+  scan_hit=0; grep -rEqs "$kind_re" "$base" && scan_hit=1
+fi
+if (( scan_hit )); then
   echo "BLOCKED: base holds data (PVC/CNPG). No data on Oracle before PLT-190 (clusters/oracle-a1/README.md)." >&2; exit 1
 fi
 dir="$root/k8s/clusters/oracle-a1/$name"; app="$root/k8s/clusters/oracle-a1/apps/$name.yaml"

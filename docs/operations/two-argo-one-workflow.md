@@ -36,4 +36,4 @@ Revisit only with a measured benefit written in a ticket (for example: more than
 
 `just verify-delivery <homelab|oracle-a1> <app> [--since MERGE_EPOCH --timeout 1200]` returns PASS or FAIL (exit 0, 1; 2 = BLOCKED). It reads Grafana Cloud (`GRAFANA_AGENT_READ_TOKEN`): `argocd_app_info` (Synced, Healthy, fresh sample) and `kube_pod_status_ready` of the destination namespace (completed pods excluded).
 
-Limits: evidence level RUNTIME only. The Argo metric has no revision, so `REVISION=NOT_PROVEN`; `--since` waits for one Argo refresh and one scrape. A missing series is a collection gap, reported as FAIL, never as healthy.
+Limits: evidence level RUNTIME only. The Argo metric has no revision, so `REVISION=NOT_PROVEN`; `--since` waits for one Argo refresh and one scrape. A missing series is reported as FAIL, never as healthy: check the Application name first, then suspect a collection gap.

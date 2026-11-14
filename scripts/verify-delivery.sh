@@ -39,7 +39,11 @@ command -v jq >/dev/null && command -v curl >/dev/null || { echo "ERROR: jq and 
 if [[ -z ${GRAFANA_AGENT_READ_TOKEN:-} ]]; then
   [[ -z ${VERIFY_DELIVERY_INNER:-} ]] || blocked "GRAFANA_AGENT_READ_TOKEN missing after Doppler injection"
   here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-  VERIFY_DELIVERY_INNER=1 exec bash "$here/doppler-safe.sh" run -- bash "${BASH_SOURCE[0]}" "${orig_args[@]}"
+  rc=0
+  VERIFY_DELIVERY_INNER=1 bash "$here/doppler-safe.sh" run -- bash "${BASH_SOURCE[0]}" "${orig_args[@]}" || rc=$?
+  # 0 PASS, 1 FAIL, 2 BLOCKED come from the inner run; anything else is a Doppler failure.
+  (( rc <= 2 )) && exit "$rc"
+  blocked "Doppler token injection failed (exit $rc); authenticate Doppler"
 fi
 
 base=${GRAFANA_URL:-https://smadja.grafana.net}
@@ -82,6 +86,14 @@ check_once() {
     total=$(jq -r '.data.result|length' <<<"$p")
     ready=$(jq -r '[.data.result[]|select(.value[1]=="1")]|length' <<<"$p")
     pods="$ready/$total"
+    if (( total == 0 )); then
+      # No pod series: a namespace without pods, or kube-state-metrics missing. Tell them apart.
+      local any
+      any=$(prom "count(kube_pod_status_ready{cluster=\"$cluster\",condition=\"true\"})") || blocked "Grafana query failed (kube_pod_status_ready count)"
+      if (( $(jq -r '.data.result|length' <<<"$any") == 0 )); then
+        reason="no kube_pod_status_ready series on $cluster: pod telemetry gap, NOT_PROVEN"; return
+      fi
+    fi
     if (( ready != total )); then
       reason="pods not Ready: $(jq -r '[.data.result[]|select(.value[1]!="1")|.metric.pod]|.[0:5]|join(",")' <<<"$p")"; return
     fi

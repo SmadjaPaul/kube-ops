@@ -8,6 +8,9 @@ printf 'resources: []\n' >"$tmp/k8s/applications/tools/ok/kustomization.yaml"
 cp "$tmp/k8s/applications/tools/ok/kustomization.yaml" "$tmp/k8s/applications/tools/data/"
 printf 'kind: PersistentVolumeClaim\n' >"$tmp/k8s/applications/tools/data/pvc.yaml"
 printf 'resources:\n  - gatus.yaml\n' >"$tmp/k8s/clusters/oracle-a1/apps/kustomization.yaml"
+mkdir -p "$tmp/k8s/applications/tools/quoted"
+cp "$tmp/k8s/applications/tools/ok/kustomization.yaml" "$tmp/k8s/applications/tools/quoted/"
+printf 'kind: "PersistentVolumeClaim"\n' >"$tmp/k8s/applications/tools/quoted/pvc.yaml"
 s() { SCAFFOLD_ROOT="$tmp" bash "$repo_root/scripts/scaffold-oke-app.sh" "$@"; }
 s tools/ok ok ok-ns >/dev/null
 grep -q 'path: k8s/clusters/oracle-a1/ok$' "$tmp/k8s/clusters/oracle-a1/apps/ok.yaml"
@@ -16,5 +19,6 @@ grep -q 'applications/tools/ok$' "$tmp/k8s/clusters/oracle-a1/ok/kustomization.y
 if s tools/ok ok ok-ns 2>/dev/null; then echo 'FAIL: duplicate accepted'; exit 1; fi
 if s tools/data data data-ns 2>/dev/null; then echo 'FAIL: data base accepted'; exit 1; fi
 [[ ! -e $tmp/k8s/clusters/oracle-a1/data ]]
+if s tools/quoted quoted q-ns 2>/dev/null; then echo 'FAIL: quoted PVC kind accepted'; exit 1; fi
 if s ../x x x 2>/dev/null; then echo 'FAIL: traversal accepted'; exit 1; fi
 echo "scaffold-oke-app contract test: PASS"

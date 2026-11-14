@@ -16,6 +16,7 @@ done
 cat >/dev/null || true
 case "$q" in
   *"timestamp(argocd_app_info"*) cat "$FX_APP" ;;
+  *"count(kube_pod_status_ready"*) cat "$FX_ANY" ;;
   *"kube_pod_status_ready"*) cat "$FX_PODS" ;;
   *) echo '{"status":"error"}' ;;
 esac
@@ -34,7 +35,7 @@ pods_json() { # list of ready values
 run() { # expected_exit, then args; env FX_* set by caller
   local want=$1; shift
   set +e
-  out=$(PATH="$tmp/bin:$PATH" GRAFANA_AGENT_READ_TOKEN=test-token-never-printed-0123456789 FX_APP="$tmp/app.json" FX_PODS="$tmp/pods.json" \
+  out=$(PATH="$tmp/bin:$PATH" GRAFANA_AGENT_READ_TOKEN=test-token-never-printed-0123456789 FX_APP="$tmp/app.json" FX_PODS="$tmp/pods.json" FX_ANY="$tmp/any.json" \
     bash "$repo_root/scripts/verify-delivery.sh" "$@" 2>&1)
   got=$?
   set -e
@@ -43,6 +44,7 @@ run() { # expected_exit, then args; env FX_* set by caller
 }
 expect() { [[ $out == *"$1"* ]] || { echo "FAIL: output lacks '$1'"; echo "$out"; exit 1; }; }
 
+echo '{"status":"success","data":{"result":[{"metric":{},"value":[1,"40"]}]}}' >"$tmp/any.json"
 app_json Synced Healthy 20 media >"$tmp/app.json"; pods_json 1 1 1 >"$tmp/pods.json"
 run 0 oracle-a1 media;  expect "VERIFY=PASS"; expect "ARGO=Synced/Healthy"; expect "PODS=3/3"; expect "REVISION=NOT_PROVEN"
 run 0 homelab media;    expect "CLUSTER=homelab"
@@ -68,12 +70,24 @@ run 1 oracle-a1 media --since "$(date +%s)"; expect "settling"
 app_json Synced Healthy 20 "" >"$tmp/app.json"
 run 0 oracle-a1 media;  expect "PODS=n/a"
 
+# Empty namespace is fine when the cluster has pod telemetry; a telemetry gap is FAIL.
+app_json Synced Healthy 20 media >"$tmp/app.json"; pods_json >"$tmp/pods.json"
+run 0 oracle-a1 media;  expect "PODS=0/0"
+echo '{"status":"success","data":{"result":[]}}' >"$tmp/any.json"
+run 1 oracle-a1 media;  expect "pod telemetry gap"
+
 echo '{"status":"error"}' >"$tmp/app.json"
 run 2 oracle-a1 media;  expect "VERIFY=BLOCKED"
 
 run 2 mars media
 run 2 oracle-a1 'x;y'
 run 2 oracle-a1
+
+# Doppler failure on the first pass (missing binary): BLOCKED, exit 2.
+set +e
+out=$(env -u GRAFANA_AGENT_READ_TOKEN -u VERIFY_DELIVERY_INNER DOPPLER_SAFE_BIN=/nonexistent bash "$repo_root/scripts/verify-delivery.sh" oracle-a1 media 2>&1); got=$?
+set -e
+[[ $got -eq 2 && $out == *"VERIFY=BLOCKED"* ]] || { echo "FAIL: Doppler failure not BLOCKED (exit $got)"; echo "$out"; exit 1; }
 
 # Missing token and Doppler already tried: BLOCKED, never a hang or a PASS.
 set +e
