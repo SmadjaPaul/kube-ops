@@ -26,7 +26,6 @@
 #
 # namespace	classe (cluster-reality 2026-11-11)	racine Argo
 agentgateway	socle applicatif, PVC 1Gi reconstructible	apps-platform
-executor	reconstructible (0 réplica)	apps-ai
 factory-platform	reconstructible	apps-platform
 gpt-researcher	reconstructible	apps-ai
 it-tools	reconstructible, sans état	apps-tools
