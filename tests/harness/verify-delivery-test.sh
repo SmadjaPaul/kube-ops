@@ -15,7 +15,11 @@ while [[ $# -gt 0 ]]; do
 done
 cat >/dev/null || true
 case "$q" in
-  *"timestamp(argocd_app_info"*) cat "$FX_APP" ;;
+  *"timestamp(argocd_app_info"*)
+    if [[ -n ${FX_SEQ:-} ]]; then # scripted sequence: file n mod count, counter in $FX_SEQ/n
+      n=$(cat "$FX_SEQ/n" 2>/dev/null || echo 0); echo $((n + 1)) >"$FX_SEQ/n"
+      cat "$FX_SEQ/$((n % $(ls "$FX_SEQ"/step.* | wc -l))).json" 2>/dev/null || cat "$FX_SEQ/step.$((n % $(ls "$FX_SEQ"/step.* | wc -l)))"
+    else cat "$FX_APP"; fi ;;
   *"count(kube_pod_status_ready"*) cat "$FX_ANY" ;;
   *"kube_pod_status_ready"*) cat "$FX_PODS" ;;
   *) echo '{"status":"error"}' ;;
@@ -35,7 +39,7 @@ pods_json() { # list of ready values
 run() { # expected_exit, then args; env FX_* set by caller
   local want=$1; shift
   set +e
-  out=$(PATH="$tmp/bin:$PATH" GRAFANA_AGENT_READ_TOKEN=test-token-never-printed-0123456789 FX_APP="$tmp/app.json" FX_PODS="$tmp/pods.json" FX_ANY="$tmp/any.json" \
+  out=$(PATH="$tmp/bin:$PATH" GRAFANA_AGENT_READ_TOKEN=test-token-never-printed-0123456789 FX_APP="$tmp/app.json" FX_PODS="$tmp/pods.json" FX_ANY="$tmp/any.json" FX_SEQ="${FX_SEQ:-}" \
     bash "$repo_root/scripts/verify-delivery.sh" "$@" 2>&1)
   got=$?
   set -e
@@ -82,6 +86,21 @@ run 2 oracle-a1 media;  expect "VERIFY=BLOCKED"
 run 2 mars media
 run 2 oracle-a1 'x;y'
 run 2 oracle-a1
+
+# Polling: success needs two consecutive passing checks; a failed poll resets the streak.
+seq_run() { # expected_exit, then step list (P = pass, F = OutOfSync); a cycle of the given steps
+  local want=$1; shift; local i=0 st
+  rm -rf "$tmp/seq"; mkdir -p "$tmp/seq"
+  for st in "$@"; do
+    if [[ $st == P ]]; then app_json Synced Healthy 20 media >"$tmp/seq/step.$i"; else app_json OutOfSync Healthy 20 media >"$tmp/seq/step.$i"; fi
+    i=$((i+1))
+  done
+  pods_json 1 >"$tmp/pods.json"
+  FX_SEQ="$tmp/seq" run "$want" oracle-a1 media --timeout 2 --interval 0
+}
+seq_run 0 P P;   expect "VERIFY=PASS"; [[ $(cat "$tmp/seq/n") -ge 2 ]] || { echo "FAIL: PASS after fewer than 2 polls"; exit 1; }
+seq_run 1 P F;   expect "VERIFY=FAIL"      # alternating: the streak never reaches 2
+seq_run 1 F;     expect "Argo OutOfSync"   # exhaustion without a pass
 
 # Doppler failure on the first pass (missing binary): BLOCKED, exit 2.
 set +e

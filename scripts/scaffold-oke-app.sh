@@ -16,19 +16,16 @@ base="$root/k8s/applications/$base_rel"
 # Data scan: the rendered manifests when kustomize is available (follows every resource
 # reference), else the base folder only. Quoted kinds are matched too.
 kind_re='^[[:space:]]*kind:[[:space:]]*["'"'"']?(PersistentVolumeClaim|Cluster)["'"'"']?[[:space:]]*$|volumeClaimTemplates'
-if command -v kustomize >/dev/null; then
-  rendered=$(kustomize build --enable-helm "$base" 2>/dev/null) || { echo "ERROR: kustomize build failed for $base_rel" >&2; exit 2; }
-  scan_hit=0; grep -Eqs "$kind_re" <<<"$rendered" && scan_hit=1
-else
-  echo "NOTE: kustomize absent; data scan limited to the base folder (CI renders the full tree)." >&2
-  scan_hit=0; grep -rEqs "$kind_re" "$base" && scan_hit=1
-fi
+# Fail closed: a scan of the base folder alone would miss data pulled in by `resources` references.
+command -v kustomize >/dev/null || { echo "BLOCKED: kustomize is required to scan the rendered base for data (PVC/CNPG)." >&2; exit 2; }
+rendered=$(kustomize build --enable-helm "$base" 2>/dev/null) || { echo "ERROR: kustomize build failed for $base_rel" >&2; exit 2; }
+scan_hit=0; grep -Eqs "$kind_re" <<<"$rendered" && scan_hit=1
 if (( scan_hit )); then
   echo "BLOCKED: base holds data (PVC/CNPG). No data on Oracle before PLT-190 (clusters/oracle-a1/README.md)." >&2; exit 1
 fi
 # The AppProject is bootstrap-only (not synced by the Oracle Argo CD): an unlisted namespace
 # needs a project.yaml change applied once by the operator (exec:local), so refuse here.
-if ! grep -Eqs "namespace: $ns\}" "$root/k8s/clusters/oracle-a1/bootstrap/project.yaml"; then
+if ! grep -Eqs "^[[:space:]]*-[[:space:]]*\{[^}]*namespace: $ns\}" "$root/k8s/clusters/oracle-a1/bootstrap/project.yaml"; then
   echo "BLOCKED: namespace $ns is not a destination of AppProject oracle-a1. Add it to bootstrap/project.yaml and ask for the one-time bootstrap apply (exec:local ticket), then rerun." >&2; exit 1
 fi
 dir="$root/k8s/clusters/oracle-a1/$name"; app="$root/k8s/clusters/oracle-a1/apps/$name.yaml"
