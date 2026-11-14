@@ -23,6 +23,13 @@ The dry-run prints `progrès : <ID> <fingerprint>` for the chosen ticket: PR
 attachments and non-dispatcher comments, so the supervisor can refuse to rerun
 a ticket whose last run produced nothing.
 
+Cluster access preflight (PLT-239):
+  --require-kube-access   run the canonical check (`just kube-access-check`: require_kube_access from
+                          scripts/lib/kube-preflight.sh) before anything else. If KUBE_ACCESS is not PASS:
+                          no lock, no ticket, exit 0, stable line `DISPATCH_SKIPPED=kube_access_blocked`.
+  --incident PLT-283      with the preflight: at most one Linear comment per 3 h on this incident ticket
+                          (none if a dispatcher comment younger than 3 h exists). Never in --dry-run.
+
 Environment:
   LINEAR_API_KEY   Linear API key (names only in Git; value from Doppler).
   DISPATCH_PERMISSION_MODE  claude --permission-mode (default: auto).
@@ -39,6 +46,7 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -46,6 +54,9 @@ import selection as sel  # noqa: E402
 
 API_URL = "https://api.linear.app/graphql"
 CLAUDE_TIMEOUT_S = 2 * 60 * 60 + 45 * 60  # 2 h 45: stays under the 3 h lock TTL
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PREFLIGHT_TIMEOUT_S = 180
+INCIDENT_COMMENT_TTL = timedelta(hours=3)
 
 ISSUE_FIELDS = """
   id identifier title url priority createdAt updatedAt
@@ -75,7 +86,7 @@ Sortie en 5 lignes : PR, état du ticket, checks, blocage éventuel, suite."""
 # Comments written by the relay itself (dispatcher, supervisor, night review):
 # never count as progress, or the review's own comments would re-arm a ticket.
 DISPATCHER_PREFIXES = ("**Checkpoint dispatcher**", "Dispatcher interrompu", "Verrou `", "Relais de nuit :",
-                       "Revue de nuit :")
+                       "Revue de nuit :", "Exécutant local bloqué :")
 
 LIMIT_RE = re.compile(r"usage limit|limit reached|hit your (usage )?limit|rate_limit_error"
                       r"|out of extra usage|limit will reset", re.I)
@@ -86,6 +97,13 @@ PROGRESS_QUERY = (
     " attachments(first: 100) { nodes { url } }"
     " comments(first: 100) { nodes { createdAt body } } } }"
 )
+
+
+RECENT_COMMENTS_QUERY = (
+    "query($id: String!, $since: DateTimeOrDuration!) { issue(id: $id) { id identifier"
+    " comments(first: 50, filter: {createdAt: {gt: $since}}) { nodes { createdAt body } } } }"
+)
+REASON_RE = re.compile(r"^REASON=([a-z0-9_]{1,64})$", re.M)
 
 
 class DispatchError(RuntimeError):
@@ -176,9 +194,79 @@ class Linear:
             raise DispatchError(f"ticket Linear introuvable : {ident}")
         return issue
 
+    def recent_comments(self, ident: str, since: str) -> tuple[str, list[dict]]:
+        """(issue id, comments created after `since`, ISO 8601) of a ticket."""
+        issue = self.gql(RECENT_COMMENTS_QUERY, {"id": ident, "since": since})["issue"]
+        if not issue:
+            raise DispatchError(f"ticket Linear introuvable : {ident}")
+        return issue["id"], issue["comments"]["nodes"]
+
     def comment(self, issue_id: str, body: str) -> None:
         self.gql("mutation($i: String!, $b: String!) { commentCreate(input: {issueId: $i, body: $b}) { success } }",
                  {"i": issue_id, "b": body})
+
+
+# --- Cluster access preflight (PLT-239) ----------------------------------------
+def kube_access_check() -> tuple[bool, str]:
+    """Run the canonical check behind `just kube-access-check`; return (ok, reason).
+
+    Same method as the recipe: require_kube_access from scripts/lib/kube-preflight.sh
+    (Doppler-distributed operator kubeconfig, TLS verified). Raw output is never
+    copied: only PASS and a sanitized REASON token are read.
+    """
+    cmd = ["bash", "-c", "source scripts/lib/kube-preflight.sh; require_kube_access"]
+    try:
+        proc = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True,
+                              timeout=PREFLIGHT_TIMEOUT_S, check=False)
+    except subprocess.TimeoutExpired:
+        return False, "preflight_timeout"
+    except OSError:
+        return False, "preflight_not_runnable"
+    if proc.returncode == 0 and "KUBE_ACCESS=PASS" in proc.stdout.splitlines():
+        return True, "ok"
+    match = REASON_RE.search(proc.stderr or "") or REASON_RE.search(proc.stdout or "")
+    return False, match.group(1) if match else "unknown"
+
+
+def incident_comment_body(reason: str) -> str:
+    return ("Exécutant local bloqué : KUBE_ACCESS non PASS "
+            f"(REASON={reason}). Le dispatcher n'a posé aucun verrou et n'a pris aucun ticket. "
+            "Prochain commentaire dans 3 h au plus tôt, tant que le blocage dure. "
+            "Action : rétablir l'accès cluster, puis `just kube-access-check`.")
+
+
+def notify_incident(linear: "Linear", incident: str, reason: str, now) -> bool:
+    """Comment on the incident ticket unless a dispatcher comment is younger than 3 h."""
+    since = (now - INCIDENT_COMMENT_TTL).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    issue_id, comments = linear.recent_comments(incident, since)
+    for c in comments:
+        if (c.get("body") or "").lstrip().startswith(DISPATCHER_PREFIXES) \
+                and now - sel.parse_ts(c["createdAt"]) < INCIDENT_COMMENT_TTL:
+            return False
+    linear.comment(issue_id, incident_comment_body(reason))
+    return True
+
+
+def kube_access_gate(args: argparse.Namespace, linear: "Linear | None", preflight, now) -> bool:
+    """True when the run must stop: prints the stable skip line, comments at most once per 3 h."""
+    ok, reason = preflight()
+    if ok:
+        return False
+    print("DISPATCH_SKIPPED=kube_access_blocked")
+    print(f"KUBE_ACCESS_REASON={reason}")
+    incident = getattr(args, "incident", None)
+    if incident and not args.dry_run:
+        try:
+            if linear is None:
+                key = os.environ.get("LINEAR_API_KEY")
+                if not key:
+                    raise DispatchError("LINEAR_API_KEY absent : commentaire d'incident non posé")
+                linear = Linear(key)
+            posted = notify_incident(linear, incident, reason, now)
+            print(f"incident {incident} : {'commentaire posé' if posted else 'commentaire récent, rien posé'}")
+        except DispatchError as exc:  # the skip stays a clean exit 0
+            print(f"dispatch: {exc}", file=sys.stderr)
+    return True
 
 
 # --- claude -p --------------------------------------------------------------
@@ -345,9 +433,12 @@ def load_snapshot(path: str) -> tuple[list[dict], list[dict], list[dict]]:
     return data.get("queue", []), data.get("locked", []), data.get("in_progress", [])
 
 
-def run(args: argparse.Namespace, linear: "Linear | None" = None) -> int:
+def run(args: argparse.Namespace, linear: "Linear | None" = None, preflight=None) -> int:
     lane, lock = args.lane, sel.lock_label(args.lane)
     now = sel.utcnow()
+    if getattr(args, "require_kube_access", False) and kube_access_gate(
+            args, linear, preflight or kube_access_check, now):
+        return 0
     if args.snapshot:
         if not args.dry_run:
             raise DispatchError("--snapshot n'est accepté qu'avec --dry-run")
@@ -499,6 +590,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--snapshot", help="JSON {queue, locked} au format GraphQL, au lieu de l'API (dry-run)")
     parser.add_argument("--skip", type=_ids, default=[], help="PLT-1,PLT-2 : tickets jamais choisis (sautés cette nuit)")
     parser.add_argument("--expect", type=_ident, help="exécution réelle : n'exécuter que si le choix est encore ce ticket (sinon code 3)")
+    parser.add_argument("--require-kube-access", action="store_true",
+                        help="préflight canonique (just kube-access-check) ; si non PASS : DISPATCH_SKIPPED=kube_access_blocked, exit 0")
+    parser.add_argument("--incident", type=_ident, metavar="ID",
+                        help="avec le préflight : ticket d'incident, un commentaire au plus par 3 h")
     parser.add_argument("--comment-skip", type=_ident, metavar="ID", help="poster le commentaire de saut sur ce ticket, puis sortir")
     parser.add_argument("--why", default="décision du superviseur", help="raison du saut (--comment-skip)")
     args = parser.parse_args(argv)
