@@ -16,7 +16,7 @@ entries:
       invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
       acs_url: https://fleet.smadja.dev/api/v1/fleet/sso/callback
       audience: https://fleet.smadja.dev
-      issuer: authentik
+      issuer_override: authentik
       sp_binding: post
       signing_kp: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
       name_id_mapping: !Find

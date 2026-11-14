@@ -59,6 +59,8 @@ spec:
     - fromEndpoints:
         - matchLabels:
             app.kubernetes.io/name: fleet
+        - matchLabels:
+            app.kubernetes.io/name: fleet-backup
       toPorts:
         - ports:
             - port: "3306"
@@ -102,4 +104,33 @@ spec:
             - port: "53"
               protocol: UDP
             - port: "53"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fleet-backup
+  namespace: fleet
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: fleet-backup
+  ingress: []
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: fleet-mysql
+      toPorts:
+        - ports:
+            - port: "3306"
               protocol: TCP

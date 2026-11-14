@@ -48,7 +48,9 @@ spec:
           # Fleet requires MySQL >= 8.0.44 and is incompatible with 9.6.
           image: mysql:8.4.11@sha256:0f51e63e537a1f176423fa03ef559aabe6fa4372a53160a44bc7e75da7d15364
           imagePullPolicy: IfNotPresent
-          args: [--innodb-buffer-pool-size=256M]
+          # The volume root holds ext4 lost+found; MySQL initializes only an
+          # empty data directory, so it uses a child directory of the volume.
+          args: [--datadir=/var/lib/mysql/data, --innodb-buffer-pool-size=256M]
           ports:
             - name: mysql
               containerPort: 3306
