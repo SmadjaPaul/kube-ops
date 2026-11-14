@@ -43,6 +43,16 @@ Conséquence. La perte du projet Doppler rend les sauvegardes Velero illisibles.
 Une compromission du compte Cloudflare expose les sauvegardes CNPG en clair.
 PLT-264 interdit ces deux cas.
 
+Transition des copies Barman en clair. Le dépôt restic ne protège pas les
+copies Barman déjà présentes sur R2. Ordre imposé :
+
+1. Les copies Barman restent en place tant que la restauration restic d'une
+   application n'est pas prouvée (D-2026-11-11-05).
+2. Après cette preuve, Paul décide pour chaque base : chiffrement côté client
+   de l'archive Barman, ou retrait des copies Barman en clair de R2.
+3. Le retrait d'une copie est une suppression de sauvegarde : accord de Paul
+   requis (AGENTS.md, Safety). Il ne retire jamais la seule copie.
+
 ## Inventaire (STATIC, depuis les racines Argo actives)
 
 Racines lues : `k8s/bootstrap/argocd-root/applications-applicationset.yaml` et
@@ -163,8 +173,15 @@ ligne de ces fichiers irréaliste.
 
 ### Rotation et perte
 
-- Clé d'exécution compromise : `restic key add` puis `restic key remove` de
-  l'ancienne clé, mise à jour de Doppler. Les données ne sont pas réécrites.
+- Clé d'exécution compromise : retirer le mot de passe ne suffit pas. Avec
+  ce mot de passe et un accès en lecture au dépôt, un attaquant a déjà pu
+  déchiffrer la clé maître. Celle-ci ne change pas. Paul crée donc un nouveau
+  dépôt avec un nouveau mot de passe maître et une nouvelle clé d'exécution,
+  reprend une sauvegarde complète, prouve la restauration, puis supprime
+  l'ancien dépôt.
+- Rotation planifiée sans compromission : `restic key add`, puis
+  `restic key remove` de l'ancienne clé, mise à jour de Doppler. Les données
+  ne sont pas réécrites.
 - Fiche papier perdue : Paul génère un nouveau mot de passe maître, l'ajoute
   (`restic key add`), retire l'ancien, imprime une nouvelle fiche.
 - Clé maître exposée : Paul crée un nouveau dépôt, reprend une sauvegarde
@@ -180,12 +197,19 @@ d'exécution. Ce test répond au critère `RUNTIME` de PLT-264.
 2. **Accès.** Une identité R2 en lecture seule, limitée au bucket restic.
 3. **Clé.** Paul ressaisit le mot de passe maître depuis la fiche papier. La
    clé d'exécution n'est pas utilisée.
-4. **Restauration.** `restic restore latest --target <répertoire de l'îlot>`
-   pour les fichiers ; restauration du dump PostgreSQL dans une instance
-   PostgreSQL jetable de la même version majeure.
+4. **Restauration.** Chaque snapshot porte un tag application et type de
+   donnée : `immich-files`, `immich-postgres`, `paperless-files`,
+   `paperless-postgres`. L'îlot sélectionne chaque snapshot par son tag, par
+   exemple `restic restore latest --tag immich-files --target <répertoire de
+   l'îlot>`. Le dump sélectionné par `--tag immich-postgres` (ou
+   `paperless-postgres`) est restauré dans une instance PostgreSQL jetable de
+   la même version majeure. Les deux snapshots restaurés appartiennent au même
+   cycle de sauvegarde.
 5. **Contrôle.** Le job de sauvegarde produit un manifeste SHA-256 inclus dans
    le snapshot. L'îlot recalcule les sommes et les compare. Pour la base, des
    requêtes en lecture seule comptent les lignes des tables principales.
+   L'îlot démarre ensuite l'application sur la base et les fichiers restaurés.
+   Un échantillon d'objets de la base (photos, documents) doit s'ouvrir.
 6. **Mesures.** Consigner le RPO (âge du snapshot) et le RTO (durée de bout en
    bout), sans contenu sensible.
 7. **Nettoyage.** Détruire l'îlot et ses données après la mesure.
@@ -198,7 +222,17 @@ cluster ; il ne le remplace pas.
 
 - Bucket R2 dédié et identité d'écriture limitée : homelab-infra.
 - CronJobs restic dans kube-ops : fichiers (montage en lecture seule des PVC)
-  et dumps PostgreSQL (`pg_dump -Fc` vers `restic backup --stdin`).
+  et dumps PostgreSQL. Le dump passe par
+  `restic backup --stdin-from-command -- pg_dump -Fc ...` : restic ne crée
+  aucun snapshot si `pg_dump` sort en erreur. Un pipe `pg_dump | restic backup
+  --stdin` est interdit : il enregistre un dump tronqué comme un succès.
+- Cohérence fichiers/base : un cycle exécute d'abord le dump, puis la
+  sauvegarde des fichiers. Un fichier ajouté entre les deux est orphelin, sans
+  effet sur la restauration. Une suppression passe par la corbeille de
+  l'application (Immich, Paperless), donc un fichier référencé par le dump
+  reste présent. Le drill démarre l'application sur les deux jeux restaurés
+  pour le prouver.
+- Tags restic par application et type de donnée (voir la restauration test).
 - Rétention et `restic check` planifiés ; alerte sur échec.
 - Copie hors ligne `restic copy` vers un disque que Paul branche.
 
