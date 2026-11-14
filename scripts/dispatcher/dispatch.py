@@ -57,6 +57,7 @@ CLAUDE_TIMEOUT_S = 2 * 60 * 60 + 45 * 60  # 2 h 45: stays under the 3 h lock TTL
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PREFLIGHT_TIMEOUT_S = 180
 INCIDENT_COMMENT_TTL = timedelta(hours=3)
+MAX_COMMENT_PAGES = 10
 
 ISSUE_FIELDS = """
   id identifier title url priority createdAt updatedAt
@@ -100,8 +101,9 @@ PROGRESS_QUERY = (
 
 
 RECENT_COMMENTS_QUERY = (
-    "query($id: String!, $since: DateTimeOrDuration!) { issue(id: $id) { id identifier"
-    " comments(first: 50, filter: {createdAt: {gt: $since}}) { nodes { createdAt body } } } }"
+    "query($id: String!, $since: DateTimeOrDuration!, $after: String) { issue(id: $id) { id identifier"
+    " comments(first: 50, after: $after, filter: {createdAt: {gt: $since}})"
+    " { nodes { createdAt body } pageInfo { hasNextPage endCursor } } } }"
 )
 REASON_RE = re.compile(r"^REASON=([a-z0-9_]{1,64})$", re.M)
 
@@ -196,10 +198,18 @@ class Linear:
 
     def recent_comments(self, ident: str, since: str) -> tuple[str, list[dict]]:
         """(issue id, comments created after `since`, ISO 8601) of a ticket."""
-        issue = self.gql(RECENT_COMMENTS_QUERY, {"id": ident, "since": since})["issue"]
-        if not issue:
-            raise DispatchError(f"ticket Linear introuvable : {ident}")
-        return issue["id"], issue["comments"]["nodes"]
+        nodes: list[dict] = []
+        cursor = None
+        for _ in range(MAX_COMMENT_PAGES):
+            issue = self.gql(RECENT_COMMENTS_QUERY, {"id": ident, "since": since, "after": cursor})["issue"]
+            if not issue:
+                raise DispatchError(f"ticket Linear introuvable : {ident}")
+            nodes += issue["comments"]["nodes"]
+            page = issue["comments"].get("pageInfo") or {}
+            if not page.get("hasNextPage"):
+                break
+            cursor = page.get("endCursor")
+        return issue["id"], nodes
 
     def comment(self, issue_id: str, body: str) -> None:
         self.gql("mutation($i: String!, $b: String!) { commentCreate(input: {issueId: $i, body: $b}) { success } }",

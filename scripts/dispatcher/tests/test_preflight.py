@@ -143,6 +143,23 @@ class PreflightGateTests(unittest.TestCase):
         boom.assert_not_called()
 
 
+class RecentCommentsPaginationTests(unittest.TestCase):
+    def test_dispatcher_comment_on_second_page_is_found(self):
+        human = [{"createdAt": iso(timedelta(minutes=5)), "body": "ok"}] * 50
+        disp = [{"createdAt": iso(timedelta(hours=2)), "body": "Exécutant local bloqué : déjà"}]
+        pages = [
+            {"issue": {"id": "u", "comments": {"nodes": human, "pageInfo": {"hasNextPage": True, "endCursor": "c1"}}}},
+            {"issue": {"id": "u", "comments": {"nodes": disp, "pageInfo": {"hasNextPage": False, "endCursor": None}}}},
+        ]
+        linear = dispatch.Linear("fake-key")
+        with mock.patch.object(linear, "gql", side_effect=pages) as gql, \
+                mock.patch.object(linear, "comment") as comment:
+            posted = dispatch.notify_incident(linear, "PLT-283", "api_unreachable", NOW)
+        self.assertFalse(posted)
+        comment.assert_not_called()
+        self.assertEqual(gql.call_args_list[1][0][1]["after"], "c1")
+
+
 class KubeAccessCheckTests(unittest.TestCase):
     def _check(self, rc, out="", err="", exc=None):
         proc = mock.Mock(returncode=rc, stdout=out, stderr=err)
