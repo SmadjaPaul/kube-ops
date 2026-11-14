@@ -228,7 +228,7 @@ prometheus:
             prometheus: k8s
     resources:
       requests:
-        cpu: 100m
+        cpu: 200m
         memory: 1Gi
       limits:
         cpu: 1000m
