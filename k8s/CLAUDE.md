@@ -16,7 +16,7 @@ Repository rules, Safety and decisions: root `AGENTS.md`. These rules apply to m
 ## Secrets
 
 - Use ExternalSecret `external-secrets.io/v1` with ClusterSecretStore `doppler-cluster`, Doppler keys in UPPER_SNAKE_CASE, `refreshInterval: 1h`.
-- For CNPG application credentials use the generated `<cluster>-app` Secret, not an ExternalSecret.
+- For a CNPG database owned by the cluster application role, use the generated `<cluster>-app` Secret, not an ExternalSecret. A database owned by a separate managed role (`spec.managed.roles`) uses that role's `passwordSecret` (example: `k8s/clusters/oracle-a1/cnpg-cluster/cluster.yaml`).
 
 ## Network
 
@@ -26,7 +26,7 @@ Repository rules, Safety and decisions: root `AGENTS.md`. These rules apply to m
 
 ## Storage and backup
 
-- Application PVCs use `longhorn-fast` or `longhorn-bulk` (single-replica, Talos UserVolumes). Proxmox CSI is compatibility only, never the default class. No NFS.
+- Application PVCs use `longhorn-fast` or `longhorn-bulk` (single-replica, Talos UserVolumes); on oracle-a1 use `oci-bv`. Proxmox CSI is compatibility only, never the default class. No NFS.
 - Velero/Kopia with `defaultVolumesToFsBackup: true` backs up PVC state to the R2 BackupStorageLocation `r2` (bucket homelab-backup-velero, prefix `velero/`; never move `archive/hetzner-legacy/`). No CSI snapshots for Proxmox CSI. Large media libraries are not backed up as volumes.
 - Recovery order: Velero restore first, PV retain recovery if it fails.
 - Longhorn backup target: R2 bucket homelab-backup-longhorn.
@@ -34,6 +34,7 @@ Repository rules, Safety and decisions: root `AGENTS.md`. These rules apply to m
 ## PostgreSQL (CNPG)
 
 - Every new database goes into the shared cluster `pg-shared` (D-2026-11-13-02). Exceptions and inventory: `docs/operations/cnpg-cluster-inventory.md`; `just check` refuses an unlisted `Cluster`.
+- The oracle-a1 `pg-shared` has no backup: no durable data there until the conditions of `k8s/clusters/oracle-a1/README.md` are met.
 - Backups use the barman-cloud plugin with an `ObjectStore` on R2 (bucket homelab-backup-cnpg), `isWALArchiver: true`, ScheduledBackup `method: plugin` with `pluginConfiguration.name: barman-cloud.cloudnative-pg.io`. R2 ObjectStores set `AWS_REQUEST_CHECKSUM_CALCULATION` and `AWS_RESPONSE_CHECKSUM_VALIDATION` to `when_required`.
 - Never introduce MinIO, Backblaze B2 or a new Hetzner store.
 
