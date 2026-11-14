@@ -1,0 +1,19 @@
+# PLT-248: fresh Hetzner base backup taken before the R2 cutover of
+# matrix-mas-postgresql-clean. It is the rollback point: after the cutover,
+# Hetzner stays restorable up to the switch (this base plus the WAL archived
+# before it). A rollback targets this backupID or a precise time, never "latest".
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: matrix-mas-postgresql-clean-hetzner-precutover-20261114
+  namespace: matrix
+  labels:
+    backup.smadja.dev/purpose: r2-cutover-rollback
+spec:
+  cluster:
+    name: matrix-mas-postgresql-clean
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-mas-clean-hetzner-store

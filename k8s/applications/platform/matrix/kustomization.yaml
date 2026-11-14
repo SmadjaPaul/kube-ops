@@ -11,6 +11,7 @@ resources:
   - database-synapse-r2.yaml
   - database-synapse-r2-initial-backup.yaml
   - database-mas-clean-r2.yaml
+  - backup-mas-clean-hetzner-precutover.yaml
   - database-scheduled-backups.yaml
   - database-mas-clean-initial-backup-20261105.yaml
   - database-s3-credentials.yaml
