@@ -13,7 +13,7 @@ recommender:
     enabled: false
   resources:
     requests:
-      cpu: 50m
+      cpu: 25m
       memory: 128Mi
     limits:
       cpu: 300m

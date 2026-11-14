@@ -11,4 +11,5 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: hindsight-hetzner-store
+      # PLT-249: base backups follow the WAL archive to R2.
+      barmanObjectName: hindsight-r2-store
