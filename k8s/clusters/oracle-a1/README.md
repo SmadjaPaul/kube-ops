@@ -17,8 +17,9 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | `observability/` | Grafana Cloud export (PLT-306): kube-state-metrics with a metric allowlist and one Alloy, label `cluster=oracle-a1`, write token `GRAFANA_CLOUD_ORACLE_A1_WRITE_TOKEN`. Out of the root until PLT-253; no egress policy (flannel does not enforce NetworkPolicy). |
 
 Prerequisites outside Git (bootstrap steps, none blocks the static manifests):
-- The OKE cluster (homelab-infra#330, Basic, `FLANNEL_OVERLAY`, pods `10.244.0.0/16`,
-  services `10.245.0.0/16`) and its `oci-bv` StorageClass; volumes are 50 Gi, the
+- The OKE cluster (homelab-infra#330, Basic, `FLANNEL_OVERLAY`, pods `10.248.0.0/16`,
+  services `10.249.0.0/16` since the PLT-276 replace; no overlap with the homelab
+  pods `10.244.0.0/16` or services `10.96.0.0/12`) and its `oci-bv` StorageClass; volumes are 50 Gi, the
   OCI block volume minimum (PLT-183).
 - The `doppler-access-token` Secret in `external-secrets` (created by the operator on
   the Oracle cluster, never committed). Created by the operator on the Oracle cluster once it is reachable; its presence is runtime evidence, not asserted by this file.
