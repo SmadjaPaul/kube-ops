@@ -1,0 +1,67 @@
+# PLT-306: Alloy egress allowlist. This egress section puts Alloy into
+# default-deny egress, so every Alloy destination is listed here:
+# - in-cluster backends of the local pipelines (Loki gateway, Tempo OTLP,
+#   Prometheus federate), by endpoint labels and container ports;
+# - Grafana Cloud push endpoints (Prometheus remote write, Loki push), 443.
+# - DNS (with the DNS proxy rule that toFQDNs needs) and the Kubernetes API,
+#   also granted by clusterwide-dns-kubeapi, repeated so this policy is
+#   self-contained.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: alloy-grafana-cloud-egress
+  namespace: monitoring
+spec:
+  description: "Alloy: local telemetry backends and Grafana Cloud push endpoints only"
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+      app.kubernetes.io/instance: alloy
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: loki
+            app.kubernetes.io/component: gateway
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: tempo
+      toPorts:
+        - ports:
+            - port: "4318"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEntities:
+        - kube-apiserver
+    - toFQDNs:
+        - matchPattern: "prometheus-*.grafana.net"
+        - matchPattern: "logs-*.grafana.net"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

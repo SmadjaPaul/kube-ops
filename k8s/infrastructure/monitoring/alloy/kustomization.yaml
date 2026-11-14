@@ -4,6 +4,8 @@ namespace: monitoring
 
 resources:
   - rbac.yaml
+  - grafana-cloud-externalsecret.yaml
+  - grafana-cloud-networkpolicy.yaml
 
 helmCharts:
   - name: alloy
@@ -12,3 +14,22 @@ helmCharts:
     releaseName: alloy
     namespace: monitoring
     valuesFile: values.yaml
+
+# PLT-306: the chart omits false host namespace flags; k8s/CLAUDE.md requires
+# them explicit.
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: alloy
+    patch: |-
+      - op: add
+        path: /spec/template/spec/hostNetwork
+        value: false
+      - op: add
+        path: /spec/template/spec/hostPID
+        value: false
+      - op: add
+        path: /spec/template/spec/hostIPC
+        value: false
