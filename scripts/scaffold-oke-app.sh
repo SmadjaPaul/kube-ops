@@ -26,6 +26,11 @@ fi
 if (( scan_hit )); then
   echo "BLOCKED: base holds data (PVC/CNPG). No data on Oracle before PLT-190 (clusters/oracle-a1/README.md)." >&2; exit 1
 fi
+# The AppProject is bootstrap-only (not synced by the Oracle Argo CD): an unlisted namespace
+# needs a project.yaml change applied once by the operator (exec:local), so refuse here.
+if ! grep -Eqs "namespace: $ns\}" "$root/k8s/clusters/oracle-a1/bootstrap/project.yaml"; then
+  echo "BLOCKED: namespace $ns is not a destination of AppProject oracle-a1. Add it to bootstrap/project.yaml and ask for the one-time bootstrap apply (exec:local ticket), then rerun." >&2; exit 1
+fi
 dir="$root/k8s/clusters/oracle-a1/$name"; app="$root/k8s/clusters/oracle-a1/apps/$name.yaml"
 [[ ! -e $dir && ! -e $app ]] || { echo "ERROR: $name already exists on oracle-a1" >&2; exit 1; }
 mkdir -p "$dir"

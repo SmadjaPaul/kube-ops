@@ -14,9 +14,9 @@ Do not use sync/reconcile as a deployment mechanism; stuck syncs use `scripts/ar
 Two independent Argo CD instances, one workflow (`docs/operations/two-argo-one-workflow.md`). The agent never opens an Argo CD interface.
 
 1. Branch `claude/plt-<n>-<slug>`. Change the shared base `k8s/applications/<group>/<app>`.
-2. Homelab: the base folder is the application (ApplicationSet `applications`, name `apps-<app>`). Nothing else to add.
-3. OKE: `just scaffold-oke-app <group>/<app> <name> <namespace>` creates `k8s/clusters/oracle-a1/<name>/`, `apps/<name>.yaml` and the root entry. Put OKE-only differences in patches in that folder. The scaffold refuses data (PVC, CNPG) before PLT-190.
+2. Homelab: the base folder must be listed in `directories` of the ApplicationSet `applications` (`k8s/bootstrap/argocd-root/applications-applicationset.yaml`); existing groups already are. The Application is `apps-<basename>`. An unlisted path generates no Application.
+3. OKE: `just scaffold-oke-app <group>/<app> <name> <namespace>` creates `k8s/clusters/oracle-a1/<name>/`, `apps/<name>.yaml` and the root entry. Put OKE-only differences in patches in that folder. The scaffold refuses data (PVC, CNPG) before PLT-190, and a namespace missing from `bootstrap/project.yaml` (bootstrap-only: needs one operator apply, `exec:local` ticket).
 4. `just check`, then PR and merge (CI green, CodeRabbit handled). Argo reconciles by itself; never sync by hand.
 5. Verify: `just verify-delivery <homelab|oracle-a1> <app> --since <merge epoch> --timeout 1200`. Cloud session: no cluster access needed (Grafana Cloud, `GRAFANA_AGENT_READ_TOKEN`).
-6. `VERIFY=PASS` is RUNTIME for Synced/Healthy/pods Ready; `REVISION=NOT_PROVEN`. FAIL: read `LAST_ERROR`, then `observability` queries; with cluster access `just diagnose-app <app>`.
+6. `VERIFY=PASS` is RUNTIME for Argo sync/health and pods Ready only (see `EVIDENCE_SCOPE`: no route, DNS, TLS); `REVISION=NOT_PROVEN`. FAIL: read `LAST_ERROR`, then `observability` queries; with cluster access `just diagnose-app <app>`.
 7. Absent series = FAIL, not health. First check the Application name and that it exists in Git (a typo gives the same result). Only then suspect a collection gap and fix the Alloy allowlist (homelab `monitoring/alloy/values.yaml`, OKE `clusters/oracle-a1/observability/alloy-values.yaml`) and check the series budget (< 8,000).

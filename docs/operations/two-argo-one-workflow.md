@@ -27,13 +27,13 @@ Revisit only with a measured benefit written in a ticket (for example: more than
 ## Convention (no migration)
 
 - Shared base: `k8s/applications/<group>/<app>`. It is cluster-neutral where possible.
-- Homelab: the base directory is the application. The ApplicationSet `applications` generates `apps-<app>`.
+- Homelab: the base directory is the application, once listed in the ApplicationSet `applications` (generates `apps-<app>`).
 - OKE: the folder `k8s/clusters/oracle-a1/<app>/` is an overlay on the same base (`resources: ../../../applications/<group>/<app>`), with patches for what differs. `apps/<app>.yaml` is its Application, listed in `apps/kustomization.yaml`.
 - Choice of cluster = choice of folder. Create the OKE side with `just scaffold-oke-app <group>/<app> <name> <namespace>`.
-- Data stays off OKE until PLT-190 (the scaffold refuses a base with a PVC or a CNPG Cluster).
+- Data stays off OKE until PLT-190. The scaffold refuses a base with a PVC or a CNPG Cluster, and a namespace missing from `bootstrap/project.yaml` (bootstrap-only: one operator apply).
 
 ## Verification
 
 `just verify-delivery <homelab|oracle-a1> <app> [--since MERGE_EPOCH --timeout 1200]` returns PASS or FAIL (exit 0, 1; 2 = BLOCKED). It reads Grafana Cloud (`GRAFANA_AGENT_READ_TOKEN`): `argocd_app_info` (Synced, Healthy, fresh sample) and `kube_pod_status_ready` of the destination namespace (completed pods excluded).
 
-Limits: evidence level RUNTIME only. The Argo metric has no revision, so `REVISION=NOT_PROVEN`; `--since` waits for one Argo refresh and one scrape. A missing series is reported as FAIL, never as healthy: check the Application name first, then suspect a collection gap.
+Limits: evidence level RUNTIME for Argo sync/health and pods Ready only (`EVIDENCE_SCOPE`); routes, DNS, TLS and user paths stay unproven. The Argo metric has no revision, so `REVISION=NOT_PROVEN`; `--since` waits for one Argo refresh and one scrape. A missing series is reported as FAIL, never as healthy: check the Application name first, then suspect a collection gap.

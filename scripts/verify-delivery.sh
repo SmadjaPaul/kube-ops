@@ -40,10 +40,10 @@ if [[ -z ${GRAFANA_AGENT_READ_TOKEN:-} ]]; then
   [[ -z ${VERIFY_DELIVERY_INNER:-} ]] || blocked "GRAFANA_AGENT_READ_TOKEN missing after Doppler injection"
   here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
   rc=0
-  VERIFY_DELIVERY_INNER=1 bash "$here/doppler-safe.sh" run -- bash "${BASH_SOURCE[0]}" "${orig_args[@]}" || rc=$?
-  # 0 PASS, 1 FAIL, 2 BLOCKED come from the inner run; anything else is a Doppler failure.
-  (( rc <= 2 )) && exit "$rc"
-  blocked "Doppler token injection failed (exit $rc); authenticate Doppler"
+  out=$(VERIFY_DELIVERY_INNER=1 bash "$here/doppler-safe.sh" run -- bash "${BASH_SOURCE[0]}" "${orig_args[@]}" 2>&1) || rc=$?
+  # The inner run always prints a VERIFY= line. Without it, Doppler failed before launching it.
+  if (( rc <= 2 )) && grep -q '^VERIFY=' <<<"$out"; then printf '%s\n' "$out"; exit "$rc"; fi
+  blocked "Doppler token injection failed before verification (exit $rc); authenticate Doppler"
 fi
 
 base=${GRAFANA_URL:-https://smadja.grafana.net}
@@ -121,6 +121,7 @@ echo "ARGO=$argo"
 echo "PODS=$pods"
 echo "SAMPLE_AGE_S=$age"
 echo "EVIDENCE_LEVEL=RUNTIME"
+echo "EVIDENCE_SCOPE=argo-app-sync-health+pods-ready (not routes, DNS, TLS, user path)"
 echo "REVISION=NOT_PROVEN"
 echo "LAST_ERROR=$reason"
 echo "VERIFY=$verdict"

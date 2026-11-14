@@ -89,6 +89,12 @@ out=$(env -u GRAFANA_AGENT_READ_TOKEN -u VERIFY_DELIVERY_INNER DOPPLER_SAFE_BIN=
 set -e
 [[ $got -eq 2 && $out == *"VERIFY=BLOCKED"* ]] || { echo "FAIL: Doppler failure not BLOCKED (exit $got)"; echo "$out"; exit 1; }
 
+# Doppler exits 1 before the inner run (not authenticated): still BLOCKED, never a FAIL verdict.
+set +e
+out=$(env -u GRAFANA_AGENT_READ_TOKEN -u VERIFY_DELIVERY_INNER DOPPLER_SAFE_BIN=/bin/false bash "$repo_root/scripts/verify-delivery.sh" oracle-a1 media 2>&1); got=$?
+set -e
+[[ $got -eq 2 && $out == *"VERIFY=BLOCKED"* ]] || { echo "FAIL: Doppler exit 1 not BLOCKED (exit $got)"; echo "$out"; exit 1; }
+
 # Missing token and Doppler already tried: BLOCKED, never a hang or a PASS.
 set +e
 out=$(env -u GRAFANA_AGENT_READ_TOKEN VERIFY_DELIVERY_INNER=1 bash "$repo_root/scripts/verify-delivery.sh" oracle-a1 media 2>&1); got=$?
