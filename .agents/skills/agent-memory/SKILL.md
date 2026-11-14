@@ -40,6 +40,11 @@ If the fact contradicts `docs/decisions.md`, the file wins: write a ticket, not 
 
 ## Client configuration (after activation)
 
+Precondition: one Hindsight API key reaches every bank. Activate this
+configuration only when the edge routes nothing but `/mcp/agents-homelab/`
+(tunnel ingress `path`, homelab-infra `terraform/cloudflare/oracle-a1.tf`) and
+PLT-304 has proven that another path returns 404.
+
 Export these environment variables from Doppler (names only, never write a
 value in a file):
 
