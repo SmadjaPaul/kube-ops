@@ -1,0 +1,23 @@
+# PLT-306: Alloy egress outside the cluster is limited to the Grafana Cloud
+# push endpoints (Prometheus remote write, Loki push), TCP 443. In-cluster
+# traffic (DNS, Kubernetes API, Loki gateway, Tempo, Prometheus federate)
+# stays allowed by CiliumClusterwideNetworkPolicy clusterwide-dns-kubeapi.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: alloy-grafana-cloud-egress
+  namespace: monitoring
+spec:
+  description: "Alloy: external egress only to Grafana Cloud push endpoints"
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+      app.kubernetes.io/instance: alloy
+  egress:
+    - toFQDNs:
+        - matchPattern: "prometheus-*.grafana.net"
+        - matchPattern: "logs-*.grafana.net"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

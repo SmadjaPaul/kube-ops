@@ -104,3 +104,22 @@ name, plus a request/correlation id where a request spans services.
 - CoreDNS NXDOMAIN bursts from search-path expansion (ndots:5) of one
   in-cluster client; the Corefile already logs errors only. Hypothesis: client
   uses a short service name; confirm before changing anything.
+
+## Grafana Cloud export (PLT-306)
+
+Alloy copies a bounded subset to Grafana Cloud (stack `smadja`) for agents.
+Local Prometheus and Loki stay the full-fidelity store.
+
+- Metrics: `prometheus.scrape "grafana_cloud_federate"` reads the local
+  Prometheus `/federate` with an explicit `match[]` allowlist (nodes, pods,
+  workloads, PVC, `up`, firing `ALERTS`, Argo CD, CNPG, Velero, Longhorn,
+  cert-manager, ARC). `sample_limit = 8000` rejects a whole scrape above
+  the free-tier budget. Label `cluster="homelab"`.
+- Logs: warning/error lines of the allowlisted namespaces, and Kubernetes
+  events of type `Warning`. Ceilings: 5 lines/s (burst 200) for pods, 2
+  lines/s (burst 100) for events. Label `cluster="homelab"`. The local
+  SparkyFitness and noise filters run before the export.
+- Credentials: Secret `alloy-grafana-cloud` (ExternalSecret, Doppler
+  `cluster/prd`), write-only token. Egress: `alloy-grafana-cloud-egress`.
+- Budget check (runtime): `count({cluster="homelab"})` in Grafana Cloud
+  stays below 8,000.
