@@ -1,3 +1,14 @@
+# PLT-306: pod-level hardening required by k8s/CLAUDE.md.
+global:
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 473
+    runAsGroup: 473
+    fsGroup: 473
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
 alloy:
   enableReporting: false
   stabilityLevel: generally-available
@@ -13,13 +24,18 @@ alloy:
       port: 4318
       targetPort: 4318
       protocol: TCP
+  # PLT-306: Grafana Cloud push contract. Not optional: while the Secret is
+  # absent, the new pod waits and the running pod keeps the local pipelines.
+  envFrom:
+    - secretRef:
+        name: alloy-grafana-cloud
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 192Mi
     limits:
       cpu: 300m
-      memory: 384Mi
+      memory: 512Mi
   securityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
@@ -136,7 +152,7 @@ alloy:
             source  = "kubernetes",
           }
         }
-        forward_to = [loki.write.local.receiver]
+        forward_to = [loki.write.local.receiver, loki.process.grafana_cloud_pods.receiver]
       }
 
       loki.source.kubernetes_events "events" {
@@ -151,12 +167,179 @@ alloy:
             source  = "kubernetes-events",
           }
         }
-        forward_to = [loki.write.local.receiver]
+        forward_to = [loki.write.local.receiver, loki.process.grafana_cloud_events.receiver]
       }
 
       loki.write "local" {
         endpoint {
           url = "http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+        }
+      }
+
+      // ---------------------------------------------------------------------
+      // PLT-306: Grafana Cloud export, read by agents (stack smadja).
+      // Budget: free tier. Metrics < 8,000 active series (per-scrape cap below),
+      // logs = warning/error lines of key namespaces only, rate-limited.
+      // Credentials: Secret alloy-grafana-cloud (ExternalSecret, Doppler
+      // cluster/prd, written by homelab-infra terraform/grafana-cloud).
+      // ---------------------------------------------------------------------
+
+      // Metrics: federate an explicit allowlist from the existing Prometheus.
+      // No second collection of kubelet/cAdvisor/kube-state-metrics.
+      prometheus.scrape "grafana_cloud_federate" {
+        job_name        = "grafana-cloud-federate"
+        targets         = [{"__address__" = "kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"}]
+        metrics_path    = "/federate"
+        honor_labels    = true
+        scrape_interval = "60s"
+        scrape_timeout  = "30s"
+        // Per-scrape cap: a federate response above 8,000 samples is
+        // rejected whole. It bounds each scrape, not active series over
+        // time (series churn); the runtime budget check stays the authority
+        // (docs/operations/telemetry-policy.md).
+        sample_limit    = 8000
+        params          = {
+          "match[]" = [
+            // Nodes
+            "kube_node_status_condition{status=\"true\"}",
+            "kube_node_spec_unschedulable",
+            "instance:node_cpu_utilisation:rate5m",
+            "instance:node_memory_utilisation:ratio",
+            "instance:node_load1_per_cpu:ratio",
+            "node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay|squashfs|ramfs\"}",
+            "node_filesystem_size_bytes{fstype!~\"tmpfs|overlay|squashfs|ramfs\"}",
+            // Pods and workloads
+            "kube_pod_status_ready{condition=\"true\"}",
+            "kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"}",
+            "kube_pod_container_status_restarts_total",
+            "kube_pod_container_status_waiting_reason",
+            "kube_pod_container_status_last_terminated_reason",
+            "kube_deployment_status_replicas_unavailable",
+            "kube_statefulset_status_replicas_ready",
+            "kube_statefulset_replicas",
+            "kube_daemonset_status_number_unavailable",
+            "kube_persistentvolumeclaim_status_phase{phase=~\"Pending|Lost\"}",
+            "kubelet_volume_stats_available_bytes",
+            "kubelet_volume_stats_capacity_bytes",
+            // Scrape health and firing alerts
+            "up",
+            "ALERTS{alertstate=\"firing\"}",
+            // Argo CD
+            "argocd_app_info",
+            // CNPG (backup, WAL archiving, replication)
+            "cnpg_collector_up",
+            "cnpg_collector_last_available_backup_timestamp",
+            "cnpg_collector_last_failed_backup_timestamp",
+            "cnpg_pg_stat_archiver_last_archived_time",
+            "cnpg_pg_stat_archiver_last_failed_time",
+            "cnpg_pg_replication_lag",
+            "cnpg_pg_replication_in_recovery",
+            // Velero and Longhorn backups
+            "velero_backup_last_successful_timestamp",
+            "velero_backup_last_status",
+            "velero_backup_failure_total",
+            "velero_backup_partial_failure_total",
+            "longhorn_volume_robustness",
+            "longhorn_backup_state",
+            // cert-manager
+            "certmanager_certificate_ready_status{condition=\"True\"}",
+            "certmanager_certificate_expiration_timestamp_seconds",
+            // ARC (empty until listener metrics are scraped)
+            "{__name__=~\"gha_(assigned_jobs|running_jobs|registered_runners|busy_runners|idle_runners)\"}",
+          ],
+        }
+        forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+      }
+
+      prometheus.remote_write "grafana_cloud" {
+        external_labels = {
+          cluster = "homelab",
+        }
+        endpoint {
+          url = sys.env("GRAFANA_CLOUD_PROMETHEUS_URL")
+          basic_auth {
+            username = sys.env("GRAFANA_CLOUD_PROMETHEUS_USERNAME")
+            password = sys.env("GRAFANA_CLOUD_WRITE_TOKEN")
+          }
+        }
+      }
+
+      // Logs: warning/error lines of system and key application namespaces.
+      loki.process "grafana_cloud_pods" {
+        stage.match {
+          selector = `{namespace!~"kube-system|argocd|cert-manager|external-secrets|cnpg-system|velero|longhorn-system|monitoring|arc-systems|auth|matrix|immich|hindsight-personal|home-assistant|paperless|invoice-ninja|media|gateway|cloudflared"}`
+          action   = "drop"
+          drop_counter_reason = "grafana_cloud_namespace_not_allowlisted"
+        }
+        // A line whose parsed severity field (logfmt or JSON `level`) is
+        // info/debug/trace is dropped even if its message contains "error".
+        // The field is parsed, so text inside msg or another key never
+        // overrides the actual level.
+        stage.logfmt {
+          mapping = { "severity" = "level" }
+        }
+        stage.json {
+          expressions = { severity = "level", pg_severity = "record.error_severity" }
+        }
+        // CNPG/PostgreSQL JSON logs carry level=info with the real severity
+        // in record.error_severity (ERROR, FATAL, WARNING...): it wins.
+        // The chart renders this content with Helm tpl, so the Go template
+        // delimiters of stage.template are escaped for Helm.
+        stage.template {
+          source   = "effective_severity"
+          template = `{{ "{{" }} if .pg_severity {{ "}}" }}{{ "{{" }} .pg_severity {{ "}}" }}{{ "{{" }} else {{ "}}" }}{{ "{{" }} .severity {{ "}}" }}{{ "{{" }} end {{ "}}" }}`
+        }
+        stage.drop {
+          source              = "effective_severity"
+          expression          = "(?i)^(info|debug[1-5]?|trace|log|notice)$"
+          drop_counter_reason = "grafana_cloud_low_severity_field"
+        }
+        stage.match {
+          selector = `{namespace=~".+"} !~ "(?i)(level=\"?(warn|warning|error|err|fatal|crit|critical|panic)|\"level\":\"(warn|warning|error|fatal|critical|panic)\"|\\b(WARN|WARNING|ERROR|FATAL|CRITICAL|PANIC)\\b|^[EW][0-9]{4} )"`
+          action   = "drop"
+          drop_counter_reason = "grafana_cloud_below_warning"
+        }
+        // Ceiling: 5 lines/s sustained, burst 200 (~13 GB/month at 1 KB/line).
+        stage.limit {
+          rate  = 5
+          burst = 200
+          drop  = true
+        }
+        stage.static_labels {
+          values = {
+            cluster = "homelab",
+          }
+        }
+        forward_to = [loki.write.grafana_cloud.receiver]
+      }
+
+      // Kubernetes events: Warning type only.
+      loki.process "grafana_cloud_events" {
+        stage.match {
+          selector = `{source="kubernetes-events"} !~ "type=Warning"`
+          action   = "drop"
+          drop_counter_reason = "grafana_cloud_event_not_warning"
+        }
+        stage.limit {
+          rate  = 2
+          burst = 100
+          drop  = true
+        }
+        stage.static_labels {
+          values = {
+            cluster = "homelab",
+          }
+        }
+        forward_to = [loki.write.grafana_cloud.receiver]
+      }
+
+      loki.write "grafana_cloud" {
+        endpoint {
+          url = sys.env("GRAFANA_CLOUD_LOKI_URL")
+          basic_auth {
+            username = sys.env("GRAFANA_CLOUD_LOKI_USERNAME")
+            password = sys.env("GRAFANA_CLOUD_WRITE_TOKEN")
+          }
         }
       }
 
@@ -190,7 +373,8 @@ controller:
   volumes:
     extra:
       - name: alloy-storage
-        emptyDir: {}
+        emptyDir:
+          sizeLimit: 256Mi
 
 rbac:
   create: false
@@ -204,3 +388,12 @@ serviceMonitor:
   enabled: true
   additionalLabels:
     release: kube-prometheus-stack
+
+configReloader:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 50Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi

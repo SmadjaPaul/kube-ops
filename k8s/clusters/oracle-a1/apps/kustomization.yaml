@@ -10,6 +10,8 @@ kind: Kustomization
 # PLT-301 : cert-manager (vague -1) et le plugin barman-cloud (vague 1) sont
 # actifs : sans données, prérequis de toute sauvegarde CNPG vers R2.
 # hindsight.yaml reste hors de la racine jusqu'au drill de PLT-301.
+# PLT-306 : observability.yaml reste hors de la racine jusqu'à PLT-253
+# (bootstrap OKE) et aux clés Doppler GRAFANA_CLOUD_*.
 resources:
   - guardrails.yaml
   - external-secrets.yaml

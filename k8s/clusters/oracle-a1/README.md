@@ -14,6 +14,7 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster recovered from the homelab R2 archive, Hindsight API. Out of the root until the drill. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
 | `media/` | Overlay on the shared `applications/media/{polyfin,aiostreams}` bases. |
+| `observability/` | Grafana Cloud export (PLT-306): kube-state-metrics with a metric allowlist and one Alloy, label `cluster=oracle-a1`, write token `GRAFANA_CLOUD_ORACLE_A1_WRITE_TOKEN`. Out of the root until PLT-253; no egress policy (flannel does not enforce NetworkPolicy). |
 
 Prerequisites outside Git (bootstrap steps, none blocks the static manifests):
 - The OKE cluster (homelab-infra#330, Basic, `FLANNEL_OVERLAY`, pods `10.244.0.0/16`,
