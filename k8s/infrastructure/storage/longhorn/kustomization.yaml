@@ -15,6 +15,7 @@ resources:
   - recurring-job.yaml
   - recurring-job-default-group.yaml
   - immich-redis-recurring-job.yaml
+  - pv-cleanup-b8.yaml
 
 helmCharts:
   - name: longhorn

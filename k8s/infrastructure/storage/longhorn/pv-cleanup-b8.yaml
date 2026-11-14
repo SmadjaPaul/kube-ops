@@ -1,0 +1,539 @@
+# One-shot cleanup batch b8 (Paul 13/11, PLT-94/PLT-46, volumes abandonnes : anciens PV authentik-restored-1/-wal, sparkyfitness-db-1, executor): exact-name PV + Longhorn volumes.
+# Old PVs whose claimRef.uid no longer matches the live PVCs of the same name; live PVCs untouched. Removed by a follow-up PR. backoffLimit 0: guards are not replayable after the PV delete.
+# kubectl image is distroless (no shell): guards are kubectl waits that fail the Job.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pv-cleanup-b8
+  namespace: longhorn-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pv-cleanup-b8
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumes
+  resourceNames:
+  - pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+  - pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+  - pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+  - pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pv-cleanup-b8
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pv-cleanup-b8
+subjects:
+- kind: ServiceAccount
+  name: pv-cleanup-b8
+  namespace: longhorn-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pv-cleanup-b8
+  namespace: longhorn-system
+rules:
+- apiGroups:
+  - longhorn.io
+  resources:
+  - volumes
+  resourceNames:
+  - pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+  - pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+  - pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+  - pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pv-cleanup-b8
+  namespace: longhorn-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pv-cleanup-b8
+subjects:
+- kind: ServiceAccount
+  name: pv-cleanup-b8
+  namespace: longhorn-system
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pv-cleanup-b8
+  namespace: longhorn-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pv-cleanup-b8
+    spec:
+      serviceAccountName: pv-cleanup-b8
+      restartPolicy: Never
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+      - name: guard-pv-released
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.status.phase}=Released
+        - --timeout=60s
+        - pv/pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+        - pv/pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+        - pv/pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+        - pv/pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-handle-authentik
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.csi.volumeHandle}=pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+        - --timeout=60s
+        - pv/pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-claim-authentik
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.name}=authentik-postgresql-restored-1
+        - --timeout=60s
+        - pv/pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-uid-authentik
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.uid}=994f98ea-4974-47e0-a83e-ba285a295e0b
+        - --timeout=60s
+        - pv/pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-handle-authentik-wal
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.csi.volumeHandle}=pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+        - --timeout=60s
+        - pv/pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-claim-authentik-wal
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.name}=authentik-postgresql-restored-1-wal
+        - --timeout=60s
+        - pv/pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-uid-authentik-wal
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.uid}=af862e58-67ba-4260-b20d-ac931c20d6cb
+        - --timeout=60s
+        - pv/pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-handle-sparkyfitness
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.csi.volumeHandle}=pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+        - --timeout=60s
+        - pv/pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-claim-sparkyfitness
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.name}=sparkyfitness-db-1
+        - --timeout=60s
+        - pv/pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-uid-sparkyfitness
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.uid}=347aff51-c65a-4cac-a73d-c4a6d95be820
+        - --timeout=60s
+        - pv/pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-handle-executor
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.csi.volumeHandle}=pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+        - --timeout=60s
+        - pv/pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-claim-executor
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.name}=data-executor-0
+        - --timeout=60s
+        - pv/pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-uid-executor
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.spec.claimRef.uid}=dee0d6ef-edab-493b-bb94-56a2c98c9716
+        - --timeout=60s
+        - pv/pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: guard-longhorn-detached
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - wait
+        - --for=jsonpath={.status.state}=detached
+        - --timeout=60s
+        - -n
+        - longhorn-system
+        - volumes.longhorn.io/pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+        - volumes.longhorn.io/pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+        - volumes.longhorn.io/pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+        - volumes.longhorn.io/pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      - name: delete-pv
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - delete
+        - pv
+        - pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+        - pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+        - pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+        - pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      containers:
+      - name: delete-longhorn-volumes
+        image: registry.k8s.io/kubectl:v1.36.3@sha256:6e4fce3c83651edb91b74bc67701c5cd263dd8aa3cd4254b1798d6425a5ab789
+        args:
+        - delete
+        - -n
+        - longhorn-system
+        - volumes.longhorn.io
+        - pvc-994f98ea-4974-47e0-a83e-ba285a295e0b
+        - pvc-af862e58-67ba-4260-b20d-ac931c20d6cb
+        - pvc-347aff51-c65a-4cac-a73d-c4a6d95be820
+        - pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716
+        env:
+        - name: HOME
+          value: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 16Mi
