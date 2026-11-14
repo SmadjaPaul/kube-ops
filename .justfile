@@ -53,6 +53,8 @@ check:
     bash tests/harness/d-recovery-contract-test.sh
     bash tests/agent-guard/agent-operator-identity-test.sh
     bash tests/harness/cnpg-cluster-allowlist-test.sh
+    bash tests/harness/verify-delivery-test.sh
+    bash tests/harness/scaffold-oke-app-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:
@@ -116,3 +118,11 @@ docs-check:
 [doc('Build the Docusaurus site with broken links rejected by configuration')]
 docs-build:
     cd website && npm run build
+
+[doc('Post-merge PASS/FAIL for one app on one cluster (homelab|oracle-a1) from Grafana Cloud, no cluster access')]
+verify-delivery CLUSTER APP *ARGS:
+    bash scripts/verify-delivery.sh "{{CLUSTER}}" "{{APP}}" {{ARGS}}
+
+[doc('Deliver a shared base on oracle-a1: overlay + Application + root entry; BASE_REL is under k8s/applications')]
+scaffold-oke-app BASE_REL NAME NAMESPACE:
+    bash scripts/scaffold-oke-app.sh "{{BASE_REL}}" "{{NAME}}" "{{NAMESPACE}}"

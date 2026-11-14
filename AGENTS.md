@@ -18,7 +18,7 @@ This file → one skill from the table → only the application or infrastructur
 |---|---|
 | unfamiliar repository | `.agents/skills/repo-navigation` |
 | add or retire a service | `docs/operations/service-onboarding.md` |
-| Argo sync/health | `.agents/skills/argocd-debug` |
+| Argo sync/health; deliver on homelab or oracle-a1 | `.agents/skills/argocd-debug` |
 | Kubernetes workload failure | `.agents/skills/kubernetes-debug` |
 | runtime or post-merge proof | `.agents/skills/runtime-observer` |
 | Cilium policy drops | `.agents/skills/cilium-hubble` |
@@ -33,6 +33,7 @@ This file → one skill from the table → only the application or infrastructur
 ## Command surface
 
 - `just check`: canonical gate for every desired-state change. Run `kustomize build --enable-helm` on each changed path.
+- `just verify-delivery CLUSTER APP`: post-merge PASS/FAIL from Grafana Cloud for `homelab` or `oracle-a1`; `just scaffold-oke-app`: OKE overlay + Application.
 - `just inventory`: Git-only active imports and dormant candidates (not runtime evidence).
 - `just kube-access-check`, `just runtime-inventory`, `just runtime-smoke`, `just status-app <app>`, `just diagnose-app <app>`, `just backup-audit`, `just e2e-list`.
 - `bash scripts/kubectl-ro.sh <get|describe|logs|top|events|api-resources|version> ...`: read-only kubectl; `get --raw` admits the Prometheus/Loki query APIs.

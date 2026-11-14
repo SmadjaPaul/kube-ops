@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Contract test of scripts/scaffold-oke-app.sh on a scratch copy of the tree layout.
+set -euo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-oke-test.XXXXXX")"; trap 'rm -rf "$tmp"' EXIT
+mkdir -p "$tmp/k8s/applications/tools/ok" "$tmp/k8s/applications/tools/data" "$tmp/k8s/clusters/oracle-a1/apps"
+printf 'resources: []\n' >"$tmp/k8s/applications/tools/ok/kustomization.yaml"
+cp "$tmp/k8s/applications/tools/ok/kustomization.yaml" "$tmp/k8s/applications/tools/data/"
+printf 'kind: PersistentVolumeClaim\n' >"$tmp/k8s/applications/tools/data/pvc.yaml"
+printf 'resources:\n  - gatus.yaml\n' >"$tmp/k8s/clusters/oracle-a1/apps/kustomization.yaml"
+s() { SCAFFOLD_ROOT="$tmp" bash "$repo_root/scripts/scaffold-oke-app.sh" "$@"; }
+s tools/ok ok ok-ns >/dev/null
+grep -q 'path: k8s/clusters/oracle-a1/ok$' "$tmp/k8s/clusters/oracle-a1/apps/ok.yaml"
+grep -q '^  - ok.yaml$' "$tmp/k8s/clusters/oracle-a1/apps/kustomization.yaml"
+grep -q 'applications/tools/ok$' "$tmp/k8s/clusters/oracle-a1/ok/kustomization.yaml"
+if s tools/ok ok ok-ns 2>/dev/null; then echo 'FAIL: duplicate accepted'; exit 1; fi
+if s tools/data data data-ns 2>/dev/null; then echo 'FAIL: data base accepted'; exit 1; fi
+[[ ! -e $tmp/k8s/clusters/oracle-a1/data ]]
+if s ../x x x 2>/dev/null; then echo 'FAIL: traversal accepted'; exit 1; fi
+echo "scaffold-oke-app contract test: PASS"
