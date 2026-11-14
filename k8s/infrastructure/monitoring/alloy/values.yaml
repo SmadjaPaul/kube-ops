@@ -271,11 +271,19 @@ alloy:
           action   = "drop"
           drop_counter_reason = "grafana_cloud_namespace_not_allowlisted"
         }
-        // A line with an explicit low severity field is dropped even if its
-        // message contains "error" (e.g. level=info msg="... without error").
-        stage.match {
-          selector            = `{namespace=~".+"} |~ "(?i)(level=\"?(info|debug|trace)\\b|\"level\":\"(info|debug|trace)\")"`
-          action              = "drop"
+        // A line whose parsed severity field (logfmt or JSON `level`) is
+        // info/debug/trace is dropped even if its message contains "error".
+        // The field is parsed, so text inside msg or another key never
+        // overrides the actual level.
+        stage.logfmt {
+          mapping = { "severity" = "level" }
+        }
+        stage.json {
+          expressions = { severity = "level" }
+        }
+        stage.drop {
+          source              = "severity"
+          expression          = "(?i)^(info|debug|trace)$"
           drop_counter_reason = "grafana_cloud_low_severity_field"
         }
         stage.match {
