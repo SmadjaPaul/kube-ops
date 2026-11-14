@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Candidate only. The infrastructure ApplicationSet does not reference this
-# directory until the ARC App scope and zero-to-one-to-zero runtime test pass.
+# Active: the infrastructure ApplicationSet references this directory
+# (k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml) and syncs it from main.
 resources:
   - runner-application.yaml
   - egress-networkpolicy.yaml
@@ -10,3 +10,4 @@ resources:
   - polyfin-oci-networkpolicy.yaml
   - hetzner-object-storage-networkpolicy.yaml
   - grafana-cloud-networkpolicy.yaml
+  - netbird-networkpolicy.yaml
