@@ -20,6 +20,8 @@ Vision and active cross-repo decisions live in `homelab-infra`: [charter](https:
 
 For a task read: this file → one relevant skill under `.agents/skills/` → only the application/infrastructure subtree being changed. Use `just inventory` before crawling the repository.
 
+Agent memory is a separate step, in addition to the task skill: when the `hindsight` MCP server is configured, apply `.agents/skills/agent-memory` at ticket start (recall) and ticket end (retain).
+
 ## Skill routing
 
 | Task | Entry skill |

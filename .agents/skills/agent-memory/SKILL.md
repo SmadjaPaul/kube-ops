@@ -40,9 +40,15 @@ If the fact contradicts `docs/decisions.md`, the file wins: write a ticket, not 
 
 ## Client configuration (after activation)
 
-Values come from Doppler (names only): `APP_HINDSIGHT_MCP_API_KEY` and the
-Cloudflare Access service token pair named in the activation ticket. Export
-them as environment variables; never write them in a file.
+Export these environment variables from Doppler (names only, never write a
+value in a file):
+
+| Client variable | Doppler source |
+|---|---|
+| `HINDSIGHT_MCP_URL` | `https://memory.<domain>` (not secret; PLT-304) |
+| `HINDSIGHT_API_KEY` | `cluster/prd` `APP_HINDSIGHT_MCP_API_KEY` |
+| `CF_ACCESS_CLIENT_ID` | `infrastructure/prd` `HINDSIGHT_CF_ACCESS_CLIENT_ID` |
+| `CF_ACCESS_CLIENT_SECRET` | `infrastructure/prd` `HINDSIGHT_CF_ACCESS_CLIENT_SECRET` |
 
 Claude Code (`.mcp.json` or `claude mcp add`):
 
