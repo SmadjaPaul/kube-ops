@@ -16,7 +16,14 @@ assert_scope() {
 assert_scope 'k8s/infrastructure/network/policies/auth,k8s/optional/sparkyfitness' $'k8s/optional/sparkyfitness/networkpolicy.yaml\nk8s/infrastructure/network/policies/auth/allow-authentik-access.yaml'
 assert_scope 'k8s/applications/media' 'k8s/applications/media/polyfin/networkpolicy.yaml'
 assert_scope all 'k8s/infrastructure/controllers/argocd/kustomization.yaml'
-assert_scope all 'docs/unknown-scope.md'
+assert_scope all 'unknown-scope/file.txt'
+# PLT CI ciblée : chemins sans effet sur le rendu -> rendu de fumée seul.
+assert_scope k8s/infrastructure/network/policies/auth 'docs/operations/anything.md'
+assert_scope k8s/infrastructure/network/policies/auth $'.agents/skills/x/SKILL.md\nk8s/clusters/oracle-a1/README.md'
+# Un chemin de rendu mélangé à un chemin neutre garde le rendu ciblé.
+assert_scope k8s/applications/media $'docs/a.md\nk8s/applications/media/x/y.yaml'
+# Un chemin hors liste mélangé à un chemin neutre reste complet.
+assert_scope all $'docs/a.md\nscripts/foo.sh'
 assert_scope all ''
 
 missing_ref_scope="$(GITHUB_EVENT_NAME=pull_request GITHUB_BASE_SHA=missing GITHUB_HEAD_SHA=missing bash "$selector")"
