@@ -114,8 +114,10 @@ Local Prometheus and Loki stay the full-fidelity store.
   Prometheus `/federate` with an explicit `match[]` allowlist (nodes, pods,
   workloads, PVC, `up`, firing `ALERTS`, Argo CD, CNPG, Velero, Longhorn,
   cert-manager, ARC). `sample_limit = 8000` rejects a whole scrape above
-  the free-tier budget. Label `cluster="homelab"`.
-- Logs: warning/error lines of the allowlisted namespaces, and Kubernetes
+  8,000 samples; it does not bound series churn over time, so the runtime
+  budget check below is the authority. Label `cluster="homelab"`.
+- Logs: warning/error lines of the allowlisted namespaces (a line with an
+  explicit `info`/`debug`/`trace` level field is dropped first), and Kubernetes
   events of type `Warning`. Ceilings: 5 lines/s (burst 200) for pods, 2
   lines/s (burst 100) for events. Label `cluster="homelab"`. The local
   SparkyFitness and noise filters run before the export.

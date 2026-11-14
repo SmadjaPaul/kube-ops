@@ -178,7 +178,7 @@ alloy:
 
       // ---------------------------------------------------------------------
       // PLT-306: Grafana Cloud export, read by agents (stack smadja).
-      // Budget: free tier. Metrics < 8,000 active series (hard cap below),
+      // Budget: free tier. Metrics < 8,000 active series (per-scrape cap below),
       // logs = warning/error lines of key namespaces only, rate-limited.
       // Credentials: Secret alloy-grafana-cloud (ExternalSecret, Doppler
       // cluster/prd, written by homelab-infra terraform/grafana-cloud).
@@ -193,8 +193,10 @@ alloy:
         honor_labels    = true
         scrape_interval = "60s"
         scrape_timeout  = "30s"
-        // Hard cap: a scrape above this count is rejected whole, so a
-        // cardinality regression never reaches Grafana Cloud.
+        // Per-scrape cap: a federate response above 8,000 samples is
+        // rejected whole. It bounds each scrape, not active series over
+        // time (series churn); the runtime budget check stays the authority
+        // (docs/operations/telemetry-policy.md).
         sample_limit    = 8000
         params          = {
           "match[]" = [
@@ -268,6 +270,13 @@ alloy:
           selector = `{namespace!~"kube-system|argocd|cert-manager|external-secrets|cnpg-system|velero|longhorn-system|monitoring|arc-systems|auth|matrix|immich|hindsight-personal|home-assistant|paperless|invoice-ninja|media|gateway|cloudflared"}`
           action   = "drop"
           drop_counter_reason = "grafana_cloud_namespace_not_allowlisted"
+        }
+        // A line with an explicit low severity field is dropped even if its
+        // message contains "error" (e.g. level=info msg="... without error").
+        stage.match {
+          selector            = `{namespace=~".+"} |~ "(?i)(level=\"?(info|debug|trace)\\b|\"level\":\"(info|debug|trace)\")"`
+          action              = "drop"
+          drop_counter_reason = "grafana_cloud_low_severity_field"
         }
         stage.match {
           selector = `{namespace=~".+"} !~ "(?i)(level=\"?(warn|warning|error|err|fatal|crit|critical|panic)|\"level\":\"(warn|warning|error|fatal|critical|panic)\"|\\b(WARN|WARNING|ERROR|FATAL|CRITICAL|PANIC)\\b|^[EW][0-9]{4} )"`
