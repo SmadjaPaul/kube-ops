@@ -8,8 +8,6 @@ resources:
   - mastra-factory
   - mastra-sandbox
   - matrix
-  # PLT-248: temporary isolated R2 restore drill, removed by PR after proof.
-  - ../../optional/matrix-mas-drill
   - rustical-pilot
   # PLT-237: write RoleBindings of the agent-operator identity (scope.tsv).
   - agent-operator-access
