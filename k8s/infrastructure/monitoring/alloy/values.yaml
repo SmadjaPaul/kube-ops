@@ -279,11 +279,19 @@ alloy:
           mapping = { "severity" = "level" }
         }
         stage.json {
-          expressions = { severity = "level" }
+          expressions = { severity = "level", pg_severity = "record.error_severity" }
+        }
+        // CNPG/PostgreSQL JSON logs carry level=info with the real severity
+        // in record.error_severity (ERROR, FATAL, WARNING...): it wins.
+        // The chart renders this content with Helm tpl, so the Go template
+        // delimiters of stage.template are escaped for Helm.
+        stage.template {
+          source   = "effective_severity"
+          template = `{{ "{{" }} if .pg_severity {{ "}}" }}{{ "{{" }} .pg_severity {{ "}}" }}{{ "{{" }} else {{ "}}" }}{{ "{{" }} .severity {{ "}}" }}{{ "{{" }} end {{ "}}" }}`
         }
         stage.drop {
-          source              = "severity"
-          expression          = "(?i)^(info|debug|trace)$"
+          source              = "effective_severity"
+          expression          = "(?i)^(info|debug[1-5]?|trace|log|notice)$"
           drop_counter_reason = "grafana_cloud_low_severity_field"
         }
         stage.match {

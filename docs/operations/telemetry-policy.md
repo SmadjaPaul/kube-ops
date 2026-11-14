@@ -117,7 +117,7 @@ Local Prometheus and Loki stay the full-fidelity store.
   8,000 samples; it does not bound series churn over time, so the runtime
   budget check below is the authority. Label `cluster="homelab"`.
 - Logs: warning/error lines of the allowlisted namespaces (a line with an
-  parsed `level` field (logfmt or JSON) of `info`/`debug`/`trace` is dropped first), and Kubernetes
+  parsed `level` field (logfmt or JSON; for CNPG JSON `record.error_severity` wins) of `info`/`debug`/`trace`/`log`/`notice` is dropped first), and Kubernetes
   events of type `Warning`. Ceilings: 5 lines/s (burst 200) for pods, 2
   lines/s (burst 100) for events. Label `cluster="homelab"`. The local
   SparkyFitness and noise filters run before the export.
