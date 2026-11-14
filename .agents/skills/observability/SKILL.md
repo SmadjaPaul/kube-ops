@@ -88,6 +88,11 @@ sum by (cluster, namespace, pod, phase) (min_over_time(kube_pod_status_phase{pha
   (`grafana_cloud_federate`), oracle-a1 `k8s/clusters/oracle-a1/observability/alloy-values.yaml`.
   A missing series is a collection gap, not a healthy state.
 - Logs below warning, and namespaces outside the homelab allowlist, are not exported.
-- oracle-a1 has no node CPU/memory usage series.
+- oracle-a1 has no node CPU/memory usage series, and does not export
+  `ALERTS`, `velero_*`, `longhorn_*` or `kubelet_volume_stats_*`: these
+  queries return no oracle-a1 results.
+- Log rate limits drop lines above the ceiling (homelab: pods 5 lines/s,
+  burst 200; events 2/s, burst 100; oracle-a1: 2/s and 1/s). During an
+  incident, use local Loki for the complete history.
 - This is evidence level RUNTIME for the observed signal only; it does not
   prove Git reconciliation or user paths.
