@@ -46,4 +46,4 @@ jobs:
             --author "$PR_AUTHOR" \
             --head-repo "$PR_HEAD_REPO" \
             --head-ref "refs/remotes/origin/pr-${PR_NUMBER}" \
-            || echo "::warning title=workflow-integrity (rapport)::Changement de chemins protégés sans admission. Non bloquant (D-2026-11-14-02)."
+            || echo "::warning title=workflow-integrity (rapport)::La vérification a échoué (voir le journal ci-dessus). Non bloquant (D-2026-11-14-02)."
