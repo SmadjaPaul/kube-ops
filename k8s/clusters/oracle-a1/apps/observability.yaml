@@ -1,0 +1,23 @@
+# PLT-306 tranche 3. Kept out of apps/kustomization.yaml until the OKE
+# bootstrap (PLT-253) and the Doppler keys GRAFANA_CLOUD_* exist.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: oracle-a1
+  source:
+    repoURL: https://github.com/SmadjaPaul/kube-ops.git
+    targetRevision: main
+    path: k8s/clusters/oracle-a1/observability
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
