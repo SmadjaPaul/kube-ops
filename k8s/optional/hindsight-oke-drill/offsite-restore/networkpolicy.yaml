@@ -1,0 +1,34 @@
+# Deny-all except DNS, R2 and the CNPG operator status port (lesson PLT-249).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: hindsight-oke-drill
+  namespace: hindsight-oke-drill
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: hindsight-oke-drill
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+            app.kubernetes.io/name: cloudnative-pg
+      toPorts:
+        - ports: [{port: "8000", protocol: TCP}]
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: hindsight-oke-drill
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports: [{port: "53", protocol: TCP}, {port: "53", protocol: UDP}]
+    - toEntities: [kube-apiserver]
+    - toFQDNs:
+        - matchPattern: "*.eu.r2.cloudflarestorage.com"
+        - matchPattern: "homelab-backup-cnpg.*.eu.r2.cloudflarestorage.com"
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
