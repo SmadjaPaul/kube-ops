@@ -10,3 +10,4 @@ resources:
   - polyfin-oci-networkpolicy.yaml
   - hetzner-object-storage-networkpolicy.yaml
   - grafana-cloud-networkpolicy.yaml
+  - netbird-networkpolicy.yaml
