@@ -28,4 +28,5 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: matrix-mas-clean-hetzner-store
+      # PLT-248: base backups follow the WAL archive to R2.
+      barmanObjectName: matrix-mas-clean-r2-store
