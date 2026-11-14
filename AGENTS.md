@@ -25,6 +25,7 @@ This file → one skill from the table → only the application or infrastructur
 | OIDC/Authentik | `.agents/skills/oidc-integration` |
 | backup/restore | `.agents/skills/backup-restore` |
 | incident triage | `.agents/skills/sre-triage` |
+| cluster state from Grafana Cloud (homelab, oracle-a1) | `.agents/skills/observability` |
 | ticket start/end memory (Hindsight MCP configured) | `.agents/skills/agent-memory` |
 
 `.agents/` is the single agent knowledge tree; Claude reaches it through the `.claude/skills` symlink.
