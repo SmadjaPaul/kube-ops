@@ -18,8 +18,8 @@ the series.
   (service account `agent-read`, role Viewer, owner homelab-infra
   `terraform/grafana-cloud`). Inject it with
   `bash scripts/doppler-safe.sh run -- <cmd>`; never print it.
-- Prometheus: `/api/datasources/proxy/uid/grafanacloud-smadja-prom/api/v1/query`
-- Loki: `/api/datasources/proxy/uid/grafanacloud-smadja-logs/loki/api/v1/query_range`
+- Prometheus: `/api/datasources/proxy/uid/grafanacloud-prom/api/v1/query`
+- Loki: `/api/datasources/proxy/uid/grafanacloud-logs/loki/api/v1/query_range`
 - If a UID is wrong, list names and UIDs only:
   `/api/datasources` piped to `jq -r '.[]|.uid+" "+.type'`.
 
@@ -31,7 +31,7 @@ through stdin (`-H @-`), so the token is not in curl's argument list:
 bash scripts/doppler-safe.sh run -- bash -c '
   set -eo pipefail
   q() { printf "Authorization: Bearer %s\n" "$GRAFANA_AGENT_READ_TOKEN" | curl -fsS -G -H @- \
-    "https://smadja.grafana.net/api/datasources/proxy/uid/grafanacloud-smadja-prom/api/v1/query" \
+    "https://smadja.grafana.net/api/datasources/proxy/uid/grafanacloud-prom/api/v1/query" \
     --data-urlencode "query=$1" | jq -c ".data.result[]|[.metric,.value[1]]"; }
   q "count by (cluster) (up == 1)"
   q "count by (cluster, alertname) (ALERTS{alertstate=\"firing\"})"'
