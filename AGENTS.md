@@ -34,6 +34,7 @@ Agent memory is a separate step, in addition to the task skill: when the `hindsi
 | OIDC/Auth | `.agents/skills/oidc-integration` |
 | backup/restore | `.agents/skills/backup-restore` |
 | incident triage | `.agents/skills/sre-triage` |
+| cluster state from Grafana Cloud (homelab, oracle-a1) | `.agents/skills/observability` |
 | ticket start/end memory (Hindsight) | `.agents/skills/agent-memory` |
 
 `.agents/` is the single shared agent knowledge tree. Do not create parallel Codex/OpenCode prompt trees. Claude discovers them through a `skills` symlink in the Claude config directory.
