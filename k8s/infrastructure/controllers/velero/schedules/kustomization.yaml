@@ -30,3 +30,5 @@ resources:
   - daily-matrix.yaml
   - daily-aiostreams.yaml
   - daily-librechat.yaml
+  - daily-rustical-pilot.yaml
+  - daily-sparkyfitness.yaml
