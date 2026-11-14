@@ -26,7 +26,7 @@ SELECT 'acl_md5=' || md5(string_agg(concat_ws(':', c.relname, c.relkind, pg_get_
          '|' ORDER BY c.relname))
   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
  WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p', 'v', 'm', 'S');
-SELECT 'routine_acl_md5=' || coalesce(md5(string_agg(concat_ws(':', p.oid::regprocedure::text, pg_get_userbyid(p.proowner), coalesce(p.proacl::text, 'default')),
+SELECT 'routine_acl_md5=' || coalesce(md5(string_agg(concat_ws(':', p.oid::regprocedure::text, pg_get_userbyid(p.proowner), p.prosecdef, coalesce(p.proacl::text, 'default')),
          '|' ORDER BY p.oid::regprocedure::text)), 'none')
   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public';
 SELECT 'database_acl=' || pg_get_userbyid(datdba) || ':' || coalesce(datacl::text, 'default')
