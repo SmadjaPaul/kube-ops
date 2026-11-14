@@ -23,12 +23,12 @@ the series.
 - If a UID is wrong, list names and UIDs only:
   `/api/datasources` piped to `jq -r '.[]|.uid+" "+.type'`.
 
-Run queries in the child shell that receives the token; `pipefail` makes a
-failed request fail instead of printing nothing:
+Run queries in the child shell that receives the token; `set -eo pipefail`
+stops at the first failed request instead of printing nothing:
 
 ```bash
 bash scripts/doppler-safe.sh run -- bash -c '
-  set -o pipefail
+  set -eo pipefail
   q() { curl -fsS -G -H "Authorization: Bearer $GRAFANA_AGENT_READ_TOKEN" \
     "https://smadja.grafana.net/api/datasources/proxy/uid/grafanacloud-smadja-prom/api/v1/query" \
     --data-urlencode "query=$1" | jq -c ".data.result[]|[.metric,.value[1]]"; }
@@ -55,7 +55,7 @@ bash scripts/doppler-safe.sh run -- bash -c '
 | Node not Ready | `kube_node_status_condition{condition="Ready",status="true"} == 0` |
 | Node pressure | `kube_node_status_condition{condition=~".*Pressure",status="true"} == 1` |
 | Pods not ready | `sum by (cluster, namespace, pod) (kube_pod_status_ready{condition="true"}) == 0` |
-| Pods Pending/Failed/Unknown for 15 min | `sum by (cluster, namespace, pod, phase) (min_over_time(kube_pod_status_phase{phase=~"Pending|Failed|Unknown"}[15m])) > 0` |
+| Pods Pending/Failed/Unknown for 15 min | `sum by (cluster, namespace, pod, phase) (min_over_time(kube_pod_status_phase{phase=~"Pending\|Failed\|Unknown"}[15m])) > 0` |
 | Waiting reasons | `count by (cluster, namespace, reason) (kube_pod_container_status_waiting_reason)` |
 | Restarts (1h) | `topk(10, increase(kube_pod_container_status_restarts_total[1h]) > 0)` |
 | Argo not Synced/Healthy | `count by (cluster, name, sync_status, health_status) (argocd_app_info{sync_status!="Synced"} or argocd_app_info{health_status!="Healthy"})` |
