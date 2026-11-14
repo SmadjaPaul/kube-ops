@@ -89,5 +89,8 @@ jobs:
       - name: Validate Longhorn off-site PVC and retired Atlantis recovery volume contract
         run: bash tests/harness/longhorn-offsite-pvc-contract-test.sh
 
+      - name: Validate agent-operator identity contract
+        run: bash tests/agent-guard/agent-operator-identity-test.sh
+
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh
