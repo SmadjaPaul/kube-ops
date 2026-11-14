@@ -165,6 +165,11 @@ alloy:
 
       loki.process "pods" {
         stage.match {
+          selector            = `{namespace=~".+"} |~ "(?i)(level=\"?(info|debug|trace)\\b|\"level\":\"(info|debug|trace)\")"`
+          action              = "drop"
+          drop_counter_reason = "grafana_cloud_low_severity_field"
+        }
+        stage.match {
           selector            = `{namespace=~".+"} !~ "(?i)(level=\"?(warn|warning|error|err|fatal|crit|critical|panic)|\"level\":\"(warn|warning|error|fatal|critical|panic)\"|\\b(WARN|WARNING|ERROR|FATAL|CRITICAL|PANIC)\\b|^[EW][0-9]{4} )"`
           action              = "drop"
           drop_counter_reason = "grafana_cloud_below_warning"

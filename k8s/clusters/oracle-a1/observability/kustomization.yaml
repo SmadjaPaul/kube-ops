@@ -36,3 +36,14 @@ patches:
       - op: add
         path: /spec/template/spec/hostIPC
         value: false
+  # The chart always appends its default clusterRules (nodes, nodes/metrics,
+  # /metrics). Alloy uses only pod discovery, pod logs and events: replace the
+  # rendered rules with that read scope.
+  - target: {group: rbac.authorization.k8s.io, version: v1, kind: ClusterRole, name: alloy}
+    patch: |-
+      - op: replace
+        path: /rules
+        value:
+          - apiGroups: [""]
+            resources: ["pods", "pods/log", "namespaces", "events"]
+            verbs: ["get", "list", "watch"]
