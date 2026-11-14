@@ -7,9 +7,14 @@ kind: Kustomization
 # PLT-254 : cloudflared.yaml reste hors de la racine tant que le tunnel et son
 # token Doppler n'existent pas (wave 1 sans token : le health check de la racine
 # bloquerait ntfy, wave 2, et gatus, wave 3).
+# PLT-301 : cert-manager (vague 0) et le plugin barman-cloud (vague 1) sont
+# actifs : sans données, prérequis de toute sauvegarde CNPG vers R2.
+# hindsight.yaml reste hors de la racine jusqu'au drill de PLT-301.
 resources:
   - guardrails.yaml
   - external-secrets.yaml
+  - cert-manager.yaml
   - cnpg-operator.yaml
+  - cnpg-barman-plugin.yaml
   - ntfy.yaml
   - gatus.yaml

@@ -1,0 +1,53 @@
+# PLT-301: Hindsight API on Oracle. Same chart and version as the homelab
+# (k8s/optional/personal-ai-2026/hindsight/application.yaml). The image index
+# ghcr.io/vectorize-io/hindsight-api:1.2.1 publishes linux/arm64 (registry
+# index checked 2026-11-14).
+version: 1.2.1
+existingSecret: hindsight-runtime
+podSecurityContext:
+  seccompProfile: {type: RuntimeDefault}
+securityContext:
+  seccompProfile: {type: RuntimeDefault}
+api:
+  enabled: true
+  replicaCount: 1
+  automountServiceAccountToken: false
+  env:
+    # Direct provider (no Agentgateway on Oracle). Same model as the homelab
+    # route factory/fast. One concurrent call bounds the cost.
+    HINDSIGHT_API_LLM_PROVIDER: openai
+    HINDSIGHT_API_LLM_BASE_URL: https://api.minimax.io/v1
+    HINDSIGHT_API_LLM_MODEL: MiniMax-M2.7
+    HINDSIGHT_API_LLM_MAX_CONCURRENT: "1"
+    HINDSIGHT_API_EMBEDDINGS_PROVIDER: local
+    HINDSIGHT_API_EMBEDDINGS_LOCAL_MODEL: BAAI/bge-small-en-v1.5
+    HINDSIGHT_API_ENABLE_BANK_CONFIG_API: "false"
+    HINDSIGHT_API_MENTAL_MODEL_MIN_REFRESH_INTERVAL_SECONDS: "86400"
+    HINDSIGHT_API_REFLECT_DEFAULT_OPTIONS: '{"reflect_search_observations_max_tokens":3000}'
+    # Every API and MCP call needs "Authorization: Bearer <key>"; the key
+    # (HINDSIGHT_API_TENANT_API_KEY) comes from hindsight-runtime. This
+    # extension uses schema public, where the restored banks live.
+    HINDSIGHT_API_TENANT_EXTENSION: hindsight_api.extensions.builtin.tenant:ApiKeyTenantExtension
+    HF_HUB_OFFLINE: "true"
+    TRANSFORMERS_OFFLINE: "true"
+  persistence:
+    modelCache:
+      enabled: false
+  resources:
+    requests: {cpu: 25m, memory: 768Mi}
+    limits: {cpu: "1", memory: 2Gi}
+  startupProbe:
+    httpGet: {path: /health/live, port: 8888}
+    periodSeconds: 10
+    failureThreshold: 60
+worker: {enabled: false}
+controlPlane: {enabled: false}
+postgresql:
+  enabled: false
+  external:
+    host: hindsight-db-rw.hindsight.svc.cluster.local
+    port: 5432
+    database: hindsight
+    username: hindsight
+ingress: {enabled: false}
+gatewayApi: {enabled: false}

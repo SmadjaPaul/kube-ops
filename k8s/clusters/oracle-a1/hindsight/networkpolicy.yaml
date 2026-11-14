@@ -1,0 +1,41 @@
+# PLT-301: intent, NOT enforced today. OKE runs flannel, which ignores
+# NetworkPolicy (k8s/clusters/oracle-a1/README.md). The policy documents the
+# expected flows and becomes active with an enforcing CNI (PLT-258).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hindsight
+  namespace: hindsight
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {}
+    # Cloudflare Tunnel origin (prepared, the public hostname is not active).
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: cloudflared}
+      ports:
+        - {port: 8888, protocol: TCP}
+    # CNPG operator status endpoint.
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: cnpg-system}
+      ports:
+        - {port: 8000, protocol: TCP}
+  egress:
+    - to:
+        - podSelector: {}
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports:
+        - {port: 53, protocol: UDP}
+        - {port: 53, protocol: TCP}
+    # Kubernetes API (CNPG instance manager) and HTTPS egress: R2 and the LLM
+    # provider. No FQDN filtering without Cilium.
+    - ports:
+        - {port: 443, protocol: TCP}
+        - {port: 6443, protocol: TCP}

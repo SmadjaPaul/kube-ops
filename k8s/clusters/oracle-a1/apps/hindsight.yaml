@@ -1,0 +1,25 @@
+# PLT-301: kept OUT of apps/kustomization.yaml. The drill sub-issue adds it to
+# the Oracle root; see README.md, section Hindsight.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hindsight
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: oracle-a1
+  source:
+    repoURL: https://github.com/SmadjaPaul/kube-ops.git
+    targetRevision: main
+    path: k8s/clusters/oracle-a1/hindsight
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hindsight
+  syncPolicy:
+    # prune false: a sync never deletes the CNPG Cluster, its PVC or the
+    # ObjectStores (same rule as the homelab personal-hindsight Application).
+    automated: {prune: false, selfHeal: true}
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
