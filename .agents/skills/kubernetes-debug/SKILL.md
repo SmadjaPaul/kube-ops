@@ -7,4 +7,4 @@ description: Diagnose CrashLoopBackOff, ImagePullBackOff, readiness, PVC, Servic
 
 For HTTP failures inspect: HTTPRoute Accepted/ResolvedRefs -> Service selector/port -> EndpointSlice ready endpoints -> Pod readiness -> logs.
 For startup compare Kubernetes command/args with the image OCI ENTRYPOINT/CMD before adding shell wrappers.
-Read Secret names/references only. Never print Secret data. Fix desired state in Git; a reversible imperative action (restart, scale, rollout) on a reconstructible workload is allowed per AGENTS.md Safety, verified at runtime and reconciled into Git (write identity: PLT-237, read-only until deployed).
+Read Secret names and references only. Fix desired state in Git. A reversible action (restart, scale, rollout) on a reconstructible workload goes through `scripts/kubectl-rw.sh` per AGENTS.md Safety.
