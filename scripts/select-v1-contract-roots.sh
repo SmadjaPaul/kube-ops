@@ -20,7 +20,8 @@ fi
 [[ -n "$changed_files" ]] || { echo all; exit 0; }
 
 # Render-neutral paths cannot change any kustomize output: the owner admission
-# registry is data read only by the trusted workflow-integrity gate. A PR made
+# registry (data read only by the trusted workflow-integrity gate), the
+# documentation tree, agent skills and k8s/clusters. A PR made
 # only of such paths renders exactly what main already validated, so it gets
 # the smallest active root as a toolchain smoke render (PLT-210). Any other
 # path, known or unknown, keeps its scoped or complete render.
@@ -32,6 +33,14 @@ while IFS= read -r path; do
   [[ -n "$path" ]] || continue
   case "$path" in
     .github/workflow-integrity-admissions.json)
+      neutral=true
+      ;;
+    # Documentation, agent skills and the OKE/Oracle cluster tree are not
+    # sources of any active V1 root: no kustomize root references them (checked
+    # by grep, see the PR that introduced this case). The global invariants and
+    # the documentation checks still run in full; only the remote-chart render
+    # is reduced to the smoke root.
+    docs/*|website/*|.agents/*|k8s/clusters/*)
       neutral=true
       ;;
     .github/*|AGENTS.md|README.md|package.json|package-lock.json|\
