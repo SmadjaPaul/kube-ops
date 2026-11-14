@@ -47,6 +47,16 @@ critical alerts after a future reviewed activation.
 - Check `alertmanager_notifications_failed_total` and alert deliveries/suppression; ensure no webhook 401/403/timeouts. If any fail, revert the receiver change; do not expose topics publicly.
 - Link the receiving subscription to a human with authenticated **read** rights; the publisher's write-only ACL cannot subscribe to read the topic.
 
+## PLT-263 dead-man switch (Watchdog -> Healthchecks.io -> ntfy)
+
+Staged in the same dormant files. Operator prerequisites (Paul, PLT-262): create the
+Healthchecks.io account/project and store the API key in Doppler as `HEALTHCHECKS_API_KEY`;
+OpenTofu (homelab-infra, `kristofferahl/healthchecksio`) then creates the check (period 5m,
+grace 5m, ntfy integration) and writes its ping URL to Doppler `HEALTHCHECKS_WATCHDOG_PING_URL`.
+Activation PR: add the ExternalSecrets to the Kustomization, merge the receiver block into
+`values.yaml`, then test by scaling Alertmanager to 0 (announced window): phone notification
+< 10 min, then `resolved` after restoring it. Archive the timestamps in PLT-263.
+
 ## Security and availability caveats
 
 - Alerts sent in HTTP POST bodies are **cleartext inside Kubernetes**, protected by namespace/Cilium policy. Use the internal Service; review whether messages contain sensitive annotations. If transport confidentiality is a requirement, configure verified TLS without relaxing certificate validation.
