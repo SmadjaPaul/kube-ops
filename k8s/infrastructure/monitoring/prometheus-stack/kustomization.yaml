@@ -8,6 +8,7 @@ resources:
   - prometheus-http-route.yaml
   - grafana-catalog.yaml
   - grafana-resource-efficiency.yaml
+  - nvme-endurance-rules.yaml
 
 patches:
   - path: kube-apiserver-cardinality-patch.json
@@ -16,6 +17,15 @@ patches:
       version: v1
       kind: ServiceMonitor
       name: kube-prometheus-stack-apiserver
+  # PLT-212 lot 1: appended to the chart's cAdvisor relabelings (values would
+  # replace the chart defaults). The test ops fail the build if the chart
+  # reorders endpoints instead of silently patching the wrong one.
+  - path: kubelet-cardinality-patch.json
+    target:
+      group: monitoring.coreos.com
+      version: v1
+      kind: ServiceMonitor
+      name: kube-prometheus-stack-kubelet
 
 helmCharts:
   - name: kube-prometheus-stack

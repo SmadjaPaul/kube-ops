@@ -3,6 +3,10 @@ kind: Cluster
 metadata:
   name: mastra-factory-postgresql
   namespace: mastra-factory
+  annotations:
+    # PLT-246: rolling restart (same mechanism as `kubectl cnpg restart`) so the
+    # barman sidecar picks up the environment added to mastra-factory-hetzner-store.
+    kubectl.kubernetes.io/restartedAt: "2026-11-13T19:30:00Z"
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7
@@ -12,11 +16,19 @@ spec:
       owner: mastra
       postInitApplicationSQL:
         - CREATE EXTENSION IF NOT EXISTS vector
+  # PLT-246: a Cluster has a single WAL archiver; the archive moved from
+  # mastra-factory-hetzner-store to mastra-factory-r2-store (database-r2.yaml).
+  # Rollback of the archive destination only (healthy database, R2 archiving
+  # failing): point barmanObjectName back to mastra-factory-hetzner-store and take
+  # a new base backup there; do NOT restore, nothing is lost. Hetzner base
+  # 20261113T193506 (backupID, never "latest") is reserved for database recovery
+  # (homelab-infra docs/operations/r2-migration.md); writes made after the cutover
+  # only have their WAL on R2, so such a recovery needs the R2 WAL too.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: mastra-factory-hetzner-store
+        barmanObjectName: mastra-factory-r2-store
   storage:
     size: 20Gi
     storageClass: longhorn-bulk

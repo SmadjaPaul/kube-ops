@@ -14,12 +14,18 @@ kubeProxy:
 # Longhorn Prometheus PVC and instance-manager CPU 0.26 -> 2.4 cores. No
 # repository dashboard/rule consumes apiserver_request:burnrate*, and the SLO
 # alerts (KubeAPIErrorBudgetBurn) only read those recordings while Alertmanager
-# has no receiver. Raw apiserver metrics stay scraped. Revert both to true to
-# restore them (then raise Prometheus memory first).
+# has no receiver. Raw apiserver metrics stay scraped.
+# PLT-208 (2026-11-13): #1256 validated at runtime (instance-manager night CPU
+# 0.32-0.42 cores, PVC reads 365 -> 0 MB/s). Prometheus memory is raised
+# (limit 1Gi -> 2Gi; working set peaked at 1007 MiB pinned at the old limit,
+# now ~780 MiB) and ONLY the burn-rate group is re-enabled. Availability and
+# SLO groups stay off (30d windows vs 10d retention, no consumer). Rollback
+# criteria: rule evaluation > 30s, working set > 1.6Gi or PVC reads > 50 MB/s
+# -> set kubeApiserverBurnrate back to false.
 defaultRules:
   rules:
     kubeApiserverAvailability: false
-    kubeApiserverBurnrate: false
+    kubeApiserverBurnrate: true
     kubeApiserverSlos: false
 
 # Edge/single-node budget: apiserver exposes ~68k series and accounts for
@@ -37,6 +43,12 @@ kubeApiServer:
 grafana:
   serviceMonitor:
     interval: 60s
+    # PLT-212 lot 1: no dashboard, rule or alert reads Grafana's own histograms
+    # (~3.7k series). Counters/gauges, go_* and process_* stay scraped.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "grafana_.*_bucket|grafana_feature_toggles_info"
   # The chart's full default catalogue is not the operational interface. The
   # curated ConfigMaps in grafana-catalog.yaml retain the useful signals while
   # keeping upstream metrics, rules and alerting untouched.
@@ -114,6 +126,26 @@ kube-state-metrics:
     monitor:
       http:
         interval: 45s
+  # PLT-212 lot 1: families with no consumer in live rules or in the repo
+  # (rules, dashboards, scripts). kube_replicaset_owner, kube_pod_status_*
+  # used by alerts and kube_pod_container_status_* stay exported.
+  metricDenylist:
+    - kube_pod_status_scheduled
+    - kube_pod_status_scheduled_time
+    - kube_pod_status_qos_class
+    - kube_pod_tolerations
+    - kube_pod_service_account
+    - kube_pod_scheduler
+    - kube_pod_restart_policy
+    - kube_pod_created
+    - kube_replicaset_created
+    - kube_replicaset_metadata_generation
+    - kube_replicaset_spec_replicas
+    - kube_replicaset_status_fully_labeled_replicas
+    - kube_replicaset_status_observed_generation
+    - kube_replicaset_status_ready_replicas
+    - kube_replicaset_status_replicas
+    - kube_replicaset_status_terminating_replicas
 
 kubeStateMetrics:
   resources:
@@ -130,11 +162,18 @@ kubelet:
     # 30s preserves the existing metric families and 5m rule/dashboard
     # windows while halving cAdvisor's scrape frequency.
     cAdvisorInterval: 30s
+    # PLT-212 lot 1: kubelet probe latency histograms (~3.5k series) have no
+    # consumer. prober_probe_total (probe failures) stays scraped. The cAdvisor
+    # drops live in kubelet-cardinality-patch.json (chart defaults preserved).
+    probesMetricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "prober_probe_duration_seconds_bucket"
 
 prometheusOperator:
   resources:
     requests:
-      cpu: 100m
+      cpu: 25m
       memory: 128Mi
     limits:
       cpu: 200m
@@ -150,10 +189,9 @@ prometheus:
     # 464 GiB available at capture time. 20Gi leaves operational headroom while
     # retentionSize=14GB bounds TSDB growth below the PVC capacity; re-evaluate
     # after a full week of persisted history.
-    # Migration gate: the current live TSDB is emptyDir. The first StatefulSet
-    # replacement will lose that ephemeral history because this PR does not
-    # migrate it. Merge/reconcile requires explicit operator acceptance of that
-    # history loss; no PVC or existing backup is deleted by this change.
+    # Migration done: the live TSDB is on PVC prometheus-...-db-...-0
+    # (longhorn-fast, 20Gi, Bound since 2026-10-22, verified 2026-11-14), so a
+    # pod replacement keeps the history.
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -169,7 +207,8 @@ prometheus:
     # node_exporter on a private LAN endpoint, firewall-restricted to the
     # Talos monitoring traffic. No exporter is installed by this repo change.
     # Never expose unauthenticated node_exporter through Cloudflare.
-    # Default collectors read kernel counters/hwmon; no SMART polling.
+    # Default collectors read kernel counters/hwmon; NVMe health comes from the
+    # host textfile collector (nvme_*, read-only smart-log, PLT-216); no smartctl.
     additionalScrapeConfigs:
       - job_name: proxmox-host
         scrape_interval: 30s
@@ -188,11 +227,11 @@ prometheus:
             prometheus: k8s
     resources:
       requests:
-        cpu: 100m
-        memory: 512Mi
+        cpu: 200m
+        memory: 1Gi
       limits:
         cpu: 1000m
-        memory: 1Gi
+        memory: 2Gi
   podDisruptionBudget:
     enabled: false
     minAvailable: 1
@@ -212,6 +251,17 @@ alertmanager:
       minAvailable: 1
 
 prometheus-node-exporter:
+  # PLT-212 lot 1: ~150 Cilium lxc* host-side veths x ~30 node_network_*
+  # families (~4k series) duplicate per-pod cAdvisor network metrics. Physical
+  # (eth0), cilium_* and lo interfaces stay exported; the chart's *_excluding_
+  # virtual recordings only ever looked at non-veth devices.
+  # Helm replaces list values: the chart's two filesystem exclusions are
+  # repeated here verbatim (kube-prometheus-stack 88.3.0 defaults).
+  extraArgs:
+    - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run/containerd/.+|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|erofs)$
+    - --collector.netdev.device-exclude=^lxc.*$
+    - --collector.netclass.ignored-devices=^lxc.*$
   tolerations:
     - key: "gpu"
       operator: "Equal"

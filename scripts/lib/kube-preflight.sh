@@ -39,7 +39,22 @@ _kube_access_blocked() {
 _materialize_canonical_operator_kubeconfig() {
   local project="${KUBE_ACCESS_DOPPLER_PROJECT:-infrastructure}"
   local config="${KUBE_ACCESS_DOPPLER_CONFIG:-prd}"
+  # PLT-237: KUBERNETES_AGENT_OPERATOR_KUBECONFIG selects the limited agent
+  # identity (scripts/kubectl-rw.sh); the default stays the operator copy.
+  local secret="${KUBE_ACCESS_KUBECONFIG_SECRET:-KUBERNETES_OPERATOR_KUBECONFIG}"
   local kubeconfig expected actual
+
+  case "$secret" in
+    KUBERNETES_OPERATOR_KUBECONFIG|KUBERNETES_AGENT_OPERATOR_KUBECONFIG) ;;
+    *)
+      _kube_access_blocked \
+        canonical_kubeconfig_secret_not_allowed \
+        no \
+        no \
+        USE_KUBERNETES_OPERATOR_KUBECONFIG_OR_KUBERNETES_AGENT_OPERATOR_KUBECONFIG
+      return
+      ;;
+  esac
 
   if ! command -v doppler >/dev/null 2>&1; then
     _kube_access_blocked \
@@ -63,7 +78,7 @@ _materialize_canonical_operator_kubeconfig() {
   KUBE_ACCESS_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/kube-ops-operator-access.XXXXXX")"
   kubeconfig="$KUBE_ACCESS_TMPDIR/kubeconfig"
 
-  if ! doppler secrets get KUBERNETES_OPERATOR_KUBECONFIG \
+  if ! doppler secrets get "$secret" \
     --project "$project" --config "$config" --plain >"$kubeconfig" 2>/dev/null; then
     kube_access_cleanup
     _kube_access_blocked \
@@ -76,7 +91,7 @@ _materialize_canonical_operator_kubeconfig() {
   chmod 600 "$kubeconfig"
 
   if ! expected="$(
-    doppler secrets get KUBERNETES_OPERATOR_KUBECONFIG_SHA256 \
+    doppler secrets get "${secret}_SHA256" \
       --project "$project" --config "$config" --plain 2>/dev/null
   )" || [[ -z "$expected" ]]; then
     kube_access_cleanup
@@ -110,7 +125,11 @@ _materialize_canonical_operator_kubeconfig() {
 
   export KUBECONFIG="$kubeconfig"
   export KUBE_ACCESS_CANONICALIZED=yes
-  export KUBE_ACCESS_SOURCE=doppler_operator_distribution
+  if [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG ]]; then
+    export KUBE_ACCESS_SOURCE=doppler_agent_operator_distribution
+  else
+    export KUBE_ACCESS_SOURCE=doppler_operator_distribution
+  fi
 
   # Most callers have no EXIT trap. Callers that install their own trap after
   # this function must append kube_access_cleanup to that trap.

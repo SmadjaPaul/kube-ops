@@ -31,7 +31,7 @@ INFRA = {
     "argocd", "atlantis-apps", "atlantis-system", "auth", "cert-manager", "cilium-secrets", "cloudflared",
     "cnpg-system", "csi-proxmox", "external-dns-private", "external-secrets", "falco", "gatekeeper-system",
     "gateway", "keda", "kube-system", "kubearmor", "kubechecks", "kubelet-serving-cert-approver", "kyverno",
-    "longhorn-system", "metrics-server", "monitoring", "node-feature-discovery", "openclaw-operator-system",
+    "longhorn-system", "metrics-server", "monitoring", "node-feature-discovery",
     "reloader", "security-system", "trivy-system", "velero", "vertical-pod-autoscaler", "argo-rollouts-demo",
 }
 D06 = ("D-06 : contrôleur à retirer sur preuve (coût mesuré, consommateur réel) ou à justifier",)
@@ -52,7 +52,6 @@ MAP = {
     "karakeep": ("IRR?", "GARDER", "marque-pages ; à confirmer"),
     "vikunja": ("IRR?", "GARDER", "tâches ; à confirmer"),
     "auth": ("IRR", "GARDER", "Authentik = autorité d'identité"),
-    "openclaw-operator-system": ("REC", "GARDER", "opérateur OpenClaw (pilote agents, D-08)"),
     # --- reconstructibles utiles
     "mqtt": ("REC", "GARDER", "bus domotique ; cible N100 (D-11, proposée)"),
     "ntfy": ("REC", "GARDER", "notifications"),

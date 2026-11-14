@@ -21,17 +21,22 @@ spec:
         createrole: true
   # Barman plugin activation is required: ObjectStore + ScheduledBackup alone
   # do not enable WAL archiving or base backups on this Cluster.
+  # PLT-221: CNPG accepts a single WAL archiver per Cluster, so this R2 pilot
+  # switches the archive from sparkyfitness-hetzner-store to
+  # sparkyfitness-r2-store (backup-r2.yaml). Rollback: point
+  # barmanObjectName back to sparkyfitness-hetzner-store, then take a new
+  # base backup there (homelab-infra docs/operations/r2-migration.md).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: sparkyfitness-hetzner-store
+        barmanObjectName: sparkyfitness-r2-store
   storage:
     storageClass: longhorn-bulk
     size: 5Gi
   resources:
     requests:
-      cpu: 100m
+      cpu: 25m
       memory: 256Mi
     limits:
       memory: 1Gi

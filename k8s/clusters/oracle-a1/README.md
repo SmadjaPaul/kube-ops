@@ -6,7 +6,8 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | Path | Role |
 | --- | --- |
 | `bootstrap/` | One-time operator `kustomize build --enable-helm k8s/clusters/oracle-a1/bootstrap \| kubectl apply --server-side -f -` (re-run once for CRD establishment): Argo CD, AppProject `oracle-a1`, root Application. Not synced by any Argo CD. |
-| `apps/` | Root Application target (the only path it reads): child Applications, ordered by sync-wave. |
+| `apps/` | Root Application target (the only path it reads): child Applications, ordered by sync-wave. `cnpg-cluster` and `media` are kept out of `apps/kustomization.yaml` until PLT-190 (backup + restore proven off Oracle). |
+| `guardrails/` | Cost guardrail (PLT-260): ValidatingAdmissionPolicy denying every Service `type: LoadBalancer` (Always Free; the OCI LB quota is set to zero in `terraform/oracle-a1`). |
 | `external-secrets/` | Overlay on the shared ESO + `ClusterSecretStore/doppler-cluster` base. |
 | `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster. One `Database` + role per application. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
@@ -17,7 +18,7 @@ Prerequisites outside Git (bootstrap steps, none blocks the static manifests):
   services `10.245.0.0/16`) and its `oci-bv` StorageClass; volumes are 50 Gi, the
   OCI block volume minimum (PLT-183).
 - The `doppler-access-token` Secret in `external-secrets` (created by the operator on
-  the Oracle cluster, never committed). Not existing yet: the cluster does not exist.
+  the Oracle cluster, never committed). Created by the operator on the Oracle cluster once it is reachable; its presence is runtime evidence, not asserted by this file.
 - Doppler `cluster/prd` keys `ORACLE_A1_POSTGRES_PASSWORD` and
   `ORACLE_A1_CLOUDFLARE_TUNNEL_TOKEN`: both MISSING when checked (names only).
   Already present: `APP_POLYFIN_SECRET_KEY`, `APP_AIOSTREAMS_SECRET_KEY`,

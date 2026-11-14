@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# PLT-237 : identité agent-operator (RBAC + garde-fou d'admission).
+# Les RoleBindings par namespace sont dans
+# k8s/applications/platform/agent-operator-access (projet Argo « applications »).
+resources:
+  - identity.yaml
+  - rbac.yaml
+  - validatingadmissionpolicy.yaml

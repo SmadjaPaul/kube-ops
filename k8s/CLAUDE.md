@@ -3,7 +3,7 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 <Global_rules>
 - Use subagents when possible to save context.
 - Prefer to use skills when relevant.
-- Apply all cluster changes through GitOps and Argo CD unless the user approves manual kustomize and kubectl.
+- Apply durable cluster changes through GitOps and Argo CD. Imperative kubectl is allowed per operation inside the admitted scope defined in AGENTS.md Safety (runtime verification and same-day Git reconciliation required; write identity from PLT-237, read-only default until deployed).
 - Always explicitly set pod spec hostNetwork false, hostPID false, hostIPC false; pod securityContext runAsNonRoot true, runAsUser, runAsGroup, fsGroup, fsGroupChangePolicy OnRootMismatch; container securityContext allowPrivilegeEscalation false, readOnlyRootFilesystem true, capabilities.drop ["ALL"]; and container resources cpu/memory requests and limits, even with custom values.
   - Note: hostNetwork, hostPID, and hostIPC are pod spec fields, not PodSecurityContext fields.
 - Workloads must specify limits for emptyDir and all resource volumes.
@@ -40,12 +40,13 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 - Avoid wildcard DNS certificates.
 </k8s_network>
 <k8s_backup>
-- Use Velero with Kopia filesystem backups; targets Hetzner Object Storage (https://fsn1.your-objectstorage.com).
+- Use Velero with Kopia filesystem backups; the default BackupStorageLocation `r2` targets Cloudflare R2 bucket homelab-backup-velero under prefix `velero/` (the bucket root also holds archive/hetzner-legacy/, never move it) (decision PLT-219/PLT-222, 12/11/2026). The Hetzner BSL `default` is ReadOnly (old backups stay restorable, nothing is deleted until a separate decision). Longhorn's single backup target is R2 bucket homelab-backup-longhorn (old Longhorn backups stay in the Hetzner bucket, prefix `longhorn/`).
 - Use Velero restore before PV retain recovery; use PV retain recovery when Velero restore fails.
 </k8s_backup>
 <k8s_cnpg>
 - Use ObjectStore CRD with barman-cloud plugin only.
-- Continuous WAL and base backups target Hetzner Object Storage; do not reintroduce MinIO or Backblaze B2.
+- Continuous WAL and base backups are migrating from Hetzner Object Storage to Cloudflare R2 bucket homelab-backup-cnpg (decision PLT-219, runbook homelab-infra docs/operations/r2-migration.md), one Cluster at a time; do not reintroduce MinIO or Backblaze B2.
+- A migrated Cluster points plugins barmanObjectName and its ScheduledBackup to an R2 ObjectStore with the per-bucket writer identity, endpoint from Doppler R2_S3_ENDPOINT, and AWS_REQUEST_CHECKSUM_CALCULATION and AWS_RESPONSE_CHECKSUM_VALIDATION set to when_required; keep its Hetzner ObjectStore as rollback target until an R2 restore is proven.
 - Set plugin isWALArchiver true.
 - Use ScheduledBackup method plugin with pluginConfiguration name barman-cloud.cloudnative-pg.io.
 </k8s_cnpg>
@@ -72,7 +73,7 @@ Homelab GitOps monorepo built on Talos Kubernetes with Argo CD, OpenTofu, custom
 <k8s_media>
 - Media PVCs use longhorn-fast or longhorn-bulk on the V1 single-node topology; no NFS, no TrueNAS.
 - Avoid introducing NFS merely to preserve an upstream RWX shape; revisit cross-node storage when the topology does.
-- Velero/Kopia backs up media state to Hetzner Object Storage; do not back up large media libraries as Kubernetes volumes.
+- Velero/Kopia backs up media state to Cloudflare R2; do not back up large media libraries as Kubernetes volumes.
 </k8s_media>
 
 <k8s_games>

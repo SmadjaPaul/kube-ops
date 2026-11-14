@@ -3,7 +3,6 @@
 #   .claude/settings.json + .claude/hooks/secret-output-guard.py (PreToolUse hook)
 #   scripts/doppler-safe.sh + scripts/lib/doppler-mask.py (fake doppler)
 #   scripts/kubectl-ro.sh refusals (before any cluster access) and the --raw metrics allowlist
-#   scripts/night-relay/kube-status.sh classification (fake preflight library)
 # No network, no real doppler/kubectl: fakes on PATH record forbidden calls.
 # Usage: bash tests/agent-guard/secret-output-guard-test.sh
 # shellcheck disable=SC2016,SC2015 # literal commands under test; ok() never fails
@@ -87,7 +86,6 @@ git commit -m 'doc: ne jamais lancer doppler secrets get ni printenv'
 gh pr create --body "interdit : printenv, doppler secrets delete, kubectl get secret -o yaml"
 cat > notes.md <<'X'\nNe pas lancer `doppler secrets get X` ni printenv\nX
 env | cut -d= -f1
-env -i HOME=/tmp bash scripts/night-relay/kube-status.sh
 set -euo pipefail; ls
 kubectl get secrets -n argocd
 kubectl describe secret foo
@@ -217,44 +215,6 @@ for args in "get pods -A -o wide" "get pods -nmonitoring -owide" "get secret -on
   PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" $args >/dev/null 2>&1; rc=$?
   [ "$rc" = 0 ] && [ -f "$WORK/raw-args" ] && ok "kubectl-ro autorise : $args" || ko "kubectl-ro refuse à tort : $args ($rc)"
 done
-
-# --- 6. kube-status.sh: one non-sensitive line per case (fake preflight libraries)
-mklib() { # mklib NAME RC LINES...
-  local f="$WORK/lib-$1.sh" rc=$2; shift 2
-  { echo 'kube_access_cleanup() { :; }'
-    echo 'require_kube_access() {'
-    for l in "$@"; do echo "  echo '$l' >&2"; done
-    echo "  echo 'secret-ish noise $SENTINEL' >&2"
-    echo "  return $rc; }"; } >"$f"
-  echo "$f"
-}
-check_status() { # check_status DESC EXPECTED LIB
-  local out
-  out=$(KUBE_STATUS_LIB="$3" PATH="$WORK/bin:$PATH" bash "$ROOT/scripts/night-relay/kube-status.sh")
-  [ "$out" = "$2" ] && ! grep -q "$SENTINEL" <<<"$out" && ok "kube-status $1 : $out" || ko "kube-status $1 ($out)"
-}
-pass_lib="$WORK/lib-pass.sh"
-printf '%s\n' 'kube_access_cleanup() { :; }' \
-  'require_kube_access() { printf "KUBE_ACCESS=PASS\nCLUSTER_VERSION=v1.36.3\n"; }' >"$pass_lib"
-check_status pass "disponible (cluster v1.36.3)" "$pass_lib"
-check_status doppler "indisponible (auth_doppler_absente : doppler_not_authenticated)" \
-  "$(mklib doppler 2 KUBE_ACCESS=BLOCKED REASON=doppler_not_authenticated)"
-check_status mismatch "indisponible (credential_canonique_invalide : canonical_operator_integrity_mismatch)" \
-  "$(mklib mismatch 2 KUBE_ACCESS=BLOCKED REASON=canonical_operator_integrity_mismatch)"
-check_status api "indisponible (api_inaccessible : api_unreachable)" \
-  "$(mklib api 2 KUBE_ACCESS=BLOCKED REASON=api_unreachable)"
-check_status missing "indisponible (outil_manquant : kube_preflight_missing)" "$WORK/absent.sh"
-# rejected credential: the probe sees an auth error through the (fake) kubectl
-cat >"$WORK/bin/kubectl" <<'EOF'
-#!/bin/sh
-echo "error: You must be logged in to the server (Unauthorized)" >&2; exit 1
-EOF
-chmod +x "$WORK/bin/kubectl"
-touch "$WORK/kubeconfig"
-rej="$WORK/lib-rejected.sh"
-printf '%s\n' 'kube_access_cleanup() { :; }' \
-  "require_kube_access() { export KUBECONFIG=$WORK/kubeconfig; printf 'KUBE_ACCESS=BLOCKED\nREASON=api_unreachable\n' >&2; return 2; }" >"$rej"
-check_status rejected "indisponible (credential_rejete : api_unreachable)" "$rej"
 
 echo "# $PASS ok, $FAIL échec(s)"
 [ "$FAIL" = 0 ]

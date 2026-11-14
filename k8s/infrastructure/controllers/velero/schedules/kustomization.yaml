@@ -15,7 +15,6 @@ resources:
   - daily-executor.yaml
   - daily-pinepods.yaml
   - daily-mqtt.yaml
-  - daily-zigbee2mqtt.yaml
   - daily-gpt-researcher.yaml
   - daily-opencode.yaml
   - daily-trilium.yaml

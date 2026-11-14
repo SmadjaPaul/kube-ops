@@ -4,6 +4,8 @@ resources:
   - namespace.yaml
   - database.yaml
   - backup.yaml
+  - backup-r2.yaml
+  - backup-r2-initial.yaml
   - externalsecret.yaml
   - deployment.yaml
   - service-route.yaml

@@ -57,7 +57,9 @@ while IFS= read -r path; do
       roots[k8s/applications/media]=1
       ;;
     k8s/applications/games/romm/*)
-      roots[k8s/applications/games/romm]=1
+      # RomM is rendered by the games root (the only active games component);
+      # games/romm alone is not an active V1 root (PLT-228).
+      roots[k8s/applications/games]=1
       ;;
     k8s/applications/*/*)
       roots[k8s/applications/$(cut -d/ -f3 <<<"$path")]=1

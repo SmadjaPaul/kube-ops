@@ -6,7 +6,7 @@ deployNodeAgent: true
 snapshotsEnabled: false
 initContainers:
   - name: velero-plugin-for-aws
-    image: velero/velero-plugin-for-aws:v1.14.1
+    image: velero/velero-plugin-for-aws:v1.14.4
     imagePullPolicy: IfNotPresent
     volumeMounts:
       - mountPath: /target
@@ -29,6 +29,12 @@ configuration:
   uploaderConfig:
     # Keep WAN pressure and local disk contention bounded on the single node.
     parallelFilesUpload: 2
+  # R2 does not support every flexible checksum of recent AWS SDKs (aws-sdk-go-v2).
+  extraEnvVars:
+    - name: AWS_REQUEST_CHECKSUM_CALCULATION
+      value: when_required
+    - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+      value: when_required
   backupRepositoryConfigMap: velero-repository-config
   repoMaintenanceJobConfigMap: velero-repo-maintenance-job-config
   backupStorageLocation:
@@ -36,11 +42,35 @@ configuration:
       provider: aws
       bucket: smadja-dev-homelab-backups
       prefix: velero
-      default: true
+      # PLT-222 (decision Paul 12/11, PLT-219) : Hetzner devient lecture seule.
+      # Les anciennes sauvegardes restent restaurables ; plus d'ecriture ni de
+      # ramasse-miettes cote Hetzner. Aucun objet n'est supprime.
+      default: false
+      accessMode: ReadOnly
       config:
         region: fsn1
         s3ForcePathStyle: "false"
         s3Url: https://fsn1.your-objectstorage.com
+    # PLT-222: Cloudflare R2 (jurisdiction eu), BSL par defaut (step 6 de
+    # docs/operations/r2-migration.md). Tous les Schedules la ciblent.
+    - name: r2
+      provider: aws
+      bucket: homelab-backup-velero
+      # PLT-222: le bucket contient archive/hetzner-legacy/ (copies de sortie
+      # Hetzner, a conserver). Velero refuse un bucket dont la racine contient
+      # un dossier inconnu ("invalid top-level directories: [archive]") : le
+      # prefix isole Velero dans velero/ et laisse archive/ intact.
+      prefix: velero
+      default: true
+      accessMode: ReadWrite
+      credential:
+        name: velero-r2-credentials
+        key: cloud
+      config:
+        region: auto
+        s3ForcePathStyle: "true"
+        # Endpoint R2, juridiction eu. L'account ID n'est pas un credential.
+        s3Url: https://a98efb1065ad3ae6b7259dce75f2a980.eu.r2.cloudflarestorage.com
   repositoryMaintenanceJob:
     repositoryConfigData:
       name: "velero-repo-maintenance"
@@ -67,13 +97,16 @@ configuration:
 
 resources:
   requests:
-    cpu: 100m
+    cpu: 50m
     memory: 512Mi
   limits:
     cpu: 500m
     memory: 1Gi
 
 nodeAgent:
+  # No nodeAgent.extraEnvVars: chart 12.x already injects configuration.extraEnvVars
+  # (AWS_*_CHECKSUM) into node-agent. Declaring them twice yields duplicate env keys,
+  # which makes Argo server-side diff fail for the whole infra-controllers app.
   tolerations:
     - key: "gpu"
       operator: "Equal"

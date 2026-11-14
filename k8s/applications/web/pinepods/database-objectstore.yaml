@@ -1,3 +1,6 @@
+# PLT-221: no longer referenced by the Cluster nor the ScheduledBackup (archive
+# moved to pinepods-r2-store). Kept as the rollback target with its existing
+# backups; no plugin sidecar applies its retentionPolicy anymore.
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:

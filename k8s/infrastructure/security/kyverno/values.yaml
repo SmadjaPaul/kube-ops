@@ -1,12 +1,22 @@
+# PLT-214: three Kyverno controllers renew their leader-election Lease every
+# 2 s (background, cleanup, reports: ~1.5 etcd writes/s, each one a WAL fsync
+# on the Talos system disk). A single replica gains nothing from fast
+# failover: renew every 10 s (Lease 60 s, renew deadline 50 s). A restarted
+# pod waits at most one Lease duration before its controller leads. The
+# admission controller keeps the 2 s default: its leader runs the webhook
+# controller that updates webhook rules from policies, and a 60 s delay after
+# a restart could leave a new policy outside the rules (CodeRabbit, #1282).
 admissionController:
   replicas: 1
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
+  # PLT-280: chart 3.x reads the admission container's resources under
+  # admissionController.container.resources; a top-level resources key is
+  # ignored and the chart default (100m) applied. Requests only: the chart's
+  # limits (memory 384Mi, no CPU limit) stay as they run today.
+  container:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
   tolerations:
     - key: node.kubernetes.io/disk-pressure
       operator: Exists
@@ -24,9 +34,11 @@ admissionController:
       tolerationSeconds: 300
 backgroundController:
   replicas: 1
+  extraArgs:
+    leaderElectionRetryPeriod: 10s
   resources:
     requests:
-      cpu: 100m
+      cpu: 25m
       memory: 128Mi
     limits:
       cpu: 500m
@@ -48,9 +60,11 @@ backgroundController:
       tolerationSeconds: 300
 cleanupController:
   replicas: 1
+  extraArgs:
+    leaderElectionRetryPeriod: 10s
   resources:
     requests:
-      cpu: 100m
+      cpu: 25m
       memory: 64Mi
     limits:
       cpu: 500m
@@ -72,9 +86,11 @@ cleanupController:
       tolerationSeconds: 300
 reportsController:
   replicas: 1
+  extraArgs:
+    leaderElectionRetryPeriod: 10s
   resources:
     requests:
-      cpu: 100m
+      cpu: 200m
       memory: 64Mi
     limits:
       cpu: 500m

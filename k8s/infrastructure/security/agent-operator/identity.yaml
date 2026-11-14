@@ -1,0 +1,29 @@
+# PLT-237 — identité Kubernetes des agents. Le jeton n'est ni monté ni stocké
+# dans le cluster : il est émis par TokenRequest (scripts/agent-operator-token.sh)
+# et distribué par Doppler infrastructure/prd
+# (KUBERNETES_AGENT_OPERATOR_KUBECONFIG + _SHA256).
+# Ordre d'amorçage (PLT-241) : le namespace doit figurer dans l'AppProject
+# infrastructure avant la synchro d'infra-security. Si la synchro échoue avec
+# « namespace agent-operator is not permitted in project », le retry Argo est
+# épuisé après la mise à jour du projet : un nouveau commit sur main relance
+# la synchro automatique.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-operator
+  labels:
+    app.kubernetes.io/part-of: security
+    smadja.dev/agent-protected: "true"
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-operator
+  namespace: agent-operator
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+automountServiceAccountToken: false

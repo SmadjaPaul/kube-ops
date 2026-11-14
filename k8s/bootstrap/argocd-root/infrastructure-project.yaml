@@ -19,6 +19,9 @@ spec:
     # Scope infrastructure orphan monitoring to namespaces rendered by the
     # infrastructure roots. Restore drills and unrelated tenant namespaces
     # are intentionally outside this project boundary.
+    # PLT-237: agent-operator ServiceAccount (k8s/infrastructure/security/agent-operator).
+    - namespace: agent-operator
+      server: https://kubernetes.default.svc
     - namespace: agent-observers
       server: https://kubernetes.default.svc
     - namespace: argocd

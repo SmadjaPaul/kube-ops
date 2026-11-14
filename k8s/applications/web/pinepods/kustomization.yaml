@@ -8,7 +8,9 @@ resources:
   - pvc.yaml
   - database.yaml
   - database-scheduled-backup.yaml
+  - database-r2-initial-backup.yaml
   - database-objectstore.yaml
+  - database-r2.yaml
   - database-hetzner-credentials.yaml
   - podmonitor.yaml
   - valkey.yaml

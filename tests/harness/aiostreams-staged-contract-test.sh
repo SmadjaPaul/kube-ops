@@ -57,7 +57,10 @@ auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-polyfin.yaml
 [[ "$(yq -r '.entries[] | select(.id == "polyfin_application") | .attrs.meta_launch_url' "$auth")" == "https://tv.smadja.dev" ]]
 grep -Fq 'client_secret: !Env POLYFIN_OIDC_CLIENT_SECRET' "$auth"
 # Ensure historical Polyfin route remains disabled, preventing duplicate hostname claims.
-! grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/polyfin/kustomization.yaml"
+if grep -Eq '^[[:space:]]*-[[:space:]]+http-route\.yaml[[:space:]]*$' "$root/polyfin/kustomization.yaml"; then
+  echo 'AIOSTREAMS_STAGE=FAIL: historical Polyfin http-route.yaml must stay out of the kustomization' >&2
+  exit 1
+fi
 if grep -Fq -- '- name: external' "$pkg/http-route.yaml"; then
   echo "AIOSTREAMS_STAGE=FAIL: staged route must not attach to Gateway/external" >&2
   exit 1

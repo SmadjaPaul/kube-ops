@@ -1,0 +1,123 @@
+# PLT-237 — RBAC de l'identité agent-operator.
+# Lecture cluster-wide SANS Secret (rôle intégré `view` + liste explicite).
+# Écriture : ClusterRole agent-operator-workload, liée seulement par RoleBinding
+# dans les namespaces de scope.tsv
+# (k8s/applications/platform/agent-operator-access). Jamais de droit sur
+# secrets, PVC/PV, serviceaccounts/token, RBAC, réseau, admission, CRD,
+# namespaces, pods/exec|attach|portforward, impersonate, bind ou escalate.
+# La policy agent-operator-guard tient même si ce RBAC devient trop large.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-operator-cluster-read
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+rules:
+  # Ressources nommées une à une : jamais "*" sur le groupe core.
+  - apiGroups: [""]
+    resources: [nodes, namespaces, persistentvolumes]
+    verbs: [get, list, watch]
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses, volumeattachments, csidrivers, csinodes]
+    verbs: [get, list, watch]
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list, watch]
+  - apiGroups: [apiregistration.k8s.io]
+    resources: [apiservices]
+    verbs: [get, list, watch]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources:
+      - validatingadmissionpolicies
+      - validatingadmissionpolicybindings
+      - validatingwebhookconfigurations
+      - mutatingwebhookconfigurations
+    verbs: [get, list, watch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterroles, clusterrolebindings, roles, rolebindings]
+    verbs: [get, list, watch]
+  - apiGroups: [scheduling.k8s.io, node.k8s.io, coordination.k8s.io, discovery.k8s.io, events.k8s.io]
+    resources: ["*"]
+    verbs: [get, list, watch]
+  - apiGroups: [metrics.k8s.io]
+    resources: [pods, nodes]
+    verbs: [get, list]
+  # Objets d'opérateurs : aucun ne porte de valeur de Secret.
+  - apiGroups:
+      - argoproj.io
+      - gateway.networking.k8s.io
+      - cilium.io
+      - postgresql.cnpg.io
+      - barmancloud.cnpg.io
+      - longhorn.io
+      - velero.io
+      - external-secrets.io
+      - cert-manager.io
+      - kyverno.io
+      - keda.sh
+      - monitoring.coreos.com
+    resources: ["*"]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-operator-view
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  # rôle intégré : lecture des objets namespacés, sans Secret ni RBAC
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: agent-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-operator-cluster-read
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-operator-cluster-read
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: agent-operator
+---
+# Écriture sur les workloads reconstructibles. Liée par RoleBinding seulement,
+# jamais par ClusterRoleBinding (test agent-operator-identity).
+# Pas de sous-ressource */scale : l'objet Scale ne porte pas les labels, la
+# policy ne pourrait pas appliquer smadja.dev/agent-protected ; kubectl-rw.sh
+# met à l'échelle par patch de spec.replicas.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-operator-workload
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets, daemonsets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list, watch, delete]
+  - apiGroups: [batch]
+    resources: [jobs, cronjobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, delete]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
