@@ -8,13 +8,17 @@
 # a restart could leave a new policy outside the rules (CodeRabbit, #1282).
 admissionController:
   replicas: 1
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
+  # PLT-280: chart 3.x reads the admission container's resources under
+  # admissionController.container.resources; a top-level resources key is
+  # ignored and the chart default (100m) applied.
+  container:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
   tolerations:
     - key: node.kubernetes.io/disk-pressure
       operator: Exists
