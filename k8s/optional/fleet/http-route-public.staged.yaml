@@ -1,7 +1,10 @@
 # NOT ACTIVE: new public exposure (D-2026-11-14-06 point 2, Paul's agreement).
-# Agent endpoints only; UI and admin API stay on Gateway/internal.
-# NOT_PROVEN: the prefix list must be checked against the Fleet docs of the
-# deployed version before activation (PLT identity T5).
+# Agent endpoints only; UI, fleetctl and admin API (/api/*/fleet/*) stay on
+# Gateway/internal. Source: Fleet guide "Which API endpoints to expose to the
+# public internet?" (fleetdm/fleet articles, checked 2026-11-14). Scope: osquery,
+# Fleet Desktop / My device, macOS MDM with manual enrollment. No automatic
+# enrollment (ABM), no Windows, iOS or Android paths.
+# Fleet serves its versioned API under /api/v1 and /api/latest.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -15,16 +18,20 @@ spec:
     - fleet.smadja.dev
   rules:
     - matches:
+        # osquery
         - path: {type: PathPrefix, value: /api/osquery/}
         - path: {type: PathPrefix, value: /api/v1/osquery/}
+        # fleetd (orbit) and Fleet Desktop
         - path: {type: PathPrefix, value: /api/fleet/orbit/}
-        - path: {type: PathPrefix, value: /api/fleet/device/}
-        - path: {type: PathPrefix, value: /api/latest/fleet/device/}
+        - path: {type: Exact, value: /api/fleet/device/ping}
+        # My device page and device-authenticated API (includes /desktop)
         - path: {type: PathPrefix, value: /api/v1/fleet/device/}
+        - path: {type: PathPrefix, value: /api/latest/fleet/device/}
         - path: {type: PathPrefix, value: /device/}
-        - path: {type: PathPrefix, value: /mdm/apple/}
-        - path: {type: PathPrefix, value: /api/mdm/apple/}
         - path: {type: PathPrefix, value: /assets/}
+        # macOS MDM protocol
+        - path: {type: Exact, value: /mdm/apple/scep}
+        - path: {type: Exact, value: /mdm/apple/mdm}
       backendRefs:
         - name: fleet
           port: 80
