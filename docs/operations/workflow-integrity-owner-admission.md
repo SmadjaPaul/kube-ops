@@ -85,6 +85,10 @@ change GitHub protection settings and it is not a durable bypass design.
 - After the owner's registry PR merges, trigger a **new**
   `pull_request_target` event for each affected PR (for example close/reopen).
   Rerunning an old job may reuse its old base SHA and cannot prove admission.
+- Registry size: at most 32 **unexpired** admissions (`expiresAt` in the future)
+  and at most 64 entries in total, expired ones included. Expired entries are
+  still fully validated but no longer count toward the 32 cap, so the registry
+  purges itself. Changing these limits is a gate change (owner bootstrap).
 - Remove admission records via a separate owner-only registry PR after
   the protected PRs merge. All other CI checks, branch protections,
   requirements, Atlantis and recovery gates remain in effect.

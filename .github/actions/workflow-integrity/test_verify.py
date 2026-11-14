@@ -46,6 +46,31 @@ class AdmissionContract(unittest.TestCase):
     def test_valid_exact_scope(self):
         self.assertEqual(len(gate.validate_registry(json.dumps(example()), NOW, True)), 1)
 
+    def _many(self, live, expired):
+        rows = []
+        for i in range(live + expired):
+            row = example(pr=1000 + i, changeFingerprint=f"{i:064x}",
+                          expiresAt="2026-11-06T13:00:00Z" if i < live else "2026-11-01T00:00:00Z")
+            rows.append(row["admissions"][0])
+        return json.dumps({"schemaVersion": 1, "admissions": rows})
+
+    def test_cap_counts_only_unexpired(self):
+        self.assertEqual(len(gate.validate_registry(self._many(32, 0), NOW)), 32)
+        with self.assertRaises(ValueError):
+            gate.validate_registry(self._many(33, 0), NOW)
+        self.assertEqual(len(gate.validate_registry(self._many(30, 10), NOW)), 40)
+        with self.assertRaises(ValueError):
+            gate.validate_registry(self._many(33, 7), NOW)
+        with self.assertRaises(ValueError):
+            gate.validate_registry(self._many(0, 65), NOW)
+        self.assertEqual(len(gate.validate_registry(self._many(0, 64), NOW)), 64)
+
+    def test_expired_entries_still_validated(self):
+        doc = json.loads(self._many(1, 1))
+        doc["admissions"][1]["approvedBy"] = "agent"
+        with self.assertRaises(ValueError):
+            gate.validate_registry(json.dumps(doc), NOW)
+
     def test_unauthorized_gate_change(self):
         for path in (
             gate.SELF,

@@ -18,6 +18,8 @@ REPOSITORY = "SmadjaPaul/kube-ops"
 REGISTRY = ".github/workflow-integrity-admissions.json"
 SELF = ".github/workflows/workflow-integrity.yaml"
 GATE_DIR = ".github/actions/workflow-integrity/"
+MAX_ACTIVE_ENTRIES = 32
+MAX_TOTAL_ENTRIES = 64
 CONTRACT = "docs/contracts/agent-test-result-v1.schema.json"
 ALLOWED_FIELDS = {"repository", "pr", "changeFingerprint", "paths", "reason", "approvedBy", "expiresAt"}
 # A pre-cutover registry entry for PR #997 is still on main. Honor existing
@@ -193,9 +195,10 @@ def validate_registry(raw, now, require_fresh=False):
     if type(document["schemaVersion"]) is not int or document["schemaVersion"] != 1:
         raise ValueError("invalid schemaVersion")
     entries = document["admissions"]
-    if not isinstance(entries, list) or len(entries) > 32:
+    if not isinstance(entries, list) or len(entries) > MAX_TOTAL_ENTRIES:
         raise ValueError("invalid admission count")
     seen = set()
+    active = 0
     for entry in entries:
         if not isinstance(entry, dict) or set(entry) not in (ALLOWED_FIELDS, LEGACY_FIELDS):
             raise ValueError("invalid admission fields")
@@ -225,6 +228,12 @@ def validate_registry(raw, now, require_fresh=False):
         if key in seen:
             raise ValueError("duplicate PR/fingerprint admission")
         seen.add(key)
+        if expiry > now:
+            active += 1
+    # Only live (unexpired) admissions count against the working cap, so the
+    # registry purges itself as entries expire; MAX_TOTAL_ENTRIES bounds growth.
+    if active > MAX_ACTIVE_ENTRIES:
+        raise ValueError("too many unexpired admissions")
     return entries
 
 
