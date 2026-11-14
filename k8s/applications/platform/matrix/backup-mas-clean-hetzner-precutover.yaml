@@ -1,7 +1,11 @@
 # PLT-248: fresh Hetzner base backup taken before the R2 cutover of
 # matrix-mas-postgresql-clean. It is the rollback point: after the cutover,
-# Hetzner stays restorable up to the switch (this base plus the WAL archived
-# before it). A rollback targets this backupID or a precise time, never "latest".
+# Hetzner stays restorable up to the last WAL segment archived to Hetzner
+# before the switch (this base plus that WAL), not exactly up to the switch:
+# the old pod may archive its final WAL to R2 during the cutover (see the
+# Hetzner ObjectStore sidecar comment), so commits after that point need the
+# R2 WAL too. A rollback targets this backupID or a precise time no later
+# than that last Hetzner WAL, never "latest".
 apiVersion: postgresql.cnpg.io/v1
 kind: Backup
 metadata:
