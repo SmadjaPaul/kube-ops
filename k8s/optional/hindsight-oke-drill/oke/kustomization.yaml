@@ -1,0 +1,14 @@
+# PLT-301 drill: fingerprint of hindsight-db in namespace hindsight. Import temporarily, read
+# the Job logs, then remove the import (see README.md of this directory).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hindsight
+components:
+  - ../fingerprint
+patches:
+  - target: {kind: Job, name: hindsight-fingerprint}
+    patch: |-
+      - {op: replace, path: /spec/template/spec/containers/0/env/0/value, value: hindsight-db-ro}
+      - {op: replace, path: /spec/template/spec/containers/0/env/4/valueFrom/secretKeyRef/name, value: hindsight-db-app}
+      - {op: replace, path: /spec/template/spec/containers/0/env/5/valueFrom/secretKeyRef/name, value: hindsight-db-app}
+      - {op: replace, path: /spec/template/spec/volumes/1/secret/secretName, value: hindsight-db-ca}
