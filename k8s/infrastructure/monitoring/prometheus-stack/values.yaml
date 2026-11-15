@@ -300,7 +300,7 @@ alertmanager:
     secrets:
       - alertmanager-healthchecks-ping
       - alertmanager-ntfy-url
-    replicas: 1
+    replicas: 0
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname
