@@ -45,8 +45,17 @@ def load_all(text):
 def roots():
     out = []
     for f in APPSETS:
-        src = open(os.path.join(ROOT, f)).read()
-        out += re.findall(r'^\s*-\s+path:\s*(k8s/[^\s#]+)\s*$', src, re.M)
+        for d in load_all(open(os.path.join(ROOT, f)).read()):
+            for g in (d.get('spec') or {}).get('generators') or []:
+                items = ((g.get('git') or {}).get('directories') or []) + \
+                    ((g.get('list') or {}).get('elements') or [])
+                for el in items:
+                    path = str(el.get('path', '')) if isinstance(el, dict) else ''
+                    # A git directory generator creates no Application for a
+                    # missing directory, and `exclude: true` removes one.
+                    if path.startswith('k8s/') and not el.get('exclude') \
+                            and os.path.isdir(os.path.join(ROOT, path)):
+                        out.append(path)
     return out
 
 
@@ -134,15 +143,15 @@ def collect(docs_by_root, errors_out):
                     tpl = spec.get('template') or {}
                 pmd = tpl.get('metadata') or {} if kind != 'Pod' else md
                 pspec = tpl.get('spec') or {} if kind != 'Pod' else spec
-                vols = {v['name']: v['persistentVolumeClaim']['claimName']
-                        for v in pspec.get('volumes') or [] if v.get('persistentVolumeClaim')}
+                vols = [(v['name'], v['persistentVolumeClaim']['claimName'])
+                        for v in pspec.get('volumes') or [] if v.get('persistentVolumeClaim')]
                 replicas = spec.get('replicas', 1) if kind in ('Deployment', 'StatefulSet') else 1
                 if kind == 'StatefulSet':
                     for t in spec.get('volumeClaimTemplates') or []:
                         tname = t['metadata']['name']
                         for i in range(max(replicas, 1)):
                             claim = '%s-%s-%d' % (tname, name, i)
-                            vols[tname] = claim if i == 0 else vols.get(tname)
+                            vols.append((tname, claim))
                             pvcs.setdefault((ns, claim), dict(
                                 ns=ns, name=claim, sc=(t.get('spec') or {}).get('storageClassName'),
                                 size=size_of(t.get('spec') or {}), labels=t['metadata'].get('labels') or {},
@@ -153,6 +162,9 @@ def collect(docs_by_root, errors_out):
             elif kind == 'Schedule' and str(d.get('apiVersion', '')).startswith('velero.io'):
                 if ns != 'velero':
                     errors_out.append('Schedule %s/%s ignored: Velero reads only namespace velero' % (ns, name))
+                    continue
+                if spec.get('paused'):
+                    errors_out.append('Schedule %s paused: not counted' % name)
                     continue
                 schedules.append(dict(name=name, **(spec.get('template') or {})))
             elif kind == 'RecurringJob':
@@ -167,7 +179,7 @@ def collect(docs_by_root, errors_out):
                 plug = [p for p in spec.get('plugins') or [] if 'barman' in p.get('name', '')]
                 wal_store = None
                 for p in plug:
-                    if (p.get('isWALArchiver') or p.get('enabled', True)):
+                    if p.get('isWALArchiver') is True and p.get('enabled', True) is not False:
                         wal_store = (p.get('parameters') or {}).get('barmanObjectName')
                 clusters[(ns, name)] = dict(wal_store=wal_store)
                 for i in range(1, inst + 1):
@@ -181,8 +193,11 @@ def collect(docs_by_root, errors_out):
                             size=w.get('size', '?'), labels={'cnpg.io/cluster': name},
                             source=root, owner='CNPG/' + name)
             elif kind == 'ScheduledBackup':
-                sbs[(ns, (spec.get('cluster') or {}).get('name'))].append(
-                    ((spec.get('pluginConfiguration') or {}).get('parameters') or {}).get('barmanObjectName'))
+                pc = spec.get('pluginConfiguration') or {}
+                if spec.get('method') == 'plugin' and 'barman' in str(pc.get('name', '')) \
+                        and not spec.get('suspend'):
+                    sbs[(ns, (spec.get('cluster') or {}).get('name'))].append(
+                        (pc.get('parameters') or {}).get('barmanObjectName'))
             elif kind == 'ObjectStore':
                 c = spec.get('configuration') or {}
                 dest = '%s %s' % (c.get('destinationPath'), c.get('endpointURL'))
@@ -195,10 +210,13 @@ def velero_cover(pvc, pods, schedules):
     """Return (schedule names, reason) for Velero FS backup of one PVC."""
     if pvc['labels'].get('velero.io/exclude-from-backup') == 'true':
         return [], 'PVC label velero.io/exclude-from-backup'
-    users = [p for p in pods if p['ns'] == pvc['ns'] and pvc['name'] in p['vols'].values()]
+    users = [p for p in pods if p['ns'] == pvc['ns'] and pvc['name'] in [c for _, c in p['vols']]]
     if not users:
         return [], 'no pod mounts it'
-    hits = []
+    users = [p for p in users if p['replicas'] != 0]
+    if not users:
+        return [], 'workload replicas=0'
+    hits, off_r2 = [], []
     for s in schedules:
         inc = s.get('includedNamespaces') or ['*']
         if '*' not in inc and pvc['ns'] not in inc:
@@ -207,6 +225,9 @@ def velero_cover(pvc, pods, schedules):
             continue
         exres = set(s.get('excludedResources') or [])
         if {'pods', 'persistentvolumeclaims', 'persistentvolumes'} & exres:
+            continue
+        incres = set(s.get('includedResources') or ['*'])
+        if not ('*' in incres or {'pods', 'persistentvolumeclaims'} <= incres):
             continue
         for p in users:
             if p['labels'].get('velero.io/exclude-from-backup') == 'true':
@@ -217,14 +238,19 @@ def velero_cover(pvc, pods, schedules):
                 sel_ok = any(match_selector(o, p['labels']) for o in ors)
             if not sel_ok:
                 continue
-            vol = [v for v, c in p['vols'].items() if c == pvc['name']][0]
+            vol = [v for v, c in p['vols'] if c == pvc['name']][0]
             excl = [x.strip() for x in p['ann'].get('backup.velero.io/backup-volumes-excludes', '').split(',')]
             incl = [x.strip() for x in p['ann'].get('backup.velero.io/backup-volumes', '').split(',')]
             if s.get('defaultVolumesToFsBackup') and vol not in excl or vol in incl:
-                hits.append(s['name'] + ('' if s.get('storageLocation') == 'r2' else '@' + str(s.get('storageLocation'))))
+                if s.get('storageLocation') == 'r2':
+                    hits.append(s['name'])
+                else:
+                    off_r2.append('%s@%s' % (s['name'], s.get('storageLocation')))
                 break
     if hits:
         return hits, ''
+    if off_r2:
+        return [], 'only non-R2 Schedules: ' + ','.join(off_r2)
     return [], 'pod not selected by any Schedule'
 
 
@@ -309,7 +335,7 @@ def main():
                 cover.append('Velero(' + ','.join(v) + ')')
             else:
                 notes.append('Velero: ' + why)
-            users = [x for x in pods if x['ns'] == p['ns'] and p['name'] in x['vols'].values()]
+            users = [x for x in pods if x['ns'] == p['ns'] and p['name'] in [c for _, c in x['vols']]]
             lh, why = longhorn_cover(p, scs, rjobs)
             if lh:
                 if users and all(u['replicas'] == 0 or u['cron'] for u in users):

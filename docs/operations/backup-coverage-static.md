@@ -86,5 +86,4 @@ Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un S
 ## Sources non rendues
 
 - ApplicationSet/hermes-personal-tenants: generated apps not rendered
-- k8s/applications/restore: Error: must build at directory: not a valid directory: evalsymlink failure on 'k8s/applications/restore' : lstat /home/claude/bk-ko/k8s/applications/restore: no such file or directory
 - Application/personal-sparkyfitness (namespace wellness): git-source chart not rendered; PVC inventory unknown; Velero Schedules on the namespace: velero-daily-sparkyfitness
