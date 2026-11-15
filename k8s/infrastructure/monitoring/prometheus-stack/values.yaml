@@ -237,7 +237,60 @@ prometheus:
     minAvailable: 1
 
 alertmanager:
+  # PLT-263: dead-man switch and critical notifications. The two receiver URLs
+  # are secrets (Healthchecks ping UUID, ntfy topic): they live only in Doppler
+  # cluster/prd, written by OpenTofu (homelab-infra terraform/grafana-cloud),
+  # and reach Alertmanager as files through External Secrets.
+  config:
+    global:
+      resolve_timeout: 5m
+    inhibit_rules:
+      - source_matchers: ['severity = critical']
+        target_matchers: ['severity =~ warning|info']
+        equal: [namespace, alertname]
+      - source_matchers: ['severity = warning']
+        target_matchers: ['severity = info']
+        equal: [namespace, alertname]
+      - source_matchers: ['alertname = InfoInhibitor']
+        target_matchers: ['severity = info']
+        equal: [namespace]
+      - target_matchers: ['alertname = InfoInhibitor']
+    route:
+      group_by: [namespace]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'null'
+      routes:
+        # Watchdog always fires: ping Healthchecks.io every 2 minutes. When the
+        # pings stop, Healthchecks notifies ntfy (7 minutes worst case).
+        - receiver: healthchecks-watchdog
+          matchers: ['alertname = Watchdog']
+          group_by: [alertname]
+          group_wait: 0s
+          group_interval: 1m
+          repeat_interval: 2m
+        - receiver: ntfy-critical
+          matchers: ['severity = critical']
+          group_by: [namespace, alertname]
+    receivers:
+      - name: 'null'
+      - name: healthchecks-watchdog
+        webhook_configs:
+          - url_file: /etc/alertmanager/secrets/alertmanager-healthchecks-ping/url
+            send_resolved: false
+            max_alerts: 1
+      - name: ntfy-critical
+        webhook_configs:
+          - url_file: /etc/alertmanager/secrets/alertmanager-ntfy-url/url
+            send_resolved: true
+            max_alerts: 10
+    templates:
+      - /etc/alertmanager/config/*.tmpl
   alertmanagerSpec:
+    secrets:
+      - alertmanager-healthchecks-ping
+      - alertmanager-ntfy-url
     replicas: 1
     topologySpreadConstraints:
       - maxSkew: 1

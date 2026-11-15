@@ -2,23 +2,12 @@
 
 ## Status
 
-**STAGED / safe to merge without publisher credential. Activation is a separate, blocked operation.**
+**ACTIVE (PLT-263).** Alertmanager has two receivers besides `null`, both reading their URL from a file mounted from an ExternalSecret (`alertmanager-secrets.yaml`, Doppler `cluster/prd`):
 
-This PR deliberately merges only:
-- ntfy's existing CiliumNetworkPolicy ingress selector for Alertmanager pods;
-- this runbook;
-- the **unreferenced** `alertmanager-ntfy-secret.dormant.yaml` ExternalSecret;
-- the **unreferenced** `docs/operations/alertmanager-ntfy-values.dormant.yaml` chart configuration example.
+- `healthchecks-watchdog`: the Watchdog alert pings Healthchecks.io every 2 minutes (`HEALTHCHECKS_WATCHDOG_PING_URL`).
+- `ntfy-critical`: `severity = critical`, firing and resolved, to ntfy.sh with the secret topic (`ALERTMANAGER_NTFY_URL`).
 
-Neither `k8s/infrastructure/monitoring/prometheus-stack/kustomization.yaml`
-nor its active `values.yaml` changes in this staged PR.
-Consequently **no new Alertmanager receiver is activated and no missing
-Doppler key is read by ESO**. This PR is not proof that alerts are delivered.
-
-The active default remains the existing receiver, currently reported as
-`null`. Historical counts (43 warnings, 0 critical) must be rechecked at
-activation time. The staged routing keeps Watchdog silent and forwards only
-critical alerts after a future reviewed activation.
+OpenTofu (homelab-infra `terraform/grafana-cloud`) creates the check and writes both Doppler keys. The self-hosted publisher flow below (`APP_ALERTMANAGER_NTFY_PUBLISHER_TOKEN`) is superseded: the homelab ntfy would be down in the cases the dead-man switch must report. Keep the checklist only if a self-hosted receiver is added later.
 
 ## Prerequisites (operator with live cluster and Doppler access)
 
@@ -49,13 +38,7 @@ critical alerts after a future reviewed activation.
 
 ## PLT-263 dead-man switch (Watchdog -> Healthchecks.io -> ntfy)
 
-Staged in the same dormant files. Operator prerequisites (Paul, PLT-262): create the
-Healthchecks.io account/project and store the API key in Doppler as `HEALTHCHECKS_API_KEY`;
-OpenTofu (homelab-infra, `kristofferahl/healthchecksio`) then creates the check (period 5m,
-grace 5m, ntfy integration) and writes its ping URL to Doppler `HEALTHCHECKS_WATCHDOG_PING_URL`.
-Activation PR: add the ExternalSecrets to the Kustomization, merge the receiver block into
-`values.yaml`, then test by scaling Alertmanager to 0 (announced window): phone notification
-< 10 min, then `resolved` after restoring it. Archive the timestamps in PLT-263.
+Check `homelab-alertmanager-watchdog`: timeout 300 s, grace 120 s (7 minutes worst case from the last ping). Healthchecks.io notifies through its ntfy integration (created once in the Healthchecks UI, topic from Doppler `GRAFANA_ALERT_NTFY_TOPIC`, server ntfy.sh; then `healthchecks_attach_ntfy_channel = true` in homelab-infra). Test: set `alertmanager.alertmanagerSpec.replicas: 0` through Git in an announced window, expect a phone notification in under 10 minutes, restore `replicas: 1`, expect the resolved notification. Archive the timestamps in PLT-263.
 
 ## Security and availability caveats
 

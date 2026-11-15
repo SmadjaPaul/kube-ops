@@ -2,38 +2,36 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-// Prevent credentials-dependent Alertmanager activation from accidentally
-// riding an unrelated GitOps sync while the ntfy publisher token is absent.
+// PLT-263: Alertmanager receivers are active. Their URLs are secrets (Healthchecks
+// ping UUID, ntfy topic) and must reach Alertmanager only as ExternalSecret files.
 const read = p => readFileSync(p, 'utf8');
 const root = 'k8s/infrastructure/monitoring/prometheus-stack';
 const activeValues = read(`${root}/values.yaml`);
 const activeKustomization = read(`${root}/kustomization.yaml`);
-const dormantSecret = read(`${root}/alertmanager-ntfy-secret.dormant.yaml`);
-const dormantValues = read('docs/operations/alertmanager-ntfy-values.dormant.yaml');
+const secrets = read(`${root}/alertmanager-secrets.yaml`);
 const ntfyPolicy = read('k8s/applications/catalog/ntfy/app.yaml');
 
-test('the active Alertmanager configuration is unchanged until scoped token admission', () => {
-  assert.doesNotMatch(activeValues, /ntfy-critical|alertmanager-ntfy-publisher|template=alertmanager/);
-  assert.doesNotMatch(activeKustomization, /alertmanager-ntfy-secret/);
-  assert.match(dormantValues, /receiver: ntfy-critical/);
-  assert.match(dormantValues, /severity = critical/);
-  assert.match(dormantValues, /credentials_file:/);
-  assert.match(dormantValues, /receiver: 'null'/);
+test('the Watchdog dead-man route pings Healthchecks from a secret file', () => {
+  assert.match(activeValues, /receiver: healthchecks-watchdog\s+matchers: \['alertname = Watchdog'\]/);
+  assert.match(activeValues, /repeat_interval: 2m/);
+  assert.match(activeValues, /url_file: \/etc\/alertmanager\/secrets\/alertmanager-healthchecks-ping\/url/);
+  assert.doesNotMatch(activeValues, /hc-ping\.com/);
+  assert.match(secrets, /HEALTHCHECKS_WATCHDOG_PING_URL/);
 });
 
-test('the unreferenced ESO secret uses scalar Doppler remoteRef', () => {
-  assert.match(dormantSecret, /kind: ExternalSecret/);
-  assert.match(dormantSecret, /APP_ALERTMANAGER_NTFY_PUBLISHER_TOKEN/);
-  assert.doesNotMatch(dormantSecret, /property: value/);
+test('the critical receiver publishes firing and resolved to ntfy from a secret file', () => {
+  assert.match(activeValues, /receiver: ntfy-critical\s+matchers: \['severity = critical'\]/);
+  assert.match(activeValues, /url_file: \/etc\/alertmanager\/secrets\/alertmanager-ntfy-url\/url/);
+  assert.match(activeValues, /send_resolved: true/);
+  assert.doesNotMatch(activeValues, /ntfy\.sh\/|homelab-alerts-/);
+  assert.match(secrets, /ALERTMANAGER_NTFY_URL/);
+  assert.doesNotMatch(secrets, /property: value/);
 });
 
-test('the dormant Watchdog dead-man route pings Healthchecks from a secret file (PLT-263)', () => {
-  assert.match(dormantValues, /receiver: healthchecks-watchdog\s+matchers: \['alertname = Watchdog'\]/);
-  assert.match(dormantValues, /repeat_interval: 2m/);
-  assert.match(dormantValues, /url_file: \/etc\/alertmanager\/secrets\/alertmanager-healthchecks-ping\/url/);
-  assert.doesNotMatch(dormantValues, /hc-ping\.com/);
-  assert.match(dormantSecret, /HEALTHCHECKS_WATCHDOG_PING_URL/);
-  assert.doesNotMatch(activeValues, /healthchecks/);
+test('the ExternalSecrets are in the Kustomization and mounted by Alertmanager', () => {
+  assert.match(activeKustomization, /alertmanager-secrets\.yaml/);
+  assert.match(activeValues, /secrets:\s+- alertmanager-healthchecks-ping\s+- alertmanager-ntfy-url/);
+  assert.match(activeValues, /receiver: 'null'/);
 });
 
 test('the ntfy ingress selector names only monitoring Alertmanager pods', () => {
