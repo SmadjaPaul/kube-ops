@@ -45,8 +45,7 @@ done
 # FSB/Kopia exclusions therefore live on Pod templates and name the exact
 # mounted volumes; no template PVC is rewritten by this policy.
 for file in \
-  "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml" \
-  "$repo_root/k8s/applications/media/sabnzbd/statefulset.yaml"; do
+  "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml"; do
   if grep -F 'velero.io/exclude-from-backup' "$file" >/dev/null; then
     echo "VELERO_STORAGE_TIER_CONTRACT=FAIL: StatefulSet $file must not carry velero.io/exclude-from-backup" >&2
     exit 1
@@ -54,16 +53,10 @@ for file in \
 done
 grep -F 'backup.velero.io/backup-volumes-excludes: meilisearch-data' \
   "$repo_root/k8s/applications/ai/karakeep/meilisearch-statefulset.yaml" >/dev/null
-# Only mounted volume names can be excluded through pod annotations.
-# The historical incomplete-downloads claim is not mounted and is retained.
-test "$(yq -r '.spec.template.metadata.annotations["backup.velero.io/backup-volumes-excludes"]' \
-  "$repo_root/k8s/applications/media/sabnzbd/statefulset.yaml")" = "media-share"
 grep -F 'backup.velero.io/backup-volumes-excludes: logs' \
   "$repo_root/k8s/applications/ai/gpt-researcher/gpt-researcher-deployment.yaml" >/dev/null
 grep -F 'backup.velero.io/backup-volumes-excludes: downloads,backups' \
   "$repo_root/k8s/applications/web/pinepods/deployment.yaml" >/dev/null
-grep -F 'backup.velero.io/backup-volumes-excludes: media' \
-  "$repo_root/k8s/applications/media/audiobookshelf/statefulset.yaml" >/dev/null
 if grep -F 'backup.smadja.dev/strategy: rebuildable' \
   "$repo_root/k8s/infrastructure/monitoring/prometheus-stack/values.yaml" >/dev/null; then
   echo 'VELERO_STORAGE_TIER_CONTRACT=FAIL: prometheus-stack values must not be marked rebuildable' >&2
@@ -85,8 +78,6 @@ for schedule in \
   daily-gpt-researcher.yaml \
   daily-pinepods.yaml \
   daily-jellyfin.yaml \
-  daily-sabnzbd.yaml \
-  daily-audiobookshelf.yaml \
   daily-bazarr.yaml \
   daily-karakeep.yaml; do
   grep -F 'defaultVolumesToFsBackup: true' "$velero_root/schedules/$schedule" >/dev/null

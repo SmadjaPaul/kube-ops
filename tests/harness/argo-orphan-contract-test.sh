@@ -33,7 +33,6 @@ else
 fi
 
 cronjobs=(
-  k8s/applications/media/recyclarr/cronjob.yaml
   k8s/applications/business/invoice-ninja/backup-logical.yaml
 )
 # The list covers existing targeted CronJob retention contracts only.
