@@ -92,7 +92,7 @@ spec:
     - namespace: vikunja
       server: https://kubernetes.default.svc
     # PLT-222: temporary isolated ntfy Velero restore drill; removed by PR after proof.
-    - namespace: drill-ntfy
+    - namespace: drill-ntfy2
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ''

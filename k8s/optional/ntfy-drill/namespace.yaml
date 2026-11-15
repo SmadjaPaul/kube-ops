@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: drill-ntfy
+  name: drill-ntfy2
   annotations:
     # Before the CiliumNetworkPolicy (-13) and the other drill resources.
     argocd.argoproj.io/sync-wave: "-14"
