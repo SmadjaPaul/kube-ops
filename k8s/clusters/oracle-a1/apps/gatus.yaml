@@ -3,6 +3,10 @@ kind: Application
 metadata:
   name: gatus
   namespace: argocd
+  # Retirement prerequisite: without this finalizer, deleting the Application
+  # (root prune) would orphan its workloads instead of removing them.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
