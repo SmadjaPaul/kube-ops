@@ -50,6 +50,18 @@ patches:
       apiVersion: barmancloud.cnpg.io/v1
       kind: ObjectStore
       metadata: {name: polyfin-hetzner-store}
+  - target: {kind: ObjectStore, name: polyfin-r2-store}
+    patch: |-
+      $patch: delete
+      apiVersion: barmancloud.cnpg.io/v1
+      kind: ObjectStore
+      metadata: {name: polyfin-r2-store}
+  - target: {kind: ExternalSecret, name: polyfin-cnpg-r2-credentials}
+    patch: |-
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata: {name: polyfin-cnpg-r2-credentials}
   - target: {kind: ScheduledBackup, name: polyfin-postgresql-weekly}
     patch: |-
       $patch: delete
