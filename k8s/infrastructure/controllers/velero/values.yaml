@@ -118,3 +118,6 @@ metrics:
   serviceMonitor:
     enabled: true
     namespace: velero
+    # Prometheus only selects monitors labelled release=kube-prometheus-stack.
+    additionalLabels:
+      release: kube-prometheus-stack
