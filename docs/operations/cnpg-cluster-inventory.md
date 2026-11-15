@@ -29,4 +29,5 @@ La consolidation se fait au fil de l'eau, une base à la fois, avec restauration
 | `hindsight-db` | Hindsight | à consolider | `pg-shared` |
 | `hindsight-db-restore` | Hindsight (restauration) | à consolider | retrait après restauration |
 | `hindsight-db-offsite` | Hindsight (drill de restauration hors Oracle, PLT-301) | à consolider | retrait après le drill |
+| `pg-shared-offsite` | `pg-shared` (drill de restauration hors Oracle, PLT-190) | à consolider | retrait après le drill |
 | `sparkyfitness-db` | SparkyFitness | à consolider | `pg-shared` |

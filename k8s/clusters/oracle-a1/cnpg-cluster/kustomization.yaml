@@ -4,5 +4,7 @@ namespace: databases
 resources:
   - namespace.yaml
   - external-secrets.yaml
+  - objectstore.yaml
   - cluster.yaml
+  - scheduledbackup.yaml
   - databases.yaml

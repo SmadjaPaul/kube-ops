@@ -1,0 +1,18 @@
+# PLT-190: daily base backup (03:50 UTC, 10 min after hindsight-db-daily so the
+# two never overlap on the single node); `immediate` takes the first one at
+# creation, the drill needs it before the second seed.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: pg-shared-daily
+  namespace: databases
+spec:
+  schedule: "0 50 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster: {name: pg-shared}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: pg-shared-oke-r2
