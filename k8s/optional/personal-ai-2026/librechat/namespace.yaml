@@ -2,6 +2,10 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: librechat
+  annotations:
+    # PLT-280: the namespace holds the LibreChat PVCs (conversations, uploads).
+    # Argo must never prune it, even if this manifest leaves Git.
+    argocd.argoproj.io/sync-options: Prune=false
   labels:
     pod-security.kubernetes.io/enforce: restricted
     app.kubernetes.io/part-of: personal-ai
