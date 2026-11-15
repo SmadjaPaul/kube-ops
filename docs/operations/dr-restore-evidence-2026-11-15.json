@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "backup-audit/restore-evidence-v1",
+  "producedAt": "2026-11-15T07:45:32Z",
+  "maxAgeSeconds": 86400,
+  "scope": "plt-171-paperless-full-restore-drill",
+  "items": [
+    {
+      "id": "cnpg-barman-r2-paperless-pitr-20261115",
+      "kind": "CNPG/Barman",
+      "status": "PASS",
+      "accepted": true,
+      "applicationAccepted": true,
+      "source": "paperless/paperless-postgresql R2 archive, PITR to 2026-11-15T04:40:28Z",
+      "evidence": "docs/operations/plt-171-paperless-full-restore-drill.md"
+    },
+    {
+      "id": "velero-kopia-r2-paperless-data-20261115",
+      "kind": "Velero/Kopia",
+      "status": "PASS",
+      "accepted": true,
+      "applicationAccepted": true,
+      "pvc": {"namespace": "paperless", "name": "paperless-data", "uid": "de267e13-a4da-45f8-8eab-c98261d42c06"},
+      "restoreVerified": true,
+      "applicationRecoveryVerified": true,
+      "source": "velero-daily-paperless-20261115044028 (BSL r2)",
+      "evidence": "docs/operations/plt-171-paperless-full-restore-drill.md"
+    },
+    {
+      "id": "velero-kopia-r2-paperless-media-20261115",
+      "kind": "Velero/Kopia",
+      "status": "PASS",
+      "accepted": true,
+      "applicationAccepted": true,
+      "pvc": {"namespace": "paperless", "name": "paperless-media", "uid": "bc912139-827d-4859-81da-62b34df85b88"},
+      "restoreVerified": true,
+      "applicationRecoveryVerified": true,
+      "source": "velero-daily-paperless-20261115044028 (BSL r2)",
+      "evidence": "docs/operations/plt-171-paperless-full-restore-drill.md"
+    }
+  ]
+}
