@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cleanup-media-share-backups
+  namespace: media
+  annotations:
+    argocd.argoproj.io/sync-wave: "19"
+---
+# Pinned by resourceNames: exactly the 3 objects of MANDAT 12, nothing else (no list, no secret).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cleanup-media-share-backups
+  annotations:
+    argocd.argoproj.io/sync-wave: "19"
+rules:
+  - apiGroups: [longhorn.io]
+    resources: [backups]
+    resourceNames: [backup-d31d5b997b374c84, backup-fdc4f95cbf634b20]
+    verbs: [get, delete]
+  - apiGroups: [longhorn.io]
+    resources: [backupvolumes]
+    resourceNames: [pvc-b6475b57-666c-45cf-8b63-1cca1568c8a1-6e292b0a]
+    verbs: [get, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cleanup-media-share-backups
+  annotations:
+    argocd.argoproj.io/sync-wave: "19"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cleanup-media-share-backups
+subjects:
+  - kind: ServiceAccount
+    name: cleanup-media-share-backups
+    namespace: media
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cleanup-media-share-backups
+  namespace: media
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1200
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cleanup-media-share-backups
+    spec:
+      serviceAccountName: cleanup-media-share-backups
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2501
+        runAsGroup: 2501
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: delete
+          image: docker.io/alpine/k8s:1.36.6@sha256:e2d95501b5718673ba67693154fabe6c618dbe1211a32947d6d5cf16285e019b
+          env:
+            - {name: HOME, value: /tmp}
+          command:
+            - /bin/bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              sa=/var/run/secrets/kubernetes.io/serviceaccount
+              export KUBECONFIG=/tmp/kubeconfig
+              kubectl config set-cluster in --server="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}" --certificate-authority=$sa/ca.crt >/dev/null
+              kubectl config set-credentials sa --token="$(cat $sa/token)" >/dev/null
+              kubectl config set-context in --cluster=in --user=sa >/dev/null
+              kubectl config use-context in >/dev/null
+              V=pvc-b6475b57-666c-45cf-8b63-1cca1568c8a1
+              BV=$V-6e292b0a
+              B1=backup-d31d5b997b374c84
+              B2=backup-fdc4f95cbf634b20
+              N=longhorn-system
+              fail() { echo "PLT333=BLOCKED $*"; exit 1; }
+              # Guard: each object must belong to the media-share volume, or nothing is deleted.
+              for b in $B1 $B2; do
+                [[ "$(kubectl get backups.longhorn.io $b -n $N -o jsonpath='{.metadata.labels.backup-volume}')" == "$V" ]] || fail "$b hors volume media-share"
+              done
+              [[ "$(kubectl get backupvolumes.longhorn.io $BV -n $N -o jsonpath='{.spec.volumeName}')" == "$V" ]] || fail "$BV hors volume media-share"
+              echo "PLT333=GUARDS_OK"
+              # get/delete only (no list/watch): delete without --wait, then poll get until NotFound.
+              gone() { for i in $(seq 1 100); do kubectl get "$1" -n $N >/dev/null 2>&1 || return 0; sleep 5; done; return 1; }
+              kubectl delete backups.longhorn.io $B1 $B2 -n $N --wait=false
+              gone backups.longhorn.io/$B1 || fail "$B1 encore présent"
+              gone backups.longhorn.io/$B2 || fail "$B2 encore présent"
+              echo "PLT333=BACKUPS_DELETED $B1 $B2"
+              kubectl delete backupvolumes.longhorn.io $BV -n $N --wait=false
+              gone backupvolumes.longhorn.io/$BV || fail "$BV encore présent"
+              echo "PLT333=BACKUPVOLUME_DELETED $BV"
+              echo "PLT333=DONE"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 16Mi}

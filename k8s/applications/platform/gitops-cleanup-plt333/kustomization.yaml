@@ -1,0 +1,9 @@
+# PLT-333: ephemeral GitOps Job deleting the 2 Longhorn Backups and the BackupVolume of
+# media/media-share in R2 bucket homelab-backup-longhorn (MANDAT 12, D-2026-11-15-18, single
+# execution, expires 48 h after merge of homelab-infra#556). A follow-up PR removes this whole
+# directory (Job, ServiceAccount, ClusterRole, ClusterRoleBinding).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - media-share-backup-delete.yaml

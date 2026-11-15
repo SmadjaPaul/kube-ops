@@ -8,6 +8,8 @@ resources:
   - mastra-factory
   - mastra-sandbox
   - matrix
+  # PLT-333: one-shot Job deleting the media-share backups (MANDAT 12), removed by a follow-up PR.
+  - gitops-cleanup-plt333
   # PLT-315: Fleet (device posture), LAN only via Gateway/internal. ADR identity-layer.
   - ../../optional/fleet
   - rustical-pilot
