@@ -7,6 +7,8 @@ resources:
 # The isolated restore drill is private and admitted by the root AppProject;
 # its separate namespace has no Service, route, or application writer.
 - ../../optional/personal-ai-2026/hindsight-restore
+# PLT-303 drill step 4: off-Oracle restore of the OKE Hindsight archive (remove after the fingerprint).
+- ../../optional/hindsight-oke-drill/offsite-restore
 - ../../optional/personal-ai-2026/librechat
 - karakeep
 - opencode
