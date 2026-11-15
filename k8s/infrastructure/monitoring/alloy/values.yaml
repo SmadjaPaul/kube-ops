@@ -367,7 +367,7 @@ alloy:
 
 controller:
   type: deployment
-  replicas: 0
+  replicas: 1
   hostNetwork: false
   hostPID: false
   volumes:
