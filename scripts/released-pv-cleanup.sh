@@ -69,10 +69,14 @@ if [[ "$profile" == matrix ]]; then
   RELEASE=()
 fi
 
-# shellcheck source=lib/kube-preflight.sh
-source "$(dirname "$0")/lib/kube-preflight.sh"
-require_kube_access >/dev/null
-trap 'kube_access_cleanup' EXIT
+# PV_CLEANUP_IN_CLUSTER=yes: run as an ephemeral GitOps Job under its own ServiceAccount
+# (resourceNames RBAC), kubectl uses the in-cluster config; no operator kubeconfig.
+if [[ "${PV_CLEANUP_IN_CLUSTER:-}" != yes ]]; then
+  # shellcheck source=lib/kube-preflight.sh
+  source "$(dirname "$0")/lib/kube-preflight.sh"
+  require_kube_access >/dev/null
+  trap 'kube_access_cleanup' EXIT
+fi
 
 # get_json KIND NAME [ns] -> prints JSON; exit 0 found, 4 NotFound, 5 other error
 get_json() {
@@ -235,7 +239,11 @@ for t in "${TARGETS[@]}"; do
   [[ "$mode" == delete ]] || continue
   rv=$(jq -r .metadata.resourceVersion <<<"$pv")
   delete_with_preconditions "/api/v1/persistentvolumes/$name" "$uid" "$rv"
-  if ! kubectl --request-timeout=130s wait --for=delete "pv/$name" --timeout=120s >/dev/null; then
+  gone=0
+  for _ in $(seq 1 24); do
+    if get_json pv "$name" >/dev/null; then sleep 5; else rc=$?; [[ $rc == 4 ]] && { gone=1; break; }; sleep 5; fi
+  done
+  if (( ! gone )); then
     echo "PV $name INCOMPLETE: toujours présent après 120 s, volume Longhorn conservé"; fail=1; continue
   fi
   if [[ "$lh_state" == detached ]]; then

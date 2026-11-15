@@ -8,6 +8,8 @@ resources:
   - mastra-factory
   - mastra-sandbox
   - matrix
+  # PLT-145/344/333: one-shot cleanup Jobs, removed by the follow-up PR (MANDAT 7, 2026-11-22).
+  - gitops-cleanup-20261115
   # PLT-315: Fleet (device posture), LAN only via Gateway/internal. ADR identity-layer.
   - ../../optional/fleet
   - rustical-pilot
