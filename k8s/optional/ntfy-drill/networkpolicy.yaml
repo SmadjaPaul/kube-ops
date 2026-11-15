@@ -1,0 +1,34 @@
+# Default deny for the drill namespace: ingress only from the same namespace
+# (the check Job), egress only to the same namespace and cluster DNS. No
+# Gateway, no kube-apiserver, no Internet. The CiliumNetworkPolicy of the
+# source namespace is excluded from the Restore, so nothing widens this.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: drill-ntfy-isolation
+  namespace: drill-ntfy
+  labels: {policy-type: platform}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-13"
+spec:
+  description: "PLT-222 ntfy restore drill: same-namespace ingress, egress to the namespace and DNS only."
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: drill-ntfy
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: drill-ntfy
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+          rules:
+            dns:
+              - matchPattern: "*"
