@@ -10,7 +10,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: fleet-mysql-restore-drill
+  name: fleet-mysql-restore-drill-r2
   namespace: fleet-drill
   labels:
     restore.smadja.dev/purpose: isolated-restore-drill
@@ -80,11 +80,12 @@ spec:
               echo "seeded count_checksum=$BEFORE"
 
               # Exact Velero pre-backup hook command of k8s/optional/fleet/mysql.yaml.
-              /bin/sh -ec "umask 077; mkdir -p /var/lib/mysql/dump;
-                trap 'rm -f /var/lib/mysql/dump/.fleet.sql.tmp' EXIT;
-                MYSQL_PWD=\"$MYSQL_PASSWORD\" mysqldump --host=127.0.0.1 --user=fleet --protocol=tcp
-                --single-transaction --quick --skip-lock-tables --no-tablespaces --routines --events --triggers
-                fleet > /var/lib/mysql/dump/.fleet.sql.tmp; test -s /var/lib/mysql/dump/.fleet.sql.tmp;
+              # The YAML folded scalar of the real hook yields one line; keep one line here.
+              /bin/sh -ec "umask 077; mkdir -p /var/lib/mysql/dump; \
+                trap 'rm -f /var/lib/mysql/dump/.fleet.sql.tmp' EXIT; \
+                MYSQL_PWD=\"$MYSQL_PASSWORD\" mysqldump --host=127.0.0.1 --user=fleet --protocol=tcp \
+                --single-transaction --quick --skip-lock-tables --no-tablespaces --routines --events --triggers \
+                fleet > /var/lib/mysql/dump/.fleet.sql.tmp; test -s /var/lib/mysql/dump/.fleet.sql.tmp; \
                 mv /var/lib/mysql/dump/.fleet.sql.tmp /var/lib/mysql/dump/fleet.sql"
               echo "dump_bytes=$(stat -c %s /var/lib/mysql/dump/fleet.sql)"
 
