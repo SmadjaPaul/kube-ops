@@ -241,6 +241,9 @@ alloy:
             "velero_backup_partial_failure_total",
             "longhorn_volume_robustness",
             "longhorn_backup_state",
+            // restic CronJobs (PLT-286, rule restic_backup_failed in homelab-infra)
+            "kube_cronjob_status_last_schedule_time{cronjob=~\".*-restic-.*\"}",
+            "kube_cronjob_status_last_successful_time{cronjob=~\".*-restic-.*\"}",
             // cert-manager
             "certmanager_certificate_ready_status{condition=\"True\"}",
             "certmanager_certificate_expiration_timestamp_seconds",
