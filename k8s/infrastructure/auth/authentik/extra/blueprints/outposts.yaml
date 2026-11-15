@@ -12,11 +12,6 @@ entries:
   - model: authentik_blueprints.metaapplyblueprint
     attrs:
       identifiers:
-        name: Apps - Media
-      required: true
-  - model: authentik_blueprints.metaapplyblueprint
-    attrs:
-      identifiers:
         name: Apps - AIOStreams
       required: true
   # Native OIDC is the default. Keep a single managed proxy outpost only for
@@ -36,18 +31,6 @@ entries:
         - !Find [
             authentik_core.provider,
             [name, "k8s.smadja.dev/services-frigate"],
-          ]
-        - !Find [
-            authentik_core.provider,
-            [name, "k8s.smadja.dev/services-media/radarr-proxy"],
-          ]
-        - !Find [
-            authentik_core.provider,
-            [name, "k8s.smadja.dev/services-media/sonarr-proxy"],
-          ]
-        - !Find [
-            authentik_core.provider,
-            [name, "k8s.smadja.dev/services-media/prowlarr-proxy"],
           ]
       config:
         log_level: info
