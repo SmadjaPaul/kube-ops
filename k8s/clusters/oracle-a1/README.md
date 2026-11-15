@@ -28,7 +28,8 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
   namespaces are gone and AppProject `oracle-a1` no longer admits them. Alerts
   go through ntfy.sh (homelab Alertmanager receiver). Doppler keys
   `ORACLE_A1_NTFY_*` are kept. Rollback: Git revert.
-- Not in the root: `cnpg-cluster`, `media`, `cloudflared`, `hindsight` (see above).
+- PLT-190: `cnpg-cluster` (`pg-shared` + R2 backup + drill database) joins the root for the off-Oracle restore drill. No application data goes there before the restore is proven.
+- Not in the root: `media`, `cloudflared`, `hindsight` (see above).
 - Access: the Kubernetes API is private. The only path is an OCI Bastion
   port-forwarding session (`homelab-bastion`) with a temporary kubeconfig.
   No ARC runner and no homelab route reaches it. The NetBird path (PLT-256,
@@ -64,7 +65,7 @@ overlay and no policy is added; the Argo CD chart NetworkPolicies are inert.
 `pg-shared` is now configured (PLT-190) with the barman-cloud plugin: WAL
 archive and daily base backups to `s3://homelab-backup-cnpg/oracle-a1/pg-shared/`
 (R2, writer identity, 14 days retention), same model as `hindsight-db`. It is
-still NOT in `apps/kustomization.yaml`: the activation PR comes with the drill
+in `apps/kustomization.yaml` since the activation PR of the drill
 (`docs/operations/pg-shared-oke-backup-drill.md`, manifests in
 `k8s/optional/pg-shared-oke-drill`). D-2026-11-11-17 forbids any single copy of
 data on Oracle without a restore tested off Oracle. Until that restore is
