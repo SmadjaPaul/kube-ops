@@ -46,6 +46,7 @@ ROLLOUT_TIMEOUT=${KUBECTL_RW_ROLLOUT_TIMEOUT:-180s}
 
 refuse() { echo "kubectl-rw: refusé : $*" >&2; exit 64; }
 
+[ "${1:-}" != --cluster ] || refuse "--cluster : oracle-a1 est en lecture seule (PLT-257), pas d'écriture agent sur OKE"
 dry=0
 if [ "${1:-}" = --dry-run ]; then dry=1; shift; fi
 [ "$#" -ge 3 ] || refuse "usage : kubectl-rw.sh [--dry-run] <verbe> <namespace> <cible> [arg] (voir l'en-tête)"

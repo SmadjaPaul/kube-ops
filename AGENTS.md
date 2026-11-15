@@ -36,7 +36,7 @@ This file → one skill from the table → only the application or infrastructur
 - `just verify-delivery CLUSTER APP`: post-merge PASS/FAIL from Grafana Cloud for `homelab` or `oracle-a1`; `just scaffold-oke-app`: OKE overlay + Application.
 - `just inventory`: Git-only active imports and dormant candidates (not runtime evidence).
 - `just kube-access-check`, `just runtime-inventory`, `just runtime-smoke`, `just status-app <app>`, `just diagnose-app <app>`, `just backup-audit`, `just e2e-list`.
-- `bash scripts/kubectl-ro.sh <get|describe|logs|top|events|api-resources|version> ...`: read-only kubectl; `get --raw` admits the Prometheus/Loki query APIs.
+- `bash scripts/kubectl-ro.sh [--cluster homelab|oracle-a1] <get|describe|logs|top|events|api-resources|version> ...`: read-only kubectl; `get --raw` admits the Prometheus/Loki query APIs.
 - `bash scripts/kubectl-rw.sh [--dry-run] <patch|scale|restart|undo|set-image|suspend|resume|delete|apply> <namespace> <target> [arg]`: bounded writes with the `agent-operator` identity (PLT-237), admitted namespaces in `k8s/infrastructure/security/agent-operator/scope.tsv`. If its kubeconfig is not distributed (`scripts/agent-operator-token.sh --provision`), stay read-only and repair through Git.
 - `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]`: ends a sync stuck on hooks/health; it refuses when a PVC, PV, CNPG Cluster, ObjectStore or VolumeSnapshot would be pruned. Check first that the Application is in the admitted scope.
 - `bash scripts/doppler-safe.sh <names|has|set|delete|run>`: the only Doppler entry point.

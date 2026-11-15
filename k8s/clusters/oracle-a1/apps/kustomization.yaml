@@ -17,6 +17,7 @@ kind: Kustomization
 # est actif. Retour en arrière : retirer cette ligne de la racine.
 # PLT-256 : netbird-router (accès admin à l'API OKE, NET_ADMIN) actif ; retour en
 # arrière : retirer cette ligne.
+# PLT-257 : agent-operator (SA + RBAC de lecture seule des agents) actif.
 resources:
   - guardrails.yaml
   - external-secrets.yaml
@@ -25,3 +26,4 @@ resources:
   - cnpg-barman-plugin.yaml
   - observability.yaml
   - netbird-router.yaml
+  - agent-operator.yaml

@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# PLT-257 : identité de LECTURE SEULE des agents sur OKE (M6). Aucune écriture,
+# aucun Secret, aucun pods/exec : le RBAC est le seul garde-fou (pas de
+# policy d'admission : une identité sans verbe d'écriture n'a rien à refuser).
+resources:
+  - identity.yaml
+  - rbac.yaml
