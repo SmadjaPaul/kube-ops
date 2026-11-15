@@ -1,0 +1,223 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+version: 1
+metadata:
+  name: Users - Smadja family (PLT-176)
+entries:
+  # PLT-176. Four internal accounts (Corinne, Philippe, Theo, Manon Smadja),
+  # declared without a password, and an admin-initiated recovery flow so that
+  # each person sets their own password. Procedure:
+  # docs/operations/family-accounts-smadja.md.
+  #
+  # Guarantees of this file:
+  # - No password, token or personal recovery address. A blueprint user without
+  #   a `password` attribute gets an unusable password (UserSerializer
+  #   `_ensure_password_not_empty`, authentik 2026.8): nobody can sign in with a
+  #   password before the person completes the recovery link.
+  # - `state: created`: the blueprint creates a missing account and never
+  #   updates an existing one (no reset of name, e-mail, groups, password or
+  #   MFA). Group changes made later by Paul are kept.
+  # - Least privilege: the accounts are members of `smadja-family` only. No
+  #   application binds this group. Access to an application is a separate
+  #   decision of Paul (add the account to `family` or to a per-app group).
+
+  # Identity group of the four accounts. It grants no application access.
+  - id: smadja-family
+    model: authentik_core.group
+    identifiers: {name: smadja-family}
+    attrs: {name: smadja-family}
+
+  # ---------------------------------------------------------------------------
+  # Recovery flow: set your own password from a one-time link.
+  # ---------------------------------------------------------------------------
+  # No identification or e-mail stage: the flow cannot start from a username or
+  # an e-mail address. It runs only from a link created by an admin
+  # (Directory > Users > Send recovery link / Create recovery link), whose token
+  # carries the target user. The flow binding below limits it to
+  # `smadja-family`: an anonymous visitor, an admin or any other account gets
+  # "flow not applicable".
+  - id: family-recovery-flow
+    model: authentik_flows.flow
+    identifiers:
+      slug: family-recovery
+    attrs:
+      name: Family recovery
+      title: Définir votre mot de passe
+      designation: recovery
+      authentication: require_unauthenticated
+
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf family-recovery-flow
+      group: !KeyOf smadja-family
+    attrs:
+      order: 0
+
+  - id: family-recovery-password-policy
+    model: authentik_policies_password.passwordpolicy
+    identifiers:
+      name: family-recovery-password-policy
+    attrs:
+      password_field: password
+      check_static_rules: true
+      length_min: 12
+      check_zxcvbn: true
+      zxcvbn_score_threshold: 3
+      # Disabled: it calls an external API from the Authentik pod.
+      check_have_i_been_pwned: false
+      error_message: Mot de passe trop faible (12 caractères minimum, difficile à deviner).
+
+  - id: family-recovery-field-password
+    model: authentik_stages_prompt.prompt
+    identifiers:
+      name: family-recovery-field-password
+    attrs:
+      field_key: password
+      label: Mot de passe
+      type: password
+      required: true
+      placeholder: Mot de passe
+      placeholder_expression: false
+      order: 0
+
+  - id: family-recovery-field-password-repeat
+    model: authentik_stages_prompt.prompt
+    identifiers:
+      name: family-recovery-field-password-repeat
+    attrs:
+      field_key: password_repeat
+      label: Mot de passe (confirmation)
+      type: password
+      required: true
+      placeholder: Mot de passe (confirmation)
+      placeholder_expression: false
+      order: 1
+
+  - id: family-recovery-prompt
+    model: authentik_stages_prompt.promptstage
+    identifiers:
+      name: family-recovery-prompt
+    attrs:
+      fields:
+        - !KeyOf family-recovery-field-password
+        - !KeyOf family-recovery-field-password-repeat
+      validation_policies:
+        - !KeyOf family-recovery-password-policy
+
+  - id: family-recovery-user-write
+    model: authentik_stages_user_write.userwritestage
+    identifiers:
+      name: family-recovery-user-write
+    attrs:
+      user_creation_mode: never_create
+
+  - id: family-recovery-user-login
+    model: authentik_stages_user_login.userloginstage
+    identifiers:
+      name: family-recovery-user-login
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-recovery-flow
+      stage: !KeyOf family-recovery-prompt
+      order: 10
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-recovery-flow
+      stage: !KeyOf family-recovery-user-write
+      order: 20
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf family-recovery-flow
+      stage: !KeyOf family-recovery-user-login
+      order: 100
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  # E-mail template used by "Send recovery link". It is not bound to the flow:
+  # the admin action picks it and sends the link to the user's `email` only.
+  - id: family-recovery-email
+    model: authentik_stages_email.emailstage
+    identifiers:
+      name: family-recovery-email
+    attrs:
+      use_global_settings: true
+      subject: "smadja.dev : définissez votre mot de passe"
+      template: email/password_reset.html
+      token_expiry: hours=24
+      activate_user_on_success: false
+
+  # Admin recovery links use the brand's recovery flow (UserViewSet
+  # `_create_recovery_link`: "No recovery flow set." without it). Partial update:
+  # brands.yaml keeps owning the other brand attributes. Kept in this file so the
+  # !KeyOf resolves in the same run. The public "forgot password" link of the
+  # identification stage is unchanged (authentication.yaml).
+  - model: authentik_brands.brand
+    state: present
+    identifiers:
+      domain: authentik-default
+    attrs:
+      flow_recovery: !KeyOf family-recovery-flow
+
+  # ---------------------------------------------------------------------------
+  # Accounts. E-mail = the smadja.dev mailbox prepared in homelab-infra
+  # (terraform/migadu-lechaplais, PLT-293). Usernames carry the surname to avoid
+  # a silent skip on an existing short username (`state: created`).
+  # ---------------------------------------------------------------------------
+  - model: authentik_core.user
+    state: created
+    identifiers: {username: corinne.smadja}
+    attrs:
+      username: corinne.smadja
+      name: Corinne Smadja
+      email: corinne@smadja.dev
+      type: internal
+      path: users/internal/family
+      is_active: true
+      groups: [!KeyOf smadja-family]
+
+  - model: authentik_core.user
+    state: created
+    identifiers: {username: philippe.smadja}
+    attrs:
+      username: philippe.smadja
+      name: Philippe Smadja
+      email: philippe@smadja.dev
+      type: internal
+      path: users/internal/family
+      is_active: true
+      groups: [!KeyOf smadja-family]
+
+  - model: authentik_core.user
+    state: created
+    identifiers: {username: theo.smadja}
+    attrs:
+      username: theo.smadja
+      name: Théo Smadja
+      email: theo@smadja.dev
+      type: internal
+      path: users/internal/family
+      is_active: true
+      groups: [!KeyOf smadja-family]
+
+  - model: authentik_core.user
+    state: created
+    identifiers: {username: manon.smadja}
+    attrs:
+      username: manon.smadja
+      name: Manon Smadja
+      email: manon@smadja.dev
+      type: internal
+      path: users/internal/family
+      is_active: true
+      groups: [!KeyOf smadja-family]
