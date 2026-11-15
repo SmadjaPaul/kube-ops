@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Dormant (PLT-314, ADR homelab-infra docs/architecture/identity-layer.md).
-# No Argo root imports this directory. Activation is a separate ticket and
-# needs the Doppler keys named in external-secret.yaml.
+# PLT-314 package, activated by PLT-315 (LAN only) through apps-platform
+# (k8s/applications/platform/kustomization.yaml). Doppler keys named in
+# external-secret.yaml exist.
 # Not rendered on purpose:
 # - authentik-blueprint.staged.yaml: Authentik change, Paul's agreement (D-2026-11-14-06 point 3).
 # - http-route-public.staged.yaml: new public exposure, Paul's agreement (point 2).
