@@ -76,7 +76,7 @@ fi
 atlantis_root="$repo_root/k8s/poc/atlantis-plan-only"
 grep -F -- '- path: k8s/poc/atlantis-plan-only' \
   "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" >/dev/null
-test "$(find "$atlantis_root" -type f -printf '%f\n' | sort | tr '\n' ' ')" = \
+test "$(find "$atlantis_root" -type f -exec basename {} \; | sort | tr '\n' ' ')" = \
   'kustomization.yaml namespace.yaml pvc-retention.yaml '
 atlantis_rendered="$(mktemp)"
 trap 'rm -f "$atlantis_rendered"' EXIT
