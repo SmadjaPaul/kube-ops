@@ -64,7 +64,16 @@ spec:
           imagePullPolicy: IfNotPresent
           # The volume root holds ext4 lost+found; MySQL initializes only an
           # empty data directory, so it uses a child directory of the volume.
-          args: [--datadir=/var/lib/mysql/data, --innodb-buffer-pool-size=256M]
+          # PLT-344 L8: --skip-log-bin. Neither the Velero hook (logical
+          # mysqldump) nor any restore path uses the binary log, so it only
+          # costs a second fsync per commit on the bulk HDD. InnoDB redo
+          # durability is untouched: innodb_flush_log_at_trx_commit and
+          # sync_binlog-class settings stay at the safe defaults (changing them
+          # is a decision for Paul).
+          args:
+            - --datadir=/var/lib/mysql/data
+            - --innodb-buffer-pool-size=256M
+            - --skip-log-bin
           ports:
             - name: mysql
               containerPort: 3306
