@@ -1,5 +1,4 @@
-# PLT-306 tranche 3. Kept out of apps/kustomization.yaml until the OKE
-# bootstrap (PLT-253) and the Doppler keys GRAFANA_CLOUD_* exist.
+# PLT-306 tranche 3, activée par PLT-309 dans apps/kustomization.yaml.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
