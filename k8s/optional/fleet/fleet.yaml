@@ -18,11 +18,11 @@ metadata:
   namespace: fleet
   labels:
     app.kubernetes.io/name: fleet
+  annotations:
+    # Starts after fleet-mysql-fast (wave 0) is Ready.
+    argocd.argoproj.io/sync-wave: "1"
 spec:
-  # PLT-344 lot 1: Fleet stopped while its MySQL moves from longhorn-bulk to
-  # longhorn-fast (dump in mysql-migration.yaml). Back to 1 after the restore
-  # is verified.
-  replicas: 0
+  replicas: 1
   strategy:
     type: Recreate
   selector:

@@ -10,7 +10,6 @@ resources:
   - namespace.yaml
   - external-secret.yaml
   - mysql.yaml
-  - mysql-migration.yaml
   - valkey.yaml
   - fleet.yaml
   - http-route.yaml

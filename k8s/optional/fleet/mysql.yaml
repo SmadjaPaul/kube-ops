@@ -133,13 +133,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/mysql
-            # PLT-344 lot 1: the first start on the empty fast volume restores
-            # the dump written by Job fleet-mysql-dump-plt344. The entrypoint
-            # ignores it once the datadir exists. Removed in step 3.
-            - name: data
-              mountPath: /docker-entrypoint-initdb.d
-              subPath: migration
-              readOnly: true
             - name: run
               mountPath: /var/run/mysqld
             - name: tmp
@@ -156,10 +149,30 @@ spec:
         name: data
       spec:
         accessModes: [ReadWriteOnce]
-        # Adopts PVC data-fleet-mysql-fast-0 declared in mysql-migration.yaml.
+        # Adopts PVC data-fleet-mysql-fast-0 declared below.
         storageClassName: longhorn-fast
         resources:
           requests:
             # A Fleet database for ~6 hosts is tens of MiB; 10Gi leaves room
             # for the logical dump staged on the same volume.
             storage: 10Gi
+---
+# PLT-344 lot 1: declared before the StatefulSet existed so the dump could be
+# written to it; the StatefulSet adopted it. Never pruned or deleted by Argo.
+# /var/lib/mysql/migration keeps the migration dump (fleet.sql) and its
+# per-table counts.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-fleet-mysql-fast-0
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet-mysql
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 10Gi
