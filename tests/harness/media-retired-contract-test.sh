@@ -11,10 +11,13 @@ if grep -Eq '^[[:space:]]*-[[:space:]]*daily-(sabnzbd|audiobookshelf)\.yaml' "$v
   exit 1
 fi
 grep -Fxq -- '- media-share-pvc.yaml' "$m"
-grep -Fxq -- '- decypharr' "$m"
+grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"
+grep -Fxq -- '- bookorbit' "$m"
+if grep -Fxq -- '- decypharr' "$m"; then echo 'MEDIA_RETIRED=FAIL: forbidden match at line 16' >&2; exit 1; fi
 grep -Fxq -- '- aiostreams' "$m"
 grep -Fxq -- '- audiobookrequest' "$m"
-grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"
+grep -Fxq -- '- polyfin' "$m"
+if grep -Fxq -- '- allow-arr-to-decypharr.yaml' k8s/infrastructure/network/policies/applications/media/media/kustomization.yaml; then echo 'MEDIA_RETIRED=FAIL: forbidden match at line 20' >&2; exit 1; fi
 script=scripts/media-retired-pvc-cleanup.sh
 bash -n "$script"
 grep -Fq 'ALLOW_EMPTY_MEDIA_PVC_DELETION' "$script"
