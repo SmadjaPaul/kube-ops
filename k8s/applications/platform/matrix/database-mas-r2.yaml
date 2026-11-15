@@ -1,5 +1,5 @@
 # PLT-248: CNPG Barman WAL archive and base backups of
-# matrix/matrix-mas-postgresql-clean on Cloudflare R2 (bucket
+# matrix/matrix-mas-postgresql-fast on Cloudflare R2 (bucket
 # homelab-backup-cnpg, jurisdiction eu), following the PLT-221 pilot (R2
 # migration PLT-219, runbook homelab-infra docs/operations/r2-migration.md).
 #
@@ -7,7 +7,7 @@
 # only). The endpoint comes from Doppler R2_S3_ENDPOINT through the same
 # Secret, so the account id is never written in this public repository.
 #
-# Objects land under s3://homelab-backup-cnpg/matrix-mas-clean/matrix-mas-postgresql-clean/
+# Objects land under s3://homelab-backup-cnpg/matrix-mas-clean/matrix-mas-postgresql-fast/
 # (serverName defaults to the Cluster name). Active WAL archive and base backup
 # target since the cutover PR; the Hetzner store in database-objectstores.yaml
 # is kept for rollback.

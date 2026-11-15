@@ -11,8 +11,8 @@ La consolidation se fait au fil de l'eau, une base à la fois, avec restauration
 | `pg-shared` | cluster partagé | partagé | cible |
 | `authentik-postgresql-restored` | Authentik | exception (identité, D-02) | aucune |
 | `immich-postgresql` | Immich | exception (données photo irremplaçables, restauration dédiée) | aucune |
-| `matrix-synapse-postgresql` | Matrix | exception (identité, D-02) | aucune |
-| `matrix-mas-postgresql-clean` | Matrix | exception (identité, D-02) | aucune |
+| `matrix-synapse-postgresql-fast` | Matrix | exception (identité, D-02) | aucune |
+| `matrix-mas-postgresql-fast` | Matrix | exception (identité, D-02) | aucune |
 | `factory-platform-postgresql` | Factory | exception (gelée) | aucune |
 | `factory-platform-pg2` | Factory | exception (gelée) | aucune |
 | `mastra-factory-postgresql` | Factory | exception (gelée) | aucune |

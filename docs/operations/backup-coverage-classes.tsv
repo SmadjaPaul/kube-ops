@@ -36,11 +36,11 @@ librechat	librechat-librechat-images	USEFUL	User uploaded files
 librechat	librechat-mongodb	USEFUL	Conversations and agent settings
 mastra-factory	mastra-factory-postgresql-1	USEFUL	Factory runs and agent memory
 mastra-factory	mastra-factory-postgresql-1-wal	USEFUL	Factory runs and agent memory WAL
-matrix	matrix-mas-postgresql-clean-1	IRREPLACEABLE	Matrix identity (MAS) database
-matrix	matrix-mas-postgresql-clean-1-wal	IRREPLACEABLE	Matrix identity (MAS) database WAL
-matrix	matrix-synapse-media	IRREPLACEABLE	Matrix uploaded media
-matrix	matrix-synapse-postgresql-1	IRREPLACEABLE	Matrix messages and rooms
-matrix	matrix-synapse-postgresql-1-wal	IRREPLACEABLE	Matrix messages and rooms WAL
+matrix	matrix-mas-postgresql-fast-1	IRREPLACEABLE	Matrix identity (MAS) database
+matrix	matrix-mas-postgresql-fast-1-wal	IRREPLACEABLE	Matrix identity (MAS) database WAL
+matrix	matrix-synapse-media-fast	IRREPLACEABLE	Matrix uploaded media
+matrix	matrix-synapse-postgresql-fast-1	IRREPLACEABLE	Matrix messages and rooms
+matrix	matrix-synapse-postgresql-fast-1-wal	IRREPLACEABLE	Matrix messages and rooms WAL
 mealie	mealie-data	IRREPLACEABLE	Family recipes
 media	aiostreams-data	USEFUL	AIOStreams user configurations (SQLite)
 media	bookorbit-data	USEFUL	BookOrbit app data (library index, settings)
