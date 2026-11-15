@@ -63,7 +63,8 @@ entries:
       check_static_rules: true
       length_min: 12
       check_zxcvbn: true
-      zxcvbn_score_threshold: 3
+      # Fails when the score is <= threshold: 2 means a zxcvbn score of 3 or 4.
+      zxcvbn_score_threshold: 2
       # Disabled: it calls an external API from the Authentik pod.
       check_have_i_been_pwned: false
       error_message: Mot de passe trop faible (12 caractères minimum, difficile à deviner).
