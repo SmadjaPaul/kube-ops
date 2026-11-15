@@ -1,0 +1,49 @@
+# PLT-306 tranche 3: Grafana Cloud export of oracle-a1 (label
+# cluster="oracle-a1"). Lightweight: kube-state-metrics restricted to an
+# allowlist, one Alloy Deployment, no local Prometheus or Loki. Out of the
+# root (apps/kustomization.yaml) until the OKE bootstrap of PLT-253.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - namespace.yaml
+  - external-secret.yaml
+
+helmCharts:
+  - name: kube-state-metrics
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 9.0.1
+    releaseName: kube-state-metrics
+    namespace: monitoring
+    valuesFile: kube-state-metrics-values.yaml
+  - name: alloy
+    repo: https://grafana.github.io/helm-charts
+    version: 1.13.0
+    releaseName: alloy
+    namespace: monitoring
+    valuesFile: alloy-values.yaml
+
+# The charts omit false host namespace flags; k8s/CLAUDE.md requires them.
+patches:
+  - target: {group: apps, version: v1, kind: Deployment}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/hostNetwork
+        value: false
+      - op: add
+        path: /spec/template/spec/hostPID
+        value: false
+      - op: add
+        path: /spec/template/spec/hostIPC
+        value: false
+  # The chart always appends its default clusterRules (nodes, nodes/metrics,
+  # /metrics). Alloy uses only pod discovery, pod logs and events: replace the
+  # rendered rules with that read scope.
+  - target: {group: rbac.authorization.k8s.io, version: v1, kind: ClusterRole, name: alloy}
+    patch: |-
+      - op: replace
+        path: /rules
+        value:
+          - apiGroups: [""]
+            resources: ["pods", "pods/log", "namespaces", "events"]
+            verbs: ["get", "list", "watch"]

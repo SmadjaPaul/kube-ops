@@ -28,7 +28,7 @@ test('Paperclip server, data and monitoring roots are fully retired', () => {
   assert.doesNotMatch(read('k8s/infrastructure/monitoring/blackbox/networkpolicy.yaml'), /paperclip/i);
   assert.doesNotMatch(read('k8s/infrastructure/network/policies/auth/allow-authentik-access.yaml'), /paperclip/i);
   assert.doesNotMatch(read('k8s/applications/platform/agentgateway/resources.yaml'), /paperclip/i);
-  assert.doesNotMatch(read('k8s/applications/ai/executor/networkpolicy.yaml'), /paperclip/i);
+  assert.equal(exists('k8s/applications/ai/executor/kustomization.yaml'), false);
   assert.equal(exists('k8s/infrastructure/controllers/paperclip-operator/application.yaml'), false);
   assert.equal(exists('k8s/infrastructure/controllers/paperclip-operator/kustomization.yaml'), false);
   assert.equal(read('k8s/infrastructure/controllers/vpa/recommendations.yaml').includes('paperclip.inc/v1alpha1'), false);

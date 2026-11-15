@@ -21,6 +21,12 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR supersedes the previous run: cancel it to save runner time.
+# main and scheduled runs are never cancelled.
+concurrency:
+  group: v1-contract-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate:
     # Stable, unique check-run name for eventual GitHub branch protection.
@@ -88,6 +94,9 @@ jobs:
 
       - name: Validate Longhorn off-site PVC and retired Atlantis recovery volume contract
         run: bash tests/harness/longhorn-offsite-pvc-contract-test.sh
+
+      - name: Validate agent-operator identity contract
+        run: bash tests/agent-guard/agent-operator-identity-test.sh
 
       - name: Validate bootstrap shell
         run: bash -n scripts/bootstrap-cluster.sh

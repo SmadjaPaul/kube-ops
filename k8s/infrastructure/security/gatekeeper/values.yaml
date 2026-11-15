@@ -24,7 +24,7 @@ controllerManager:
 audit:
   resources:
     requests:
-      cpu: 100m
+      cpu: 25m
       memory: 512Mi
     limits:
       cpu: 1000m

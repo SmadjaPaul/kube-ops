@@ -6,6 +6,7 @@ alertmanager:
   alertmanagerSpec:
     secrets:
       - alertmanager-ntfy-publisher
+      - alertmanager-healthchecks-ping
   config:
     global:
       resolve_timeout: 5m
@@ -27,13 +28,24 @@ alertmanager:
       repeat_interval: 12h
       receiver: 'null'
       routes:
-        - receiver: 'null'
+        # PLT-263 dead-man switch: Watchdog always fires; Healthchecks.io
+        # notifies ntfy (its own integration) when the pings stop.
+        - receiver: healthchecks-watchdog
           matchers: ['alertname = Watchdog']
+          group_by: [alertname]
+          group_wait: 0s
+          group_interval: 1m
+          repeat_interval: 2m
         - receiver: ntfy-critical
           matchers: ['severity = critical']
           group_by: [namespace, alertname]
     receivers:
       - name: 'null'
+      - name: healthchecks-watchdog
+        webhook_configs:
+          - url_file: /etc/alertmanager/secrets/alertmanager-healthchecks-ping/url
+            send_resolved: false
+            max_alerts: 1
       - name: ntfy-critical
         webhook_configs:
           - url: http://ntfy.ntfy.svc.cluster.local/homeops-critical?template=alertmanager

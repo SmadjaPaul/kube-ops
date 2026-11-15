@@ -1,0 +1,142 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fleet
+  namespace: fleet
+spec:
+  selector:
+    app.kubernetes.io/name: fleet
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fleet
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fleet
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fleet
+    spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 3333
+        runAsGroup: 3333
+        fsGroup: 3333
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # Schema migrations before every start (same as the official chart
+        # autoApplySQLMigrations). Idempotent.
+        - name: prepare-db
+          image: fleetdm/fleet:v4.94.1@sha256:2e82f79e0af9ae1ece931d4dedb23a0f56eda187609806b1613661b37765118c
+          imagePullPolicy: IfNotPresent
+          command: [fleet, prepare, db, --no-prompt]
+          env: &fleet-env
+            - name: FLEET_MYSQL_ADDRESS
+              value: fleet-mysql:3306
+            - name: FLEET_MYSQL_DATABASE
+              value: fleet
+            - name: FLEET_MYSQL_USERNAME
+              value: fleet
+            - name: FLEET_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-mysql
+                  key: MYSQL_PASSWORD
+            - name: FLEET_REDIS_ADDRESS
+              value: fleet-valkey:6379
+            - name: FLEET_SERVER_ADDRESS
+              value: 0.0.0.0:8080
+            # TLS terminates at the Gateway (Cloudflare edge for agents).
+            - name: FLEET_SERVER_TLS
+              value: "false"
+            - name: FLEET_SERVER_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-server
+                  key: FLEET_SERVER_PRIVATE_KEY
+            - name: FLEET_LOGGING_JSON
+              value: "true"
+            - name: FLEET_OSQUERY_STATUS_LOG_PLUGIN
+              value: stdout
+            - name: FLEET_OSQUERY_RESULT_LOG_PLUGIN
+              value: stdout
+            - name: FLEET_VULNERABILITIES_DATABASES_PATH
+              value: /tmp/vulndbs
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      containers:
+        - name: fleet
+          image: fleetdm/fleet:v4.94.1@sha256:2e82f79e0af9ae1ece931d4dedb23a0f56eda187609806b1613661b37765118c
+          imagePullPolicy: IfNotPresent
+          command: [fleet, serve]
+          env: *fleet-env
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            # 4Gi follows the official chart: vulnerability processing runs in
+            # this container (vulnProcessing.dedicated=false).
+            limits:
+              cpu: "1"
+              memory: 4Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 2Gi

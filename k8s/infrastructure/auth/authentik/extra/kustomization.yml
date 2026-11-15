@@ -49,6 +49,7 @@ configMapGenerator:
       - ./blueprints/groups.yaml
       - ./blueprints/flows-invitation-operator.yaml
       - ./blueprints/qa-e2e-user.yaml
+      - ./blueprints/qa-agent-e2e.yaml
       - ./blueprints/brands.yaml
       - ./blueprints/authentication.yaml
       - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml

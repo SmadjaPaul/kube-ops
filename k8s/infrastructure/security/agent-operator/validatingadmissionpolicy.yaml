@@ -35,7 +35,7 @@ spec:
   variables:
     - name: admitted
       expression: >-
-        ['agentgateway', 'executor', 'factory-platform', 'gpt-researcher',
+        ['agentgateway', 'factory-platform', 'gpt-researcher',
         'it-tools', 'mastra-factory', 'mastra-sandbox', 'media', 'mqtt', 'ntfy',
         'open-connector', 'opencode', 'pinepods', 'searxng', 'stirling-pdf']
     - name: target

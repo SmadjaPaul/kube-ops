@@ -11,7 +11,6 @@ resources:
 - karakeep
 - opencode
 - gpt-researcher
-- executor
 
 # Intentionally disabled from the V1 active catalog:
 # - perplexica: decommissioned in favor of Mastra research tools; manifests removed (PLT-46).

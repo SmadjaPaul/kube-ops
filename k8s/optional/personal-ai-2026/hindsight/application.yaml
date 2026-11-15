@@ -40,7 +40,7 @@ spec:
             modelCache:
               enabled: false
           resources:
-            requests: {cpu: 200m, memory: 768Mi}
+            requests: {cpu: 25m, memory: 768Mi}
             limits: {cpu: "2", memory: 3Gi}
           startupProbe:
             httpGet: {path: /health/live, port: 8888}

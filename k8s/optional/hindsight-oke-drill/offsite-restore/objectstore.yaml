@@ -1,0 +1,22 @@
+# The OKE archive (written by oracle-a1/hindsight), read from the homelab.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hindsight-oke-r2-ro
+  namespace: hindsight-oke-drill
+spec:
+  instanceSidecarConfiguration:
+    env:
+      - {name: AWS_REQUEST_CHECKSUM_CALCULATION, value: when_required}
+      - {name: AWS_RESPONSE_CHECKSUM_VALIDATION, value: when_required}
+      - {name: AWS_DEFAULT_REGION, value: auto}
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef: {name: hindsight-oke-drill-r2-ro, key: AWS_ENDPOINT_URL_S3}
+  configuration:
+    destinationPath: s3://homelab-backup-cnpg/oracle-a1
+    s3Credentials:
+      accessKeyId: {name: hindsight-oke-drill-r2-ro, key: AWS_ACCESS_KEY_ID}
+      secretAccessKey: {name: hindsight-oke-drill-r2-ro, key: AWS_SECRET_ACCESS_KEY}
+    wal: {compression: gzip}
+    data: {compression: gzip}

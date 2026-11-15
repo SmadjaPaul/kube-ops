@@ -1,0 +1,28 @@
+# PLT-260 : garde-fou Always Free. Un Service `type: LoadBalancer` fait créer un
+# load balancer OCI facturable par l'OKE cloud controller. L'edge public passe
+# par Cloudflare Tunnel (sortant), jamais par un LB. Le quota OCI à zéro
+# (terraform/oracle-a1) est la seconde barrière.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deny-loadbalancer-service
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["services"]
+  validations:
+    - expression: "!has(object.spec.type) || object.spec.type != 'LoadBalancer'"
+      message: "Service type LoadBalancer is denied on oracle-a1 (Always Free guardrail, PLT-260); expose through Cloudflare Tunnel."
+      reason: Invalid
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: deny-loadbalancer-service
+spec:
+  policyName: deny-loadbalancer-service
+  validationActions: [Deny]

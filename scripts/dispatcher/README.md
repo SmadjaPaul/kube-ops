@@ -26,6 +26,9 @@ Options de sélection (pilotées autrefois par le superviseur `night-relay`, ret
 - `--expect PLT-1` : exécution réelle seulement si le choix est encore ce ticket ; sinon code 3, sans verrou.
 - `--comment-skip PLT-1 --why TEXTE` : poste le commentaire « sauté pour la nuit » et sort.
 - Le dry-run affiche `progrès : <ID> pr=… liens=… commentaires=… dernier=…` pour le ticket choisi (PR liées et commentaires hors dispatcher). Une exécution en échec par limite d'usage affiche `limite d'usage : usage limit[, resets …]`.
+- `--require-kube-access` (PLT-239) : préflight canonique (`require_kube_access`, comme `just kube-access-check`) avant toute lecture Linear. Si l'accès n'est pas `KUBE_ACCESS=PASS` : aucun verrou, aucun ticket, code 0, ligne stable `DISPATCH_SKIPPED=kube_access_blocked` (suivie de `KUBE_ACCESS_REASON=<jeton>`). Aucun autre kubeconfig, TLS toujours vérifié.
+- `--incident PLT-283` : avec le préflight, au plus un commentaire `Exécutant local bloqué :` par tranche de 3 h sur ce ticket. Jamais en `--dry-run`. Si Linear échoue, le saut reste un code 0.
+- Tâche planifiée native macOS : prompt exact et critère E2E dans `docs/operations/local-executor-scheduled-task.md`.
 - SIGTERM pendant une exécution : le ticket est remis en Todo, commenté, et le verrou retiré.
 
 Codes de sortie : 0 (succès ou rien à faire), 1 (session `claude` en échec), 2 (erreur Linear ou configuration), 3 (choix changé, `--expect`).
@@ -40,7 +43,7 @@ Le prompt de session demande un worktree neuf depuis `origin/main` et, pour un t
 python3 -m unittest discover -s scripts/dispatcher/tests
 ```
 
-Les tests n'utilisent pas le réseau. Ils tournent sur des fixtures JSON et un faux client Linear.
+Les tests n'utilisent pas le réseau. Ils tournent sur des fixtures JSON et un faux client Linear. `test_preflight.py` couvre le préflight d'accès (blocage, commentaire unique par 3 h, dry-run).
 
 ## Règles
 

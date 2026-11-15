@@ -38,11 +38,10 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: hindsight-restore-20261110
       server: https://kubernetes.default.svc
-    - namespace: immich
+    # PLT-301: off-Oracle restore drill of the OKE Hindsight archive.
+    - namespace: hindsight-oke-drill
       server: https://kubernetes.default.svc
-    # PLT-243: temporary isolated R2 restore drill of immich/immich-postgresql;
-    # removed by PR once the drill root is pruned.
-    - namespace: immich-drill
+    - namespace: immich
       server: https://kubernetes.default.svc
     - namespace: invoice-ninja
       server: https://kubernetes.default.svc

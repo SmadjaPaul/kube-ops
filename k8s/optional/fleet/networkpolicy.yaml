@@ -1,0 +1,105 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fleet-server
+  namespace: fleet
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: fleet
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: fleet-mysql
+      toPorts:
+        - ports:
+            - port: "3306"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: fleet-valkey
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+    # APNs (api.push.apple.com), vulnerability feeds (NVD, GitHub, fleetdm.com)
+    # and the Authentik SAML metadata URL. HTTPS only.
+    - toEntities: [world]
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fleet-mysql
+  namespace: fleet
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: fleet-mysql
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: fleet
+      toPorts:
+        - ports:
+            - port: "3306"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: fleet-valkey
+  namespace: fleet
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: fleet-valkey
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: fleet
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP

@@ -1,0 +1,18 @@
+# PLT-246: first base backup of mastra-factory-postgresql on R2, right after the
+# WAL archive switch (cutover 19:50Z). Closes the window without an R2 recovery
+# point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: mastra-factory-postgresql-r2-initial-20261113
+  namespace: mastra-factory
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: mastra-factory-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: mastra-factory-r2-store

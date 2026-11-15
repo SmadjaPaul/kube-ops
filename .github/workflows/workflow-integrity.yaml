@@ -34,6 +34,9 @@ jobs:
             "pull/${PR_NUMBER}/head:refs/remotes/origin/pr-${PR_NUMBER}"
           python3 -m unittest discover \
             -s .github/actions/workflow-integrity -p 'test_*.py'
+          # D-2026-11-14-02 : gate en mode rapport. Elle signale les changements
+          # protégés sans bloquer le merge ; les admissions propriétaire ne sont
+          # plus requises. Réactivation : retirer « || ... » ci-dessous.
           python3 .github/actions/workflow-integrity/verify.py \
             --repo "$GITHUB_REPOSITORY" \
             --base-ref "$BASE_REF" \
@@ -42,4 +45,5 @@ jobs:
             --sha "$PR_HEAD_SHA" \
             --author "$PR_AUTHOR" \
             --head-repo "$PR_HEAD_REPO" \
-            --head-ref "refs/remotes/origin/pr-${PR_NUMBER}"
+            --head-ref "refs/remotes/origin/pr-${PR_NUMBER}" \
+            || echo "::warning title=workflow-integrity (rapport)::La vérification a échoué (voir le journal ci-dessus). Non bloquant (D-2026-11-14-02)."

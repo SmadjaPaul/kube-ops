@@ -1,0 +1,18 @@
+# PLT-247: first base backup of matrix-synapse-postgresql on R2, right after
+# the WAL archive switch (cutover 2026-11-13 23:20Z, #1405). Closes the window
+# without an R2 recovery point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: matrix-synapse-postgresql-r2-initial-20261113
+  namespace: matrix
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: matrix-synapse-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-synapse-r2-store
