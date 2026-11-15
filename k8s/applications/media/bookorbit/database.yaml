@@ -15,6 +15,13 @@ spec:
         - CREATE EXTENSION IF NOT EXISTS pg_trgm;
         - CREATE EXTENSION IF NOT EXISTS unaccent;
         - CREATE EXTENSION IF NOT EXISTS vector;
+  postgresql:
+    parameters:
+      # PLT-344 lot 0 : WAL réduit (golden path stockage). archive_timeout 5min -> 15min : 96 segments forcés/jour au lieu de 288 (RPO R2 15 min).
+      checkpoint_timeout: "15min"
+      max_wal_size: "2GB"
+      wal_compression: "lz4"
+      archive_timeout: "15min"
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true

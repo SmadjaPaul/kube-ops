@@ -38,6 +38,7 @@ spec:
       cpu: 1000m
   postgresql:
     parameters:
+      # PLT-344 lot 0 : WAL réduit (golden path stockage). archive_timeout 5min -> 15min : 96 segments forcés/jour au lieu de 288 (RPO R2 15 min).
       max_connections: "100"
       shared_buffers: "256MB"
       effective_cache_size: "768MB"
@@ -51,6 +52,9 @@ spec:
       huge_pages: "off"
       min_wal_size: "512MB"
       max_wal_size: "2GB"
+      checkpoint_timeout: "15min"
+      wal_compression: "lz4"
+      archive_timeout: "15min"
   monitoring:
     enablePodMonitor: false
   minSyncReplicas: 0

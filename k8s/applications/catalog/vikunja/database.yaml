@@ -9,6 +9,13 @@ spec:
     initdb:
       database: vikunja
       owner: vikunja
+  postgresql:
+    parameters:
+      # PLT-344 lot 0 : WAL réduit (golden path stockage). archive_timeout 5min -> 15min : 96 segments forcés/jour au lieu de 288 (RPO R2 15 min).
+      checkpoint_timeout: "15min"
+      max_wal_size: "2GB"
+      wal_compression: "lz4"
+      archive_timeout: "15min"
   # PLT-221: a Cluster has a single WAL archiver; the archive moved from
   # vikunja-hetzner-store to vikunja-r2-store (backup-r2.yaml). Rollback: point
   # barmanObjectName back to vikunja-hetzner-store, then take a new base backup

@@ -19,6 +19,13 @@ spec:
         ensure: present
         login: true
         createrole: true
+  postgresql:
+    parameters:
+      # PLT-344 lot 0 : WAL réduit (golden path stockage). archive_timeout 5min -> 15min : 96 segments forcés/jour au lieu de 288 (RPO R2 15 min).
+      checkpoint_timeout: "15min"
+      max_wal_size: "2GB"
+      wal_compression: "lz4"
+      archive_timeout: "15min"
   # Barman plugin activation is required: ObjectStore + ScheduledBackup alone
   # do not enable WAL archiving or base backups on this Cluster.
   # PLT-221: CNPG accepts a single WAL archiver per Cluster, so this R2 pilot
