@@ -50,8 +50,9 @@ Restore redone.
 - **RTO: 40 s** from Restore creation (T0) to the application check (T4); 3 min
   11 s more from merge to T0 (Argo polling). Cold start of the pod and volume
   included; 180 kB of data, so a lower bound.
-- **RPO: data age 2 h 22 min at T0** (backup start 04:25:28Z). Structural bound:
-  24 h (daily Schedule `velero-daily-ntfy`, 04:25 UTC).
+- **RPO: data age 2 h 22 min at T0** (backup start 04:25:28Z). Schedule interval:
+  24 h (daily Schedule `velero-daily-ntfy`, 04:25 UTC); a failed or late run
+  makes the newest backup older than that, so 24 h is not a guaranteed bound.
 - **Application check** (read-only Job, restored PVC mounted read-only):
   Velero marker file present; `GET /v1/health` `{"healthy":true}`;
   `GET /v1/stats` `{"messages":0,"messages_rate":0}`; admin account role
