@@ -1,6 +1,6 @@
 -- PLT-303 drill, seed B (AFTER the drill base backup): rows that only exist in
 -- the WAL stream, so the restore proves WAL replay, not only the base backup.
-INSERT INTO public.banks (bank_id, name, background)
+INSERT INTO public.banks (bank_id, name, mission)
 VALUES ('drill-b-1', 'Drill bank B1', 'PLT-303 synthetic test data (WAL only)')
 ON CONFLICT DO NOTHING;
 INSERT INTO public.documents (id, bank_id, original_text, content_hash)

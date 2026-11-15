@@ -10,7 +10,7 @@ components:
 patches:
   - target: {kind: Job, name: hindsight-fingerprint}
     patch: |-
-      - {op: replace, path: /metadata/name, value: hindsight-drill-seed-a}
+      - {op: replace, path: /metadata/name, value: hindsight-drill-seed-a2}
       - {op: add, path: /spec/activeDeadlineSeconds, value: 1800}
       - op: replace
         path: /spec/template/spec/containers/0/command

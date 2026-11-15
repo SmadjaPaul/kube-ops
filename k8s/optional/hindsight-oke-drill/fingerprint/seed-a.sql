@@ -1,6 +1,6 @@
 -- PLT-303 drill, seed A (before the drill base backup): synthetic test rows in
 -- the EMPTY OKE database, role hindsight. Deterministic, re-runnable.
-INSERT INTO public.banks (bank_id, name, background)
+INSERT INTO public.banks (bank_id, name, mission)
 SELECT 'drill-a-' || g, 'Drill bank A' || g, 'PLT-303 synthetic test data'
   FROM generate_series(1, 3) g
 ON CONFLICT DO NOTHING;
