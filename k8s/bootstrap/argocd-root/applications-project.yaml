@@ -30,6 +30,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: factory-platform
       server: https://kubernetes.default.svc
+    # PLT-315: temporary isolated Fleet MySQL restore drill; removed by PR after proof.
+    - namespace: fleet-drill
+      server: https://kubernetes.default.svc
     - namespace: gpt-researcher
       server: https://kubernetes.default.svc
     - namespace: home-assistant

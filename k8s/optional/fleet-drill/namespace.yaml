@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fleet-drill
+  annotations:
+    argocd.argoproj.io/sync-wave: "-14"
+  labels:
+    app.kubernetes.io/part-of: identity-layer
+    restore.smadja.dev/purpose: isolated-restore-drill
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
