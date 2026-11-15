@@ -18,6 +18,8 @@ kind: ObjectStore
 metadata:
   name: hindsight-oke-r2
   namespace: hindsight
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   retentionPolicy: "14d"
   instanceSidecarConfiguration:

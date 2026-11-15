@@ -17,9 +17,12 @@ spec:
     server: https://kubernetes.default.svc
     namespace: hindsight
   syncPolicy:
-    # prune false: a sync never deletes the CNPG Cluster, its PVC or the
-    # ObjectStores (same rule as the homelab personal-hindsight Application).
-    automated: {prune: false, selfHeal: true}
+    # PLT-303: prune true (same pattern as cnpg-cluster) so that drill imports
+    # (Jobs, Backup, ConfigMap) are removed when their import is removed, without
+    # any kubectl write. The data kinds are protected per resource: the Cluster
+    # and the ObjectStores carry Prune=false,Delete=false; its PVC is created by
+    # CNPG, not tracked by Argo.
+    automated: {prune: true, selfHeal: true}
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
