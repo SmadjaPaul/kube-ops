@@ -10,7 +10,6 @@ resources:
   - drills/plt222-ntfy-r2-backup.yaml
   # PLT-222: isolated restore drill of ntfy (remove by PR after proof).
   - restore-drills/ntfy-drill-modifier.yaml
-  - drills/plt222-ntfy-restore.yaml
   - repository-config.yaml
   - auto-cleanup-jobs-policy.yaml
   - maintenance-job-config.yaml
