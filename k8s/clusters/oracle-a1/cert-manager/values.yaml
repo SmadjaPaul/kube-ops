@@ -1,0 +1,45 @@
+crds:
+  enabled: true
+  keep: true
+global:
+  # Leader election in its own namespace: the oracle-a1 AppProject does not
+  # admit kube-system.
+  leaderElection:
+    namespace: cert-manager
+replicaCount: 1
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile: {type: RuntimeDefault}
+resources:
+  requests: {cpu: 10m, memory: 64Mi}
+  limits: {cpu: 100m, memory: 128Mi}
+webhook:
+  replicaCount: 1
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
+  resources:
+    requests: {cpu: 10m, memory: 48Mi}
+    limits: {cpu: 100m, memory: 96Mi}
+cainjector:
+  replicaCount: 1
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: {type: RuntimeDefault}
+  resources:
+    requests: {cpu: 10m, memory: 96Mi}
+    limits: {cpu: 100m, memory: 192Mi}
+startupapicheck:
+  enabled: false

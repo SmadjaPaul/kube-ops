@@ -9,6 +9,14 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: hindsight-personal
+    # PLT-249: the CNPG operator reads instance status on 8000; without it the
+    # Cluster stayed Ready=False ("Instance Status Extraction Error").
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+            app.kubernetes.io/name: cloudnative-pg
+      toPorts:
+        - ports: [{port: "8000", protocol: TCP}]
     - fromEntities: [host, remote-node]
       toPorts:
         - ports: [{port: "8888", protocol: TCP}]
@@ -30,5 +38,12 @@ spec:
         - ports: [{port: "4000", protocol: TCP}]
     - toFQDNs:
         - matchName: fsn1.your-objectstorage.com
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    # PLT-249: Cloudflare R2 EU (CNPG/Barman archive, PLT-221). Hetzner stays
+    # allowed until its prefix is deleted (PLT-94).
+    - toFQDNs:
+        - matchPattern: "*.eu.r2.cloudflarestorage.com"
+        - matchPattern: "homelab-backup-cnpg.*.eu.r2.cloudflarestorage.com"
       toPorts:
         - ports: [{port: "443", protocol: TCP}]

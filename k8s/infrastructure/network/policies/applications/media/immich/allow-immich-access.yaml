@@ -90,10 +90,14 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: postgresql
-  description: "Allow PostgreSQL WAL archiving to RustFS"
+  description: "Allow PostgreSQL WAL archiving to Hetzner Object Storage (active) and Cloudflare R2 (cutover)"
   egress:
   - toFQDNs:
     - matchName: "fsn1.your-objectstorage.com"
+    # PLT-243: R2 EU S3 endpoint, path or virtual-hosted style; the account id
+    # label stays out of this public repository.
+    - matchPattern: "*.eu.r2.cloudflarestorage.com"
+    - matchPattern: "homelab-backup-cnpg.*.eu.r2.cloudflarestorage.com"
     toPorts:
     - ports:
       - port: "443"

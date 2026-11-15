@@ -3,17 +3,27 @@ kind: Cluster
 metadata:
   name: paperless-postgresql
   namespace: paperless
+  annotations:
+    # PLT-244: rolling restart (same mechanism as `kubectl cnpg restart`) so
+    # the barman sidecar picks up the environment added to
+    # paperless-hetzner-store in #1365; the operator did not restart it.
+    kubectl.kubernetes.io/restartedAt: "2026-11-13T16:45:00Z"
 spec:
   instances: 1
   bootstrap:
     initdb:
       database: paperless
       owner: paperless
+  # PLT-244: a Cluster has a single WAL archiver; the archive moved from
+  # paperless-hetzner-store to paperless-r2-store (database-r2.yaml). Rollback:
+  # point barmanObjectName back to paperless-hetzner-store, restore from the
+  # Hetzner base 20261113T165722 (backupID, never "latest"), then take a new
+  # base backup there (homelab-infra docs/operations/r2-migration.md).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: paperless-hetzner-store
+        barmanObjectName: paperless-r2-store
   storage:
     size: 10Gi
     storageClass: longhorn-fast

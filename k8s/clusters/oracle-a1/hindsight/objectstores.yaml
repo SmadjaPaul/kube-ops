@@ -1,0 +1,55 @@
+# PLT-301: two stores in bucket homelab-backup-cnpg (R2, jurisdiction eu).
+# - hindsight-homelab-r2-ro: the homelab archive (recovery source, read-only
+#   identity). Prefix hindsight-personal/hindsight-db/.
+# - hindsight-oke-r2: the Oracle archive (WAL + base backups, writer identity).
+#   Prefix oracle-a1/hindsight-db/. A separate prefix: barman-cloud refuses a
+#   non-empty archive, so Oracle never writes into the homelab archive.
+# Sidecar env copied from the homelab store (plugin-barman-cloud v0.11.0,
+# boto3 flexible checksums not all supported by R2).
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hindsight-homelab-r2-ro
+  namespace: hindsight
+spec:
+  instanceSidecarConfiguration:
+    env:
+      - {name: AWS_REQUEST_CHECKSUM_CALCULATION, value: when_required}
+      - {name: AWS_RESPONSE_CHECKSUM_VALIDATION, value: when_required}
+      - {name: AWS_DEFAULT_REGION, value: auto}
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef: {name: hindsight-cnpg-r2-restore-ro, key: AWS_ENDPOINT_URL_S3}
+  configuration:
+    destinationPath: s3://homelab-backup-cnpg/hindsight-personal
+    s3Credentials:
+      accessKeyId: {name: hindsight-cnpg-r2-restore-ro, key: AWS_ACCESS_KEY_ID}
+      secretAccessKey: {name: hindsight-cnpg-r2-restore-ro, key: AWS_SECRET_ACCESS_KEY}
+    wal: {compression: gzip}
+    data: {compression: gzip}
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hindsight-oke-r2
+  namespace: hindsight
+spec:
+  retentionPolicy: "14d"
+  instanceSidecarConfiguration:
+    env:
+      - {name: AWS_REQUEST_CHECKSUM_CALCULATION, value: when_required}
+      - {name: AWS_RESPONSE_CHECKSUM_VALIDATION, value: when_required}
+      - {name: AWS_DEFAULT_REGION, value: auto}
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef: {name: hindsight-cnpg-r2-writer, key: AWS_ENDPOINT_URL_S3}
+    resources:
+      requests: {cpu: 20m, memory: 96Mi}
+      limits: {cpu: 300m, memory: 384Mi}
+  configuration:
+    destinationPath: s3://homelab-backup-cnpg/oracle-a1
+    s3Credentials:
+      accessKeyId: {name: hindsight-cnpg-r2-writer, key: AWS_ACCESS_KEY_ID}
+      secretAccessKey: {name: hindsight-cnpg-r2-writer, key: AWS_SECRET_ACCESS_KEY}
+    wal: {compression: gzip, maxParallel: 2}
+    data: {compression: gzip}

@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+# PLT-57: service account for agent qualification tests (decision of Paul,
+# 2026-11-14 21:02). No admin right: per-application access goes through
+# membership of the test-users group only.
+version: 1
+metadata:
+  name: QA - Agent E2E service account
+entries:
+  - id: test-users
+    model: authentik_core.group
+    state: present
+    identifiers:
+      name: test-users
+    attrs:
+      name: test-users
+      is_superuser: false
+  - id: agent-e2e
+    model: authentik_core.user
+    state: present
+    identifiers:
+      username: agent-e2e
+    attrs:
+      username: agent-e2e
+      name: Agent E2E service account
+      type: service_account
+      is_active: true
+      path: goauthentik.io/service-accounts
+      groups:
+        - !KeyOf test-users
+  - id: agent-e2e-token
+    model: authentik_core.token
+    state: present
+    identifiers:
+      identifier: agent-e2e-api
+    attrs:
+      identifier: agent-e2e-api
+      intent: api
+      user: !KeyOf agent-e2e
+      expiring: false
+      key: !Env AGENT_E2E_TOKEN

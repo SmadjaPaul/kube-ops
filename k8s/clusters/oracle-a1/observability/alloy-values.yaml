@@ -1,0 +1,273 @@
+# PLT-306 tranche 3: oracle-a1 export to Grafana Cloud, same contract as the
+# homelab Alloy (k8s/infrastructure/monitoring/alloy), label
+# cluster="oracle-a1". Always Free budget (2 OCPU, 12 GB): no local storage of
+# metrics or logs, scrape every 60 s, hard caps below.
+global:
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 473
+    runAsGroup: 473
+    fsGroup: 473
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
+alloy:
+  enableReporting: false
+  stabilityLevel: generally-available
+  storagePath: /tmp/alloy
+  mounts:
+    varlog: false
+    dockercontainers: false
+    extra:
+      - name: alloy-storage
+        mountPath: /tmp/alloy
+  envFrom:
+    - secretRef:
+        name: alloy-grafana-cloud
+  resources:
+    requests:
+      cpu: 25m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 320Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 473
+    runAsGroup: 473
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  configMap:
+    content: |-
+      logging {
+        level  = "warn"
+        format = "logfmt"
+      }
+
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      // Metrics: kube-state-metrics, Argo CD controller, cert-manager and
+      // CNPG instances only, selected by namespace, app name and port.
+      discovery.relabel "metrics" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_phase"]
+          regex         = "Running"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_container_port_number"]
+          separator     = ";"
+          regex         = "monitoring;kube-state-metrics;8080|argocd;argocd-application-controller;8082|cert-manager;cert-manager;9402|[^;]+;[^;]*;9187"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          separator     = "/"
+          target_label  = "job"
+        }
+      }
+
+      prometheus.scrape "oke" {
+        targets         = discovery.relabel.metrics.output
+        honor_labels    = true
+        scrape_interval = "60s"
+        scrape_timeout  = "20s"
+        sample_limit    = 3000
+        forward_to      = [prometheus.relabel.allowlist.receiver]
+      }
+
+      prometheus.relabel "allowlist" {
+        rule {
+          source_labels = ["__name__"]
+          regex         = "up|kube_.*|argocd_app_info|certmanager_certificate_ready_status|certmanager_certificate_expiration_timestamp_seconds|cnpg_collector_up|cnpg_collector_last_available_backup_timestamp|cnpg_collector_last_failed_backup_timestamp|cnpg_pg_stat_archiver_last_archived_time|cnpg_pg_stat_archiver_last_failed_time|cnpg_pg_replication_lag|cnpg_pg_replication_in_recovery"
+          action        = "keep"
+        }
+        // Same reductions as the homelab federation selectors.
+        rule {
+          source_labels = ["__name__", "status"]
+          separator     = ";"
+          regex         = "kube_node_status_condition;(false|unknown)"
+          action        = "drop"
+        }
+        rule {
+          source_labels = ["__name__", "condition"]
+          separator     = ";"
+          regex         = "kube_pod_status_ready;(false|unknown)"
+          action        = "drop"
+        }
+        rule {
+          source_labels = ["__name__", "phase"]
+          separator     = ";"
+          regex         = "kube_pod_status_phase;Running"
+          action        = "drop"
+        }
+        rule {
+          source_labels = ["__name__", "phase"]
+          separator     = ";"
+          regex         = "kube_persistentvolumeclaim_status_phase;Bound"
+          action        = "drop"
+        }
+        forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+      }
+
+      prometheus.remote_write "grafana_cloud" {
+        external_labels = {
+          cluster = "oracle-a1",
+        }
+        endpoint {
+          url = sys.env("GRAFANA_CLOUD_PROMETHEUS_URL")
+          basic_auth {
+            username = sys.env("GRAFANA_CLOUD_PROMETHEUS_USERNAME")
+            password = sys.env("GRAFANA_CLOUD_WRITE_TOKEN")
+          }
+        }
+      }
+
+      // Logs: warning/error lines of every namespace (small cluster).
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.process.pods.receiver]
+      }
+
+      loki.process "pods" {
+        // Parsed severity field (logfmt or JSON `level`): info/debug/trace
+        // lines are dropped even if their message contains "error".
+        stage.logfmt {
+          mapping = { "severity" = "level" }
+        }
+        stage.json {
+          expressions = { severity = "level", pg_severity = "record.error_severity" }
+        }
+        // CNPG/PostgreSQL JSON logs carry level=info with the real severity
+        // in record.error_severity (ERROR, FATAL, WARNING...): it wins.
+        // The chart renders this content with Helm tpl, so the Go template
+        // delimiters of stage.template are escaped for Helm.
+        stage.template {
+          source   = "effective_severity"
+          template = `{{ "{{" }} if .pg_severity {{ "}}" }}{{ "{{" }} .pg_severity {{ "}}" }}{{ "{{" }} else {{ "}}" }}{{ "{{" }} .severity {{ "}}" }}{{ "{{" }} end {{ "}}" }}`
+        }
+        stage.drop {
+          source              = "effective_severity"
+          expression          = "(?i)^(info|debug[1-5]?|trace|log|notice)$"
+          drop_counter_reason = "grafana_cloud_low_severity_field"
+        }
+        stage.match {
+          selector            = `{namespace=~".+"} !~ "(?i)(level=\"?(warn|warning|error|err|fatal|crit|critical|panic)|\"level\":\"(warn|warning|error|fatal|critical|panic)\"|\\b(WARN|WARNING|ERROR|FATAL|CRITICAL|PANIC)\\b|^[EW][0-9]{4} )"`
+          action              = "drop"
+          drop_counter_reason = "grafana_cloud_below_warning"
+        }
+        stage.limit {
+          rate  = 2
+          burst = 100
+          drop  = true
+        }
+        stage.static_labels {
+          values = {
+            cluster = "oracle-a1",
+            source  = "kubernetes",
+          }
+        }
+        forward_to = [loki.write.grafana_cloud.receiver]
+      }
+
+      loki.source.kubernetes_events "events" {
+        job_name   = "integrations/kubernetes/eventhandler"
+        forward_to = [loki.process.events.receiver]
+      }
+
+      loki.process "events" {
+        stage.static_labels {
+          values = {
+            cluster = "oracle-a1",
+            source  = "kubernetes-events",
+          }
+        }
+        stage.match {
+          selector            = `{source="kubernetes-events"} !~ "type=Warning"`
+          action              = "drop"
+          drop_counter_reason = "grafana_cloud_event_not_warning"
+        }
+        stage.limit {
+          rate  = 1
+          burst = 50
+          drop  = true
+        }
+        forward_to = [loki.write.grafana_cloud.receiver]
+      }
+
+      loki.write "grafana_cloud" {
+        endpoint {
+          url = sys.env("GRAFANA_CLOUD_LOKI_URL")
+          basic_auth {
+            username = sys.env("GRAFANA_CLOUD_LOKI_USERNAME")
+            password = sys.env("GRAFANA_CLOUD_WRITE_TOKEN")
+          }
+        }
+      }
+
+controller:
+  type: deployment
+  replicas: 1
+  volumes:
+    extra:
+      - name: alloy-storage
+        emptyDir:
+          sizeLimit: 256Mi
+
+configReloader:
+  resources:
+    requests:
+      cpu: 5m
+      memory: 32Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "pods/log", "namespaces", "events"]
+      verbs: ["get", "list", "watch"]
+
+serviceAccount:
+  create: true
+  name: alloy
+  automountServiceAccountToken: true
+
+serviceMonitor:
+  enabled: false

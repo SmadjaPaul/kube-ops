@@ -20,15 +20,15 @@ helmCharts:
       resources:
         operator:
           requests:
-            cpu: 50m
+            cpu: 25m
             memory: 64Mi
         metricServer:
           requests:
-            cpu: 50m
+            cpu: 25m
             memory: 64Mi
         webhooks:
           requests:
-            cpu: 50m
+            cpu: 25m
             memory: 64Mi
   - name: keda-add-ons-http
     repo: https://kedacore.github.io/charts

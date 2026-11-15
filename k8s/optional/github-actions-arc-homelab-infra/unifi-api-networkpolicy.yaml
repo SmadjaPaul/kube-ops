@@ -1,0 +1,22 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-homelab-infra-unifi-api
+  namespace: arc-runners
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "Allow the homelab-infra CI runner to reach the UniFi Network API (UCG Fiber 10.0.20.1, TCP 443) only, for terraform/unifi plans (PLT-298). No other LAN address."
+  endpointSelector:
+    matchLabels:
+      k8s:actions.github.com/scale-set-name: homelab-infra-ci-arc
+  egress:
+    - toCIDR:
+        - 10.0.20.1/32
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

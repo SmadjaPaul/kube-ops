@@ -11,4 +11,5 @@ spec:
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
     parameters:
-      barmanObjectName: mastra-factory-hetzner-store
+      # PLT-246: base backups follow the WAL archive to R2.
+      barmanObjectName: mastra-factory-r2-store

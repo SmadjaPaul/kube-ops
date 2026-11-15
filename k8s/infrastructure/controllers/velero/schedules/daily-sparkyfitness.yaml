@@ -1,0 +1,32 @@
+# PLT-222: SparkyFitness uploads and application exports (sport and health
+# data, D-2026-11-11-05). The chart PVCs (persistence.uploads, persistence.backup)
+# had no Velero Schedule. The CNPG database keeps its own Barman archive on R2.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-sparkyfitness
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: sparkyfitness
+spec:
+  schedule: "50 4 * * *"
+  template:
+    includedNamespaces:
+      - wellness
+    labelSelector:
+      matchExpressions:
+        - key: cnpg.io/cluster
+          operator: DoesNotExist
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+      - clusters.postgresql.cnpg.io
+      - backups.postgresql.cnpg.io
+      - scheduledbackups.postgresql.cnpg.io
+      - objectstores.barmancloud.cnpg.io
+    defaultVolumesToFsBackup: true
+    storageLocation: r2
+    ttl: 336h

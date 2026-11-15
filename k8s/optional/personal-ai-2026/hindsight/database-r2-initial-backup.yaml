@@ -1,0 +1,17 @@
+# PLT-249: first base backup of hindsight-db on R2, right after the WAL archive
+# switch (cutover 20:54Z). Closes the window without an R2 recovery point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: hindsight-db-r2-initial-20261113
+  namespace: hindsight-personal
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: hindsight-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: hindsight-r2-store

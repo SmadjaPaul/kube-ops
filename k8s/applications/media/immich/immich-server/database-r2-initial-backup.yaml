@@ -1,0 +1,18 @@
+# PLT-243: first base backup of immich-postgresql on R2, right after the WAL
+# archive switch (#1359, ContinuousArchiving=True on R2 at 15:48:31Z). Closes
+# the window without an R2 recovery point.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: immich-postgresql-r2-initial-20261113
+  namespace: immich
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: immich-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: immich-r2-store
