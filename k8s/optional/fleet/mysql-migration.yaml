@@ -1,6 +1,6 @@
 # PLT-344 lot 1 (Paul, 2026-11-15: "tu peux faire une migration"): move the
 # Fleet MySQL volume from longhorn-bulk (HDD) to longhorn-fast (NVMe).
-# Step 1 of 3: Fleet is at 0 replicas (fleet.yaml); this Job dumps the
+# Step 1 of 3 (verify Job added in step 2): Fleet is at 0 replicas (fleet.yaml); this Job dumps the
 # database from the bulk-backed fleet-mysql-0 into the new fast PVC, with
 # exact per-table row counts. Step 2 starts a StatefulSet on this PVC that
 # restores the dump through /docker-entrypoint-initdb.d and verifies the
@@ -118,6 +118,111 @@ spec:
               mountPath: /tmp
       volumes:
         - name: out
+          persistentVolumeClaim:
+            claimName: data-fleet-mysql-fast-0
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fleet-mysql-verify-plt344
+  namespace: fleet
+  annotations:
+    # After StatefulSet fleet-mysql-fast (wave 0) is Ready.
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fleet-mysql-migration
+    spec:
+      # Same node as fleet-mysql-fast-0: the ReadWriteOnce PVC is attached there.
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  statefulset.kubernetes.io/pod-name: fleet-mysql-fast-0
+              topologyKey: kubernetes.io/hostname
+      restartPolicy: Never
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: verify
+          image: mysql:8.4.11@sha256:0f51e63e537a1f176423fa03ef559aabe6fa4372a53160a44bc7e75da7d15364
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              # The pod DNS name targets the new instance only, even while the
+              # old fleet-mysql-0 is still being pruned (PruneLast).
+              H=fleet-mysql-fast-0.fleet-mysql.fleet.svc.cluster.local
+              export MYSQL_PWD="$MYSQL_PASSWORD"
+              q() { mysql --host="$H" --protocol=tcp --user=fleet -N -B "$@"; }
+              ok=0
+              for i in $(seq 1 60); do
+                if q -e 'SELECT 1' >/dev/null 2>&1; then ok=1; break; fi
+                sleep 5
+              done
+              [ "$ok" = 1 ] || { echo "FLEET_MYSQL_FAST=UNREACHABLE"; exit 1; }
+              echo "TARGET_HOST=$(q -e 'SELECT @@hostname')"
+              echo "TARGET_FLUSH=$(q -e 'SELECT @@innodb_flush_log_at_trx_commit') TARGET_LOG_BIN=$(q -e 'SELECT @@log_bin')"
+              q -e "SELECT CONCAT('SELECT ''', table_name, ''', COUNT(*) FROM \`', table_name, '\`;') FROM information_schema.tables WHERE table_schema='fleet' AND table_type='BASE TABLE' ORDER BY table_name" > /tmp/count.sql
+              tables=$(wc -l < /tmp/count.sql)
+              [ "$tables" -gt 0 ] || { echo "COUNT_QUERY=EMPTY"; exit 1; }
+              q fleet < /tmp/count.sql > /tmp/counts-after.tsv
+              echo "TABLES=$tables ROWS=$(awk '{s+=$2} END {print s}' /tmp/counts-after.tsv)"
+              before=$(sha256sum < /in/migration/counts-before.tsv)
+              after=$(sha256sum < /tmp/counts-after.tsv)
+              if [ -s /in/migration/counts-before.tsv ] && [ "$before" = "$after" ]; then
+                echo "FLEET_MYSQL_COUNTS=MATCH"
+              else
+                echo "== before"; cat /in/migration/counts-before.tsv
+                echo "== after"; cat /tmp/counts-after.tsv
+                echo "FLEET_MYSQL_COUNTS=MISMATCH"
+                exit 1
+              fi
+          env:
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-mysql
+                  key: MYSQL_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: in
+              mountPath: /in
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: in
           persistentVolumeClaim:
             claimName: data-fleet-mysql-fast-0
         - name: tmp
