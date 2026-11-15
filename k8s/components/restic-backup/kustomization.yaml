@@ -1,0 +1,12 @@
+# PLT-286: shared scripts of the restic CronJobs (Immich, Paperless).
+# Each application directory `restic-backup/` adds its own CronJobs,
+# ExternalSecret and CiliumNetworkPolicy and imports this component.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+configMapGenerator:
+  - name: restic-backup-scripts
+    files:
+      - restic-lib.sh
+      - backup-db.sh
+      - backup-files.sh
+      - maintenance.sh

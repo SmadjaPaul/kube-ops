@@ -1,0 +1,103 @@
+# PLT-286: weekly retention (forget --prune: 7 daily, 5 weekly, 12 monthly),
+# `restic check --read-data-subset 5%` and a dry restore in memory (dump
+# decoded by pg_restore to /dev/null, 20 files checked against the SHA-256
+# manifest). It mounts no application volume.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: immich-restic-maintenance
+  namespace: immich
+  labels:
+    app.kubernetes.io/name: restic-backup
+    app.kubernetes.io/instance: immich
+spec:
+  # Sunday 11:00 Paris, after the daily cycle; a missed run starts at the next
+  # boot (deadline 6 days). restic locks serialise it with a running backup.
+  schedule: "0 11 * * 0"
+  timeZone: Europe/Paris
+  startingDeadlineSeconds: 518400
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 14400
+      ttlSecondsAfterFinished: 604800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: restic-backup
+            app.kubernetes.io/instance: immich
+        spec:
+          restartPolicy: Never
+          hostNetwork: false
+          hostPID: false
+          hostIPC: false
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            - name: restic-binary
+              image: restic/restic:0.19.1
+              command: ["cp", "/usr/bin/restic", "/restic-bin/restic"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 5m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              volumeMounts:
+                - { name: restic-bin, mountPath: /restic-bin }
+          containers:
+            - name: maintenance
+              # pg_restore of the same major version as the dump.
+              image: ghcr.io/cloudnative-pg/postgresql:17.7
+              command: ["/bin/bash", "/scripts/maintenance.sh"]
+              env:
+                - { name: APP, value: immich }
+                - { name: RESTIC_HOST, value: immich-restic }
+                - { name: RESTIC_BIN, value: /restic-bin/restic }
+                - { name: RESTIC_CACHE_DIR, value: /cache }
+                - { name: AWS_DEFAULT_REGION, value: auto }
+                - { name: HOME, value: /tmp }
+                - { name: TMPDIR, value: /tmp }
+                - { name: MANIFEST_DIR, value: /manifest }
+                - { name: WORK_DIR, value: /tmp/work }
+                - { name: KEEP_DAILY, value: "7" }
+                - { name: KEEP_WEEKLY, value: "5" }
+                - { name: KEEP_MONTHLY, value: "12" }
+                - { name: CHECK_SUBSET, value: "5%" }
+                - { name: RESTORE_SAMPLE, value: "20" }
+              envFrom:
+                - secretRef: { name: restic-backup }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 128Mi }
+                limits: { cpu: "1", memory: 1536Mi }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: restic-bin, mountPath: /restic-bin, readOnly: true }
+                - { name: cache, mountPath: /cache }
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: scripts
+              configMap:
+                name: restic-backup-scripts
+                defaultMode: 0555
+            - name: restic-bin
+              emptyDir: { medium: Memory, sizeLimit: 64Mi }
+            - name: cache
+              emptyDir: { medium: Memory, sizeLimit: 512Mi }
+            - name: tmp
+              emptyDir: { medium: Memory, sizeLimit: 256Mi }
