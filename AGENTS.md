@@ -49,17 +49,13 @@ Every kubectl call goes through `scripts/lib/kube-preflight.sh` (the wrappers do
 
 ## Safety
 
-FULL AUTO (D-2026-11-13-01 as amended by D-2026-11-14-02 to -05): decide and execute without per-action approval. Every mutation keeps three obligations: admitted scope with the limited identity, runtime verification with its evidence level, same-day Git reconciliation (branch → `just check` → PR → merge → Argo). For an Argo app with selfHeal, merge the Git change first.
+Maximum autonomy (D-2026-11-15-03, in the homelab-infra decision journal; it replaces the per-operation approvals of D-2026-11-13-01 and D-2026-11-14-02 to -06): decide and execute through to runtime. Every mutation keeps three obligations: admitted scope with the limited identity, runtime verification with its evidence level, same-day Git reconciliation (branch → `just check` → PR → merge → Argo). For an Argo app with selfHeal, merge the Git change first. A ticket is done when the result works: verify, then fix or roll back.
 
-Protections, one operation at a time with Paul's agreement:
+Ask Paul only for a permanent limit (unrecoverable loss of unique personal data; his identity or presence, a purchase or a consent; uncontrolled spending; a provider access protection) or a real technical impossibility.
 
-- irreplaceable data: never the only copy, copy to R2 first; PVC/backup deletion only inside the authorized cleanups (PLT-46, PLT-94);
-- identity resources (Authentik, Matrix); rotation, deletion or replacement of an existing root secret;
-- structural network (Cilium, Gateway, DNS, cluster access) and new public exposure or privilege escalation;
-- irreversible migration;
-- disabling a desired app to turn Argo green.
+Kept protections: never the only copy of irreplaceable data (copy to R2 first, verified backup before deletion); admin path (cluster access, Cilium/Gateway reachability: test recovery access before removal); quotas and budgets; thermal limits; no secret shown, committed or logged; never disable a desired app to turn Argo green.
 
-Absolute bans: `--admin` or any check/protection bypass; disabled TLS (`--insecure-skip-tls-verify`, `-k`); a secret value read, printed or committed, including Kubernetes Secret data; `device_bash` and the Mac Linux VM; OpenTofu outside ARC. The Argo MCP stays read-only.
+Absolute bans: `--admin` or any check/protection bypass; a disabled required check; disabled TLS (`--insecure-skip-tls-verify`, `-k`); a secret value shown to the agent, printed or committed, including Kubernetes Secret data (the sanctioned helpers, `scripts/lib/kube-preflight.sh` and `scripts/doppler-safe.sh`, use values without displaying them); `device_bash` and the Mac Linux VM; OpenTofu outside ARC. The Argo MCP stays read-only. If a command is refused, add it to the paul-unblock script of homelab-infra and continue.
 
 Secret output (enforced by `.claude/hooks/secret-output-guard.py`): use `scripts/doppler-safe.sh` instead of `doppler secrets`; list environment names only (`env | cut -d= -f1`); `kubectl get secret` only with `-o name`, `kubectl describe secret` for keys; no `kubectl -v=6` or higher. Redirecting stdout does not hide stderr.
 
