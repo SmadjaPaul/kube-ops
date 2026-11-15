@@ -4,6 +4,7 @@ resources:
   - namespace.yaml
   - project.yaml
   - argocd-monitoring.yaml
+  - cnpg-podmonitor.yaml
   - hubble
   - prometheus-stack
   - blackbox

@@ -208,6 +208,8 @@ alloy:
             "instance:node_load1_per_cpu:ratio",
             "node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay|squashfs|ramfs\"}",
             "node_filesystem_size_bytes{fstype!~\"tmpfs|overlay|squashfs|ramfs\"}",
+            // Proxmox host thermal (alerts at 70/75 C; job proxmox-host)
+            "node_hwmon_temp_celsius",
             // Pods and workloads
             "kube_pod_status_ready{condition=\"true\"}",
             "kube_pod_status_phase{phase=~\"Pending|Failed|Unknown|Succeeded\"}",
@@ -250,6 +252,25 @@ alloy:
             // ARC (empty until listener metrics are scraped)
             "{__name__=~\"gha_(assigned_jobs|running_jobs|registered_runners|busy_runners|idle_runners)\"}",
           ],
+        }
+        forward_to = [prometheus.relabel.grafana_cloud.receiver]
+      }
+
+      // CNPG metrics carry their own `cluster` label (the PostgreSQL cluster
+      // name), which would win over external_labels and hide them from
+      // cluster="homelab" queries. Keep it as cnpg_cluster.
+      prometheus.relabel "grafana_cloud" {
+        rule {
+          source_labels = ["__name__", "cluster"]
+          regex         = "cnpg_.*;(.+)"
+          target_label  = "cnpg_cluster"
+          replacement   = "$1"
+        }
+        rule {
+          source_labels = ["__name__"]
+          regex         = "cnpg_.*"
+          target_label  = "cluster"
+          replacement   = ""
         }
         forward_to = [prometheus.remote_write.grafana_cloud.receiver]
       }
