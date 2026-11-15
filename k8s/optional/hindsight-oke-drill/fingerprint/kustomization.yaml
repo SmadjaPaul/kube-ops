@@ -4,4 +4,4 @@ resources:
   - job.yaml
 configMapGenerator:
   - name: hindsight-fingerprint-sql
-    files: [fingerprint.sql]
+    files: [fingerprint.sql, seed-a.sql, seed-b.sql]

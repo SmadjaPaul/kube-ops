@@ -1,0 +1,24 @@
+# PLT-303 drill, step "oke-seed-a": import temporarily into
+# k8s/clusters/oracle-a1/hindsight/kustomization.yaml, read the Job logs
+# (seed_a_*), then remove the import (README.md of this directory). The Job
+# waits for the schema that the Hindsight API creates at its first start.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hindsight
+components:
+  - ../fingerprint
+patches:
+  - target: {kind: Job, name: hindsight-fingerprint}
+    patch: |-
+      - {op: replace, path: /metadata/name, value: hindsight-drill-seed-a}
+      - {op: add, path: /spec/activeDeadlineSeconds, value: 1800}
+      - op: replace
+        path: /spec/template/spec/containers/0/command
+        value:
+          - sh
+          - -c
+          - until psql -tAc 'SELECT 1 FROM public.documents LIMIT 1' >/dev/null 2>&1; do sleep 10; done; exec psql -v ON_ERROR_STOP=1 -f /sql/seed-a.sql
+      - {op: replace, path: /spec/template/spec/containers/0/env/0/value, value: hindsight-db-rw}
+      - {op: replace, path: /spec/template/spec/containers/0/env/4/valueFrom/secretKeyRef/name, value: hindsight-db-app}
+      - {op: replace, path: /spec/template/spec/containers/0/env/5/valueFrom/secretKeyRef/name, value: hindsight-db-app}
+      - {op: replace, path: /spec/template/spec/volumes/1/secret/secretName, value: hindsight-db-ca}

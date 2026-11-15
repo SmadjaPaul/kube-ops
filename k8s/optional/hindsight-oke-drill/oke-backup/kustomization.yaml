@@ -1,0 +1,8 @@
+# PLT-303 drill: on-demand base backup taken AFTER seed A, so the archive base
+# holds the A rows and seed B only exists in the WAL stream. Import after
+# oke-seed-a Completed; remove with the other drill imports.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hindsight
+resources:
+  - backup.yaml

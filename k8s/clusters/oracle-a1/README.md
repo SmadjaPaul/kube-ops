@@ -11,7 +11,7 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | `external-secrets/` | Overlay on the shared ESO + `ClusterSecretStore/doppler-cluster` base. |
 | `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster (R2 backup, PLT-190). One `Database` + role per application. |
 | `cert-manager/`, `cnpg-barman-plugin/` | CNPG barman-cloud plugin and its TLS prerequisite (PLT-301). No ACME issuer. |
-| `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster recovered from the homelab R2 archive, Hindsight API. Out of the root until the drill. |
+| `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster empty database (drill, PLT-303), Hindsight API, R2 backup. In the root. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
 | `agent-operator/` | PLT-257: read-only agent identity (ServiceAccount `argocd/agent-operator`, ClusterRoles get/list/watch, no Secret, no pods/exec). In the root. Token: `scripts/agent-operator-oke-token.sh --provision` (run by Paul in an OKE admin session), then `kubectl-ro.sh --cluster oracle-a1 ...` reads it from Doppler `KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1`. |
 | `netbird-router/` | PLT-256: NetBird routing peer for the admin path to the API (one `/32`, TCP 6443, group Admin). Namespace `cloudflared`. Out of the root until the one-off setup key `NETBIRD_SETUP_KEY_OKE` exists in Doppler `cluster/prd`; not activated by this change. The OCI Bastion stays the break-glass path. |
@@ -29,7 +29,8 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
   go through ntfy.sh (homelab Alertmanager receiver). Doppler keys
   `ORACLE_A1_NTFY_*` are kept. Rollback: Git revert.
 - PLT-190: `cnpg-cluster` (`pg-shared` + R2 backup + drill database) joins the root for the off-Oracle restore drill. No application data goes there before the restore is proven.
-- Not in the root: `media`, `cloudflared`, `hindsight` (see above).
+- PLT-303: `hindsight` joins the root for the drill (empty database + test rows, nothing migrated from the homelab).
+- Not in the root: `media`, `cloudflared`.
 - Access: the Kubernetes API is private. The only path is an OCI Bastion
   port-forwarding session (`homelab-bastion`) with a temporary kubeconfig.
   No ARC runner and no homelab route reaches it. The NetBird path (PLT-256,
@@ -84,9 +85,9 @@ on the homelab; the OKE side only adds a database inside `pg-shared`).
 Hindsight is the agent memory. The homelab instance (`hindsight-personal`) stays
 the only writer until the cutover.
 
-- Database: dedicated CNPG `hindsight/hindsight-db`, bootstrapped by **recovery**
-  of the homelab archive `s3://homelab-backup-cnpg/hindsight-personal/hindsight-db/`
-  (read-only identity). Its own WAL archive and daily base backups go to
+- Database: dedicated CNPG `hindsight/hindsight-db`, bootstrapped EMPTY (initdb +
+  `vector`) for the drill (PLT-303): no homelab data is migrated and the homelab
+  archive is not read. Its own WAL archive and daily base backups go to
   `s3://homelab-backup-cnpg/oracle-a1/hindsight-db/` (writer identity), never
   into the homelab prefix.
 - Image: PostgreSQL 17.7 standard trixie pinned to the multi-arch index digest;
@@ -104,11 +105,11 @@ the only writer until the cutover.
 
 Activation order (each step proven before the next):
 1. OKE bootstrapped (PLT-253, PLT-276), cert-manager and barman plugin Healthy.
-2. Drill: add `hindsight.yaml` to `apps/kustomization.yaml`; recovery Completed;
-   banks counted equal to the homelab; first Oracle base backup Completed on R2.
+2. Drill (PLT-303): `hindsight.yaml` is in `apps/kustomization.yaml`; test rows
+   seeded; first Oracle base backup Completed on R2.
 3. Off-Oracle restore of `oracle-a1/hindsight-db` on the homelab
-   (`k8s/optional/hindsight-oke-drill`), same counts.
-4. Hostname activation (Paul), then agent cutover.
+   (`k8s/optional/hindsight-oke-drill`), same fingerprint.
+4. Real data migration from the homelab (separate step, PLT-305), then hostname activation (Paul), then agent cutover.
 
 Rollback, in this order (the root prunes only the child Application object,
 which has no resources finalizer, so its resources would keep running):
