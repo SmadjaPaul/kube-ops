@@ -24,6 +24,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: arc-runners
       server: https://kubernetes.default.svc
+    - namespace: arc-runners-website
+      server: https://kubernetes.default.svc
     - namespace: agentgateway
       server: https://kubernetes.default.svc
     - namespace: executor

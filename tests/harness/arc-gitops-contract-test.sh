@@ -5,11 +5,13 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 arc_root="$repo_root/k8s/optional/github-actions-arc"
 homelab_arc_root="$repo_root/k8s/optional/github-actions-arc-homelab-infra"
 pilot_arc_root="$repo_root/k8s/optional/github-actions-arc-homelab-iac-pilot"
+website_arc_root="$repo_root/k8s/optional/github-actions-arc-website"
 aiostreams_network_policy="$repo_root/k8s/applications/media/aiostreams/networkpolicy.yaml"
 infrastructure_project="$repo_root/k8s/bootstrap/argocd-root/infrastructure-project.yaml"
 applications_project="$repo_root/k8s/bootstrap/argocd-root/applications-project.yaml"
 rendered="$(mktemp)"
-cleanup() { rm -f "$rendered"; }
+website_rendered="$(mktemp)"
+cleanup() { rm -f "$rendered" "$website_rendered"; }
 trap cleanup EXIT
 
 kubectl kustomize "$arc_root" >"$rendered"
@@ -17,6 +19,9 @@ printf '\n---\n' >>"$rendered"
 kubectl kustomize "$homelab_arc_root" >>"$rendered"
 printf '\n---\n' >>"$rendered"
 kubectl kustomize "$pilot_arc_root" >>"$rendered"
+# PRD-28: the website scale set is rendered apart, so the Application count
+# checked below for the shared directories keeps its meaning.
+kubectl kustomize "$website_arc_root" >"$website_rendered"
 
 required_patterns=(
   'name: arc-systems'
@@ -258,6 +263,62 @@ assert_yq "$factory_gcs_policy | .spec.egress[1].toFQDNs | length" '1'
 assert_yq "$factory_gcs_policy | .spec.egress[1].toPorts | length" '1'
 assert_yq "$factory_gcs_policy | [.spec.egress[] | select(.toFQDNs[0].matchName == \"storage.googleapis.com\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" \
   '443/TCP'
+
+# PRD-28: dedicated website scale set, own namespace, quota and default-deny egress.
+assert_yq_website() {
+  local expression=$1 expected=$2 actual
+  actual="$(yq eval-all "$expression" "$website_rendered")"
+  [[ "$actual" == "$expected" ]] || {
+    printf 'ARC_GITOPS_CONTRACT=FAIL website expression=%s expected=%s actual=%s\n' \
+      "$expression" "$expected" "$actual" >&2
+    exit 1
+  }
+}
+website_values='select(.kind == "Application" and .metadata.name == "apps-arc-website-ci") | .spec.source.helm.valuesObject'
+assert_yq_website 'select(.kind == "Application" and .metadata.name == "apps-arc-website-ci") | .spec.destination.namespace' 'arc-runners-website'
+assert_yq_website 'select(.kind == "Application" and .metadata.name == "apps-arc-website-ci") | .spec.source.helm.releaseName' 'website-ci-arc'
+assert_yq_website 'select(.kind == "Application" and .metadata.name == "apps-arc-website-ci") | .spec.source.targetRevision' '0.15.0'
+assert_yq_website "$website_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/website'
+assert_yq_website "$website_values | .githubConfigSecret" 'arc-github-app'
+assert_yq_website "$website_values | .minRunners" '0'
+assert_yq_website "$website_values | .maxRunners" '1'
+assert_yq_website "$website_values | .template.spec.automountServiceAccountToken" 'false'
+assert_yq_website "$website_values | .template.spec.securityContext.runAsNonRoot" 'true'
+assert_yq_website "$website_values | .template.spec.securityContext.runAsUser" '1001'
+assert_yq_website "$website_values | .template.spec | (has(\"serviceAccountName\") or has(\"hostNetwork\") or has(\"imagePullSecrets\"))" 'false'
+assert_yq_website "$website_values | .template.spec.containers | length" '1'
+assert_yq_website "$website_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
+assert_yq_website "$website_values | .template.spec.containers[0].image | test(\"^ghcr.io/smadjapaul/website-ci-runner:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$\")" 'true'
+assert_yq_website "$website_values | .template.spec.containers[0].securityContext.allowPrivilegeEscalation" 'false'
+assert_yq_website "$website_values | (.template.spec.containers[0].securityContext.capabilities.drop | join(\",\"))" 'ALL'
+assert_yq_website "$website_values | .template.spec.containers[0].securityContext.seccompProfile.type" 'RuntimeDefault'
+# CPU ceiling (D-2026-11-15-05): one runner at 250m is the most the node can host.
+assert_yq_website "$website_values | .template.spec.containers[0].resources | [.requests.cpu, .requests.memory, .limits.cpu, .limits.memory, .limits.\"ephemeral-storage\"] | join(\",\")" '250m,1Gi,2,4Gi,6Gi'
+assert_yq_website 'select(.kind == "Namespace") | .metadata.name + "," + .metadata.labels."pod-security.kubernetes.io/enforce"' 'arc-runners-website,restricted'
+assert_yq_website 'select(.kind == "ResourceQuota") | .metadata.namespace' 'arc-runners-website'
+assert_yq_website 'select(.kind == "ResourceQuota") | .spec.hard | [.pods, .["requests.cpu"], .["limits.cpu"], .["limits.memory"], .["limits.ephemeral-storage"]] | join(",")' '1,250m,2,4Gi,6Gi'
+assert_yq_website 'select(.kind == "ExternalSecret") | .metadata.namespace + "," + .spec.target.name' 'arc-runners-website,arc-github-app'
+website_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-website-egress")'
+assert_yq_website "$website_policy | .metadata.namespace" 'arc-runners-website'
+assert_yq_website "$website_policy | .spec.endpointSelector | length" '0'
+assert_yq_website "$website_policy | .spec | has(\"enableDefaultDeny\")" 'false'
+assert_yq_website "$website_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
+  'api.github.com,codeload.github.com,github-registry-files.githubusercontent.com,github-releases.githubusercontent.com,github.com,objects-origin.githubusercontent.com,objects.githubusercontent.com,raw.githubusercontent.com,registry.npmjs.org,release-assets.githubusercontent.com'
+assert_yq_website "$website_policy | [.spec.egress[]?.toFQDNs[]?.matchPattern] | sort | join(\",\")" '*.actions.githubusercontent.com,*.blob.core.windows.net'
+# No LAN, no Kubernetes API, no catch-all: only DNS endpoints and FQDNs.
+assert_yq_website "$website_policy | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toCIDRSet[]?, .spec.egress[]?.toEntities[]?, .spec.egress[]?.toServices[]?] | length" '0'
+assert_yq_website "$website_policy | [.spec.egress[]?.toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | unique | sort | join(\",\")" '443/TCP,53/TCP,53/UDP'
+for project in "$infrastructure_project" "$applications_project"; do
+  grep -F -- '    - namespace: arc-runners-website' "$project" >/dev/null || {
+    printf 'ARC_GITOPS_CONTRACT=FAIL website-namespace-not-in-appproject file=%s\n' "$project" >&2
+    exit 1
+  }
+done
+grep -F -- 'path: k8s/optional/github-actions-arc-website' \
+  "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" >/dev/null || {
+  printf 'ARC_GITOPS_CONTRACT=FAIL website-path-not-in-applicationset\n' >&2
+  exit 1
+}
 
 [[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "5" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2

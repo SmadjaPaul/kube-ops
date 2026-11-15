@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-arc-website-ci
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: applications
+  source:
+    repoURL: ghcr.io/actions/actions-runner-controller-charts
+    chart: gha-runner-scale-set
+    targetRevision: 0.15.0
+    helm:
+      releaseName: website-ci-arc
+      valuesObject:
+        githubConfigUrl: https://github.com/SmadjaPaul/website
+        # Used only by the controller and listener; never mounted in the runner.
+        githubConfigSecret: arc-github-app
+        minRunners: 0
+        maxRunners: 1
+        controllerServiceAccount:
+          namespace: arc-systems
+          name: arc-gha-rs-controller
+        template:
+          spec:
+            automountServiceAccountToken: false
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1001
+              runAsGroup: 1001
+              fsGroup: 1001
+              fsGroupChangePolicy: OnRootMismatch
+            containers:
+              - name: runner
+                image: ghcr.io/smadjapaul/website-ci-runner:node24.22.2-pnpm10.17.1-pw1.58.2-577b37f@sha256:7ed06d4191ad02340bebe400b068f0fc9b8e3023f37a6ddd6daeae688e223c00
+                command: ["/home/runner/run.sh"]
+                resources:
+                  requests: {cpu: 250m, memory: 1Gi, ephemeral-storage: 512Mi}
+                  limits: {cpu: "2", memory: 4Gi, ephemeral-storage: 6Gi}
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities: {drop: ["ALL"]}
+                  seccompProfile: {type: RuntimeDefault}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: arc-runners-website
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
