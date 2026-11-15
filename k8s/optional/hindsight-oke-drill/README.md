@@ -25,10 +25,9 @@ Fingerprint lines: server version, extensions, row count per public table,
 
 ## Procedure (one PR per import, one PR per removal)
 
-Imports go into `k8s/clusters/oracle-a1/hindsight/kustomization.yaml` (OKE) or
-`k8s/applications/ai/kustomization.yaml` (homelab). Completed Jobs are not
-pruned (Application `prune: false`) and no write tool is used: they stay as
-drill residue (a few bytes), and the PVC and the Cluster are never touched.
+The OKE Application prunes drill imports when they are removed (prune true; Cluster and
+ObjectStore are `Prune=false,Delete=false`). Imports go into `k8s/clusters/oracle-a1/hindsight/kustomization.yaml` (OKE) or
+`k8s/applications/ai/kustomization.yaml` (homelab). The PVC and the Cluster are never touched.
 
 1. Activation: `hindsight.yaml` in the OKE root, plus `oke-seed-a`. Wait for
    `Cluster hindsight-db` Ready, `ContinuousArchiving=True`, the `immediate`
@@ -40,6 +39,10 @@ drill residue (a few bytes), and the PVC and the Cluster are never touched.
 4. Homelab (tatouine CPU temperature < 65 C, read by Prometheus or hwmon):
    import `offsite-restore/`; RTO = Cluster creation -> Ready; fingerprint lines
    equal to step 3 (passwords are not fingerprinted).
+   Prerequisites found at runtime (PLT-303): the AppProject `applications`
+   (`k8s/bootstrap/argocd-root/applications-project.yaml`) must list the namespace
+   `hindsight-oke-drill` (destination), merged before the import; a sync that
+   failed on it only retries on a new commit of `main`.
 5. Remove the imports (`offsite-restore/`, drill Jobs, Backup). Deleting the
    drill namespace and its PVC is drill residue cleanup.
 
