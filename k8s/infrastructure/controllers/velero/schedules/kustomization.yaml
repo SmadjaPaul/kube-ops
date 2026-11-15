@@ -33,3 +33,5 @@ resources:
   - daily-librechat.yaml
   - daily-rustical-pilot.yaml
   - daily-sparkyfitness.yaml
+  # PLT-315: Fleet MySQL (logical dump by pre-backup hook).
+  - daily-fleet.yaml
