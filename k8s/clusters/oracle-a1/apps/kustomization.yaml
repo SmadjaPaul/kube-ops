@@ -18,6 +18,9 @@ kind: Kustomization
 # PLT-256 : netbird-router (accès admin à l'API OKE, NET_ADMIN) actif ; retour en
 # arrière : retirer cette ligne.
 # PLT-257 : agent-operator (SA + RBAC de lecture seule des agents) actif.
+# PLT-190 : cnpg-cluster (pg-shared, sauvegarde R2) actif pour le drill de
+# restauration hors Oracle ; media.yaml reste HORS racine tant que la restauration
+# n'est pas prouvée. Retour en arrière : retirer cette ligne (Cluster en Prune=false).
 resources:
   - guardrails.yaml
   - external-secrets.yaml
@@ -27,3 +30,4 @@ resources:
   - observability.yaml
   - netbird-router.yaml
   - agent-operator.yaml
+  - cnpg-cluster.yaml
