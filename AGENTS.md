@@ -61,6 +61,8 @@ Secret output (enforced by `.claude/hooks/secret-output-guard.py`): use `scripts
 
 Branches: your own claude/ or codex/ prefix, never another agent's branch.
 
+Process (D-2026-11-15-06): one PR per coherent change, one CodeRabbit pass (full review stays due for security, secrets or protections), missions of 45 minutes at most; check provider dependency links before a deletion.
+
 ## Evidence
 
 `STATIC` < `CI` < `RECONCILED` (Argo Synced at the desired revision) < `RUNTIME` (workload, EndpointSlice, Gateway, DNS, TLS work) < `USER`. A merged PR proves no runtime level. Every PR body lists checks run with result and checks not run with reason; a missing check is never a pass. A stateful workload is incomplete without backup coverage; data that matters is incomplete until one restore is proven.
