@@ -1,0 +1,41 @@
+# PLT-222: resource modifier of the ntfy restore drill (namespace ntfy ->
+# drill-ntfy). The namespace in the conditions is the SOURCE namespace.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ntfy-drill-restore-modifier
+  namespace: velero
+  labels:
+    restore.smadja.dev/purpose: isolated-restore-drill
+data:
+  resource-modifier.yaml: |
+    version: v1
+    resourceModifierRules:
+      # volumeName is immutable and points at the production PV: drop it so
+      # the isolated PVC gets a fresh PV and Kopia restores into it.
+      - conditions:
+          groupResource: persistentvolumeclaims
+          resourceNameRegex: ".*"
+          namespaces:
+            - ntfy
+        mergePatches:
+          - patchData: |
+              {
+                "spec": {
+                  "volumeName": null
+                }
+              }
+      # Keep the drill out of the production Argo Application.
+      - conditions:
+          groupResource: "*.*"
+          namespaces:
+            - ntfy
+        mergePatches:
+          - patchData: |
+              {
+                "metadata": {
+                  "annotations": {
+                    "argocd.argoproj.io/tracking-id": null
+                  }
+                }
+              }

@@ -9,3 +9,4 @@ resources:
   - namespace.yaml
   - networkpolicy.yaml
   - externalsecret.yaml
+  - check-job.yaml
