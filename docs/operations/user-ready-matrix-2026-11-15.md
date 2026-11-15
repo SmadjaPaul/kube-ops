@@ -82,8 +82,8 @@ The previous 14/11 timeout on `ittools` did not reproduce (HTTP 200 now); that p
 
 ## Findings to qualify
 
-1. AudioBookRequest: retired from this matrix (decision of Paul, 2026-11-15: replaced by BookOrbit). Not yet removed:
-   see "Decommission check" below. Its `/init` stays unclaimed on a route also attached to `Gateway/external`.
+1. AudioBookRequest: retired (decision of Paul, 2026-11-15: replaced by BookOrbit). Removed from Git by PLT-46;
+   see "Decommission check" below.
 2. Vikunja: local registration open on an external route; confirm intent.
 3. Backup gaps: BookOrbit (no CNPG backup, instance status error), SparkyFitness, RustiCal, the BookOrbit Velero schedule never ran;
    Polyfin CNPG last backup 11-08.
@@ -104,18 +104,14 @@ The previous 14/11 timeout on `ittools` did not reproduce (HTTP 200 now); that p
 - External authorized client: needs a device outside the LAN (or a Cloudflare Access service token that Paul grants).
 - Restore of any IRREPLACEABLE dataset: needs the isolated restore drill (separate mutation, not run here).
 
-## Decommission check: AudioBookRequest (read-only, 2026-11-15, main 7574afa)
+## Decommission: AudioBookRequest (2026-11-15)
 
-Paul decided AudioBookRequest is replaced by BookOrbit. The row is removed from the matrix above. Reading Git and the cluster shows
-the application and its route are **still present**; the decommission has not been executed:
-
-- Git: `k8s/applications/media/audiobookrequest/` (deployment, Service, HTTPRoute, PVC), `- audiobookrequest` in
-  `k8s/applications/media/kustomization.yaml`, Velero schedule `daily-audiobookrequest.yaml`, and `tests/harness/media-retired-contract-test.sh`
-  (it asserts these entries exist and must change with the removal).
-- Cluster (`kubectl-ro.sh`): Deployment `media/audiobookrequest` 1/1, Service, PVC `audiobookrequest-config` (5Gi, Bound), HTTPRoute
-  `audiobookrequest.smadja.dev` attached to `Gateway/internal` and `Gateway/external`.
-- Consequence: the `/init` exposure (first visitor claims admin) stays open until the removal merges. Removal is a separate
-  desired-state change (GitOps, PVC data REBUILDABLE; keep the PVC until the owner confirms).
+Paul decided AudioBookRequest is replaced by BookOrbit, and authorized deleting its PVC. PLT-46 removes it from Git only
+(no live delete): `k8s/applications/media/audiobookrequest/` (Deployment, Service, HTTPRoute on `Gateway/internal` and
+`Gateway/external`, PVC `audiobookrequest-config` 5Gi), the media kustomization entry and the Velero schedule
+`daily-audiobookrequest`. Argo prunes the objects. The PV has reclaimPolicy Retain and becomes Released: it is not deleted
+here and belongs to the next PLT-46 Released-PV batch. Last Velero backup before removal: `velero-daily-audiobookrequest-20261115020028`,
+Completed, location `r2`. Runtime proof is recorded in PLT-46, not here.
 
 ## Attempt 2 (2026-11-15): user level still `NOT_TESTED`, BLOCKED
 
