@@ -1,0 +1,25 @@
+# PLT-257 : identité de lecture seule des agents sur OKE (SA + RBAC get/list/watch).
+# Retour en arrière : retirer la ligne de la racine (prune supprime le SA, donc
+# invalide tous ses jetons).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: agent-operator
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: oracle-a1
+  source:
+    repoURL: https://github.com/SmadjaPaul/kube-ops.git
+    targetRevision: main
+    path: k8s/clusters/oracle-a1/agent-operator
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions:
+      - ServerSideApply=true

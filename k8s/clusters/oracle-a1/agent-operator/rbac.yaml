@@ -1,0 +1,82 @@
+# PLT-257 : lecture seule (get, list, watch), jamais de Secret ni de
+# pods/exec|attach|portforward, ni écriture, ni impersonate/bind/escalate,
+# ni serviceaccounts/token. Rôle intégré `view` (objets namespacés sans
+# Secret ni RBAC) + liste explicite des objets cluster et des opérateurs d'OKE.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-operator-cluster-read
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+rules:
+  # Ressources nommées une à une : jamais "*" sur le groupe core.
+  - apiGroups: [""]
+    resources: [nodes, namespaces, persistentvolumes]
+    verbs: [get, list, watch]
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses, volumeattachments, csidrivers, csinodes]
+    verbs: [get, list, watch]
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list, watch]
+  - apiGroups: [apiregistration.k8s.io]
+    resources: [apiservices]
+    verbs: [get, list, watch]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources:
+      - validatingadmissionpolicies
+      - validatingadmissionpolicybindings
+      - validatingwebhookconfigurations
+      - mutatingwebhookconfigurations
+    verbs: [get, list, watch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterroles, clusterrolebindings, roles, rolebindings]
+    verbs: [get, list, watch]
+  - apiGroups: [scheduling.k8s.io, node.k8s.io, coordination.k8s.io, discovery.k8s.io, events.k8s.io]
+    resources: ["*"]
+    verbs: [get, list, watch]
+  - apiGroups: [metrics.k8s.io]
+    resources: [pods, nodes]
+    verbs: [get, list]
+  # Objets d'opérateurs présents sur OKE : aucun ne porte de valeur de Secret.
+  - apiGroups:
+      - argoproj.io
+      - postgresql.cnpg.io
+      - barmancloud.cnpg.io
+      - external-secrets.io
+      - cert-manager.io
+    resources: ["*"]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-operator-view
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: argocd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-operator-cluster-read
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-operator-cluster-read
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: argocd

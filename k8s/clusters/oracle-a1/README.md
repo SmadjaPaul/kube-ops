@@ -13,6 +13,7 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | `cert-manager/`, `cnpg-barman-plugin/` | CNPG barman-cloud plugin and its TLS prerequisite (PLT-301). No ACME issuer. |
 | `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster recovered from the homelab R2 archive, Hindsight API. Out of the root until the drill. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
+| `agent-operator/` | PLT-257: read-only agent identity (ServiceAccount `argocd/agent-operator`, ClusterRoles get/list/watch, no Secret, no pods/exec). In the root. Token: `scripts/agent-operator-oke-token.sh --provision` (run by Paul in an OKE admin session), then `kubectl-ro.sh --cluster oracle-a1 ...` reads it from Doppler `KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1`. |
 | `netbird-router/` | PLT-256: NetBird routing peer for the admin path to the API (one `/32`, TCP 6443, group Admin). Namespace `cloudflared`. Out of the root until the one-off setup key `NETBIRD_SETUP_KEY_OKE` exists in Doppler `cluster/prd`; not activated by this change. The OCI Bastion stays the break-glass path. |
 | `media/` | Overlay on the shared `applications/media/{polyfin,aiostreams}` bases. |
 | `observability/` | Grafana Cloud export (PLT-306): kube-state-metrics with a metric allowlist and one Alloy, label `cluster=oracle-a1`, write token `GRAFANA_CLOUD_ORACLE_A1_WRITE_TOKEN`. In the root (PLT-309); no egress policy (flannel does not enforce NetworkPolicy). |
@@ -30,8 +31,9 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 - Not in the root: `cnpg-cluster`, `media`, `cloudflared`, `hindsight` (see above).
 - Access: the Kubernetes API is private. The only path is an OCI Bastion
   port-forwarding session (`homelab-bastion`) with a temporary kubeconfig.
-  No ARC runner and no homelab route reaches it, and no `kubectl-ro.sh`
-  wrapper serves `oracle-a1` yet (PLT-257).
+  No ARC runner and no homelab route reaches it. The NetBird path (PLT-256,
+  `10.0.2.3:6443`) serves `kubectl-ro.sh --cluster oracle-a1` once the
+  agent token exists (PLT-257).
 - `bootstrap/project.yaml` is applied by the operator, never synced by Argo CD:
   a change to it takes effect on the cluster at the next operator bootstrap.
 

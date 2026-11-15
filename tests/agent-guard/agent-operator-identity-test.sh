@@ -159,8 +159,14 @@ grep -q '^secrets get KUBERNETES_AGENT_OPERATOR_KUBECONFIG ' "$tmp/doppler.log" 
 DOPPLER_STUB_LOG=$tmp/doppler.log PATH="$tmp/bin:$PATH" bash -c 'unset KUBE_ACCESS_KUBECONFIG_SECRET; source scripts/lib/kube-preflight.sh; _materialize_canonical_operator_kubeconfig' >/dev/null 2>&1 || true
 grep -q '^secrets get KUBERNETES_OPERATOR_KUBECONFIG ' "$tmp/doppler.log" && ok "préflight : défaut opérateur inchangé" || ko "préflight : défaut opérateur modifié"
 
+# 7b. PLT-257 : sélecteur --cluster (lecture seule sur OKE)
+check "kubectl-ro --cluster inconnu refusé" bash -c "bash scripts/kubectl-ro.sh --cluster prod get ns 2>&1 | grep -q 'inconnu'"
+check "kubectl-ro : --cluster hors tête refusé" bash -c "bash scripts/kubectl-ro.sh get ns --cluster oracle-a1 2>&1 | grep -q 'uniquement de kube-preflight'"
+check "kubectl-rw --cluster refusé (OKE en lecture seule)" bash -c "bash scripts/kubectl-rw.sh --cluster oracle-a1 patch a b c 2>&1 | grep -q 'lecture seule'"
+check "RBAC OKE : verbes get/list/watch seulement" bash -c "! grep 'verbs:' k8s/clusters/oracle-a1/agent-operator/rbac.yaml | grep -vqE 'verbs: \\[get, list(, watch)?\\]' && ! grep -qE '^[^#]*[ ,[](secrets|pods/exec|serviceaccounts/token)[],]' k8s/clusters/oracle-a1/agent-operator/rbac.yaml"
+
 # 8. syntaxe
-for s in scripts/kubectl-rw.sh scripts/agent-operator-token.sh scripts/lib/kube-preflight.sh; do check "bash -n $s" bash -n "$s"; done
+for s in scripts/kubectl-rw.sh scripts/agent-operator-token.sh scripts/agent-operator-oke-token.sh scripts/kubectl-ro.sh scripts/lib/kube-preflight.sh; do check "bash -n $s" bash -n "$s"; done
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck (warning)" shellcheck -S warning -x -P SCRIPTDIR scripts/kubectl-rw.sh scripts/agent-operator-token.sh tests/agent-guard/agent-operator-identity-test.sh
 fi

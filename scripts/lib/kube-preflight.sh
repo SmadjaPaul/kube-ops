@@ -41,11 +41,13 @@ _materialize_canonical_operator_kubeconfig() {
   local config="${KUBE_ACCESS_DOPPLER_CONFIG:-prd}"
   # PLT-237: KUBERNETES_AGENT_OPERATOR_KUBECONFIG selects the limited agent
   # identity (scripts/kubectl-rw.sh); the default stays the operator copy.
+  # PLT-257: ..._ORACLE_A1 is the read-only agent identity of OKE (kubectl-ro.sh
+  # --cluster oracle-a1); never an OCI exec kubeconfig (it carries Paul's API key).
   local secret="${KUBE_ACCESS_KUBECONFIG_SECRET:-KUBERNETES_OPERATOR_KUBECONFIG}"
   local kubeconfig expected actual
 
   case "$secret" in
-    KUBERNETES_OPERATOR_KUBECONFIG|KUBERNETES_AGENT_OPERATOR_KUBECONFIG) ;;
+    KUBERNETES_OPERATOR_KUBECONFIG|KUBERNETES_AGENT_OPERATOR_KUBECONFIG|KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1) ;;
     *)
       _kube_access_blocked \
         canonical_kubeconfig_secret_not_allowed \
@@ -125,7 +127,9 @@ _materialize_canonical_operator_kubeconfig() {
 
   export KUBECONFIG="$kubeconfig"
   export KUBE_ACCESS_CANONICALIZED=yes
-  if [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG ]]; then
+  if [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 ]]; then
+    export KUBE_ACCESS_SOURCE=doppler_agent_operator_oracle_a1_distribution
+  elif [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG ]]; then
     export KUBE_ACCESS_SOURCE=doppler_agent_operator_distribution
   else
     export KUBE_ACCESS_SOURCE=doppler_operator_distribution

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Read-only ad hoc kubectl through the canonical operator access (AGENTS.md).
 #
-# Usage: bash scripts/kubectl-ro.sh <get|describe|logs|top|events|api-resources|version> [args...]
+# Usage: bash scripts/kubectl-ro.sh [--cluster homelab|oracle-a1] <get|describe|logs|top|events|api-resources|version> [args...]
 #   bash scripts/kubectl-ro.sh get applications -n argocd
+#   bash scripts/kubectl-ro.sh --cluster oracle-a1 get nodes   # OKE (PLT-257)
 #   bash scripts/kubectl-ro.sh logs -n cilium ds/cilium --tail=50
 #   bash scripts/kubectl-ro.sh get --raw '/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=up'
 #
@@ -11,6 +12,12 @@
 # process only and is removed on exit. It is never copied elsewhere.
 # Prefer `just status-app`, `just diagnose-app`, `just runtime-inventory` for
 # Argo evidence; use this wrapper for anything they do not cover.
+#
+# --cluster oracle-a1 (PLT-257) reads OKE through NetBird (API 10.0.2.3:6443) with
+# the read-only ServiceAccount argocd/agent-operator, from Doppler
+# KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 (+ _SHA256). Never the operator
+# copy nor an OCI exec kubeconfig; the effective identity is checked before any
+# command. Only valid as the first argument (after the verb it stays refused).
 #
 # Refused: any verb outside the list above; Secret contents (get secret with
 # -o/--output other than `-o name`, -v>=6); flags that swap credentials or weaken TLS;
@@ -23,6 +30,17 @@ set -uo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 refuse() { echo "kubectl-ro: refusé : $*" >&2; exit 64; }
+
+# --- cluster selector (first argument only; PLT-257)
+cluster=homelab
+if [ "${1:-}" = --cluster ]; then
+  [ "$#" -ge 2 ] || refuse "--cluster sans valeur (homelab|oracle-a1)"
+  case "$2" in
+    homelab|oracle-a1) cluster=$2 ;;
+    *) refuse "cluster '$2' inconnu (homelab|oracle-a1)" ;;
+  esac
+  shift 2
+fi
 
 [ "$#" -ge 1 ] || refuse "verbe manquant (get|describe|logs|top|events|api-resources|version)"
 
@@ -131,6 +149,10 @@ fi
 export KUBERC=off
 # never inherit an ambient/pre-validated kubeconfig: always the canonical copy
 unset KUBECONFIG KUBE_ACCESS_CANONICALIZED KUBE_ACCESS_BOOTSTRAP KUBE_ACCESS_SOURCE KUBE_ACCESS_TMPDIR
+unset KUBE_ACCESS_KUBECONFIG_SECRET
+if [ "$cluster" = oracle-a1 ]; then
+  export KUBE_ACCESS_KUBECONFIG_SECRET=KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1
+fi
 # shellcheck source=/dev/null
 source "$HERE/lib/kube-preflight.sh"
 set +e
@@ -144,5 +166,11 @@ if ! require_kube_access >"$status_file" 2>&1; then
 fi
 # the preflight may have replaced the EXIT trap; keep both cleanups
 trap 'kube_access_cleanup; rm -f "$status_file"' EXIT
+
+if [ "$cluster" = oracle-a1 ]; then
+  who=$(kubectl --request-timeout=15s auth whoami -o jsonpath='{.status.userInfo.username}' 2>/dev/null)
+  [ "$who" = system:serviceaccount:argocd:agent-operator ] ||
+    refuse "identité effective '$who' : seule system:serviceaccount:argocd:agent-operator est admise sur oracle-a1"
+fi
 
 kubectl --request-timeout=30s "$@"
