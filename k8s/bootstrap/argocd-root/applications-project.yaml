@@ -51,9 +51,6 @@ spec:
     # Application itself is owned by AppProject personal-ai-pilot.
     - namespace: librechat
       server: https://kubernetes.default.svc
-    # PLT-141 fixture retired (PLT-46); kept until Argo has pruned its namespace, then a follow-up PR removes it.
-    - namespace: argo-rollouts-demo
-      server: https://kubernetes.default.svc
     - namespace: karakeep
       server: https://kubernetes.default.svc
     - namespace: mastra-factory
