@@ -24,6 +24,11 @@ entries:
     model: authentik_core.group
     identifiers: {name: friends}
     attrs: {name: friends, is_superuser: false}
+  # PLT-176: Studio Lechaplais business data (Invoice Ninja). Not a family app.
+  - id: lechaplais
+    model: authentik_core.group
+    identifiers: {name: lechaplais}
+    attrs: {name: lechaplais, is_superuser: false}
   - id: dev
     model: authentik_core.group
     identifiers: {name: dev}
