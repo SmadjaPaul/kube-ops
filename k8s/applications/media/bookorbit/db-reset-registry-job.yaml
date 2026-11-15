@@ -45,7 +45,7 @@ spec:
               DO $$
               BEGIN
                 IF (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-                    WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m','f')) > 0 THEN
+                    WHERE n.nspname = 'public') > 0 THEN
                   RAISE EXCEPTION 'schema public is not empty: refusing to reset the registry';
                 END IF;
               END $$;
