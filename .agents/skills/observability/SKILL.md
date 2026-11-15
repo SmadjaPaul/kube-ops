@@ -37,6 +37,10 @@ bash scripts/doppler-safe.sh run -- bash -c '
   q "count by (cluster, alertname) (ALERTS{alertstate=\"firing\"})"'
 ```
 
+One command for the standard questions: `bash scripts/observe.sh [summary|alerts|backups|app <name>]`
+(`--local` for homelab in-cluster Prometheus/Loki); runbook
+`docs/runbooks/observability-for-agents.md`.
+
 ## Token economy
 
 - Always aggregate (`count by`, `sum by`, `topk`). Filter to non-zero only
