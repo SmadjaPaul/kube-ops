@@ -66,14 +66,17 @@ spec:
           # empty data directory, so it uses a child directory of the volume.
           # PLT-344 L8: --skip-log-bin. Neither the Velero hook (logical
           # mysqldump) nor any restore path uses the binary log, so it only
-          # costs a second fsync per commit on the bulk HDD. InnoDB redo
-          # durability is untouched: innodb_flush_log_at_trx_commit and
-          # sync_binlog-class settings stay at the safe defaults (changing them
-          # is a decision for Paul).
+          # costs a second fsync per commit on the bulk HDD.
+          # PLT-344 D4: --innodb-flush-log-at-trx-commit=2 (Paul, 2026-11-15:
+          # "Oui, Fleet flush=2"). The redo log is written at each commit but
+          # fsynced about once per second: an OS or node crash can lose ~1 s
+          # of transactions; a mysqld-only crash loses nothing. Backups are
+          # unchanged. Revert this line to return to the default (1).
           args:
             - --datadir=/var/lib/mysql/data
             - --innodb-buffer-pool-size=256M
             - --skip-log-bin
+            - --innodb-flush-log-at-trx-commit=2
           ports:
             - name: mysql
               containerPort: 3306
