@@ -98,6 +98,24 @@ serviceMonitor:
         release: kube-prometheus-stack
         qa_level: l2
         aiostreams_route: "true"
+    # PLT-222: recovered apps get a public-route probe (5m interval, same module
+    # as the other UIs). Health endpoints are anonymous by design (ntfy
+    # /v1/health, immich /api/server/ping); no alert rule: ntfy is the alert
+    # channel itself, so its failure is read from probe_success on the dashboard.
+    - name: ntfy-health
+      url: https://ntfy.smadja.dev/v1/health
+      module: http_ui
+      labels:
+        release: kube-prometheus-stack
+        qa_level: l2
+        recovery_probe: "true"
+    - name: immich-ping
+      url: https://immich.smadja.dev/api/server/ping
+      module: http_ui
+      labels:
+        release: kube-prometheus-stack
+        qa_level: l2
+        recovery_probe: "true"
     - name: authentik-argocd-discovery
       url: https://auth.smadja.dev/application/o/argocd/.well-known/openid-configuration
       module: http_oidc
