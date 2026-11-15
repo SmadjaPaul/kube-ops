@@ -5,8 +5,8 @@ Niveau de preuve : `STATIC`. Le rendu Git ne prouve ni un volume attaché, ni un
 
 Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un Schedule actif (namespace, labels, `defaultVolumesToFsBackup`). Longhorn couvre un PVC Longhorn rattaché à un RecurringJob `backup` (labels source, sélecteur de StorageClass ou groupe `default`) et monté par un pod actif (`allowRecurringJobWhileVolumeDetached: false`). CNPG couvre un PVC de cluster si le WAL et une ScheduledBackup visent un ObjectStore R2.
 
-- PVC déclarés : 71
-- PVC couverts vers R2 : 61
+- PVC déclarés : 72
+- PVC couverts vers R2 : 62
 - PVC irremplaçables non couverts : 0
 
 | Namespace | PVC | StorageClass | Taille | Source | Couverture R2 | Écarts | Classe |
@@ -51,7 +51,8 @@ Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un S
 | mealie | mealie-data | longhorn-fast | 5Gi | catalog | Velero(velero-daily-mealie) + Longhorn(persistent-offsite-backup-default-group) | - | IRREPLACEABLE — Family recipes |
 | media | aiostreams-data | longhorn-fast | 4Gi | media | Velero(velero-daily-aiostreams) + Longhorn(persistent-offsite-backup-default-group) | - | USEFUL — AIOStreams user configurations (SQLite) |
 | media | audiobookrequest-config | longhorn-fast | 5Gi | media | Velero(velero-daily-audiobookrequest) + Longhorn(persistent-offsite-backup-default-group) | - | REBUILDABLE — Request queue configuration |
-| media | decypharr-state | longhorn-fast | 2Gi | media | Longhorn(persistent-offsite-backup-default-group) | Velero: pod not selected by any Schedule | REBUILDABLE — Debrid client state |
+| media | bookorbit-data | longhorn-fast | 10Gi | media | Velero(velero-daily-bookorbit) + Longhorn(persistent-offsite-backup-default-group) | - | USEFUL — BookOrbit app data (library index, settings) |
+| media | bookorbit-postgresql-1 | longhorn-fast | 10Gi | media | CNPG(R2) | - | USEFUL — BookOrbit database (users, reading progress) |
 | media | media-share | longhorn-bulk | 2Ti | media | Longhorn(persistent-offsite-backup-default-group) | Velero: PVC label velero.io/exclude-from-backup | REBUILDABLE — Re-downloadable media (2Ti) |
 | media | polyfin-data | longhorn-fast | 20Gi | media | Longhorn(persistent-offsite-backup-default-group) | Velero: pod not selected by any Schedule | USEFUL — Polyfin users, watch state, settings |
 | media | polyfin-db-1 | longhorn-fast | 5Gi | media | **aucune** | CNPG WAL=Hetzner base=Hetzner | USEFUL — Polyfin database (R2 cutover PLT-227) |
