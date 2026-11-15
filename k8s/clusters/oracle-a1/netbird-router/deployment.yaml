@@ -1,0 +1,46 @@
+# NetBird routing peer (PLT-256). Routes ONE /32 (the private OKE API endpoint,
+# TCP 6443) for group Admin; no route to pods or services. Needs NET_ADMIN,
+# SYS_RESOURCE and SYS_ADMIN (NetBird client documentation), so it cannot be
+# restricted further; kept to one pod, no host network, no service account
+# token. Client state (peer identity) lives on the node: the setup key is
+# one-off, a restart must not enroll again. A node replacement needs a new key.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-router
+  namespace: cloudflared
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: netbird-router}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: netbird-router}
+    spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      automountServiceAccountToken: false
+      containers:
+        - name: netbird
+          image: docker.io/netbirdio/netbird:0.83.0
+          env:
+            - name: NB_SETUP_KEY
+              valueFrom: {secretKeyRef: {name: netbird-router-setup-key, key: NB_SETUP_KEY}}
+            - name: NB_HOSTNAME
+              value: oke-oracle-a1-router
+            - name: NB_LOG_LEVEL
+              value: info
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add: [NET_ADMIN, SYS_RESOURCE, SYS_ADMIN]
+          volumeMounts:
+            - {name: state, mountPath: /var/lib/netbird}
+          resources:
+            requests: {cpu: 20m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+      volumes:
+        - name: state
+          hostPath: {path: /var/lib/netbird-router, type: DirectoryOrCreate}
