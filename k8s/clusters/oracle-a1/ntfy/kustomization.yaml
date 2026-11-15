@@ -9,6 +9,12 @@ resources:
   - ../../../applications/catalog/ntfy
   - gatus-user-external-secret.yaml
 
+# CRI-O (OKE) refuses short image names (short-name mode enforcing, PLT-328):
+# qualify the registry here, in the overlay, so the shared homelab base is untouched.
+images:
+  - name: binwiederhier/ntfy
+    newName: docker.io/binwiederhier/ntfy
+
 patches:
   - target: {kind: PersistentVolumeClaim, name: ntfy-data}
     patch: |-
