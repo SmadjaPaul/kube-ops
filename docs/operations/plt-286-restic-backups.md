@@ -9,9 +9,9 @@ Mot de passe : homelab-infra D-2026-11-15-10 et
 - Les manifests sont dans `k8s/applications/media/immich/restic-backup/`,
   `k8s/applications/catalog/paperless/restic-backup/` et le composant
   `k8s/components/restic-backup/` (scripts).
-- Ils sont **inertes** : aucune kustomization d'application ne les importe.
-  L'activation est une PR d'une ligne par application, après les préalables
-  ci-dessous.
+- Ils sont **activés** par la PR d'activation (imports `- restic-backup` dans les kustomizations Immich et Paperless).
+  L'activation est une PR d'une ligne par application, mergée seulement après
+  les préalables ci-dessous (clés R2 d'écriture présentes par nom).
 - Contrat testé : `bash tests/harness/restic-backup-contract-test.sh`
   (inclus dans `just check`).
 
