@@ -1,0 +1,21 @@
+# PLT-145 / PLT-344 / PLT-333: ephemeral GitOps cleanup Jobs (MANDAT 7 of D-2026-11-15-16 and
+# its extension to GitOps Jobs, expires 2026-11-22). Paul has no write kubeconfig: Argo runs
+# three one-shot Jobs, each under its own ServiceAccount with RBAC pinned by resourceNames.
+# Order (sync-waves 20, 21, 22): delete namespace matrix-mas-recovery, delete the 7 Matrix PVs
+# and their Longhorn volumes, remove the Longhorn default backup group label of media/media-share.
+# A follow-up PR removes this whole directory (Jobs, RBAC, ConfigMap).
+# released-pv-cleanup.sh is a verbatim copy of scripts/released-pv-cleanup.sh (kustomize cannot
+# read outside its root); keep them identical (cmp) until this directory is removed.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace-delete.yaml
+  - pv-delete.yaml
+  - media-share-label.yaml
+
+configMapGenerator:
+  - name: released-pv-cleanup-script
+    namespace: matrix
+    files:
+      - released-pv-cleanup.sh

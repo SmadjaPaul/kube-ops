@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cleanup-matrix-pv
+  namespace: matrix
+  annotations:
+    argocd.argoproj.io/sync-wave: "19"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cleanup-matrix-pv
+  annotations:
+    argocd.argoproj.io/sync-wave: "19"
+rules:
+  - apiGroups: [""]
+    resources: [persistentvolumes]
+    resourceNames: &pvs
+      - pvc-a1e12685-1142-4ee9-acf7-9685997727fe
+      - pvc-e9306243-102d-4207-8a80-1fabbdb4efb9
+      - pvc-b5ecc0f3-c330-4935-bf01-066d2ffdc9e7
+      - pvc-3e03f9f0-d757-43b0-9f3c-e6152cd07a76
+      - pvc-d6977f4f-c8b1-41c6-8d1b-620c5bb461f4
+      - pvc-7f2df114-2368-4357-b2b6-e0d2baea33bf
+      - pvc-f1a03e61-fa2b-4d42-a87f-2c8c03330ac4
+    verbs: [get, delete]
+  - apiGroups: [longhorn.io]
+    resources: [volumes, volumeattachments]
+    resourceNames: *pvs
+    verbs: [get]
+  - apiGroups: [longhorn.io]
+    resources: [volumes]
+    resourceNames: *pvs
+    verbs: [delete]
+  # The script refuses a PV still referenced by a PVC (spec.volumeName): list cannot be
+  # limited by resourceNames. Read-only, metadata of PVCs only.
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cleanup-matrix-pv
+  annotations:
+    argocd.argoproj.io/sync-wave: "19"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cleanup-matrix-pv
+subjects:
+  - kind: ServiceAccount
+    name: cleanup-matrix-pv
+    namespace: matrix
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cleanup-matrix-pv
+  namespace: matrix
+  annotations:
+    argocd.argoproj.io/sync-wave: "21"
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 1200
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cleanup-matrix-pv
+    spec:
+      serviceAccountName: cleanup-matrix-pv
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2501
+        runAsGroup: 2501
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cleanup
+          image: docker.io/alpine/k8s:1.36.6@sha256:e2d95501b5718673ba67693154fabe6c618dbe1211a32947d6d5cf16285e019b
+          env:
+            - {name: HOME, value: /tmp}
+            - {name: PV_CLEANUP_IN_CLUSTER, value: "yes"}
+            - {name: ALLOW_RELEASED_PV_DELETION, value: "yes"}
+          command: [/bin/bash, /scripts/released-pv-cleanup.sh, --matrix, --execute]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: script, mountPath: /scripts, readOnly: true}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 16Mi}
+        - name: script
+          configMap:
+            name: released-pv-cleanup-script
