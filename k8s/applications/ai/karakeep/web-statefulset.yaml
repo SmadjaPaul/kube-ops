@@ -63,7 +63,7 @@ spec:
               mountPath: /app/apps/web/.next/cache
           resources:
             requests:
-              cpu: '50m'
+              cpu: '25m'
               memory: '512Mi'
             limits:
               cpu: '1000m'

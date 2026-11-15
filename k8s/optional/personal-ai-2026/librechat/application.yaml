@@ -95,7 +95,7 @@ spec:
           - {name: image-volume, mountPath: /app/uploads, subPath: uploads}
           - {name: tmp, mountPath: /tmp}
         resources:
-          requests: {cpu: 100m, memory: 512Mi}
+          requests: {cpu: 25m, memory: 512Mi}
           limits: {cpu: "1", memory: 2Gi}
         mongodb:
           enabled: true
