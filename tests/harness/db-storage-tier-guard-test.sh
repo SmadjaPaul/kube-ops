@@ -30,22 +30,41 @@ scan() {
 import json, re, sys
 f = sys.argv[1]
 BULK = "longhorn-bulk"
-DB_IMAGE = re.compile(r"(^|/)(postgres|postgresql|mysql|mariadb|mongo|mongodb|redis|valkey|percona[^/:]*)(:|@|$)")
+DB_IMAGE = re.compile(r"^(postgres|postgresql|mysql|mariadb|mongo|mongodb|redis|valkey|percona[a-z0-9-]*)$")
 DB_KEY = re.compile(r"^(mongodb|mongo|mysql|mariadb|postgresql|postgres|redis|valkey|database)$")
 DB_NAME = re.compile(r"(mysql|mariadb|mongo|postgres|redis|valkey|database|(^|-)pg[0-9]*(-|$)|(^|-)db(-|$))")
-for line in sys.stdin:
-    line = line.strip()
-    if not line or line == "null":
-        continue
-    try:
-        d = json.loads(line)
-    except ValueError:
-        continue
+def image_name(ref):
+    # last path component without digest or tag (keeps registry ports out)
+    return ref.split("@", 1)[0].rsplit("/", 1)[-1].split(":", 1)[0]
+def bulk_in(node):
+    if isinstance(node, dict):
+        return any((k in ("storageClass", "storageClassName") and v == BULK) or bulk_in(v) for k, v in node.items())
+    if isinstance(node, list):
+        return any(bulk_in(v) for v in node)
+    return False
+def walk(node, path, ref):
+    # Helm values (Argo valuesObject or values files): a database sub-chart
+    # (mongodb:, mysql:, postgresql:, redis:...) whose persistence uses bulk.
+    if isinstance(node, dict):
+        for k, v in node.items():
+            p = path + "." + str(k)
+            if DB_KEY.match(str(k)) and isinstance(v, dict) and bulk_in(v):
+                print("HelmValues", "%s:%s" % (ref, p.lstrip(".")), f)
+            else:
+                walk(v, p, ref)
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            walk(v, "%s[%d]" % (path, i), ref)
+def classify(d):
     if not isinstance(d, dict):
-        continue
+        return
     kind = d.get("kind", ""); api = str(d.get("apiVersion", ""))
+    if kind.endswith("List") and isinstance(d.get("items"), list):
+        for item in d["items"]:
+            classify(item)
+        return
     md = d.get("metadata") or {}; spec = d.get("spec") or {}
-    ref = "%s/%s" % (md.get("namespace", "-"), md.get("name", "?"))
+    ref = "%s/%s" % (md.get("namespace", "-"), md.get("name", "?")) if kind else f
     hit = False
     if kind == "Cluster" and api.startswith("postgresql.cnpg.io/"):
         hit = any((spec.get(k) or {}).get("storageClass") == BULK for k in ("storage", "walStorage"))
@@ -54,33 +73,21 @@ for line in sys.stdin:
         bulk = any(((v.get("spec") or {}).get("storageClassName") == BULK) for v in vcts)
         pod = ((spec.get("template") or {}).get("spec") or {})
         imgs = [c.get("image", "") for c in (pod.get("containers") or []) + (pod.get("initContainers") or [])]
-        hit = bulk and any(DB_IMAGE.search(i.split("@")[0].rsplit(":", 1)[0] + ":") for i in imgs)
+        hit = bulk and any(DB_IMAGE.match(image_name(i)) for i in imgs)
     elif kind == "PersistentVolumeClaim":
         hit = spec.get("storageClassName") == BULK and bool(DB_NAME.search(md.get("name", "")))
     if hit:
         print(kind, ref, f)
+    elif kind not in ("Cluster", "StatefulSet", "PersistentVolumeClaim"):
+        walk(d, "", ref)
+for line in sys.stdin:
+    line = line.strip()
+    if not line or line == "null":
         continue
-    # Helm values (Argo valuesObject or values files): a database sub-chart
-    # (mongodb:, mysql:, postgresql:, redis:...) whose persistence uses bulk.
-    def bulk_in(node):
-        if isinstance(node, dict):
-            return any((k in ("storageClass", "storageClassName") and v == BULK) or bulk_in(v) for k, v in node.items())
-        if isinstance(node, list):
-            return any(bulk_in(v) for v in node)
-        return False
-    def walk(node, path):
-        if isinstance(node, dict):
-            for k, v in node.items():
-                p = path + "." + str(k)
-                if DB_KEY.match(str(k)) and isinstance(v, dict) and bulk_in(v):
-                    print("HelmValues", "%s:%s" % (ref if kind else f, p.lstrip(".")), f)
-                else:
-                    walk(v, p)
-        elif isinstance(node, list):
-            for i, v in enumerate(node):
-                walk(v, "%s[%d]" % (path, i))
-    if kind not in ("Cluster", "StatefulSet", "PersistentVolumeClaim"):
-        walk(d, "")
+    try:
+        classify(json.loads(line))
+    except ValueError:
+        continue
 ' "${f#"$repo_root"/}"
   done
 }
@@ -101,7 +108,7 @@ metadata: {name: bad-mysql, namespace: fx}
 spec:
   template:
     spec:
-      containers: [{name: db, image: "docker.io/library/mysql:8.4"}]
+      containers: [{name: db, image: "registry.example:5000/mysql@sha256:0123"}]
   volumeClaimTemplates:
     - metadata: {name: data}
       spec: {storageClassName: longhorn-bulk}
@@ -121,6 +128,15 @@ spec:
         mongodb:
           persistence: {storageClass: longhorn-bulk}
         imageVolume: {storageClassName: longhorn-bulk}
+---
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: postgresql.cnpg.io/v1
+    kind: Cluster
+    metadata: {name: listed-pg, namespace: fx}
+    spec:
+      storage: {size: 1Gi, storageClass: longhorn-bulk}
 EOF
 cat >"$tmp/fx/good.yaml" <<'EOF'
 apiVersion: postgresql.cnpg.io/v1
@@ -147,6 +163,7 @@ spec:
 EOF
 (cd "$tmp" && repo_root="$tmp" scan "$tmp/fx") >"$tmp/fx.out"
 expected="Cluster fx/bad-pg
+Cluster fx/listed-pg
 HelmValues argocd/chat:spec.source.helm.valuesObject.mongodb
 PersistentVolumeClaim fx/app-mongodb
 StatefulSet fx/bad-mysql"
