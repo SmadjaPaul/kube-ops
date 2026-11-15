@@ -110,6 +110,14 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 5
+          # Keeps liveness off until mysqld accepts connections, so a first
+          # start that restores a dump is not restarted halfway (PLT-344).
+          startupProbe:
+            exec:
+              command: [sh, -c, 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"']
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 60
           resources:
             requests:
               cpu: 50m

@@ -139,6 +139,14 @@ spec:
       labels:
         app.kubernetes.io/name: fleet-mysql-migration
     spec:
+      # Same node as fleet-mysql-fast-0: the ReadWriteOnce PVC is attached there.
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: fleet-mysql
+              topologyKey: kubernetes.io/hostname
       restartPolicy: Never
       hostNetwork: false
       hostPID: false
