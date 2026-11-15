@@ -7,6 +7,19 @@ metadata:
   labels:
     smad.dev/reconcile: "2026-09-30"
 entries:
+  - id: test-userready
+    model: authentik_core.user
+    state: present
+    identifiers:
+      username: test-userready
+    attrs:
+      username: test-userready
+      name: Synthetic User Ready
+      email: test-userready@smadja.dev
+      is_active: true
+      password: !Env TEST_USERREADY_PASSWORD
+      groups:
+        - !Find [authentik_core.group, [name, "family"]]
   - id: e2e-user
     model: authentik_core.user
     state: present
