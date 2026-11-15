@@ -18,6 +18,16 @@ spec:
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      # Same node as the restored ntfy pod (ReadWriteOnce volume).
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels: {app.kubernetes.io/name: ntfy}
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -48,10 +58,15 @@ spec:
                 i=$((i+1)); [ $i -le 60 ] || { echo "FAIL service not healthy"; exit 1; }
                 sleep 5
               done
-              echo "health=$(wget -qO- -T 3 http://ntfy/v1/health)"
-              echo "stats=$(wget -qO- -T 3 http://ntfy/v1/stats)"
+              HEALTH="$(wget -qO- -T 3 http://ntfy/v1/health)" || { echo "FAIL health request"; exit 1; }
+              echo "health=$HEALTH"
+              STATS="$(wget -qO- -T 3 http://ntfy/v1/stats)" || { echo "FAIL stats request"; exit 1; }
+              echo "stats=$STATS"
               AUTH="$(printf 'admin:%s' "$NTFY_PASSWORD" | base64)"
-              echo "account_role=$(wget -qO- -T 3 --header "Authorization: Basic $AUTH" http://ntfy/v1/account | grep -o '"role":"[a-z]*"')"
+              ACCOUNT="$(wget -qO- -T 3 --header "Authorization: Basic $AUTH" http://ntfy/v1/account)" || { echo "FAIL account request"; exit 1; }
+              ROLE="$(printf '%s' "$ACCOUNT" | grep -o '"role":"[a-z]*"')"
+              echo "account_role=$ROLE"
+              [ "$ROLE" = '"role":"admin"' ] || { echo "FAIL admin role expected"; exit 1; }
               total=0
               for f in $(find $D -maxdepth 1 -type f); do
                 s=$(stat -c %s "$f"); total=$((total+s))
