@@ -105,3 +105,61 @@ entries:
     model: authentik_core.group
     identifiers: {name: audiobookshelf admins}
     attrs: {name: audiobookshelf admins}
+
+  # ---------------------------------------------------------------------------
+  # Human accounts declared in Git (PLT-176). Procedure and rules:
+  # docs/operations/authentik-human-accounts.md.
+  # - `state: created`: the blueprint creates a missing account and never
+  #   updates an existing one (name, e-mail, groups, password, MFA). Accounts
+  #   created at runtime (invitation) are not listed here and are not touched.
+  # - No `password` attribute: authentik sets an unusable password. The person
+  #   sets their own through an admin link (flows-password-setup.yaml).
+  # - E-mail = the person's smadja.dev mailbox. Personal recovery addresses
+  #   never go in Git.
+  # - Access comes from groups only (`family` here), never from a per-user
+  #   binding.
+  # ---------------------------------------------------------------------------
+  - model: authentik_core.user
+    state: created
+    identifiers: {username: corinne.smadja}
+    attrs:
+      username: corinne.smadja
+      name: Corinne Smadja
+      email: corinne@smadja.dev
+      type: internal
+      path: users/internal
+      is_active: true
+      groups: [!KeyOf family]
+  - model: authentik_core.user
+    state: created
+    identifiers: {username: philippe.smadja}
+    attrs:
+      username: philippe.smadja
+      name: Philippe Smadja
+      email: philippe@smadja.dev
+      type: internal
+      path: users/internal
+      is_active: true
+      groups: [!KeyOf family]
+  - model: authentik_core.user
+    state: created
+    identifiers: {username: theo.smadja}
+    attrs:
+      username: theo.smadja
+      name: Théo Smadja
+      email: theo@smadja.dev
+      type: internal
+      path: users/internal
+      is_active: true
+      groups: [!KeyOf family]
+  - model: authentik_core.user
+    state: created
+    identifiers: {username: manon.smadja}
+    attrs:
+      username: manon.smadja
+      name: Manon Smadja
+      email: manon@smadja.dev
+      type: internal
+      path: users/internal
+      is_active: true
+      groups: [!KeyOf family]
