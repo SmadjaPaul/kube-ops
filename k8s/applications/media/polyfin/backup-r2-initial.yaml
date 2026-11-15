@@ -1,0 +1,19 @@
+# PLT-227: first base backup of polyfin-db on R2, taken right after the WAL
+# archive switch, so the R2 archive is restorable before the first weekly
+# ScheduledBackup. The Hetzner chain stops at the switch (Hetzner base backup
+# kept as rollback).
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: polyfin-r2-initial-20261115
+  namespace: media
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: polyfin-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: polyfin-r2-store

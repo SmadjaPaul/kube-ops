@@ -92,6 +92,10 @@ spec:
     # removed by PR once the drill root is pruned.
     - namespace: authentik-drill
       server: https://kubernetes.default.svc
+    # PLT-227: temporary isolated R2 restore drill of media/polyfin-db;
+    # removed by PR once the drill root is pruned.
+    - namespace: polyfin-drill
+      server: https://kubernetes.default.svc
     - namespace: wellness
       server: https://kubernetes.default.svc
     - namespace: searxng
