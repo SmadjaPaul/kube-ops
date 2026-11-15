@@ -147,6 +147,13 @@ serviceMonitor:
 prometheusRule:
   enabled: true
   namespace: monitoring
+  # Prometheus ruleSelector only loads PrometheusRules labelled
+  # release=kube-prometheus-stack; without it the two alerts below never ran.
+  # Probes are stable since PLT-346. The hassio probe still times out once in
+  # three (PLT-346, Envoy -> hostNetwork backend) but a single 5 min failure
+  # never satisfies `for: 10m`, so it does not page.
+  additionalLabels:
+    release: kube-prometheus-stack
   rules:
     - alert: V1UserReadySyntheticProbeFailed
       expr: probe_success{v1_user_ready="true"} == 0
