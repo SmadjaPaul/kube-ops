@@ -61,10 +61,11 @@ Argo: `apps-catalog`, `apps-platform`, `apps-tools` Synced/Healthy; `apps-media`
 
 ## Ready/Healthy versus usable
 
-- Ready/Healthy pass for the apps above (all pods Ready, smoke 37/37), yet no row reaches USER. HTTP 200/302 only proves
-  route, TLS and a backend answer.
-- Argo `apps-media` is `OutOfSync/Unknown` with 34 orphaned resources; `apps-ai` health is Unknown. Pods are Ready, so
-  Argo status and workload readiness disagree for these two roots.
+- Evidence collected: no pod outside Running/Completed in any namespace; the pod listing of the apps above shows every
+  container ready; `apps-media` reports `PODS=17/17`; the smoke ran 37 routes with 0 failures. No row reaches USER.
+  HTTP 200/302 only proves route, TLS and a backend answer.
+- Argo `apps-media` is `OutOfSync/Unknown` with 34 orphaned resources; `apps-ai` health is Unknown. Pods in `media` are
+  ready, so Argo status and workload readiness disagree for `apps-media`. The `apps-ai` pods were not inspected.
 - Public DNS (`@1.1.1.1`) resolves every `smadja.dev` host to Cloudflare IPs, including hosts attached to the internal
   Gateway only. Resolving is not proof of external access.
 
@@ -88,7 +89,10 @@ The previous 14/11 timeout on `ittools` did not reproduce (HTTP 200 now); that p
 2. Vikunja: local registration open on an external route; confirm intent.
 3. Backup gaps: BookOrbit (no CNPG backup, instance status error), SparkyFitness, RustiCal, the BookOrbit Velero schedule never ran;
    Polyfin CNPG last backup 11-08.
-4. Restore proof is absent for the IRREPLACEABLE apps listed (`CNPG_RESTORE_PROOF=UNPROVEN`).
+4. `CNPG_RESTORE_PROOF=UNPROVEN` is the audit aggregate: it counted no accepted proof. It does not prove absence per
+   dataset. SparkyFitness has an isolated restore on 2026-11-12 ([plt-221](plt-221-sparkyfitness-r2-restore-drill.md))
+   that the audit did not count; reconcile that gap. For the other IRREPLACEABLE apps no restore proof was found in
+   this review (matrix rows say restore NOT_PROVEN).
 5. Paperless has no SSO wiring in Git; Trilium and AudioBookRequest have no Authentik provider. Confirm whether that is intended.
 6. `just status-app` takes the Argo Application name, not the app name; the docs do not say so.
 
@@ -96,5 +100,8 @@ The previous 14/11 timeout on `ittools` did not reproduce (HTTP 200 now); that p
 
 - OIDC end to end, init admin where not published, and durable action for every row: needs a test user in Authentik
   (`family` group) and a login by Paul or a test identity he provides. No identity was used.
+- Apps without OIDC wiring (Paperless local login only; Trilium and AudioBookRequest have no Authentik provider): an
+  Authentik test user is not enough. Paul must provide a local test account per app (username and password supplied by
+  him, never written to Git or Linear), or claim the admin account himself, before login and durable action can be tested.
 - External authorized client: needs a device outside the LAN (or a Cloudflare Access service token that Paul grants).
 - Restore of any IRREPLACEABLE dataset: needs the isolated restore drill (separate mutation, not run here).
