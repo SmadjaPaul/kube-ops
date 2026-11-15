@@ -61,7 +61,7 @@ Secret output (enforced by `.claude/hooks/secret-output-guard.py`): use `scripts
 
 Branches: your own claude/ or codex/ prefix, never another agent's branch.
 
-Process (D-2026-11-15-06): one PR per coherent change, one CodeRabbit pass (full review stays due for security, secrets or protections), missions of 45 minutes at most; check provider dependency links before a deletion.
+Process: D-2026-11-15-06 (homelab-infra docs/decisions.md).
 
 ## Evidence
 
