@@ -10,8 +10,8 @@ resources:
   - objectstores.yaml
   - database.yaml
   - networkpolicy.yaml
-  # PLT-303 drill step 1 (remove with the drill, one PR per removal).
-  - ../../../optional/hindsight-oke-drill/oke-seed-a
+  # Drill step 1 done (seed A, Job Complete, 21:53:42Z): import removed because two
+  # imports of the fingerprint component collide on its ConfigMap.
   # Drill step 2: base backup after seed A (Completed on OKE).
   - ../../../optional/hindsight-oke-drill/oke-backup
   # Drill step 3: seed B (WAL only, after the base backup) + OKE fingerprint.
