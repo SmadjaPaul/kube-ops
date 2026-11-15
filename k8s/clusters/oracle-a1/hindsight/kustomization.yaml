@@ -14,6 +14,8 @@ resources:
   - ../../../optional/hindsight-oke-drill/oke-seed-a
   # Drill step 2: base backup after seed A (Completed on OKE).
   - ../../../optional/hindsight-oke-drill/oke-backup
+  # Drill step 3: seed B (WAL only, after the base backup) + OKE fingerprint.
+  - ../../../optional/hindsight-oke-drill/oke-seed-b
 helmCharts:
   - name: hindsight
     repo: oci://ghcr.io/vectorize-io/charts
