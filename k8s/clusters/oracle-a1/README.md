@@ -14,7 +14,25 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster recovered from the homelab R2 archive, Hindsight API. Out of the root until the drill. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
 | `media/` | Overlay on the shared `applications/media/{polyfin,aiostreams}` bases. |
-| `observability/` | Grafana Cloud export (PLT-306): kube-state-metrics with a metric allowlist and one Alloy, label `cluster=oracle-a1`, write token `GRAFANA_CLOUD_ORACLE_A1_WRITE_TOKEN`. Out of the root until PLT-253; no egress policy (flannel does not enforce NetworkPolicy). |
+| `observability/` | Grafana Cloud export (PLT-306): kube-state-metrics with a metric allowlist and one Alloy, label `cluster=oracle-a1`, write token `GRAFANA_CLOUD_ORACLE_A1_WRITE_TOKEN`. In the root (PLT-309); no egress policy (flannel does not enforce NetworkPolicy). |
+
+## Current state (PLT-328, 2026-11-15)
+
+- Root Application `oracle-a1-root` reads `apps/`. It carries six children:
+  `guardrails`, `external-secrets`, `cert-manager`, `cnpg-operator`,
+  `cnpg-barman-plugin`, `observability`. Last read-only survey (2026-11-15):
+  all `Synced/Healthy`, one arm64 node. This file does not assert it again.
+- Retired from the root (PLT-328, decision of Paul): `ntfy` and `gatus`. Their
+  namespaces are gone and AppProject `oracle-a1` no longer admits them. Alerts
+  go through ntfy.sh (homelab Alertmanager receiver). Doppler keys
+  `ORACLE_A1_NTFY_*` are kept. Rollback: Git revert.
+- Not in the root: `cnpg-cluster`, `media`, `cloudflared`, `hindsight` (see above).
+- Access: the Kubernetes API is private. The only path is an OCI Bastion
+  port-forwarding session (`homelab-bastion`) with a temporary kubeconfig.
+  No ARC runner and no homelab route reaches it, and no `kubectl-ro.sh`
+  wrapper serves `oracle-a1` yet (PLT-257).
+- `bootstrap/project.yaml` is applied by the operator, never synced by Argo CD:
+  a change to it takes effect on the cluster at the next operator bootstrap.
 
 Prerequisites outside Git (bootstrap steps, none blocks the static manifests):
 - The OKE cluster (homelab-infra#330, Basic, `FLANNEL_OVERLAY`, pods `10.248.0.0/16`,
