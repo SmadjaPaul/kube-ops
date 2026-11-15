@@ -8,9 +8,9 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 
 | Classe | Groupe | Règle |
 |---|---|---|
-| Admin | `authentik-admins` (superuser, existant) | Tout l'accès administratif : Authentik, applications d'admin, SSO Cloudflare. Paul y est rattaché par le groupe. Un futur admin = un ajout au groupe. Le groupe `admin` (ArgoCD, Factory) est un doublon à fusionner après vérification de ses membres. |
+| Admin | `authentik-admins` (superuser, existant) | Tout l'accès administratif : Authentik, applications d'admin. Paul y est rattaché par le groupe. Un futur admin = un ajout au groupe. Le groupe `admin` (ArgoCD, Factory) est un doublon à fusionner après vérification de ses membres. |
 | Famille | `family` (existant) | Applications qui peuvent coûter de l'argent à Paul (IA, stockage, comptes créés au premier login), plus tout ce qu'ont les amis. Rien d'admin. Immich reste dans `Immich Users`. |
-| Amis | `friends` (nouveau, vide) | Seulement les applications à coût marginal nul (coût identique pour 5 ou 150 utilisateurs) : Polyfin, RomM, BookOrbit. Un ami n'obtient jamais `family` par défaut ; aucune invitation n'ajoute `family` à un ami. |
+| Amis | `friends` (nouveau, vide) | Seulement les applications à coût marginal nul (coût identique pour 5 ou 150 utilisateurs) : Polyfin, RomM, BookOrbit, plus l'étape Authentik de Cloudflare Access (application `cloudflare`). Un ami n'obtient jamais `family` par défaut ; aucune invitation n'ajoute `family` à un ami. |
 | Comptes de service | pas de groupe d'accès | Voir plus bas. |
 
 ## Applications par coût marginal
@@ -30,7 +30,7 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 | home-assistant | Home Assistant Users | nul, mais pilote la maison | groupe dédié, foyer seulement |
 | invoice-ninja | family | données de l'activité de Maureen | groupe dédié proposé (`lechaplais`) |
 | argocd, kubectl, grafana, aiostreams, talos-* | admin, dev ; Kubectl/Grafana/Talos Users | admin | admin |
-| cloudflare | **aucun** (ouvert à tout compte) | admin | admin |
+| cloudflare | authentik-admins, admin, authentik Admins, family, friends | nul (fournisseur d'identité de Cloudflare Access pour les services derrière les tunnels) | toutes les classes humaines ; un compte sans groupe lié est refusé (décision de Paul, 2026-11-15) |
 | jellyfin, bazarr, lidarr, prowlarr, radarr, sonarr, sabnzbd, jellyseerr, audiobookshelf, openwebui, litellm, zigbee2mqtt | divers | service retiré ou non déployé | à supprimer d'Authentik |
 
 ## Comptes de service

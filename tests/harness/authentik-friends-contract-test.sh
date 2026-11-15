@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # PLT-176: the `friends` group opens only applications with zero marginal cost,
 # and no enrollment stage adds `friends` together with `family`.
+# `cloudflare` is the Authentik step of Cloudflare Access, used by every human
+# class (decision of Paul, 2026-11-15): binding `friends` there costs nothing.
 set -euo pipefail
 bp=k8s/infrastructure/auth/authentik/extra/blueprints
-ALLOWED="polyfin bookorbit romm"
+ALLOWED="polyfin bookorbit romm cloudflare"
 fail() { echo "AUTHENTIK_FRIENDS=FAIL $*" >&2; exit 1; }
 
 grep -Eq 'identifiers: \{name: friends\}' "$bp/groups.yaml" || fail 'friends group missing in groups.yaml'

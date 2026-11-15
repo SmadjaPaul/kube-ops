@@ -41,7 +41,7 @@ entries:
       name: Cloudflare Zero Trust
       group: Infrastructure
       provider: !KeyOf cloudflare_provider
-      # PLT-176: `any` so that membership of either admin group is enough.
+      # PLT-176: `any` so that membership of one bound group is enough.
       policy_engine_mode: any
       open_in_new_tab: true
       meta_launch_url: https://one.dash.cloudflare.com/
@@ -49,10 +49,20 @@ entries:
       meta_description: Cloudflare Zero Trust SSO Integration
       meta_publisher: Cloudflare
 
-  # PLT-176: Cloudflare Zero Trust SSO is an admin path. Without a binding,
-  # Authentik let every account through and only Cloudflare Access rules
-  # (outside Git) filtered. Both existing admin groups are bound so that the
-  # current admin keeps access whichever group carries his membership.
+  # PLT-176 (decision of Paul, 2026-11-15): this application is the identity
+  # provider of Cloudflare Access for the services exposed through Cloudflare
+  # tunnels, and almost every user reaches services that way. It is NOT
+  # admin-only. Before PLT-176 it had no binding, so Authentik let any account
+  # through, including an account with no group. It is now bound to every
+  # group whose members use those services; an account in none of them is
+  # refused. `any`: membership of one bound group is enough.
+  #   - authentik-admins, admin: administrators (Paul is in authentik-admins);
+  #   - authentik Admins: Authentik's bootstrap superuser group (akadmin);
+  #   - family: Maureen, family accounts, e2e-user and the agent-e2e synthetic
+  #     users (created in test-users + family);
+  #   - friends: friends accounts (group empty when this was written).
+  # The agent-e2e service account (test-users only, API token, no interactive
+  # login) is deliberately not bound.
   - model: authentik_policies.policybinding
     identifiers:
       target: !KeyOf cloudflare_application
@@ -65,3 +75,21 @@ entries:
       group: !Find [authentik_core.group, [name, "admin"]]
     attrs:
       order: 2
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf cloudflare_application
+      group: !Find [authentik_core.group, [name, "authentik Admins"]]
+    attrs:
+      order: 3
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf cloudflare_application
+      group: !Find [authentik_core.group, [name, "family"]]
+    attrs:
+      order: 10
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf cloudflare_application
+      group: !Find [authentik_core.group, [name, "friends"]]
+    attrs:
+      order: 20
