@@ -7,6 +7,15 @@ metadata:
     # Downloaded media is reproducible and is intentionally outside the
     # durable application-data backup contract.
     velero.io/exclude-from-backup: "true"
+    # PLT-333: Longhorn copies these labels to the volume (source: enabled). A
+    # group without any RecurringJob keeps the volume out of the `default`
+    # backup group, so it is no longer sent to R2 (D-2026-11-11-05).
+    # Rollback: do NOT just delete the labels (Longhorn stops syncing and the
+    # volume keeps media-no-backup). Set recurring-job-group.longhorn.io/default
+    # to "enabled" in place of media-no-backup, wait for the volume labels to
+    # follow, then remove the labels.
+    recurring-job.longhorn.io/source: enabled
+    recurring-job-group.longhorn.io/media-no-backup: enabled
 spec:
   accessModes:
     - ReadWriteOnce
