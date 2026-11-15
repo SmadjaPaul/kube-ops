@@ -6,6 +6,8 @@ La garde `tests/harness/cnpg-cluster-allowlist-test.sh` (lancée par `just check
 
 La consolidation se fait au fil de l'eau, une base à la fois, avec restauration prouvée (PLT-221) avant de retirer l'ancien cluster. Aucune migration de masse (PLT-169).
 
+Décision PLT-342 du 15/11/2026 : `hindsight-db-offsite` est un cluster de restauration hors site dormant et isolé, explicitement accepté pour le drill ; il ne constitue pas une nouvelle exception CNPG de production et doit être retiré après le drill.
+
 | Cluster | Application | Statut | Cible de consolidation |
 | --- | --- | --- | --- |
 | `pg-shared` | cluster partagé | partagé | cible |
