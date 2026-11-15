@@ -1,0 +1,45 @@
+# PLT-222: isolated restore drill of ntfy from the R2 BSL, into drill-ntfy2.
+# Replaces plt222-ntfy-drill-20261115 (Completed, but no PodVolumeRestore:
+# Velero 1.18 creates them only when persistentvolumes AND
+# persistentvolumeclaims are included). The namespace, default-deny policy
+# and ExternalSecret come from k8s/optional/ntfy-drill, applied before this
+# Restore. persistentvolumes is listed so PodVolumeRestores are created;
+# includeClusterResources stays false, so no PV is restored and the
+# production PV is untouched (the PVC gets a fresh dynamic PV).
+# No Secret, ExternalSecret, CiliumNetworkPolicy, HTTPRoute or CRD.
+# Never prune this Restore: deleting a Restore CR can make Velero delete its
+# result files in the bucket. Remove the manifest from Git after the proof
+# (Prune=false keeps the live CR as the record).
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: plt222-ntfy-drill-20261115b
+  namespace: velero
+  labels:
+    backup-tier: drill
+    backup-app: ntfy
+    plt: "222"
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+spec:
+  backupName: velero-daily-ntfy-20261115042528
+  includedNamespaces:
+    - ntfy
+  namespaceMapping:
+    ntfy: drill-ntfy2
+  includedResources:
+    - deployments.apps
+    - replicasets.apps
+    - pods
+    - persistentvolumeclaims
+    - persistentvolumes
+    - services
+    - configmaps
+    - serviceaccounts
+  includeClusterResources: false
+  existingResourcePolicy: none
+  restorePVs: true
+  resourceModifier:
+    kind: ConfigMap
+    name: ntfy-drill-restore-modifier
