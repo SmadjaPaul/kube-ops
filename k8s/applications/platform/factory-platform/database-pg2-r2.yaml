@@ -1,0 +1,82 @@
+# PLT-332: CNPG Barman WAL archive and base backups of
+# factory-platform/factory-platform-pg2 on Cloudflare R2 (bucket
+# homelab-backup-cnpg, jurisdiction eu), same procedure as PLT-246
+# (mastra-factory) and PLT-228 (romm); runbook homelab-infra
+# docs/operations/r2-migration.md.
+#
+# Identity: the per-bucket writer (Object Read & Write on homelab-backup-cnpg
+# only), referenced from Doppler cluster/prd. The endpoint comes from Doppler
+# R2_S3_ENDPOINT through the same Secret, so the account id is never written in
+# this public repository: barman-cloud runs without --endpoint-url and boto3
+# reads AWS_ENDPOINT_URL_S3.
+#
+# Objects land under s3://homelab-backup-cnpg/factory-platform/factory-platform-pg2/
+# (serverName defaults to the Cluster name). The Hetzner store in
+# database-pg2-objectstore.yaml stays the active WAL archive until the cutover
+# PR and is kept untouched for rollback.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: factory-platform-pg2-cnpg-r2-credentials
+  namespace: factory-platform
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-cluster
+    kind: ClusterSecretStore
+  target:
+    name: factory-platform-pg2-cnpg-r2-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef:
+        key: R2_CNPG_WRITER_ACCESS_KEY_ID
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef:
+        key: R2_CNPG_WRITER_SECRET_ACCESS_KEY
+    - secretKey: AWS_ENDPOINT_URL_S3
+      remoteRef:
+        key: R2_S3_ENDPOINT
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: factory-platform-pg2-r2-store
+  namespace: factory-platform
+spec:
+  retentionPolicy: "14d"
+  instanceSidecarConfiguration:
+    env:
+      # plugin-barman-cloud v0.11.0 ships barman 3.17.0 with boto3 1.42.37:
+      # its default flexible CRC checksums are not all supported by R2.
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_DEFAULT_REGION
+        value: auto
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef:
+            name: factory-platform-pg2-cnpg-r2-credentials
+            key: AWS_ENDPOINT_URL_S3
+    resources:
+      requests: {cpu: 50m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 512Mi}
+  configuration:
+    destinationPath: s3://homelab-backup-cnpg/factory-platform
+    s3Credentials:
+      accessKeyId:
+        name: factory-platform-pg2-cnpg-r2-credentials
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: factory-platform-pg2-cnpg-r2-credentials
+        key: AWS_SECRET_ACCESS_KEY
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip
+      # Heavy base backup on a thermally limited node: one upload job
+      # (sidecar capped at 500m CPU above), run off-peak.
+      jobs: 1
