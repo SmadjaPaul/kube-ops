@@ -115,12 +115,17 @@ case "$sub" in
       case "$1" in
         --tag) tag="$2"; shift 2 ;;
         --host) shift 2 ;;
-        latest) path="$2"; break ;;
-        *) shift ;;
+        latest) snap="$(latest "$tag")" || exit 1; path="$2"; break ;;
+        *) snap="$repo/snap/$((16#$1))"; path="$2"; break ;;
       esac
     done
-    snap="$(latest "$tag")" || exit 1
     cat "$snap/root$path"
+    ;;
+  snapshots)
+    tag=""
+    while [ "$#" -gt 0 ]; do case "$1" in --tag) tag="$2"; shift 2 ;; *) shift ;; esac; done
+    snap="$(latest "$tag")" || { echo '[]'; exit 0; }
+    printf '[{"time":"t","tree":"%064x","paths":["/x"],"id":"%064x","short_id":"x"}]\n' 0 "$(basename "$snap")"
     ;;
   forget | prune | check) : ;;
   *) exit 2 ;;

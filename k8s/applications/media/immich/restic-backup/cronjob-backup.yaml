@@ -47,16 +47,15 @@ spec:
             seccompProfile: { type: RuntimeDefault }
           affinity:
             # library-immich-server-0 is ReadWriteOnce: share the node of the
-            # running server pod.
+            # running server pod. Required: a backup waits (Pending, then the 48 h alert) rather than
+            # being placed on a node where the volume cannot attach.
             podAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - weight: 100
-                  podAffinityTerm:
-                    topologyKey: kubernetes.io/hostname
-                    labelSelector:
-                      matchLabels:
-                        app.kubernetes.io/instance: immich
-                        app.kubernetes.io/name: server
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/instance: immich
+                      app.kubernetes.io/name: server
           initContainers:
             - name: restic-binary
               image: restic/restic:0.19.1

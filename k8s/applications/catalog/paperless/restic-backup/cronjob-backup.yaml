@@ -47,15 +47,14 @@ spec:
             seccompProfile: { type: RuntimeDefault }
           affinity:
             # paperless-data and paperless-media are ReadWriteOnce: share the
-            # node of the running Paperless pod.
+            # node of the running Paperless pod. Required: a backup waits (Pending, then the 48 h alert) rather than
+            # being placed on a node where the volume cannot attach.
             podAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - weight: 100
-                  podAffinityTerm:
-                    topologyKey: kubernetes.io/hostname
-                    labelSelector:
-                      matchLabels:
-                        app.kubernetes.io/name: paperless
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: paperless
           initContainers:
             - name: restic-binary
               image: restic/restic:0.19.1

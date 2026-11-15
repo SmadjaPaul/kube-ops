@@ -43,8 +43,15 @@ log "step=dry-restore tag=${APP}-postgres start"
 log "step=dry-restore tag=${APP}-postgres PASS"
 
 log "step=dry-restore tag=${APP}-files start"
-"$restic_bin" dump --host "$RESTIC_HOST" --tag "${APP}-files" latest \
-  "${MANIFEST_DIR:-/manifest}/SHA256SUMS" >"$work/SHA256SUMS"
+# One snapshot for the manifest and every sampled file: `latest` would be
+# resolved again by each dump and could move under a concurrent backup.
+snapshot="$("$restic_bin" snapshots --json --latest 1 --host "$RESTIC_HOST" --tag "${APP}-files" |
+  grep -o '"id":"[0-9a-f]*"' | head -n 1 | cut -d '"' -f 4)"
+if [ -z "$snapshot" ]; then
+  log "step=dry-restore tag=${APP}-files snapshot=none"
+  exit 1
+fi
+"$restic_bin" dump "$snapshot" "${MANIFEST_DIR:-/manifest}/SHA256SUMS" >"$work/SHA256SUMS"
 total="$(wc -l <"$work/SHA256SUMS" | tr -d " ")"
 if [ "$total" -eq 0 ]; then
   log "step=dry-restore tag=${APP}-files manifest=empty"
@@ -54,7 +61,7 @@ checked=0
 while IFS= read -r line; do
   expected="${line%% *}"
   path="${line#*  }"
-  actual="$("$restic_bin" dump --host "$RESTIC_HOST" --tag "${APP}-files" latest "${root%/}/$path" | sha256sum)"
+  actual="$("$restic_bin" dump "$snapshot" "${root%/}/$path" | sha256sum)"
   if [ "${actual%% *}" != "$expected" ]; then
     log "step=dry-restore tag=${APP}-files FAIL entry=$((checked + 1))"
     exit 1
