@@ -108,7 +108,7 @@ spec:
             capabilities: {drop: [ALL]}
             seccompProfile: {type: RuntimeDefault}
           resources:
-            requests: {cpu: 100m, memory: 512Mi}
+            requests: {cpu: 50m, memory: 512Mi}
             limits: {cpu: "2", memory: 2Gi}
           volumeMounts:
             - {name: tmp, mountPath: /tmp}

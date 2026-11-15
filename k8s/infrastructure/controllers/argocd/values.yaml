@@ -177,7 +177,7 @@ server:
     type: ClusterIP
   resources:
     requests:
-      cpu: 50m
+      cpu: 25m
       memory: 64Mi
     limits:
       memory: 512Mi

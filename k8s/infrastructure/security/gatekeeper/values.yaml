@@ -14,7 +14,7 @@ auditFromCache: true
 controllerManager:
   resources:
     requests:
-      cpu: 100m
+      cpu: 75m
       memory: 256Mi
     limits:
       cpu: 1000m

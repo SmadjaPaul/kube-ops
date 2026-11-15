@@ -39,7 +39,7 @@ spec:
           image: eclipse-mosquitto:2.0
           resources:
             requests:
-              cpu: '50m'
+              cpu: '25m'
               memory: '80Mi'
             limits:
               cpu: '150m'
