@@ -1,0 +1,23 @@
+# PLT-190 drill, off-Oracle restore on the homelab (CNPG Cluster pg-shared-offsite)
+# + fingerprint Job. Import temporarily, compare, remove
+# (docs/operations/pg-shared-oke-backup-drill.md).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pg-shared-oke-drill
+resources:
+  - namespace.yaml
+  - externalsecrets.yaml
+  - objectstore.yaml
+  - cluster.yaml
+  - networkpolicy.yaml
+components:
+  - ../sql
+patches:
+  - target: {kind: Job, name: NAME}
+    patch: |-
+      - {op: replace, path: /metadata/name, value: pg-shared-drill-fingerprint}
+      - {op: replace, path: /spec/template/spec/containers/0/command/4, value: /sql/fingerprint.sql}
+      - {op: replace, path: /spec/template/spec/containers/0/env/0/value, value: pg-shared-offsite-rw}
+      - {op: replace, path: /spec/template/spec/containers/0/env/4/valueFrom/secretKeyRef/name, value: pg-shared-offsite-app}
+      - {op: replace, path: /spec/template/spec/containers/0/env/5/valueFrom/secretKeyRef/name, value: pg-shared-offsite-app}
+      - {op: replace, path: /spec/template/spec/volumes/1/secret/secretName, value: pg-shared-offsite-ca}

@@ -9,7 +9,7 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | `apps/` | Root Application target (the only path it reads): child Applications, ordered by sync-wave. `cnpg-cluster` and `media` are kept out of `apps/kustomization.yaml` until PLT-190 (backup + restore proven off Oracle). |
 | `guardrails/` | Cost guardrail (PLT-260): ValidatingAdmissionPolicy denying every Service `type: LoadBalancer` (Always Free; the OCI LB quota is set to zero in `terraform/oracle-a1`). |
 | `external-secrets/` | Overlay on the shared ESO + `ClusterSecretStore/doppler-cluster` base. |
-| `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster. One `Database` + role per application. |
+| `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster (R2 backup, PLT-190). One `Database` + role per application. |
 | `cert-manager/`, `cnpg-barman-plugin/` | CNPG barman-cloud plugin and its TLS prerequisite (PLT-301). No ACME issuer. |
 | `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster recovered from the homelab R2 archive, Hindsight API. Out of the root until the drill. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
@@ -59,12 +59,22 @@ overlay and no policy is added; the Argo CD chart NetworkPolicies are inert.
 
 ## Backup: no application with data may be activated on Oracle
 
-There is deliberately no Barman/backup on `pg-shared` yet (needs off-Oracle object
-storage, cert-manager for the Barman plugin, and a restore tested outside Oracle).
-D-2026-11-11-17 forbids any single copy of data on Oracle without a restore tested
-off Oracle. Until the CNPG backup ticket is done and a restore has been proven, do
-not enable any application holding data (Polyfin, AIOStreams PVCs, databases) here.
+`pg-shared` is now configured (PLT-190) with the barman-cloud plugin: WAL
+archive and daily base backups to `s3://homelab-backup-cnpg/oracle-a1/pg-shared/`
+(R2, writer identity, 14 days retention), same model as `hindsight-db`. It is
+still NOT in `apps/kustomization.yaml`: the activation PR comes with the drill
+(`docs/operations/pg-shared-oke-backup-drill.md`, manifests in
+`k8s/optional/pg-shared-oke-drill`). D-2026-11-11-17 forbids any single copy of
+data on Oracle without a restore tested off Oracle. Until that restore is
+proven (`NOT_TESTED` today), do not enable any application holding data
+(Polyfin, AIOStreams PVCs, databases) here.
 Open: arm64 digests to confirm at runtime.
+
+Block volume plan (quota 200 GB = boot 50 + 3 x 50 Gi `oci-bv`; unit GB/GiB to
+confirm at plan time): V1 `hindsight-db` (namespace `hindsight`), V2 `pg-shared`
+(namespace `databases`), V3 reserve (dedicated Authentik cluster, or the
+AIOStreams SQLite PVC in `media`). The drill uses no extra volume (restore runs
+on the homelab; the OKE side only adds a database inside `pg-shared`).
 
 ## Hindsight (PLT-301, D-2026-11-14-03)
 
