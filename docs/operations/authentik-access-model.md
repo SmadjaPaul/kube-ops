@@ -10,7 +10,7 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 |---|---|---|
 | Admin | `authentik-admins` (superuser, existant) | Tout l'accès administratif : Authentik, applications d'admin. Paul y est rattaché par le groupe. Un futur admin = un ajout au groupe. Le groupe `admin` (ArgoCD, Factory) est un doublon à fusionner après vérification de ses membres. |
 | Famille | `family` (existant) | Applications qui peuvent coûter de l'argent à Paul (IA, stockage, comptes créés au premier login), plus tout ce qu'ont les amis. Rien d'admin. Immich reste dans `Immich Users`. |
-| Amis | `friends` (nouveau, vide) | Seulement les applications à coût marginal nul (coût identique pour 5 ou 150 utilisateurs) : Polyfin, RomM, BookOrbit, plus l'étape Authentik de Cloudflare Access (application `cloudflare`). Un ami n'obtient jamais `family` par défaut ; aucune invitation n'ajoute `family` à un ami. |
+| Amis | `friends` (nouveau, vide) | Seulement les applications à coût marginal nul (coût identique pour 5 ou 150 utilisateurs) : Polyfin, RomM, BookOrbit, SearXNG, Stirling-PDF, plus l'étape Authentik de Cloudflare Access (application `cloudflare`). Un ami n'obtient jamais `family` par défaut ; aucune invitation n'ajoute `family` à un ami. |
 | Comptes de service | pas de groupe d'accès | Voir plus bas. |
 
 ## Applications par coût marginal
@@ -20,7 +20,8 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 | polyfin | family | nul (streaming ; comptes natifs, OIDC bloqué en amont) | friends + family |
 | romm | family, media | nul | friends + family |
 | bookorbit | family | faible (livres demandés stockés) | friends + family |
-| searxng, stirling-pdf, ntfy | family | nul en argent (CPU fixe) | family ; candidats amis si Paul veut |
+| searxng, stirling-pdf | family, friends | nul en argent (CPU fixe) | famille et amis (G2, décision de Paul, 2026-11-15) |
+| ntfy | family | nul en argent (CPU fixe) | family |
 | librechat | family | IA par requête | family |
 | karakeep | Karakeep Users | IA (étiquetage) + archives | family (groupe dédié conservé) |
 | opencode, factory | OpenCode Users ; admin | IA par requête | admin |
