@@ -1,0 +1,165 @@
+# PLT-171: application check of the restored paperless (database + files).
+# Mounts the restored PVCs read-only, waits for the Velero restore markers and
+# the restored application, then:
+#   T3: for every document of the restored database, compares the checksum
+#       stored in SQL with the checksum of the restored original (and archive) file;
+#   T4: creates a drill-only user in the drill database (random password, never
+#       printed) and reads the document count through the restored paperless
+#       API (ClusterIP Service), compared with the ORM count.
+# Prints counts, timestamps and booleans only: no title, file name, content or
+# secret. Single node cluster: the RWO volumes mount on the same node.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: paperless-drill-check
+  namespace: drill-paperless
+  labels:
+    restore.smadja.dev/purpose: isolated-restore-drill
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        restore.smadja.dev/purpose: isolated-restore-drill
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: check
+          image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
+          workingDir: /usr/src/paperless/src
+          env:
+            - {name: HOME, value: /tmp}
+            - {name: PAPERLESS_LOGGING_DIR, value: /tmp/log}
+            - {name: PAPERLESS_REDIS, value: "redis://paperless-redis:6379"}
+            - {name: PAPERLESS_DBENGINE, value: postgresql}
+            - name: PAPERLESS_DBHOST
+              valueFrom: {secretKeyRef: {name: paperless-postgresql-app, key: host}}
+            - name: PAPERLESS_DBNAME
+              valueFrom: {secretKeyRef: {name: paperless-postgresql-app, key: dbname}}
+            - name: PAPERLESS_DBUSER
+              valueFrom: {secretKeyRef: {name: paperless-postgresql-app, key: user}}
+            - name: PAPERLESS_DBPASS
+              valueFrom: {secretKeyRef: {name: paperless-postgresql-app, key: password}}
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: paperless-runtime, key: PAPERLESS_SECRET_KEY}}
+            # Velero backup start of velero-daily-paperless-20261115044028.
+            - {name: FILES_BACKUP_START, value: "2026-11-15T04:40:28+00:00"}
+          command: ["/bin/bash", "-ec"]
+          args:
+            - |
+              mkdir -p /tmp/log
+              echo "start=$(date -u +%FT%TZ)"
+              for v in /usr/src/paperless/data /usr/src/paperless/media; do
+                i=0
+                until [ -n "$(ls "$v/.velero" 2>/dev/null)" ]; do
+                  i=$((i+1)); [ $i -le 120 ] || { echo "FAIL no velero restore marker in $v"; exit 1; }
+                  sleep 10
+                done
+              done
+              echo "velero_markers=present at=$(date -u +%FT%TZ)"
+              i=0
+              until [ "$(curl -s -o /dev/null -w '%{http_code}' -m 5 -H 'Host: paperless.smadja.dev' http://paperless/accounts/login/)" = "200" ]; do
+                i=$((i+1)); [ $i -le 120 ] || { echo "FAIL restored application not answering"; exit 1; }
+                sleep 10
+              done
+              echo "app_login_page=200 at=$(date -u +%FT%TZ)"
+              python3 manage.py shell -c '
+              import hashlib, os, datetime
+              from django.db.models import Max
+              from documents.models import Document
+              def digest(p, ref):
+                  # Paperless stores MD5 (32 hex) or SHA-256 (64 hex) depending
+                  # on its version: use the algorithm that matches the stored value.
+                  h = hashlib.sha256() if len(ref or "") == 64 else hashlib.md5()
+                  with open(p, "rb") as f:
+                      for b in iter(lambda: f.read(1 << 20), b""):
+                          h.update(b)
+                  return h.hexdigest()
+              def check(p, ref):
+                  # Returns ok, missing, mismatch or error; never prints a path.
+                  try:
+                      if not os.path.isfile(p):
+                          return "missing"
+                      return "ok" if digest(p, ref) == ref else "mismatch"
+                  except Exception:
+                      return "error"
+              docs = list(Document.objects.all().order_by("id"))
+              orig = {"ok": 0, "missing": 0, "mismatch": 0, "error": 0}
+              arch = {"ok": 0, "missing": 0, "mismatch": 0, "error": 0}
+              algo = set()
+              for d in docs:
+                  algo.add(len(d.checksum or ""))
+                  orig[check(d.source_path, d.checksum)] += 1
+                  if d.has_archive_version:
+                      arch[check(d.archive_path, d.archive_checksum)] += 1
+              agg = Document.objects.aggregate(a=Max("added"), m=Max("modified"))
+              start = datetime.datetime.fromisoformat(os.environ["FILES_BACKUP_START"])
+              after = Document.objects.filter(added__gt=start).count()
+              max_added, max_modified = agg["a"], agg["m"]
+              print("documents=%d checksum_hex_lengths=%s" % (len(docs), sorted(algo)))
+              print("originals_" + " originals_".join("%s=%d" % kv for kv in orig.items()))
+              print("archives_" + " archives_".join("%s=%d" % kv for kv in arch.items()))
+              print(f"max_added={max_added} max_modified={max_modified} added_after_files_backup={after}")
+              if docs:
+                  s = docs[-1]
+                  s_ok = check(s.source_path, s.checksum) == "ok"
+                  print(f"sentinel_doc_id={s.id} sentinel_added={s.added} sentinel_sql_checksum_eq_file={s_ok}")
+              good = docs and orig["ok"] == len(docs) and arch["missing"] == arch["mismatch"] == arch["error"] == 0
+              print("SQL_FILE_SENTINEL=" + ("PASS" if good else "FAIL"))
+              ' | tee /tmp/t3.out
+              grep -q '^SQL_FILE_SENTINEL=PASS$' /tmp/t3.out || { echo "FAIL sql/file sentinel"; exit 1; }
+              echo "T3=$(date -u +%FT%TZ)"
+              DRILL_PW="$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
+              export DRILL_PW
+              python3 manage.py shell -c '
+              import os
+              from django.contrib.auth.models import User
+              from documents.models import Document
+              u, _ = User.objects.get_or_create(username="plt171-drill")
+              u.is_superuser = True
+              u.is_staff = True
+              u.set_password(os.environ["DRILL_PW"])
+              u.save()
+              try:
+                  n = Document.objects.filter(root_document__isnull=True).count()
+              except Exception:
+                  n = Document.objects.count()
+              print(f"orm_documents={n}")
+              ' | tee /tmp/orm.out
+              API_COUNT="$(curl -sf -m 30 -u "plt171-drill:${DRILL_PW}" -H 'Host: paperless.smadja.dev' 'http://paperless/api/documents/?page_size=1' | python3 -c 'import json,sys; print(json.load(sys.stdin)["count"])')"
+              unset DRILL_PW
+              ORM_COUNT="$(sed -n 's/^orm_documents=//p' /tmp/orm.out)"
+              echo "api_documents=${API_COUNT} orm_documents=${ORM_COUNT}"
+              [ -n "$API_COUNT" ] && [ "$API_COUNT" = "$ORM_COUNT" ] || { echo "FAIL api count differs"; exit 1; }
+              echo "T4=$(date -u +%FT%TZ)"
+              echo "PAPERLESS_DRILL_CHECK=PASS"
+          resources:
+            requests: {cpu: 50m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: data, mountPath: /usr/src/paperless/data, readOnly: true}
+            - {name: media, mountPath: /usr/src/paperless/media, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: paperless-data, readOnly: true}
+        - name: media
+          persistentVolumeClaim: {claimName: paperless-media, readOnly: true}
+        - name: tmp
+          emptyDir: {sizeLimit: 256Mi}

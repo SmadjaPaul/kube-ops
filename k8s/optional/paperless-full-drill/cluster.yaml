@@ -1,0 +1,48 @@
+# PLT-171: CNPG leg. Point-in-time recovery from R2 to the start of the
+# Velero file backup velero-daily-paperless-20261115044028 (04:40:28Z), so the
+# database and the restored files describe the same instant (CNPG picks the
+# newest base backup before the target, here 20261113T172103, and replays WAL). No spec.plugins and no backup section: this
+# cluster never archives. Same name as production so the restored paperless
+# Deployment finds its paperless-postgresql-app Secret and the
+# paperless-postgresql-rw Service inside the island. Same PostgreSQL image.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: paperless-postgresql
+  namespace: drill-paperless
+  labels:
+    restore.smadja.dev/purpose: isolated-restore-drill
+    backup.smadja.dev/restore-drill: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+  inheritedMetadata:
+    labels:
+      restore.smadja.dev/purpose: isolated-restore-drill
+  bootstrap:
+    recovery:
+      source: origin
+      recoveryTarget:
+        targetTime: "2026-11-15 04:40:28+00"
+      database: paperless
+      owner: paperless
+  externalClusters:
+    - name: origin
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: paperless-r2-source
+          serverName: paperless-postgresql
+  storage:
+    size: 10Gi
+    storageClass: longhorn-bulk
+  ephemeralVolumesSizeLimit:
+    temporaryData: 1Gi
+    shm: 256Mi
+  resources:
+    requests: {cpu: 50m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  affinity:
+    enablePodAntiAffinity: false
