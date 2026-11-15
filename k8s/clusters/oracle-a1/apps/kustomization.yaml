@@ -15,6 +15,8 @@ kind: Kustomization
 # hindsight.yaml reste hors de la racine jusqu'au drill de PLT-301.
 # PLT-309 : observability.yaml (Alloy + kube-state-metrics vers Grafana Cloud)
 # est actif. Retour en arrière : retirer cette ligne de la racine.
+# PLT-256 : netbird-router (accès admin à l'API OKE, NET_ADMIN) actif ; retour en
+# arrière : retirer cette ligne.
 resources:
   - guardrails.yaml
   - external-secrets.yaml
@@ -22,3 +24,4 @@ resources:
   - cnpg-operator.yaml
   - cnpg-barman-plugin.yaml
   - observability.yaml
+  - netbird-router.yaml
