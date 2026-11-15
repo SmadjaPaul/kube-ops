@@ -1,0 +1,88 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ups-thermal
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: host.thermal
+      rules:
+        # PLT-268: the target is a CPU Tctl below 85 C under sustained load.
+        # The PLT-215 policy keeps the host near 60 C average (max 71.6 C).
+        - alert: HostCpuTemperatureHigh
+          expr: >-
+            max by (instance) (node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"}) > 85
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox host CPU Tctl is above 85 C"
+            description: >-
+              Tctl {{ $value | humanize }} C for 10 minutes on {{ $labels.instance }}.
+              The PLT-268 target is below 85 C under sustained load. Check the
+              CPU frequency policy (proxmox-cpufreq), the fans and the dust.
+            runbook_url: https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/operations/proxmox-cpufreq.md
+        - alert: HostCpuTemperatureCritical
+          expr: >-
+            max by (instance) (node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"}) > 95
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox host CPU Tctl is above 95 C"
+            description: >-
+              Tctl {{ $value | humanize }} C on {{ $labels.instance }}, near the
+              hardware thermal limit. Reduce load now and check the cooling.
+            runbook_url: https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/operations/proxmox-cpufreq.md
+    # The UPS metrics come from the homelab-infra proxmox_nut role (textfile
+    # collector nut.prom). Until a UPS is installed and the role is enabled no
+    # nut_* series exist, so none of these rules fires.
+    - name: ups.nut
+      rules:
+        - alert: UpsOnBattery
+          expr: nut_ups_on_battery{job="proxmox-host"} == 1
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "UPS {{ $labels.ups }} runs on battery"
+            description: >-
+              Mains power is lost. Runtime left: see nut_battery_runtime_seconds.
+              The clean shutdown fires on low battery only when armed
+              (proxmox_nut_shutdown_armed).
+            runbook_url: https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/operations/proxmox-nut.md
+        - alert: UpsLowBattery
+          expr: nut_ups_low_battery{job="proxmox-host"} == 1
+          labels:
+            severity: critical
+          annotations:
+            summary: "UPS {{ $labels.ups }} reports low battery"
+            description: >-
+              The host powers off cleanly now if the shutdown is armed.
+              Otherwise act manually.
+            runbook_url: https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/operations/proxmox-nut.md
+        - alert: UpsCollectorFailing
+          expr: nut_ups_collect_success{job="proxmox-host"} == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "NUT cannot read UPS {{ $labels.ups }}"
+            description: >-
+              upsc fails on the host (USB cable, driver or upsd). The UPS is
+              not supervised until this clears.
+            runbook_url: https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/operations/proxmox-nut.md
+        - alert: UpsTelemetryStale
+          expr: >-
+            time() - max(node_textfile_mtime_seconds{job="proxmox-host",file=~"(.*/)?nut\\.prom"}) > 600
+          for: 10m
+          labels:
+            severity: info
+          annotations:
+            summary: "UPS metrics file on the Proxmox host is stale"
+            description: >-
+              nut.prom exists but is older than 10 minutes: the collector timer
+              (homeops-nut-textfile.timer) stopped.
+            runbook_url: https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/operations/proxmox-nut.md
