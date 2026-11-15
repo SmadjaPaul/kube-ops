@@ -11,3 +11,5 @@ resources:
   - networkpolicy.yaml
   - externalsecret.yaml
   - objectstore.yaml
+  - cluster.yaml
+  - check-job.yaml

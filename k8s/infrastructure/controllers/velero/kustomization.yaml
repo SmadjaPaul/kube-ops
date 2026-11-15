@@ -8,6 +8,9 @@ resources:
   - restore-pvc-isolation.yaml
   - schedules/
   - drills/plt222-ntfy-r2-backup.yaml
+  # PLT-171: isolated full restore drill of paperless (remove by PR after proof).
+  - restore-drills/paperless-drill-modifier.yaml
+  - drills/plt171-paperless-restore.yaml
   - repository-config.yaml
   - auto-cleanup-jobs-policy.yaml
   - maintenance-job-config.yaml
