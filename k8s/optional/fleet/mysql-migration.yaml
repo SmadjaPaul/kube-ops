@@ -145,7 +145,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchLabels:
-                  app.kubernetes.io/name: fleet-mysql
+                  statefulset.kubernetes.io/pod-name: fleet-mysql-fast-0
               topologyKey: kubernetes.io/hostname
       restartPolicy: Never
       hostNetwork: false
