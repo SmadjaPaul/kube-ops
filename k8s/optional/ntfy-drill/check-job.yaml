@@ -1,0 +1,74 @@
+# PLT-222: read-only application check of the restored ntfy data. Mounts the
+# restored PVC read-only, waits for the Velero restore marker, reads the
+# health and account endpoints of the restored ClusterIP Service. Prints
+# sizes, SQLite headers and checksums only (no row content, no secret).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ntfy-drill-check
+  namespace: drill-ntfy
+  labels:
+    restore.smadja.dev/purpose: isolated-restore-drill
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        restore.smadja.dev/purpose: isolated-restore-drill
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: check
+          image: binwiederhier/ntfy:v2.28.0
+          env:
+            - name: NTFY_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: ntfy-runtime, key: NTFY_PASSWORD}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              D=/var/lib/ntfy
+              echo "start=$(date -u +%FT%TZ)"
+              i=0
+              until [ -n "$(ls $D/.velero 2>/dev/null)" ]; do
+                i=$((i+1)); [ $i -le 90 ] || { echo "FAIL no velero restore marker"; exit 1; }
+                sleep 10
+              done
+              echo "restore_marker=$(ls $D/.velero | head -1)"
+              i=0
+              until wget -qO- -T 3 http://ntfy/v1/health 2>/dev/null | grep -q '"healthy":true'; do
+                i=$((i+1)); [ $i -le 60 ] || { echo "FAIL service not healthy"; exit 1; }
+                sleep 5
+              done
+              echo "health=$(wget -qO- -T 3 http://ntfy/v1/health)"
+              echo "stats=$(wget -qO- -T 3 http://ntfy/v1/stats)"
+              AUTH="$(printf 'admin:%s' "$NTFY_PASSWORD" | base64)"
+              echo "account_role=$(wget -qO- -T 3 --header "Authorization: Basic $AUTH" http://ntfy/v1/account | grep -o '"role":"[a-z]*"')"
+              total=0
+              for f in $(find $D -maxdepth 1 -type f); do
+                s=$(stat -c %s "$f"); total=$((total+s))
+                echo "file=$f size=$s header=$(head -c 15 "$f" | tr -d '\000') sha256=$(sha256sum "$f" | cut -c1-16)"
+              done
+              echo "files_total_bytes=$total"
+              echo "end=$(date -u +%FT%TZ)"
+              echo "NTFY_DRILL_CHECK=PASS"
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/ntfy, readOnly: true}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: ntfy-data, readOnly: true}
