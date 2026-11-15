@@ -28,4 +28,5 @@ La consolidation se fait au fil de l'eau, une base à la fois, avec restauration
 | `lasuite-drive-db` | La Suite | à consolider | `pg-shared` |
 | `hindsight-db` | Hindsight | à consolider | `pg-shared` |
 | `hindsight-db-restore` | Hindsight (restauration) | à consolider | retrait après restauration |
+| `hindsight-db-offsite` | Hindsight (restauration hors site) | à consolider | retrait après restauration |
 | `sparkyfitness-db` | SparkyFitness | à consolider | `pg-shared` |
