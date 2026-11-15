@@ -125,15 +125,6 @@ serviceMonitor:
         release: kube-prometheus-stack
         qa_level: l2
         v1_user_ready: "true"
-    - name: authentik-openwebui-discovery
-      url: https://auth.smadja.dev/application/o/openwebui/.well-known/openid-configuration
-      module: http_oidc
-      additionalMetricsRelabels:
-        v1_user_ready: "true"
-      labels:
-        release: kube-prometheus-stack
-        qa_level: l2
-        v1_user_ready: "true"
     - name: authentik-home-assistant-discovery
       url: https://auth.smadja.dev/application/o/home-assistant/.well-known/openid-configuration
       module: http_oidc

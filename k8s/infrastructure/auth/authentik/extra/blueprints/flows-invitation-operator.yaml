@@ -186,22 +186,6 @@ entries:
       user_creation_mode: never_create
       create_users_group: !Find [authentik_core.group, [name, "family"]]
 
-  - id: family-invitation-group-media
-    model: authentik_stages_user_write.userwritestage
-    identifiers:
-      name: family-invitation-group-media
-    attrs:
-      user_creation_mode: never_create
-      create_users_group: !Find [authentik_core.group, [name, "media"]]
-
-  - id: family-invitation-group-iot
-    model: authentik_stages_user_write.userwritestage
-    identifiers:
-      name: family-invitation-group-iot
-    attrs:
-      user_creation_mode: never_create
-      create_users_group: !Find [authentik_core.group, [name, "iot"]]
-
   - model: authentik_flows.flowstagebinding
     identifiers:
       target: !KeyOf family-invitation-flow
@@ -238,17 +222,21 @@ entries:
   - model: authentik_flows.flowstagebinding
     identifiers:
       target: !KeyOf family-invitation-flow
-      stage: !KeyOf family-invitation-group-media
-      order: 40
-
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf family-invitation-flow
-      stage: !KeyOf family-invitation-group-iot
-      order: 50
-
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf family-invitation-flow
       stage: !KeyOf operator-invitation-user-login
       order: 100
+
+  # PLT-176: a family invitation adds `family` only. It used to also add
+  # `media` (jellyfin, now retired; romm is already bound to `family`) and
+  # `iot` (bound to no application). Deleting the two user-write stages also
+  # deletes their flow stage bindings (cascade). Existing members keep the
+  # groups they already have; nothing is removed from any account. These two
+  # `absent` entries can be dropped once the PR has been applied.
+  - model: authentik_stages_user_write.userwritestage
+    state: absent
+    identifiers:
+      name: family-invitation-group-media
+
+  - model: authentik_stages_user_write.userwritestage
+    state: absent
+    identifiers:
+      name: family-invitation-group-iot
