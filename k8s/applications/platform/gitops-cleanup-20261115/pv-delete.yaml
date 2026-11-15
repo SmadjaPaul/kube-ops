@@ -56,7 +56,7 @@ subjects:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cleanup-matrix-pv
+  name: cleanup-matrix-pv-v2
   namespace: matrix
   annotations:
     argocd.argoproj.io/sync-wave: "21"
@@ -66,7 +66,7 @@ spec:
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: cleanup-matrix-pv
+        app.kubernetes.io/name: cleanup-matrix-pv-v2
     spec:
       serviceAccountName: cleanup-matrix-pv
       restartPolicy: Never
@@ -83,7 +83,20 @@ spec:
             - {name: HOME, value: /tmp}
             - {name: PV_CLEANUP_IN_CLUSTER, value: "yes"}
             - {name: ALLOW_RELEASED_PV_DELETION, value: "yes"}
-          command: [/bin/bash, /scripts/released-pv-cleanup.sh, --matrix, --execute]
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # v1 failed with "localhost:8080 refused" (no in-cluster config found by kubectl).
+              # Build an explicit kubeconfig from the ServiceAccount token and show what is visible.
+              sa=/var/run/secrets/kubernetes.io/serviceaccount
+              echo "diag: host=${KUBERNETES_SERVICE_HOST:-absent} port=${KUBERNETES_SERVICE_PORT:-absent} token=$([ -s $sa/token ] && echo present || echo absent) ca=$([ -s $sa/ca.crt ] && echo present || echo absent)"
+              export KUBECONFIG=/tmp/kubeconfig
+              kubectl config set-cluster in --server="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}" --certificate-authority=$sa/ca.crt >/dev/null
+              kubectl config set-credentials sa --token="$(cat $sa/token)" >/dev/null
+              kubectl config set-context in --cluster=in --user=sa >/dev/null
+              kubectl config use-context in >/dev/null
+              exec /bin/bash /scripts/released-pv-cleanup.sh --matrix --execute
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
