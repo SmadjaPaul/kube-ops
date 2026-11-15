@@ -77,6 +77,15 @@ spec:
         - ports:
             - port: "5432"
               protocol: TCP
+    # One-shot maintenance Jobs (PLT-340).
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: bookorbit-db-maintenance
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
     # CNPG operator status endpoint: without it the Cluster stays
     # "Instance Status Extraction Error" and Argo never reports it Healthy.
     - fromEndpoints:
@@ -86,4 +95,34 @@ spec:
       toPorts:
         - ports:
             - port: "8000"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: bookorbit-db-maintenance
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: bookorbit-db-maintenance
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: postgresql
+            app.kubernetes.io/instance: bookorbit-postgresql
+      toPorts:
+        - ports:
+            - port: "5432"
               protocol: TCP

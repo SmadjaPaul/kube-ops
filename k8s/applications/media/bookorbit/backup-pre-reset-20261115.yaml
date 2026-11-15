@@ -1,0 +1,18 @@
+# PLT-340: on-demand base backup of bookorbit-postgresql on R2, taken before any
+# reset of the drizzle migration registry. The first backup of this cluster
+# also proves the Barman plugin and the R2 writer identity end to end.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: bookorbit-postgresql-pre-reset-20261115
+  namespace: media
+  labels:
+    backup.smadja.dev/purpose: pre-destructive
+spec:
+  cluster:
+    name: bookorbit-postgresql
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: bookorbit-r2-store

@@ -1,0 +1,65 @@
+# PLT-340: one-shot READ-ONLY diagnosis of the bookorbit database (tables of
+# every user schema, drizzle migration registry, extensions). No write, no
+# application data printed: counts and migration ids only. Remove this file in
+# the PR that follows the diagnosis.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bookorbit-db-diagnose-20261115
+  namespace: media
+  labels:
+    app.kubernetes.io/name: bookorbit-db-maintenance
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 180
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bookorbit-db-maintenance
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 26
+        runAsGroup: 26
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: psql
+          image: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie
+          command: ["/bin/bash", "-ceu"]
+          args:
+            - |
+              export PGOPTIONS='-c default_transaction_read_only=on'
+              q() { psql -X -v ON_ERROR_STOP=0 -P pager=off -At -F ' | ' -c "$1" || true; }
+              echo "== identity"; q "select current_database(), current_user, current_setting('search_path'), current_setting('default_transaction_read_only')"
+              echo "== extensions"; q "select extname, extversion from pg_extension order by 1"
+              echo "== schemas"; q "select nspname from pg_namespace where nspname !~ '^pg_' and nspname <> 'information_schema' order by 1"
+              echo "== relations per schema/kind (user schemas)"; q "select n.nspname, c.relkind, count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname !~ '^pg_' and n.nspname <> 'information_schema' group by 1,2 order by 1,2"
+              echo "== tables public"; q "select tablename from pg_tables where schemaname='public' order by 1"
+              echo "== tables drizzle"; q "select schemaname||'.'||tablename from pg_tables where schemaname='drizzle'"
+              echo "== registry rows"; q "select count(*), min(created_at), max(created_at) from drizzle.__drizzle_migrations"
+              echo "== registry columns"; q "select column_name from information_schema.columns where table_schema='drizzle' and table_name='__drizzle_migrations' order by ordinal_position"
+              echo "== registry (id, created_at, hash prefix)"; q "select id, created_at, left(hash, 8) from drizzle.__drizzle_migrations order by id"
+              echo "== key table existence"; q "select to_regclass('public.users'), to_regclass('public.metadata_http_providers'), to_regclass('public.book_metadata')"
+              echo "== db size"; q "select pg_size_pretty(pg_database_size(current_database()))"
+          env:
+            - name: PGHOST
+              valueFrom: {secretKeyRef: {name: bookorbit-postgresql-app, key: host}}
+            - name: PGPORT
+              valueFrom: {secretKeyRef: {name: bookorbit-postgresql-app, key: port}}
+            - name: PGUSER
+              valueFrom: {secretKeyRef: {name: bookorbit-postgresql-app, key: user}}
+            - name: PGPASSWORD
+              valueFrom: {secretKeyRef: {name: bookorbit-postgresql-app, key: password}}
+            - name: PGDATABASE
+              valueFrom: {secretKeyRef: {name: bookorbit-postgresql-app, key: dbname}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
