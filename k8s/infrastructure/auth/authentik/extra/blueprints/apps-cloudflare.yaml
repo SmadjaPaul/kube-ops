@@ -41,9 +41,27 @@ entries:
       name: Cloudflare Zero Trust
       group: Infrastructure
       provider: !KeyOf cloudflare_provider
-      policy_engine_mode: all
+      # PLT-176: `any` so that membership of either admin group is enough.
+      policy_engine_mode: any
       open_in_new_tab: true
       meta_launch_url: https://one.dash.cloudflare.com/
       meta_icon: https://www.cloudflare.com/favicon.ico
       meta_description: Cloudflare Zero Trust SSO Integration
       meta_publisher: Cloudflare
+
+  # PLT-176: Cloudflare Zero Trust SSO is an admin path. Without a binding,
+  # Authentik let every account through and only Cloudflare Access rules
+  # (outside Git) filtered. Both existing admin groups are bound so that the
+  # current admin keeps access whichever group carries his membership.
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf cloudflare_application
+      group: !Find [authentik_core.group, [name, "authentik-admins"]]
+    attrs:
+      order: 1
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf cloudflare_application
+      group: !Find [authentik_core.group, [name, "admin"]]
+    attrs:
+      order: 2
