@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# PLT-171: temporary isolated full restore drill of paperless (database +
+# files + application) from Cloudflare R2. CNPG leg: recovery of
+# paperless-postgresql with the R2 restore-ro identity (read only). Velero/Kopia
+# leg: Restore of the paperless namespace into drill-paperless (the Restore
+# lives in the velero root). No route, no DNS, no Gateway, ClusterIP only.
+# Remove this directory by PR after the proof.
+resources:
+  - namespace.yaml
+  - networkpolicy.yaml
+  - externalsecret.yaml
+  - objectstore.yaml

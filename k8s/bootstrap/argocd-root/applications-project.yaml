@@ -91,6 +91,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: vikunja
       server: https://kubernetes.default.svc
+    # PLT-171: temporary isolated paperless full restore drill; removed by PR after proof.
+    - namespace: drill-paperless
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
