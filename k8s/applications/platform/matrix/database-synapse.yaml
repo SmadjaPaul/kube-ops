@@ -20,7 +20,7 @@ spec:
       localeCollate: C
   postgresql:
     parameters:
-      # PLT-344 lot 0, PROPOSITION soumise à Paul (Matrix protégée) : 288 segments WAL
+      # PLT-344 lot 0, décision Paul 2026-11-15 (Matrix protégée, service non utilisé) : 288 segments WAL
       # forcés/jour par archive_timeout 5min (~4,6 Go/j sur le HDD) -> 96 (RPO R2 15 min).
       # Rechargement à chaud, aucun redémarrage.
       checkpoint_timeout: "15min"
