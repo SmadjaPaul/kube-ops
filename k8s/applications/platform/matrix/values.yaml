@@ -16,6 +16,10 @@ elementAdmin:
 
 elementWeb:
   enabled: true
+  # PLT-280: request seule (p95 14 j 0,08m, max 1,7m) ; limite mémoire du chart conservée.
+  resources:
+    requests:
+      cpu: 25m
   ingress:
     host: chat.smadja.dev
     tlsSecret: cert-smadja
@@ -26,7 +30,17 @@ hookshot:
 postgres:
   enabled: false
 
+# PLT-280: requests CPU seules, 14 j de mesures (p95 / max) : haproxy 0,7m / 2,4m.
+haproxy:
+  resources:
+    requests:
+      cpu: 50m
+
 synapse:
+  # PLT-280: request seule (p95 4,8m, max 21,7m) ; limite mémoire du chart conservée.
+  resources:
+    requests:
+      cpu: 50m
   ingress:
     host: matrix.smadja.dev
     tlsSecret: cert-smadja
@@ -44,6 +58,10 @@ synapse:
       existingClaim: matrix-synapse-media
 
 matrixAuthenticationService:
+  # PLT-280: request seule (p95 1,3m, max 3,0m) ; limite mémoire du chart conservée.
+  resources:
+    requests:
+      cpu: 25m
   ingress:
     host: account.smadja.dev
     tlsSecret: cert-smadja

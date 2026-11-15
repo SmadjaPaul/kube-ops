@@ -41,7 +41,7 @@ spec:
     storageClass: longhorn-bulk
     resizeInUseVolumes: true
   resources:
-    requests: {cpu: 100m, memory: 256Mi}
+    requests: {cpu: 50m, memory: 256Mi}
     limits: {cpu: "1", memory: 1Gi}
   affinity:
     enablePodAntiAffinity: false
