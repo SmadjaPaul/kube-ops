@@ -31,8 +31,14 @@ entries:
       meta_launch_url: https://gestion.lechaplais.com
       provider: !KeyOf invoice_ninja_provider
       policy_engine_mode: any
+  # PLT-176: business data of Studio Lechaplais, reserved to `lechaplais`.
+  # Under policy_engine_mode=any a leftover binding keeps granting access, so
+  # the old `family` binding is removed explicitly.
   - model: authentik_policies.policybinding
+    state: absent
     identifiers: {target: !KeyOf invoice_ninja_application, group: !Find [authentik_core.group, [name, "family"]]}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf invoice_ninja_application, group: !Find [authentik_core.group, [name, "lechaplais"]]}
     attrs: {order: 10}
   - model: authentik_policies.policybinding
     identifiers: {target: !KeyOf invoice_ninja_application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
