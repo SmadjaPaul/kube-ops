@@ -13,11 +13,15 @@ spec:
       owner: polyfin
   # Barman plugin activation is required: ObjectStore + ScheduledBackup alone
   # do not enable WAL archiving or base backups on this Cluster.
+  # PLT-227: a Cluster has a single WAL archiver; the archive moved from
+  # polyfin-hetzner-store to polyfin-r2-store (backup-r2.yaml). Rollback:
+  # point barmanObjectName back to polyfin-hetzner-store, then take a new base
+  # backup there (homelab-infra docs/operations/r2-migration.md).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
-        barmanObjectName: polyfin-hetzner-store
+        barmanObjectName: polyfin-r2-store
   storage:
     storageClass: longhorn-fast
     size: 5Gi
