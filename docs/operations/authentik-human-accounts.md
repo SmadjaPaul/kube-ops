@@ -20,13 +20,13 @@ Les comptes humains déclarés dans Git sont dans `k8s/infrastructure/auth/authe
 - Flux `password-setup` : mot de passe (12 caractères minimum, zxcvbn ≥ 3), écriture, connexion. Pas d'étape d'identification ni d'e-mail : il démarre seulement depuis un lien créé par un admin.
 - Politique `password-setup-internal-non-admin` : le compte cible doit être `internal` et non superuser. Un visiteur anonyme, un compte de service ou un compte de `authentik-admins` reçoit « flow not applicable ».
 - La marque `authentik-default` reçoit `flow_recovery = password-setup`. Le lien public « mot de passe oublié » ne change pas.
-- Étape e-mail `password-setup-email` (lien valable 24 h) pour « Send recovery link ».
+- Étape e-mail `password-setup-email` pour « Send recovery link ». La durée du lien vient du champ « durée » de l'action admin, sinon de la valeur par défaut du tenant (authentik 2026.8 : 1 jour). L'étape e-mail ne la fixe pas.
 
 ## Ordre pour un nouveau compte
 
 1. Boîte `prénom@smadja.dev` créée (homelab-infra, Migadu) et MX en place.
 2. Merge de la PR qui ajoute le compte : il existe, sans mot de passe.
-3. Paul : Directory > Users > compte > « Send recovery link », étape `password-setup-email`. Le lien arrive dans `prénom@smadja.dev`.
+3. Paul : Directory > Users > compte > « Send recovery link », étape `password-setup-email`. Durée : 1 jour (laisser la valeur par défaut ou la saisir). Le lien arrive dans `prénom@smadja.dev`.
 4. Avant le MX seulement : « Create recovery link », puis Paul envoie lui-même le lien. Aucun agent ne voit le lien.
 
 ## Vérification
