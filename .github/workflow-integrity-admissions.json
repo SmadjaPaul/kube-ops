@@ -275,6 +275,17 @@
       "reason": "PLT-46 : retrait de l'executor, contrats Paperclip et Velero, lot A approuvé par Paul le 14/11",
       "approvedBy": "SmadjaPaul",
       "expiresAt": "2026-11-20T23:59:59Z"
+    },
+    {
+      "repository": "SmadjaPaul/kube-ops",
+      "pr": 1302,
+      "changeFingerprint": "d8969d60e7a973e7f4e879e23a82614ddd68f03bf79c8740ac84bc52dd5321bd",
+      "paths": [
+        "tests/harness/polyfin-private-pilot-contract-test.sh"
+      ],
+      "reason": "PLT-227: Polyfin CNPG archive moves to the R2 ObjectStore polyfin-r2-store (R2 migration PLT-219); D-2026-11-15-03, Hetzner store kept as rollback.",
+      "approvedBy": "SmadjaPaul",
+      "expiresAt": "2026-11-19T23:59:59Z"
     }
   ]
 }
