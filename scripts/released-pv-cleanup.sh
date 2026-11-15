@@ -5,6 +5,10 @@
 # same name is refused. Phase 1 releases three Bound PVCs (atlantis-pilot-data,
 # atlantis-apps-data, data-executor-0) when no pod mounts them; Argo may recreate
 # the two retention PVCs empty, bound to new PVs. rustical-data is out of scope.
+# Profile --matrix (PLT-145/PLT-344, MANDAT 7 of D-2026-11-15-16, expires 2026-11-22): exactly
+# seven Matrix PVs on longhorn-bulk (five Released after the Argo prune of kube-ops#1548, two
+# bound to matrix-mas-recovery, Released once Paul deletes that namespace). Pinned by name AND
+# UID, claimRef namespace/name and StorageClass; no PVC is released by this profile.
 # Default read-only (inspect). Deletion requires --execute and
 # ALLOW_RELEASED_PV_DELETION=yes. For each PV, at execution time:
 #   - phase Released, reclaimPolicy Retain, driver driver.longhorn.io;
@@ -13,13 +17,16 @@
 # then deletes the PV, waits for it to disappear, and deletes the Longhorn volume.
 set -euo pipefail
 mode=inspect
-case "${1:-}" in
-  "") ;;
-  --execute) mode=delete ;;
-  --help|-h) echo "Usage: ALLOW_RELEASED_PV_DELETION=yes bash scripts/released-pv-cleanup.sh --execute"; exit 0 ;;
-  *) echo "PV_CLEANUP=BLOCKED invalid argument" >&2; exit 2 ;;
-esac
-(( $# <= 1 )) || { echo "PV_CLEANUP=BLOCKED too many arguments" >&2; exit 2; }
+profile=plt94
+for arg in "$@"; do
+  case "$arg" in
+    --execute) mode=delete ;;
+    --matrix) profile=matrix ;;
+    --help|-h) echo "Usage: ALLOW_RELEASED_PV_DELETION=yes bash scripts/released-pv-cleanup.sh [--matrix] [--execute]"; exit 0 ;;
+    *) echo "PV_CLEANUP=BLOCKED invalid argument" >&2; exit 2 ;;
+  esac
+done
+(( $# <= 2 )) || { echo "PV_CLEANUP=BLOCKED too many arguments" >&2; exit 2; }
 if [[ "$mode" == delete && "${ALLOW_RELEASED_PV_DELETION:-}" != yes ]]; then
   echo "PV_CLEANUP=BLOCKED approval guard missing" >&2
   exit 2
@@ -41,11 +48,26 @@ TARGETS=(
 )
 
 # Phase 1 — PVC still Bound: namespace name pvc-uid pv
+EXPECT_SC=""
 RELEASE=(
   "atlantis-system atlantis-pilot-data 24ed83e6-2ac2-486f-8f6a-37ea3d064731 pvc-24ed83e6-2ac2-486f-8f6a-37ea3d064731"
   "atlantis-apps atlantis-apps-data 3a789334-6113-459f-92de-9bc541dfac55 pvc-3a789334-6113-459f-92de-9bc541dfac55"
   "executor data-executor-0 dee0d6ef-edab-493b-bb94-56a2c98c9716 pvc-dee0d6ef-edab-493b-bb94-56a2c98c9716"
 )
+
+if [[ "$profile" == matrix ]]; then
+  EXPECT_SC=longhorn-bulk
+  TARGETS=(
+    "pvc-a1e12685-1142-4ee9-acf7-9685997727fe 46c17b7d-da94-4d1f-bbb7-e09ad4ab7d68 matrix/matrix-synapse-postgresql-1"
+    "pvc-e9306243-102d-4207-8a80-1fabbdb4efb9 5d7926a7-6851-4889-809a-eea68bf35446 matrix/matrix-synapse-postgresql-1-wal"
+    "pvc-b5ecc0f3-c330-4935-bf01-066d2ffdc9e7 57465f89-8f5f-4476-8982-df83595adf2e matrix/matrix-mas-postgresql-clean-1"
+    "pvc-3e03f9f0-d757-43b0-9f3c-e6152cd07a76 0238e594-f901-472b-8244-6dbde3a1221f matrix/matrix-mas-postgresql-clean-1-wal"
+    "pvc-d6977f4f-c8b1-41c6-8d1b-620c5bb461f4 16972706-b71a-4043-8892-ca153df08eff matrix/matrix-synapse-media"
+    "pvc-7f2df114-2368-4357-b2b6-e0d2baea33bf be1fa4bb-742e-40d0-8b06-d903099d4966 matrix-mas-recovery/matrix-mas-restore-20261104-1"
+    "pvc-f1a03e61-fa2b-4d42-a87f-2c8c03330ac4 145d525a-2ac4-4f1c-9411-90d63bd1fd27 matrix-mas-recovery/matrix-mas-restore-20261104-1-wal"
+  )
+  RELEASE=()
+fi
 
 # shellcheck source=lib/kube-preflight.sh
 source "$(dirname "$0")/lib/kube-preflight.sh"
@@ -98,6 +120,7 @@ pv_static_reasons() {
   [[ "$(jq -r .spec.persistentVolumeReclaimPolicy <<<"$1")" == Retain ]] || echo "reclaimPolicy non Retain"
   [[ "$(jq -r '.spec.csi.driver // ""' <<<"$1")" == driver.longhorn.io ]] || echo "driver non Longhorn"
   [[ "$(jq -r '.spec.claimRef.namespace + "/" + .spec.claimRef.name' <<<"$1")" == "$3" ]] || echo "claimRef inattendu"
+  [[ -z "$EXPECT_SC" || "$(jq -r '.spec.storageClassName // ""' <<<"$1")" == "$EXPECT_SC" ]] || echo "StorageClass inattendue"
 }
 
 # pvc_refs PV -> "ns/name" of every PVC whose spec.volumeName is PV; non-zero on read error
@@ -123,7 +146,7 @@ lh_reasons() {
 
 fail=0
 pending_release=" "
-for r in "${RELEASE[@]}"; do
+for r in ${RELEASE[@]+"${RELEASE[@]}"}; do
   read -r rns rname ruid rpv <<<"$r"
   set +e
   pvc=$(get_json pvc "$rname" -n "$rns"); rc=$?
