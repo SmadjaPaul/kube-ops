@@ -25,3 +25,26 @@ spec:
     storageClass: longhorn-fast
   affinity:
     enablePodAntiAffinity: false
+---
+# Extensions gérées par l'opérateur (superuser) : le rôle applicatif ne peut pas
+# CREATE EXTENSION vector (BookOrbit 3.6.0 en CrashLoop, PLT-340).
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: bookorbit
+  namespace: media
+spec:
+  name: bookorbit
+  owner: bookorbit
+  databaseReclaimPolicy: retain
+  cluster:
+    name: bookorbit-postgresql
+  extensions:
+    - name: uuid-ossp
+      ensure: present
+    - name: pg_trgm
+      ensure: present
+    - name: unaccent
+      ensure: present
+    - name: vector
+      ensure: present
