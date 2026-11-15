@@ -5,12 +5,13 @@
 # crashes on missing tables. The application never started successfully since
 # 3.6.0, so there is no user data. Recovery point: Backup
 # bookorbit-postgresql-pre-reset-20261115 (R2, Completed).
+# Kubernetes args turn `$$` into `$`: dollar-quote with $body$ (first attempt failed harmlessly, nothing applied).
 # The guard refuses (single transaction, nothing dropped) if `public` holds any
 # relation. Remove this file in the follow-up PR after the proof.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: bookorbit-db-reset-registry-20261115
+  name: bookorbit-db-reset-registry-20261115-2
   namespace: media
   labels:
     app.kubernetes.io/name: bookorbit-db-maintenance
@@ -42,13 +43,13 @@ spec:
           args:
             - |
               psql -X -1 -v ON_ERROR_STOP=1 -P pager=off <<'SQL'
-              DO $$
+              DO $body$
               BEGIN
                 IF (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                     WHERE n.nspname = 'public') > 0 THEN
                   RAISE EXCEPTION 'schema public is not empty: refusing to reset the registry';
                 END IF;
-              END $$;
+              END $body$;
               DROP SCHEMA IF EXISTS drizzle CASCADE;
               SQL
               echo "== after"
