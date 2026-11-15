@@ -1,8 +1,8 @@
 # PLT-171: application check of the restored paperless (database + files).
 # Mounts the restored PVCs read-only, waits for the Velero restore markers and
 # the restored application, then:
-#   T3: for every document of the restored database, compares the MD5 checksum
-#       stored in SQL with the MD5 of the restored original (and archive) file;
+#   T3: for every document of the restored database, compares the checksum
+#       stored in SQL with the checksum of the restored original (and archive) file;
 #   T4: creates a drill-only user in the drill database (random password, never
 #       printed) and reads the document count through the restored paperless
 #       API (ClusterIP Service), compared with the ORM count.
@@ -25,10 +25,15 @@ spec:
       restartPolicy: Never
       automountServiceAccountToken: false
       enableServiceLinks: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: check
@@ -74,41 +79,45 @@ spec:
               import hashlib, os, datetime
               from django.db.models import Max
               from documents.models import Document
-              def md5(p):
-                  h = hashlib.md5()
+              def digest(p, ref):
+                  # Paperless stores MD5 (32 hex) or SHA-256 (64 hex) depending
+                  # on its version: use the algorithm that matches the stored value.
+                  h = hashlib.sha256() if len(ref or "") == 64 else hashlib.md5()
                   with open(p, "rb") as f:
                       for b in iter(lambda: f.read(1 << 20), b""):
                           h.update(b)
                   return h.hexdigest()
+              def check(p, ref):
+                  # Returns ok, missing, mismatch or error; never prints a path.
+                  try:
+                      if not os.path.isfile(p):
+                          return "missing"
+                      return "ok" if digest(p, ref) == ref else "mismatch"
+                  except Exception:
+                      return "error"
               docs = list(Document.objects.all().order_by("id"))
-              ok = missing = bad = a_ok = a_missing = a_bad = 0
+              orig = {"ok": 0, "missing": 0, "mismatch": 0, "error": 0}
+              arch = {"ok": 0, "missing": 0, "mismatch": 0, "error": 0}
+              algo = set()
               for d in docs:
-                  p = d.source_path
-                  if not os.path.isfile(p):
-                      missing += 1
-                  elif md5(p) == d.checksum:
-                      ok += 1
-                  else:
-                      bad += 1
+                  algo.add(len(d.checksum or ""))
+                  orig[check(d.source_path, d.checksum)] += 1
                   if d.has_archive_version:
-                      ap = d.archive_path
-                      if not os.path.isfile(ap):
-                          a_missing += 1
-                      elif md5(ap) == d.archive_checksum:
-                          a_ok += 1
-                      else:
-                          a_bad += 1
+                      arch[check(d.archive_path, d.archive_checksum)] += 1
               agg = Document.objects.aggregate(a=Max("added"), m=Max("modified"))
               start = datetime.datetime.fromisoformat(os.environ["FILES_BACKUP_START"])
               after = Document.objects.filter(added__gt=start).count()
-              print(f"documents={len(docs)} originals_ok={ok} originals_missing={missing} originals_mismatch={bad}")
-              print(f"archives_ok={a_ok} archives_missing={a_missing} archives_mismatch={a_bad}")
               max_added, max_modified = agg["a"], agg["m"]
+              print("documents=%d checksum_hex_lengths=%s" % (len(docs), sorted(algo)))
+              print("originals_" + " originals_".join("%s=%d" % kv for kv in orig.items()))
+              print("archives_" + " archives_".join("%s=%d" % kv for kv in arch.items()))
               print(f"max_added={max_added} max_modified={max_modified} added_after_files_backup={after}")
               if docs:
                   s = docs[-1]
-                  print(f"sentinel_doc_id={s.id} sentinel_added={s.added} sentinel_sql_md5_eq_file_md5={os.path.isfile(s.source_path) and md5(s.source_path) == s.checksum}")
-              print("SQL_FILE_SENTINEL=" + ("PASS" if docs and ok == len(docs) and a_missing == 0 and a_bad == 0 else "FAIL"))
+                  s_ok = check(s.source_path, s.checksum) == "ok"
+                  print(f"sentinel_doc_id={s.id} sentinel_added={s.added} sentinel_sql_checksum_eq_file={s_ok}")
+              good = docs and orig["ok"] == len(docs) and arch["missing"] == arch["mismatch"] == arch["error"] == 0
+              print("SQL_FILE_SENTINEL=" + ("PASS" if good else "FAIL"))
               ' | tee /tmp/t3.out
               grep -q '^SQL_FILE_SENTINEL=PASS$' /tmp/t3.out || { echo "FAIL sql/file sentinel"; exit 1; }
               echo "T3=$(date -u +%FT%TZ)"
@@ -123,7 +132,11 @@ spec:
               u.is_staff = True
               u.set_password(os.environ["DRILL_PW"])
               u.save()
-              print(f"orm_documents={Document.objects.count()}")
+              try:
+                  n = Document.objects.filter(root_document__isnull=True).count()
+              except Exception:
+                  n = Document.objects.count()
+              print(f"orm_documents={n}")
               ' | tee /tmp/orm.out
               API_COUNT="$(curl -sf -m 30 -u "plt171-drill:${DRILL_PW}" -H 'Host: paperless.smadja.dev' 'http://paperless/api/documents/?page_size=1' | python3 -c 'import json,sys; print(json.load(sys.stdin)["count"])')"
               unset DRILL_PW

@@ -29,9 +29,10 @@ data:
                   "storageClassName": "longhorn-bulk"
                 }
               }
-      # Keep the drill out of the production Argo Application.
+      # Keep the drill out of the production Argo Application. "**" also
+      # matches core resources (pods, persistentvolumeclaims), "*.*" does not.
       - conditions:
-          groupResource: "*.*"
+          groupResource: "**"
           namespaces:
             - paperless
         mergePatches:

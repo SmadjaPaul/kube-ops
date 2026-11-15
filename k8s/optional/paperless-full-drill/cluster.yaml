@@ -1,5 +1,7 @@
-# PLT-171: CNPG leg. Recovery replays the R2 base backup + every archived WAL
-# (no recoveryTarget) and promotes. No spec.plugins and no backup section: this
+# PLT-171: CNPG leg. Point-in-time recovery from R2 to the start of the
+# Velero file backup velero-daily-paperless-20261115044028 (04:40:28Z), so the
+# database and the restored files describe the same instant (CNPG picks the
+# newest base backup before the target, here 20261113T172103, and replays WAL). No spec.plugins and no backup section: this
 # cluster never archives. Same name as production so the restored paperless
 # Deployment finds its paperless-postgresql-app Secret and the
 # paperless-postgresql-rw Service inside the island. Same PostgreSQL image.
@@ -22,6 +24,8 @@ spec:
   bootstrap:
     recovery:
       source: origin
+      recoveryTarget:
+        targetTime: "2026-11-15 04:40:28+00"
       database: paperless
       owner: paperless
   externalClusters:
