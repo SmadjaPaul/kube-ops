@@ -15,7 +15,10 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: fleet-mysql
+  # PLT-344 lot 1: renamed from fleet-mysql because volumeClaimTemplates are
+  # immutable. The old StatefulSet's PVC data-fleet-mysql-0 (longhorn-bulk,
+  # Retain) is kept as the rollback copy; deleting it is a separate lot.
+  name: fleet-mysql-fast
   namespace: fleet
   labels:
     app.kubernetes.io/name: fleet-mysql
@@ -122,6 +125,13 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/mysql
+            # PLT-344 lot 1: the first start on the empty fast volume restores
+            # the dump written by Job fleet-mysql-dump-plt344. The entrypoint
+            # ignores it once the datadir exists. Removed in step 3.
+            - name: data
+              mountPath: /docker-entrypoint-initdb.d
+              subPath: migration
+              readOnly: true
             - name: run
               mountPath: /var/run/mysqld
             - name: tmp
@@ -138,7 +148,8 @@ spec:
         name: data
       spec:
         accessModes: [ReadWriteOnce]
-        storageClassName: longhorn-bulk
+        # Adopts PVC data-fleet-mysql-fast-0 declared in mysql-migration.yaml.
+        storageClassName: longhorn-fast
         resources:
           requests:
             # A Fleet database for ~6 hosts is tens of MiB; 10Gi leaves room
