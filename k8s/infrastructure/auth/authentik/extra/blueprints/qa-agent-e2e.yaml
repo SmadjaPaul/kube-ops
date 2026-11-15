@@ -7,8 +7,9 @@
 #
 # PLT-57 (2026-11-15): limited role so the account can create synthetic test
 # users, set their password, read and delete them, and nothing else.
-#   - global permission: authentik_core.add_user only (Authentik checks `add_*`
-#     globally; there is no per-group create right);
+#   - global permissions: authentik_core.add_user (Authentik checks `add_*`
+#     globally; there is no per-group create right) and authentik_core.view_group
+#     (read-only, to resolve group UUIDs);
 #   - view_user, delete_user and reset_user_password are NOT global: the initial
 #     permissions below grant them on each user object that a holder of the role
 #     creates. Pre-existing users stay out of reach (no list, no delete).
@@ -38,6 +39,9 @@ entries:
       name: agent-e2e-user-manager
       permissions:
         - authentik_core.add_user
+        # Read-only: the group list is the only way to resolve the UUIDs of
+        # test-users and family (user creation takes group UUIDs).
+        - authentik_core.view_group
   - id: agent-e2e-initial-user-permissions
     model: authentik_rbac.initialpermissions
     state: present

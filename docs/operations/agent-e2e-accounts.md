@@ -10,7 +10,7 @@ no real data, no Authentik admin credential.
 | Service account | `agent-e2e` (type `service_account`, not superuser), blueprint `k8s/infrastructure/auth/authentik/extra/blueprints/qa-agent-e2e.yaml` |
 | Token | Doppler `cluster/prd` key `APP_AGENT_E2E_TOKEN` (also read by the ExternalSecret `authentik-blueprint-core-secrets`) |
 | Role | `agent-e2e-user-manager`, attached to the `agent-e2e` user (not to the `test-users` group) |
-| Global permission | `authentik_core.add_user` only |
+| Global permissions | `authentik_core.add_user`; `authentik_core.view_group` (read-only, to resolve the group UUIDs) |
 | Per-object permissions | `view_user`, `delete_user`, `reset_user_password` on each user created by a holder of the role (initial permissions `agent-e2e-created-users`) |
 | Not granted | superuser, any group/role/flow/application/provider/token permission, any right on pre-existing users |
 
@@ -27,11 +27,13 @@ value only as `AGENT_E2E_TOKEN` (output is masked). Never print it, never write 
 
 ## Rules for the test users
 
+- Authentik decides detail routes per object: keep the `pk` returned at creation and use `GET/DELETE/set_password` on `/core/users/{pk}/`. The user list is 403 (no global `view_user`); verify deletion with a detail `GET` returning 404.
+- Calls to `auth.smadja.dev` pass through Cloudflare: send a `User-Agent` (the default Python one gets error 1010).
 - Username prefix `agent-e2e-`, `type=internal`, groups exactly `test-users` and `family` (apps authorize `family`).
   Authentik only refuses superuser groups on creation: do not pass any other group.
 - Password: random, generated in memory, set with `POST /api/v3/core/users/{pk}/set_password/`, never printed or committed.
-- No real data. Delete the users at the end (`DELETE /api/v3/core/users/{pk}/`) and verify with a list that
-  `agent-e2e-*` is empty. Application-side accounts created by first OIDC login are removed in each app.
+- No real data. Delete the users at the end (`DELETE /api/v3/core/users/{pk}/`) and verify with a detail GET (404) that
+  every created pk is gone. Application-side accounts created by first OIDC login are removed in each app.
 
 ## Application provisioning (checked in Git, 2026-11-15)
 
