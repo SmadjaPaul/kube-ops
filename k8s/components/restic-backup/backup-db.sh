@@ -13,7 +13,8 @@ restic_bin="${RESTIC_BIN:-restic}"
 ensure_repository
 
 log "step=postgres-dump tag=${APP}-postgres start"
-nice -n 10 "$restic_bin" backup \
+run_throttled "$restic_bin" backup \
+  --limit-upload "${LIMIT_UPLOAD_KIB:-4096}" \
   --host "$RESTIC_HOST" \
   --tag "${APP}-postgres" \
   --retry-lock 30m \

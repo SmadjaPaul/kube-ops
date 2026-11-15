@@ -35,3 +35,13 @@ ensure_repository() {
       ;;
   esac
 }
+
+# Thermal guard (PLT-286): the node runs at 63-71 C under CI load. Backups run
+# at the lowest CPU and IO priority; upload is capped by --limit-upload.
+run_throttled() {
+  if command -v ionice >/dev/null 2>&1; then
+    ionice -c3 nice -n 19 "$@"
+  else
+    nice -n 19 "$@"
+  fi
+}
