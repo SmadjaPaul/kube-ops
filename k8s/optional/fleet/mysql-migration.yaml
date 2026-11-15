@@ -78,10 +78,16 @@ spec:
                 --routines --events --triggers --set-gtid-purged=OFF \
                 fleet > /out/migration/.fleet.sql.tmp
               test -s /out/migration/.fleet.sql.tmp
-              tail -n 1 /out/migration/.fleet.sql.tmp | grep -q 'Dump completed'
+              case "$(tail -n 1 /out/migration/.fleet.sql.tmp)" in
+                *"Dump completed"*) ;;
+                *) echo "DUMP=TRUNCATED"; exit 1 ;;
+              esac
               mv /out/migration/.fleet.sql.tmp /out/migration/fleet.sql
-              q -e "SELECT CONCAT('SELECT ''', table_name, ''', COUNT(*) FROM \`', table_name, '\`;') FROM information_schema.tables WHERE table_schema='fleet' AND table_type='BASE TABLE' ORDER BY table_name" \
-                | q fleet > /out/migration/counts-before.tsv
+              q -e "SELECT CONCAT('SELECT ''', table_name, ''', COUNT(*) FROM \`', table_name, '\`;') FROM information_schema.tables WHERE table_schema='fleet' AND table_type='BASE TABLE' ORDER BY table_name" > /tmp/count.sql
+              tables=$(wc -l < /tmp/count.sql)
+              [ "$tables" -gt 0 ] || { echo "COUNT_QUERY=EMPTY"; exit 1; }
+              q fleet < /tmp/count.sql > /out/migration/counts-before.tsv
+              [ "$(wc -l < /out/migration/counts-before.tsv)" = "$tables" ] || { echo "COUNTS=INCOMPLETE"; exit 1; }
               echo "DUMP_BYTES=$(wc -c < /out/migration/fleet.sql)"
               echo "DUMP_SHA256=$(sha256sum /out/migration/fleet.sql | cut -d' ' -f1)"
               echo "TABLES=$(wc -l < /out/migration/counts-before.tsv) ROWS=$(awk '{s+=$2} END {print s}' /out/migration/counts-before.tsv)"
