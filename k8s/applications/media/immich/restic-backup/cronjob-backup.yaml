@@ -12,9 +12,10 @@ metadata:
     app.kubernetes.io/name: restic-backup
     app.kubernetes.io/instance: immich
 spec:
-  # 03:00 Paris. The host is often off at night: a missed run starts at the
-  # next boot (deadline 18 h), like the Velero schedules.
-  schedule: "0 3 * * *"
+  # Evening slot (PLT-286): the host is powered off by its power key around
+  # 01:15-03:40 on many nights, so a 02:30/03:00 run is often missed. A missed run
+  # still starts at the next boot (deadline 18 h), like the Velero schedules.
+  schedule: "0 22 * * *"
   timeZone: Europe/Paris
   startingDeadlineSeconds: 64800
   concurrencyPolicy: Forbid
@@ -117,6 +118,7 @@ spec:
                 - { name: AWS_DEFAULT_REGION, value: auto }
                 - { name: HOME, value: /tmp }
                 - { name: TMPDIR, value: /tmp }
+                - { name: GOMAXPROCS, value: "1" }
                 - { name: SOURCES, value: /source/immich }
                 - { name: EXCLUDES, value: "/source/immich/thumbs /source/immich/encoded-video" }
                 - { name: MANIFEST_DIR, value: /manifest }
@@ -129,7 +131,7 @@ spec:
                 capabilities: { drop: ["ALL"] }
               resources:
                 requests: { cpu: 10m, memory: 256Mi }
-                limits: { cpu: "1", memory: 2Gi }
+                limits: { cpu: 500m, memory: 2Gi }
               volumeMounts:
                 - { name: source, mountPath: /source/immich, readOnly: true }
                 - { name: manifest, mountPath: /manifest }

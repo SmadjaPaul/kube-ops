@@ -12,9 +12,10 @@ metadata:
     app.kubernetes.io/name: restic-backup
     app.kubernetes.io/instance: paperless
 spec:
-  # 02:30 Paris. The host is often off at night: a missed run starts at the
-  # next boot (deadline 18 h), like the Velero schedules.
-  schedule: "30 2 * * *"
+  # Evening slot (PLT-286): the host is powered off by its power key around
+  # 01:15-03:40 on many nights, so a 02:30/03:00 run is often missed. A missed run
+  # still starts at the next boot (deadline 18 h), like the Velero schedules.
+  schedule: "30 21 * * *"
   timeZone: Europe/Paris
   startingDeadlineSeconds: 64800
   concurrencyPolicy: Forbid
@@ -116,6 +117,7 @@ spec:
                 - { name: AWS_DEFAULT_REGION, value: auto }
                 - { name: HOME, value: /tmp }
                 - { name: TMPDIR, value: /tmp }
+                - { name: GOMAXPROCS, value: "1" }
                 - { name: SOURCES, value: "/source/paperless-data /source/paperless-media" }
                 - { name: EXCLUDES, value: "/source/paperless-data/index /source/paperless-data/log" }
                 - { name: MANIFEST_DIR, value: /manifest }
@@ -128,7 +130,7 @@ spec:
                 capabilities: { drop: ["ALL"] }
               resources:
                 requests: { cpu: 10m, memory: 256Mi }
-                limits: { cpu: "1", memory: 2Gi }
+                limits: { cpu: 500m, memory: 2Gi }
               volumeMounts:
                 - { name: data, mountPath: /source/paperless-data, readOnly: true }
                 - { name: media, mountPath: /source/paperless-media, readOnly: true }

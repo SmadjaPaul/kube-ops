@@ -93,7 +93,7 @@ case "$sub" in
       case "$1" in
         --tag) tag="$2"; shift 2 ;;
         --stdin-filename) stdin_name="$2"; shift 2 ;;
-        --host | --retry-lock | --read-concurrency | --exclude) shift 2 ;;
+        --host | --retry-lock | --read-concurrency | --limit-upload | --exclude) shift 2 ;;
         --stdin-from-command) shift ;;
         --) shift; cmd=("$@"); break ;;
         *) paths+=("$1"); shift ;;

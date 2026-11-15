@@ -85,7 +85,8 @@ set --
 for ex in ${EXCLUDES:-}; do set -- "$@" --exclude "$ex"; done
 log "step=files tag=${APP}-files start"
 # shellcheck disable=SC2086 # SOURCES is a list of directories without spaces
-nice -n 10 "$restic_bin" backup \
+run_throttled "$restic_bin" backup \
+  --limit-upload "${LIMIT_UPLOAD_KIB:-4096}" \
   --host "$RESTIC_HOST" \
   --tag "${APP}-files" \
   --retry-lock 30m \
