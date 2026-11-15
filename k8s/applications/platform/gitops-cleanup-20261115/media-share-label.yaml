@@ -44,7 +44,7 @@ metadata:
   name: cleanup-media-share-label
   namespace: media
   annotations:
-    argocd.argoproj.io/sync-wave: "22"
+    argocd.argoproj.io/sync-wave: "20"
 spec:
   backoffLimit: 2
   activeDeadlineSeconds: 300
