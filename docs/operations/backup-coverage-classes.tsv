@@ -43,7 +43,6 @@ matrix	matrix-synapse-postgresql-1	IRREPLACEABLE	Matrix messages and rooms
 matrix	matrix-synapse-postgresql-1-wal	IRREPLACEABLE	Matrix messages and rooms WAL
 mealie	mealie-data	IRREPLACEABLE	Family recipes
 media	aiostreams-data	USEFUL	AIOStreams user configurations (SQLite)
-media	audiobookrequest-config	REBUILDABLE	Request queue configuration
 media	bookorbit-data	USEFUL	BookOrbit app data (library index, settings)
 media	bookorbit-postgresql-1	USEFUL	BookOrbit database (users, reading progress)
 media	media-share	REBUILDABLE	Re-downloadable media (2Ti)

@@ -9,8 +9,8 @@ and upstream support are evaluation risks; allegations about software
 quality are not equivalent to a demonstrated vulnerability.
 
 Before resuming admission, compare the former Audiobookshelf +
-AudiobookRequest workflow (AudiobookRequest remains in the active Media root;
-Audiobookshelf was retired and would need a *new* deployment) with
+AudiobookRequest workflow (AudiobookRequest and
+Audiobookshelf were retired and would need a *new* deployment) with
 Calibre-Web Automated for ebooks, and Kavita/Komga for comics/manga.
 Chaptarr is an optional acquisition-manager candidate, *not* a reading UI.
 Choose based on actual user workflows, French-language metadata, OIDC,

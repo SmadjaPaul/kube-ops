@@ -93,7 +93,7 @@ classement s'applique dès le premier usage réel.
 
 | Classe | Exemples | Source de reconstruction |
 | --- | --- | --- |
-| Médias re-téléchargeables | Polyfin, AIOStreams, Decypharr, AudioBookRequest, `media-share`, `romm-library`, `pinepods-downloads` | fournisseurs et catalogues |
+| Médias re-téléchargeables | Polyfin, AIOStreams, Decypharr, `media-share`, `romm-library`, `pinepods-downloads` | fournisseurs et catalogues |
 | Caches et files | Redis d'Immich (`redis-data-immich-redis-master-0`) et de RomM (`romm-redis-data`) | régénéré au démarrage |
 | Index et modèles | Immich ML, SearXNG | régénéré |
 | Applications sans état utile | Stirling-PDF, IT-Tools, ntfy, Open Connector, agentgateway | GitOps |
