@@ -20,6 +20,10 @@ entries:
   - model: authentik_policies.policybinding
     identifiers: {target: !KeyOf searxng_application, group: !Find [authentik_core.group, [name, "family"]]}
     attrs: {order: 10}
+  # PLT-176 (decision of Paul, 2026-11-15, G2): family AND friends.
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf searxng_application, group: !Find [authentik_core.group, [name, "friends"]]}
+    attrs: {order: 30}
   - model: authentik_policies.policybinding
     identifiers: {target: !KeyOf searxng_application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
     attrs: {order: 100}
