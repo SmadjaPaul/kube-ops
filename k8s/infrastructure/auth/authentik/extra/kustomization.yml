@@ -43,9 +43,9 @@ configMapGenerator:
       - ./blueprints/apps-invoice-ninja.yaml
       - ./blueprints/groups.yaml
       - ./blueprints/flows-invitation-operator.yaml
-      # PLT-176: four family accounts without password, no application access,
-      # admin-initiated recovery flow (docs/operations/family-accounts-smadja.md).
-      - ./blueprints/family-smadja.yaml
+      # PLT-176: admin-link password setup for human accounts declared without
+      # a password in groups.yaml (docs/operations/authentik-human-accounts.md).
+      - ./blueprints/flows-password-setup.yaml
       - ./blueprints/qa-e2e-user.yaml
       - ./blueprints/qa-agent-e2e.yaml
       - ./blueprints/brands.yaml

@@ -98,8 +98,8 @@ jobs:
       - name: Validate D recovery contract (alerting, restore fixtures, storage classification)
         run: bash tests/harness/d-recovery-contract-test.sh
 
-      - name: Validate Smadja family accounts contract (PLT-176)
-        run: bash tests/harness/family-smadja-contract-test.sh
+      - name: Validate Authentik human accounts contract (PLT-176)
+        run: bash tests/harness/authentik-human-users-contract-test.sh
 
       - name: Validate agent-operator identity contract
         run: bash tests/agent-guard/agent-operator-identity-test.sh
