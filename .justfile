@@ -98,6 +98,10 @@ diagnose-app APP OUTPUT="summary":
 backup-audit:
     bash scripts/backup-audit.sh
 
+[doc('Regenerate the Git-only PVC backup coverage table (needs kustomize and helm)')]
+backup-coverage-static:
+    python3 scripts/backup-coverage-static.py --output docs/operations/backup-coverage-static.md
+
 [doc('Capture a metadata-only Argo orphan inventory; never mutates the cluster')]
 argo-orphan-inventory OUTPUT:
     bash scripts/argo-orphan-inventory.sh --output "{{OUTPUT}}"

@@ -15,3 +15,16 @@ patches:
       - op: replace
         path: /spec/template/spec/volumes/0/persistentVolumeClaim/claimName
         value: rustical-data-bulk
+  # PLT-222: the namespace field above moves the base Velero Schedule out of
+  # the velero namespace, where Velero never reads it. The pilot Schedule lives
+  # in k8s/infrastructure/controllers/velero/schedules/daily-rustical-pilot.yaml.
+  - target:
+      group: velero.io
+      kind: Schedule
+      name: velero-daily-rustical
+    patch: |-
+      $patch: delete
+      apiVersion: velero.io/v1
+      kind: Schedule
+      metadata:
+        name: velero-daily-rustical
