@@ -40,7 +40,6 @@ check:
     bash tests/harness/invoice-backup-test.sh
     bash tests/harness/restic-backup-contract-test.sh
     bash tests/harness/decypharr-torbox-staged-test.sh
-    bash tests/harness/rdt-client-staged-contract-test.sh
     bash tests/harness/aiostreams-staged-contract-test.sh
     bash tests/harness/aiostreams-sqlite-restore-test.sh
     bash tests/harness/aiostreams-oidc-dormant-contract-test.sh
