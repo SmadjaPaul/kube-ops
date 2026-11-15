@@ -4,6 +4,19 @@
 # PLT-57: service account for agent qualification tests (decision of Paul,
 # 2026-11-14 21:02). No admin right: per-application access goes through
 # membership of the test-users group only.
+#
+# PLT-57 (2026-11-15): limited role so the account can create synthetic test
+# users, set their password, read and delete them, and nothing else.
+#   - global permission: authentik_core.add_user only (Authentik checks `add_*`
+#     globally; there is no per-group create right);
+#   - view_user, delete_user and reset_user_password are NOT global: the initial
+#     permissions below grant them on each user object that a holder of the role
+#     creates. Pre-existing users stay out of reach (no list, no delete).
+#   - not superuser, no group/role/flow/application/token permission. Authentik
+#     only blocks superuser groups on user creation: the caller must pass
+#     groups=[test-users, family] and nothing else (docs/operations/agent-e2e-accounts.md).
+# The role is attached to the agent-e2e user itself, not to test-users, so the
+# synthetic users it creates do not inherit it.
 version: 1
 metadata:
   name: QA - Agent E2E service account
@@ -16,6 +29,27 @@ entries:
     attrs:
       name: test-users
       is_superuser: false
+  - id: agent-e2e-role
+    model: authentik_rbac.role
+    state: present
+    identifiers:
+      name: agent-e2e-user-manager
+    attrs:
+      name: agent-e2e-user-manager
+      permissions:
+        - authentik_core.add_user
+  - id: agent-e2e-initial-user-permissions
+    model: authentik_rbac.initialpermissions
+    state: present
+    identifiers:
+      name: agent-e2e-created-users
+    attrs:
+      name: agent-e2e-created-users
+      role: !KeyOf agent-e2e-role
+      permissions:
+        - !Find [auth.permission, [codename, view_user], [content_type__app_label, authentik_core], [content_type__model, user]]
+        - !Find [auth.permission, [codename, delete_user], [content_type__app_label, authentik_core], [content_type__model, user]]
+        - !Find [auth.permission, [codename, reset_user_password], [content_type__app_label, authentik_core], [content_type__model, user]]
   - id: agent-e2e
     model: authentik_core.user
     state: present
@@ -29,6 +63,8 @@ entries:
       path: goauthentik.io/service-accounts
       groups:
         - !KeyOf test-users
+      roles:
+        - !KeyOf agent-e2e-role
   - id: agent-e2e-token
     model: authentik_core.token
     state: present

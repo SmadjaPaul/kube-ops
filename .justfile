@@ -55,6 +55,7 @@ check:
     bash tests/harness/cnpg-cluster-allowlist-test.sh
     bash tests/harness/verify-delivery-test.sh
     bash tests/harness/scaffold-oke-app-test.sh
+    bash tests/harness/agent-e2e-run-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:
