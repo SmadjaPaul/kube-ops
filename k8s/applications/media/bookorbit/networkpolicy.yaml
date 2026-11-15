@@ -77,3 +77,13 @@ spec:
         - ports:
             - port: "5432"
               protocol: TCP
+    # CNPG operator status endpoint: without it the Cluster stays
+    # "Instance Status Extraction Error" and Argo never reports it Healthy.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+            app.kubernetes.io/name: cloudnative-pg
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
