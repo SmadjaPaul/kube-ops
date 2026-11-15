@@ -30,11 +30,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: factory-platform
       server: https://kubernetes.default.svc
-    # PLT-315: Fleet, LAN only; fleet-drill stays until Argo has pruned the
-    # restore drill, then a follow-up PR removes it.
+    # PLT-315: Fleet, LAN only.
     - namespace: fleet
-      server: https://kubernetes.default.svc
-    - namespace: fleet-drill
       server: https://kubernetes.default.svc
     - namespace: gpt-researcher
       server: https://kubernetes.default.svc
@@ -43,9 +40,6 @@ spec:
     - namespace: hindsight-personal
       server: https://kubernetes.default.svc
     - namespace: hindsight-restore-20261110
-      server: https://kubernetes.default.svc
-    # PLT-301: off-Oracle restore drill of the OKE Hindsight archive.
-    - namespace: hindsight-oke-drill
       server: https://kubernetes.default.svc
     - namespace: immich
       server: https://kubernetes.default.svc
@@ -57,7 +51,7 @@ spec:
     # Application itself is owned by AppProject personal-ai-pilot.
     - namespace: librechat
       server: https://kubernetes.default.svc
-    # PLT-141: isolated opt-in Rollouts fixture; never grant tenant namespaces broadly.
+    # PLT-141 fixture retired (PLT-46); kept until Argo has pruned its namespace, then a follow-up PR removes it.
     - namespace: argo-rollouts-demo
       server: https://kubernetes.default.svc
     - namespace: karakeep
@@ -87,10 +81,6 @@ spec:
     - namespace: romm
       server: https://kubernetes.default.svc
     - namespace: rustical-pilot
-      server: https://kubernetes.default.svc
-    # PLT-221: temporary isolated R2 restore drill of auth/authentik-postgresql-restored;
-    # removed by PR once the drill root is pruned.
-    - namespace: authentik-drill
       server: https://kubernetes.default.svc
     - namespace: wellness
       server: https://kubernetes.default.svc
