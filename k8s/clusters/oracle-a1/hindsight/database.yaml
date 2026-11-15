@@ -1,11 +1,13 @@
-# PLT-301: dedicated CNPG cluster for Hindsight on Oracle. Not pg-shared: a
-# physical recovery from the homelab Barman archive creates a whole cluster,
-# it cannot land inside another cluster.
+# PLT-303 (drill): dedicated CNPG cluster for Hindsight on Oracle (V1, 50Gi
+# oci-bv). Not pg-shared: one volume per database class (plan OKE, section 2).
 #
-# Bootstrap = recovery of the homelab archive (latest WAL available on R2).
-# The homelab cluster keeps running and stays the only writer until the
-# cutover sub-issue of PLT-301. Rollback: remove this Application from the
-# Oracle root; the homelab data is never touched from here.
+# Bootstrap = EMPTY database (initdb) + the vector extension, like the homelab
+# cluster. No data is migrated from the homelab in the drill (mission PLT-303):
+# the homelab Hindsight stays the only holder of the real banks and is never
+# read or written from here. Test rows are seeded by k8s/optional/hindsight-oke-drill.
+# Backup: WAL archive + daily base backup to R2 (writer identity, prefix
+# oracle-a1/hindsight-db/), same model as pg-shared (PLT-190).
+# Rollback: remove hindsight.yaml from the Oracle root (Cluster: Prune=false).
 #
 # Image: same PostgreSQL 17.7 standard trixie as the homelab, pinned to the
 # multi-arch INDEX digest. The homelab pin sha256:44c64899... is the amd64-only
@@ -24,18 +26,12 @@ spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:e079dae5253fa6ed26fc65fda06d515af764dbec392dd4b46b17ab11eebd8131
   bootstrap:
-    recovery:
-      source: hindsight-homelab
+    initdb:
       database: hindsight
       owner: hindsight
       secret: {name: hindsight-db-app}
-  externalClusters:
-    - name: hindsight-homelab
-      plugin:
-        name: barman-cloud.cloudnative-pg.io
-        parameters:
-          barmanObjectName: hindsight-homelab-r2-ro
-          serverName: hindsight-db
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS vector
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true

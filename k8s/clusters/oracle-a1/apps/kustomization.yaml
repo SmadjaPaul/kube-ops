@@ -12,7 +12,6 @@ kind: Kustomization
 # revert ; clés Doppler ORACLE_A1_NTFY_* conservées.
 # PLT-301 : cert-manager (vague -1) et le plugin barman-cloud (vague 1) sont
 # actifs : sans données, prérequis de toute sauvegarde CNPG vers R2.
-# hindsight.yaml reste hors de la racine jusqu'au drill de PLT-301.
 # PLT-309 : observability.yaml (Alloy + kube-state-metrics vers Grafana Cloud)
 # est actif. Retour en arrière : retirer cette ligne de la racine.
 # PLT-256 : netbird-router (accès admin à l'API OKE, NET_ADMIN) actif ; retour en
@@ -21,6 +20,8 @@ kind: Kustomization
 # PLT-190 : cnpg-cluster (pg-shared, sauvegarde R2) actif pour le drill de
 # restauration hors Oracle ; media.yaml reste HORS racine tant que la restauration
 # n'est pas prouvée. Retour en arrière : retirer cette ligne (Cluster en Prune=false).
+# PLT-303 : hindsight (base vide + données de test, API, sauvegarde R2) actif pour
+# le drill ; retour en arrière : retirer cette ligne (Cluster en Prune=false).
 resources:
   - guardrails.yaml
   - external-secrets.yaml
@@ -31,3 +32,4 @@ resources:
   - netbird-router.yaml
   - agent-operator.yaml
   - cnpg-cluster.yaml
+  - hindsight.yaml

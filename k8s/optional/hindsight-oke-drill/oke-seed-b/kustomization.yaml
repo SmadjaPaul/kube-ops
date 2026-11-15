@@ -1,0 +1,25 @@
+# PLT-303 drill, step "oke-seed-b": import AFTER the drill base backup
+# Completed. One Job: seed B (rows that only exist in the WAL stream), then the
+# OKE fingerprint, same session order, so the fingerprint includes seed B. Read
+# the logs (seed_b_* with seed_b_done_at, then the fingerprint lines); wait for
+# the WAL archive (archive_timeout + 1 min, ContinuousArchiving=True, a wals/
+# object newer than seed_b_done_at) before the off-Oracle restore.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hindsight
+components:
+  - ../fingerprint
+patches:
+  - target: {kind: Job, name: hindsight-fingerprint}
+    patch: |-
+      - {op: replace, path: /metadata/name, value: hindsight-drill-seed-b}
+      - op: replace
+        path: /spec/template/spec/containers/0/command
+        value:
+          - sh
+          - -c
+          - psql -v ON_ERROR_STOP=1 -f /sql/seed-b.sql && sleep 5 && psql -v ON_ERROR_STOP=1 -f /sql/fingerprint.sql
+      - {op: replace, path: /spec/template/spec/containers/0/env/0/value, value: hindsight-db-rw}
+      - {op: replace, path: /spec/template/spec/containers/0/env/4/valueFrom/secretKeyRef/name, value: hindsight-db-app}
+      - {op: replace, path: /spec/template/spec/containers/0/env/5/valueFrom/secretKeyRef/name, value: hindsight-db-app}
+      - {op: replace, path: /spec/template/spec/volumes/1/secret/secretName, value: hindsight-db-ca}

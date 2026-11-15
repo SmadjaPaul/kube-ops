@@ -1,5 +1,5 @@
-# PLT-301: kept OUT of apps/kustomization.yaml. The drill sub-issue adds it to
-# the Oracle root; see README.md, section Hindsight.
+# PLT-303: in apps/kustomization.yaml (drill activation). Rollback: remove the
+# line from the root; prune is false, the Cluster, its PVC and the ObjectStore stay.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

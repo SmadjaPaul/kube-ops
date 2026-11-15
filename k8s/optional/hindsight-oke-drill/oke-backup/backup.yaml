@@ -1,0 +1,12 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: hindsight-db-drill-base
+  namespace: hindsight
+spec:
+  cluster: {name: hindsight-db}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: hindsight-oke-r2

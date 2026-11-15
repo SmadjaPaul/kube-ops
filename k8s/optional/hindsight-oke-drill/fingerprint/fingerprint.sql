@@ -11,6 +11,7 @@ SELECT 'rows=' || table_name || ':' ||
  WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
  ORDER BY table_name;
 SELECT 'banks_md5=' || coalesce(md5(string_agg(b::text, '|' ORDER BY b::text)), 'empty') FROM public.banks b;
+SELECT 'documents_md5=' || coalesce(md5(string_agg(d::text, '|' ORDER BY d.bank_id, d.id)), 'empty') FROM public.documents d;
 SELECT 'roles_md5=' || md5(string_agg(concat_ws(':', rolname, rolcanlogin, rolsuper, rolcreatedb,
          rolcreaterole, rolreplication, rolbypassrls, rolinherit), '|' ORDER BY rolname))
   FROM pg_roles WHERE rolname !~ '^(pg_|cnpg_|streaming_replica$|postgres$)';
