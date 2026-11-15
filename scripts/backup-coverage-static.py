@@ -324,7 +324,9 @@ def main():
             cname = p['owner'].split('/', 1)[1]
             c = clusters.get((p['ns'], cname), {})
             wal = stores.get((p['ns'], c.get('wal_store')), '-') if c.get('wal_store') else '-'
-            sched = [stores.get((p['ns'], s), '?') for s in sbs.get((p['ns'], cname), [])]
+            # A plugin ScheduledBackup without barmanObjectName uses the Cluster WAL store.
+            sched = [stores.get((p['ns'], s or c.get('wal_store')), '?')
+                     for s in sbs.get((p['ns'], cname), [])]
             if wal == 'R2' and 'R2' in sched:
                 cover.append('CNPG(R2)')
             else:
