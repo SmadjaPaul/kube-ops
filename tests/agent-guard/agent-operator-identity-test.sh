@@ -165,8 +165,28 @@ check "kubectl-ro : --cluster hors tête refusé" bash -c "bash scripts/kubectl-
 check "kubectl-rw --cluster refusé (OKE en lecture seule)" bash -c "bash scripts/kubectl-rw.sh --cluster oracle-a1 patch a b c 2>&1 | grep -q 'lecture seule'"
 check "RBAC OKE : verbes get/list/watch seulement" bash -c "! grep 'verbs:' k8s/clusters/oracle-a1/agent-operator/rbac.yaml | grep -vqE 'verbs: \\[get, list(, watch)?\\]' && ! grep -qE '^[^#]*[ ,[](secrets|pods/exec|serviceaccounts/token)[],]' k8s/clusters/oracle-a1/agent-operator/rbac.yaml"
 
+# 7c. PLT-257 : normalisation de can-i (suffixe OKE)
+# shellcheck source=scripts/lib/kube-can-i.sh
+source scripts/lib/kube-can-i.sh
+can_case() { # can_case LIBELLÉ ATTENDU ENTRÉE
+  local got
+  got=$(printf '%b' "$3" | kube_can_i_answer)
+  if [ "$got" = "$2" ]; then ok "can-i : $1"; else ko "can-i : $1 (obtenu '$got', attendu '$2')"; fi
+}
+can_case "suffixe OKE no" no 'no - . Opc-Request-Id: <nil>\n'
+can_case "no exact" no 'no\n'
+can_case "yes exact" yes 'yes\n'
+can_case "yes avec suffixe" yes 'yes - reason\n'
+can_case "sortie vide refusée" "" ''
+can_case "ligne vide refusée" "" '\n\n'
+can_case "valeur inconnue refusée" "" 'maybe\n'
+can_case "préfixe de mot refusé" "" 'yesterday\n'
+can_case "casse refusée" "" 'Yes\n'
+can_case "erreur refusée" "" 'error: forbidden\n'
+can_case "premier mot seulement (no puis yes)" no 'no\nyes\n'
+
 # 8. syntaxe
-for s in scripts/kubectl-rw.sh scripts/agent-operator-token.sh scripts/agent-operator-oke-token.sh scripts/kubectl-ro.sh scripts/lib/kube-preflight.sh; do check "bash -n $s" bash -n "$s"; done
+for s in scripts/kubectl-rw.sh scripts/agent-operator-token.sh scripts/agent-operator-oke-token.sh scripts/lib/kube-can-i.sh scripts/kubectl-ro.sh scripts/lib/kube-preflight.sh; do check "bash -n $s" bash -n "$s"; done
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck (warning)" shellcheck -S warning -x -P SCRIPTDIR scripts/kubectl-rw.sh scripts/agent-operator-token.sh tests/agent-guard/agent-operator-identity-test.sh
 fi

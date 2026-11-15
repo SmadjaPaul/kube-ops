@@ -28,6 +28,8 @@ mode=${1:-}
 case "$mode" in --provision|--verify) ;; *) die "usage : --provision | --verify" 64 ;; esac
 [[ "$DURATION" =~ ^[0-9]{1,5}h$ ]] || die "AGENT_TOKEN_DURATION invalide (ex. 720h)" 64
 export KUBERC=off
+# shellcheck source=lib/kube-can-i.sh
+source "$HERE/lib/kube-can-i.sh"
 
 verify_agent() { # KUBECONFIG courant = identité agent
   local who fails=0
@@ -36,7 +38,8 @@ verify_agent() { # KUBECONFIG courant = identité agent
   can() { # can ATTENDU args...
     local want=$1 got
     shift
-    got=$(kubectl --request-timeout=15s auth can-i "$@" 2>/dev/null)
+    # OKE suffixe la réponse (« no - . Opc-Request-Id: <nil> ») : premier mot, yes|no seulement
+    got=$(kubectl --request-timeout=15s auth can-i "$@" 2>/dev/null | kube_can_i_answer)
     if [ "$got" = "$want" ]; then echo "CHECK can-i $* = $got PASS"; else echo "CHECK can-i $* = '$got' (attendu $want) FAIL"; fails=1; fi
   }
   can no get secrets --all-namespaces
