@@ -68,12 +68,12 @@ patches:
       apiVersion: postgresql.cnpg.io/v1
       kind: ScheduledBackup
       metadata: {name: polyfin-postgresql-weekly}
-  - target: {kind: Backup, name: polyfin-postgresql-qualification-20261027}
+  - target: {kind: Backup, name: polyfin-r2-initial-20261115}
     patch: |-
       $patch: delete
       apiVersion: postgresql.cnpg.io/v1
       kind: Backup
-      metadata: {name: polyfin-postgresql-qualification-20261027}
+      metadata: {name: polyfin-r2-initial-20261115}
   - target: {kind: CiliumNetworkPolicy, name: polyfin-pilot}
     patch: |-
       $patch: delete

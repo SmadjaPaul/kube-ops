@@ -5,6 +5,7 @@ resources:
   - cluster.yaml
   - backup.yaml
   - backup-r2.yaml
+  - backup-r2-initial.yaml
   - external-secret.yaml
   - radios-configmap.yaml
   - pvc.yaml
