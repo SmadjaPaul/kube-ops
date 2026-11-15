@@ -17,6 +17,13 @@ entries:
     model: authentik_core.group
     identifiers: {name: family}
     attrs: {name: family}
+  # PLT-176 usage classes. `friends`: only applications whose cost does not
+  # change with the number of users (marginal cost zero). Never a member of
+  # `family` by default; an invitation for a friend never adds `family`.
+  - id: friends
+    model: authentik_core.group
+    identifiers: {name: friends}
+    attrs: {name: friends, is_superuser: false}
   - id: dev
     model: authentik_core.group
     identifiers: {name: dev}

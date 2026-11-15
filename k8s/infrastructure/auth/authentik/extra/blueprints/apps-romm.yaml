@@ -75,6 +75,15 @@ entries:
     attrs:
       order: 20
 
+  # PLT-176: marginal cost zero, open to `friends`.
+  - id: romm_friends_binding
+    model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf romm_application
+      group: !Find [authentik_core.group, [name, "friends"]]
+    attrs:
+      order: 30
+
   - id: romm_admin_binding
     model: authentik_policies.policybinding
     identifiers:
