@@ -24,3 +24,81 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # PLT-346: probes resolve *.smadja.dev to the internal Gateway VIP through
+    # CoreDNS -> UniFi, so they are Gateway hairpins. Cilium's L7 proxy answers
+    # 403 unless the client may reach the VIP and the routed backend Pod and
+    # backend port (cilium/cilium#47617; same pattern as Matrix MAS, AIOStreams,
+    # mastra-factory, Polyfin). Additive: the world:443 rule above is unchanged,
+    # the shared "ingress" entity is deliberately not allowed. Every backend's
+    # own ingress policy already admits the ingress entity on these ports.
+    - toCIDRSet:
+        - cidr: 10.0.20.192/32
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # auth.smadja.dev (authentik-ui and the three OIDC discovery probes)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: TCP
+    # argocd.smadja.dev
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: argocd
+            app.kubernetes.io/name: argocd-server
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # chat.smadja.dev (Element Web, Matrix namespace)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: matrix
+            app.kubernetes.io/instance: matrix-element-web
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # ntfy.smadja.dev
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ntfy
+            app.kubernetes.io/name: ntfy
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # immich.smadja.dev
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: immich
+            app.kubernetes.io/name: server
+            app.kubernetes.io/instance: immich
+      toPorts:
+        - ports:
+            - port: "2283"
+              protocol: TCP
+    # hassio.smadja.dev
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: home-assistant
+            app.kubernetes.io/name: home-assistant
+      toPorts:
+        - ports:
+            - port: "8123"
+              protocol: TCP
+    # aiostreams.smadja.dev (internal Gateway only)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: aiostreams
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
