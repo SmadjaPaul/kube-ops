@@ -54,6 +54,7 @@ check:
     bash tests/harness/d-recovery-contract-test.sh
     bash tests/agent-guard/agent-operator-identity-test.sh
     bash tests/harness/cnpg-cluster-allowlist-test.sh
+    bash tests/harness/db-storage-tier-guard-test.sh
     bash tests/harness/verify-delivery-test.sh
     bash tests/harness/scaffold-oke-app-test.sh
     bash tests/harness/agent-e2e-run-test.sh
