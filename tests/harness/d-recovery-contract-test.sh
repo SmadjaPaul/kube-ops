@@ -32,8 +32,38 @@ grep -F 'firing' "$alert_doc" >/dev/null
 grep -F 'resolved' "$alert_doc" >/dev/null
 grep -F 'deduplicated' "$alert_doc" >/dev/null
 grep -F 'unauthenticated publisher cannot publish' "$alert_doc" >/dev/null
-if grep -Eiq 'ntfy|receiver:' "$prom_values"; then
-  echo 'ERROR: Alertmanager-to-ntfy activation leaked into desired values' >&2
+# PLT-263 (kube-ops#1471, D-2026-11-13-02): the receivers are ACTIVE. This test
+# protects the active shape instead of forbidding it: receiver URLs come only
+# from Doppler-backed ExternalSecret files, never from values or plain Secrets.
+alert_secrets="$repo_root/k8s/infrastructure/monitoring/prometheus-stack/alertmanager-secrets.yaml"
+test -f "$alert_secrets" || { echo "ERROR: missing $alert_secrets" >&2; exit 1; }
+am_check() {
+  yq -e "$1" "$prom_values" >/dev/null ||
+    { echo "ERROR: Alertmanager receivers not in the intended active shape: $2" >&2; exit 1; }
+}
+am_check '.alertmanager.config.receivers | map(.name) | contains(["healthchecks-watchdog", "ntfy-critical"])' receivers-present
+am_check '[.alertmanager.config.route.routes[] | select(.receiver == "healthchecks-watchdog")] | length == 1' watchdog-route-single
+am_check '[.alertmanager.config.route.routes[] | select(.receiver == "healthchecks-watchdog")] | .[0].matchers[0] == "alertname = Watchdog"' watchdog-route-matcher
+am_check '[.alertmanager.config.route.routes[] | select(.receiver == "healthchecks-watchdog")] | .[0].repeat_interval | test("^([1-5]m|[0-9]+s)$")' watchdog-route-short-repeat
+am_check '[.alertmanager.config.route.routes[] | select(.receiver == "ntfy-critical")] | length == 1' ntfy-route
+am_check '[.alertmanager.config.receivers[] | select(.name == "ntfy-critical") | .webhook_configs[] | select(.send_resolved == true and .url_file == "/etc/alertmanager/secrets/alertmanager-ntfy-url/url")] | length == 1' ntfy-url-file-resolved
+am_check '[.alertmanager.config.receivers[] | select(.name == "healthchecks-watchdog") | .webhook_configs[] | select(.url_file == "/etc/alertmanager/secrets/alertmanager-healthchecks-ping/url")] | length == 1' watchdog-url-file
+am_check '[.alertmanager.config.receivers[].webhook_configs[]? | select(has("url"))] | length == 0' no-inline-url
+am_check '.alertmanager.alertmanagerSpec.secrets | contains(["alertmanager-healthchecks-ping", "alertmanager-ntfy-url"])' secrets-mounted
+if grep -Eiq 'hc-ping\.com|ntfy\.sh|https?://[^ ]*(ntfy|hc-ping)' "$prom_values"; then
+  echo 'ERROR: Alertmanager receiver URL or token appears in values.yaml (must be an ExternalSecret file)' >&2
+  exit 1
+fi
+yq -e '
+  .kind == "ExternalSecret" and
+  .spec.secretStoreRef.name == "doppler-cluster" and
+  .spec.secretStoreRef.kind == "ClusterSecretStore" and
+  (.spec.data | length == 1) and
+  (.spec.data[0].remoteRef.key | test("^(HEALTHCHECKS_WATCHDOG_PING_URL|ALERTMANAGER_NTFY_URL)$"))
+' "$alert_secrets" >/dev/null || { echo 'ERROR: Alertmanager ExternalSecret is not Doppler-backed as intended' >&2; exit 1; }
+if [ "$(grep -c '^kind: ExternalSecret$' "$alert_secrets")" -ne 2 ] ||
+  grep -Eq '^kind: Secret$|^[[:space:]]*(stringData|value):|property: value' "$alert_secrets"; then
+  echo 'ERROR: alertmanager-secrets.yaml must hold exactly two ExternalSecrets and no plaintext Secret material' >&2
   exit 1
 fi
 
