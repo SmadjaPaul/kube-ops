@@ -2,8 +2,6 @@
 # Golden path: homelab-infra docs/operations/db-storage-golden-path.md (all databases and their WAL on longhorn-fast).
 # Format: Kind<TAB>namespace/name<TAB>written reason (lot that removes it). A new line needs a reason; a line that matches nothing fails.
 # Never add a line to make a new database pass: put the new database on longhorn-fast.
-Cluster	matrix/matrix-mas-postgresql-clean	Matrix identity, protected: migration to longhorn-fast in lot 4 with verified dumps and a window chosen by Paul.
-Cluster	matrix/matrix-synapse-postgresql	Matrix identity, protected: migration to longhorn-fast in lot 4 with verified dumps and a window chosen by Paul.
 Cluster	hindsight-personal/hindsight-db	Existing before the guard; lot 3 moves it to pg-shared (D-2026-11-13-02) or to longhorn-fast.
 Cluster	wellness/sparkyfitness-db	Existing before the guard; lot 3 (drill of the 2-instances + switchover method), then pg-shared (D-2026-11-13-02).
 Cluster	mastra-factory/mastra-factory-postgresql	Factory frozen, near-zero writes; lot 3 or retirement with Factory.
