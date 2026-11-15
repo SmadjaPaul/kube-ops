@@ -10,6 +10,7 @@ resources:
   - polyfin-oci-networkpolicy.yaml
   - hetzner-object-storage-networkpolicy.yaml
   - grafana-cloud-networkpolicy.yaml
+  - healthchecks-networkpolicy.yaml
   - netbird-networkpolicy.yaml
   - proxmox-api-networkpolicy.yaml
   - unifi-api-networkpolicy.yaml
