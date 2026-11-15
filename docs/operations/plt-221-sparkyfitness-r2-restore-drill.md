@@ -254,3 +254,36 @@ drill destination), #1371 (drill), this PR (teardown).
   had archived `…1A` (17:26:14Z) before the drill; the drill promoted on
   timeline 2 (current segment `…0200001F0000001D`). Production stayed on
   timeline 1, `Ready`, `ContinuousArchiving` and `LastBackupSucceeded` true.
+
+### media/polyfin-db — PLT-227 (#1302, #1460, #1463, teardown)
+
+- Cutover (#1302, admission workflow-integrity #1452 par D-2026-11-15-03) merged
+  01:38:57Z (Paris 02:38). Argo applied it only after a fix of the
+  `bookorbit-postgresql` network policy (#1458: no ingress for the CNPG
+  operator on port 8000, so `apps-media` waited forever on that Cluster's
+  health; the stuck sync was ended with `argo-terminate-stuck-sync.sh`).
+  `Ready=False` 01:48:34Z to 01:52:14Z (**3 min 40 s**, smart shutdown as for
+  the earlier clusters). First R2 segment `…0A00000079` at 01:52:07Z.
+- **A second Hetzner base was taken by mistake after the cutover.** The
+  one-shot `Backup polyfin-postgresql-qualification-20261027` (Hetzner store)
+  was recreated by Argo and ran at 01:52:47Z; its WAL went to R2, so it is
+  **not restorable from Hetzner alone**. #1460 removes the manifest (objects
+  stay). A Hetzner rollback must use the weekly base of 2026-11-08 06:30Z
+  explicitly, never "latest", after checking the Hetzner WAL sequence for gaps.
+- Window without an R2 recovery point: 01:48:34Z to 01:57:00Z (8 min 26 s, base
+  `polyfin-r2-initial-20261115`, completed 01:57:00Z, WAL `…0A0000007F`).
+- Drill: #1463 merged 02:01:41Z; `apps-platform` was held about 6 min by
+  failing Fleet `ExternalSecret`s of another ticket (PLT-315); `Cluster`
+  created 02:07:52Z, `Ready` timeline 2 at 02:08:55Z. **RTO 7 min 14 s** from
+  merge (about 63 s of restore after creation, 6 min of Argo queue).
+- **RPO: not measured segment by segment.** Production archived `…0A00000081`
+  at 02:07:02Z, 45 s before the drill cluster was created, and no later segment
+  before recovery ended; the replayed segment was not logged (the recovery Job
+  pod was gone). The structural bound is `archive_timeout` 5 min.
+- Control query (read-only, counts and `max()` only): `in_recovery=false`,
+  150 tables, `users=4`, `items=18631`, `devices=60`, `activity_log=758`,
+  newest `items.updated_at` 2026-11-15 00:40:51Z, database 47 MB.
+  Production stayed on timeline 1, `Ready`, `ContinuousArchiving` true, no
+  archiver error; the drill pod ran PostgreSQL only with the `restore-ro`
+  identity.
+

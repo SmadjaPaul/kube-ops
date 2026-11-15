@@ -22,7 +22,6 @@ La consolidation se fait au fil de l'eau, une base à la fois, avec restauration
 | `romm-postgresql` | RomM | à consolider | `pg-shared` |
 | `bookorbit-postgresql` | BookOrbit | à consolider | `pg-shared` |
 | `polyfin-db` | Polyfin | à consolider | `pg-shared` |
-| `polyfin-db-restore` | Polyfin (drill de restauration PLT-227, temporaire) | à consolider | retrait après le drill |
 | `pinepods-db` | PinePods | à consolider | `pg-shared` |
 | `lasuite-docs-db` | La Suite | à consolider | `pg-shared` |
 | `lasuite-yhub-db` | La Suite | à consolider | `pg-shared` |
