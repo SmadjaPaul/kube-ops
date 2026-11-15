@@ -30,7 +30,7 @@ scan() {
 import json, re, sys
 f = sys.argv[1]
 BULK = "longhorn-bulk"
-DB_IMAGE = re.compile(r"^(postgres|postgresql|mysql|mariadb|mongo|mongodb|redis|valkey|percona[a-z0-9-]*)$")
+DB_IMAGE = re.compile(r"^(postgres|postgresql|postgresql-repmgr|postgis|timescaledb[a-z0-9-]*|mysql|mysql-server|mariadb|mariadb-galera|mongo|mongodb|redis|redis-stack-server|valkey|percona[a-z0-9-]*)$")
 DB_KEY = re.compile(r"^(mongodb|mongo|mysql|mariadb|postgresql|postgres|redis|valkey|database)$")
 DB_NAME = re.compile(r"(mysql|mariadb|mongo|postgres|redis|valkey|database|(^|-)pg[0-9]*(-|$)|(^|-)db(-|$))")
 def image_name(ref):
@@ -113,6 +113,17 @@ spec:
     - metadata: {name: data}
       spec: {storageClassName: longhorn-bulk}
 ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: bad-repmgr, namespace: fx}
+spec:
+  template:
+    spec:
+      containers: [{name: db, image: "docker.io/bitnami/postgresql-repmgr:16.4.0"}]
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec: {storageClassName: longhorn-bulk}
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata: {name: app-mongodb, namespace: fx}
@@ -156,7 +167,9 @@ metadata: {name: jellyfin, namespace: fx}
 spec:
   template:
     spec:
-      containers: [{name: app, image: "ghcr.io/jellyfin/jellyfin:10.10.0"}]
+      containers:
+        - {name: app, image: "ghcr.io/jellyfin/jellyfin:10.10.0"}
+        - {name: metrics, image: "quay.io/prometheuscommunity/postgres-exporter:v0.15.0"}
   volumeClaimTemplates:
     - metadata: {name: media}
       spec: {storageClassName: longhorn-bulk}
@@ -166,7 +179,8 @@ expected="Cluster fx/bad-pg
 Cluster fx/listed-pg
 HelmValues argocd/chat:spec.source.helm.valuesObject.mongodb
 PersistentVolumeClaim fx/app-mongodb
-StatefulSet fx/bad-mysql"
+StatefulSet fx/bad-mysql
+StatefulSet fx/bad-repmgr"
 if [ "$(cut -d' ' -f1,2 "$tmp/fx.out" | LC_ALL=C sort)" != "$expected" ]; then
   echo "ERROR: self-test failed; scanner output:" >&2
   cat "$tmp/fx.out" >&2
