@@ -57,8 +57,9 @@ PVCs are explicitly marked as the recurring-job source:
 
 - `agentgateway/agentgateway-state` — SQLite; snapshot/restore validation
   must run `PRAGMA integrity_check` and a read-only application-level check.
-- `atlantis-system/atlantis-pilot-data` — protect the dormant pilot state;
-  GitHub App readiness remains a separate blocker.
+- `atlantis-system/atlantis-pilot-data` — dormant pilot state; deleted on
+  purpose under MANDAT 16 (D-2026-11-16-05), no backup on R2, no longer
+  protected.
 - `listmonk/listmonk-uploads` — PVC deleted 2026-11-03; PV Released, data-only.
 - `twenty/twenty-storage` — PVC deleted 2026-11-03; PV Released, data-only.
 

@@ -1,18 +1,23 @@
 # Atlantis retirement contract v1
 
 **Status:** retired from the active Kubernetes desired state after the ARC
-Polyfin no-op qualification, with recovery storage retained.
+Polyfin no-op qualification; the recovery volume is deleted under MANDAT 16.
 
 The infrastructure ApplicationSet still reconciles
 `k8s/poc/atlantis-plan-only`, but that path now renders only the existing
-`atlantis-system` namespace and `atlantis-pilot-data` PVC. It does not render a
-workload, Service, route, ExternalSecret, Secret, admission hook, network
-policy or monitoring object.
+`atlantis-system` namespace and, temporarily, the one-shot cleanup Job with its
+ServiceAccount, RBAC and script copy. It does not render a workload, Service,
+route, ExternalSecret, Secret, admission hook, network policy, monitoring
+object or PVC.
 
-The PVC is deliberately retained with `Delete=false`, Longhorn off-site backup
-labels and `recovery-only` metadata. No state, volume or OCI credential is
-deleted by this retirement. `scripts/live-tofu.sh` in `homelab-infra` remains
-the operator emergency path.
+The recovery PVC `atlantis-system/atlantis-pilot-data` was first retained with
+`Delete=false`, Longhorn off-site backup labels and `recovery-only` metadata.
+Paul then decided to delete it (MANDAT 16, D-2026-11-16-05 in `homelab-infra`):
+the definition left Git and the cleanup Job deletes the PVC, its PV and its
+Longhorn volume once, pinned by name and UID. The data had no backup on R2 and
+is irreversibly lost. A follow-up PR removes the Job and its RBAC. No OCI
+credential or other state is deleted by this retirement.
+`scripts/live-tofu.sh` in `homelab-infra` remains the operator emergency path.
 
 ## Guarantees and difference from Atlantis
 

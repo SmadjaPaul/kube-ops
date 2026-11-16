@@ -49,51 +49,42 @@ grep -F 'storage: 1Gi' "$immich_pvc" >/dev/null
 
 for file in \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml" \
-  "$repo_root/k8s/poc/atlantis-plan-only/pvc-retention.yaml" \
   "$repo_root/k8s/applications/business/invoice-ninja/storage.yaml" \
   "$repo_root/k8s/applications/catalog/sure/storage.yaml"; do
   grep -F 'recurring-job.longhorn.io/source: enabled' "$file" >/dev/null
   grep -F 'recurring-job.longhorn.io/persistent-offsite-backup: enabled' "$file" >/dev/null
 done
 
-# PLT-210: the former `! rg ... | rg 'pvc-retention|agentgateway-state|...'`
-# assertion could never pass once effective: it matched the file name that rg
-# prefixes to each hit, and both files legitimately declare a full PVC spec.
-# Keep the intent (the retained PVCs keep an explicit, unchanged storage tier)
-# as a positive check on the PVC objects themselves.
+# PLT-210: the retained PVC keeps an explicit, unchanged storage tier, checked as a
+# positive assertion on the PVC object itself.
 agentgateway_sc="$(yq -r 'select(.kind == "PersistentVolumeClaim" and .metadata.name == "agentgateway-state") | .spec.storageClassName' \
   "$repo_root/k8s/applications/platform/agentgateway/resources.yaml")"
-atlantis_sc="$(yq -r '.spec.storageClassName' "$repo_root/k8s/poc/atlantis-plan-only/pvc-retention.yaml")"
-if [[ "$agentgateway_sc" != 'longhorn-fast' || "$atlantis_sc" != 'longhorn-fast' ]]; then
-  echo "LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retained PVC storage tier changed (agentgateway-state=$agentgateway_sc atlantis-pilot-data=$atlantis_sc)" >&2
+if [[ "$agentgateway_sc" != 'longhorn-fast' ]]; then
+  echo "LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retained PVC storage tier changed (agentgateway-state=$agentgateway_sc)" >&2
   exit 1
 fi
 
-# Retired Atlantis recovery volume (PLT-205; absorbs the former dedicated
-# Atlantis retirement tests). The Argo root must keep owning the recovery PVC,
-# must keep it out of prune, and must not carry any workload, route, credential
-# or policy object again.
+# Retired Atlantis root (PLT-205, PLT-46; MANDAT 16 of D-2026-11-16-05). The recovery PVC
+# atlantis-pilot-data is deleted for good: the root must not define it again (Argo would
+# recreate it empty) and must not carry any workload, route or credential object. It only
+# keeps the namespace and the one-shot cleanup Job (ServiceAccount, RBAC, script, Job), removed
+# by a follow-up PR; a verbatim copy of the cleanup script must stay identical to scripts/.
 atlantis_root="$repo_root/k8s/poc/atlantis-plan-only"
 grep -F -- '- path: k8s/poc/atlantis-plan-only' \
   "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" >/dev/null
 test "$(find "$atlantis_root" -type f -exec basename {} \; | sort | tr '\n' ' ')" = \
-  'kustomization.yaml namespace.yaml pvc-retention.yaml '
+  'cleanup-atlantis-pilot-data.yaml kustomization.yaml namespace.yaml released-pv-cleanup.sh '
+cmp -s "$repo_root/scripts/released-pv-cleanup.sh" "$atlantis_root/released-pv-cleanup.sh"
 atlantis_rendered="$(mktemp)"
 trap 'rm -f "$atlantis_rendered"' EXIT
 kustomize build "$atlantis_root" >"$atlantis_rendered"
-test "$(grep -c '^kind:' "$atlantis_rendered")" = 2
 grep -q '^kind: Namespace$' "$atlantis_rendered"
 grep -q '^  name: atlantis-system$' "$atlantis_rendered"
-grep -q '^kind: PersistentVolumeClaim$' "$atlantis_rendered"
-grep -q '^  name: atlantis-pilot-data$' "$atlantis_rendered"
-grep -q 'argocd.argoproj.io/sync-options: Delete=false' "$atlantis_rendered"
-grep -q 'atlantis.smadja.dev/retention: recovery-only' "$atlantis_rendered"
-grep -q 'atlantis.smadja.dev/server: retired' "$atlantis_rendered"
-grep -q 'storageClassName: longhorn-fast' "$atlantis_rendered"
-grep -q 'storage: 5Gi' "$atlantis_rendered"
-if grep -Eq '^kind: (StatefulSet|Deployment|Service|HTTPRoute|ExternalSecret|Secret|ConfigMap|CiliumNetworkPolicy)$' \
+grep -q '^kind: Job$' "$atlantis_rendered"
+grep -q -- '--atlantis-pilot --execute' "$atlantis_rendered"
+if grep -Eq '^kind: (PersistentVolumeClaim|StatefulSet|Deployment|Service|HTTPRoute|ExternalSecret|Secret|CiliumNetworkPolicy)$' \
   "$atlantis_rendered"; then
-  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retired Atlantis root renders a workload, route or credential object' >&2
+  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retired Atlantis root renders a PVC, workload, route or credential object' >&2
   exit 1
 fi
 if rg -n 'atlantis-servicemonitor|atlantis-observability|atlantis-pilot' \
