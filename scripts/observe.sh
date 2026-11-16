@@ -55,7 +55,7 @@ if [ "$local_mode" -eq 0 ] && [ -z "${GRAFANA_AGENT_READ_TOKEN:-}" ]; then
     die "GRAFANA_AGENT_READ_TOKEN absent or Doppler unreachable; nothing queried (retry with --local for in-cluster Prometheus)"
   fi
   export OBSERVE_INNER=1
-  exec bash "$HERE/doppler-safe.sh" run -- bash "$HERE/observe.sh" "$@"
+  exec bash "$HERE/doppler-safe.sh" run --only GRAFANA_AGENT_READ_TOKEN -- bash "$HERE/observe.sh" "$@"
 fi
 
 failed=0

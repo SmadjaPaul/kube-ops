@@ -40,7 +40,7 @@ if [[ -z ${GRAFANA_AGENT_READ_TOKEN:-} ]]; then
   [[ -z ${VERIFY_DELIVERY_INNER:-} ]] || blocked "GRAFANA_AGENT_READ_TOKEN missing after Doppler injection"
   here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
   rc=0
-  out=$(VERIFY_DELIVERY_INNER=1 bash "$here/doppler-safe.sh" run -- bash "${BASH_SOURCE[0]}" "${orig_args[@]}" 2>&1) || rc=$?
+  out=$(VERIFY_DELIVERY_INNER=1 bash "$here/doppler-safe.sh" run --only GRAFANA_AGENT_READ_TOKEN -- bash "${BASH_SOURCE[0]}" "${orig_args[@]}" 2>&1) || rc=$?
   # The inner run always prints a VERIFY= line. Without it, Doppler failed before launching it.
   if (( rc <= 2 )) && grep -q '^VERIFY=' <<<"$out"; then printf '%s\n' "$out"; exit "$rc"; fi
   blocked "Doppler token injection failed before verification (exit $rc); authenticate Doppler"

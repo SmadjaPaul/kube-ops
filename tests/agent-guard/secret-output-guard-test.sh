@@ -108,7 +108,7 @@ case "\$*" in
   "secrets set"*|"secrets delete"*)
     cat >/dev/null
     echo "| NAME | VALUE | $SENTINEL |"; echo "error table $SENTINEL" >&2 ;;
-  run*) shift; while [ "\$1" != -- ]; do shift; done; shift
+  run*) echo "\$*" >>"$WORK/doppler-run-args"; shift; while [ "\$1" != -- ]; do shift; done; shift
     exec env FAKE_TOKEN="$SENTINEL" FAKE_PEM="-----BEGIN-----
 line-two-$SENTINEL" "\$@" ;;
   *) echo "unexpected: \$*" >&2; exit 9 ;;
@@ -129,11 +129,43 @@ out=$(bash "$SAFE" delete FOO 2>&1); rc=$?
   && ok "doppler-safe delete : tableau supprimé, présence vérifiée par les noms" || ko "doppler-safe delete ($rc: $out)"
 out=$(bash "$SAFE" delete BAZ 2>&1); rc=$?
 [ "$rc" = 0 ] && [ "$out" = "BAZ : absent" ] && ok "doppler-safe delete : absence confirmée" || ko "doppler-safe delete absent ($rc)"
-out=$(bash "$SAFE" run -- sh -c 'echo "tok=$FAKE_TOKEN"; echo "pem=$FAKE_PEM" >&2; exit 5' 2>&1); rc=$?
+out=$(bash "$SAFE" run --only FAKE_TOKEN,FAKE_PEM -- sh -c 'echo "tok=$FAKE_TOKEN"; echo "pem=$FAKE_PEM" >&2; exit 5' 2>&1); rc=$?
 [ "$rc" = 5 ] && ! grep -q "$SENTINEL" <<<"$out" && grep -q 'tok=\[MASQUÉ\]' <<<"$out" \
   && ok "doppler-safe run : valeurs masquées sur stdout et stderr, code conservé" || ko "doppler-safe run ($rc: $out)"
 out=$(bash "$SAFE" bogus 2>&1); rc=$?
 [ "$rc" = 64 ] && ok "doppler-safe : sous-commande inconnue refusée" || ko "doppler-safe bogus ($rc)"
+grep -q -- "^run -p infrastructure -c prd --only-secrets FAKE_TOKEN,FAKE_PEM -- python3 -I " "$WORK/doppler-run-args" \
+  && ok "doppler-safe run : --only-secrets transmis à Doppler" || ko "doppler-safe run : arguments Doppler ($(cat "$WORK/doppler-run-args" 2>/dev/null))"
+
+# run without --only (injecting everything) and every malformed --only: refused before any Doppler call
+rm -f "$WORK/doppler-run-args"
+for args in "run -- true" "run -p cluster -c prd -- true" "run --only -- true" "run --only '' -- true" "run --only 'A,,B' -- true" \
+            "run --only '*' -- true" "run --only 'a-b' -- true" "run --only 'FOO BAR' -- true" "run --only 'FOO;id' -- true" \
+            "run --only '\$(id)' -- true" "run --only FOO" "run --only FOO --" \
+            "run --only K1,K2,K3,K4,K5,K6,K7,K8,K9,K10,K11,K12,K13,K14,K15,K16,K17 -- true" "names --only FOO" "has FOO --only FOO"; do
+  out=$(eval "bash \"\$SAFE\" $args" 2>&1); rc=$?
+  [ "$rc" = 64 ] && ok "doppler-safe refuse : $args" || ko "doppler-safe laisse passer : $args ($rc)"
+done
+[ ! -f "$WORK/doppler-run-args" ] && ok "doppler-safe : refus avant tout appel doppler run" || ko "doppler-safe : doppler run appelé après un refus"
+
+# closed list of project/config pairs, for every subcommand
+for pc in "-p other -c prd" "-p infrastructure -c dev" "-p cluster -c stg" "-p apps -c dev" "-p ../x -c prd" "-p infrastructure -c prd/x" "-p '' -c prd"; do
+  for sub in "names @PC@" "has FOO @PC@" "delete FOO @PC@" "set FOO @PC@" "run --only FOO @PC@ -- true"; do
+    cmd=${sub//@PC@/$pc}
+    out=$(printf x | eval "bash \"\$SAFE\" $cmd" 2>&1); rc=$?
+    [ "$rc" = 64 ] && ok "doppler-safe refuse hors liste : $cmd" || ko "doppler-safe laisse passer : $cmd ($rc)"
+  done
+done
+[ ! -f "$WORK/doppler-run-args" ] && ok "doppler-safe : projet/config refusé avant tout appel doppler" || ko "doppler-safe : doppler appelé pour un projet refusé"
+for pc in "-p infrastructure -c prd" "-p cluster -c prd" "-p apps -c prd" "--project cluster --config prd"; do
+  # shellcheck disable=SC2086 # word splitting wanted
+  out=$(bash "$SAFE" names $pc 2>&1)
+  [ "$out" = $'BAR\nFOO' ] && ok "doppler-safe admet : $pc" || ko "doppler-safe refuse à tort : $pc"
+done
+rm -f "$WORK/doppler-run-args"
+out=$(bash "$SAFE" run --only FAKE_TOKEN --only FOO -p cluster -c prd -- true 2>&1); rc=$?
+grep -q -- "^run -p cluster -c prd --only-secrets FAKE_TOKEN,FOO -- " "$WORK/doppler-run-args" \
+  && ok "doppler-safe run : --only répétable, -p/-c de la liste" || ko "doppler-safe run --only répété ($rc: $out)"
 unset DOPPLER_SAFE_BIN
 
 # --- 5. kubectl-ro.sh refuses before any cluster access (fake kubectl/doppler record calls)
@@ -215,6 +247,82 @@ for args in "get pods -A -o wide" "get pods -nmonitoring -owide" "get secret -on
   PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" $args >/dev/null 2>&1; rc=$?
   [ "$rc" = 0 ] && [ -f "$WORK/raw-args" ] && ok "kubectl-ro autorise : $args" || ko "kubectl-ro refuse à tort : $args ($rc)"
 done
+
+# --- 6. kubectl-ro.sh: identity (PLT-312 M5) and `auth whoami`
+rm -f "$WORK/called"
+for args in "auth" "auth can-i get pods" "auth reconcile -f x.yaml" "auth whoami -o yaml" "auth whoami --as x" "auth whoami extra" \
+            "--cluster oracle-a1 auth can-i get secrets" "auth whoami --kubeconfig /tmp/k"; do
+  # shellcheck disable=SC2086 # word splitting wanted
+  PATH="$WORK/bin:$PATH" bash "$RO" $args >/dev/null 2>&1; rc=$?
+  [ "$rc" = 64 ] && ok "kubectl-ro refuse : $args" || ko "kubectl-ro laisse passer : $args ($rc)"
+done
+KUBECTL_RO_IDENTITY=bogus PATH="$WORK/bin:$PATH" bash "$RO" get pods >/dev/null 2>&1; rc=$?
+[ "$rc" = 64 ] && ok "kubectl-ro refuse : KUBECTL_RO_IDENTITY inconnu" || ko "kubectl-ro : KUBECTL_RO_IDENTITY inconnu accepté ($rc)"
+[ ! -f "$WORK/called" ] && ok "kubectl-ro identité : refus avant tout appel kubectl/doppler" || ko "kubectl-ro identité a appelé un outil"
+
+# fake preflight: records the Doppler copy asked for; the agent copy fails when FAKE_AGENT_OK=0
+cat >"$WORK/ro/scripts/lib/kube-preflight.sh" <<'FAKEPF'
+kube_access_cleanup() { :; }
+require_kube_access() {
+  echo "${KUBE_ACCESS_KUBECONFIG_SECRET:-OPERATOR}" >>"$FAKE_LOG"
+  if [ -n "${KUBE_ACCESS_KUBECONFIG_SECRET:-}" ] && [ "${FAKE_AGENT_OK:-1}" = 0 ]; then
+    printf 'KUBE_ACCESS=BLOCKED\nREASON=api_unreachable\nNEXT_ACTION=X\n' >&2; return 2
+  fi
+  export KUBE_ACCESS_SOURCE=fake-${KUBE_ACCESS_KUBECONFIG_SECRET:-operator}
+  echo KUBE_ACCESS=PASS
+}
+FAKEPF
+cat >"$WORK/robin/kubectl" <<'FAKEKC'
+#!/bin/sh
+case "$*" in
+  *"auth whoami"*) printf '%s' "${FAKE_WHO:-system:serviceaccount:agent-operator:agent-operator}" ;;
+  *) printf '%s\n' "$*" >"$FAKE_DIR/real-args" ;;
+esac
+FAKEKC
+chmod +x "$WORK/robin/kubectl"
+export FAKE_LOG="$WORK/acquired" FAKE_DIR="$WORK"
+ro_run() { : >"$FAKE_LOG"; rm -f "$WORK/real-args"; PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" "$@" 2>"$WORK/ro-err"; }
+
+ro_run get pods; rc=$?
+[ "$rc" = 0 ] && [ "$(cat "$FAKE_LOG")" = KUBERNETES_AGENT_OPERATOR_KUBECONFIG ] && [ -f "$WORK/real-args" ] && [ ! -s "$WORK/ro-err" ] \
+  && ok "kubectl-ro homelab : identité agent par défaut, sans avertissement" || ko "kubectl-ro défaut agent ($rc: $(cat "$FAKE_LOG"))"
+FAKE_AGENT_OK=0 ro_run get pods; rc=$?
+[ "$rc" = 0 ] && [ "$(tr '\n' ' ' <"$FAKE_LOG")" = "KUBERNETES_AGENT_OPERATOR_KUBECONFIG OPERATOR " ] && grep -q 'AVERTISSEMENT.*api_unreachable' "$WORK/ro-err" && [ -f "$WORK/real-args" ] \
+  && ok "kubectl-ro auto : copie agent indisponible, repli opérateur avec avertissement" || ko "kubectl-ro repli auto ($rc)"
+FAKE_WHO=kubernetes-admin ro_run get pods; rc=$?
+[ "$rc" = 0 ] && [ "$(tr '\n' ' ' <"$FAKE_LOG")" = "KUBERNETES_AGENT_OPERATOR_KUBECONFIG OPERATOR " ] && grep -q AVERTISSEMENT "$WORK/ro-err" \
+  && ok "kubectl-ro auto : identité inattendue, repli opérateur avec avertissement" || ko "kubectl-ro identité inattendue ($rc)"
+KUBECTL_RO_IDENTITY=agent FAKE_AGENT_OK=0 ro_run get pods; rc=$?
+[ "$rc" = 2 ] && [ ! -f "$WORK/real-args" ] && [ "$(cat "$FAKE_LOG")" = KUBERNETES_AGENT_OPERATOR_KUBECONFIG ] \
+  && ok "kubectl-ro agent : pas de repli opérateur (exit 2, aucune commande)" || ko "kubectl-ro agent strict ($rc)"
+KUBECTL_RO_IDENTITY=agent FAKE_WHO=kubernetes-admin ro_run get pods; rc=$?
+[ "$rc" = 2 ] && [ ! -f "$WORK/real-args" ] && ok "kubectl-ro agent : identité inattendue refusée" || ko "kubectl-ro agent identité inattendue ($rc)"
+KUBECTL_RO_IDENTITY=operator ro_run get pods; rc=$?
+[ "$rc" = 0 ] && [ "$(cat "$FAKE_LOG")" = OPERATOR ] && [ -f "$WORK/real-args" ] \
+  && ok "kubectl-ro operator : copie opérateur seule (retour arrière)" || ko "kubectl-ro operator ($rc)"
+out=$(ro_run auth whoami); rc=$?
+[ "$rc" = 0 ] && [ "$out" = "cluster=homelab identity=system:serviceaccount:agent-operator:agent-operator source=fake-KUBERNETES_AGENT_OPERATOR_KUBECONFIG" ] && [ ! -f "$WORK/real-args" ] \
+  && ok "kubectl-ro auth whoami : identité et source, aucune autre commande" || ko "kubectl-ro auth whoami ($rc: $out)"
+out=$(FAKE_WHO=system:serviceaccount:argocd:agent-operator ro_run --cluster oracle-a1 auth whoami); rc=$?
+[ "$rc" = 0 ] && [ "$(cat "$FAKE_LOG")" = KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 ] && grep -q 'identity=system:serviceaccount:argocd:agent-operator' <<<"$out" \
+  && ok "kubectl-ro oracle-a1 : copie ServiceAccount OKE, whoami" || ko "kubectl-ro oracle-a1 whoami ($rc: $out)"
+FAKE_WHO=kubernetes-admin ro_run --cluster oracle-a1 get nodes; rc=$?
+[ "$rc" = 64 ] && [ ! -f "$WORK/real-args" ] && ok "kubectl-ro oracle-a1 : identité inattendue refusée" || ko "kubectl-ro oracle-a1 identité ($rc)"
+FAKE_AGENT_OK=0 ro_run --cluster oracle-a1 get nodes; rc=$?
+[ "$rc" = 2 ] && [ "$(cat "$FAKE_LOG")" = KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 ] \
+  && ok "kubectl-ro oracle-a1 : jamais de repli opérateur" || ko "kubectl-ro oracle-a1 repli ($rc)"
+unset FAKE_LOG FAKE_DIR
+
+# --- 7. agent token lifetime: 24 h maximum, refused before any kubectl/doppler call
+for script in agent-operator-token.sh agent-operator-oke-token.sh; do
+  for d in 720h 25h 48h 0h 24 24m 1d 100h -24h; do
+    AGENT_TOKEN_DURATION="$d" PATH="$WORK/bin:$PATH" bash "$ROOT/scripts/$script" --verify >/dev/null 2>&1; rc=$?
+    [ "$rc" = 64 ] && ok "$script : durée '$d' refusée" || ko "$script : durée '$d' admise ($rc)"
+  done
+done
+[ ! -f "$WORK/called" ] && ok "jetons agent : refus avant tout appel kubectl/doppler" || ko "jetons agent : outil appelé avant le contrôle de durée"
+grep -q 'DURATION=${AGENT_TOKEN_DURATION:-24h}' "$ROOT/scripts/agent-operator-token.sh" "$ROOT/scripts/agent-operator-oke-token.sh" \
+  && ok "jetons agent : durée par défaut 24 h" || ko "jetons agent : durée par défaut"
 
 echo "# $PASS ok, $FAIL échec(s)"
 [ "$FAIL" = 0 ]

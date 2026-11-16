@@ -3,7 +3,7 @@
 #
 # Usage :
 #   --provision  PAR PAUL (session administrateur OKE, ex. kubeconfig OCI en
-#                PRIVATE_ENDPOINT par NetBird) : TokenRequest 720 h pour
+#                PRIVATE_ENDPOINT par NetBird) : TokenRequest 24 h (AGENT_TOKEN_DURATION, au plus 24h) pour
 #                argocd/agent-operator, kubeconfig agent (serveur
 #                https://10.0.2.3:6443, CA de la session admin), écriture Doppler
 #                infrastructure/prd KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1
@@ -21,12 +21,14 @@ SA=agent-operator
 AGENT_USER=system:serviceaccount:$NS:$SA
 SECRET=KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1
 SERVER=https://10.0.2.3:6443
-DURATION=${AGENT_TOKEN_DURATION:-720h}
+# PLT-312 (M5): short-lived token, 24 h maximum (was 720 h). Renewed by Paul with --provision.
+DURATION=${AGENT_TOKEN_DURATION:-24h}
 
 die() { echo "agent-operator-oke-token: $1" >&2; exit "${2:-1}"; }
 mode=${1:-}
 case "$mode" in --provision|--verify) ;; *) die "usage : --provision | --verify" 64 ;; esac
-[[ "$DURATION" =~ ^[0-9]{1,5}h$ ]] || die "AGENT_TOKEN_DURATION invalide (ex. 720h)" 64
+[[ "$DURATION" =~ ^[0-9]{1,2}h$ ]] && [ "${DURATION%h}" -ge 1 ] && [ "${DURATION%h}" -le 24 ] ||
+  die "AGENT_TOKEN_DURATION invalide : 1h à 24h (ex. 24h), le jeton agent est de courte durée" 64
 export KUBERC=off
 # shellcheck source=lib/kube-can-i.sh
 source "$HERE/lib/kube-can-i.sh"

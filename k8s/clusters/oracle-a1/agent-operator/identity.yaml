@@ -1,5 +1,5 @@
 # PLT-257 : ServiceAccount agent-operator d'OKE. Le jeton n'est ni monté ni
-# stocké dans le cluster : il est émis par TokenRequest (720 h) par
+# stocké dans le cluster : il est émis par TokenRequest (24 h) par
 # scripts/agent-operator-oke-token.sh et distribué par Doppler
 # infrastructure/prd (KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 + _SHA256).
 # Namespace `argocd` : l'AppProject oracle-a1 est appliqué à la main (jamais
