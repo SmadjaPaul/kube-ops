@@ -48,6 +48,9 @@ global:
         name: authentik-blueprint-vikunja
     - secretRef:
         name: authentik-blueprint-miniflux
+        # Optional: a missing Doppler key must only skip this blueprint, never
+        # stop the Authentik server and worker pods (same as paperless/ntfy).
+        optional: true
     - secretRef:
         name: authentik-blueprint-invoice-ninja
     - secretRef:
@@ -241,7 +244,7 @@ worker:
   # wiring is applied to the existing worker pod. Subsequent ConfigMap changes
   # are handled by the Reloader annotation above.
   podAnnotations:
-    authentik.smadja.dev/blueprint-reconcile: "4"
+    authentik.smadja.dev/blueprint-reconcile: "5"
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
