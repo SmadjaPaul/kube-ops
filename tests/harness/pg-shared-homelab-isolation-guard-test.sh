@@ -24,17 +24,21 @@ trap 'rm -rf "$tmp"' EXIT
 # PUBLIC on <db>. Any parse error exits non-zero (fail closed, never silent).
 scan() {
   find "$1" \( -name '*.yaml' -o -name '*.yml' \) -type f | LC_ALL=C sort | while IFS= read -r f; do
-    # Helm templates ({{ }}) are not YAML until rendered: out of scope, as in
-    # db-storage-tier-guard. A template that mentions CNPG or pg-shared-homelab
-    # cannot be checked here, so it fails closed instead of being skipped.
-    if grep -q '{{' "$f"; then
-      if grep -qE 'postgresql\.cnpg\.io|REVOKE CONNECT|pg-shared-homelab' "$f"; then
-        echo "ERROR: ${f#"$1"/} is a Helm template that mentions CNPG: cannot be checked" >&2; exit 1
+    # Parse first: ExternalSecret templates ("{{ .KEY }}" inside quoted values,
+    # kube-ops#1593 miniflux/externalsecret.yaml) are valid YAML and are scanned.
+    # Only a file that does not parse AND carries Helm template syntax is out of
+    # scope (not YAML until rendered, as in db-storage-tier-guard). If such a file
+    # mentions CNPG or pg-shared-homelab it cannot be checked: fail closed.
+    # A file that does not parse and has no Helm syntax is a hard error.
+    if ! yq -o=json -I=0 'select(. != null)' "$f" > "$tmp/doc.json" 2>"$tmp/yq.err"; then
+      if grep -qE '\{\{-|\.Values|include |toYaml|\{\{ *(if|range|with|define|end|template|block) ' "$f"; then
+        if grep -qE 'postgresql\.cnpg\.io|REVOKE CONNECT|pg-shared-homelab' "$f"; then
+          echo "ERROR: ${f#"$1"/} is a Helm template that mentions CNPG: cannot be checked" >&2; exit 1
+        fi
+        continue
       fi
-      continue
+      echo "ERROR: cannot parse ${f#"$1"/} as YAML: $(head -1 "$tmp/yq.err")" >&2; exit 1
     fi
-    yq -o=json -I=0 'select(. != null)' "$f" > "$tmp/doc.json" \
-      || { echo "ERROR: cannot parse ${f#"$1"/} as YAML" >&2; exit 1; }
     python3 -I -c '
 import json, re, sys
 f = sys.argv[1]
@@ -242,6 +246,56 @@ fx="$tmp/bad-wrong-name"; mkdir -p "$fx"
 printf '%s\n' "$DB_BLOCK" > "$fx/db.yaml"
 PROBE_JOB pg-shared-homelab-other-isolation PostSync probe > "$fx/job.yaml"
 expect fail "$fx" "Job with wrong name revoking probe"
+
+# Positive: ESO template in the same file as a Database with its Job
+# (kube-ops#1593 shape: "{{ .DB_PASSWORD }}" inside quoted values).
+fx="$tmp/good-eso"; mkdir -p "$fx"
+cat > "$fx/externalsecret.yaml" <<'EOF'
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: probe-runtime
+  namespace: miniflux
+spec:
+  target:
+    name: probe-runtime
+    template:
+      data:
+        DATABASE_URL: "user=probe password={{ .DB_PASSWORD }} host=pg-shared-homelab-rw.databases.svc.cluster.local"
+EOF
+printf '%s\n' "$DB_BLOCK" > "$fx/db.yaml"
+PROBE_JOB pg-shared-homelab-probe-isolation PostSync probe > "$fx/job.yaml"
+expect pass "$fx" "ESO template file + Database + Job"
+
+# Negative: ESO template must not hide a Database without its Job.
+fx="$tmp/bad-eso-db"; mkdir -p "$fx"
+cp "$tmp/good-eso/externalsecret.yaml" "$fx/"
+printf '%s\n' "$DB_BLOCK" > "$fx/db.yaml"
+expect fail "$fx" "ESO template file + Database without Job"
+
+# Negative: Helm template (not YAML) that mentions CNPG: cannot be checked, refused.
+fx="$tmp/bad-helm-cnpg"; mkdir -p "$fx"
+cat > "$fx/db.yaml" <<'EOF'
+{{- if .Values.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata: {name: probe, namespace: databases}
+spec:
+  name: probe
+  cluster: {name: pg-shared-homelab}
+{{- end }}
+EOF
+if ( check "$fx" ) >/dev/null 2>&1; then echo "SELF-TEST FAIL: Helm template mentioning CNPG accepted" >&2; exit 1; fi
+
+# Positive: Helm template that does not mention CNPG is out of scope, skipped.
+fx="$tmp/good-helm-other"; mkdir -p "$fx"
+printf '{{- if .Values.enabled }}\napiVersion: v1\nkind: ConfigMap\nmetadata: {name: x}\n{{- end }}\n' > "$fx/cm.yaml"
+expect pass "$fx" "Helm template without CNPG (skipped)"
+
+# Negative: unparsable YAML with no Helm syntax is a hard error.
+fx="$tmp/bad-broken-template-like"; mkdir -p "$fx"
+printf 'password: "{{ .DB_PASSWORD }}\n  cluster: [pg-shared-homelab\n' > "$fx/x.yaml"
+if ( check "$fx" ) >/dev/null 2>&1; then echo "SELF-TEST FAIL: broken YAML with template-like text accepted" >&2; exit 1; fi
 
 # Negative: unparsable YAML must stop the guard (non-zero), never pass it.
 fx="$tmp/bad-unparsable"; mkdir -p "$fx"
