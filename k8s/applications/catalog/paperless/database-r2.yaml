@@ -9,8 +9,8 @@
 # barman-cloud runs without --endpoint-url and boto3 reads AWS_ENDPOINT_URL_S3.
 #
 # Objects land under s3://homelab-backup-cnpg/paperless/paperless-postgresql/
-# (serverName defaults to the Cluster name). The Hetzner store in backup.yaml
-# stays the active WAL archive until the cutover PR and is kept for rollback.
+# (serverName defaults to the Cluster name). The former Hetzner store was
+# removed (PLT-94); R2 is the only archive target.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:

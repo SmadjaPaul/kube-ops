@@ -38,18 +38,6 @@ patches:
       apiVersion: postgresql.cnpg.io/v1
       kind: Cluster
       metadata: {name: polyfin-db}
-  - target: {kind: ExternalSecret, name: polyfin-cnpg-hetzner-credentials}
-    patch: |-
-      $patch: delete
-      apiVersion: external-secrets.io/v1
-      kind: ExternalSecret
-      metadata: {name: polyfin-cnpg-hetzner-credentials}
-  - target: {kind: ObjectStore, name: polyfin-hetzner-store}
-    patch: |-
-      $patch: delete
-      apiVersion: barmancloud.cnpg.io/v1
-      kind: ObjectStore
-      metadata: {name: polyfin-hetzner-store}
   - target: {kind: ObjectStore, name: polyfin-r2-store}
     patch: |-
       $patch: delete

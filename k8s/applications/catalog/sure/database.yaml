@@ -21,12 +21,8 @@ spec:
       wal_compression: "lz4"
       archive_timeout: "15min"
   # PLT-245: a Cluster has a single WAL archiver; the archive moved from
-  # sure-hetzner-store to sure-r2-store (database-r2.yaml). Rollback: point
-  # barmanObjectName back to sure-hetzner-store, restore from the Hetzner base
-  # 20261113T181527 (backupID, never "latest"), then take a new base backup there
-  # (homelab-infra docs/operations/r2-migration.md). WARNING: writes made after
-  # the cutover (18:33Z on 2026-11-13) only have their WAL on R2; a Hetzner
-  # rollback restores up to the switch unless the R2 WAL is also made available.
+  # Hetzner to sure-r2-store. PLT-94: the Hetzner store was removed from
+  # kube-ops; recovery points live on R2 only.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true

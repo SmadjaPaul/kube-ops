@@ -72,12 +72,6 @@ spec:
         protocol: TCP
       - port: "80"
         protocol: TCP
-  - toFQDNs:
-    - matchName: "fsn1.your-objectstorage.com"
-    toPorts:
-    - ports:
-      - port: "443"
-        protocol: TCP
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -90,10 +84,9 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: postgresql
-  description: "Allow PostgreSQL WAL archiving to Hetzner Object Storage (active) and Cloudflare R2 (cutover)"
+  description: "Allow PostgreSQL WAL archiving to Cloudflare R2"
   egress:
   - toFQDNs:
-    - matchName: "fsn1.your-objectstorage.com"
     # PLT-243: R2 EU S3 endpoint, path or virtual-hosted style; the account id
     # label stays out of this public repository.
     - matchPattern: "*.eu.r2.cloudflarestorage.com"

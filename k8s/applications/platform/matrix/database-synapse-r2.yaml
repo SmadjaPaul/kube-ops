@@ -9,8 +9,7 @@
 #
 # Objects land under s3://homelab-backup-cnpg/matrix-synapse/matrix-synapse-postgresql-fast/
 # (serverName defaults to the Cluster name). Active WAL archive and base backup
-# target since the cutover PR; the Hetzner store in database-objectstores.yaml
-# is kept for rollback.
+# target since the cutover PR; the former Hetzner store was removed (PLT-94).
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
