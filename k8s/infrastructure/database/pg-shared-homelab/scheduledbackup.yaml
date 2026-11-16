@@ -1,10 +1,13 @@
 # PLT-375: daily base backup of pg-shared-homelab (03:40 UTC). `immediate` takes
 # the first one at creation, which is the proof that the archive works.
+# Prune=false,Delete=false: removing this file must not stop the daily base backups.
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
   name: pg-shared-homelab-daily
   namespace: databases
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   schedule: "0 40 3 * * *"
   immediate: true
