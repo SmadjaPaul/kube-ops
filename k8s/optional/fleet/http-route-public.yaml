@@ -1,10 +1,14 @@
-# NOT ACTIVE: new public exposure (D-2026-11-14-06 point 2, Paul's agreement).
-# Agent endpoints only; UI, fleetctl and admin API (/api/*/fleet/*) stay on
-# Gateway/internal. Source: Fleet guide "Which API endpoints to expose to the
-# public internet?" (fleetdm/fleet articles, checked 2026-11-14). Scope: osquery,
-# Fleet Desktop / My device, macOS MDM with manual enrollment. No automatic
-# enrollment (ABM), no Windows, iOS or Android paths.
-# Fleet serves its versioned API under /api/v1 and /api/latest.
+# Public exposure of Fleet agent endpoints only (PLT-317, D-2026-11-14-06
+# point 2, Paul's agreement of 2026-11-15). UI, fleetctl and admin API
+# (/api/*/fleet/* outside /device/) stay on Gateway/internal (http-route.yaml).
+# Paths checked against the Fleet guide "What API endpoints to expose to the
+# public internet" on 2026-11-16 (deployed Fleet v4.94.1). Scope: osquery,
+# Fleet Desktop / My device, macOS MDM with manual enrollment. Not exposed:
+# automatic enrollment (ABM, /api/mdm/apple/enroll, /mdm/sso), ACME (no
+# hardware attestation), Windows, iOS, Android, SCEP proxy.
+# Edge: wildcard *.smadja.dev tunnel -> Gateway/external; per-IP rate limit on
+# these paths in homelab-infra terraform/cloudflare/fleet-agents-rate-limit.tf.
+# Contract: tests/harness/fleet-public-route-contract-test.sh.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
