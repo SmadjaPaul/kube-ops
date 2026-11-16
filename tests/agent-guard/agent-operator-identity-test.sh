@@ -48,7 +48,7 @@ check "racine infra-security importe agent-operator" grep -qx '  - agent-operato
 check "racine apps-platform importe agent-operator-access" grep -qx '  - agent-operator-access' k8s/applications/platform/kustomization.yaml
 
 # 4. RBAC : jamais de Secret, d'escalade, d'exec, de PVC/PV en écriture
-rules=$(yq -o=json -I=0 'select(.kind == "ClusterRole") | {"n": .metadata.name, "r": .rules}' "$RBAC" | jq -c '.n as $n | .r[] | . + {role: $n}')
+rules=$(yq -o=json -I=0 'select(.kind == "ClusterRole" or .kind == "Role") | {"n": .metadata.name, "r": .rules}' "$RBAC" | jq -c '.n as $n | .r[] | . + {role: $n}')
 violations=$(jq -c 'select(
   ((.apiGroups | index("")) != null and ((.resources | index("*")) != null or (.resources | index("secrets")) != null)) or
   ((.resources // []) | map(test("^(secrets|persistentvolumeclaims|serviceaccounts/token|pods/(exec|attach|portforward)|.*/scale|roles|rolebindings|clusterroles|clusterrolebindings)$")) | any) and (.verbs | map(. != "get" and . != "list" and . != "watch") | any) or
@@ -60,6 +60,25 @@ violations=$(jq -c 'select(
 [ -z "$violations" ] && ok "ClusterRoles : ni Secret, ni escalade, ni exec, ni scale" || ko "règles interdites : $violations"
 reads=$(jq -c 'select(.role == "agent-operator-cluster-read") | select(.verbs | map(. != "get" and . != "list" and . != "watch") | any)' <<<"$rules")
 [ -z "$reads" ] && ok "cluster-read en lecture seule" || ko "cluster-read écrit : $reads"
+# 4b. proxy de lecture Prometheus/Loki : Role monitoring, get seul, deux services nommés
+MQ='select(.kind == "Role" and .metadata.name == "agent-operator-monitoring-query" and .metadata.namespace == "monitoring")'
+check "monitoring-query : un seul Role, namespace monitoring" \
+  test "$(yq -N 'select(.kind == "Role") | .metadata.name' "$RBAC")" = agent-operator-monitoring-query
+check "monitoring-query : une règle, get sur services/proxy seulement" \
+  test "$(yq -N -o=json -I=0 "$MQ | [.rules[] | {\"r\": .resources, \"v\": .verbs, \"g\": .apiGroups}]" "$RBAC" | grep -vx '\[\]')" = '[{"r":["services/proxy"],"v":["get"],"g":[""]}]'
+check "monitoring-query : resourceNames = Prometheus et loki-gateway" \
+  test "$(yq -N -o=json -I=0 "$MQ | .rules[0].resourceNames" "$RBAC")" = '["kube-prometheus-stack-prometheus:9090","loki-gateway:80"]'
+check "monitoring-query : RoleBinding limité au ServiceAccount agent-operator" \
+  test "$(yq -N -o=json -I=0 'select(.kind == "RoleBinding") | [.metadata.namespace, .roleRef.kind, .roleRef.name, .subjects[0].name, .subjects[0].namespace, (.subjects | length)]' "$RBAC" | grep -vx '\[\]')" = '["monitoring","Role","agent-operator-monitoring-query","agent-operator","agent-operator",1]'
+proxy_bad=$(jq -c 'select((.resources // []) | map(test("/proxy$")) | any) | select(.role != "agent-operator-monitoring-query" or ((.resourceNames // []) | length) == 0 or (.verbs != ["get"]))' <<<"$rules")
+[ -z "$proxy_bad" ] && ok "RBAC : services/proxy seulement via monitoring-query, nommé, get" || ko "proxy hors monitoring-query ou trop large : $proxy_bad"
+check "can-i de agent-operator-token.sh : proxy Prometheus/Loki, positif et négatif" bash -c \
+  "grep -q 'can yes get services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can yes get services/loki-gateway:80 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can no create services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can no patch services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can no delete services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can no get secrets -n monitoring' scripts/agent-operator-token.sh"
 crb=$(yq -N 'select(.kind == "ClusterRoleBinding") | .roleRef.name' "$RBAC" | sort | tr '\n' ' ')
 [ "$crb" = "agent-operator-cluster-read view " ] && ok "ClusterRoleBindings = view + cluster-read" || ko "ClusterRoleBindings inattendus : $crb"
 check "ServiceAccount sans montage de jeton" \
