@@ -12,7 +12,7 @@
 # Profile --atlantis-pilot (MANDAT 16 of D-2026-11-16-05, expires 7 days after its merge): exactly
 # one Bound PVC, atlantis-system/atlantis-pilot-data, and its PV and Longhorn volume (no backup
 # on R2). PVC, PV and volume are pinned by name AND UID; the PVC must no longer be defined in Git
-# (else Argo would recreate it empty), which the Job in k8s/poc/atlantis-plan-only guarantees.
+# (else Argo would recreate it empty). Executed once by kube-ops#1580; its Job was then retired.
 # Default read-only (inspect). Deletion requires --execute and
 # ALLOW_RELEASED_PV_DELETION=yes. For each PV, at execution time:
 #   - phase Released, reclaimPolicy Retain, driver driver.longhorn.io;
