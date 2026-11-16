@@ -29,6 +29,10 @@ APPSETS = [
 CLASSES_FILE = 'docs/operations/backup-coverage-classes.tsv'
 R2_HINT = re.compile(r'homelab-backup-|r2\.cloudflarestorage|\br2\b', re.I)
 HETZNER_HINT = re.compile(r'your-objectstorage|smadja-dev-homelab-backups', re.I)
+# Opt-in on a CNPG Cluster (PLT-369): its instance PVCs are covered by the Velero
+# FS backup of their namespace. Crash-consistent at best (data and WAL PVCs are
+# captured separately), restore unproven: reported as Velero-crash, never CNPG(R2).
+VELERO_CRASH_ANN = 'backup.smadja.dev/velero-crash-consistent'
 
 
 class Loader(yaml.SafeLoader):
@@ -181,7 +185,8 @@ def collect(docs_by_root, errors_out):
                 for p in plug:
                     if p.get('isWALArchiver') is True and p.get('enabled', True) is not False:
                         wal_store = (p.get('parameters') or {}).get('barmanObjectName')
-                clusters[(ns, name)] = dict(wal_store=wal_store)
+                clusters[(ns, name)] = dict(wal_store=wal_store, instances=inst,
+                                            velero_crash=(md.get('annotations') or {}).get(VELERO_CRASH_ANN))
                 for i in range(1, inst + 1):
                     pvcs[(ns, '%s-%d' % (name, i))] = dict(
                         ns=ns, name='%s-%d' % (name, i), sc=st.get('storageClass'), size=st.get('size', '?'),
@@ -331,6 +336,18 @@ def main():
                 cover.append('CNPG(R2)')
             else:
                 notes.append('CNPG WAL=%s base=%s' % (wal, ','.join(sched) or 'none'))
+                if c.get('velero_crash'):
+                    # The instance pod is rendered by the CNPG operator, not in Git:
+                    # a synthetic pod carrying the cluster label stands for it, so
+                    # the same Schedule selection as for any other PVC applies.
+                    twin = [dict(ns=p['ns'], owner=p['owner'], labels={'cnpg.io/cluster': cname},
+                                 ann={}, vols=[('data', p['name'])], replicas=1, cron=False)]
+                    v, why = velero_cover(p, twin, schedules)
+                    if v:
+                        cover.append('Velero-crash(' + ','.join(v) + ')')
+                        notes.append('PVC CNPG: FS backup crash-consistent, restauration non prouvee')
+                    else:
+                        notes.append('Velero: ' + why)
         else:
             v, why = velero_cover(p, pods, schedules)
             if v:
@@ -367,7 +384,9 @@ def main():
         '',
         'Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un Schedule actif (namespace, labels, `defaultVolumesToFsBackup`). '
         'Longhorn couvre un PVC Longhorn rattaché à un RecurringJob `backup` (labels source, sélecteur de StorageClass ou groupe `default`) et monté par un pod actif '
-        '(`allowRecurringJobWhileVolumeDetached: false`). CNPG couvre un PVC de cluster si le WAL et une ScheduledBackup visent un ObjectStore R2.',
+        '(`allowRecurringJobWhileVolumeDetached: false`). CNPG couvre un PVC de cluster si le WAL et une ScheduledBackup visent un ObjectStore R2. '
+        'Un Cluster annoté `backup.smadja.dev/velero-crash-consistent` est crédité `Velero-crash` si un Schedule Velero FS couvre son namespace : '
+        'couverture crash-consistent non prouvée par restauration, jamais comptée comme CNPG(R2).',
         '',
         '- PVC déclarés : %d' % len(rows),
         '- PVC couverts vers R2 : %d' % covered,

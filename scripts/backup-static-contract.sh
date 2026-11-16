@@ -24,6 +24,8 @@ roots=(
   k8s/applications/catalog
   k8s/applications/games
   k8s/infrastructure/controllers
+  # PLT-369: factory-platform-pg2 is checked here (its WAL plugin was retired by PLT-94 lot 7).
+  k8s/applications/platform/factory-platform
 )
 # Rendu partage et parallele (scripts/lib/render-cache.sh)
 bash scripts/lib/render-cache.sh prerender "${roots[@]}"
@@ -65,7 +67,8 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
       namespace:(.metadata.namespace//"default"),
       name:.metadata.name,
       wal:any(.spec.plugins[]?; .isWALArchiver==true),
-      drill:(.metadata.labels["backup.smadja.dev/restore-drill"]=="true")
+      drill:(.metadata.labels["backup.smadja.dev/restore-drill"]=="true"),
+      crashVelero:((.metadata.annotations["backup.smadja.dev/velero-crash-consistent"])//"")
     }
   ] as $clusters |
   [$docs[] |
@@ -77,6 +80,11 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
     {namespace:(.metadata.namespace//"default"),name:.metadata.name}
   ] as $stores |
   ((([$pvcs[]|select(.rebuildable!=true and .excluded!=true)]) + ([$stateful[]|select(.rebuildable!=true)])) | map(.namespace) | unique) as $protectedNamespaces |
+  # Namespaces where a Velero Schedule backs up pod volumes (FS backup) to R2.
+  ([$docs[] |
+    select(.apiVersion=="velero.io/v1" and .kind=="Schedule" and .spec.template.defaultVolumesToFsBackup==true and .spec.template.storageLocation=="r2") |
+    .spec.template.includedNamespaces[]?
+  ] | unique) as $veleroFsNamespaces |
   {
     protectedNamespaces:$protectedNamespaces,
     rebuildablePVCs:[$pvcs[]|select(.rebuildable==true)],
@@ -91,6 +99,9 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
       $clusters[] as $c |
       select(
         ($c.drill|not) and
+        # Opt-in exception (PLT-369): only a Cluster annotated velero-crash-consistent,
+        # in a namespace that a Velero FS Schedule to R2 covers. Other clusters are unchanged.
+        ((($c.crashVelero != "") and (($veleroFsNamespaces|index($c.namespace))!=null))|not) and
         (($c.wal|not) or
         (any($backups[]?; .namespace==$c.namespace and .cluster==$c.name)|not) or
         (any($stores[]?; .namespace==$c.namespace)|not))
