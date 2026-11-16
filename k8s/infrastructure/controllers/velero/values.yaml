@@ -24,9 +24,8 @@ credentials:
   useSecret: true
   # PLT-94 lot 2 (MANDAT 21, D-2026-11-16-07) : bascule reversible du credential
   # par defaut monte par velero, node-agent et les Jobs de maintenance Kopia,
-  # de Hetzner vers R2. La BSL Hetzner `default` (ReadOnly) garde un credential
-  # explicite ci-dessous, donc reste restaurable jusqu'a son retrait (lot
-  # destructif). Aucune donnee touchee ; retour arriere par `git revert`.
+  # de Hetzner vers R2. La BSL Hetzner `default` est retiree (lot 6, voir
+  # backupStorageLocation) ; retour arriere par `git revert`.
   existingSecret: velero-r2-credentials
 
 configuration:
