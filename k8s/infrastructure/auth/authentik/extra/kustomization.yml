@@ -35,6 +35,7 @@ configMapGenerator:
       - ./blueprints/apps-romm.yaml
       - ./blueprints/apps-mealie.yaml
       - ./blueprints/apps-vikunja.yaml
+      - ./blueprints/apps-miniflux.yaml
       - ./blueprints/apps-paperless.yaml
       - ./blueprints/apps-ntfy.yaml
       - ./blueprints/apps-stirling-pdf.yaml
