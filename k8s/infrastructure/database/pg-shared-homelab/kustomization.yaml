@@ -3,6 +3,7 @@ kind: Kustomization
 
 namespace: databases
 resources:
+  - canari-pg-oidc-database.yaml
   - namespace.yaml
   - external-secrets.yaml
   - objectstore.yaml

@@ -39,6 +39,16 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: pg-shared-homelab-r2
+  managed:
+    roles:
+      - name: canaripgoidc
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        passwordSecret:
+          name: pg-shared-homelab-canari-pg-oidc
   storage:
     storageClass: longhorn-fast
     size: 20Gi

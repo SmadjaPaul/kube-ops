@@ -2,6 +2,7 @@
 kind: Kustomization
 
 resources:
+  - canari-pg-oidc-oidc.yaml
   - secrets.yml
   - smtp-externalsecret.yaml
   - talos-bluegreen-externalsecret.yaml
@@ -23,6 +24,7 @@ generatorOptions:
 configMapGenerator:
   - name: authentik-blueprints
     files:
+      - ./blueprints/apps-canari-pg-oidc.yaml
       - ./blueprints/apps-opencode.yaml
       - ./blueprints/apps-argocd.yaml
       - ./blueprints/apps-grafana.yaml

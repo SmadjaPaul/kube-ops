@@ -13,6 +13,8 @@ spec:
     - https://github.com/CodeWithCJ/SparkyFitness.git
     - ghcr.io/actions/actions-runner-controller-charts
   destinations:
+    - namespace: canari-pg-oidc
+      server: https://kubernetes.default.svc
     # Applications use an empty destination namespace because their rendered
     # manifests carry explicit namespaces; this is not a wildcard namespace.
     - namespace: ''

@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canari-pg-oidc
+  namespace: canari-pg-oidc
+  labels:
+    app.kubernetes.io/name: canari-pg-oidc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: canari-pg-oidc
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: canari-pg-oidc
+    spec:
+      serviceAccountName: canari-pg-oidc
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        runAsGroup: 472
+        fsGroup: 472
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: grafana/grafana-oss:12.4.3
+          ports:
+            - {name: http, containerPort: 3000}
+          env:
+            - {name: GF_SERVER_HTTP_PORT, value: "3000"}
+            - {name: GF_SERVER_ROOT_URL, value: "https://canari-pg-oidc.smadja.dev/"}
+            - {name: GF_DATABASE_TYPE, value: postgres}
+            - {name: GF_DATABASE_HOST, value: "pg-shared-homelab-rw.databases.svc.cluster.local:5432"}
+            - {name: GF_DATABASE_NAME, value: "canaripgoidc"}
+            - {name: GF_DATABASE_USER, value: "canaripgoidc"}
+            - {name: GF_DATABASE_SSL_MODE, value: require}
+            - {name: GF_USERS_ALLOW_SIGN_UP, value: "false"}
+            - {name: GF_AUTH_GENERIC_OAUTH_ENABLED, value: "true"}
+            - {name: GF_AUTH_GENERIC_OAUTH_NAME, value: Authentik}
+            - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID, value: "canari-pg-oidc"}
+            - {name: GF_AUTH_GENERIC_OAUTH_SCOPES, value: "openid email profile"}
+            - {name: GF_AUTH_GENERIC_OAUTH_AUTH_URL, value: "https://auth.smadja.dev/application/o/canari-pg-oidc/authorize/"}
+            - {name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL, value: "https://auth.smadja.dev/application/o/canari-pg-oidc/token/"}
+            - {name: GF_AUTH_GENERIC_OAUTH_API_URL, value: "https://auth.smadja.dev/application/o/canari-pg-oidc/userinfo/"}
+            - {name: GF_AUTH_GENERIC_OAUTH_USE_PKCE, value: "true"}
+          envFrom:
+            - secretRef: {name: canari-pg-oidc-db}
+            - secretRef: {name: canari-pg-oidc-oidc}
+            - secretRef: {name: canari-pg-oidc-secret-key}
+            - secretRef: {name: canari-pg-oidc-admin}
+          readinessProbe:
+            httpGet: {path: "/api/health", port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: "/api/health", port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: grafana-data, mountPath: /var/lib/grafana}
+            - {name: grafana-logs, mountPath: /var/log/grafana}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        # Etat durable dans PostgreSQL : ces volumes sont des emptyDir (plugins, cache).
+        - {name: grafana-data, emptyDir: {}}
+        - {name: grafana-logs, emptyDir: {}}
+        - {name: tmp, emptyDir: {}}
