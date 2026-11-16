@@ -58,7 +58,10 @@
 #       REVOKE CONNECT ON DATABASE APP FROM PUBLIC;
 #
 #     Without it, any authenticated role of the cluster can open a session on
-#     APP. The owner keeps CONNECT through ownership. Negative test, to run and
+#     APP. The owner keeps CONNECT through ownership. REVOKE does not close
+#     sessions already open: terminate them (pg_terminate_backend on the sessions
+#     of other roles connected to APP) before the negative test is meaningful.
+#     Negative test, to run and
 #     record in the PR that adds the database (expected: "permission denied for database APP"):
 #
 #       # as role OTHER (another managed role, password from its own Secret)
