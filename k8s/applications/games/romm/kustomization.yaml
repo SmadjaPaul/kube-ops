@@ -4,8 +4,6 @@ namespace: romm
 resources:
   - namespace.yaml
   - externalsecret.yaml
-  - database-s3-credentials.yaml
-  - database-objectstore.yaml
   - database-r2.yaml
   - database.yaml
   - database-scheduled-backup.yaml

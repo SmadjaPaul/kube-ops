@@ -9,12 +9,35 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | `apps/` | Root Application target (the only path it reads): child Applications, ordered by sync-wave. `cnpg-cluster` and `media` are kept out of `apps/kustomization.yaml` until PLT-190 (backup + restore proven off Oracle). |
 | `guardrails/` | Cost guardrail (PLT-260): ValidatingAdmissionPolicy denying every Service `type: LoadBalancer` (Always Free; the OCI LB quota is set to zero in `terraform/oracle-a1`). |
 | `external-secrets/` | Overlay on the shared ESO + `ClusterSecretStore/doppler-cluster` base. |
-| `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster. One `Database` + role per application. |
+| `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster (R2 backup, PLT-190). One `Database` + role per application. |
 | `cert-manager/`, `cnpg-barman-plugin/` | CNPG barman-cloud plugin and its TLS prerequisite (PLT-301). No ACME issuer. |
-| `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster recovered from the homelab R2 archive, Hindsight API. Out of the root until the drill. |
+| `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster empty database (drill, PLT-303), Hindsight API, R2 backup. In the root. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
+| `agent-operator/` | PLT-257: read-only agent identity (ServiceAccount `argocd/agent-operator`, ClusterRoles get/list/watch, no Secret, no pods/exec). In the root. Token: `scripts/agent-operator-oke-token.sh --provision` (run by Paul in an OKE admin session), then `kubectl-ro.sh --cluster oracle-a1 ...` reads it from Doppler `KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1`. |
+| `netbird-router/` | PLT-256: NetBird routing peer for the admin path to the API (one `/32`, TCP 6443, group Admin). Namespace `cloudflared`. Out of the root until the one-off setup key `NETBIRD_SETUP_KEY_OKE` exists in Doppler `cluster/prd`; not activated by this change. The OCI Bastion stays the break-glass path. |
 | `media/` | Overlay on the shared `applications/media/{polyfin,aiostreams}` bases. |
-| `observability/` | Grafana Cloud export (PLT-306): kube-state-metrics with a metric allowlist and one Alloy, label `cluster=oracle-a1`, write token `GRAFANA_CLOUD_ORACLE_A1_WRITE_TOKEN`. Out of the root until PLT-253; no egress policy (flannel does not enforce NetworkPolicy). |
+| `observability/` | Grafana Cloud export (PLT-306): kube-state-metrics with a metric allowlist and one Alloy, label `cluster=oracle-a1`, write token `GRAFANA_CLOUD_ORACLE_A1_WRITE_TOKEN`. In the root (PLT-309); no egress policy (flannel does not enforce NetworkPolicy). |
+
+## Current state (PLT-328, 2026-11-15)
+
+- Root Application `oracle-a1-root` reads `apps/`. It carries six children:
+  `guardrails`, `external-secrets`, `cert-manager`, `cnpg-operator`,
+  `cnpg-barman-plugin`, `observability`. Last read-only survey (2026-11-15):
+  all `Synced/Healthy`, one arm64 node. This file does not assert it again.
+- Retired from the root (PLT-328, decision of Paul): `ntfy` and `gatus`. Their
+  namespaces are gone and AppProject `oracle-a1` no longer admits them. Alerts
+  go through ntfy.sh (homelab Alertmanager receiver). Doppler keys
+  `ORACLE_A1_NTFY_*` are kept. Rollback: Git revert.
+- PLT-190: `cnpg-cluster` (`pg-shared` + R2 backup + drill database) joins the root for the off-Oracle restore drill. No application data goes there before the restore is proven.
+- PLT-303: `hindsight` joins the root for the drill (empty database + test rows, nothing migrated from the homelab).
+- Not in the root: `media`.
+- Access: the Kubernetes API is private. The only path is an OCI Bastion
+  port-forwarding session (`homelab-bastion`) with a temporary kubeconfig.
+  No ARC runner and no homelab route reaches it. The NetBird path (PLT-256,
+  `10.0.2.3:6443`) serves `kubectl-ro.sh --cluster oracle-a1` once the
+  agent token exists (PLT-257).
+- `bootstrap/project.yaml` is applied by the operator, never synced by Argo CD:
+  a change to it takes effect on the cluster at the next operator bootstrap.
 
 Prerequisites outside Git (bootstrap steps, none blocks the static manifests):
 - The OKE cluster (homelab-infra#330, Basic, `FLANNEL_OVERLAY`, pods `10.248.0.0/16`,
@@ -40,21 +63,31 @@ overlay and no policy is added; the Argo CD chart NetworkPolicies are inert.
 
 ## Backup: no application with data may be activated on Oracle
 
-There is deliberately no Barman/backup on `pg-shared` yet (needs off-Oracle object
-storage, cert-manager for the Barman plugin, and a restore tested outside Oracle).
-D-2026-11-11-17 forbids any single copy of data on Oracle without a restore tested
-off Oracle. Until the CNPG backup ticket is done and a restore has been proven, do
-not enable any application holding data (Polyfin, AIOStreams PVCs, databases) here.
+`pg-shared` is now configured (PLT-190) with the barman-cloud plugin: WAL
+archive and daily base backups to `s3://homelab-backup-cnpg/oracle-a1/pg-shared/`
+(R2, writer identity, 14 days retention), same model as `hindsight-db`. It is
+in `apps/kustomization.yaml` since the activation PR of the drill
+(`docs/operations/pg-shared-oke-backup-drill.md`, manifests in
+`k8s/optional/pg-shared-oke-drill`). D-2026-11-11-17 forbids any single copy of
+data on Oracle without a restore tested off Oracle. Until that restore is
+proven (`NOT_TESTED` today), do not enable any application holding data
+(Polyfin, AIOStreams PVCs, databases) here.
 Open: arm64 digests to confirm at runtime.
+
+Block volume plan (quota 200 GB = boot 50 + 3 x 50 Gi `oci-bv`; unit GB/GiB to
+confirm at plan time): V1 `hindsight-db` (namespace `hindsight`), V2 `pg-shared`
+(namespace `databases`), V3 reserve (dedicated Authentik cluster, or the
+AIOStreams SQLite PVC in `media`). The drill uses no extra volume (restore runs
+on the homelab; the OKE side only adds a database inside `pg-shared`).
 
 ## Hindsight (PLT-301, D-2026-11-14-03)
 
 Hindsight is the agent memory. The homelab instance (`hindsight-personal`) stays
 the only writer until the cutover.
 
-- Database: dedicated CNPG `hindsight/hindsight-db`, bootstrapped by **recovery**
-  of the homelab archive `s3://homelab-backup-cnpg/hindsight-personal/hindsight-db/`
-  (read-only identity). Its own WAL archive and daily base backups go to
+- Database: dedicated CNPG `hindsight/hindsight-db`, bootstrapped EMPTY (initdb +
+  `vector`) for the drill (PLT-303): no homelab data is migrated and the homelab
+  archive is not read. Its own WAL archive and daily base backups go to
   `s3://homelab-backup-cnpg/oracle-a1/hindsight-db/` (writer identity), never
   into the homelab prefix.
 - Image: PostgreSQL 17.7 standard trixie pinned to the multi-arch index digest;
@@ -72,11 +105,11 @@ the only writer until the cutover.
 
 Activation order (each step proven before the next):
 1. OKE bootstrapped (PLT-253, PLT-276), cert-manager and barman plugin Healthy.
-2. Drill: add `hindsight.yaml` to `apps/kustomization.yaml`; recovery Completed;
-   banks counted equal to the homelab; first Oracle base backup Completed on R2.
+2. Drill (PLT-303): `hindsight.yaml` is in `apps/kustomization.yaml`; test rows
+   seeded; first Oracle base backup Completed on R2.
 3. Off-Oracle restore of `oracle-a1/hindsight-db` on the homelab
-   (`k8s/optional/hindsight-oke-drill`), same counts.
-4. Hostname activation (Paul), then agent cutover.
+   (`k8s/optional/hindsight-oke-drill`), same fingerprint.
+4. Real data migration from the homelab (separate step, PLT-305), then hostname activation (Paul), then agent cutover.
 
 Rollback, in this order (the root prunes only the child Application object,
 which has no resources finalizer, so its resources would keep running):

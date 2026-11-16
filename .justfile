@@ -38,8 +38,8 @@ check:
     bash tests/harness/mastra-factory-promotion-test.sh
     bash tests/harness/arc-gitops-contract-test.sh
     bash tests/harness/invoice-backup-test.sh
+    bash tests/harness/restic-backup-contract-test.sh
     bash tests/harness/decypharr-torbox-staged-test.sh
-    bash tests/harness/rdt-client-staged-contract-test.sh
     bash tests/harness/aiostreams-staged-contract-test.sh
     bash tests/harness/aiostreams-sqlite-restore-test.sh
     bash tests/harness/aiostreams-oidc-dormant-contract-test.sh
@@ -49,12 +49,17 @@ check:
     bash tests/harness/longhorn-offsite-pvc-contract-test.sh
     bash tests/harness/longhorn-tier-restore-runbook-test.sh
     bash tests/harness/bookorbit-staged-contract-test.sh
+    bash tests/harness/authentik-human-users-contract-test.sh
+    bash tests/harness/authentik-friends-contract-test.sh
     bash tests/harness/media-retired-contract-test.sh
     bash tests/harness/d-recovery-contract-test.sh
     bash tests/agent-guard/agent-operator-identity-test.sh
+    bash tests/agent-guard/secret-output-guard-test.sh
     bash tests/harness/cnpg-cluster-allowlist-test.sh
+    bash tests/harness/db-storage-tier-guard-test.sh
     bash tests/harness/verify-delivery-test.sh
     bash tests/harness/scaffold-oke-app-test.sh
+    bash tests/harness/agent-e2e-run-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:

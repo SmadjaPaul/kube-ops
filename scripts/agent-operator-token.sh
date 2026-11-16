@@ -10,8 +10,8 @@
 #   1. accès opérateur via scripts/lib/kube-preflight.sh (copie canonique) ;
 #   2. vérifie que Argo a réconcilié SA, ClusterRoles, RoleBindings (scope.tsv)
 #      et la policy agent-operator-guard ;
-#   3. TokenRequest (kubectl create token, durée AGENT_TOKEN_DURATION, 720h par
-#      défaut) vers un fichier 0600 d'un dossier temporaire supprimé à la sortie ;
+#   3. TokenRequest (kubectl create token, durée AGENT_TOKEN_DURATION, 24h par
+#      défaut et au plus 24h) vers un fichier 0600 d'un dossier temporaire supprimé à la sortie ;
 #   4. kubeconfig agent : même serveur et même CA que la copie opérateur, jeton
 #      écrit par python depuis le fichier (jamais en argument ni à l'écran) ;
 #   5. contrôles avec ce kubeconfig (whoami + can-i, voir --verify) ;
@@ -22,7 +22,8 @@
 #   7. --verify sur la copie relue depuis Doppler.
 # Sortie : uniquement des statuts, l'empreinte tronquée et la date d'expiration.
 #
-# Rotation : relancer --provision avant l'expiration. Révocation immédiate :
+# Rotation : relancer --provision (Paul) avant l'expiration, au moins une fois par jour.
+# kubectl-ro.sh repli opérateur (KUBECTL_RO_IDENTITY=auto) si le jeton est expiré. Révocation immédiate :
 # supprimer le ServiceAccount (rollback PLT-237) invalide tous ses jetons.
 set -uo pipefail
 
@@ -33,12 +34,14 @@ NS=agent-operator
 SA=agent-operator
 AGENT_USER=system:serviceaccount:$NS:$SA
 SECRET=KUBERNETES_AGENT_OPERATOR_KUBECONFIG
-DURATION=${AGENT_TOKEN_DURATION:-720h}
+# PLT-312 (M5): short-lived token, 24 h maximum (was 720 h). Renewed by Paul with --provision.
+DURATION=${AGENT_TOKEN_DURATION:-24h}
 
 die() { echo "agent-operator-token: $1" >&2; exit "${2:-1}"; }
 mode=${1:-}
 case "$mode" in --check-cluster|--provision|--verify) ;; *) die "usage : --check-cluster | --provision | --verify" 64 ;; esac
-[[ "$DURATION" =~ ^[0-9]{1,5}h$ ]] || die "AGENT_TOKEN_DURATION invalide (ex. 720h)" 64
+[[ "$DURATION" =~ ^[0-9]{1,2}h$ ]] && [ "${DURATION%h}" -ge 1 ] && [ "${DURATION%h}" -le 24 ] ||
+  die "AGENT_TOKEN_DURATION invalide : 1h à 24h (ex. 24h), le jeton agent est de courte durée" 64
 
 admitted=$(grep -vE '^#|^$' "$SCOPE" | cut -f1)
 
@@ -76,8 +79,35 @@ verify_agent() {
   for ns in $admitted; do
     can yes patch deployments -n "$ns"
   done
+  # Proxy de lecture Prometheus/Loki (rôle agent-operator-monitoring-query) :
+  # get oui sur les deux services nommés, tout le reste non.
+  can yes get services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can yes get services/loki-gateway:80 --subresource=proxy -n monitoring
+  can no create services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can no update services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can no patch services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can no delete services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can no create services/loki-gateway:80 --subresource=proxy -n monitoring
+  can no get services/kube-prometheus-stack-grafana:80 --subresource=proxy -n monitoring
+  can no get services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n media
+  can no get secrets -n monitoring
   can yes delete pods -n media
   can yes patch cronjobs -n media
+  # can-i ne voit ni la garde d'admission (CONNECT sur le proxy) ni la réponse :
+  # lecture réelle d'une requête sans effet, puis POST refusé par le RBAC.
+  local prom="/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=vector%281%29"
+  if kubectl --request-timeout=15s get --raw "$prom" 2>/dev/null | grep -q '"status":"success"'; then
+    echo "CHECK get --raw proxy Prometheus répond PASS"
+  else
+    echo "CHECK get --raw proxy Prometheus ne répond pas (RBAC, garde d'admission ou service) FAIL"; fails=1
+  fi
+  if out=$(echo '{}' | kubectl --request-timeout=15s create --raw "$prom" -f - 2>&1); then
+    echo "CHECK POST proxy Prometheus accepté FAIL"; fails=1
+  elif grep -qi 'forbidden' <<<"$out"; then
+    echo "CHECK POST proxy Prometheus refusé PASS"
+  else
+    echo "CHECK POST proxy Prometheus : échec sans refus d'autorisation FAIL"; fails=1
+  fi
   # can-i ne prouve pas l'admission : création en dry-run serveur (aucun effet)
   # d'un Deployment qui référence un Secret ; la policy doit la refuser.
   local probe out

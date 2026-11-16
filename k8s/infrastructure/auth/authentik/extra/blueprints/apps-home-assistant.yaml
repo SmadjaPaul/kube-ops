@@ -68,76 +68,10 @@ entries:
     attrs:
       order: 1
 
-  - id: provider-zigbee2mqtt
-    model: authentik_providers_oauth2.oauth2provider
-    identifiers:
-      name: k8s.smadja.dev/services-external/zigbee2mqtt
-    attrs:
-      authorization_flow:
-        !Find [
-          authentik_flows.flow,
-          [slug, "default-provider-authorization-implicit-consent"],
-        ]
-      signing_key:
-        !Find [
-          authentik_crypto.certificatekeypair,
-          [name, "authentik Self-signed Certificate"],
-        ]
-      invalidation_flow:
-        !Find [
-          authentik_flows.flow,
-          [slug, "default-provider-invalidation-flow"],
-        ]
-
-      client_type: confidential
-      client_id: !Env ZIGBEE2MQTT_CLIENT_ID
-      client_secret: !Env ZIGBEE2MQTT_CLIENT_SECRET
-      redirect_uris:
-        - url: https://z2m.smadja.dev/oauth2/callback
-          matching_mode: strict
-
-      access_code_validity: minutes=1
-      access_token_validity: minutes=5
-      refresh_token_validity: days=30
-
-      sub_mode: hashed_user_id
-      property_mappings:
-        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
-        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
-        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
-
-  - id: zigbee2mqtt_application
-    model: authentik_core.application
-    identifiers:
-      slug: zigbee2mqtt
-    attrs:
-      name: Zigbee2MQTT
-      group: Home Automation
-      description: Zigbee to MQTT bridge
-      icon: https://www.zigbee2mqtt.io/logo.png
-      provider: !KeyOf provider-zigbee2mqtt
-      policy_engine_mode: any
-
-  - id: zigbee2mqtt_policy_binding
-    model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf zigbee2mqtt_application
-      group: !Find [authentik_core.group, [name, "Home Assistant Users"]]
-    attrs:
-      order: 1
-
   - id: homeassistant_application_operator_admin_binding
     model: authentik_policies.policybinding
     identifiers:
       target: !KeyOf homeassistant_application
-      group: !Find [authentik_core.group, [name, "authentik-admins"]]
-    attrs:
-      order: 100
-
-  - id: zigbee2mqtt_application_operator_admin_binding
-    model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf zigbee2mqtt_application
       group: !Find [authentik_core.group, [name, "authentik-admins"]]
     attrs:
       order: 100

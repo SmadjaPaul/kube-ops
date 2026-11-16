@@ -4,5 +4,9 @@ namespace: databases
 resources:
   - namespace.yaml
   - external-secrets.yaml
+  - objectstore.yaml
   - cluster.yaml
+  - scheduledbackup.yaml
   - databases.yaml
+  # PLT-190 drill (retirer apres le drill) : base backup_drill
+  - ../../../optional/pg-shared-oke-drill/oke-database

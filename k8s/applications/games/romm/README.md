@@ -6,7 +6,7 @@ Architecture:
 
 - RomM stable 5.2.0
 - PostgreSQL via CloudNativePG
-- CNPG/Barman WAL + weekly base backup to Hetzner Object Storage
+- CNPG/Barman WAL + weekly base backup to Cloudflare R2
 - Longhorn bulk for the ROM library/resources
 - Longhorn fast for saves/assets and embedded Valkey data
 - Authentik native OIDC

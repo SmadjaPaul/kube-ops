@@ -21,6 +21,7 @@ Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un S
 | factory-platform | factory-platform-pg2-1-wal | longhorn-bulk | 5Gi | platform | **aucune** | CNPG WAL=Hetzner base=Hetzner | USEFUL — Factory data platform database WAL (active) |
 | factory-platform | factory-platform-postgresql-1 | longhorn-bulk | 20Gi | platform | **aucune** | CNPG WAL=Hetzner base=none | RETIRED — Fenced forensic copy, replaced by factory-platform-pg2 (PLT-252) |
 | factory-platform | factory-platform-postgresql-1-wal | longhorn-bulk | 5Gi | platform | **aucune** | CNPG WAL=Hetzner base=none | RETIRED — Fenced forensic copy, replaced by factory-platform-pg2 (PLT-252) |
+| fleet | data-fleet-mysql-fast-0 | longhorn-fast | 10Gi | platform | Velero(velero-daily-fleet) + Longhorn(persistent-offsite-backup-default-group) | - | UNCLASSIFIED |
 | gpt-researcher | gpt-researcher-logs | longhorn-fast | 5Gi | ai | Longhorn(persistent-offsite-backup-default-group) | Velero: PVC label velero.io/exclude-from-backup | REBUILDABLE — Logs |
 | gpt-researcher | gpt-researcher-my-docs | longhorn-fast | 10Gi | ai | Velero(velero-daily-gpt-researcher) + Longhorn(persistent-offsite-backup-default-group) | - | USEFUL — User research documents |
 | gpt-researcher | gpt-researcher-outputs | longhorn-fast | 10Gi | ai | Velero(velero-daily-gpt-researcher) + Longhorn(persistent-offsite-backup-default-group) | - | USEFUL — Generated reports |
@@ -43,19 +44,18 @@ Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un S
 | librechat | librechat-mongodb | longhorn-bulk | 10Gi | Application/personal-librechat | Velero(velero-daily-librechat) + Longhorn(persistent-offsite-backup-default-group) | - | USEFUL — Conversations and agent settings |
 | mastra-factory | mastra-factory-postgresql-1 | longhorn-bulk | 20Gi | platform | CNPG(R2) | - | USEFUL — Factory runs and agent memory |
 | mastra-factory | mastra-factory-postgresql-1-wal | longhorn-bulk | 5Gi | platform | CNPG(R2) | - | USEFUL — Factory runs and agent memory WAL |
-| matrix | matrix-mas-postgresql-clean-1 | longhorn-bulk | 10Gi | platform | CNPG(R2) | - | IRREPLACEABLE — Matrix identity (MAS) database |
-| matrix | matrix-mas-postgresql-clean-1-wal | longhorn-bulk | 5Gi | platform | CNPG(R2) | - | IRREPLACEABLE — Matrix identity (MAS) database WAL |
-| matrix | matrix-synapse-media | longhorn-bulk | 50Gi | platform | Velero(velero-daily-matrix) + Longhorn(persistent-offsite-backup) | - | IRREPLACEABLE — Matrix uploaded media |
-| matrix | matrix-synapse-postgresql-1 | longhorn-bulk | 20Gi | platform | CNPG(R2) | - | IRREPLACEABLE — Matrix messages and rooms |
-| matrix | matrix-synapse-postgresql-1-wal | longhorn-bulk | 5Gi | platform | CNPG(R2) | - | IRREPLACEABLE — Matrix messages and rooms WAL |
+| matrix | matrix-mas-postgresql-fast-1 | longhorn-fast | 5Gi | platform | CNPG(R2) | - | IRREPLACEABLE — Matrix identity (MAS) database |
+| matrix | matrix-mas-postgresql-fast-1-wal | longhorn-fast | 5Gi | platform | CNPG(R2) | - | IRREPLACEABLE — Matrix identity (MAS) database WAL |
+| matrix | matrix-synapse-media-fast | longhorn-fast | 10Gi | platform | Velero(velero-daily-matrix) + Longhorn(persistent-offsite-backup) | - | IRREPLACEABLE — Matrix uploaded media |
+| matrix | matrix-synapse-postgresql-fast-1 | longhorn-fast | 10Gi | platform | CNPG(R2) | - | IRREPLACEABLE — Matrix messages and rooms |
+| matrix | matrix-synapse-postgresql-fast-1-wal | longhorn-fast | 5Gi | platform | CNPG(R2) | - | IRREPLACEABLE — Matrix messages and rooms WAL |
 | mealie | mealie-data | longhorn-fast | 5Gi | catalog | Velero(velero-daily-mealie) + Longhorn(persistent-offsite-backup-default-group) | - | IRREPLACEABLE — Family recipes |
 | media | aiostreams-data | longhorn-fast | 4Gi | media | Velero(velero-daily-aiostreams) + Longhorn(persistent-offsite-backup-default-group) | - | USEFUL — AIOStreams user configurations (SQLite) |
-| media | audiobookrequest-config | longhorn-fast | 5Gi | media | Velero(velero-daily-audiobookrequest) + Longhorn(persistent-offsite-backup-default-group) | - | REBUILDABLE — Request queue configuration |
 | media | bookorbit-data | longhorn-fast | 10Gi | media | Velero(velero-daily-bookorbit) + Longhorn(persistent-offsite-backup-default-group) | - | USEFUL — BookOrbit app data (library index, settings) |
 | media | bookorbit-postgresql-1 | longhorn-fast | 10Gi | media | CNPG(R2) | - | USEFUL — BookOrbit database (users, reading progress) |
-| media | media-share | longhorn-bulk | 2Ti | media | Longhorn(persistent-offsite-backup-default-group) | Velero: PVC label velero.io/exclude-from-backup | REBUILDABLE — Re-downloadable media (2Ti) |
+| media | media-share | longhorn-bulk | 2Ti | media | **aucune** | Velero: PVC label velero.io/exclude-from-backup; Longhorn: PVC source labels name no backup job | REBUILDABLE — Re-downloadable media (2Ti) |
 | media | polyfin-data | longhorn-fast | 20Gi | media | Longhorn(persistent-offsite-backup-default-group) | Velero: pod not selected by any Schedule | USEFUL — Polyfin users, watch state, settings |
-| media | polyfin-db-1 | longhorn-fast | 5Gi | media | **aucune** | CNPG WAL=Hetzner base=Hetzner | USEFUL — Polyfin database (R2 cutover PLT-227) |
+| media | polyfin-db-1 | longhorn-fast | 5Gi | media | CNPG(R2) | - | USEFUL — Polyfin database (R2 cutover PLT-227) |
 | monitoring | storage-loki-0 | longhorn-bulk | 20Gi | monitoring | Longhorn(persistent-offsite-backup-default-group) | Velero: pod not selected by any Schedule | REBUILDABLE — Logs |
 | mqtt | data-mosquitto-0 | longhorn-fast | 1Gi | automation | Velero(velero-daily-mqtt) + Longhorn(persistent-offsite-backup-default-group) | - | REBUILDABLE — MQTT retained messages |
 | ntfy | ntfy-data | longhorn-fast | 1Gi | catalog | Velero(velero-daily-ntfy) + Longhorn(persistent-offsite-backup-default-group) | - | REBUILDABLE — Notification cache and users |

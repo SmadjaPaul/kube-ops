@@ -3,6 +3,10 @@ kind: CiliumNetworkPolicy
 metadata:
   name: librechat-pilot
   namespace: librechat
+  annotations:
+    # PLT-280: the retired app's workloads keep running (the Application has no
+    # finalizer), so this policy must survive pruning with the namespace.
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   endpointSelector: {}
   ingress:

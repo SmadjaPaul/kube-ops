@@ -49,7 +49,14 @@ spec:
       work_mem: "2621kB"
       huge_pages: "off"
       min_wal_size: "1GB"
-      max_wal_size: "3GB"
+      # PLT-344 lot 0, décision Paul 2026-11-15 (Authentik protégée) : réglage à chaud,
+      # aucun redémarrage. archive_timeout 5min (défaut CNPG) forçait 288 segments WAL/jour
+      # -> 96. Contrepartie : RPO R2 jusqu'à 15 min (données perdues si le volume disparaît
+      # entre deux archivages).
+      checkpoint_timeout: "15min"
+      max_wal_size: "2GB"
+      wal_compression: "lz4"
+      archive_timeout: "15min"
   monitoring:
     enablePodMonitor: false
   minSyncReplicas: 0

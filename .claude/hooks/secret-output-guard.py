@@ -116,7 +116,7 @@ RULES: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bdoppler\b.*(--print-config|--debug|--no-verify-tls)\b"),
      "doppler --print-config/--debug/--no-verify-tls interdit (token, TLS)"),
     (re.compile(r"\bdoppler\b.*\brun\b.*--command\b"),
-     "doppler run --command : passer par scripts/doppler-safe.sh run -- <cmd>"),
+     "doppler run --command : passer par scripts/doppler-safe.sh run --only KEY -- <cmd>"),
     (re.compile(r"\bkubectl\b.*\bconfig\s+view\b.*--raw\b"), "kubectl config view --raw affiche les credentials"),
     (re.compile(r"\bkubectl\b.*\bexec\b.*\s--\s.*\b(env|printenv)\b"),
      "kubectl exec ... env/printenv affiche les variables du conteneur"),

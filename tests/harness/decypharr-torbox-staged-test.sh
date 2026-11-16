@@ -10,7 +10,7 @@ rendered="$(kustomize build --enable-helm k8s/applications/media)"
 if grep -Eq '^[[:space:]]+name: decypharr$' <<<"$rendered"; then echo 'DECYPHARR_RETIRED=FAIL: decypharr still rendered' >&2; exit 1; fi
 grep -Fxq -- '- bookorbit' "$media"
 grep -Fxq -- '- aiostreams' "$media"
-grep -Fxq -- '- audiobookrequest' "$media"
+if grep -Fxq -- '- audiobookrequest' "$media"; then echo 'AUDIOBOOKREQUEST_RETIRED=FAIL: still in media kustomization' >&2; exit 1; fi
 grep -Fxq -- '- polyfin' "$media"
 grep -Fxq -- '- media-share-pvc.yaml' "$media"
 echo "DECYPHARR_RETIRED=PASS (STATIC_ONLY; NO RUNTIME PROOF)"

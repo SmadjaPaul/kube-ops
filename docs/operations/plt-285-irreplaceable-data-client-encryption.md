@@ -93,7 +93,7 @@ classement s'applique dès le premier usage réel.
 
 | Classe | Exemples | Source de reconstruction |
 | --- | --- | --- |
-| Médias re-téléchargeables | Polyfin, AIOStreams, Decypharr, AudioBookRequest, `media-share`, `romm-library`, `pinepods-downloads` | fournisseurs et catalogues |
+| Médias re-téléchargeables | Polyfin, AIOStreams, Decypharr, `media-share`, `romm-library`, `pinepods-downloads` | fournisseurs et catalogues |
 | Caches et files | Redis d'Immich (`redis-data-immich-redis-master-0`) et de RomM (`romm-redis-data`) | régénéré au démarrage |
 | Index et modèles | Immich ML, SearXNG | régénéré |
 | Applications sans état utile | Stirling-PDF, IT-Tools, ntfy, Open Connector, agentgateway | GitOps |
@@ -138,6 +138,16 @@ bucket restic ; rétention gérée par un job distinct (`forget --prune`) ; copi
 hors ligne `restic copy` qui ne se propage pas en suppression.
 
 ## Gestion de la clé
+
+> **Amendement D-2026-11-15-10 (15/11/2026, PLT-286).** Paul a décidé que le
+> mot de passe maître est un secret aléatoire généré par OpenTofu et stocké
+> dans Doppler `cluster/prd` (`RESTIC_BACKUP_PASSWORD`) ; personne ne le
+> saisit. Il n'y a pas de clé d'exécution distincte : les étapes 1, 4 et 5 de
+> la procédure ci-dessous sont remplacées. Paul lit la valeur une fois dans
+> Doppler pour la fiche papier (étapes 2, 3 et 6 inchangées) ; un CronJob
+> initialise le dépôt. Procédure à jour : homelab-infra
+> `docs/operations/restic-master-password.md` ; mise en œuvre :
+> `docs/operations/plt-286-restic-backups.md`.
 
 Règles :
 

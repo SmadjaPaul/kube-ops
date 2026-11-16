@@ -10,7 +10,6 @@ resources:
 - media-layout-job.yaml
 - bookorbit
 - immich
-- audiobookrequest
 - aiostreams
 - polyfin
 - ../../optional/polyfin-nebula

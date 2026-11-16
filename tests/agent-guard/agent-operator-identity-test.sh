@@ -48,7 +48,7 @@ check "racine infra-security importe agent-operator" grep -qx '  - agent-operato
 check "racine apps-platform importe agent-operator-access" grep -qx '  - agent-operator-access' k8s/applications/platform/kustomization.yaml
 
 # 4. RBAC : jamais de Secret, d'escalade, d'exec, de PVC/PV en écriture
-rules=$(yq -o=json -I=0 'select(.kind == "ClusterRole") | {"n": .metadata.name, "r": .rules}' "$RBAC" | jq -c '.n as $n | .r[] | . + {role: $n}')
+rules=$(yq -o=json -I=0 'select(.kind == "ClusterRole" or .kind == "Role") | {"n": .metadata.name, "r": .rules}' "$RBAC" | jq -c '.n as $n | .r[] | . + {role: $n}')
 violations=$(jq -c 'select(
   ((.apiGroups | index("")) != null and ((.resources | index("*")) != null or (.resources | index("secrets")) != null)) or
   ((.resources // []) | map(test("^(secrets|persistentvolumeclaims|serviceaccounts/token|pods/(exec|attach|portforward)|.*/scale|roles|rolebindings|clusterroles|clusterrolebindings)$")) | any) and (.verbs | map(. != "get" and . != "list" and . != "watch") | any) or
@@ -60,6 +60,25 @@ violations=$(jq -c 'select(
 [ -z "$violations" ] && ok "ClusterRoles : ni Secret, ni escalade, ni exec, ni scale" || ko "règles interdites : $violations"
 reads=$(jq -c 'select(.role == "agent-operator-cluster-read") | select(.verbs | map(. != "get" and . != "list" and . != "watch") | any)' <<<"$rules")
 [ -z "$reads" ] && ok "cluster-read en lecture seule" || ko "cluster-read écrit : $reads"
+# 4b. proxy de lecture Prometheus/Loki : Role monitoring, get seul, deux services nommés
+MQ='select(.kind == "Role" and .metadata.name == "agent-operator-monitoring-query" and .metadata.namespace == "monitoring")'
+check "monitoring-query : un seul Role, namespace monitoring" \
+  test "$(yq -N 'select(.kind == "Role") | .metadata.name' "$RBAC")" = agent-operator-monitoring-query
+check "monitoring-query : une règle, get sur services/proxy seulement" \
+  test "$(yq -N -o=json -I=0 "$MQ | [.rules[] | {\"r\": .resources, \"v\": .verbs, \"g\": .apiGroups}]" "$RBAC" | grep -vx '\[\]')" = '[{"r":["services/proxy"],"v":["get"],"g":[""]}]'
+check "monitoring-query : resourceNames = Prometheus et loki-gateway" \
+  test "$(yq -N -o=json -I=0 "$MQ | .rules[0].resourceNames" "$RBAC")" = '["kube-prometheus-stack-prometheus:9090","loki-gateway:80"]'
+check "monitoring-query : RoleBinding limité au ServiceAccount agent-operator" \
+  test "$(yq -N -o=json -I=0 'select(.kind == "RoleBinding") | [.metadata.namespace, .roleRef.kind, .roleRef.name, .subjects[0].name, .subjects[0].namespace, (.subjects | length)]' "$RBAC" | grep -vx '\[\]')" = '["monitoring","Role","agent-operator-monitoring-query","agent-operator","agent-operator",1]'
+proxy_bad=$(jq -c 'select((.resources // []) | map(test("/proxy$")) | any) | select(.role != "agent-operator-monitoring-query" or ((.resourceNames // []) | length) == 0 or (.verbs != ["get"]))' <<<"$rules")
+[ -z "$proxy_bad" ] && ok "RBAC : services/proxy seulement via monitoring-query, nommé, get" || ko "proxy hors monitoring-query ou trop large : $proxy_bad"
+check "can-i de agent-operator-token.sh : proxy Prometheus/Loki, positif et négatif" bash -c \
+  "grep -q 'can yes get services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can yes get services/loki-gateway:80 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can no create services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can no patch services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can no delete services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring' scripts/agent-operator-token.sh \
+   && grep -q 'can no get secrets -n monitoring' scripts/agent-operator-token.sh"
 crb=$(yq -N 'select(.kind == "ClusterRoleBinding") | .roleRef.name' "$RBAC" | sort | tr '\n' ' ')
 [ "$crb" = "agent-operator-cluster-read view " ] && ok "ClusterRoleBindings = view + cluster-read" || ko "ClusterRoleBindings inattendus : $crb"
 check "ServiceAccount sans montage de jeton" \
@@ -72,6 +91,10 @@ if grep -rqE 'kind: ClusterRoleBinding' k8s/applications/platform/agent-operator
 check "policy failurePolicy Fail" test "$(yq -N 'select(.kind == "ValidatingAdmissionPolicy") | .spec.failurePolicy' "$VAP")" = Fail
 check "binding Deny" test "$(yq -N 'select(.kind == "ValidatingAdmissionPolicyBinding") | .spec.validationActions | join(",")' "$VAP")" = Deny
 check "matchCondition = identité agent exacte" grep -q "request.userInfo.username == 'system:serviceaccount:agent-operator:agent-operator'" "$VAP"
+check "policy : exemption CONNECT limitée aux deux services proxy monitoring" bash -c \
+  "grep -q \"request.operation == 'CONNECT'\" '$VAP' && grep -q \"request.namespace == 'monitoring'\" '$VAP' \
+   && grep -q \"request.name in \\['kube-prometheus-stack-prometheus:9090', 'loki-gateway:80'\\]\" '$VAP' \
+   && test \"\$(yq -N 'select(.kind == \"ValidatingAdmissionPolicy\") | .spec.matchConditions | length' '$VAP')\" = 2"
 check "policy : pas de sous-ressource scale admise" bash -c "! grep -q \"/scale'\" '$VAP'"
 for msg in agent-protected 'cnpg.io/cluster' persistentVolumeClaimRetentionPolicy secretKeyRef secretRef serviceAccountName hostNetwork \
   persistentVolumeClaim oldCarriesCredentials 'variables.newSpec == variables.oldSpec' oldPrivileged; do
@@ -159,8 +182,34 @@ grep -q '^secrets get KUBERNETES_AGENT_OPERATOR_KUBECONFIG ' "$tmp/doppler.log" 
 DOPPLER_STUB_LOG=$tmp/doppler.log PATH="$tmp/bin:$PATH" bash -c 'unset KUBE_ACCESS_KUBECONFIG_SECRET; source scripts/lib/kube-preflight.sh; _materialize_canonical_operator_kubeconfig' >/dev/null 2>&1 || true
 grep -q '^secrets get KUBERNETES_OPERATOR_KUBECONFIG ' "$tmp/doppler.log" && ok "préflight : défaut opérateur inchangé" || ko "préflight : défaut opérateur modifié"
 
+# 7b. PLT-257 : sélecteur --cluster (lecture seule sur OKE)
+check "kubectl-ro --cluster inconnu refusé" bash -c "bash scripts/kubectl-ro.sh --cluster prod get ns 2>&1 | grep -q 'inconnu'"
+check "kubectl-ro : --cluster hors tête refusé" bash -c "bash scripts/kubectl-ro.sh get ns --cluster oracle-a1 2>&1 | grep -q 'uniquement de kube-preflight'"
+check "kubectl-rw --cluster refusé (OKE en lecture seule)" bash -c "bash scripts/kubectl-rw.sh --cluster oracle-a1 patch a b c 2>&1 | grep -q 'lecture seule'"
+check "RBAC OKE : verbes get/list/watch seulement" bash -c "! grep 'verbs:' k8s/clusters/oracle-a1/agent-operator/rbac.yaml | grep -vqE 'verbs: \\[get, list(, watch)?\\]' && ! grep -qE '^[^#]*[ ,[](secrets|pods/exec|serviceaccounts/token)[],]' k8s/clusters/oracle-a1/agent-operator/rbac.yaml"
+
+# 7c. PLT-257 : normalisation de can-i (suffixe OKE)
+# shellcheck source=scripts/lib/kube-can-i.sh
+source scripts/lib/kube-can-i.sh
+can_case() { # can_case LIBELLÉ ATTENDU ENTRÉE
+  local got
+  got=$(printf '%b' "$3" | kube_can_i_answer)
+  if [ "$got" = "$2" ]; then ok "can-i : $1"; else ko "can-i : $1 (obtenu '$got', attendu '$2')"; fi
+}
+can_case "suffixe OKE no" no 'no - . Opc-Request-Id: <nil>\n'
+can_case "no exact" no 'no\n'
+can_case "yes exact" yes 'yes\n'
+can_case "yes avec suffixe" yes 'yes - reason\n'
+can_case "sortie vide refusée" "" ''
+can_case "ligne vide refusée" "" '\n\n'
+can_case "valeur inconnue refusée" "" 'maybe\n'
+can_case "préfixe de mot refusé" "" 'yesterday\n'
+can_case "casse refusée" "" 'Yes\n'
+can_case "erreur refusée" "" 'error: forbidden\n'
+can_case "premier mot seulement (no puis yes)" no 'no\nyes\n'
+
 # 8. syntaxe
-for s in scripts/kubectl-rw.sh scripts/agent-operator-token.sh scripts/lib/kube-preflight.sh; do check "bash -n $s" bash -n "$s"; done
+for s in scripts/kubectl-rw.sh scripts/agent-operator-token.sh scripts/agent-operator-oke-token.sh scripts/lib/kube-can-i.sh scripts/kubectl-ro.sh scripts/lib/kube-preflight.sh; do check "bash -n $s" bash -n "$s"; done
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck (warning)" shellcheck -S warning -x -P SCRIPTDIR scripts/kubectl-rw.sh scripts/agent-operator-token.sh tests/agent-guard/agent-operator-identity-test.sh
 fi

@@ -34,7 +34,7 @@ Repository rules, Safety and decisions: root `AGENTS.md`. These rules apply to m
 ## PostgreSQL (CNPG)
 
 - Every new database goes into the shared cluster `pg-shared` (D-2026-11-13-02). Exceptions and inventory: `docs/operations/cnpg-cluster-inventory.md`; `just check` refuses an unlisted `Cluster`.
-- The oracle-a1 `pg-shared` has no backup: no durable data there until the conditions of `k8s/clusters/oracle-a1/README.md` are met.
+- The oracle-a1 `pg-shared` is configured for R2 backup (PLT-190) but stays out of the Oracle root: no durable data there until a restore off Oracle is proven (`docs/operations/pg-shared-oke-backup-drill.md`, `k8s/clusters/oracle-a1/README.md`).
 - Backups use the barman-cloud plugin with an `ObjectStore` on R2 (bucket homelab-backup-cnpg), `isWALArchiver: true`, ScheduledBackup `method: plugin` with `pluginConfiguration.name: barman-cloud.cloudnative-pg.io`. R2 ObjectStores set `AWS_REQUEST_CHECKSUM_CALCULATION` and `AWS_RESPONSE_CHECKSUM_VALIDATION` to `when_required`.
 - Never introduce MinIO, Backblaze B2 or a new Hetzner store.
 

@@ -1,0 +1,25 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-homelab-infra-gcp-wif
+  namespace: arc-runners
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "Allow the homelab-infra CI runner to reach the Google STS, IAM Credentials, IAM and Resource Manager APIs only (terraform/gcp-arc plan through GitHub OIDC WIF, PLT-295)"
+  endpointSelector:
+    matchLabels:
+      k8s:actions.github.com/scale-set-name: homelab-infra-ci-arc
+  egress:
+    - toFQDNs:
+        - matchName: sts.googleapis.com
+        - matchName: iamcredentials.googleapis.com
+        - matchName: iam.googleapis.com
+        - matchName: cloudresourcemanager.googleapis.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

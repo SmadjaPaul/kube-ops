@@ -17,7 +17,7 @@ the series.
 - Token: Doppler `infrastructure/prd` key `GRAFANA_AGENT_READ_TOKEN`
   (service account `agent-read`, role Viewer, owner homelab-infra
   `terraform/grafana-cloud`). Inject it with
-  `bash scripts/doppler-safe.sh run -- <cmd>`; never print it.
+  `bash scripts/doppler-safe.sh run --only GRAFANA_AGENT_READ_TOKEN -- <cmd>`; never print it.
 - Prometheus: `/api/datasources/proxy/uid/grafanacloud-prom/api/v1/query`
 - Loki: `/api/datasources/proxy/uid/grafanacloud-logs/loki/api/v1/query_range`
 - If a UID is wrong, list names and UIDs only:
@@ -28,7 +28,7 @@ stops at the first failed request instead of printing nothing. The header goes
 through stdin (`-H @-`), so the token is not in curl's argument list:
 
 ```bash
-bash scripts/doppler-safe.sh run -- bash -c '
+bash scripts/doppler-safe.sh run --only GRAFANA_AGENT_READ_TOKEN -- bash -c '
   set -eo pipefail
   q() { printf "Authorization: Bearer %s\n" "$GRAFANA_AGENT_READ_TOKEN" | curl -fsS -G -H @- \
     "https://smadja.grafana.net/api/datasources/proxy/uid/grafanacloud-prom/api/v1/query" \
@@ -36,6 +36,10 @@ bash scripts/doppler-safe.sh run -- bash -c '
   q "count by (cluster) (up == 1)"
   q "count by (cluster, alertname) (ALERTS{alertstate=\"firing\"})"'
 ```
+
+One command for the standard questions: `bash scripts/observe.sh [summary|alerts|backups|app <name>]`
+(`--local` for homelab in-cluster Prometheus/Loki); runbook
+`docs/runbooks/observability-for-agents.md`.
 
 ## Token economy
 

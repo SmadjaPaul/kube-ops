@@ -84,7 +84,7 @@ Where `<tier>` is one of: `gfs`, `daily`, or `weekly`.
 - Audiobookshelf library - User-uploaded media library data
 - Immich library - Photo storage (metadata handled separately)
 - Audiobookshelf metadata/podcasts - Media indexes and metadata
-- Pipeline data - OpenWebUI pipelines, Pinepods downloads/backups, Audiobookrequest config
+- Pipeline data - OpenWebUI pipelines, Pinepods downloads/backups
 
 **Justification**: Important operational data that should be backed up regularly but doesn't require hourly granularity. Recovery within 24 hours is acceptable.
 

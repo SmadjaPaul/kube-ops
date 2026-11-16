@@ -18,6 +18,9 @@ metadata:
   namespace: fleet
   labels:
     app.kubernetes.io/name: fleet
+  annotations:
+    # Starts after fleet-mysql-fast (wave 0) is Ready.
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   replicas: 1
   strategy:

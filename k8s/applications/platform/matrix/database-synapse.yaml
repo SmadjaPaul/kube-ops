@@ -1,12 +1,12 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: matrix-synapse-postgresql
+  name: matrix-synapse-postgresql-fast
   namespace: matrix
   annotations:
     argocd.argoproj.io/sync-wave: "-10"
   labels:
-    backup.smadja.dev/cnpg-cluster: matrix-synapse-postgresql
+    backup.smadja.dev/cnpg-cluster: matrix-synapse-postgresql-fast
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7
@@ -18,30 +18,32 @@ spec:
       locale: C
       localeCType: C
       localeCollate: C
-  # PLT-247: a Cluster has a single WAL archiver; the archive moved from
-  # matrix-synapse-hetzner-store to matrix-synapse-r2-store
-  # (database-synapse-r2.yaml). Rollback of the archive destination only
-  # (healthy database, R2 archiving failing): point barmanObjectName back to
-  # matrix-synapse-hetzner-store (and the ScheduledBackup in
-  # database-scheduled-backups.yaml with it) and take a new base backup there;
-  # do NOT restore, nothing is lost. Hetzner base 20261113T223943 (backupID,
-  # never "latest") is reserved for database recovery (homelab-infra
-  # docs/operations/r2-migration.md); writes made after the cutover only have
-  # their WAL on R2, so such a recovery needs the R2 WAL too.
+  postgresql:
+    parameters:
+      # PLT-344 lot 0, décision Paul 2026-11-15 (Matrix protégée, service non utilisé) : 288 segments WAL
+      # forcés/jour par archive_timeout 5min (~4,6 Go/j sur le HDD) -> 96 (RPO R2 15 min).
+      # Rechargement à chaud, aucun redémarrage.
+      checkpoint_timeout: "15min"
+      max_wal_size: "2GB"
+      wal_compression: "lz4"
+      archive_timeout: "15min"
+  # PLT-247: a Cluster has a single WAL archiver (R2 store, database-synapse-r2.yaml).
+  # PLT-145/344: clean install on longhorn-fast (Paul, 2026-11-15: no user, nothing to
+  # keep). New name = new Barman serverName, so the old R2 prefix is never reused.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
       parameters:
         barmanObjectName: matrix-synapse-r2-store
   storage:
-    size: 20Gi
-    storageClass: longhorn-bulk
+    size: 10Gi
+    storageClass: longhorn-fast
   walStorage:
     size: 5Gi
-    storageClass: longhorn-bulk
+    storageClass: longhorn-fast
     resizeInUseVolumes: true
   resources:
-    requests: {cpu: 100m, memory: 256Mi}
+    requests: {cpu: 50m, memory: 256Mi}
     limits: {cpu: "1", memory: 1Gi}
   affinity:
     enablePodAntiAffinity: false

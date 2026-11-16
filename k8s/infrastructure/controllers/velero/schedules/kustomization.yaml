@@ -8,7 +8,6 @@ resources:
   # Monitoring metrics and Loki logs are explicitly excluded from the durable
   # application-data policy; dashboards and rules are GitOps state.
   - daily-immich.yaml
-  - daily-audiobookrequest.yaml
   - daily-bookorbit.yaml
   - daily-karakeep.yaml
   - daily-pinepods.yaml

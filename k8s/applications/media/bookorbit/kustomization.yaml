@@ -7,3 +7,4 @@ resources:
   - external-secret.yaml
   - app.yaml
   - networkpolicy.yaml
+  - backup-pre-reset-20261115.yaml

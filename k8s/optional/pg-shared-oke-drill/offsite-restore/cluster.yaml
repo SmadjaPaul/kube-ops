@@ -1,0 +1,34 @@
+# PLT-190: off-Oracle restore of the OKE pg-shared archive on the homelab. No
+# WAL archiver: the drill writes nothing to R2. Same image digest as the OKE
+# cluster (multi-arch index): same server version on amd64.
+# RTO = Cluster creationTimestamp -> condition Ready (read with kubectl-ro.sh).
+# Storage on longhorn-fast (golden path; no bulk exception line needed).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-shared-offsite
+  namespace: pg-shared-oke-drill
+  labels:
+    backup.smadja.dev/restore-drill: "true"
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:e079dae5253fa6ed26fc65fda06d515af764dbec392dd4b46b17ab11eebd8131
+  bootstrap:
+    recovery:
+      source: pg-shared-oke
+      database: backup_drill
+      owner: polyfin
+      # No secret: CNPG generates pg-shared-offsite-app for the drill.
+  externalClusters:
+    - name: pg-shared-oke
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: pg-shared-oke-r2-ro
+          serverName: pg-shared
+  storage: {size: 10Gi, storageClass: longhorn-fast}
+  resources:
+    requests: {cpu: 50m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  affinity:
+    enablePodAntiAffinity: false

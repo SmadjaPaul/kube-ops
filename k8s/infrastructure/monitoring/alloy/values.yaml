@@ -208,6 +208,8 @@ alloy:
             "instance:node_load1_per_cpu:ratio",
             "node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay|squashfs|ramfs\"}",
             "node_filesystem_size_bytes{fstype!~\"tmpfs|overlay|squashfs|ramfs\"}",
+            // Proxmox host thermal (alerts at 70/75 C; job proxmox-host)
+            "node_hwmon_temp_celsius",
             // Pods and workloads
             "kube_pod_status_ready{condition=\"true\"}",
             "kube_pod_status_phase{phase=~\"Pending|Failed|Unknown|Succeeded\"}",
@@ -241,12 +243,34 @@ alloy:
             "velero_backup_partial_failure_total",
             "longhorn_volume_robustness",
             "longhorn_backup_state",
+            // restic CronJobs (PLT-286, rule restic_backup_failed in homelab-infra)
+            "kube_cronjob_status_last_schedule_time{cronjob=~\".*-restic-.*\"}",
+            "kube_cronjob_status_last_successful_time{cronjob=~\".*-restic-.*\"}",
             // cert-manager
             "certmanager_certificate_ready_status{condition=\"True\"}",
             "certmanager_certificate_expiration_timestamp_seconds",
             // ARC (empty until listener metrics are scraped)
             "{__name__=~\"gha_(assigned_jobs|running_jobs|registered_runners|busy_runners|idle_runners)\"}",
           ],
+        }
+        forward_to = [prometheus.relabel.grafana_cloud.receiver]
+      }
+
+      // CNPG metrics carry their own `cluster` label (the PostgreSQL cluster
+      // name), which would win over external_labels and hide them from
+      // cluster="homelab" queries. Keep it as cnpg_cluster.
+      prometheus.relabel "grafana_cloud" {
+        rule {
+          source_labels = ["__name__", "cluster"]
+          regex         = "cnpg_.*;(.+)"
+          target_label  = "cnpg_cluster"
+          replacement   = "$1"
+        }
+        rule {
+          source_labels = ["__name__"]
+          regex         = "cnpg_.*"
+          target_label  = "cluster"
+          replacement   = ""
         }
         forward_to = [prometheus.remote_write.grafana_cloud.receiver]
       }

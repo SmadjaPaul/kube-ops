@@ -28,11 +28,6 @@ configMapGenerator:
       - ./blueprints/apps-grafana.yaml
       - ./blueprints/apps-home-assistant.yaml
       - ./blueprints/apps-immich.yaml
-      - ./blueprints/apps-jellyfin.yaml
-      - ./blueprints/apps-media-v2.yaml
-      - ./blueprints/apps-media.yaml
-      - ./blueprints/apps-openwebui.yaml
-      - ./blueprints/apps-litellm.yaml
       - ./blueprints/apps-karakeep.yaml
       - ./blueprints/apps-kubernetes.yaml
       - ./blueprints/apps-cloudflare.yaml
@@ -48,6 +43,9 @@ configMapGenerator:
       - ./blueprints/apps-invoice-ninja.yaml
       - ./blueprints/groups.yaml
       - ./blueprints/flows-invitation-operator.yaml
+      # PLT-176: admin-link password setup for human accounts declared without
+      # a password in groups.yaml (docs/operations/authentik-human-accounts.md).
+      - ./blueprints/flows-password-setup.yaml
       - ./blueprints/qa-e2e-user.yaml
       - ./blueprints/qa-agent-e2e.yaml
       - ./blueprints/brands.yaml

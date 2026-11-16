@@ -56,7 +56,11 @@ jobs:
               [[ -z "$path" || "$path" == *.md || "$path" == *.MD ]] && continue
               image="${path#images/}"
               image="${image%%/*}"
-              [[ -n "$image" && -f "images/$image/Dockerfile" ]] && printf '%s\n' "$image"
+              # `if`, not `&&`: a deleted image directory must not make the loop
+              # (and the pipefail pipeline) return non-zero.
+              if [[ -n "$image" && -f "images/$image/Dockerfile" ]]; then
+                printf '%s\n' "$image"
+              fi
             done <<< "$changed" | sort -u
           }
 

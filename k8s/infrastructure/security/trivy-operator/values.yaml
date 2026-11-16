@@ -17,7 +17,11 @@ operator:
   vulnerabilityScannerScanOnlyCurrentRevisions: true
   configAuditScannerScanOnlyCurrentRevisions: true
   accessGlobalSecretsAndServiceAccount: false
-  scannerReportTTL: 24h
+  # PLT-344 L6: a 24h TTL made every vulnerability report expire and be rescanned
+  # daily (~74 of 80 reports, 137 scan pods/day, ~51 GB/day written to the node
+  # disk because each Standalone job re-downloads the DBs). Weekly rescan; a new
+  # workload revision is still scanned immediately. No alert reads report age.
+  scannerReportTTL: 168h
   metricsFindingsEnabled: true
   metricsVulnIdEnabled: false
   metricsExposedSecretInfo: false

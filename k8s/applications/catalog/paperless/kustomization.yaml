@@ -8,3 +8,4 @@ resources:
   - database-r2-initial-backup.yaml
   - runtime.yaml
   - app.yaml
+  - restic-backup

@@ -1,5 +1,5 @@
-# PLT-301: kept OUT of apps/kustomization.yaml. The drill sub-issue adds it to
-# the Oracle root; see README.md, section Hindsight.
+# PLT-303: in apps/kustomization.yaml (drill activation). Rollback: remove the
+# line from the root; prune is false, the Cluster, its PVC and the ObjectStore stay.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -17,9 +17,12 @@ spec:
     server: https://kubernetes.default.svc
     namespace: hindsight
   syncPolicy:
-    # prune false: a sync never deletes the CNPG Cluster, its PVC or the
-    # ObjectStores (same rule as the homelab personal-hindsight Application).
-    automated: {prune: false, selfHeal: true}
+    # PLT-303: prune true (same pattern as cnpg-cluster) so that drill imports
+    # (Jobs, Backup, ConfigMap) are removed when their import is removed, without
+    # any kubectl write. The data kinds are protected per resource: the Cluster
+    # and the ObjectStores carry Prune=false,Delete=false; its PVC is created by
+    # CNPG, not tracked by Argo.
+    automated: {prune: true, selfHeal: true}
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

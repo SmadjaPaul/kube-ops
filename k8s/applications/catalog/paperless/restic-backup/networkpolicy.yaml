@@ -1,0 +1,39 @@
+# PLT-286: the restic pods reach only R2 over HTTPS, plus what the
+# clusterwide baseline allows (DNS with FQDN visibility, API server,
+# in-cluster 10.0.0.0/8, which covers paperless-postgresql-rw:5432).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: paperless-restic-backup
+  namespace: paperless
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: restic-backup
+  description: "restic backups of Paperless to Cloudflare R2 (PLT-286)"
+  egress:
+    - toFQDNs:
+        # R2 EU S3 endpoint; the account id label stays out of this repository.
+        - matchPattern: "*.eu.r2.cloudflarestorage.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: paperless
+            cnpg.io/cluster: paperless-postgresql
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP

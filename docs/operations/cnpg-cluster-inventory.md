@@ -11,8 +11,8 @@ La consolidation se fait au fil de l'eau, une base à la fois, avec restauration
 | `pg-shared` | cluster partagé | partagé | cible |
 | `authentik-postgresql-restored` | Authentik | exception (identité, D-02) | aucune |
 | `immich-postgresql` | Immich | exception (données photo irremplaçables, restauration dédiée) | aucune |
-| `matrix-synapse-postgresql` | Matrix | exception (identité, D-02) | aucune |
-| `matrix-mas-postgresql-clean` | Matrix | exception (identité, D-02) | aucune |
+| `matrix-synapse-postgresql-fast` | Matrix | exception (identité, D-02) | aucune |
+| `matrix-mas-postgresql-fast` | Matrix | exception (identité, D-02) | aucune |
 | `factory-platform-postgresql` | Factory | exception (gelée) | aucune |
 | `factory-platform-pg2` | Factory | exception (gelée) | aucune |
 | `mastra-factory-postgresql` | Factory | exception (gelée) | aucune |
@@ -29,4 +29,5 @@ La consolidation se fait au fil de l'eau, une base à la fois, avec restauration
 | `hindsight-db` | Hindsight | à consolider | `pg-shared` |
 | `hindsight-db-restore` | Hindsight (restauration) | à consolider | retrait après restauration |
 | `hindsight-db-offsite` | Hindsight (drill de restauration hors Oracle, PLT-301) | à consolider | retrait après le drill |
+| `pg-shared-offsite` | `pg-shared` (drill de restauration hors Oracle, PLT-190) | à consolider | retrait après le drill |
 | `sparkyfitness-db` | SparkyFitness | à consolider | `pg-shared` |

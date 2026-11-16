@@ -98,17 +98,26 @@ serviceMonitor:
         release: kube-prometheus-stack
         qa_level: l2
         aiostreams_route: "true"
-    - name: authentik-argocd-discovery
-      url: https://auth.smadja.dev/application/o/argocd/.well-known/openid-configuration
-      module: http_oidc
-      additionalMetricsRelabels:
-        v1_user_ready: "true"
+    # PLT-222: recovered apps get a public-route probe (5m interval, same module
+    # as the other UIs). Health endpoints are anonymous by design (ntfy
+    # /v1/health, immich /api/server/ping); no alert rule: ntfy is the alert
+    # channel itself, so its failure is read from probe_success on the dashboard.
+    - name: ntfy-health
+      url: https://ntfy.smadja.dev/v1/health
+      module: http_ui
       labels:
         release: kube-prometheus-stack
         qa_level: l2
-        v1_user_ready: "true"
-    - name: authentik-openwebui-discovery
-      url: https://auth.smadja.dev/application/o/openwebui/.well-known/openid-configuration
+        recovery_probe: "true"
+    - name: immich-ping
+      url: https://immich.smadja.dev/api/server/ping
+      module: http_ui
+      labels:
+        release: kube-prometheus-stack
+        qa_level: l2
+        recovery_probe: "true"
+    - name: authentik-argocd-discovery
+      url: https://auth.smadja.dev/application/o/argocd/.well-known/openid-configuration
       module: http_oidc
       additionalMetricsRelabels:
         v1_user_ready: "true"
@@ -129,6 +138,13 @@ serviceMonitor:
 prometheusRule:
   enabled: true
   namespace: monitoring
+  # Prometheus ruleSelector only loads PrometheusRules labelled
+  # release=kube-prometheus-stack; without it the two alerts below never ran.
+  # Probes are stable since PLT-346. The hassio probe still times out once in
+  # three (PLT-346, Envoy -> hostNetwork backend) but a single 5 min failure
+  # never satisfies `for: 10m`, so it does not page.
+  additionalLabels:
+    release: kube-prometheus-stack
   rules:
     - alert: V1UserReadySyntheticProbeFailed
       expr: probe_success{v1_user_ready="true"} == 0

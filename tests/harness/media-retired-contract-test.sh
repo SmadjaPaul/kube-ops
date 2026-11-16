@@ -11,11 +11,13 @@ if grep -Eq '^[[:space:]]*-[[:space:]]*daily-(sabnzbd|audiobookshelf)\.yaml' "$v
   exit 1
 fi
 grep -Fxq -- '- media-share-pvc.yaml' "$m"
-grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"
+if grep -Eq '^[[:space:]]*-[[:space:]]*daily-audiobookrequest\.yaml[[:space:]]*$' "$v"; then echo 'MEDIA_RETIRED=FAIL: audiobookrequest Velero schedule still listed' >&2; exit 1; fi
 grep -Fxq -- '- bookorbit' "$m"
 if grep -Fxq -- '- decypharr' "$m"; then echo 'MEDIA_RETIRED=FAIL: forbidden match at line 16' >&2; exit 1; fi
 grep -Fxq -- '- aiostreams' "$m"
-grep -Fxq -- '- audiobookrequest' "$m"
+if grep -Fxq -- '- audiobookrequest' "$m"; then echo 'MEDIA_RETIRED=FAIL: audiobookrequest still in media kustomization' >&2; exit 1; fi
+test ! -e k8s/applications/media/audiobookrequest
+test ! -e k8s/infrastructure/controllers/velero/schedules/daily-audiobookrequest.yaml
 grep -Fxq -- '- polyfin' "$m"
 if grep -Fxq -- '- allow-arr-to-decypharr.yaml' k8s/infrastructure/network/policies/applications/media/media/kustomization.yaml; then echo 'MEDIA_RETIRED=FAIL: forbidden match at line 20' >&2; exit 1; fi
 script=scripts/media-retired-pvc-cleanup.sh

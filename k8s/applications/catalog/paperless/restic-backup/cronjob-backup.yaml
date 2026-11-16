@@ -1,0 +1,161 @@
+# PLT-286: daily cycle. Order enforced by Kubernetes: init `postgres-dump`
+# must succeed before the `files` container starts, so a failed dump creates
+# no snapshot and no files snapshot. Source data is mounted read-only (PVC
+# and mount). No disk write: restic cache, temp and manifest are in memory.
+# data/index/ (search index) and data/log/ are regenerated and are excluded.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: paperless-restic-backup
+  namespace: paperless
+  labels:
+    app.kubernetes.io/name: restic-backup
+    app.kubernetes.io/instance: paperless
+spec:
+  # Evening slot (PLT-286): the host is powered off by its power key around
+  # 01:15-03:40 on many nights, so a 02:30/03:00 run is often missed. A missed run
+  # still starts at the next boot (deadline 18 h), like the Velero schedules.
+  schedule: "30 21 * * *"
+  timeZone: Europe/Paris
+  startingDeadlineSeconds: 64800
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      # The first cycle uploads every document; later cycles are incremental.
+      activeDeadlineSeconds: 43200
+      ttlSecondsAfterFinished: 172800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: restic-backup
+            app.kubernetes.io/instance: paperless
+        spec:
+          restartPolicy: Never
+          hostNetwork: false
+          hostPID: false
+          hostIPC: false
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile: { type: RuntimeDefault }
+          affinity:
+            # paperless-data and paperless-media are ReadWriteOnce: share the
+            # node of the running Paperless pod. Required: a backup waits (Pending, then the 48 h alert) rather than
+            # being placed on a node where the volume cannot attach.
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: paperless
+          initContainers:
+            - name: restic-binary
+              image: restic/restic:0.19.1
+              command: ["cp", "/usr/bin/restic", "/restic-bin/restic"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 5m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              volumeMounts:
+                - { name: restic-bin, mountPath: /restic-bin }
+            - name: postgres-dump
+              # Same major version as the paperless-postgresql Cluster image.
+              image: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+              command: ["/bin/bash", "/scripts/backup-db.sh"]
+              env:
+                - { name: APP, value: paperless }
+                - { name: RESTIC_HOST, value: paperless-restic }
+                - { name: RESTIC_BIN, value: /restic-bin/restic }
+                - { name: RESTIC_CACHE_DIR, value: /cache }
+                - { name: AWS_DEFAULT_REGION, value: auto }
+                - { name: HOME, value: /tmp }
+                - { name: TMPDIR, value: /tmp }
+                - name: PGHOST
+                  valueFrom: { secretKeyRef: { name: paperless-postgresql-app, key: host } }
+                - name: PGPORT
+                  valueFrom: { secretKeyRef: { name: paperless-postgresql-app, key: port } }
+                - name: PGDATABASE
+                  valueFrom: { secretKeyRef: { name: paperless-postgresql-app, key: dbname } }
+                - name: PGUSER
+                  valueFrom: { secretKeyRef: { name: paperless-postgresql-app, key: user } }
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: paperless-postgresql-app, key: password } }
+              envFrom:
+                - secretRef: { name: restic-backup }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 128Mi }
+                limits: { cpu: "1", memory: 1536Mi }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: restic-bin, mountPath: /restic-bin, readOnly: true }
+                - { name: cache, mountPath: /cache }
+                - { name: tmp, mountPath: /tmp }
+          containers:
+            - name: files
+              image: restic/restic:0.19.1
+              command: ["/bin/sh", "/scripts/backup-files.sh"]
+              env:
+                - { name: APP, value: paperless }
+                - { name: RESTIC_HOST, value: paperless-restic }
+                - { name: RESTIC_BIN, value: /usr/bin/restic }
+                - { name: RESTIC_CACHE_DIR, value: /cache }
+                - { name: AWS_DEFAULT_REGION, value: auto }
+                - { name: HOME, value: /tmp }
+                - { name: TMPDIR, value: /tmp }
+                - { name: GOMAXPROCS, value: "1" }
+                - { name: SOURCES, value: "/source/paperless-data /source/paperless-media" }
+                - { name: EXCLUDES, value: "/source/paperless-data/index /source/paperless-data/log" }
+                - { name: MANIFEST_DIR, value: /manifest }
+                - { name: WORK_DIR, value: /tmp/work }
+              envFrom:
+                - secretRef: { name: restic-backup }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 256Mi }
+                limits: { cpu: 500m, memory: 2Gi }
+              volumeMounts:
+                - { name: data, mountPath: /source/paperless-data, readOnly: true }
+                - { name: media, mountPath: /source/paperless-media, readOnly: true }
+                - { name: manifest, mountPath: /manifest }
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: cache, mountPath: /cache }
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: paperless-data
+                readOnly: true
+            - name: media
+              persistentVolumeClaim:
+                claimName: paperless-media
+                readOnly: true
+            - name: scripts
+              configMap:
+                name: restic-backup-scripts
+                defaultMode: 0555
+            - name: restic-bin
+              emptyDir: { medium: Memory, sizeLimit: 64Mi }
+            - name: cache
+              emptyDir: { medium: Memory, sizeLimit: 512Mi }
+            - name: tmp
+              emptyDir: { medium: Memory, sizeLimit: 256Mi }
+            - name: manifest
+              emptyDir: { medium: Memory, sizeLimit: 128Mi }

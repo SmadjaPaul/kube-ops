@@ -88,7 +88,10 @@ else
 fi
 
 evidence_file="${BACKUP_AUDIT_RESTORE_EVIDENCE_FILE:-}"
-if [[ -z "$evidence_file" && -z "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-20.json" ]]; then
+if [[ -z "$evidence_file" && -z "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-11-15.json" ]]; then
+  # PLT-171: paperless full restore drill (CNPG PITR + Velero/Kopia + app check).
+  evidence_file="$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-11-15.json"
+elif [[ -z "$evidence_file" && -z "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-20.json" ]]; then
   evidence_file="$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-20.json"
 elif [[ -z "$evidence_file" && -z "${BACKUP_AUDIT_INPUT_DIR:-}" && -s "$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-19.json" ]]; then
   evidence_file="$(dirname "$0")/../docs/operations/dr-restore-evidence-2026-10-19.json"
