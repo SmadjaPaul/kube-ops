@@ -20,6 +20,10 @@ context:
 inventory:
     bash scripts/inventory.sh
 
+[doc('Regenerate the Backstage catalog (catalog/generated/all.yaml, catalog/locations.yaml) from Git')]
+catalog-generate:
+    node scripts/catalog/generate-catalog.mjs
+
 [doc('Run deterministic clusterless V1 + backup validation')]
 check:
     npm run check
@@ -60,6 +64,7 @@ check:
     bash tests/harness/verify-delivery-test.sh
     bash tests/harness/scaffold-oke-app-test.sh
     bash tests/harness/agent-e2e-run-test.sh
+    bash tests/harness/catalog-generated-fresh-test.sh
 
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:
