@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 # PLT-317 — only Fleet agent endpoints reach Gateway/external.
+# Parses the YAML with yq (mikefarah v4): every match must carry an explicit
+# path from the allowlist and nothing else; parentRefs are read as objects.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 pkg="$root/k8s/optional/fleet"
 public="$pkg/http-route-public.yaml"
-fail() { echo "FLEET_PUBLIC_ROUTE=FAIL $*" >&2; exit 1; }
+admin="$pkg/http-route.yaml"
+fail() {
+  echo "FLEET_PUBLIC_ROUTE=FAIL $*" >&2
+  exit 1
+}
+command -v yq >/dev/null || fail "yq required"
 
-allowed='
-PathPrefix /api/osquery/
+allowed='PathPrefix /api/osquery/
 PathPrefix /api/v1/osquery/
 PathPrefix /api/fleet/orbit/
 Exact /api/fleet/device/ping
@@ -17,22 +23,25 @@ PathPrefix /api/latest/fleet/device/
 PathPrefix /device/
 PathPrefix /assets/
 Exact /mdm/apple/scep
-Exact /mdm/apple/mdm
-'
-actual="$(sed -nE 's/^[[:space:]]*- path: \{type: ([A-Za-z]+), value: ([^}]+)\}.*/\1 \2/p' "$public" | sort)"
-expected="$(printf '%s' "$allowed" | sed '/^$/d' | sort)"
+Exact /mdm/apple/mdm'
+
+[ "$(yq 'select(.kind == "HTTPRoute") | .metadata.name' "$public")" = fleet-agents-public ] || fail "unexpected document"
+
+# A rule without matches, or a match without an explicit path (e.g. `- {}`),
+# defaults to prefix / and would publish the admin API.
+[ "$(yq '[.spec.rules[] | select((.matches // []) | length == 0)] | length' "$public")" = 0 ] || fail "rule without matches"
+[ "$(yq '[.spec.rules[].matches[] | select(.path.type == null or .path.value == null)] | length' "$public")" = 0 ] || fail "match without explicit path"
+# Only path matching: no header/query/method widening or narrowing is expected.
+[ "$(yq '[.spec.rules[].matches[] | keys | .[] | select(. != "path")] | length' "$public")" = 0 ] || fail "match uses fields other than path"
+
+actual="$(yq -r '.spec.rules[].matches[].path | .type + " " + .value' "$public" | sort)"
+expected="$(printf '%s\n' "$allowed" | sort)"
 [ "$actual" = "$expected" ] || fail "public paths differ from the agent allowlist"
 
-# Every rule must carry explicit matches (a rule without matches is a catch-all).
-rules="$(grep -c '^[[:space:]]*- matches:' "$public")"
-[ "$(grep -c '^[[:space:]]*- backendRefs:\|^[[:space:]]*backendRefs:' "$public")" = "$rules" ] || fail "rule without matches"
-grep -Eq '^[[:space:]]*- name: external$' "$public" || fail "public route must attach to Gateway/external"
-if grep -Eq '^[[:space:]]*- name: internal$' "$public"; then fail "public route must not attach to Gateway/internal"; fi
+parents() { yq -r '.spec.parentRefs[] | (.namespace // "") + "/" + .name' "$1" | sort -u; }
+[ "$(parents "$public")" = "gateway/external" ] || fail "public route must attach to Gateway/external only"
+[ "$(parents "$admin")" = "gateway/internal" ] || fail "admin route must stay on Gateway/internal only"
 
-# The admin route stays LAN-only.
-if grep -Eq '^[[:space:]]*- name: external$' "$pkg/http-route.yaml"; then
-  fail "admin route attached to Gateway/external"
-fi
 grep -Fxq '  - http-route-public.yaml' "$pkg/kustomization.yaml" || fail "public route not rendered"
 
 echo "FLEET_PUBLIC_ROUTE=PASS"
