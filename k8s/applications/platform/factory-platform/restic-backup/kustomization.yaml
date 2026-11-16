@@ -1,0 +1,15 @@
+# PLT-369: logical dump of factory-platform-pg2 (whole database: public.raw_events,
+# control.*, github_collection_runs, analytics) to R2, repository factory-platform/.
+# Same pattern as paperless (PLT-286): restic, client-side encrypted, no disk copy.
+# Reuses the existing Doppler keys of the restic writer (bucket homelab-backup-restic,
+# scoped to that bucket); no new Doppler key is created by this directory.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: factory-platform
+resources:
+  - externalsecret.yaml
+  - networkpolicy.yaml
+  - cronjob-backup.yaml
+  - cronjob-maintenance.yaml
+components:
+  - ../../../../components/restic-backup

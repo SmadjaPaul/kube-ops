@@ -1,0 +1,38 @@
+# PLT-369: the restic pods reach only R2 over HTTPS, DNS, and the pg2 primary
+# (port 5432). Selects only the restic-backup pods of this namespace.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-platform-restic-backup
+  namespace: factory-platform
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: restic-backup
+  description: "restic logical dumps of factory-platform-pg2 to Cloudflare R2 (PLT-369)"
+  egress:
+    - toFQDNs:
+        # R2 EU S3 endpoint; the account id label stays out of this repository.
+        - matchPattern: "*.eu.r2.cloudflarestorage.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: factory-platform
+            cnpg.io/cluster: factory-platform-pg2
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP

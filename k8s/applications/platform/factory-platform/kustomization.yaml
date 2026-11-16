@@ -19,6 +19,8 @@ resources:
   - service.yaml
   - servicemonitor.yaml
   - collector-cronjob.yaml
+  # PLT-369: logical dump of factory-platform-pg2 to R2 (restic), PLT-286 pattern.
+  - restic-backup
   - dbt-cronjob.yaml
   - networkpolicy.yaml
   - cube-schema.yaml

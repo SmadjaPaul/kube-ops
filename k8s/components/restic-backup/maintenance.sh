@@ -42,6 +42,12 @@ log "step=dry-restore tag=${APP}-postgres start"
   pg_restore --file=/dev/null
 log "step=dry-restore tag=${APP}-postgres PASS"
 
+# PLT-369: an application without a files source (factory-platform: dump only)
+# sets FILES_DRYRUN=0; the default keeps the paperless behaviour unchanged.
+if [ "${FILES_DRYRUN:-1}" = "0" ]; then
+  log "step=dry-restore tag=${APP}-files skipped (FILES_DRYRUN=0)"
+  exit 0
+fi
 log "step=dry-restore tag=${APP}-files start"
 # One snapshot for the manifest and every sampled file: `latest` would be
 # resolved again by each dump and could move under a concurrent backup.
