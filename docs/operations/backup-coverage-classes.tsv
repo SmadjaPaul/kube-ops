@@ -9,7 +9,7 @@ atlantis-apps	atlantis-apps-data	RETIRED	Atlantis pilot retired, retention-only 
 auth	authentik-postgresql-restored-1	IRREPLACEABLE	Authentik identity database
 auth	authentik-postgresql-restored-1-wal	IRREPLACEABLE	Authentik identity database WAL
 factory-platform	factory-cubestore-data	REBUILDABLE	Cube Store pre-aggregations
-factory-platform	factory-platform-pg2-1	IRREPLACEABLE	Factory raw_events ledger and control schema, not reconstructible (PLT-369); logical dump to R2 via restic
+factory-platform	factory-platform-pg2-1	IRREPLACEABLE	Factory raw_events ledger and control schema, not reconstructible (PLT-369)
 factory-platform	factory-platform-pg2-1-wal	USEFUL	Factory data platform database WAL (active)
 factory-platform	factory-platform-postgresql-1	RETIRED	Fenced forensic copy, replaced by factory-platform-pg2 (PLT-252)
 factory-platform	factory-platform-postgresql-1-wal	RETIRED	Fenced forensic copy, replaced by factory-platform-pg2 (PLT-252)
