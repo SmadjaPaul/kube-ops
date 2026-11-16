@@ -7,8 +7,8 @@
 # ghcr.io on 2026-11-16 (same pinning method as oracle-a1 pg-shared, whose
 # 17.7 digest it reproduces when resolved the same way).
 #
-# archive_timeout 5min bounds the RPO of the shared archive (study pg-shared-etude.md
-# section 4.3). Backups: barman-cloud plugin, ObjectStore pg-shared-homelab-r2.
+# archive_timeout 5min is a setting, not a proof: the RPO is an objective to be
+# proven by a measured restore drill (study pg-shared-etude.md section 4.3). Backups: barman-cloud plugin, ObjectStore pg-shared-homelab-r2.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:

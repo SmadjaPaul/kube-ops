@@ -50,32 +50,54 @@
 #   owner: APP
 #   cluster: {name: pg-shared-homelab}
 #
-# 3b. Database isolation, REQUIRED before the first application (run once per
-#     database, after step 3). Not declarative, checked and bounded:
-#     - Database CR: no grant field (CRD checked: allowConnections is the
-#       database flag, not CONNECT).
-#     - Template route ruled out: CNPG postInitTemplateSQL on template1 does not
-#       help, because CREATE DATABASE does not copy database-level GRANTs from the
-#       template (PostgreSQL docs, Template Databases: new database gets default
-#       privileges). So each new database needs this step.
-#     - Database `app` is the exception: closed declaratively by
-#       cluster.yaml bootstrap.initdb.postInitApplicationSQL (bootstrap only).
-#     Run as postgres (kubectl cnpg psql pg-shared-homelab -n databases):
+# 3b. Database isolation, REQUIRED and standard path: a PostSync Job per
+#     database, copied into the PR that adds the Database (model:
+#     kube-ops#1593 miniflux-isolation-job.yaml). Checks: the Job fails, so the
+#     Argo CD application is not Healthy, if PUBLIC still has CONNECT.
+#     tests/harness/pg-shared-homelab-isolation-guard-test.sh refuses a Database
+#     on pg-shared-homelab without this Job named pg-shared-homelab-APP-isolation.
+#     Not declarative otherwise: the Database CR has no grant field (CRD
+#     checked), and CREATE DATABASE does not copy database-level GRANTs from
+#     template1 (PostgreSQL docs), so postInitTemplateSQL cannot close new bases.
+#     Database `app` is closed by cluster.yaml bootstrap, not by this Job.
 #
-#       REVOKE CONNECT ON DATABASE APP FROM PUBLIC;
+#     apiVersion: batch/v1
+#     kind: Job
+#     metadata:
+#       name: pg-shared-homelab-APP-isolation
+#       namespace: databases
+#       annotations:
+#         argocd.argoproj.io/hook: PostSync
+#         argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+#     spec:
+#       backoffLimit: 3
+#       template:
+#         spec:
+#           restartPolicy: Never
+#           automountServiceAccountToken: false
+#           securityContext: {runAsNonRoot: true, runAsUser: 26, runAsGroup: 26, seccompProfile: {type: RuntimeDefault}}
+#           containers:
+#             - name: isolate
+#               image: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie@sha256:<same digest as cluster.yaml>
+#               command: [sh, -ec]
+#               args:
+#                 - |
+#                   psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE APP FROM PUBLIC"
+#                   ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'APP'")
+#                   test "$ok" = "t" || { echo "PUBLIC still has CONNECT on APP" >&2; exit 1; }
+#               env:
+#                 - {name: PGHOST, value: pg-shared-homelab-rw.databases.svc.cluster.local}
+#                 - {name: PGDATABASE, value: APP}
+#                 - {name: PGSSLMODE, value: require}
+#                 - name: PGUSER
+#                   valueFrom: {secretKeyRef: {name: pg-shared-homelab-APP, key: username}}
+#                 - name: PGPASSWORD
+#                   valueFrom: {secretKeyRef: {name: pg-shared-homelab-APP, key: password}}
 #
-#     Without it, any authenticated role of the cluster can open a session on
-#     APP. The owner keeps CONNECT through ownership. REVOKE does not close
-#     sessions already open: terminate them (pg_terminate_backend on the sessions
-#     of other roles connected to APP) before the negative test is meaningful.
-#     Negative test, to run and
-#     record in the PR that adds the database (expected: "permission denied for database APP"):
-#
-#       # as role OTHER (another managed role, password from its own Secret)
+#     Runtime proof still required, recorded in the PR that adds the database:
+#     negative test as role OTHER, expected "permission denied for database APP":
 #       psql "host=pg-shared-homelab-rw.databases.svc user=OTHER dbname=APP"
-#
-#     Automating this step (Job or CNPG hook) is a follow-up; until then the PR
-#     reviewer checks that the REVOKE was executed and the negative test was recorded.
+#     Terminate sessions opened before the REVOKE first (REVOKE does not close them).
 #
 # 4. Network: pg_hba is NOT used. Choice documented here: the repository has no
 #    pg_hba precedent (no spec.postgresql.pg_hba anywhere in k8s/) and its effect
