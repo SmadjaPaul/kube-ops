@@ -32,12 +32,9 @@ spec:
     - ports:
       - port: "443"
         protocol: TCP
-  - toFQDNs:
-    - matchName: "fsn1.your-objectstorage.com"
-    toPorts:
-    - ports:
-      - port: "443"
-        protocol: TCP
+  # PLT-94 lot 6 (MANDAT 21) : regle d'egress fsn1.your-objectstorage.com
+  # retiree (l'egress `world`:443 ci-dessus la couvrait deja ; la BSL Hetzner
+  # est supprimee).
   - toEndpoints:
     - matchLabels:
         k8s:io.kubernetes.pod.namespace: kube-system
