@@ -30,7 +30,7 @@ Rows are capped (`OBSERVE_MAX`, default 12). The token is injected by
 
 Local access identity (PLT-312): `kubectl-ro.sh` uses the `agent-operator` ServiceAccount.
 Its Role `agent-operator-monitoring-query` (`monitoring` namespace, `k8s/infrastructure/security/agent-operator/rbac.yaml`)
-grants `get` on `services/proxy`, limited by `resourceNames` to
+grants `get` on the service proxy, limited by `resourceNames` to
 `kube-prometheus-stack-prometheus:9090` and `loki-gateway:80`. No Secret, no write verb, no other service
 (Grafana, Alertmanager). A `403` on `get --raw .../proxy/...` means the Role is not reconciled yet
 (`just status-app infra-security`) or the token is expired (Paul renews it); do not fall back to the operator copy to read metrics.
