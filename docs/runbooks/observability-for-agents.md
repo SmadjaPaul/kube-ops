@@ -35,6 +35,7 @@ grants `get` on the service proxy, limited by `resourceNames` to
 (Grafana, Alertmanager). A `403` on `get --raw .../proxy/...` means the Role is not reconciled yet
 (`just status-app infra-security`) or the token is expired (Paul renews it); do not fall back to the operator copy to read metrics.
 `agent-operator-token.sh --verify` checks `can-i` yes on both services and no for `create`, `patch`, `delete`, other services, other namespaces and Secrets.
+The admission policy `agent-operator-guard` exempts only that CONNECT on those two named services (HTTP method is not visible to admission, the Role refuses POST). A `forbidden ... agent-operator-guard` on a proxy read means the policy is not reconciled yet.
 oracle-a1 has no local Prometheus/Loki, so it gets no such Role.
 
 Series are an allowlist: no result is a collection gap, not proof of health.
