@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
-# NOT ACTIVE: Authentik change (D-2026-11-14-06 point 3, Paul's agreement).
-# Import into the Authentik blueprint generator only after the decision.
-# Validate model and field names against the Authentik 2026.8 blueprint schema
-# before import (no SAML blueprint exists yet in this repository).
+# PLT-316 (D-2026-11-14-06 point 3, Paul's agreement of 2026-11-15): SAML SSO for
+# Fleet. Fields validated against the Authentik 2026.8.3 blueprint schema
+# (blueprints/schema.json, model authentik_providers_saml.samlprovider).
+# Rollback: remove this file and its line in ../kustomization.yml; Fleet keeps
+# its local admin account (docs/operations/fleet-saml-sso.md).
 version: 1
 metadata:
   name: Apps - Fleet
