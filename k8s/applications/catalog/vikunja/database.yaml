@@ -17,9 +17,8 @@ spec:
       wal_compression: "lz4"
       archive_timeout: "15min"
   # PLT-221: a Cluster has a single WAL archiver; the archive moved from
-  # vikunja-hetzner-store to vikunja-r2-store (backup-r2.yaml). Rollback: point
-  # barmanObjectName back to vikunja-hetzner-store, then take a new base backup
-  # there (rollback point: Backup vikunja-postgresql-hetzner-precutover-20261113).
+  # Hetzner to vikunja-r2-store. PLT-94: the Hetzner store was removed from
+  # kube-ops; recovery points live on R2 only.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true

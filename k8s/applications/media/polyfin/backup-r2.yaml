@@ -9,8 +9,8 @@
 # barman-cloud runs without --endpoint-url and boto3 reads AWS_ENDPOINT_URL_S3.
 #
 # Objects land under s3://homelab-backup-cnpg/polyfin/polyfin-db/
-# (serverName defaults to the Cluster name). The Hetzner store in backup.yaml
-# is kept untouched until a restore from R2 is proven.
+# (serverName defaults to the Cluster name). The former Hetzner store was
+# removed (PLT-94); R2 is the only archive target.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:

@@ -22,10 +22,8 @@ spec:
       wal_compression: "lz4"
       archive_timeout: "15min"
   # PLT-244: a Cluster has a single WAL archiver; the archive moved from
-  # paperless-hetzner-store to paperless-r2-store (database-r2.yaml). Rollback:
-  # point barmanObjectName back to paperless-hetzner-store, restore from the
-  # Hetzner base 20261113T165722 (backupID, never "latest"), then take a new
-  # base backup there (homelab-infra docs/operations/r2-migration.md).
+  # Hetzner to paperless-r2-store. PLT-94: the Hetzner store was removed from
+  # kube-ops; recovery points live on R2 only.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
