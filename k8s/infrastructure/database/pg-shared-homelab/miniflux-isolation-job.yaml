@@ -1,7 +1,11 @@
 # PLT-152 (M10 D-b1): gate that revokes CONNECT on database miniflux from PUBLIC,
 # so no other managed role of pg-shared-homelab can open a session on it. Runs
 # as the owner role miniflux (owners keep CONNECT; no superuser needed) after
-# the Database and role are synced (PostSync). The Job fails, so the Argo CD
+# the Database and role are synced (PostSync). On a fresh cluster the role and
+# the database appear only after initdb, so the Job waits, bounded (60 x 10 s),
+# until miniflux can connect, then fails with the last psql error. A missing
+# password Secret leaves the pod in CreateContainerConfigError: activeDeadlineSeconds
+# then fails the Job (no Running forever). The Job fails, so the Argo CD
 # application is not Healthy, if PUBLIC still has CONNECT.
 # Not a full functional test: the negative connection test from another role
 # ("permission denied for database miniflux") is a runtime proof, see the PR body.
@@ -15,6 +19,8 @@ metadata:
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   backoffLimit: 3
+  activeDeadlineSeconds: 1200
+  ttlSecondsAfterFinished: 86400
   template:
     metadata:
       labels:
@@ -35,6 +41,14 @@ spec:
             - |
               # Password must be hex: DATABASE_URL in miniflux-runtime is not URL-encoded.
               printf '%s' "$PGPASSWORD" | grep -qE '^[0-9a-f]+$' || { echo "miniflux role password is not hex: fix the Doppler value" >&2; exit 1; }
+              # Bounded wait (60 x 10 s): role miniflux and database miniflux appear after initdb.
+              # Connecting as miniflux to database miniflux succeeds only when both exist.
+              i=0; ready=0; err=""
+              while [ "$i" -lt 60 ]; do
+                if err=$(psql -X -q -tA -c 'SELECT 1' 2>&1 >/dev/null); then ready=1; break; fi
+                i=$((i + 1)); sleep 10
+              done
+              [ "$ready" = 1 ] || { echo "miniflux: role miniflux or database miniflux not ready after 600 s, last error: $err" >&2; echo "check: Cluster pg-shared-homelab managed roles, Database miniflux, Secret pg-shared-homelab-miniflux" >&2; exit 1; }
               psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE miniflux FROM PUBLIC"
               ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'miniflux'")
               test "$ok" = "t" || { echo "PUBLIC still has CONNECT on miniflux" >&2; exit 1; }
@@ -44,6 +58,7 @@ spec:
             - {name: PGPORT, value: "5432"}
             - {name: PGDATABASE, value: miniflux}
             - {name: PGSSLMODE, value: require}
+            - {name: PGCONNECT_TIMEOUT, value: "10"}
             - name: PGUSER
               valueFrom: {secretKeyRef: {name: pg-shared-homelab-miniflux, key: username}}
             - name: PGPASSWORD

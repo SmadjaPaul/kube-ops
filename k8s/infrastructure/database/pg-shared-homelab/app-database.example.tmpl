@@ -80,6 +80,8 @@
 #         argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 #     spec:
 #       backoffLimit: 3
+#       activeDeadlineSeconds: 1200
+#       ttlSecondsAfterFinished: 86400
 #       template:
 #         spec:
 #           restartPolicy: Never
@@ -91,6 +93,12 @@
 #               command: [sh, -ec]
 #               args:
 #                 - |
+#                   i=0; ready=0; err=""
+#                   while [ "$i" -lt 60 ]; do
+#                     if err=$(psql -X -q -tA -c 'SELECT 1' 2>&1 >/dev/null); then ready=1; break; fi
+#                     i=$((i + 1)); sleep 10
+#                   done
+#                   [ "$ready" = 1 ] || { echo "APP: role or database not ready after 600 s: $err" >&2; exit 1; }
 #                   psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE APP FROM PUBLIC"
 #                   ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'APP'")
 #                   test "$ok" = "t" || { echo "PUBLIC still has CONNECT on APP" >&2; exit 1; }
@@ -98,6 +106,7 @@
 #                 - {name: PGHOST, value: pg-shared-homelab-rw.databases.svc.cluster.local}
 #                 - {name: PGDATABASE, value: APP}
 #                 - {name: PGSSLMODE, value: require}
+#                 - {name: PGCONNECT_TIMEOUT, value: "10"}
 #                 - name: PGUSER
 #                   valueFrom: {secretKeyRef: {name: pg-shared-homelab-APP, key: username}}
 #                 - name: PGPASSWORD
