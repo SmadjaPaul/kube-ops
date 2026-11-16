@@ -1,0 +1,48 @@
+# Default-deny ingress and egress for the miniflux namespace (k8s/CLAUDE.md).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: miniflux, namespace: miniflux }
+spec:
+  endpointSelector: { matchLabels: { app.kubernetes.io/name: miniflux } }
+  ingress:
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "8080" }
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - { protocol: UDP, port: "53" }
+            - { protocol: TCP, port: "53" }
+    # pg-shared-homelab, rw service (DATABASE_MAX_CONNS=5).
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: databases
+            cnpg.io/cluster: pg-shared-homelab
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "5432" }
+    # Authentik OIDC discovery and token exchange, through the internal Gateway
+    # hairpin (same pattern as bookorbit; Mealie and Vikunja also use the Gateway).
+    - toCIDR: [10.0.20.192/32]
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "443" }
+    - toFQDNs:
+        - matchName: auth.smadja.dev
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "443" }
+    # Feeds are arbitrary public URLs: HTTP(S) to the internet only. RFC1918
+    # ranges are excluded to limit SSRF into the LAN and the cluster.
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10]
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "80" }
+            - { protocol: TCP, port: "443" }

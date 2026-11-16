@@ -45,6 +45,18 @@ spec:
   walStorage:
     storageClass: longhorn-fast
     size: 5Gi
+  managed:
+    roles:
+      # PLT-152 (Miniflux). Password from pg-shared-homelab-miniflux (miniflux-database.yaml).
+      - name: miniflux
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        connectionLimit: 10
+        passwordSecret:
+          name: pg-shared-homelab-miniflux
   resources:
     requests: {cpu: 200m, memory: 768Mi}
     limits: {cpu: "1", memory: 2Gi}

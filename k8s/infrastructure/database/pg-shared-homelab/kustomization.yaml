@@ -9,3 +9,4 @@ resources:
   - cluster.yaml
   - scheduledbackup.yaml
   - networkpolicy.yaml
+  - miniflux-database.yaml
