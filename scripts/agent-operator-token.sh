@@ -79,6 +79,18 @@ verify_agent() {
   for ns in $admitted; do
     can yes patch deployments -n "$ns"
   done
+  # Proxy de lecture Prometheus/Loki (rôle agent-operator-monitoring-query) :
+  # get oui sur les deux services nommés, tout le reste non.
+  can yes get services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can yes get services/loki-gateway:80 --subresource=proxy -n monitoring
+  can no create services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can no update services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can no patch services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can no delete services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n monitoring
+  can no create services/loki-gateway:80 --subresource=proxy -n monitoring
+  can no get services/kube-prometheus-stack-grafana:80 --subresource=proxy -n monitoring
+  can no get services/kube-prometheus-stack-prometheus:9090 --subresource=proxy -n media
+  can no get secrets -n monitoring
   can yes delete pods -n media
   can yes patch cronjobs -n media
   # can-i ne prouve pas l'admission : création en dry-run serveur (aucun effet)

@@ -93,6 +93,46 @@ subjects:
     name: agent-operator
     namespace: agent-operator
 ---
+# Lecture des API de requête Prometheus et Loki par le proxy de service de
+# l'API server (température du nœud, quota, logs : scripts/observe.sh --local,
+# kubectl-ro.sh get --raw). `view` ne couvre pas services/proxy. Role du seul
+# namespace monitoring, verbe `get` seul (GET = get ; POST = create reste refusé),
+# limité par resourceNames aux deux services "nom:port" utilisés. Aucun accès aux
+# Secret, aux autres services (Grafana, Alertmanager) ni à l'écriture.
+# Le proxy Prometheus/Loki n'existe pas sur OKE : rien dans clusters/oracle-a1.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-operator-monitoring-query
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [""]
+    resources: [services/proxy]
+    resourceNames:
+      - kube-prometheus-stack-prometheus:9090
+      - loki-gateway:80
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-operator-monitoring-query
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-operator-monitoring-query
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: agent-operator
+---
 # Écriture sur les workloads reconstructibles. Liée par RoleBinding seulement,
 # jamais par ClusterRoleBinding (test agent-operator-identity).
 # Pas de sous-ressource */scale : l'objet Scale ne porte pas les labels, la

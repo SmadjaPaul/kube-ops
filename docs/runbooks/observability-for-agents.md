@@ -28,6 +28,15 @@ Rows are capped (`OBSERVE_MAX`, default 12). The token is injected by
 | oracle-a1 | Grafana only (it runs Alloy and kube-state-metrics, no local Prometheus/Loki); pods and events via `kubectl-ro.sh --cluster oracle-a1` |
 | Argo state of one app | `just status-app`, `just diagnose-app` |
 
+Local access identity (PLT-312): `kubectl-ro.sh` uses the `agent-operator` ServiceAccount.
+Its Role `agent-operator-monitoring-query` (`monitoring` namespace, `k8s/infrastructure/security/agent-operator/rbac.yaml`)
+grants `get` on the service proxy, limited by `resourceNames` to
+`kube-prometheus-stack-prometheus:9090` and `loki-gateway:80`. No Secret, no write verb, no other service
+(Grafana, Alertmanager). A `403` on `get --raw .../proxy/...` means the Role is not reconciled yet
+(`just status-app infra-security`) or the token is expired (Paul renews it); do not fall back to the operator copy to read metrics.
+`agent-operator-token.sh --verify` checks `can-i` yes on both services and no for `create`, `patch`, `delete`, other services, other namespaces and Secrets.
+oracle-a1 has no local Prometheus/Loki, so it gets no such Role.
+
 Series are an allowlist: no result is a collection gap, not proof of health.
 oracle-a1 exports no `ALERTS`, `velero_*`, `longhorn_*`, `kubelet_volume_stats_*`.
 
