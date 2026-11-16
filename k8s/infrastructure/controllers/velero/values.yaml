@@ -24,9 +24,8 @@ credentials:
   useSecret: true
   # PLT-94 lot 2 (MANDAT 21, D-2026-11-16-07) : bascule reversible du credential
   # par defaut monte par velero, node-agent et les Jobs de maintenance Kopia,
-  # de Hetzner vers R2. La BSL Hetzner `default` (ReadOnly) garde un credential
-  # explicite ci-dessous, donc reste restaurable jusqu'a son retrait (lot
-  # destructif). Aucune donnee touchee ; retour arriere par `git revert`.
+  # de Hetzner vers R2. La BSL Hetzner `default` est retiree (lot 6, voir
+  # backupStorageLocation) ; retour arriere par `git revert`.
   existingSecret: velero-r2-credentials
 
 configuration:
@@ -43,25 +42,10 @@ configuration:
   backupRepositoryConfigMap: velero-repository-config
   repoMaintenanceJobConfigMap: velero-repo-maintenance-job-config
   backupStorageLocation:
-    - name: default
-      provider: aws
-      bucket: smadja-dev-homelab-backups
-      prefix: velero
-      # PLT-222 (decision Paul 12/11, PLT-219) : Hetzner devient lecture seule.
-      # Les anciennes sauvegardes restent restaurables ; plus d'ecriture ni de
-      # ramasse-miettes cote Hetzner. Aucun objet n'est supprime.
-      default: false
-      accessMode: ReadOnly
-      # PLT-94 lot 2 : le credential par defaut passe a R2, donc cette BSL
-      # Hetzner recupere un credential explicite (ES velero-hetzner-credentials,
-      # conserve jusqu'au lot destructif) pour rester lisible en restauration.
-      credential:
-        name: velero-hetzner-credentials
-        key: cloud
-      config:
-        region: fsn1
-        s3ForcePathStyle: "false"
-        s3Url: https://fsn1.your-objectstorage.com
+    # PLT-94 lot 6 (MANDAT 21, D-2026-11-16-07) : la BSL Hetzner `default`
+    # (ReadOnly, fsn1) est retiree. Les 112 Backup CR qui la referencent
+    # deviennent orphelins (metadonnees dans le cluster seulement, aucun objet
+    # de bucket) ; leur suppression par le GC est acceptee (Paul, 16/11).
     # PLT-222: Cloudflare R2 (jurisdiction eu), BSL par defaut (step 6 de
     # docs/operations/r2-migration.md). Tous les Schedules la ciblent.
     - name: r2
