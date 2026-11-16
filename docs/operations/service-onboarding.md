@@ -6,11 +6,11 @@ Authority: [AGENTS.md](../../AGENTS.md). Keep upstream Kubernetes/Helm/Kustomize
 
 1. Run `just inventory`: Git-only Argo ApplicationSet roots and local Kustomize imports, **not** pod/runtime status. Inactive directories must never count toward node CPU requests.
 2. Read `k8s/bootstrap/argocd-root/{applications,infrastructure}-applicationset.yaml`; Argo creates independent Applications per listed directory. The top-level `k8s/applications/kustomization.yaml` is not this list.
-3. Copy the smallest *active* reference:
+3. Follow the golden path `.agents/skills/deploy-a-service/SKILL.md` (decision tree Q0-Q7), then copy the smallest *active* reference:
    - Stateless LAN service: `k8s/applications/tools/it-tools` (omit its KEDA-specific pieces unless justified).
-   - Regular user app: `k8s/applications/catalog/mealie`.
-   - Stateful app with CNPG/backup: `k8s/applications/catalog/paperless`.
+   - Regular user app with OIDC and a PVC: `k8s/applications/catalog/mealie`.
    - Business Gateway and restore: `k8s/applications/business/invoice-ninja`.
+   - Do **not** use paperless or RomM as references: they carry dedicated CNPG `Cluster`s classed "to consolidate" in `docs/operations/cnpg-cluster-inventory.md`. A new database is a `Database` in `pg-shared`.
 
 ## Minimal service contract
 
