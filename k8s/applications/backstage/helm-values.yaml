@@ -1,0 +1,61 @@
+# Valeurs pour le chart officiel backstage/charts (charts/backstage) : hebergement PILOTE homelab.
+# NE PAS DEPLOYER sans : image construite et poussee (digest), secrets ESO crees (noms ci-dessous),
+# blueprint Authentik livre, cluster pg-shared-homelab present (aujourd'hui ABSENT au runtime).
+# Indisponibilite de Backstage : sans effet sur les services (GitOps Argo + garde d'admission lisent Git, pas Backstage).
+
+# Namespace cible : `backstage` (cree par Argo/kustomize, a ajouter aux destinations de l'AppProject).
+
+backstage:
+  replicas: 1
+  strategy:
+    type: Recreate   # une seule migration de base a la fois (SQLite/PG au demarrage)
+  image:
+    registry: REGISTRY-A-DEFINIR
+    repository: backstage/pilote
+    # Digest de l'image construite depuis golden path pilote (A) : obligatoire, pas de tag mutable.
+    digest: "sha256:A-DEFINIR"
+    pullPolicy: IfNotPresent
+  command: ["node", "packages/backend/dist/index.cjs.js"]
+  containerPorts:
+    backend: 7007
+  # Dimensionnement issu de la mesure locale (A) : RSS repos ~288 Mi, pic run ~275 Mi, ingestion ~380 Mi.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m        # plafond pilote du contrat
+      memory: 512Mi    # plafond pilote du contrat
+  # Secrets ESO attendus (noms uniquement, aucune valeur) :
+  #  - backstage-pg          : POSTGRES_HOST/PORT/USER/PASSWORD, base `backstage` sur pg-shared-homelab (DEPENDANCE : cluster absent)
+  #  - backstage-github-app  : credentials GitHub App (contents + pull_requests sur SmadjaPaul/kube-ops uniquement), remplace le PAT
+  #  - backstage-authentik   : client OIDC Authentik (blueprint a livrer, DEPENDANCE)
+  #  - backstage-agent       : jeton statique externalAccess (scaffolder/catalog) pour l'agent
+  extraEnvVarsSecrets:
+    - backstage-pg
+    - backstage-github-app
+    - backstage-authentik
+    - backstage-agent
+  extraEnvVars:
+    - name: NODE_ENV
+      value: production
+    - name: BACKSTAGE_DATA_DIR
+      value: /tmp/backstage-data
+  # Config : SQLite locale -> PostgreSQL pg-shared-homelab (a fournir via extraAppConfig, DEPENDANCE)
+
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: internal            # Gateway/internal uniquement (exposure internal, MANDAT)
+      namespace: REMPLIR-NS-GATEWAY
+  hostnames:
+    - backstage.REMPLIR-DOMAINE-INTERNE
+
+networkPolicy:
+  enabled: true
+
+postgresql:
+  enabled: false                # base externe pg-shared-homelab, pas le sous-chart Bitnami
+
+serviceAccount:
+  automountServiceAccountToken: false
