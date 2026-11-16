@@ -16,6 +16,7 @@ resources:
   - externalsecret.yaml
   - httproutes.yaml
   - networkpolicy.yaml
+  - database-r2-initial-backup.yaml
 
 helmCharts:
   - name: matrix-stack

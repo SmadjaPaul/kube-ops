@@ -1,0 +1,41 @@
+# PLT-94: first base backups on R2 of the two Matrix CNPG clusters, recreated
+# by initdb on 2026-11-15 at 21:56Z. Since then only WAL reach R2 and the
+# weekly ScheduledBackups (database-scheduled-backups.yaml) first fire on
+# 2026-11-22: without a base backup there is no recovery point
+# (firstRecoverabilityPoint empty). The ScheduledBackups have already been
+# checked by the operator, so setting `immediate` on them would not trigger a
+# run; an on-demand Backup per cluster closes the window.
+#
+# Same R2 stores as the WAL archive and the weekly schedule
+# (s3://homelab-backup-cnpg/...), never the Hetzner stores.
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: matrix-synapse-postgresql-fast-r2-initial-20261116
+  namespace: matrix
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: matrix-synapse-postgresql-fast
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-synapse-r2-store
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: matrix-mas-postgresql-fast-r2-initial-20261116
+  namespace: matrix
+  labels:
+    backup.smadja.dev/purpose: r2-cutover
+spec:
+  cluster:
+    name: matrix-mas-postgresql-fast
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: matrix-mas-clean-r2-store
