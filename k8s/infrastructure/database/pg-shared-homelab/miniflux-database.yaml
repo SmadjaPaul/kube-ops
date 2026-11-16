@@ -48,6 +48,10 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: miniflux
             app.kubernetes.io/name: miniflux
+        # PostSync isolation Job (miniflux-isolation-job.yaml), same namespace.
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: databases
+            app.kubernetes.io/name: miniflux-db-isolation
       toPorts:
         - ports:
             - { protocol: TCP, port: "5432" }

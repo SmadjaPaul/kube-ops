@@ -23,7 +23,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: miniflux
-          image: miniflux/miniflux:2.3.5
+          image: miniflux/miniflux:2.3.5@sha256:8fd6c3c434ecc3d4083306f83e03c0bb74c632e0f8378da5ead7e1773b0b89c9
           envFrom:
             - secretRef:
                 name: miniflux-runtime

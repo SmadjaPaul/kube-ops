@@ -1,0 +1,62 @@
+# PLT-152 (M10 D-b1): gate that revokes CONNECT on database miniflux from PUBLIC,
+# so no other managed role of pg-shared-homelab can open a session on it. Runs
+# as the owner role miniflux (owners keep CONNECT; no superuser needed) after
+# the Database and role are synced (PostSync). The Job fails, so the Argo CD
+# application is not Healthy, if PUBLIC still has CONNECT.
+# Not a full functional test: the negative connection test from another role
+# ("permission denied for database miniflux") is a runtime proof, see the PR body.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pg-shared-homelab-miniflux-isolation
+  namespace: databases
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: miniflux-db-isolation
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 26
+        runAsGroup: 26
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: isolate
+          image: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie@sha256:ebf3919504d7523a63e8e2fee9b051211de714644b36469275558c624afd50ec
+          command: [sh, -ec]
+          args:
+            - |
+              # Password must be hex: DATABASE_URL in miniflux-runtime is not URL-encoded.
+              printf '%s' "$PGPASSWORD" | grep -qE '^[0-9a-f]+$' || { echo "miniflux role password is not hex: fix the Doppler value" >&2; exit 1; }
+              psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE miniflux FROM PUBLIC"
+              ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'miniflux'")
+              test "$ok" = "t" || { echo "PUBLIC still has CONNECT on miniflux" >&2; exit 1; }
+              echo "miniflux: CONNECT revoked from PUBLIC (catalog check PASS)"
+          env:
+            - {name: PGHOST, value: pg-shared-homelab-rw.databases.svc.cluster.local}
+            - {name: PGPORT, value: "5432"}
+            - {name: PGDATABASE, value: miniflux}
+            - {name: PGSSLMODE, value: require}
+            - name: PGUSER
+              valueFrom: {secretKeyRef: {name: pg-shared-homelab-miniflux, key: username}}
+            - name: PGPASSWORD
+              valueFrom: {secretKeyRef: {name: pg-shared-homelab-miniflux, key: password}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 16Mi}

@@ -10,3 +10,4 @@ resources:
   - scheduledbackup.yaml
   - networkpolicy.yaml
   - miniflux-database.yaml
+  - miniflux-isolation-job.yaml
