@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
 - project.yaml
 - cloudnative-pg
+- pg-shared-homelab

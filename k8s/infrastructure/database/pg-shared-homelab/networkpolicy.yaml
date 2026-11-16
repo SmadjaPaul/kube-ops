@@ -1,0 +1,26 @@
+# PLT-375: ingress to the pg-shared-homelab instance pods. No application
+# ingress here: each application adds its own rule (namespace + port 5432) in
+# the same PR as its Database, per the golden path. Operator (status, 8000) and
+# Prometheus (CNPG metrics, 9187) only.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: pg-shared-homelab
+  namespace: databases
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: pg-shared-homelab
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "8000"}
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "9187"}

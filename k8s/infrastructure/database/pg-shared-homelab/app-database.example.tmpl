@@ -1,0 +1,77 @@
+# PLT-375 (T3): golden-path template for ONE application database in
+# pg-shared-homelab. Not a kustomize resource (.tmpl, not listed): copy the
+# blocks into the application folder or into pg-shared-homelab/ in the PR that
+# adds the application, then replace APP (lowercase) and APP_UPPER (UPPER_SNAKE_CASE).
+#
+# 1. cluster.yaml: add to spec.managed.roles (the block is absent until the first app):
+#
+#    managed:
+#      roles:
+#        - name: APP
+#          ensure: present
+#          login: true
+#          superuser: false
+#          createdb: false
+#          createrole: false
+#          passwordSecret:
+#            name: pg-shared-homelab-APP
+#
+# 2. ExternalSecret: role password only, value in Doppler cluster/prd under
+#    PG_SHARED_HOMELAB_APP_PASSWORD (the key is created by Paul, never in Git).
+#
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata: {name: pg-shared-homelab-APP, namespace: databases}
+# spec:
+#   refreshInterval: 1h
+#   secretStoreRef: {name: doppler-cluster, kind: ClusterSecretStore}
+#   target:
+#     name: pg-shared-homelab-APP
+#     creationPolicy: Owner
+#     template:
+#       type: kubernetes.io/basic-auth
+#       metadata:
+#         labels:
+#           cnpg.io/reload: "true"
+#       data:
+#         username: APP
+#         password: "{{ .password }}"
+#   data:
+#     - secretKey: password
+#       remoteRef: {key: PG_SHARED_HOMELAB_APP_PASSWORD}
+#
+# 3. Database: one per application, owner = its managed role.
+#
+# apiVersion: postgresql.cnpg.io/v1
+# kind: Database
+# metadata: {name: APP, namespace: databases}
+# spec:
+#   name: APP
+#   owner: APP
+#   cluster: {name: pg-shared-homelab}
+#
+# 4. Network: pg_hba. The repository has no pg_hba precedent (no
+#    spec.postgresql.pg_hba anywhere in k8s/): nothing is added here. Access is
+#    restricted at the network layer by a CiliumNetworkPolicy in the
+#    databases namespace (ingress from the application namespace, port 5432)
+#    on the pg-shared-homelab selector, like vikunja-postgresql in vikunja/networkpolicy.yaml.
+#
+# apiVersion: cilium.io/v2
+# kind: CiliumNetworkPolicy
+# metadata: {name: pg-shared-homelab-APP, namespace: databases}
+# spec:
+#   endpointSelector: {matchLabels: {cnpg.io/cluster: pg-shared-homelab}}
+#   ingress:
+#     - fromEndpoints:
+#         - matchLabels:
+#             k8s:io.kubernetes.pod.namespace: APP_NAMESPACE
+#       toPorts:
+#         - ports:
+#             - {protocol: TCP, port: "5432"}
+#
+# 5. Application: connect with the generated role Secret (pg-shared-homelab-APP),
+#    not a copy of the password. Add a line to docs/operations/cnpg-cluster-inventory.md
+#    only if the application is a new cluster (never for pg-shared-homelab).
+#
+# Before real data: restore drill PASS (see study section 4.4), then the first
+# migration of a database with a dump, one base per PR.
