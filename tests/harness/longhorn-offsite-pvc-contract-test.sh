@@ -67,24 +67,20 @@ fi
 # Retired Atlantis root (PLT-205, PLT-46; MANDAT 16 of D-2026-11-16-05). The recovery PVC
 # atlantis-pilot-data is deleted for good: the root must not define it again (Argo would
 # recreate it empty) and must not carry any workload, route or credential object. It only
-# keeps the namespace and the one-shot cleanup Job (ServiceAccount, RBAC, script, Job), removed
-# by a follow-up PR; a verbatim copy of the cleanup script must stay identical to scripts/.
+# keeps the namespace; the one-shot cleanup Job (kube-ops#1580) and its RBAC are retired.
 atlantis_root="$repo_root/k8s/poc/atlantis-plan-only"
 grep -F -- '- path: k8s/poc/atlantis-plan-only' \
   "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" >/dev/null
 test "$(find "$atlantis_root" -type f -exec basename {} \; | sort | tr '\n' ' ')" = \
-  'cleanup-atlantis-pilot-data.yaml kustomization.yaml namespace.yaml released-pv-cleanup.sh '
-cmp -s "$repo_root/scripts/released-pv-cleanup.sh" "$atlantis_root/released-pv-cleanup.sh"
+  'kustomization.yaml namespace.yaml '
 atlantis_rendered="$(mktemp)"
 trap 'rm -f "$atlantis_rendered"' EXIT
 kustomize build "$atlantis_root" >"$atlantis_rendered"
 grep -q '^kind: Namespace$' "$atlantis_rendered"
 grep -q '^  name: atlantis-system$' "$atlantis_rendered"
-grep -q '^kind: Job$' "$atlantis_rendered"
-grep -q -- '--atlantis-pilot --execute' "$atlantis_rendered"
-if grep -Eq '^kind: (PersistentVolumeClaim|StatefulSet|Deployment|Service|HTTPRoute|ExternalSecret|Secret|CiliumNetworkPolicy)$' \
+if grep -Eq '^kind: (PersistentVolumeClaim|Job|ServiceAccount|Role|RoleBinding|ClusterRole|ClusterRoleBinding|ConfigMap|StatefulSet|Deployment|Service|HTTPRoute|ExternalSecret|Secret|CiliumNetworkPolicy)$' \
   "$atlantis_rendered"; then
-  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retired Atlantis root renders a PVC, workload, route or credential object' >&2
+  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retired Atlantis root renders a PVC, Job, RBAC, workload, route or credential object' >&2
   exit 1
 fi
 if rg -n 'atlantis-servicemonitor|atlantis-observability|atlantis-pilot' \
