@@ -1,0 +1,383 @@
+---
+
+
+## Globally shared configuration for authentik components.
+global:
+  # -- Provide a name in place of `authentik`
+  nameOverride: ""
+  # -- String to fully override `"authentik.fullname"`
+  fullnameOverride: ""
+  # -- A custom namespace to override the default namespace for the deployed resources.
+  namespaceOverride: ""
+  # -- Common labels for all resources.
+  additionalLabels: {}
+    # app: authentik
+
+  # Number of old deployment ReplicaSets to retain. The rest will be garbage collected.
+  revisionHistoryLimit: 3
+
+  # -- Environment variables to pass to all deployed Deployments. Does not apply to GeoIP
+  # See configuration options at https://goauthentik.io/docs/installation/configuration/
+  # @default -- `[]` (See [values.yaml])
+  env: []
+    # - name: AUTHENTIK_VAR_NAME
+    #   value: VALUE
+    # - name: AUTHENTIK_VAR_OTHER
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: secret-name
+    #       key: secret-key
+    # - name: AUTHENTIK_VAR_ANOTHER
+    #   valueFrom:
+    #     configMapKeyRef:
+    #       name: config-map-name
+    #       key: config-map-key
+
+  # -- envFrom to pass to all deployed Deployments. Does not apply to GeoIP
+  # @default -- `[]` (See [values.yaml])
+  envFrom:
+    - secretRef:
+        name: authentik-core-secrets
+    - secretRef:
+        name: authentik-blueprint-core-secrets
+    - secretRef:
+        name: authentik-blueprint-oidc-existing
+    - secretRef:
+        name: authentik-blueprint-canari-pg-oidc
+    - secretRef:
+        name: authentik-blueprint-mealie
+    - secretRef:
+        name: authentik-blueprint-vikunja
+    - secretRef:
+        name: authentik-blueprint-invoice-ninja
+    - secretRef:
+        name: authentik-blueprint-paperless
+        optional: true
+    - secretRef:
+        name: authentik-blueprint-ntfy
+        optional: true
+    - secretRef:
+        name: authentik-blueprint-romm
+    - secretRef:
+        name: authentik-blueprint-sure
+    - secretRef:
+        name: authentik-blueprint-talos-bluegreen
+        optional: true
+    - secretRef:
+        name: authentik-blueprint-factory-oidc
+        optional: true
+    - secretRef:
+        name: authentik-blueprint-matrix-mas-oidc
+        optional: true
+    - secretRef:
+        name: authentik-blueprint-aiostreams-oidc
+        optional: true
+    - secretRef:
+        name: authentik-blueprint-rustical
+    - secretRef:
+        name: authentik-blueprint-polyfin
+    - secretRef:
+        name: authentik-blueprint-bookorbit
+        optional: true
+    - secretRef:
+        name: authentik-blueprint-sparkyfitness
+        optional: true
+    # LibreChat's provider blueprint is admitted only by the single Draft
+    # activation PR. Keep this optional until its Doppler credential exists.
+    - secretRef:
+        name: authentik-blueprint-librechat
+        optional: true
+    - secretRef:
+        name: authentik-smtp-credentials
+
+  # -- Additional volumeMounts to all deployed Deployments. Does not apply to GeoIP
+  # @default -- `[]` (See [values.yaml])
+  volumeMounts:
+    - name: db-creds
+      mountPath: /secrets/authentik
+      readOnly: true
+    - name: shm
+      mountPath: /dev/shm
+
+  # -- Additional volumes to all deployed Deployments.
+  # @default -- `[]` (See [values.yaml])
+  volumes:
+    - name: db-creds
+      secret:
+        secretName: authentik-postgresql-restored-app
+    - name: shm
+      emptyDir:
+        medium: Memory
+        sizeLimit: 1Gi
+
+
+## Authentik configuration
+authentik:
+  # -- authentik configuration, will be templated as environment variables
+  secret_key: "env://AUTHENTIK_SECRET_KEY"
+  # -- whether to create the authentik configuration secret
+  enabled: true
+  # -- Log level for server and worker
+  log_level: info
+  # Git/Renovate own lifecycle updates; keep the IdP from making unnecessary
+  # outbound version/analytics calls.
+  disable_startup_analytics: true
+  disable_update_check: true
+  # -- Secret key used for cookie singing and unique user IDs,
+  # don't change this after the first install
+  events:
+    context_processors:
+      # -- Path for the GeoIP City database. If the file doesn't exist, GeoIP features are disabled.
+      geoip: /geoip/GeoLite2-City.mmdb
+      # -- Path for the GeoIP ASN database. If the file doesn't exist, GeoIP features are disabled.
+      asn: /geoip/GeoLite2-ASN.mmdb
+  web:
+    # -- Relative path the authentik instance will be available at. Value _must_ contain both a leading and trailing slash.
+    path: /
+    # Seed the 2026.8+ Base URL system setting with the canonical public URL.
+    base_url: "https://auth.smadja.dev"
+  listen:
+    # 2026.8 only trusts forwarded headers from configured proxy networks.
+    # Keep the upstream private-network defaults explicit until the live
+    # Gateway-to-authentik peer CIDR is measured and can be narrowed safely.
+    trusted_proxy_cidrs: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fe80::/10,::1/128"
+  email:
+    host: "env://AUTHENTIK_EMAIL__HOST"
+    port: "env://AUTHENTIK_EMAIL__PORT"
+    username: "env://AUTHENTIK_EMAIL__USERNAME"
+    password: "env://AUTHENTIK_EMAIL__PASSWORD"
+    use_tls: false
+    use_ssl: true
+    timeout: 30
+    from: "env://AUTHENTIK_EMAIL__FROM"
+  outposts:
+    # Native OIDC is preferred. The embedded outpost has no active consumer;
+    # the separate managed Proxy Outpost remains only for Frigate.
+    disable_embedded_outpost: true
+    # -- Template used for managed outposts. The following placeholders can be used
+    # %(type)s - the type of the outpost
+    # %(version)s - version of your authentik install
+    # %(build_hash)s - only for beta versions, the build hash of the image
+    container_image_base: ghcr.io/goauthentik/%(type)s:%(version)s
+  error_reporting:
+    # -- This sends anonymous usage-data, stack traces on errors and
+    # performance data to sentry.beryju.org, and is fully opt-in
+    enabled: false
+    # -- This is a string that is sent to sentry with your error reports
+    environment: "k8s"
+    # -- Send PII (Personally identifiable information) data to sentry
+    send_pii: false
+  postgresql:
+    host: authentik-postgresql-restored-rw
+    name: app
+    user: file:///secrets/authentik/username
+    password: file:///secrets/authentik/password
+    port: "5432"
+    sslmode: require
+
+  redis:
+    password: "env://AUTHENTIK_REDIS__PASSWORD"
+
+blueprints:
+  # -- List of config maps to mount blueprints from.
+  # Only keys in the configMap ending with `.yaml` will be discovered and applied.
+  configMaps:
+    - authentik-blueprints
+  # -- List of secrets to mount blueprints from.
+  # Only keys in the secret ending with `.yaml` will be discovered and applied.
+  secrets: []
+
+## authentik server
+server:
+  # -- whether to enable server resources
+  enabled: true
+
+  # -- authentik server pod-level security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- authentik server container-level security context
+  containerSecurityContext:
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Media volume using emptyDir (tenant files don't need persistence)
+  # Tenant files are configuration/metadata that can be regenerated
+  volumeMounts:
+    - name: media
+      mountPath: /media
+
+  volumes:
+    - name: media
+      emptyDir:
+        sizeLimit: 2Gi
+
+  ## authentik server service configuration
+  service:
+    # -- authentik server service annotations
+    annotations: {}
+    # -- authentik server service labels
+    labels: {}
+    # -- authentik server service type
+    type: ClusterIP
+
+
+worker:
+  enabled: true
+  deploymentAnnotations:
+    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-paperless,authentik-blueprint-ntfy,authentik-blueprint-romm,authentik-blueprint-sure,authentik-blueprint-talos-bluegreen,authentik-blueprint-matrix-mas-oidc,authentik-blueprint-aiostreams-oidc,authentik-blueprint-rustical,authentik-blueprint-polyfin,authentik-blueprint-bookorbit,authentik-blueprint-sparkyfitness,authentik-blueprint-librechat"
+    configmap.reloader.stakater.com/auto: "true"
+  # Force one desired-state rollout so the already-merged blueprint reload
+  # wiring is applied to the existing worker pod. Subsequent ConfigMap changes
+  # are handled by the Reloader annotation above.
+  podAnnotations:
+    authentik.smadja.dev/blueprint-reconcile: "4"
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  # Media volume using emptyDir (tenant files don't need persistence)
+  # Tenant files are configuration/metadata that can be regenerated
+  volumeMounts:
+    - name: media
+      mountPath: /media
+
+  volumes:
+    - name: media
+      emptyDir:
+        sizeLimit: 2Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+  livenessProbe:
+    timeoutSeconds: 15
+  readinessProbe:
+    timeoutSeconds: 15
+  startupProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 15
+postgresql:
+  enabled: false
+
+  ## authentik server metrics service configuration
+  metrics:
+    # -- deploy metrics service
+    enabled: true
+    service:
+      # -- metrics service type
+      type: ClusterIP
+      # -- metrics service clusterIP. `None` makes a "headless service" (no virtual IP)
+      clusterIP: ""
+      # -- metrics service annotations
+      annotations: {}
+      # -- metrics service labels
+      labels: {}
+      # -- metrics service port
+      servicePort: 9300
+      # -- metrics service port name
+      portName: metrics
+    serviceMonitor:
+      # -- enable a prometheus ServiceMonitor
+      enabled: false
+      # -- Prometheus ServiceMonitor interval
+      interval: 30s
+      # -- Prometheus ServiceMonitor scrape timeout
+      scrapeTimeout: 3s
+      # -- Prometheus [RelabelConfigs] to apply to samples before scraping
+      relabelings: []
+      # -- Prometheus [MetricsRelabelConfigs] to apply to samples before ingestion
+      metricRelabelings: []
+      # -- Prometheus ServiceMonitor selector
+      selector: {}
+        # prometheus: kube-prometheus
+
+      # -- Prometheus ServiceMonitor scheme
+      scheme: ""
+      # -- Prometheus ServiceMonitor tlsConfig
+      tlsConfig: {}
+      # -- Prometheus ServiceMonitor namespace
+      namespace: ""
+      # -- Prometheus ServiceMonitor labels
+      labels: {}
+      # -- Prometheus ServiceMonitor annotations
+      annotations: {}
+
+serviceAccount:
+  # -- Create service account. Needed for managed outposts
+  create: true
+  # -- additional service account annotations
+  annotations: {}
+  serviceAccountSecret:
+    # As we use the authentik-remote-cluster chart as subchart, and that chart
+    # creates a service account secret by default which we don't need here,
+    # disable its creation
+    enabled: false
+  fullnameOverride: authentik
+
+
+geoip:
+  # -- enable GeoIP sidecars for the authentik server and worker pods
+  enabled: false
+
+  editionIds: "GeoLite2-City GeoLite2-ASN"
+  # -- GeoIP update frequency, in hours
+  updateInterval: 8
+  # -- sign up under https://www.maxmind.com/en/geolite2/signup
+  accountId: ""
+  # -- sign up under https://www.maxmind.com/en/geolite2/signup
+  licenseKey: ""
+  ## use existing secret instead of values above
+  existingSecret:
+    # -- name of an existing secret to use instead of values above
+    secretName: ""
+    # -- key in the secret containing the account ID
+    accountId: "account_id"
+    # -- key in the secret containing the license key
+    licenseKey: "license_key"
+redis:
+  # -- enable the Bitnami Redis chart. Refer to https://github.com/bitnami/charts/blob/main/bitnami/redis/ for possible values.
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    existingSecret: authentik-core-secrets
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+prometheus:
+  rules:
+    enabled: true
+
+metrics:
+  # -- deploy metrics service
+  enabled: true

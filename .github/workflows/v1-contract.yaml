@@ -103,6 +103,9 @@ jobs:
       - name: Validate Authentik friends access contract (PLT-176)
         run: bash tests/harness/authentik-friends-contract-test.sh
 
+      - name: Validate service-contract admission guard (self-test, Backstage pilot)
+        run: bash tests/harness/service-contract-guard-test.sh
+
       - name: Validate agent-operator identity contract
         run: bash tests/agent-guard/agent-operator-identity-test.sh
 

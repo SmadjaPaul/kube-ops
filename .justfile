@@ -56,6 +56,7 @@ check:
     bash tests/agent-guard/agent-operator-identity-test.sh
     bash tests/agent-guard/secret-output-guard-test.sh
     bash tests/harness/cnpg-cluster-allowlist-test.sh
+    bash tests/harness/service-contract-guard-test.sh
     bash tests/harness/db-storage-tier-guard-test.sh
     bash tests/harness/verify-delivery-test.sh
     bash tests/harness/scaffold-oke-app-test.sh
