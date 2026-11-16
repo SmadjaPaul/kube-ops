@@ -4,6 +4,8 @@
 # (`--stdin-from-command`: a failed dump creates no snapshot). The restic
 # binary is copied by the init container. There is no files step: the factory
 # platform has no application volume to back up.
+# The dump runs as factory_source_ro (read-only, see database-pg2.yaml), so a
+# compromised dump container cannot write to pg2.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -76,10 +78,13 @@ spec:
                   valueFrom: { secretKeyRef: { name: factory-platform-pg2-app, key: port } }
                 - name: PGDATABASE
                   valueFrom: { secretKeyRef: { name: factory-platform-pg2-app, key: dbname } }
+                # Read-only role (pg_read_all_data, database-pg2.yaml), not the owner
+                # `factory` of -app: the dump cannot write. Same Secret as the
+                # managed role; the value never leaves the cluster.
                 - name: PGUSER
-                  valueFrom: { secretKeyRef: { name: factory-platform-pg2-app, key: user } }
+                  valueFrom: { secretKeyRef: { name: factory-platform-postgresql-source, key: username } }
                 - name: PGPASSWORD
-                  valueFrom: { secretKeyRef: { name: factory-platform-pg2-app, key: password } }
+                  valueFrom: { secretKeyRef: { name: factory-platform-postgresql-source, key: password } }
               envFrom:
                 - secretRef: { name: restic-backup }
               securityContext:

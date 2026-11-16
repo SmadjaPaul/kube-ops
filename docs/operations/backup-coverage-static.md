@@ -3,7 +3,7 @@
 Généré par `just backup-coverage-static` (`scripts/backup-coverage-static.py`). Ne pas éditer à la main.
 Niveau de preuve : `STATIC`. Le rendu Git ne prouve ni un volume attaché, ni une sauvegarde `Completed` sur R2.
 
-Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un Schedule actif (namespace, labels, `defaultVolumesToFsBackup`). Longhorn couvre un PVC Longhorn rattaché à un RecurringJob `backup` (labels source, sélecteur de StorageClass ou groupe `default`) et monté par un pod actif (`allowRecurringJobWhileVolumeDetached: false`). CNPG couvre un PVC de cluster si le WAL et une ScheduledBackup visent un ObjectStore R2.
+Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un Schedule actif (namespace, labels, `defaultVolumesToFsBackup`). Longhorn couvre un PVC Longhorn rattaché à un RecurringJob `backup` (labels source, sélecteur de StorageClass ou groupe `default`) et monté par un pod actif (`allowRecurringJobWhileVolumeDetached: false`). CNPG couvre un PVC de cluster si le WAL et une ScheduledBackup visent un ObjectStore R2. Un Cluster annoté `backup.smadja.dev/velero-crash-consistent` est crédité `Velero-crash` si un Schedule Velero FS couvre son namespace : couverture crash-consistent non prouvée par restauration, jamais comptée comme CNPG(R2).
 
 - PVC déclarés : 71
 - PVC couverts vers R2 : 64
@@ -16,8 +16,8 @@ Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un S
 | auth | authentik-postgresql-restored-1 | longhorn-fast | 40Gi | auth | CNPG(R2) | - | IRREPLACEABLE — Authentik identity database |
 | auth | authentik-postgresql-restored-1-wal | longhorn-fast | 30Gi | auth | CNPG(R2) | - | IRREPLACEABLE — Authentik identity database WAL |
 | factory-platform | factory-cubestore-data | longhorn-bulk | 2Gi | platform | Velero(velero-daily-factory-platform) + Longhorn(persistent-offsite-backup-default-group) | - | REBUILDABLE — Cube Store pre-aggregations |
-| factory-platform | factory-platform-pg2-1 | longhorn-bulk | 20Gi | platform | Velero(velero-daily-factory-platform) | CNPG WAL=Hetzner base=Hetzner | IRREPLACEABLE — Factory raw_events ledger and control schema, not reconstructible (PLT-369) |
-| factory-platform | factory-platform-pg2-1-wal | longhorn-bulk | 5Gi | platform | Velero(velero-daily-factory-platform) | CNPG WAL=Hetzner base=Hetzner | USEFUL — Factory data platform database WAL (active) |
+| factory-platform | factory-platform-pg2-1 | longhorn-bulk | 20Gi | platform | Velero-crash(velero-daily-factory-platform) | CNPG WAL=- base=none; PVC CNPG: FS backup crash-consistent, restauration non prouvee | IRREPLACEABLE — Factory raw_events ledger and control schema, not reconstructible (PLT-369) |
+| factory-platform | factory-platform-pg2-1-wal | longhorn-bulk | 5Gi | platform | Velero-crash(velero-daily-factory-platform) | CNPG WAL=- base=none; PVC CNPG: FS backup crash-consistent, restauration non prouvee | USEFUL — Factory data platform database WAL (active) |
 | factory-platform | factory-platform-postgresql-1 | longhorn-bulk | 20Gi | platform | **aucune** | CNPG WAL=Hetzner base=none | RETIRED — Fenced forensic copy, replaced by factory-platform-pg2 (PLT-252) |
 | factory-platform | factory-platform-postgresql-1-wal | longhorn-bulk | 5Gi | platform | **aucune** | CNPG WAL=Hetzner base=none | RETIRED — Fenced forensic copy, replaced by factory-platform-pg2 (PLT-252) |
 | fleet | data-fleet-mysql-fast-0 | longhorn-fast | 10Gi | platform | Velero(velero-daily-fleet) + Longhorn(persistent-offsite-backup-default-group) | - | UNCLASSIFIED |
