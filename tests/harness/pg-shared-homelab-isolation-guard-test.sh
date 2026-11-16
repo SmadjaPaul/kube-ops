@@ -39,6 +39,9 @@ scan() {
       fi
       echo "ERROR: cannot parse ${f#"$1"/} as YAML: $(head -1 "$tmp/yq.err")" >&2; exit 1
     fi
+    # Only documents that can hold a Database or a PostSync Job go to python (speed):
+    # every file is still parsed by yq above, so parse errors stay fatal.
+    if grep -qE 'cnpg|PostSync|REVOKE' "$tmp/doc.json"; then
     python3 -I -c '
 import json, re, sys
 f = sys.argv[1]
@@ -83,6 +86,7 @@ for line in open(sys.argv[2], encoding="utf-8"):
                 for db in sorted({m.group(1) for s in strings(d) for m in REVOKE.finditer(s)}):
                     print("JOB", meta["name"], db, f)
 ' "$f" "$tmp/doc.json" || { echo "ERROR: cannot read ${f#"$1"/}" >&2; exit 1; }
+    fi
   done
 }
 
