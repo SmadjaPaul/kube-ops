@@ -51,9 +51,16 @@
 #   cluster: {name: pg-shared-homelab}
 #
 # 3b. Database isolation, REQUIRED before the first application (run once per
-#     database, after step 3). The Database CR has no grant field (checked on the
-#     CRD: allowConnections is the database flag, not the CONNECT privilege), so
-#     this is a SQL step, run as postgres (kubectl cnpg psql pg-shared-homelab -n databases):
+#     database, after step 3). Not declarative, checked and bounded:
+#     - Database CR: no grant field (CRD checked: allowConnections is the
+#       database flag, not CONNECT).
+#     - Template route ruled out: CNPG postInitTemplateSQL on template1 does not
+#       help, because CREATE DATABASE does not copy database-level GRANTs from the
+#       template (PostgreSQL docs, Template Databases: new database gets default
+#       privileges). So each new database needs this step.
+#     - Database `app` is the exception: closed declaratively by
+#       cluster.yaml bootstrap.initdb.postInitApplicationSQL (bootstrap only).
+#     Run as postgres (kubectl cnpg psql pg-shared-homelab -n databases):
 #
 #       REVOKE CONNECT ON DATABASE APP FROM PUBLIC;
 #

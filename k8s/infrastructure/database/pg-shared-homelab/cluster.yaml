@@ -18,6 +18,17 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   instances: 1
+  # Without this stanza CNPG creates database `app` and login role `app`
+  # (secret pg-shared-homelab-app), CONNECT open to PUBLIC. Declared here, and
+  # the database is closed at bootstrap. `app` is a reserved name: no application
+  # may take APP=app (secret and role name collision). Runs at initdb only; the
+  # cluster is not yet synced. Other databases: step 3b of the template.
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      postInitApplicationSQL:
+        - REVOKE CONNECT ON DATABASE app FROM PUBLIC;
   imageName: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie@sha256:ebf3919504d7523a63e8e2fee9b051211de714644b36469275558c624afd50ec
   postgresql:
     parameters:
