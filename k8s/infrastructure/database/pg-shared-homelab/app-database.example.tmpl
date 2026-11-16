@@ -61,6 +61,15 @@
 #     template1 (PostgreSQL docs), so postInitTemplateSQL cannot close new bases.
 #     Database `app` is closed by cluster.yaml bootstrap, not by this Job.
 #
+#     Argo CD timing (no health check): Argo CD has no health.lua for
+#     postgresql.cnpg.io (checked in argocd/values.yaml), so the Cluster and the
+#     Database are Healthy as soon as they exist, before the role, the database
+#     or the instance are ready. The PostSync Job can therefore start first and
+#     fail (no pg-shared-homelab-rw yet, or no database yet). The Job must wait
+#     in a bounded loop for the database and the role before the REVOKE, and
+#     exit non-zero at the ceiling. Model: kube-ops#1593 miniflux-isolation-job.yaml
+#     (see kube-ops#1593 for the bounded wait). Without it the first sync fails.
+#
 #     apiVersion: batch/v1
 #     kind: Job
 #     metadata:
