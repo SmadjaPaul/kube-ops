@@ -11,12 +11,12 @@ resources:
   - database-synapse-r2.yaml
   - database-mas-r2.yaml
   - database-scheduled-backups.yaml
-  - database-r2-initial-backup.yaml
   - database-s3-credentials.yaml
   - media-pvc.yaml
   - externalsecret.yaml
   - httproutes.yaml
   - networkpolicy.yaml
+  - database-r2-initial-backup.yaml
 
 helmCharts:
   - name: matrix-stack
