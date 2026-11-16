@@ -20,7 +20,7 @@
 #   PG_PROOF_OBJECTSTORE  ObjectStore barman-cloud en LECTURE SEULE, dans le namespace de drill (pitr)
 #   PG_PROOF_WRITE_BIN  binaire d'écriture approuvé ; absent = échec fermé (blocant B1)
 #
-# Garanties : gate de température nœud < 70 °C avant toute écriture ; aucun `delete` de PVC
+# Garanties : gate de température (max 1 h) < 70 °C avant toute écriture ; aucun `delete` de PVC
 # (refusé dans drill_write) ; cluster temporaire supprimé sur EXIT/INT/TERM ; PVC résiduels
 # listés en lecture seule pour décision de Paul.
 set -uo pipefail
@@ -34,9 +34,11 @@ MAX_RTO_S=1800
 MARGIN_S="${PG_PROOF_MARGIN_S:-30}"
 ARCHIVE_WAIT_S="${PG_PROOF_ARCHIVE_WAIT_S:-360}"
 JOB_TIMEOUT_S=900
-# Tctl du nœud homelab (requête de docs/operations/compute-baseline-2026-11-12.md).
-# Capteur à confirmer par Paul (blocant B3 du runbook) : Tctl moyen 88 °C sur 7 j.
-TEMP_QUERY_DEFAULT='max(node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"})'
+# Gate sur la mesure récente : maximum Tctl de la dernière heure (requête de
+# docs/operations/compute-baseline-2026-11-12.md, job proxmox-host). Mesures de référence
+# (sources Paul, 16/11/2026) : 58 °C sur 24 h, 71 °C sur 7 j, max 100,4 °C. Le seuil 70 °C
+# est explicite (MAX_TEMP_C) ; le capteur reste à confirmer par Paul (blocant B3).
+TEMP_QUERY_DEFAULT='max_over_time(node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"}[1h])'
 TEMP_QUERY="${PG_PROOF_TEMP_QUERY:-$TEMP_QUERY_DEFAULT}"
 # Requête de fingerprint : somme md5 des tables publiques, hors table de marques du drill.
 # shellcheck disable=SC2016  # SQL littéral : $q$ est du dollar-quoting PostgreSQL, pas une expansion shell
@@ -222,7 +224,7 @@ Mode de restauration : $MODE
 Source : cluster $SRC, namespace $SRC_NS ; base testée $APP ; bases témoins ${OTHERS[*]}
 Cluster temporaire : $RESTORE dans le namespace $NS
 Étapes (--execute + --confirm) :
-  1. Gate température : requête '$TEMP_QUERY' via kubectl-ro ; refus si >= ${MAX_TEMP_C} °C ou valeur absente.
+  1. Gate température : maximum Tctl sur 1 h (requête '$TEMP_QUERY', kubectl-ro) ; refus si >= ${MAX_TEMP_C} °C ou valeur absente.
   2. Lecture : cluster $SRC Ready (kubectl-ro).
   3. Empreintes témoins avant (Job seed, lecture seule sur les témoins) et graine :
      table restore_drill_marks dans $ALL_DBS, T_W = epoch du commit (blocant B2).

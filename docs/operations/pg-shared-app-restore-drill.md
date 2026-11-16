@@ -25,7 +25,7 @@ pas branchée.
 
 - `--dry-run` par défaut. Aucun accès cluster, aucune écriture.
 - `--execute` exige `--confirm I-APPROVE-PG-SHARED-APP-RESTORE-DRILL`. Sans cette chaîne exacte, refus avant tout accès.
-- Gate température : relevé Prometheus via `scripts/kubectl-ro.sh`, refus si ≥ 70 °C ou valeur absente.
+- Gate température : maximum Tctl de la dernière heure (Prometheus via `scripts/kubectl-ro.sh`), refus si ≥ 70 °C ou valeur absente.
 - Lecture seule sur la source (`kubectl-ro`). Les écritures passent par une seule fonction `drill_write`.
 - `drill_write` refuse tout `delete` visant un PVC. Les PVC résiduels sont listés en lecture seule.
 - Nettoyage du Cluster temporaire sur EXIT, INT et TERM. Un échec de suppression donne `CLEANUP=LEFTOVER` et un code de sortie 1.
@@ -75,7 +75,7 @@ ce document ni dans le script.
 
 | Indicateur | Source | PASS | FAIL | NOT_PROVEN |
 | --- | --- | --- | --- | --- |
-| Gate température | relevé Prometheus | < 70 °C | ≥ 70 °C : aucune écriture | valeur absente (gate fermé) |
+| Gate température | max Tctl 1 h (Prometheus) | < 70 °C | ≥ 70 °C : aucune écriture | valeur absente (gate fermé) |
 | `T_W_EPOCH` | logs du Job graine | présent | absent | — |
 | RTO (`RTO_S`) | création → Ready | ≤ 1800 s | > 1800 s | non mesuré |
 | RPO (`RPO_S`) | T_W − epoch max restauré | ≤ 300 s | > 300 s | non mesuré |
@@ -92,7 +92,7 @@ non-impact est `PASS`. Un RPO n'est jamais déclaré ≤ 5 min sans mesure.
 | --- | --- | --- |
 | B1 | Identité d'écriture du drill | `kubectl-rw` n'admet ni `Cluster`, ni `Job`, ni `exec`. Sans identité approuvée, `drill_write` échoue fermé (code 75). |
 | B2 | Écriture de la table `restore_drill_marks` dans la base testée et les témoins | Écriture dans des bases de production : une table de marques. Suppression de la table après drill à approuver. |
-| B3 | Capteur de température | La requête par défaut (Tctl, job `proxmox-host`) donne une moyenne de 88 °C sur 7 j (`compute-baseline-2026-11-12.md`), donc le gate refuserait presque toujours. Le relevé 62 °C cité dans `pg-shared-oke-backup-drill.md` vient d'un autre capteur. Paul choisit le capteur et confirme le seuil. |
+| B3 | Capteur et seuil de température | Mesures de référence (Paul, 16/11/2026) : Tctl 58 °C sur 24 h, 71 °C sur 7 j, max 100,4 °C. Le gate lit le maximum de la dernière heure et refuse à 70 °C ou plus : avec 71 °C sur 7 j, il refusera certaines fenêtres. Paul confirme le capteur (`chip` `pci0000:00_0000:00:18_3`, `sensor` `temp1`) et le seuil. |
 | B4 | ObjectStore R2 en lecture seule dans le namespace de drill | Le plugin barman-cloud lit l'ObjectStore du même namespace que le Cluster. Il faut une copie en lecture seule, avec un jeton `Object Read only` restreint au préfixe `homelab-backup-cnpg/<ns>`. Pas le jeton écrivain. |
 | B5 | Image PostgreSQL pinée par digest et nom du Secret applicatif | Valeurs à fournir ; le script refuse une image sans `@sha256:`. |
 | B6 | Résidus PVC | Une suppression de Cluster CNPG peut emporter ses PVC par owner reference. Décision D-13 de Paul : garder ou supprimer. Le script ne supprime jamais de PVC. |
