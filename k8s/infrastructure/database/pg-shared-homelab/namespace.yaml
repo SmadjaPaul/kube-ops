@@ -1,6 +1,10 @@
+# PLT-375: Prune=false,Delete=false so that removing or renaming this folder
+# (infrastructure Application has prune: true) cannot cascade onto the Cluster.
 apiVersion: v1
 kind: Namespace
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   labels:
     kubernetes.io/metadata.name: databases
   name: databases

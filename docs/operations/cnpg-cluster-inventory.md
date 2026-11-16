@@ -9,7 +9,7 @@ La consolidation se fait au fil de l'eau, une base à la fois, avec restauration
 | Cluster | Application | Statut | Cible de consolidation |
 | --- | --- | --- | --- |
 | `pg-shared` | cluster partagé (Oracle, OKE) | partagé | cible |
-| `pg-shared-homelab` | cluster partagé (homelab, PLT-375) | partagé | cible |
+| `pg-shared-homelab` | cluster partagé (homelab, PLT-375 ; décision option C du 16/11/2026, à consigner dans homelab-infra/docs/decisions.md) | partagé | cible |
 | `authentik-postgresql-restored` | Authentik | exception (identité, D-02) | aucune |
 | `immich-postgresql` | Immich | exception (données photo irremplaçables, restauration dédiée) | aucune |
 | `matrix-synapse-postgresql-fast` | Matrix | exception (identité, D-02) | aucune |

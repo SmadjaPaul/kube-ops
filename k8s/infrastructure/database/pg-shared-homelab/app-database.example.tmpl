@@ -50,11 +50,31 @@
 #   owner: APP
 #   cluster: {name: pg-shared-homelab}
 #
-# 4. Network: pg_hba. The repository has no pg_hba precedent (no
-#    spec.postgresql.pg_hba anywhere in k8s/): nothing is added here. Access is
-#    restricted at the network layer by a CiliumNetworkPolicy in the
-#    databases namespace (ingress from the application namespace, port 5432)
-#    on the pg-shared-homelab selector, like vikunja-postgresql in vikunja/networkpolicy.yaml.
+# 3b. Database isolation, REQUIRED before the first application (run once per
+#     database, after step 3). The Database CR has no grant field (checked on the
+#     CRD: allowConnections is the database flag, not the CONNECT privilege), so
+#     this is a SQL step, run as postgres (kubectl cnpg psql pg-shared-homelab -n databases):
+#
+#       REVOKE CONNECT ON DATABASE APP FROM PUBLIC;
+#
+#     Without it, any authenticated role of the cluster can open a session on
+#     APP. The owner keeps CONNECT through ownership. Negative test, to run and
+#     record in the PR that adds the database (expected: "permission denied for database APP"):
+#
+#       # as role OTHER (another managed role, password from its own Secret)
+#       psql "host=pg-shared-homelab-rw.databases.svc user=OTHER dbname=APP"
+#
+#     Automating this step (Job or CNPG hook) is a follow-up; until then the PR
+#     reviewer checks that the REVOKE was executed and the negative test was recorded.
+#
+# 4. Network: pg_hba is NOT used. Choice documented here: the repository has no
+#    pg_hba precedent (no spec.postgresql.pg_hba anywhere in k8s/) and its effect
+#    on the generated pg_hba.conf has not been verified on this cluster, so the
+#    inter-database control is step 3b. Network access is restricted by a
+#    CiliumNetworkPolicy in the databases namespace (ingress from the application
+#    namespace, port 5432) on the pg-shared-homelab selector, like
+#    vikunja-postgresql in vikunja/networkpolicy.yaml. This policy filters by
+#    source namespace only, so it does not isolate databases from each other.
 #
 # apiVersion: cilium.io/v2
 # kind: CiliumNetworkPolicy
