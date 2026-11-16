@@ -4,8 +4,8 @@
 # are not allowed. Enforcing from creation: no audit mode while a job can run.
 # PRD-28: the partner build reads published Sanity content without a token
 # (public dataset tli60dkb/production), so only the four Sanity read hosts are
-# allowed, on 443. Phase 2/3 hosts (lechaplais.com, api.cloudflare.com) are added
-# by later PRs from observed Hubble drops. Node, pnpm and Chromium are in the image.
+# allowed, on 443. Phase 2/3 hosts: lechaplais.com (Verify Home, Verify Work Public,
+# Rebuild public check) and api.cloudflare.com (Rebuild: deploy hook and Workers Builds API). Node, pnpm and Chromium are in the image.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -17,7 +17,7 @@ metadata:
     app.kubernetes.io/part-of: github-actions-arc
     policy-type: github-actions-arc
 spec:
-  description: "website ARC runners: DNS, GitHub, registry.npmjs.org and the Sanity read hosts of project tli60dkb only"
+  description: "website ARC runners: DNS, GitHub, registry.npmjs.org and the Sanity read hosts of project tli60dkb, lechaplais.com and api.cloudflare.com only"
   endpointSelector: {}
   egress:
     - toEndpoints:
@@ -55,6 +55,13 @@ spec:
         - matchName: tli60dkb.api.sanity.io
         - matchName: tli60dkb.apicdn.sanity.io
         - matchName: cdn.sanity.io
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: lechaplais.com
+        - matchName: api.cloudflare.com
       toPorts:
         - ports:
             - port: "443"
