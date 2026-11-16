@@ -2,8 +2,23 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # This directory remains reconciled by the infrastructure ApplicationSet only
-# to retain the existing recovery volume. The Atlantis server, hooks, routes,
+# to keep the existing namespace. The Atlantis server, hooks, routes,
 # credentials and policy projections were retired after ARC qualification.
+#
+# PLT-46 / MANDAT 16 (D-2026-11-16-05, expires 7 days after its merge): the recovery PVC
+# atlantis-system/atlantis-pilot-data is no longer defined here. Argo does not prune it
+# (the object carried Delete=false), so cleanup-atlantis-pilot-data.yaml deletes the
+# PVC, its PV and its Longhorn volume once, pinned by name and UID. The data has no
+# backup on R2 and is lost for good. A follow-up PR removes the Job, the RBAC and the
+# script copy (precedent: kube-ops#1562).
+# released-pv-cleanup.sh is a verbatim copy of scripts/released-pv-cleanup.sh (kustomize
+# cannot read outside its root); keep them identical (cmp) until it is removed.
 resources:
   - namespace.yaml
-  - pvc-retention.yaml
+  - cleanup-atlantis-pilot-data.yaml
+
+configMapGenerator:
+  - name: released-pv-cleanup-script
+    namespace: atlantis-system
+    files:
+      - released-pv-cleanup.sh

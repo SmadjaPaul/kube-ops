@@ -25,7 +25,6 @@ resources:
   - daily-vikunja.yaml
   - daily-open-connector.yaml
   - daily-agentgateway.yaml
-  - daily-atlantis.yaml
   - daily-factory-platform.yaml
   - daily-matrix.yaml
   - daily-aiostreams.yaml

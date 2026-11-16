@@ -5,7 +5,7 @@ Niveau de preuve : `STATIC`. Le rendu Git ne prouve ni un volume attaché, ni un
 
 Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un Schedule actif (namespace, labels, `defaultVolumesToFsBackup`). Longhorn couvre un PVC Longhorn rattaché à un RecurringJob `backup` (labels source, sélecteur de StorageClass ou groupe `default`) et monté par un pod actif (`allowRecurringJobWhileVolumeDetached: false`). CNPG couvre un PVC de cluster si le WAL et une ScheduledBackup visent un ObjectStore R2.
 
-- PVC déclarés : 72
+- PVC déclarés : 71
 - PVC couverts vers R2 : 62
 - PVC irremplaçables non couverts : 0
 
@@ -13,7 +13,6 @@ Règles : Velero couvre un PVC si un pod qui le monte est sélectionné par un S
 |---|---|---|---:|---|---|---|---|
 | agentgateway | agentgateway-state | longhorn-fast | 1Gi | platform | Velero(velero-daily-agentgateway) + Longhorn(persistent-offsite-backup) | - | USEFUL — SQLite gateway state, rebuildable from Git with effort |
 | atlantis-apps | atlantis-apps-data | longhorn-fast | 5Gi | atlantis-apps | **aucune** | Velero: no pod mounts it; Longhorn(persistent-offsite-backup-default-group) but no pod: detached | RETIRED — Atlantis pilot retired, retention-only path |
-| atlantis-system | atlantis-pilot-data | longhorn-fast | 5Gi | atlantis-plan-only | **aucune** | Velero: no pod mounts it; Longhorn(persistent-offsite-backup) but no pod: detached | RETIRED — Atlantis pilot retired, retention-only path |
 | auth | authentik-postgresql-restored-1 | longhorn-fast | 40Gi | auth | CNPG(R2) | - | IRREPLACEABLE — Authentik identity database |
 | auth | authentik-postgresql-restored-1-wal | longhorn-fast | 30Gi | auth | CNPG(R2) | - | IRREPLACEABLE — Authentik identity database WAL |
 | factory-platform | factory-cubestore-data | longhorn-bulk | 2Gi | platform | Velero(velero-daily-factory-platform) + Longhorn(persistent-offsite-backup-default-group) | - | REBUILDABLE — Cube Store pre-aggregations |

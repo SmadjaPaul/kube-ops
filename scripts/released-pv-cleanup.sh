@@ -9,6 +9,10 @@
 # seven Matrix PVs on longhorn-bulk (five Released after the Argo prune of kube-ops#1548, two
 # bound to matrix-mas-recovery, Released once Paul deletes that namespace). Pinned by name AND
 # UID, claimRef namespace/name and StorageClass; no PVC is released by this profile.
+# Profile --atlantis-pilot (MANDAT 16 of D-2026-11-16-05, expires 7 days after its merge): exactly
+# one Bound PVC, atlantis-system/atlantis-pilot-data, and its PV and Longhorn volume (no backup
+# on R2). PVC, PV and volume are pinned by name AND UID; the PVC must no longer be defined in Git
+# (else Argo would recreate it empty), which the Job in k8s/poc/atlantis-plan-only guarantees.
 # Default read-only (inspect). Deletion requires --execute and
 # ALLOW_RELEASED_PV_DELETION=yes. For each PV, at execution time:
 #   - phase Released, reclaimPolicy Retain, driver driver.longhorn.io;
@@ -22,7 +26,8 @@ for arg in "$@"; do
   case "$arg" in
     --execute) mode=delete ;;
     --matrix) profile=matrix ;;
-    --help|-h) echo "Usage: ALLOW_RELEASED_PV_DELETION=yes bash scripts/released-pv-cleanup.sh [--matrix] [--execute]"; exit 0 ;;
+    --atlantis-pilot) profile=atlantis-pilot ;;
+    --help|-h) echo "Usage: ALLOW_RELEASED_PV_DELETION=yes bash scripts/released-pv-cleanup.sh [--matrix|--atlantis-pilot] [--execute]"; exit 0 ;;
     *) echo "PV_CLEANUP=BLOCKED invalid argument" >&2; exit 2 ;;
   esac
 done
@@ -67,6 +72,16 @@ if [[ "$profile" == matrix ]]; then
     "pvc-f1a03e61-fa2b-4d42-a87f-2c8c03330ac4 145d525a-2ac4-4f1c-9411-90d63bd1fd27 matrix-mas-recovery/matrix-mas-restore-20261104-1-wal"
   )
   RELEASE=()
+fi
+
+if [[ "$profile" == atlantis-pilot ]]; then
+  EXPECT_SC=longhorn-fast
+  TARGETS=(
+    "pvc-24ed83e6-2ac2-486f-8f6a-37ea3d064731 8b1e05af-7ec5-4758-803f-f3be14c6ce3a atlantis-system/atlantis-pilot-data"
+  )
+  RELEASE=(
+    "atlantis-system atlantis-pilot-data 24ed83e6-2ac2-486f-8f6a-37ea3d064731 pvc-24ed83e6-2ac2-486f-8f6a-37ea3d064731"
+  )
 fi
 
 # PV_CLEANUP_IN_CLUSTER=yes: run as an ephemeral GitOps Job under its own ServiceAccount
