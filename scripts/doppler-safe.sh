@@ -6,10 +6,17 @@
 #   bash scripts/doppler-safe.sh has    KEY [-p P] [-c C]        "present"/"absent" (exit 0/1)
 #   printf %s "$v" | bash scripts/doppler-safe.sh set KEY [-p P] [-c C]   value from stdin only
 #   bash scripts/doppler-safe.sh delete KEY... [-p P] [-c C]     -y implied, absence verified
-#   bash scripts/doppler-safe.sh run [-p P] [-c C] -- CMD [ARGS...]
-#       CMD runs with the secrets injected; its stdout and stderr go through a
-#       filter that replaces every injected value (and every other environment
-#       value of 8+ characters) with [MASQUÉ]. CMD's exit code is kept.
+#   bash scripts/doppler-safe.sh run --only KEY[,KEY...] [-p P] [-c C] -- CMD [ARGS...]
+#       CMD runs with ONLY the listed secrets injected (--only is mandatory,
+#       repeatable, comma lists accepted, at most 16 names, no wildcard; there is
+#       no "inject everything" mode). Its stdout and stderr go through a filter
+#       that replaces every injected value (and every other environment value
+#       of 8+ characters) with [MASQUÉ]. CMD's exit code is kept. A listed name
+#       missing from Doppler makes the run fail before CMD starts.
+#
+# Closed list of project/config pairs (every subcommand): infrastructure/prd
+# (default), cluster/prd, apps/prd. Any other pair is refused (exit 64): adding
+# one is a reviewed change to ALLOWED_SCOPES below, not a runtime option.
 #
 # `doppler secrets set|delete` print the whole secrets table (values included)
 # even with --silent: this wrapper sends Doppler's own stdout AND stderr to
@@ -20,6 +27,9 @@ HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 DOPPLER=${DOPPLER_SAFE_BIN:-doppler}
 PROJECT=infrastructure
 CONFIG=prd
+ALLOWED_SCOPES="infrastructure/prd cluster/prd apps/prd"
+ONLY_MAX=16
+only=()
 
 die() { echo "doppler-safe: $*" >&2; exit 64; }
 
@@ -31,12 +41,18 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     -p|--project) [ "$#" -ge 2 ] || die "-p sans valeur"; PROJECT=$2; shift 2 ;;
     -c|--config)  [ "$#" -ge 2 ] || die "-c sans valeur"; CONFIG=$2; shift 2 ;;
+    --only)       [ "$#" -ge 2 ] && [ -n "$2" ] || die "--only sans valeur"; IFS=, read -r -a _o <<<"$2"; only+=("${_o[@]}"); shift 2 ;;
     --) shift; break ;;
     -*) die "option inconnue : $1" ;;
     *) args+=("$1"); shift ;;
   esac
 done
 valid_key() { [[ $1 =~ ^[A-Z_][A-Z0-9_]*$ ]] || die "nom de clé invalide : $1"; }
+case " $ALLOWED_SCOPES " in
+  *" $PROJECT/$CONFIG "*) ;;
+  *) die "projet/config '$PROJECT/$CONFIG' hors liste fermée ($ALLOWED_SCOPES)" ;;
+esac
+[ "$sub" = run ] || [ "${#only[@]}" -eq 0 ] || die "--only n'existe que pour run"
 
 names() { # names only: parse the JSON keys, never print the JSON itself
   "$DOPPLER" secrets --only-names --json -p "$PROJECT" -c "$CONFIG" 2>/dev/null |
@@ -73,8 +89,12 @@ case "$sub" in
     done
     [ "$rc" -eq 0 ] && [ "$left" -eq 0 ] || { echo "doppler-safe: delete code $rc (sortie Doppler supprimée)" >&2; exit 1; } ;;
   run)
-    [ "${#args[@]}" -eq 0 ] || die "run [-p P] [-c C] -- CMD"
+    [ "${#args[@]}" -eq 0 ] || die "run --only KEY[,KEY...] [-p P] [-c C] -- CMD"
+    [ "${#only[@]}" -ge 1 ] || die "run exige --only KEY[,KEY...] : plus d'injection de tous les secrets (voir l'en-tête)"
+    [ "${#only[@]}" -le "$ONLY_MAX" ] || die "--only : $ONLY_MAX noms au plus"
+    for k in "${only[@]}"; do valid_key "$k"; done
     [ "$#" -ge 1 ] || die "run : commande manquante après --"
-    exec "$DOPPLER" run -p "$PROJECT" -c "$CONFIG" -- python3 -I "$HERE/lib/doppler-mask.py" -- "$@" ;;
+    only_csv=$(IFS=,; echo "${only[*]}")
+    exec "$DOPPLER" run -p "$PROJECT" -c "$CONFIG" --only-secrets "$only_csv" -- python3 -I "$HERE/lib/doppler-mask.py" -- "$@" ;;
   *) die "sous-commande inconnue : $sub (names|has|set|delete|run)" ;;
 esac

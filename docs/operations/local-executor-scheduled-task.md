@@ -29,7 +29,7 @@ Le dispatcher accepte `--require-kube-access` et `--incident PLT-283`.
 Commande type :
 
 ```sh
-bash scripts/doppler-safe.sh run -- python3 scripts/dispatcher/dispatch.py --lane local --require-kube-access --incident PLT-283
+bash scripts/doppler-safe.sh run --only LINEAR_API_KEY -- python3 scripts/dispatcher/dispatch.py --lane local --require-kube-access --incident PLT-283
 ```
 
 ## Prompt de la tâche planifiée native
@@ -48,7 +48,7 @@ INTERDITS ABSOLUS
 
 ÉTAPE 1 : préflight et prise de ticket
 1. Dans un clone à jour de kube-ops (git fetch origin), lance :
-   bash scripts/doppler-safe.sh run -- python3 scripts/dispatcher/dispatch.py --lane local --require-kube-access --incident PLT-283
+   bash scripts/doppler-safe.sh run --only LINEAR_API_KEY -- python3 scripts/dispatcher/dispatch.py --lane local --require-kube-access --incident PLT-283
 2. Si la sortie contient la ligne DISPATCH_SKIPPED=kube_access_blocked : arrête-toi. Sors sans rien d'autre. Ne pose aucun verrou. Ne prends aucun ticket. Ne crée pas d'autre commentaire : le dispatcher a déjà commenté PLT-283 si nécessaire (au plus une fois par 3 h).
 3. Sinon, le dispatcher choisit un ticket, pose le verrou wip:claude-local (un seul par voie, TTL 3 h) et lance la session d'exécution (étape 2). Ne contourne ni la sélection ni les verrous. Si un verrou wip:claude-local actif existe, ne démarre pas.
 

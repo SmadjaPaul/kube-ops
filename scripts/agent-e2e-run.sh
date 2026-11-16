@@ -13,7 +13,7 @@ set -uo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 [ "${1:-}" = "--" ] && shift
 [ "$#" -ge 1 ] || { echo "agent-e2e-run: usage: agent-e2e-run.sh -- CMD [ARGS...]" >&2; exit 64; }
-exec bash "$HERE/doppler-safe.sh" run -p cluster -c prd -- bash -c '
+exec bash "$HERE/doppler-safe.sh" run --only APP_AGENT_E2E_TOKEN -p cluster -c prd -- bash -c '
   [ -n "${APP_AGENT_E2E_TOKEN:-}" ] || { echo "agent-e2e-run: APP_AGENT_E2E_TOKEN absent de cluster/prd" >&2; exit 2; }
   export AGENT_E2E_TOKEN="$APP_AGENT_E2E_TOKEN"
   for v in $(compgen -e); do

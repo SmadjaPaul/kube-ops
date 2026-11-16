@@ -19,6 +19,20 @@
 # copy nor an OCI exec kubeconfig; the effective identity is checked before any
 # command. Only valid as the first argument (after the verb it stays refused).
 #
+# Identity on homelab (PLT-312 M5). Default `auto`: the limited ServiceAccount
+# agent-operator/agent-operator (RBAC view + cluster read, no Secret data), from
+# Doppler KUBERNETES_AGENT_OPERATOR_KUBECONFIG (+ _SHA256), when that copy is
+# present, intact and accepted by the API; otherwise a warning on stderr and a
+# fallback to the operator copy (flow of the other agents unchanged).
+# KUBECTL_RO_IDENTITY=agent refuses the fallback (exit 2); =operator keeps the
+# legacy operator copy (rollback). The client-side filtering below stays as a
+# second layer: the API-side RBAC of the ServiceAccount is the first.
+# `auth whoami` (exact form) prints the effective identity and its source; no
+# other `auth` form is admitted (can-i, reconcile...).
+# The ServiceAccount token is short-lived (24 h, issued by Paul): renew with
+#   AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision      (homelab)
+#   AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-oke-token.sh --provision  (oracle-a1)
+#
 # Refused: any verb outside the list above; Secret contents (get secret with
 # -o/--output other than `-o name`, -v>=6); flags that swap credentials or weaken TLS;
 # --raw except the exact form `get --raw <path>` where <path> is a read-only
@@ -42,11 +56,23 @@ if [ "${1:-}" = --cluster ]; then
   shift 2
 fi
 
-[ "$#" -ge 1 ] || refuse "verbe manquant (get|describe|logs|top|events|api-resources|version)"
+# --- identity selector (homelab only; oracle-a1 is always the read-only ServiceAccount)
+identity_mode=${KUBECTL_RO_IDENTITY:-auto}
+case "$identity_mode" in
+  auto|agent|operator) ;;
+  *) refuse "KUBECTL_RO_IDENTITY='$identity_mode' inconnu (auto|agent|operator)" ;;
+esac
+
+[ "$#" -ge 1 ] || refuse "verbe manquant (get|describe|logs|top|events|api-resources|version|auth whoami)"
 
 verb=$1
+whoami_mode=0
+if [ "$verb" = auth ]; then
+  [ "$#" = 2 ] && [ "$2" = whoami ] || refuse "auth : seule la forme exacte 'auth whoami' est admise"
+  whoami_mode=1
+fi
 case "$verb" in
-  get|describe|logs|top|events|api-resources|version) ;;
+  get|describe|logs|top|events|api-resources|version|auth) ;;
   *) refuse "verbe '$verb' hors liste blanche (lecture seule : get|describe|logs|top|events|api-resources|version)" ;;
 esac
 
@@ -147,30 +173,68 @@ fi
 
 # kuberc preferences (~/.kube/kuberc) could add -o yaml or aliases behind the guard
 export KUBERC=off
-# never inherit an ambient/pre-validated kubeconfig: always the canonical copy
-unset KUBECONFIG KUBE_ACCESS_CANONICALIZED KUBE_ACCESS_BOOTSTRAP KUBE_ACCESS_SOURCE KUBE_ACCESS_TMPDIR
-unset KUBE_ACCESS_KUBECONFIG_SECRET
-if [ "$cluster" = oracle-a1 ]; then
-  export KUBE_ACCESS_KUBECONFIG_SECRET=KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1
-fi
 # shellcheck source=/dev/null
 source "$HERE/lib/kube-preflight.sh"
 set +e
 umask 077
 status_file=$(mktemp "${TMPDIR:-/tmp}/kubectl-ro.XXXXXX")
 trap 'kube_access_cleanup; rm -f "$status_file"' EXIT
-# in this shell, not $(...): the verified KUBECONFIG must stay exported
-if ! require_kube_access >"$status_file" 2>&1; then
-  grep -E '^(KUBE_ACCESS|REASON|NEXT_ACTION)=' "$status_file" >&2
-  exit 2
-fi
-# the preflight may have replaced the EXIT trap; keep both cleanups
-trap 'kube_access_cleanup; rm -f "$status_file"' EXIT
+
+HOMELAB_AGENT_SECRET=KUBERNETES_AGENT_OPERATOR_KUBECONFIG
+HOMELAB_AGENT_USER=system:serviceaccount:agent-operator:agent-operator
+OKE_AGENT_USER=system:serviceaccount:argocd:agent-operator
+
+effective_user() { kubectl --request-timeout=15s auth whoami -o jsonpath='{.status.userInfo.username}' 2>/dev/null; }
+
+# acquire SECRET|"" : verified kubeconfig for that Doppler copy ("" = operator copy).
+# Never inherit an ambient/pre-validated kubeconfig: always the canonical copy.
+# In this shell, not $(...): the verified KUBECONFIG must stay exported.
+acquire() {
+  kube_access_cleanup
+  unset KUBECONFIG KUBE_ACCESS_CANONICALIZED KUBE_ACCESS_BOOTSTRAP KUBE_ACCESS_SOURCE KUBE_ACCESS_TMPDIR KUBE_ACCESS_KUBECONFIG_SECRET
+  [ -z "$1" ] || export KUBE_ACCESS_KUBECONFIG_SECRET=$1
+  require_kube_access >"$status_file" 2>&1
+  local rc=$?
+  # the preflight may have replaced the EXIT trap; keep both cleanups
+  trap 'kube_access_cleanup; rm -f "$status_file"' EXIT
+  return "$rc"
+}
+
+blocked_exit() { grep -E '^(KUBE_ACCESS|REASON|NEXT_ACTION)=' "$status_file" >&2; exit 2; }
 
 if [ "$cluster" = oracle-a1 ]; then
-  who=$(kubectl --request-timeout=15s auth whoami -o jsonpath='{.status.userInfo.username}' 2>/dev/null)
-  [ "$who" = system:serviceaccount:argocd:agent-operator ] ||
-    refuse "identité effective '$who' : seule system:serviceaccount:argocd:agent-operator est admise sur oracle-a1"
+  acquire KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 || blocked_exit
+  who=$(effective_user)
+  [ "$who" = "$OKE_AGENT_USER" ] ||
+    refuse "identité effective '$who' : seule $OKE_AGENT_USER est admise sur oracle-a1"
+elif [ "$identity_mode" = operator ]; then
+  acquire "" || blocked_exit
+else
+  agent_ok=0
+  if acquire "$HOMELAB_AGENT_SECRET"; then
+    who=$(effective_user)
+    if [ "$who" = "$HOMELAB_AGENT_USER" ]; then
+      agent_ok=1
+    else
+      echo "REASON=agent_identity_mismatch (identité effective '$who')" >"$status_file"
+    fi
+  fi
+  if [ "$agent_ok" = 0 ]; then
+    if [ "$identity_mode" = agent ]; then
+      grep -E '^(KUBE_ACCESS|REASON|NEXT_ACTION)=' "$status_file" >&2
+      echo "kubectl-ro: identité agent-operator indisponible et KUBECTL_RO_IDENTITY=agent : pas de repli opérateur (Paul : AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision)" >&2
+      exit 2
+    fi
+    echo "kubectl-ro: AVERTISSEMENT identité agent-operator indisponible ($(grep -m1 '^REASON=' "$status_file")) : repli sur la copie opérateur (KUBECTL_RO_IDENTITY=agent pour l'interdire)" >&2
+    acquire "" || blocked_exit
+  fi
+fi
+
+if [ "$whoami_mode" = 1 ]; then
+  who=$(effective_user)
+  [ -n "$who" ] || { echo "kubectl-ro: identité illisible" >&2; exit 2; }
+  echo "cluster=$cluster identity=$who source=${KUBE_ACCESS_SOURCE:-?}"
+  exit 0
 fi
 
 kubectl --request-timeout=30s "$@"

@@ -14,7 +14,7 @@ no real data, no Authentik admin credential.
 | Per-object permissions | `view_user`, `delete_user`, `reset_user_password` on each user created by a holder of the role (initial permissions `agent-e2e-created-users`) |
 | Not granted | superuser, any group/role/flow/application/provider/token permission, any right on pre-existing users |
 
-`doppler-safe.sh` does not read `cluster/prd` by default (`infrastructure/prd`); the key is only in `cluster/prd`.
+`doppler-safe.sh` does not read `cluster/prd` by default (`infrastructure/prd`); the key is only in `cluster/prd`. Only the pairs `infrastructure/prd`, `cluster/prd` and `apps/prd` are accepted.
 
 ## Use the token without reading it
 
@@ -22,7 +22,7 @@ no real data, no Authentik admin credential.
 bash scripts/agent-e2e-run.sh -- python3 -I your-e2e-script.py
 ```
 
-The script runs the command under `doppler-safe.sh run -p cluster -c prd`, drops every other variable and exposes the
+The script runs the command under `doppler-safe.sh run --only APP_AGENT_E2E_TOKEN -p cluster -c prd`, drops every other variable and exposes the
 value only as `AGENT_E2E_TOKEN` (output is masked). Never print it, never write it to a file.
 
 ## Rules for the test users
