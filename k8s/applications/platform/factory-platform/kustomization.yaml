@@ -12,7 +12,8 @@ resources:
   - database-pg2-objectstore.yaml
   - database.yaml
   - database-pg2.yaml
-  - database-pg2-scheduled-backup.yaml
+  # PLT-94 lot 7 : ScheduledBackup factory-platform-pg2-weekly retire (backup
+  # plugin impossible sans le plugin WAL retire du Cluster).
   - database-pg2-initial-backup.yaml
   - deployment.yaml
   - service.yaml
