@@ -4,7 +4,7 @@ kind: Kustomization
 # (k8s/applications/platform/kustomization.yaml). Doppler keys named in
 # external-secret.yaml exist.
 # Not rendered on purpose:
-# - authentik-blueprint.staged.yaml: Authentik change, Paul's agreement (D-2026-11-14-06 point 3).
+# - Authentik SAML blueprint: active since PLT-316 (k8s/infrastructure/auth/authentik/extra/blueprints/apps-fleet.yaml).
 # - http-route-public.staged.yaml: new public exposure, Paul's agreement (point 2).
 resources:
   - namespace.yaml
