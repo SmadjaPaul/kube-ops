@@ -1,0 +1,62 @@
+# Secret client OIDC de ${{ values.name }} : genere une fois (CreatedOnce), lu par Authentik via envFrom
+# (authentik-blueprint-${{ values.name }}), et lu par l'application via SecretStore auth-source.
+# La cle est propre au service (${{ values.oidcEnvKey }}) car envFrom fusionne toutes les
+# authentik-blueprint-* dans le pod Authentik : deux cles identiques s'ecraseraient.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: authentik-blueprint-${{ values.name }}
+  namespace: auth
+spec:
+  length: 64
+  digits: 10
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-blueprint-${{ values.name }}
+  namespace: auth
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: authentik-blueprint-${{ values.name }}
+    creationPolicy: Owner
+    template:
+      engineVersion: v2
+      type: Opaque
+      data:
+        ${{ values.oidcEnvKey }}: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: authentik-blueprint-${{ values.name }}
+---
+# Lecture du seul secret par le SA secret-reader de ${{ values.name }} (namespace auth, Role nommee).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: authentik-blueprint-${{ values.name }}-reader
+  namespace: auth
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["authentik-blueprint-${{ values.name }}"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: authentik-blueprint-${{ values.name }}-reader
+  namespace: auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: authentik-blueprint-${{ values.name }}-reader
+subjects:
+  - kind: ServiceAccount
+    name: ${{ values.name }}-secret-reader
+    namespace: ${{ values.name }}
