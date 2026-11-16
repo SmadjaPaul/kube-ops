@@ -38,11 +38,15 @@ spec:
           - pg_read_all_data
         passwordSecret:
           name: factory-platform-postgresql-source
-  plugins:
-    - name: barman-cloud.cloudnative-pg.io
-      isWALArchiver: true
-      parameters:
-        barmanObjectName: factory-platform-pg2-store
+  # PLT-94 lot 7 (MANDAT 21, D-2026-11-16-07) : arret de l'archivage WAL vers
+  # Hetzner. Le plugin WAL barman-cloud (store factory-platform-pg2-store) est
+  # retire. Perte de l'archivage WAL et de la sauvegarde de pg2 acceptee
+  # (MANDAT 17 D-2026-11-16-06 + MANDAT 21). pg_wal est recycle localement par
+  # Postgres (archive_mode off), donc le volume ne se remplit pas. Le bloc
+  # externalClusters/bootstrap.recovery (source factory-platform-old) est
+  # CONSERVE : son retrait est refusable par le webhook CNPG tant que
+  # bootstrap.recovery.source le reference, et exige un dry-run serveur (acces
+  # en ecriture) ; voir la description de la PR.
   storage:
     size: 20Gi
     storageClass: longhorn-bulk
