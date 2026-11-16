@@ -36,12 +36,10 @@ spec:
             app: agentgateway
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
-    - toFQDNs:
-        - matchName: fsn1.your-objectstorage.com
-      toPorts:
-        - ports: [{port: "443", protocol: TCP}]
-    # PLT-249: Cloudflare R2 EU (CNPG/Barman archive, PLT-221). Hetzner stays
-    # allowed until its prefix is deleted (PLT-94).
+    # PLT-94 lot 3 (MANDAT 21) : l'egress fsn1.your-objectstorage.com (Hetzner)
+    # est retire. Le store Hetzner et son ExternalSecret sont supprimes dans la
+    # meme PR ; hindsight-db archive deja vers R2.
+    # PLT-249: Cloudflare R2 EU (CNPG/Barman archive, PLT-221).
     - toFQDNs:
         - matchPattern: "*.eu.r2.cloudflarestorage.com"
         - matchPattern: "homelab-backup-cnpg.*.eu.r2.cloudflarestorage.com"
