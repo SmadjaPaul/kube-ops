@@ -4,8 +4,9 @@ kind: Kustomization
 # au bootstrap. cnpg-cluster.yaml (pg-shared) et media.yaml (Polyfin,
 # AIOStreams, PVC) restent hors de la racine jusqu'à PLT-190 : sauvegarde
 # CNPG hors Oracle (R2) et restauration prouvée hors Oracle.
-# PLT-254 : cloudflared.yaml reste hors de la racine tant que le tunnel et son
-# token Doppler n'existent pas.
+# PLT-254 / PLT-255 : cloudflared est actif : le tunnel oracle-a1 (configuration
+# 404 seule, aucun hostname publié) et son token Doppler existent (cluster/prd).
+# Retour en arrière : retirer cette ligne.
 # PLT-328 (décision de Paul, 15/11/2026) : ntfy et gatus retirés de la racine.
 # Les alertes passent par ntfy.sh (receiver Alertmanager du homelab, check
 # Healthchecks), pas par un ntfy auto-hébergé sur OKE. Retour en arrière : Git
@@ -33,3 +34,4 @@ resources:
   - agent-operator.yaml
   - cnpg-cluster.yaml
   - hindsight.yaml
+  - cloudflared.yaml

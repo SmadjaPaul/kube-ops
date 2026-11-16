@@ -30,7 +30,7 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
   `ORACLE_A1_NTFY_*` are kept. Rollback: Git revert.
 - PLT-190: `cnpg-cluster` (`pg-shared` + R2 backup + drill database) joins the root for the off-Oracle restore drill. No application data goes there before the restore is proven.
 - PLT-303: `hindsight` joins the root for the drill (empty database + test rows, nothing migrated from the homelab).
-- Not in the root: `media`, `cloudflared`.
+- Not in the root: `media`.
 - Access: the Kubernetes API is private. The only path is an OCI Bastion
   port-forwarding session (`homelab-bastion`) with a temporary kubeconfig.
   No ARC runner and no homelab route reaches it. The NetBird path (PLT-256,
