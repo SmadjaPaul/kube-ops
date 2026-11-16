@@ -7,8 +7,6 @@ spec:
   parentRefs:  
     - name: internal  
       namespace: gateway  
-    - name: external  
-      namespace: gateway  
   hostnames:  
     - "opencode.smadja.dev"  
   rules:  
