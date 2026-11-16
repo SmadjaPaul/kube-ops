@@ -1,0 +1,17 @@
+# PLT-375: daily base backup of pg-shared-homelab (03:40 UTC). `immediate` takes
+# the first one at creation, which is the proof that the archive works.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: pg-shared-homelab-daily
+  namespace: databases
+spec:
+  schedule: "0 40 3 * * *"
+  immediate: true
+  backupOwnerReference: self
+  cluster: {name: pg-shared-homelab}
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: pg-shared-homelab-r2
