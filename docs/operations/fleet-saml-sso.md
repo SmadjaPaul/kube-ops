@@ -14,19 +14,21 @@ Authentik is the SAML identity provider; Fleet is the service provider. Access i
 
 ## Fleet side (not in this repository's manifests)
 
-Fleet stores SSO settings in its database. Apply them with GitOps Fleet (`fleetctl apply` of an `org_settings.sso_settings`
-document) or `PATCH /api/v1/fleet/config`, with an admin API token that never appears in Git or logs:
+Fleet stores SSO settings in its database. Apply them with GitOps Fleet (`fleetctl apply` of a `kind: config` document, settings under `spec`) or `PATCH /api/v1/fleet/config`, with an admin API token that never appears in Git or logs:
 
 ```yaml
-sso_settings:
-  enable_sso: true
-  entity_id: https://fleet.smadja.dev
-  metadata_url: https://auth.smadja.dev/application/saml/fleet/metadata/
-  idp_name: Authentik
-  enable_jit_provisioning: false
+apiVersion: v1
+kind: config
+spec:
+  sso_settings:
+    enable_sso: true
+    entity_id: https://fleet.smadja.dev
+    metadata_url: https://auth.smadja.dev/application/saml/fleet/metadata/
+    idp_name: Authentik
+    enable_jit_provisioning: false
 ```
 
-Without JIT provisioning, a Fleet user with the same e-mail address must already exist before the first SAML login.
+Without JIT provisioning, a Fleet user with the same e-mail address must already exist before the first SAML login. That user must also have `sso_enabled: true`; a matching e-mail address alone is not sufficient.
 
 ## Verification levels
 
@@ -37,6 +39,8 @@ Without JIT provisioning, a Fleet user with the same e-mail address must already
 
 ## Rollback
 
-1. Revert the PR (removes the blueprint and its line in `extra/kustomization.yml`); Authentik deletes the provider and
-   application on the next blueprint apply, or remove them in the admin UI.
-2. In Fleet, set `enable_sso: false`. The local Fleet admin account is untouched and keeps working at every step.
+1. In Fleet, set `enable_sso: false` first. The local Fleet admin account is untouched and keeps working at every step.
+2. Revert the PR (removes the blueprint and its line in `extra/kustomization.yml`).
+3. Removing a file-based blueprint only removes its blueprint instance: Authentik keeps the objects it created. Delete the
+   application `fleet` and the provider `k8s.smadja.dev/identity/fleet` in the Authentik admin UI (the policy bindings go
+   with the application).

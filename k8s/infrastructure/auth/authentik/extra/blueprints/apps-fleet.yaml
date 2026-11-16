@@ -2,8 +2,10 @@
 # PLT-316 (D-2026-11-14-06 point 3, Paul's agreement of 2026-11-15): SAML SSO for
 # Fleet. Fields validated against the Authentik 2026.8.3 blueprint schema
 # (blueprints/schema.json, model authentik_providers_saml.samlprovider).
-# Rollback: remove this file and its line in ../kustomization.yml; Fleet keeps
-# its local admin account (docs/operations/fleet-saml-sso.md).
+# Rollback (docs/operations/fleet-saml-sso.md): set enable_sso: false in Fleet,
+# revert this file and its line in ../kustomization.yml, then delete the
+# application and provider in the Authentik UI (blueprint removal keeps them).
+# Fleet keeps its local admin account.
 version: 1
 metadata:
   name: Apps - Fleet
