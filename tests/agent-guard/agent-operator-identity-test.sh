@@ -91,6 +91,10 @@ if grep -rqE 'kind: ClusterRoleBinding' k8s/applications/platform/agent-operator
 check "policy failurePolicy Fail" test "$(yq -N 'select(.kind == "ValidatingAdmissionPolicy") | .spec.failurePolicy' "$VAP")" = Fail
 check "binding Deny" test "$(yq -N 'select(.kind == "ValidatingAdmissionPolicyBinding") | .spec.validationActions | join(",")' "$VAP")" = Deny
 check "matchCondition = identité agent exacte" grep -q "request.userInfo.username == 'system:serviceaccount:agent-operator:agent-operator'" "$VAP"
+check "policy : exemption CONNECT limitée aux deux services proxy monitoring" bash -c \
+  "grep -q \"request.operation == 'CONNECT'\" '$VAP' && grep -q \"request.namespace == 'monitoring'\" '$VAP' \
+   && grep -q \"request.name in \\['kube-prometheus-stack-prometheus:9090', 'loki-gateway:80'\\]\" '$VAP' \
+   && test \"\$(yq -N 'select(.kind == \"ValidatingAdmissionPolicy\") | .spec.matchConditions | length' '$VAP')\" = 2"
 check "policy : pas de sous-ressource scale admise" bash -c "! grep -q \"/scale'\" '$VAP'"
 for msg in agent-protected 'cnpg.io/cluster' persistentVolumeClaimRetentionPolicy secretKeyRef secretRef serviceAccountName hostNetwork \
   persistentVolumeClaim oldCarriesCredentials 'variables.newSpec == variables.oldSpec' oldPrivileged; do

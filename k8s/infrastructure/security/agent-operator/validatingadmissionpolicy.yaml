@@ -32,6 +32,17 @@ spec:
   matchConditions:
     - name: agent-operator-identity
       expression: request.userInfo.username == 'system:serviceaccount:agent-operator:agent-operator'
+    # Proxy de lecture Prometheus/Loki : GET d'un service proxy arrive en CONNECT,
+    # que la garde refuserait (namespace monitoring hors scope.tsv). Seules ces
+    # deux cibles nommées sont exemptées ; la méthode HTTP n'est pas visible ici,
+    # c'est le RBAC (Role agent-operator-monitoring-query, verbe get seul) qui
+    # refuse POST/PUT/DELETE (create/update/delete).
+    - name: not-monitoring-query-proxy
+      expression: >-
+        !(request.operation == 'CONNECT' && request.resource.group == '' &&
+        request.resource.resource == 'services' && request.subResource == 'proxy' &&
+        request.namespace == 'monitoring' &&
+        request.name in ['kube-prometheus-stack-prometheus:9090', 'loki-gateway:80'])
   variables:
     - name: admitted
       expression: >-

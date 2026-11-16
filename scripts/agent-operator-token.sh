@@ -93,6 +93,21 @@ verify_agent() {
   can no get secrets -n monitoring
   can yes delete pods -n media
   can yes patch cronjobs -n media
+  # can-i ne voit ni la garde d'admission (CONNECT sur le proxy) ni la réponse :
+  # lecture réelle d'une requête sans effet, puis POST refusé par le RBAC.
+  local prom="/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=vector%281%29"
+  if kubectl --request-timeout=15s get --raw "$prom" 2>/dev/null | grep -q '"status":"success"'; then
+    echo "CHECK get --raw proxy Prometheus répond PASS"
+  else
+    echo "CHECK get --raw proxy Prometheus ne répond pas (RBAC, garde d'admission ou service) FAIL"; fails=1
+  fi
+  if out=$(echo '{}' | kubectl --request-timeout=15s create --raw "$prom" -f - 2>&1); then
+    echo "CHECK POST proxy Prometheus accepté FAIL"; fails=1
+  elif grep -qi 'forbidden' <<<"$out"; then
+    echo "CHECK POST proxy Prometheus refusé PASS"
+  else
+    echo "CHECK POST proxy Prometheus : échec sans refus d'autorisation FAIL"; fails=1
+  fi
   # can-i ne prouve pas l'admission : création en dry-run serveur (aucun effet)
   # d'un Deployment qui référence un Secret ; la policy doit la refuser.
   local probe out
