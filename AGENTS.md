@@ -17,7 +17,8 @@ This file → one skill from the table → only the application or infrastructur
 | Task | Entry |
 |---|---|
 | unfamiliar repository | `.agents/skills/repo-navigation` |
-| add or retire a service | `docs/operations/service-onboarding.md` |
+| add a service | `.agents/skills/deploy-a-service` |
+| retire a service | `docs/operations/service-onboarding.md` |
 | Argo sync/health; deliver on homelab or oracle-a1 | `.agents/skills/argocd-debug` |
 | Kubernetes workload failure | `.agents/skills/kubernetes-debug` |
 | runtime or post-merge proof | `.agents/skills/runtime-observer` |
