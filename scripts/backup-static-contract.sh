@@ -68,7 +68,8 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
       name:.metadata.name,
       wal:any(.spec.plugins[]?; .isWALArchiver==true),
       drill:(.metadata.labels["backup.smadja.dev/restore-drill"]=="true"),
-      crashVelero:((.metadata.annotations["backup.smadja.dev/velero-crash-consistent"])//"")
+      crashVelero:((.metadata.annotations["backup.smadja.dev/velero-crash-consistent"])//""),
+      forensicFenced:((.metadata.annotations["backup.smadja.dev/forensic-fenced"])//"")
     }
   ] as $clusters |
   [$docs[] |
@@ -99,9 +100,11 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
       $clusters[] as $c |
       select(
         ($c.drill|not) and
-        # Opt-in exception (PLT-369): only a Cluster annotated velero-crash-consistent,
-        # in a namespace that a Velero FS Schedule to R2 covers. Other clusters are unchanged.
+        # Opt-in exceptions, each on one named Cluster; all other clusters are unchanged:
+        # (a) PLT-369: velero-crash-consistent, in a namespace a Velero FS Schedule to R2 covers;
+        # (b) PLT-168/PLT-252: fenced forensic copy kept on purpose (forensic-fenced).
         ((($c.crashVelero != "") and (($veleroFsNamespaces|index($c.namespace))!=null))|not) and
+        (($c.forensicFenced != "")|not) and
         (($c.wal|not) or
         (any($backups[]?; .namespace==$c.namespace and .cluster==$c.name)|not) or
         (any($stores[]?; .namespace==$c.namespace)|not))
