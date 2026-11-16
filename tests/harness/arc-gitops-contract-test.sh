@@ -303,7 +303,7 @@ assert_yq_website "$website_policy | .metadata.namespace" 'arc-runners-website'
 assert_yq_website "$website_policy | .spec.endpointSelector | length" '0'
 assert_yq_website "$website_policy | .spec | has(\"enableDefaultDeny\")" 'false'
 assert_yq_website "$website_policy | [.spec.egress[]?.toFQDNs[]?.matchName] | unique | sort | join(\",\")" \
-  'api.github.com,api.sanity.io,cdn.sanity.io,codeload.github.com,github-registry-files.githubusercontent.com,github-releases.githubusercontent.com,github.com,objects-origin.githubusercontent.com,objects.githubusercontent.com,raw.githubusercontent.com,registry.npmjs.org,release-assets.githubusercontent.com,tli60dkb.api.sanity.io,tli60dkb.apicdn.sanity.io'
+  'api.cloudflare.com,api.github.com,api.sanity.io,cdn.sanity.io,codeload.github.com,github-registry-files.githubusercontent.com,github-releases.githubusercontent.com,github.com,lechaplais.com,objects-origin.githubusercontent.com,objects.githubusercontent.com,raw.githubusercontent.com,registry.npmjs.org,release-assets.githubusercontent.com,tli60dkb.api.sanity.io,tli60dkb.apicdn.sanity.io'
 assert_yq_website "$website_policy | [.spec.egress[]?.toFQDNs[]?.matchPattern] | sort | join(\",\")" '*.actions.githubusercontent.com,*.blob.core.windows.net'
 # No LAN, no Kubernetes API, no catch-all: only DNS endpoints and FQDNs.
 assert_yq_website "$website_policy | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toCIDRSet[]?, .spec.egress[]?.toEntities[]?, .spec.egress[]?.toServices[]?] | length" '0'
