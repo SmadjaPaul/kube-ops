@@ -19,9 +19,9 @@ spec:
     # PLT-301: CNPG barman-cloud prerequisites and Hindsight.
     - {server: https://kubernetes.default.svc, namespace: cert-manager}
     - {server: https://kubernetes.default.svc, namespace: hindsight}
+    - {server: https://kubernetes.default.svc, namespace: auth}
     # PLT-306: Grafana Cloud export (kube-state-metrics, Alloy).
     - {server: https://kubernetes.default.svc, namespace: monitoring}
-    - {server: https://kubernetes.default.svc, namespace: auth}
     # Backstage (IDP agentic, OKE). MANDAT Paul : ré-appliquer le bootstrap pour que le live change.
     - {server: https://kubernetes.default.svc, namespace: backstage}
   # Cluster-scoped : CRD, RBAC, webhooks, Namespaces, ESO ClusterSecretStore
