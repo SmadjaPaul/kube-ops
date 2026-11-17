@@ -32,6 +32,7 @@ k8s/optional/github-actions-arc-kube-ops
 k8s/optional/github-actions-arc-homelab-iac-pilot
 # Oracle-a1 (Applications enfants de k8s/clusters/oracle-a1/apps ; media hors racine)
 k8s/clusters/oracle-a1/agent-operator
+k8s/clusters/oracle-a1/baseline
 k8s/clusters/oracle-a1/cert-manager
 k8s/clusters/oracle-a1/cloudflared
 k8s/clusters/oracle-a1/cnpg-barman-plugin
@@ -41,5 +42,6 @@ k8s/clusters/oracle-a1/external-secrets
 k8s/clusters/oracle-a1/guardrails
 k8s/clusters/oracle-a1/hindsight
 k8s/clusters/oracle-a1/netbird-router
+k8s/clusters/oracle-a1/secret-stores
 k8s/clusters/oracle-a1/observability
 k8s/clusters/oracle-a1/media
