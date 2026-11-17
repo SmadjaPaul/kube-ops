@@ -42,7 +42,7 @@ spec:
   # Sentinelle du golden path service-postgres-oidc : le template ajoute les roles
   # applicatifs ici (golden-paths/service-postgres-oidc/template.yaml). Ne pas supprimer.
   managed:
-    roles: # GOLDEN-PATH-ROLES
+    roles: [] # GOLDEN-PATH-ROLES
   storage:
     storageClass: longhorn-fast
     size: 20Gi

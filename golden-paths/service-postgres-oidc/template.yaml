@@ -222,6 +222,17 @@ spec:
       input:
         url: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml
         targetPath: ./out/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml
+    - id: edit-pg-cluster-sentinel
+      name: Passer la sentinelle de liste vide à liste ouverte (1er service ; no-op ensuite)
+      action: roadiehq:utils:fs:replace
+      input:
+        files:
+          # Pré-état sur main : `roles: []` (liste vide valide pour CNPG). Le 1er service le remplace par la
+          # sentinelle ouverte ; les suivants trouvent 0 occurrence (no-op silencieux, comme Backstage).
+          - file: ./out/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml
+            find: "    roles: [] # GOLDEN-PATH-ROLES"
+            replaceWith: "    roles: # GOLDEN-PATH-ROLES"
+            matchRegex: false
     - id: edit-pg-cluster
       name: Ajouter le rôle géré de la base (ancre sentinelle, une entrée par service)
       action: roadiehq:utils:fs:replace

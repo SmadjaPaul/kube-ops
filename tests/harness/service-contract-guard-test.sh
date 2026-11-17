@@ -269,7 +269,7 @@ render_check() {
   mkdir -p "$rbase" && cp -R "$repo_root/k8s" "$rbase/k8s"
   if ! grep -q 'GOLDEN-PATH-ROLES' "$repo_root/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml"; then
     echo "INFO: sentinelle GOLDEN-PATH-ROLES absente de main : pose simulee dans la copie de rendu"
-    perl -0pi -e 's/  storage:\n    storageClass: longhorn-fast/  managed:\n    roles: # GOLDEN-PATH-ROLES\n  storage:\n    storageClass: longhorn-fast/' "$rbase/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml"
+    perl -0pi -e 's/  storage:\n    storageClass: longhorn-fast/  managed:\n    roles: [] # GOLDEN-PATH-ROLES\n  storage:\n    storageClass: longhorn-fast/' "$rbase/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml"
   fi
   if ! node "$rt/render.mjs" "$rt/template.json" "$gp/tests/canary.params.json" "$gp/skeleton" "$rbase" "$rt/work" >/dev/null 2>&1; then
     fails=$((fails + 1)); echo "FAIL: rendu du template canari"; return 0
