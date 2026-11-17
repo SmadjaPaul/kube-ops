@@ -73,16 +73,16 @@ jobs:
       - name: Select V1 render scope
         id: scope
         env:
-          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
-          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || '' }}
         run: echo "roots=$(bash scripts/select-v1-contract-roots.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Decide service-contract self-test scope
         id: guard_scope
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
-          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || '' }}
         run: echo "decision=$(bash scripts/v1-guard-scope.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Validate V1 desired state and backup coverage

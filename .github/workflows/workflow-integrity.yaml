@@ -3,7 +3,7 @@ name: Workflow integrity
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
-  # Requis pour la merge queue. ATTENTION : le job actuel suppose un evenement PR ; voir MERGE-QUEUE.md (prerequis avant activation).
+  # Requis pour la merge queue : meme job, meme nom de check, chemin dedie (voir plus bas).
   merge_group:
 
 permissions:
@@ -15,13 +15,17 @@ jobs:
     name: workflow-integrity
     runs-on: ubuntu-latest
     steps:
+      # pull_request_target : base de la PR. merge_group : base de la file (merge_group.base_sha).
+      # Dans les deux cas le code execute vient d'une revision de base de confiance ; le contenu de
+      # la PR / du commit de la file n'est jamais importe ni execute, seulement lu via git diff.
       - name: Check out the base revision only
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           fetch-depth: 0
 
       - name: Verify admission from trusted base revision
+        if: github.event_name == 'pull_request_target'
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -49,3 +53,21 @@ jobs:
             --head-repo "$PR_HEAD_REPO" \
             --head-ref "refs/remotes/origin/pr-${PR_NUMBER}" \
             || echo "::warning title=workflow-integrity (rapport)::La vérification a échoué (voir le journal ci-dessus). Non bloquant (D-2026-11-14-02)."
+
+      # merge_group : pas de numero de PR (l'admission est liee a une PR et evaluee sur
+      # pull_request_target avant l'entree dans la file). On rapporte les chemins proteges de la file
+      # depuis la base de confiance ; echec si le diff est illisible. Permissions : contents: read.
+      - name: Report protected paths of the merge group from trusted base revision
+        if: github.event_name == 'merge_group'
+        env:
+          MG_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MG_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$MG_HEAD_SHA"
+          python3 -m unittest discover \
+            -s .github/actions/workflow-integrity -p 'test_*.py'
+          python3 .github/actions/workflow-integrity/merge_group_report.py \
+            --base-sha "$MG_BASE_SHA" \
+            --head-sha "$MG_HEAD_SHA"

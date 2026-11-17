@@ -37,8 +37,9 @@ jobs:
       - name: Classify changed files
         id: classify
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          # merge_group : head_sha == github.sha (commit de la file) ; explicite pour ne rien supposer d'un payload PR.
+          HEAD_SHA: ${{ github.event.merge_group.head_sha || github.sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -79,7 +80,7 @@ jobs:
           npm run check:documentation
           node scripts/check-documentation-integrity.mjs --changed-from "$BASE_SHA"
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
       - name: Install website dependencies
         if: steps.classify.outputs.documentation_relevant == 'true'

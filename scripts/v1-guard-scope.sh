@@ -6,6 +6,9 @@ set -euo pipefail
 # tourne toujours : c'est elle qui valide la PR. Le job v1-contract (check requis) reste vert dans
 # les deux cas ; seul le self-test est saute (SKIP_CHECKS dans le runner).
 #
+# Evenements pris en charge : pull_request et merge_group (base_sha/head_sha de la file) ; tout autre
+# evenement (push main, schedule) : run.
+#
 # Le self-test tourne si la PR touche la garde, son test, le template golden-path, le chart
 # platform-app, les fixtures, l'outillage de checks ou le workflow. Erreur de diff : run (par defaut).
 #
@@ -13,7 +16,7 @@ set -euo pipefail
 
 if [[ -n "${V1_CHANGED_FILES:-}" ]]; then
   changed="$V1_CHANGED_FILES"
-elif [[ "${GITHUB_EVENT_NAME:-}" != pull_request || -z "${GITHUB_BASE_SHA:-}" || -z "${GITHUB_HEAD_SHA:-}" ]]; then
+elif [[ ( "${GITHUB_EVENT_NAME:-}" != pull_request && "${GITHUB_EVENT_NAME:-}" != merge_group ) || -z "${GITHUB_BASE_SHA:-}" || -z "${GITHUB_HEAD_SHA:-}" ]]; then
   echo run
   exit 0
 elif ! changed="$(git diff --name-only "$GITHUB_BASE_SHA" "$GITHUB_HEAD_SHA" 2>/dev/null)"; then

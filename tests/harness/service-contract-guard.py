@@ -804,7 +804,11 @@ def report(ctx, args, skipped):
     # et pour les branches golden-path/*, le comportement strict est inchange.
     # Une PR qui CREE un service (ctx.admitted non vide) reste stricte quelle que soit sa
     # branche : une PR ecrite a la main doit respecter les memes invariants que le template.
-    advisory = (os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+    # merge_group (merge queue) : meme regle que pull_request. Une entree de file a deja passe ce
+    # controle sur son evenement pull_request ; GITHUB_HEAD_REF est vide sur merge_group (la branche
+    # est gh-readonly-queue/...), donc l'exception golden-path/* n'y est pas reconnaissable : la
+    # creation d'un service (ctx.admitted) reste STRICTE, y compris dans la file.
+    advisory = (os.environ.get("GITHUB_EVENT_NAME") in ("pull_request", "merge_group")
                 and not os.environ.get("GITHUB_HEAD_REF", "").startswith("golden-path/")
                 and not ctx.admitted)
     failing = 0
