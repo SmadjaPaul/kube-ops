@@ -1,0 +1,34 @@
+# CODEOWNERS cible (PLT-131). Proprietaire unique : @SmadjaPaul.
+# Effet reel uniquement si « Require review from code owners » est active dans le
+# ruleset PLT-131 (reglage admin). Sans cela, ce fichier est inerte.
+# Seuls les chemins privilegies sont listes ; les PR applicatives (k8s/apps-generated/**,
+# k8s/applications/** hors manifestes de secrets) ne sont PAS capturees.
+
+# Authentik : auth, OIDC, blueprints
+/k8s/infrastructure/auth/ @SmadjaPaul
+
+# Identite, RBAC et controleurs de secrets
+/k8s/clusters/oracle-a1/agent-operator/ @SmadjaPaul
+/k8s/infrastructure/security/agent-operator/ @SmadjaPaul
+/k8s/infrastructure/monitoring/alloy/rbac.yaml @SmadjaPaul
+/k8s/infrastructure/controllers/external-secrets/ @SmadjaPaul
+
+# Secrets : ExternalSecret / SecretStore (y compris dans les dossiers applicatifs, par nom)
+/k8s/**/*externalsecret*.yaml @SmadjaPaul
+/k8s/**/*external-secret*.yaml @SmadjaPaul
+/k8s/clusters/*/secret-stores/ @SmadjaPaul
+/k8s/clusters/*/external-secrets/ @SmadjaPaul
+
+# Politiques d'admission et garde service-contract
+/k8s/infrastructure/security/policies/ @SmadjaPaul
+/tests/harness/service-contract-guard* @SmadjaPaul
+
+# Bootstrap du cluster
+/k8s/bootstrap/ @SmadjaPaul
+
+# Workflows CI, justfile, golden paths (admission), et ce fichier
+/.github/workflows/ @SmadjaPaul
+/.github/CODEOWNERS @SmadjaPaul
+/.justfile @SmadjaPaul
+/golden-paths/*/template.yaml @SmadjaPaul
+/golden-paths/*/tests/ @SmadjaPaul
