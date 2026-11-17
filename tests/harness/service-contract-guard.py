@@ -802,8 +802,11 @@ def report(ctx, args, skipped):
     # releve de la revue humaine (le merge de Paul est l'admission), pas d'un echec de CI.
     # Les violations techniques (FAIL) restent bloquantes. En local (sans GITHUB_EVENT_NAME)
     # et pour les branches golden-path/*, le comportement strict est inchange.
+    # Une PR qui CREE un service (ctx.admitted non vide) reste stricte quelle que soit sa
+    # branche : une PR ecrite a la main doit respecter les memes invariants que le template.
     advisory = (os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
-                and not os.environ.get("GITHUB_HEAD_REF", "").startswith("golden-path/"))
+                and not os.environ.get("GITHUB_HEAD_REF", "").startswith("golden-path/")
+                and not ctx.admitted)
     failing = 0
     seen = set()
     for kind, rule, msg in ctx.rep.items:

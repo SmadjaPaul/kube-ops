@@ -227,6 +227,7 @@ case_run "R4 modification d'un blueprint protege existant (apps-mealie)" FAIL 'M
 case_run "R4 creation du groupe authentik-admins" FAIL 'MANDAT \[R4\] creation de groupe authentik-admins' "" m_group_created
 case_run "R4 modification d'un service existant (mealie)" FAIL 'MANDAT \[R4\] service existant mealie' "" m_modify_existing_service
 GUARD_CI_EVENT=pull_request GUARD_CI_HEAD_REF=idp/stateful-protection case_run "CI : PR modifiant un service existant hors branche golden-path/ : conseil, pas d'echec" PASS 'CONSEIL \(revue humaine\) \[R4\] service existant mealie' "" m_modify_existing_service
+GUARD_CI_EVENT=pull_request GUARD_CI_HEAD_REF=idp/ecrite-a-la-main case_run "CI : creation de service hors golden-path/ avec nom deja pris : reste strict" FAIL 'R1\] gateway' "" m_name_taken
 GUARD_CI_EVENT=pull_request GUARD_CI_HEAD_REF=golden-path/canari case_run "CI : meme modification sur branche golden-path/ : refus strict" FAIL 'MANDAT \[R4\] service existant mealie' "" m_modify_existing_service
 case_run "R5 role PG superuser" FAIL 'R5\] .*superuser=true' "" m_superuser
 case_run "R5 role PG vers une autre base (owner app)" FAIL 'R5\] .*owner de la base canaripgoidc = app' "" m_other_owner
