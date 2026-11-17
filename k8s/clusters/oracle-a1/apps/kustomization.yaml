@@ -34,4 +34,6 @@ resources:
   - agent-operator.yaml
   - cnpg-cluster.yaml
   - hindsight.yaml
+  # Backstage (PR #1618) : vague 3, digest epingle, namespace/PSA/NetworkPolicy par la baseline (#1620).
+  - backstage.yaml
   - cloudflared.yaml

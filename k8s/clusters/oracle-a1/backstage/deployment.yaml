@@ -1,5 +1,7 @@
-# Backstage 1.56.5 sur OKE (arm64). Image epinglee par digest dans kustomization.yaml (images:).
-# Aucune NetworkPolicy (flannel ne les applique pas). Aucun Service LoadBalancer.
+# Backstage 1.56.5 sur OKE (arm64), namespace backstage (PSA restricted, baseline #1620).
+# Base : PostgreSQL pg-shared (BACKSTAGE_DB_MODE=pg, defaut). Mode SQLite ephemere = test explicite
+# (BACKSTAGE_DB_MODE=sqlite), jamais par defaut. Flux reseau : baseline (#1620) : cloudflared ->
+# 7007, backstage -> databases:5432, backstage -> api.github.com:443, DNS.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,16 +28,30 @@ spec:
         kubernetes.io/arch: arm64
       containers:
         - name: backstage
-          image: ghcr.io/smadjapaul/backstage
+          image: ghcr.io/smadjapaul/backstage@sha256:4758cb574cb18f78edefd9d8ff11c14098ca4f3ba96ade9c96daa94a8ae43606
           imagePullPolicy: IfNotPresent
-          # Remplace le CMD de l'image : meme commande + la configuration OKE en dernier.
-          # Base SQLite ephemere dans /tmp (emptyDir) : pas de donnee durable sur Oracle (D-2026-11-11-17).
+          command: ["sh", "-c"]
           args:
-            - sh
-            - -c
-            - mkdir -p /tmp/backstage-data && exec node packages/backend --config app-config.yaml --config app-config.production.yaml --config /etc/backstage/app-config.oke.yaml
+            - |
+              set -eu
+              mkdir -p /tmp/backstage-data
+              set -- --config app-config.yaml --config app-config.production.yaml
+              case "${BACKSTAGE_DB_MODE:-pg}" in
+                pg) set -- "$@" --config app-config.database-pg.yaml ;;
+                sqlite) ;;
+                *) echo "BACKSTAGE_DB_MODE invalide" >&2; exit 1 ;;
+              esac
+              exec node packages/backend "$@" --config /etc/backstage/app-config.oke.yaml
           ports:
             - {name: http, containerPort: 7007}
+          env:
+            - {name: BACKSTAGE_DB_MODE, value: pg}
+            - {name: BACKSTAGE_PG_HOST, value: pg-shared-rw.databases.svc.cluster.local}
+            - {name: BACKSTAGE_PG_PORT, value: "5432"}
+            - {name: BACKSTAGE_PG_USER, value: backstage}
+            - {name: BACKSTAGE_PG_DATABASE, value: backstage}
+            - name: BACKSTAGE_PG_PASSWORD
+              valueFrom: {secretKeyRef: {name: backstage-db, key: password}}
           envFrom:
             - secretRef: {name: backstage-runtime}
           startupProbe:

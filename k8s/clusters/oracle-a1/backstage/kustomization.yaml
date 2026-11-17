@@ -1,16 +1,13 @@
-# Overlay Backstage oracle-a1. NON referencee par apps/kustomization.yaml tant que le digest
-# n'est pas publie (CI image-build, main) et epingle ci-dessous. Voir docs/platform/backstage-hosting.md.
+# Overlay Backstage oracle-a1 (PR MANDAT #1618). Racine Argo : apps/backstage.yaml.
+# Dependances : baseline (#1620) cree le namespace backstage (PSA restricted), les
+# NetworkPolicy et le SecretStore doppler ; contrat PostgreSQL (#1621) cree la base
+# backstage et le role. Image epinglee par digest (CI image-build, main, run d5d4ffd).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: backstage
 resources:
-  - namespace.yaml
   - serviceaccount.yaml
   - externalsecret.yaml
   - configmap.yaml
   - deployment.yaml
   - service.yaml
-images:
-  - name: ghcr.io/smadjapaul/backstage
-    # PLACEHOLDER : remplacer par le digest arm64 du resume du job image-build (branche main).
-    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
