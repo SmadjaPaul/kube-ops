@@ -5,6 +5,5 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: databases
   labels:
-    # PSA warn/audit seulement (pas enforce) : signale sans bloquer les pods CNPG et les Jobs.
     pod-security.kubernetes.io/warn: restricted
     pod-security.kubernetes.io/audit: restricted

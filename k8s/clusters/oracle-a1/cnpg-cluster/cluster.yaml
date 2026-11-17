@@ -18,8 +18,8 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   instances: 1
-  # Instance manager CNPG : parle a l'API server (leases, statut). Token monte explicitement :
-  # la baseline (VAP baseline-automount-token, namespace databases) refuse automount sinon.
+  # Instance manager CNPG : parle a l'API server (leases, statut). Token monte
+  # explicitement (baseline automount-token, namespace databases/hindsight).
   inheritedMetadata:
     annotations:
       baseline.smadja.dev/automount-token: "true"
