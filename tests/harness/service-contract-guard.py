@@ -797,6 +797,13 @@ RENDERED_CHART_PREFIXES = ("k8s/charts/platform-app/templates/",)
 
 def report(ctx, args, skipped):
     human = os.environ.get(HUMAN_ENV, "").strip()
+    # En CI, une PR qui ne vient pas du Scaffolder (branche golden-path/*) n'est pas une
+    # demande de creation de service : modifier un service existant ou un fichier protege y
+    # releve de la revue humaine (le merge de Paul est l'admission), pas d'un echec de CI.
+    # Les violations techniques (FAIL) restent bloquantes. En local (sans GITHUB_EVENT_NAME)
+    # et pour les branches golden-path/*, le comportement strict est inchange.
+    advisory = (os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+                and not os.environ.get("GITHUB_HEAD_REF", "").startswith("golden-path/"))
     failing = 0
     seen = set()
     for kind, rule, msg in ctx.rep.items:
@@ -806,6 +813,9 @@ def report(ctx, args, skipped):
         seen.add(line)
         if kind in ("MANDAT", "HORS") and human:
             print("ADMIS-HUMAIN [%s] %s (%s=%s)" % (rule, msg, HUMAN_ENV, human))
+            continue
+        if kind in ("MANDAT", "HORS") and advisory:
+            print("CONSEIL (revue humaine) [%s] %s" % (rule, msg))
             continue
         failing += 1
         print("%s [%s] %s" % (kind, rule, msg))
