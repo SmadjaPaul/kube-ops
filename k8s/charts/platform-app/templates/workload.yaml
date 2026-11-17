@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.metadata.name }}
+  namespace: svc-{{ .Values.metadata.name }}
+  labels:
+    {{- include "platform-app.labels" . | nindent 4 }}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.metadata.name }}
+  namespace: svc-{{ .Values.metadata.name }}
+  labels:
+    {{- include "platform-app.labels" . | nindent 4 }}
+  annotations:
+    {{- include "platform-app.annotations" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.spec.runtime.replicas }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.metadata.name }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "platform-app.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.metadata.name }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: {{ .Values.spec.source.image | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.spec.runtime.port }}
+              protocol: TCP
+          {{- if .Values.spec.runtime.env }}
+          env:
+            {{- range $k, $v := .Values.spec.runtime.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          {{- end }}
+          {{- include "platform-app.resources" . | nindent 10 }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.spec.runtime.healthPath }}
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.spec.runtime.healthPath }}
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.metadata.name }}
+  namespace: svc-{{ .Values.metadata.name }}
+  labels:
+    {{- include "platform-app.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ .Values.metadata.name }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+{{- if gt (int .Values.spec.runtime.replicas) 1 }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.metadata.name }}
+  namespace: svc-{{ .Values.metadata.name }}
+  labels:
+    {{- include "platform-app.labels" . | nindent 4 }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.metadata.name }}
+{{- end }}

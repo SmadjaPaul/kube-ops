@@ -1,0 +1,45 @@
+# Racines rendues par le plan statique (scripts/plan/plan_diff.py).
+# Source : generateurs `directories` des ApplicationSets (k8s/bootstrap/argocd-root)
+# et Applications enfants de k8s/clusters/oracle-a1/apps. Les chemins absents d'un
+# commit sont signales, pas en erreur. Un ajout ou un retrait de racine est visible
+# dans le plan (objets ajoutes ou retires).
+# Verifie par tests/plan/test_roots_sync.py : tout chemin Argo existant doit figurer ici.
+#
+# Applications (AppSet applications ; k8s/applications/restore absent du depot)
+k8s/applications/ai
+k8s/applications/automation
+k8s/applications/business/invoice-ninja
+k8s/applications/catalog
+k8s/applications/games
+k8s/applications/media
+k8s/applications/platform
+k8s/applications/tools
+k8s/applications/web
+# Infrastructure (AppSet infrastructure) + poc et optional rendus par cet AppSet
+k8s/infrastructure/controllers
+k8s/infrastructure/network
+k8s/infrastructure/storage
+k8s/infrastructure/monitoring
+k8s/infrastructure/deployment
+k8s/infrastructure/auth
+k8s/infrastructure/database
+k8s/infrastructure/security
+k8s/poc/atlantis-plan-only
+k8s/poc/atlantis-apps
+k8s/optional/github-actions-arc
+k8s/optional/github-actions-arc-homelab-infra
+k8s/optional/github-actions-arc-website
+k8s/optional/github-actions-arc-homelab-iac-pilot
+# Oracle-a1 (Applications enfants de k8s/clusters/oracle-a1/apps ; media hors racine)
+k8s/clusters/oracle-a1/agent-operator
+k8s/clusters/oracle-a1/cert-manager
+k8s/clusters/oracle-a1/cloudflared
+k8s/clusters/oracle-a1/cnpg-barman-plugin
+k8s/clusters/oracle-a1/cnpg-cluster
+k8s/clusters/oracle-a1/cnpg-operator
+k8s/clusters/oracle-a1/external-secrets
+k8s/clusters/oracle-a1/guardrails
+k8s/clusters/oracle-a1/hindsight
+k8s/clusters/oracle-a1/netbird-router
+k8s/clusters/oracle-a1/observability
+k8s/clusters/oracle-a1/media

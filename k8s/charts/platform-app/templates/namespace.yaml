@@ -1,0 +1,14 @@
+{{- include "platform-app.validate" . }}
+# Seule ressource cluster-scoped du chart.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: svc-{{ .Values.metadata.name }}
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    platform.smadja.dev/golden-path: platform-application
+    {{- include "platform-app.labels" . | nindent 4 }}
+  annotations:
+    {{- include "platform-app.annotations" . | nindent 4 }}

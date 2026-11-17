@@ -641,7 +641,7 @@ def check_global(ctx):
                     rep.mandat("R7", "HTTPRoute %s sur Gateway external (MANDAT)" % meta(o).get("name"))
 
     for st, path in ctx.changes:
-        if st in ("A", "M") and path in ctx.skipped:
+        if st in ("A", "M") and path in ctx.skipped and not path.startswith(RENDERED_CHART_PREFIXES):
             rep.fail("R8", "%s : YAML templaté non analysable dans une PR (refus, pas d ignorance silencieuse)" % path)
 
     # R6 : motifs de secrets litteraux dans les fichiers ajoutes ou modifies sous k8s/.
@@ -789,8 +789,24 @@ def run(args):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# Templates Helm du renderer platform-app : non parsables en YAML brut, mais leur
+# sortie RENDUE est validée (schéma, déterminisme, kubeconform, refus) par
+# .github/workflows/platform-app-contract.yaml. Liste nominative, pas de joker.
+RENDERED_CHART_PREFIXES = ("k8s/charts/platform-app/templates/",)
+
+
 def report(ctx, args, skipped):
     human = os.environ.get(HUMAN_ENV, "").strip()
+    # En CI, une PR qui ne vient pas du Scaffolder (branche golden-path/*) n'est pas une
+    # demande de creation de service : modifier un service existant ou un fichier protege y
+    # releve de la revue humaine (le merge de Paul est l'admission), pas d'un echec de CI.
+    # Les violations techniques (FAIL) restent bloquantes. En local (sans GITHUB_EVENT_NAME)
+    # et pour les branches golden-path/*, le comportement strict est inchange.
+    # Une PR qui CREE un service (ctx.admitted non vide) reste stricte quelle que soit sa
+    # branche : une PR ecrite a la main doit respecter les memes invariants que le template.
+    advisory = (os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+                and not os.environ.get("GITHUB_HEAD_REF", "").startswith("golden-path/")
+                and not ctx.admitted)
     failing = 0
     seen = set()
     for kind, rule, msg in ctx.rep.items:
@@ -800,6 +816,9 @@ def report(ctx, args, skipped):
         seen.add(line)
         if kind in ("MANDAT", "HORS") and human:
             print("ADMIS-HUMAIN [%s] %s (%s=%s)" % (rule, msg, HUMAN_ENV, human))
+            continue
+        if kind in ("MANDAT", "HORS") and advisory:
+            print("CONSEIL (revue humaine) [%s] %s" % (rule, msg))
             continue
         failing += 1
         print("%s [%s] %s" % (kind, rule, msg))
