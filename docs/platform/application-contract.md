@@ -51,6 +51,22 @@ Service, HTTPRoute vers Gateway `internal`, CiliumNetworkPolicy default-deny (in
 PodDisruptionBudget si replicas > 1, ServiceMonitor si metrics. Aucun Secret.
 Les labels portent `platform.smadja.dev/contract: v1` et `platform.smadja.dev/renderer: platform-app-<version chart>`.
 
+## Champs optionnels 0.2.0 (chart platform-app 0.2.0)
+
+Rétrocompatibles : absents, ils ne rendent aucune ressource en plus (le golden de l'app minimale ne change
+qu'à la version du renderer).
+
+- `spec.secrets` : liste de clés du store `doppler-cluster`. Rendu : un `ExternalSecret` dans `svc-<name>`
+  et un Secret `<name>-env` injecté en `envFrom`. Chaque clé commence par `<NAME>_` (NAME en majuscules,
+  `-` remplacé par `_`). Pas de store ni de préfixe arbitraire. Un changement de valeur dans Doppler
+  demande un redémarrage du pod. Pré-requis : `ExternalSecret` et `ConfigMap` doivent être autorisés par
+  l'AppProject `apps-generated` (diff MANDAT, `k8s/bootstrap`).
+- `spec.config` : fichiers non secrets (8 max, 64 Ko chacun). Rendu : une `ConfigMap` `<name>-config` montée
+  en lecture seule dans `/etc/platform-config`. Une clé privée PEM est refusée.
+- `spec.egress.https` : FQDN exacts (pas de joker, pas d'IP, pas de `.local` / `.svc`), port 443 seulement.
+  Rendu : `toFQDNs` dans la CiliumNetworkPolicy, et DNS visible uniquement pour ces noms.
+- `spec.runtime.healthPath` accepte le point (ex. `/.backstage/health/v1/liveness`).
+
 ## Catalogue
 
 `k8s/apps-generated/<name>/catalog-info.yaml` (Component Backstage) est écrit par le template à côté de `app.yaml`.

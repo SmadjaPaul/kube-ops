@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: romm-library
   namespace: romm
   labels:
@@ -16,6 +18,8 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: romm-assets
   namespace: romm
   labels:
@@ -31,6 +35,8 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: romm-resources
   namespace: romm
   labels:
@@ -46,6 +52,8 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: romm-redis-data
   namespace: romm
   labels:

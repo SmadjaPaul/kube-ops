@@ -4,6 +4,7 @@ metadata:
   name: paperless-postgresql
   namespace: paperless
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
     # PLT-244: rolling restart (same mechanism as `kubectl cnpg restart`) so
     # the barman sidecar picks up the environment added to
     # paperless-hetzner-store in #1365; the operator did not restart it.

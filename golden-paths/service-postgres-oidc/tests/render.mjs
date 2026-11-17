@@ -102,6 +102,10 @@ for (const step of tpl.spec.steps) {
         const count = original.split(find).length - 1;
         // Backstage reel (roadiehq fs:replace 4.2.1) : replaceAll, et 0 occurrence = AUCUNE erreur (edition
         // perdue en silence, step "completed"). Le moteur exige donc exactement 1 occurrence.
+        // Conversion sentinelle vide -> ouverte : 0 occurrence est attendu une fois la conversion faite
+        // (2e service et suivants). Backstage ne signale rien dans ce cas (voir plus haut) : meme comportement.
+        // Toute autre ancre reste stricte (exactement 1).
+        if (count === 0 && find === '    roles: [] # GOLDEN-PATH-ROLES') continue;
         if (count !== 1) fail(`${f.file}: ancre trouvee ${count} fois (attendu 1; 0 = edition perdue en silence sur Backstage): ${JSON.stringify(find)}`);
         fs.writeFileSync(file, original.replace(find, () => replaceWith));
       }

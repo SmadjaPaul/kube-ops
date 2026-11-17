@@ -5,7 +5,9 @@ set -euo pipefail
 # Unknown paths deliberately select the complete render.
 if [[ -n "${V1_CHANGED_FILES:-}" ]]; then
   changed_files="$V1_CHANGED_FILES"
-elif [[ "${GITHUB_EVENT_NAME:-}" == pull_request && -n "${GITHUB_BASE_SHA:-}" && -n "${GITHUB_HEAD_SHA:-}" ]]; then
+elif [[ ( "${GITHUB_EVENT_NAME:-}" == pull_request || "${GITHUB_EVENT_NAME:-}" == merge_group ) && -n "${GITHUB_BASE_SHA:-}" && -n "${GITHUB_HEAD_SHA:-}" ]]; then
+  # merge_group : GITHUB_BASE_SHA/GITHUB_HEAD_SHA sont merge_group.base_sha/head_sha (diff de
+  # toute la file courante contre la base de la file, jamais un diff vide).
   # A PR runner may not have either object despite receiving the event.  A
   # failed or empty diff is intentionally full-scope, never an empty PASS.
   if ! changed_files="$(git diff --name-only "$GITHUB_BASE_SHA" "$GITHUB_HEAD_SHA" 2>/dev/null)"; then

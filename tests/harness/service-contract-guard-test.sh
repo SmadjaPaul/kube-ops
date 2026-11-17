@@ -75,18 +75,29 @@ rename_canary() {
 }
 
 # --- execution ---
+unset GITHUB_EVENT_NAME GITHUB_HEAD_REF
 guard_run() {
   if [ -n "$1" ]; then
     env SERVICE_CONTRACT_HUMAN_ADMISSION="$1" python3 -I "$guard" --repo "$repo" --base main --head HEAD
   else
-    env -u SERVICE_CONTRACT_HUMAN_ADMISSION python3 -I "$guard" --repo "$repo" --base main --head HEAD
+    # Les cas stricts ne doivent pas heriter du contexte CI (mode conseil) ; ils l'exigent
+    # via GUARD_CI_EVENT / GUARD_CI_HEAD_REF uniquement.
+    env -u SERVICE_CONTRACT_HUMAN_ADMISSION \
+      ${GUARD_CI_EVENT:+GITHUB_EVENT_NAME="$GUARD_CI_EVENT"} \
+      ${GUARD_CI_HEAD_REF:+GITHUB_HEAD_REF="$GUARD_CI_HEAD_REF"} \
+      python3 -I "$guard" --repo "$repo" --base main --head HEAD
   fi
 }
 
 # case_run LIBELLE ATTENDU(PASS|FAIL) MOTIF(regex|-) ADMISSION("" ou valeur) VARIANTE(fonction) [args]
+# Shards (SC_SHARDS / SC_SHARD, voir service-contract-guard-test-sharded.sh) : chaque cas est
+# execute par UN seul shard (cas independants : begin remet main a zero). Sans SC_SHARDS : tous.
+SC_SHARDS="${SC_SHARDS:-1}"; SC_SHARD="${SC_SHARD:-0}"; case_seq=0
 case_run() {
   local label="$1" expect="$2" want="$3" adm="$4"
   shift 4
+  case_seq=$((case_seq + 1))
+  if [ $(( (case_seq - 1) % SC_SHARDS )) -ne "$SC_SHARD" ]; then return 0; fi
   begin
   "$@"
   commit_case "$label"
@@ -220,6 +231,11 @@ case_run "R3 redirect hors domaine" FAIL 'R3\] .*redirect_uri .*example\.org' ""
 case_run "R4 modification d'un blueprint protege existant (apps-mealie)" FAIL 'MANDAT \[R4\] blueprint Authentik existant modifie .*apps-mealie' "" m_protected_blueprint
 case_run "R4 creation du groupe authentik-admins" FAIL 'MANDAT \[R4\] creation de groupe authentik-admins' "" m_group_created
 case_run "R4 modification d'un service existant (mealie)" FAIL 'MANDAT \[R4\] service existant mealie' "" m_modify_existing_service
+GUARD_CI_EVENT=pull_request GUARD_CI_HEAD_REF=idp/stateful-protection case_run "CI : PR modifiant un service existant hors branche golden-path/ : conseil, pas d'echec" PASS 'CONSEIL \(revue humaine\) \[R4\] service existant mealie' "" m_modify_existing_service
+GUARD_CI_EVENT=pull_request GUARD_CI_HEAD_REF=idp/ecrite-a-la-main case_run "CI : creation de service hors golden-path/ avec nom deja pris : reste strict" FAIL 'R1\] gateway' "" m_name_taken
+GUARD_CI_EVENT=merge_group case_run "CI merge_group : modification d'un service existant : conseil comme sur pull_request" PASS 'CONSEIL \(revue humaine\) \[R4\] service existant mealie' "" m_modify_existing_service
+GUARD_CI_EVENT=merge_group case_run "CI merge_group : creation de service avec nom deja pris : reste strict" FAIL 'R1\] gateway' "" m_name_taken
+GUARD_CI_EVENT=pull_request GUARD_CI_HEAD_REF=golden-path/canari case_run "CI : meme modification sur branche golden-path/ : refus strict" FAIL 'MANDAT \[R4\] service existant mealie' "" m_modify_existing_service
 case_run "R5 role PG superuser" FAIL 'R5\] .*superuser=true' "" m_superuser
 case_run "R5 role PG vers une autre base (owner app)" FAIL 'R5\] .*owner de la base canaripgoidc = app' "" m_other_owner
 case_run "R5 role PG avec inRoles" FAIL 'R5\] .*inRoles' "" m_inroles
@@ -260,7 +276,7 @@ render_check() {
   mkdir -p "$rbase" && cp -R "$repo_root/k8s" "$rbase/k8s"
   if ! grep -q 'GOLDEN-PATH-ROLES' "$repo_root/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml"; then
     echo "INFO: sentinelle GOLDEN-PATH-ROLES absente de main : pose simulee dans la copie de rendu"
-    perl -0pi -e 's/  storage:\n    storageClass: longhorn-fast/  managed:\n    roles: # GOLDEN-PATH-ROLES\n  storage:\n    storageClass: longhorn-fast/' "$rbase/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml"
+    perl -0pi -e 's/  storage:\n    storageClass: longhorn-fast/  managed:\n    roles: [] # GOLDEN-PATH-ROLES\n  storage:\n    storageClass: longhorn-fast/' "$rbase/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml"
   fi
   if ! node "$rt/render.mjs" "$rt/template.json" "$gp/tests/canary.params.json" "$gp/skeleton" "$rbase" "$rt/work" >/dev/null 2>&1; then
     fails=$((fails + 1)); echo "FAIL: rendu du template canari"; return 0

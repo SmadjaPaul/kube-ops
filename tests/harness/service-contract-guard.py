@@ -797,6 +797,20 @@ RENDERED_CHART_PREFIXES = ("k8s/charts/platform-app/templates/",)
 
 def report(ctx, args, skipped):
     human = os.environ.get(HUMAN_ENV, "").strip()
+    # En CI, une PR qui ne vient pas du Scaffolder (branche golden-path/*) n'est pas une
+    # demande de creation de service : modifier un service existant ou un fichier protege y
+    # releve de la revue humaine (le merge de Paul est l'admission), pas d'un echec de CI.
+    # Les violations techniques (FAIL) restent bloquantes. En local (sans GITHUB_EVENT_NAME)
+    # et pour les branches golden-path/*, le comportement strict est inchange.
+    # Une PR qui CREE un service (ctx.admitted non vide) reste stricte quelle que soit sa
+    # branche : une PR ecrite a la main doit respecter les memes invariants que le template.
+    # merge_group (merge queue) : meme regle que pull_request. Une entree de file a deja passe ce
+    # controle sur son evenement pull_request ; GITHUB_HEAD_REF est vide sur merge_group (la branche
+    # est gh-readonly-queue/...), donc l'exception golden-path/* n'y est pas reconnaissable : la
+    # creation d'un service (ctx.admitted) reste STRICTE, y compris dans la file.
+    advisory = (os.environ.get("GITHUB_EVENT_NAME") in ("pull_request", "merge_group")
+                and not os.environ.get("GITHUB_HEAD_REF", "").startswith("golden-path/")
+                and not ctx.admitted)
     failing = 0
     seen = set()
     for kind, rule, msg in ctx.rep.items:
@@ -806,6 +820,9 @@ def report(ctx, args, skipped):
         seen.add(line)
         if kind in ("MANDAT", "HORS") and human:
             print("ADMIS-HUMAIN [%s] %s (%s=%s)" % (rule, msg, HUMAN_ENV, human))
+            continue
+        if kind in ("MANDAT", "HORS") and advisory:
+            print("CONSEIL (revue humaine) [%s] %s" % (rule, msg))
             continue
         failing += 1
         print("%s [%s] %s" % (kind, rule, msg))

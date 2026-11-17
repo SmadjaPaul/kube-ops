@@ -57,7 +57,11 @@ spec:
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: { name: vikunja-files, namespace: vikunja }
+metadata:
+  name: vikunja-files
+  namespace: vikunja
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-fast

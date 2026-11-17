@@ -8,7 +8,7 @@ pour un service avec base dans `pg-shared-homelab`, login Authentik OIDC et expo
   assertions, kustomize, kubeconform, garde d'isolation, idempotence, refus negatifs).
 - Enregistrement : `POST /api/catalog/locations` avec l'URL du `template.yaml` sur la branche poussee ;
   execution : `POST /api/scaffolder/v2/tasks` avec `templateRef: template:default/service-postgres-oidc`.
-- Ordre obligatoire : la ligne sentinelle `roles: # GOLDEN-PATH-ROLES` de `cluster.yaml` doit etre sur `main`
-  AVANT toute execution (sinon fs:replace ne modifie rien, sans erreur).
+- Ordre obligatoire : la ligne sentinelle `roles: [] # GOLDEN-PATH-ROLES` de `cluster.yaml` doit etre sur `main`
+  AVANT toute execution (liste vide valide pour CNPG ; le 1er service la convertit en sentinelle ouverte).
 - Limites : unicite des noms non verifiee (garde CI seulement), idempotence sur PR fermee non garantie,
   noms de variables Grafana non testes au runtime, rendu Backstage reel non rejoue (moteur de test + handlers reels).

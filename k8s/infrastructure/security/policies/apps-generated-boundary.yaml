@@ -1,0 +1,130 @@
+# Deuxième couche de la frontière apps-generated (la première est l'AppProject
+# apps-generated, k8s/bootstrap/argocd-root/apps-generated-project.yaml).
+#
+# Format : ValidatingPolicy CEL (policies.kyverno.io/v1), servi par Kyverno 1.18.1
+# sur le cluster (vérifié : CRD validatingpolicies.policies.kyverno.io served, v1).
+# Les ClusterPolicy kyverno.io/v1 ne sont plus exécutables par Kyverno 1.20 (CLI de
+# test) : on reste sur le format non déprécié.
+#
+# Portée ETROITE, Deny : seuls les objets portant le label du golden path
+# (platform.smadja.dev/golden-path, posé par le chart platform-app) ou situés dans
+# un namespace svc-* sont concernés. Au 17/11 (lecture seule) : 0 namespace svc-*,
+# 0 objet labellé : aucun effet sur l'existant.
+#
+# Limite : une ressource rendue SANS le label et hors svc-* n'est pas visée ici ;
+# c'est l'AppProject qui la refuse (name glob, destinations, kinds).
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: apps-generated-namespace-name
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["namespaces"]
+    objectSelector:
+      matchExpressions:
+        - key: platform.smadja.dev/golden-path
+          operator: Exists
+  validations:
+    - expression: "object.metadata.name.startsWith('svc-') && object.metadata.name.size() > 4"
+      message: "Le Namespace d'un golden path doit s'appeler svc-<name>."
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: apps-generated-objects-in-svc-namespace
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["*"]
+        apiVersions: ["*"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["*"]
+    objectSelector:
+      matchExpressions:
+        - key: platform.smadja.dev/golden-path
+          operator: Exists
+  matchConditions:
+    - name: not-cluster-namespace
+      expression: "request.resource.resource != 'namespaces'"
+  validations:
+    - expression: "has(object.metadata.namespace) && object.metadata.namespace.startsWith('svc-') && object.metadata.namespace.size() > 4"
+      message: "Un objet du golden path doit être dans un namespace svc-<name>."
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: apps-generated-no-rbac
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  matchConditions:
+    # Portée : objet labellé golden path, ou Role/RoleBinding dans un namespace svc-*.
+    - name: golden-path-or-svc-namespace
+      expression: >-
+        (has(object.metadata.labels) && 'platform.smadja.dev/golden-path' in object.metadata.labels)
+        || (has(object.metadata.namespace) && object.metadata.namespace.startsWith('svc-'))
+  validations:
+    - expression: "false"
+      message: "Le golden path ne rend ni Role, ni RoleBinding, ni ClusterRole, ni ClusterRoleBinding."
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: apps-generated-no-rendered-secret
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["secrets"]
+    objectSelector:
+      matchExpressions:
+        - key: platform.smadja.dev/golden-path
+          operator: Exists
+  validations:
+    # Secrets produits par ESO (sans label golden path) restent autorisés.
+    - expression: "false"
+      message: "Un Secret ne peut pas être rendu par le golden path : utiliser un ExternalSecret géré par ESO."
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: apps-generated-pod-no-host-access
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchConditions:
+    - name: golden-path-or-svc-namespace
+      expression: >-
+        (has(object.metadata.labels) && 'platform.smadja.dev/golden-path' in object.metadata.labels)
+        || (has(object.metadata.namespace) && object.metadata.namespace.startsWith('svc-'))
+  validations:
+    - expression: "!(has(object.spec.hostNetwork) && object.spec.hostNetwork) && !(has(object.spec.hostPID) && object.spec.hostPID) && !(has(object.spec.hostIPC) && object.spec.hostIPC)"
+      message: "Pas de hostNetwork, hostPID ni hostIPC dans le golden path."
+    - expression: "!has(object.spec.volumes) || object.spec.volumes.all(v, !has(v.hostPath))"
+      message: "Pas de volume hostPath dans le golden path."
+    - expression: "object.spec.containers.all(c, !has(c.securityContext) || !has(c.securityContext.privileged) || !c.securityContext.privileged) && (!has(object.spec.initContainers) || object.spec.initContainers.all(c, !has(c.securityContext) || !has(c.securityContext.privileged) || !c.securityContext.privileged))"
+      message: "Pas de conteneur privilégié dans le golden path."
