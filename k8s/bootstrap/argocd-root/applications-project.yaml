@@ -93,13 +93,14 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: vikunja
       server: https://kubernetes.default.svc
+  # Pas de ClusterRole ni de ClusterRoleBinding : une application ne peut pas
+  # accorder de privilège cluster-wide par Git. Vérifié : aucune racine de
+  # k8s/applications/** n'en rend (kustomize --enable-helm), aucun objet
+  # runtime tracké par une application apps-* n'en possède. Les RBAC cluster
+  # légitimes vivent dans infrastructure (agent-operator, ARC, Kyverno, ...).
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
-    - group: rbac.authorization.k8s.io
-      kind: ClusterRole
-    - group: rbac.authorization.k8s.io
-      kind: ClusterRoleBinding
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
