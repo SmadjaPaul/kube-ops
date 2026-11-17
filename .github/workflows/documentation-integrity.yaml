@@ -2,6 +2,8 @@ name: Documentation integrity
 
 on:
   pull_request:
+  # Requis pour la merge queue (check requis docs-required).
+  merge_group:
   push:
     branches: [main]
     paths:

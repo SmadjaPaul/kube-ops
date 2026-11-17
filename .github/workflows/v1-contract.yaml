@@ -5,6 +5,8 @@ on:
   # Always run this CI on every PR so a required check cannot be skipped by
   # changing only renovate.json or unrelated documentation.
   pull_request:
+  # Requis pour la merge queue : sans cet evenement, le check requis ne tourne pas dans la queue.
+  merge_group:
   push:
     branches: [main]
     paths:
