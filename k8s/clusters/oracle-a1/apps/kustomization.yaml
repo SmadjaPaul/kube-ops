@@ -24,6 +24,7 @@ kind: Kustomization
 # PLT-303 : hindsight (base vide + données de test, API, sauvegarde R2) actif pour
 # le drill ; retour en arrière : retirer cette ligne (Cluster en Prune=false).
 resources:
+  - baseline.yaml
   - guardrails.yaml
   - external-secrets.yaml
   - cert-manager.yaml

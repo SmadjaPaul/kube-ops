@@ -1,0 +1,23 @@
+# Namespaces de domaine crees par la baseline (PSA restricted enforce).
+# Les namespaces existants portent leurs labels dans leur propre namespace.yaml.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: auth
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+    app.kubernetes.io/part-of: identity
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backstage
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+    app.kubernetes.io/part-of: control-plane

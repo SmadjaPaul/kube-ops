@@ -9,7 +9,7 @@ resources:
   - externalsecrets.yaml
   - objectstores.yaml
   - database.yaml
-  - networkpolicy.yaml
+  # NetworkPolicy : porte par baseline/default-deny.yaml (namespace hindsight).
   # PLT-303 drill imports removed after the proof (fingerprints identical, off-Oracle
   # restore done); sources kept in k8s/optional/hindsight-oke-drill.
 helmCharts:

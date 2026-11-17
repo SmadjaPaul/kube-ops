@@ -1,0 +1,48 @@
+# automountServiceAccountToken doit etre false, sauf annotation explicite
+# baseline.smadja.dev/automount-token=true sur le pod (ou le template du controleur).
+# Utilise par les pods qui parlent a l'API (instance manager CNPG : inheritedMetadata).
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: baseline-automount-token
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments", "statefulsets", "daemonsets"]
+      - apiGroups: ["batch"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["jobs"]
+  variables:
+    - name: podSpec
+      expression: "has(object.spec.template) ? object.spec.template.spec : object.spec"
+    - name: podAnnotations
+      expression: "has(object.spec.template) ? (has(object.spec.template.metadata) && has(object.spec.template.metadata.annotations) ? object.spec.template.metadata.annotations : {}) : (has(object.metadata.annotations) ? object.metadata.annotations : {})"
+  validations:
+    - expression: >-
+        (has(variables.podSpec.automountServiceAccountToken) && !variables.podSpec.automountServiceAccountToken) ||
+        ('baseline.smadja.dev/automount-token' in variables.podAnnotations && variables.podAnnotations['baseline.smadja.dev/automount-token'] == 'true')
+      message: "automountServiceAccountToken must be false unless the baseline.smadja.dev/automount-token=true annotation is set."
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: baseline-automount-token
+spec:
+  policyName: baseline-automount-token
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values: [auth, backstage, hindsight, databases]

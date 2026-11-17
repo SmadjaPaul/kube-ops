@@ -1,0 +1,22 @@
+# Baseline (PSA, VAP, NetworkPolicy, CNP, IMDS deny, quotas). Vague 0 : apres les
+# namespaces de la racine ; avant les workloads de domaine (sync-wave 1 et +).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: baseline
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: oracle-a1
+  source:
+    repoURL: https://github.com/SmadjaPaul/kube-ops.git
+    targetRevision: main
+    path: k8s/clusters/oracle-a1/baseline
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions:
+      - ServerSideApply=true

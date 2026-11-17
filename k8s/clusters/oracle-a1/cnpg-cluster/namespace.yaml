@@ -4,3 +4,6 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: databases
+  labels:
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
