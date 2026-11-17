@@ -30,6 +30,12 @@ spec:
           - path: k8s/optional/github-actions-arc-homelab-infra
           - path: k8s/optional/github-actions-arc-website
           - path: k8s/optional/github-actions-arc-homelab-iac-pilot
+  # Retrait sans cascade : la suppression d'une Application générée par cet ApplicationSet
+  # ne supprime plus ses ressources (pas de finalizer resources-finalizer à la génération,
+  # et retrait du finalizer des Applications existantes au prochain reconcile).
+  # Voir le corps de PR : impact runtime listé.
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   template:
     metadata:
       name: 'infra-{{ path.basename }}'
