@@ -33,6 +33,7 @@ def render_catalog_info(app: dict) -> str:
         f"    homelab.smadja.dev/namespace: svc-{name}\n"
         "    homelab.smadja.dev/exposure: private\n"
         f"    homelab.smadja.dev/hostname: {name}.smadja.dev\n"
+        f"    homelab.smadja.dev/app-status: bash scripts/app-status.sh {name} --cluster homelab\n"
         "spec:\n"
         "  type: service\n"
         "  lifecycle: experimental\n"

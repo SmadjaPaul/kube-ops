@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kube-ops.smadja.dev/contracts/app-status-v1.schema.json",
+  "title": "Application status v1",
+  "description": "Lecture seule de l'etat d'une application generee (platform.smadja.dev/v1) : revision demandee vs synchronisee, Argo, workloads, smoke HTTP, checks optionnels. Aucun secret. Produit par scripts/app-status.sh.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "app", "cluster", "requested", "synced", "argo", "workloads", "smoke", "checks", "status", "evidenceLevel", "timestamp"],
+  "properties": {
+    "schemaVersion": { "const": "app-status.v1" },
+    "app": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,18}[a-z0-9]$" },
+    "cluster": { "enum": ["homelab", "oracle-a1"] },
+    "requested": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit"],
+      "properties": {
+        "commit": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}$", "description": "SHA Git demande ; null si non resolu." }
+      }
+    },
+    "synced": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision"],
+      "properties": {
+        "revision": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}$", "description": "Revision effectivement synchronisee par Argo ; null si Application absente ou illisible." }
+      }
+    },
+    "argo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application", "sync", "health", "operationPhase"],
+      "properties": {
+        "application": { "type": ["string", "null"] },
+        "sync": { "enum": ["Synced", "OutOfSync", "Unknown", "NotFound"] },
+        "health": { "enum": ["Healthy", "Progressing", "Degraded", "Suspended", "Missing", "Unknown", "NotFound"] },
+        "operationPhase": { "enum": ["Running", "Succeeded", "Failed", "Error", "Terminating", "None", "NotFound"] }
+      }
+    },
+    "workloads": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "deployments", "pods"],
+      "properties": {
+        "namespace": { "type": "string", "pattern": "^svc-" },
+        "deployments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "desired", "ready"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "desired": { "type": "integer", "minimum": 0 },
+              "ready": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "pods": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ready", "total"],
+          "properties": {
+            "ready": { "type": "integer", "minimum": 0 },
+            "total": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "smoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "target", "result", "evidence"],
+      "properties": {
+        "name": { "const": "http-health" },
+        "target": { "type": "string", "description": "Service:port et chemin sondes via le proxy API Kubernetes." },
+        "result": { "enum": ["pass", "fail", "unavailable", "not_run"] },
+        "evidence": { "type": "string", "maxLength": 300, "description": "Une ligne bornee, sans secret ni corps de reponse." }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "description": "Controles optionnels (db, backup, restore). not_applicable pour un profil stateless.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "result", "evidence"],
+        "properties": {
+          "name": { "enum": ["db", "backup", "restore"] },
+          "result": { "enum": ["pass", "fail", "unknown", "not_applicable"] },
+          "evidence": { "type": "string", "maxLength": 300 }
+        }
+      }
+    },
+    "status": { "enum": ["PASS", "FAIL", "PENDING", "UNKNOWN"] },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "evidenceLevel": { "enum": ["RUNTIME", "STATIC"], "description": "RUNTIME seulement si l'etat a ete observe sur le cluster." },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "description": "Tout statut autre que PASS porte une raison.",
+      "if": { "properties": { "status": { "const": "PASS" } } },
+      "then": {},
+      "else": { "required": ["reason"] }
+    },
+    {
+      "description": "PASS exige une observation RUNTIME, la revision demandee deja synchronisee, Argo sain, workloads prets et smoke reussi.",
+      "if": { "properties": { "status": { "const": "PASS" } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "evidenceLevel": { "const": "RUNTIME" },
+          "requested": { "properties": { "commit": { "type": "string" } } },
+          "synced": { "properties": { "revision": { "type": "string" } } },
+          "argo": { "properties": { "sync": { "const": "Synced" }, "health": { "const": "Healthy" } } },
+          "smoke": { "properties": { "result": { "const": "pass" } } }
+        }
+      }
+    }
+  ]
+}

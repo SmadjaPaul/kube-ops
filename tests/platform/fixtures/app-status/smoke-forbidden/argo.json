@@ -1,0 +1,24 @@
+{
+  "apiVersion": "argoproj.io/v1alpha1",
+  "kind": "Application",
+  "metadata": {
+    "name": "gen-demo-web",
+    "namespace": "argocd"
+  },
+  "status": {
+    "sync": {
+      "status": "Synced",
+      "revisions": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ]
+    },
+    "health": {
+      "status": "Healthy"
+    },
+    "operationState": {
+      "phase": "Succeeded",
+      "message": ""
+    }
+  }
+}
