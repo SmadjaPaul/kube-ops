@@ -26,7 +26,7 @@ async function main() {
   process.env.BACKSTAGE_GH_APP_CLIENT_SECRET ??= 'fake-client-secret-for-config-check';
   process.env.BACKSTAGE_AGENT_A_TOKEN ??= 'fake-agent-a-token-for-config-check-only';
   process.env.BACKSTAGE_AGENT_B_TOKEN ??= 'fake-agent-b-token-for-config-check-only';
-  // PostgreSQL : valeurs factices (aucune connexion ouverte par ce script).
+  // PostgreSQL (variante optionnelle) : valeurs factices, aucune connexion ouverte par ce script.
   process.env.BACKSTAGE_PG_HOST ??= 'pg-check.invalid';
   process.env.BACKSTAGE_PG_PORT ??= '5432';
   process.env.BACKSTAGE_PG_USER ??= 'backstage';
@@ -52,7 +52,17 @@ async function main() {
   if (github.token) throw new Error('un token PAT est encore configure pour github.com');
   if (typeof app.appId !== 'number') throw new Error('appId doit etre un nombre');
   // Base de donnees : PostgreSQL uniquement en configuration de production (pas de SQLite).
-  if (config.getString('backend.database.client') !== 'pg') throw new Error('backend.database.client doit etre pg');
+  if (config.getString('backend.database.client') !== 'better-sqlite3') throw new Error('base par defaut attendue : better-sqlite3 (ephemere)');
+  // Variante PostgreSQL : valide le schema, non chargee par defaut.
+  const pgLoaded = await loadConfig({
+    configRoot: root,
+    configTargets: [
+      { path: path.join(root, 'app-config.yaml') },
+      { path: path.join(root, 'app-config.database-pg.yaml') },
+    ],
+  });
+  const pgConfig = ConfigReader.fromConfigs(schema.process(pgLoaded.appConfigs, { visibility: ['backend', 'secret'] }));
+  if (pgConfig.getString('backend.database.client') !== 'pg') throw new Error('variante pg non appliquee');
   console.log(JSON.stringify({
     schema: 'ok',
     github_apps: integrations.filter((c) => c.apps).map((c) => ({ host: c.host, appId: typeof c.apps[0].appId, owners: c.apps[0].allowedInstallationOwners })),
@@ -60,6 +70,7 @@ async function main() {
     catalog_readonly: config.getOptionalBoolean('catalog.readonly'),
     guest_provider: config.has('auth.providers.guest'),
     database_client: config.getString('backend.database.client'),
+    pg_variant_schema: 'ok',
     scaffolder_task_recovery: config.getOptionalBoolean('scaffolder.taskRecovery.enabled'),
     permission_enabled: config.getOptionalBoolean('permission.enabled'),
     externalAccess_subjects: (config.getOptionalConfigArray('backend.auth.externalAccess') ?? []).map((c) => c.getString('options.subject')),

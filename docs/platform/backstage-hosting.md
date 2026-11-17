@@ -19,25 +19,25 @@ d'accès est décidé séparément (Cloudflare Access ou NetBird, voir la PR MAN
 
 ## Configuration
 
-- `app-config.yaml` : base, sans secret, base de dev `localhost`. Les secrets sont des variables d'environnement.
+- `app-config.yaml` : base, sans secret, base SQLite éphémère, URL de dev `localhost`. Les secrets sont des variables d'environnement.
 - `app-config.production.yaml` : `auth.environment: production`.
 - ConfigMap `backstage-config` (overlay OKE) : URL publique et CORS, chargée en dernier.
 - Variables requises (ExternalSecret `backstage-runtime`, Doppler `cluster/prd`) :
   `BACKSTAGE_GH_APP_ID`, `BACKSTAGE_GH_APP_CLIENT_ID`, `BACKSTAGE_GH_APP_CLIENT_SECRET`,
-  `BACKSTAGE_GH_APP_KEY_PEM`, `BACKSTAGE_AGENT_A_TOKEN`, `BACKSTAGE_AGENT_B_TOKEN`,
-  `ORACLE_A1_BACKSTAGE_POSTGRES_PASSWORD`.
+  `BACKSTAGE_GH_APP_KEY_PEM`, `BACKSTAGE_AGENT_A_TOKEN`, `BACKSTAGE_AGENT_B_TOKEN`.
 - Démarrage : échec explicite si une variable manque (substitution `${VAR}` de Backstage).
 
-## Base de données (PostgreSQL)
+## Base de données (ephemere, SQLite)
 
-- `backend.database.client: pg`. Hôte `pg-shared-rw.databases.svc`, base `backstage`, rôle `backstage`
-  (`Database` et `managed.roles` dans `k8s/clusters/oracle-a1/cnpg-cluster/`).
-- Mot de passe : une seule valeur Doppler, `ORACLE_A1_BACKSTAGE_POSTGRES_PASSWORD`, lue par deux
-  ExternalSecret (rôle dans `databases`, connexion dans `backstage`). Aucune valeur en Git.
-- TLS : CNPG sert TLS avec un certificat interne ; `rejectUnauthorized: false` faute de CA montée (résiduel).
-- Durabilité : NON DURABLE. La restauration hors Oracle de `pg-shared` est `NOT_TESTED`
-  (`docs/operations/pg-shared-oke-backup-drill.md`). Le catalogue se reconstruit depuis Git ;
-  seul l'historique des tâches Scaffolder serait perdu. Voir la PR MANDAT pour la décision.
+- `backend.database.client: better-sqlite3`, fichier dans `/tmp/backstage-data` (emptyDir). Aucune donnée
+  durable sur Oracle : D-2026-11-11-17 interdit une copie unique sans restauration prouvée hors Oracle
+  (`docs/operations/pg-shared-oke-backup-drill.md`, NOT_TESTED).
+- Le catalogue se reconstruit depuis Git. L'historique des tâches Scaffolder est perdu à chaque redémarrage.
+  `scaffolder.taskRecovery` est activé : une tâche interrompue est marquée en échec, pas laissée en `processing`.
+- PostgreSQL : `app-config.database-pg.yaml` (client `pg`, variables `BACKSTAGE_PG_*`) est fourni mais NON chargé.
+  Il ne peut être activé qu'après une base dédiée dans `cnpg-cluster/` (Database + rôle dans `pg-shared`).
+  Cette création est bloquée par la garde service-contract R5 (`tests/harness/service-contract-guard.py`) :
+  une Database ou un rôle nouveau sur `pg-shared` doit appartenir à un service admis. Décision humaine requise.
 
 ## Accès et identité
 
@@ -57,8 +57,7 @@ d'accès est décidé séparément (Cloudflare Access ou NetBird, voir la PR MAN
 ## Réseau
 
 - Flannel : aucune NetworkPolicy n'est appliquée sur oracle-a1. Aucune isolation réseau ne doit être supposée.
-- Sorties nécessaires : `github.com`, `api.github.com`, `raw.githubusercontent.com` (HTTPS) et
-  `pg-shared-rw.databases.svc` (5432).
+- Sorties nécessaires : `github.com`, `api.github.com`, `raw.githubusercontent.com` (HTTPS). Aucune sortie vers la base.
 - Sondes : `/.backstage/health/v1/liveness` et `/.backstage/health/v1/readiness` sur le port 7007.
 
 ## Limites connues

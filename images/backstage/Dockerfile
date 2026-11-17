@@ -3,12 +3,12 @@
 # Base pinnee par digest (node 24, trixie slim : meme base que packages/backend/Dockerfile officiel).
 # Plateforme : linux/arm64 (noeud A1 Ampere) ; le workflow image-build le selectionne.
 # Execution : utilisateur non root (node, uid 1000), rootfs en lecture seule compatible (seul /tmp
-# est ecrivable, monte en emptyDir par le Deployment). Base de donnees : PostgreSQL (variables d'env).
+# est ecrivable, monte en emptyDir par le Deployment). Base de donnees : SQLite ephemere dans /tmp.
 
 ARG IMAGE_VERSION=backstage-1.56.5-node24
 
 FROM node:24-trixie-slim@sha256:af02d57b57719b9657a45199a79264a9437940cd55b3c7b3fc99615654f124a0 AS build
-# Toolchain native (better-sqlite3 n'est plus utilise en prod ; garde pour les dependances natives eventuelles).
+# Toolchain native pour better-sqlite3 si aucun binaire precompile ne correspond.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
@@ -31,4 +31,5 @@ COPY --from=build --chown=node:node /app /app
 EXPOSE 7007
 USER node
 # Configuration par defaut de l'image. Le Deployment ajoute la ConfigMap OKE en dernier --config.
-CMD ["node", "packages/backend", "--config", "app-config.yaml", "--config", "app-config.production.yaml"]
+# /tmp/backstage-data : base SQLite (emptyDir). Cree au demarrage.
+CMD ["sh", "-c", "mkdir -p /tmp/backstage-data && exec node packages/backend --config app-config.yaml --config app-config.production.yaml"]

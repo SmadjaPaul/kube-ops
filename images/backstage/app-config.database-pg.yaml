@@ -1,0 +1,15 @@
+# Base PostgreSQL pour Backstage. NON CHARGEE PAR DEFAUT : a ajouter en --config apres app-config.yaml
+# uniquement quand une base dediee existe (Database + role dans cnpg-cluster). Aucun secret ici.
+# Bloquee aujourd'hui par la garde service-contract R5 (Database nouvelle hors service admis).
+backend:
+  database:
+    client: pg
+    connection:
+      host: ${BACKSTAGE_PG_HOST}
+      port: ${BACKSTAGE_PG_PORT}
+      user: ${BACKSTAGE_PG_USER}
+      password: ${BACKSTAGE_PG_PASSWORD}
+      database: ${BACKSTAGE_PG_DATABASE}
+      # CNPG sert TLS avec un certificat interne ; la CA n'est pas montee (residuel documente).
+      ssl:
+        rejectUnauthorized: false

@@ -50,20 +50,14 @@ backend:
           - plugin: mcp-actions
           - plugin: catalog
   database:
-    # PostgreSQL uniquement (CNPG pg-shared, base et role dedies). Pas de SQLite, pas de /tmp.
-    # Durabilite : voir la PR MANDAT oracle-a1 (restauration hors Oracle non prouvee).
-    client: pg
+    # Base ephemere (SQLite dans /tmp, emptyDir) : aucune donnee durable sur Oracle tant que la
+    # restauration hors Oracle n'est pas prouvee (D-2026-11-11-17). Le catalogue vient de Git.
+    # PostgreSQL : app-config.database-pg.yaml, NON charge par defaut (cf. docs/platform/backstage-hosting.md).
+    client: better-sqlite3
     connection:
-      host: ${BACKSTAGE_PG_HOST}
-      port: ${BACKSTAGE_PG_PORT}
-      user: ${BACKSTAGE_PG_USER}
-      password: ${BACKSTAGE_PG_PASSWORD}
-      database: ${BACKSTAGE_PG_DATABASE}
-      # CNPG sert TLS avec un certificat interne ; la CA n'est pas montee ici (residuel documente).
-      ssl:
-        rejectUnauthorized: false
-  # Reprise des taches Scaffolder interrompues (sinon une tache coupee reste "processing").
+      directory: /tmp/backstage-data
 scaffolder:
+  # Reprise des taches Scaffolder interrompues (sinon une tache coupee reste "processing").
   taskRecovery:
     enabled: true
 
