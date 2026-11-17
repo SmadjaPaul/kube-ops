@@ -1,6 +1,10 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: factory-cubestore-data, namespace: factory-platform}
+metadata:
+  name: factory-cubestore-data
+  namespace: factory-platform
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-bulk

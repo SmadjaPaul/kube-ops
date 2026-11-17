@@ -4,6 +4,7 @@ metadata:
   name: matrix-synapse-media-fast
   namespace: matrix
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
     argocd.argoproj.io/sync-wave: "-10"
   labels:
     app.kubernetes.io/name: matrix-synapse-media-fast
