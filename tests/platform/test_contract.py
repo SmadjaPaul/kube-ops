@@ -69,7 +69,7 @@ class RenderDeterminism(unittest.TestCase):
         if os.environ.get("UPDATE_GOLDEN") == "1":
             golden.write_text(norm(rendered), encoding="utf-8")
         self.assertTrue(golden.exists(), "golden absent : lancer avec UPDATE_GOLDEN=1")
-        self.assertEqual(golden.read_text(encoding="utf-8"), norm(rendered))
+        self.assertEqual(norm(golden.read_text(encoding="utf-8")), norm(rendered))
 
     def test_only_namespace_is_cluster_scoped(self):
         rendered = render_file(FIXTURES / "web-valid.yaml")
@@ -208,7 +208,7 @@ class PolicyAndCluster(unittest.TestCase):
                 golden = GOLDEN / f"apps-{app_path.parent.name}.yaml"
                 if os.environ.get("UPDATE_GOLDEN") == "1":
                     golden.write_text(norm(rendered), encoding="utf-8")
-                self.assertEqual(golden.read_text(encoding="utf-8"), norm(rendered))
+                self.assertEqual(norm(golden.read_text(encoding="utf-8")), norm(rendered))
         if not apps:
             print("\n[info] aucune app dans k8s/apps-generated : test applicatif vide (attendu avant la premiere app)")
 
