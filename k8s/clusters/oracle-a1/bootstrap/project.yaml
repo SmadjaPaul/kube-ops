@@ -24,8 +24,9 @@ spec:
     - {server: https://kubernetes.default.svc, namespace: monitoring}
     # Backstage (IDP agentic, OKE). MANDAT Paul : ré-appliquer le bootstrap pour que le live change.
     - {server: https://kubernetes.default.svc, namespace: backstage}
-  # Cluster-scoped : CRD, RBAC, webhooks, Namespaces, ESO ClusterSecretStore
-  # (remplace par des SecretStore namespaces, cf. secrets par domaine), VAP.
+  # Explicit list (PLT-254): CRDs, RBAC, webhooks and Namespaces shipped by ESO
+  # and CNPG, ESO ClusterSecretStore (remplace par des SecretStore namespaces,
+  # cf. secrets par domaine) et VAP.
   # Pas de ClusterRole/ClusterRoleBinding dans les workloads : ceux-ci sont
   # reserves aux CRD/operateurs listes ci-dessous.
   clusterResourceWhitelist:
