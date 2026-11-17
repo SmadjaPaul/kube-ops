@@ -9,7 +9,9 @@ spec:
   endpointSelector: {}
   egress:
     - toFQDNs:
-        - matchNames: ["api.github.com", "github.com", "raw.githubusercontent.com"]
+        - matchName: api.github.com
+        - matchName: github.com
+        - matchName: raw.githubusercontent.com
       toPorts:
         - ports: [{port: "443", protocol: TCP}]
 ---
