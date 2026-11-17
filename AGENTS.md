@@ -28,6 +28,7 @@ This file → one skill from the table → only the application or infrastructur
 | incident triage | `.agents/skills/sre-triage` |
 | cluster state from Grafana Cloud (homelab, oracle-a1) | `.agents/skills/observability` |
 | ticket start/end memory (Hindsight MCP configured) | `.agents/skills/agent-memory` |
+| resume a mission with no memory (compaction, interruption, model change) | `python3 scripts/mission/resume.py <mission-key>` (state `missions/backstage-pilote-canari.state.json` for the pilot; mission commits carry `Mission-Key`, `Mission-Step`, `Mission-Attempt` trailers) |
 
 `.agents/` is the single agent knowledge tree; Claude reaches it through the `.claude/skills` symlink.
 

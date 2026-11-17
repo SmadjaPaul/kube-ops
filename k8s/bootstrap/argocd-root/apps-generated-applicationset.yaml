@@ -1,0 +1,80 @@
+# ApplicationSet des applications générées (contrat platform.smadja.dev/v1 Application, un app.yaml par app).
+#
+# Un Application par fichier k8s/apps-generated/<name>/app.yaml. Le chart in-repo
+# k8s/charts/platform-app rend les ressources ; app.yaml est passé tel quel comme values.
+#
+# Sémantique de retrait : supprimer k8s/apps-generated/<name>/ supprime l'Application
+# (applicationsSync: sync autorise la suppression) mais NE supprime PAS les ressources
+# déployées (preserveResourcesOnDeletion: true : pas de finalizer resources-finalizer
+# sur l'Application). Les objets restent dans svc-<name> jusqu'à nettoyage manuel,
+# décision explicite de Paul.
+#
+# Profil stateless uniquement (web, exposition private). Aucun PVC, aucune base :
+# le prune est autorisé ici parce que le profil ne peut pas contenir de données.
+# Les applications stateful restent dans k8s/applications/** (agent STATEFUL, prune=false).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  namespace: argocd
+  name: apps-generated
+  labels:
+    app.kubernetes.io/part-of: apps-generated
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  goTemplate: true
+  goTemplateOptions: ['missingkey=error']
+  generators:
+    - git:
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
+        revision: main
+        files:
+          - path: k8s/apps-generated/*/app.yaml
+  template:
+    metadata:
+      # Préfixe gen- : évite toute collision avec les Applications existantes
+      # (apps-*, infra-*, root, ...) qu'un app.yaml pourrait tenter de reprendre.
+      name: 'gen-{{ .metadata.name }}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/component: 'apps-generated'
+        app.kubernetes.io/part-of: apps-generated
+        platform.smadja.dev/app: '{{ .metadata.name }}'
+    spec:
+      # Projet FIXE : jamais templaté depuis app.yaml (un app.yaml ne choisit pas son projet).
+      project: apps-generated
+      sources:
+        - repoURL: https://github.com/SmadjaPaul/kube-ops.git
+          targetRevision: main
+          path: k8s/charts/platform-app
+          helm:
+            releaseName: '{{ .metadata.name }}'
+            valueFiles:
+              - '$values/k8s/apps-generated/{{ .path.basename }}/app.yaml'
+        - repoURL: https://github.com/SmadjaPaul/kube-ops.git
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        # Dérivé du seul nom ; le Namespace est rendu par le chart (cluster-scoped, nommé svc-*).
+        namespace: 'svc-{{ .metadata.name }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m
+        syncOptions:
+          # Le chart rend le Namespace : Argo ne doit pas le créer en amont.
+          - CreateNamespace=false
+          - ApplyOutOfSyncOnly=true
+          - PruneLast=true
+          - ServerSideApply=true
+  syncPolicy:
+    applicationsSync: sync
+    preserveResourcesOnDeletion: true

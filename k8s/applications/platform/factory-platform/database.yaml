@@ -17,7 +17,7 @@ metadata:
     # is deliberately retired.
     cnpg.io/fencedInstances: '["*"]'
     # Never let Argo prune this Cluster: CNPG would delete its PVCs with it.
-    argocd.argoproj.io/sync-options: Prune=false
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
     # PLT-213: the fenced instance is expected to be unhealthy; do not let it
     # drive the apps-platform health.
     argocd.argoproj.io/ignore-healthcheck: "true"

@@ -1,0 +1,23 @@
+apiVersion: platform.smadja.dev/v1
+kind: Application
+metadata:
+  name: ${{ values.name }}
+  owner: ${{ values.owner | dump }}
+  description: ${{ values.description | dump }}
+spec:
+  profile: web
+  source:
+    image: ${{ values.image | dump }}
+  runtime:
+    replicas: ${{ values.replicas }}
+    size: ${{ values.size | dump }}
+    port: ${{ values.port }}
+    healthPath: ${{ values.healthPath | dump }}
+  exposure:
+    mode: private
+    auth: none
+  backup:
+    policy: stateless
+  observability:
+    metrics: ${{ values.metrics }}
+    path: ${{ values.metricsPath | dump }}

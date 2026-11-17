@@ -1,0 +1,62 @@
+# PLT-375 (T2): PostgreSQL partage du homelab (D-2026-11-13-02). New databases
+# go here as Database + managed role (see app-database.example.tmpl); no
+# application with irreplaceable data before the restore drill has PASSed
+# (docs/operations/pg-shared-app-restore-drill.md on main, status NOT_TESTED).
+#
+# Image: PostgreSQL 18.4 standard trixie, multi-arch INDEX digest resolved from
+# ghcr.io on 2026-11-16 (same pinning method as oracle-a1 pg-shared, whose
+# 17.7 digest it reproduces when resolved the same way).
+#
+# archive_timeout 5min is a setting, not a proof: the RPO is an objective to be
+# proven by a measured restore drill (study pg-shared-etude.md section 4.3). Backups: barman-cloud plugin, ObjectStore pg-shared-homelab-r2.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-shared-homelab
+  namespace: databases
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  instances: 1
+  # Without this stanza CNPG creates database `app` and login role `app`
+  # (secret pg-shared-homelab-app), CONNECT open to PUBLIC. Declared here, and
+  # the database is closed at bootstrap. `app` is a reserved name: no application
+  # may take APP=app (secret and role name collision). Runs at initdb only; the
+  # cluster is not yet synced. Other databases: step 3b of the template.
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      postInitApplicationSQL:
+        - REVOKE CONNECT ON DATABASE app FROM PUBLIC;
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie@sha256:ebf3919504d7523a63e8e2fee9b051211de714644b36469275558c624afd50ec
+  postgresql:
+    parameters:
+      archive_timeout: "5min"
+      wal_compression: "lz4"
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: pg-shared-homelab-r2
+  # Sentinelle du golden path service-postgres-oidc : le template ajoute les roles
+  # applicatifs ici (golden-paths/service-postgres-oidc/template.yaml). Ne pas supprimer.
+  managed:
+    roles: # GOLDEN-PATH-ROLES
+      - name: canaripgoidc
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        passwordSecret:
+          name: pg-shared-homelab-canari-pg-oidc
+  storage:
+    storageClass: longhorn-fast
+    size: 20Gi
+  walStorage:
+    storageClass: longhorn-fast
+    size: 5Gi
+  resources:
+    requests: {cpu: 200m, memory: 768Mi}
+    limits: {cpu: "1", memory: 2Gi}

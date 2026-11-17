@@ -1,0 +1,10 @@
+# Généré par scripts/catalog/generate-catalog.mjs depuis Git. Ne pas éditer à la main.
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: kube-ops
+  description: Catalogue généré depuis Git, plus les catalog-info.yaml posés dans les services.
+spec:
+  targets:
+    - ./generated/all.yaml
+    - ../k8s/applications/**/catalog-info.yaml
