@@ -11,6 +11,7 @@ import os
 import pathlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -202,13 +203,12 @@ class PolicyAndCluster(unittest.TestCase):
                 self.assertEqual(app["metadata"]["name"], app_path.parent.name, "dossier != metadata.name")
                 catalog = app_path.parent / "catalog-info.yaml"
                 self.assertTrue(catalog.exists(), "catalog-info.yaml manquant")
-                sys.path.insert(0, str(HERE))
+                sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
                 from catalog_info import render_catalog_info
                 self.assertEqual(catalog.read_text(encoding="utf-8"), render_catalog_info(app))
-                golden = GOLDEN / f"apps-{app_path.parent.name}.yaml"
-                if os.environ.get("UPDATE_GOLDEN") == "1":
-                    golden.write_text(norm(rendered), encoding="utf-8")
-                self.assertEqual(norm(golden.read_text(encoding="utf-8")), norm(rendered))
+                # Une app generee ne porte AUCUN fichier en plus de app.yaml/catalog-info
+                # (zero edition manuelle) : pas de golden par app, mais determinisme exige.
+                self.assertEqual(rendered, render_file(app_path), "rendu non deterministe")
         if not apps:
             print("\n[info] aucune app dans k8s/apps-generated : test applicatif vide (attendu avant la premiere app)")
 
