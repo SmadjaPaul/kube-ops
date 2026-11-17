@@ -47,6 +47,12 @@ jobs:
           tar -xzf /tmp/kubeconform.tgz -C /tmp
           sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
 
+      - name: Acceptance script (syntax and dry run, no cluster)
+        run: |
+          bash -n tests/oke-baseline/acceptance.sh
+          shellcheck tests/oke-baseline/acceptance.sh
+          bash tests/oke-baseline/acceptance.sh --dry
+
       - name: Install kind
         run: |
           curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.27.0/kind-linux-amd64
