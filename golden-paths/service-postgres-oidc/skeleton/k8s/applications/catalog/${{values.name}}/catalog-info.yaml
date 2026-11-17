@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  description: Service ${{ values.name }} (golden path service-postgres-oidc@v1), base ${{ values.pgDatabase }} dans pg-shared-homelab.
+  annotations:
+    homelab.smadja.dev/cluster: ${{ values.cluster }}
+    homelab.smadja.dev/namespace: ${{ values.name }}
+    homelab.smadja.dev/exposure: ${{ values.exposure }}
+    homelab.smadja.dev/hostname: ${{ values.hostname }}
+    homelab.smadja.dev/data-class: ${{ values.dataClass }}
+    homelab.smadja.dev/access-groups: ${{ values.accessGroups | join(',') }}
+    homelab.smadja.dev/pg-database: ${{ values.pgDatabase }}
+    homelab.smadja.dev/backup-rpo: ${{ values.backupRpo }}
+    homelab.smadja.dev/backup-rto: ${{ values.backupRto }}
+    homelab.smadja.dev/restore-drill: ${{ values.restoreDrillStatus }}
+    homelab.smadja.dev/golden-path: service-postgres-oidc@v1
+    # Pas de ServiceMonitor dans le pilote : canari sans alerting, sonde HTTP via probes.
+    # Justification consignee ici pour la garde d'admission (non applicable, pas une omission).
+    homelab.smadja.dev/servicemonitor: not-applicable
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{ values.owner }}
