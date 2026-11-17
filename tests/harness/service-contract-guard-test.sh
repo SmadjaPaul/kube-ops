@@ -29,6 +29,15 @@ cp -R "$fix/oke-base/cnpg-cluster/." "$repo/k8s/clusters/oracle-a1/cnpg-cluster/
 git -C "$repo" init -q -b main
 git -C "$repo" -c user.name=t -c user.email=t@t -c commit.gpgsign=false add -A
 git -C "$repo" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -qm base
+# Base post-fusion : meme main, plus le cnpg-cluster OKE de cette PR (backstage deja admis).
+# Les cas CASE_BASE=main-post verifient les dependances des objets retenus (Job, ExternalSecret,
+# role) quand une PR ne touche que l'un d'eux.
+git -C "$repo" checkout -q -b main-post
+rm -rf "$repo/k8s/clusters/oracle-a1/cnpg-cluster"
+cp -R "$repo_root/k8s/clusters/oracle-a1/cnpg-cluster" "$repo/k8s/clusters/oracle-a1/"
+git -C "$repo" add -A
+git -C "$repo" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -qm post-merge
+git -C "$repo" checkout -q main
 
 fails=0
 passes=0
@@ -41,7 +50,7 @@ PG_DB="k8s/infrastructure/database/pg-shared-homelab/canari-pg-oidc-database.yam
 PG_CL="k8s/infrastructure/database/pg-shared-homelab/cluster.yaml"
 INFRA_PROJ="k8s/bootstrap/argocd-root/infrastructure-project.yaml"
 
-begin() { git -C "$repo" checkout -q -f -B case main; git -C "$repo" clean -fdq; }
+begin() { git -C "$repo" checkout -q -f -B case "${CASE_BASE:-main}"; git -C "$repo" clean -fdq; }
 
 commit_case() {
   git -C "$repo" add -A
@@ -82,14 +91,14 @@ rename_canary() {
 unset GITHUB_EVENT_NAME GITHUB_HEAD_REF
 guard_run() {
   if [ -n "$1" ]; then
-    env SERVICE_CONTRACT_HUMAN_ADMISSION="$1" python3 -I "$guard" --repo "$repo" --base main --head HEAD
+    env SERVICE_CONTRACT_HUMAN_ADMISSION="$1" python3 -I "$guard" --repo "$repo" --base "${CASE_BASE:-main}" --head HEAD
   else
     # Les cas stricts ne doivent pas heriter du contexte CI (mode conseil) ; ils l'exigent
     # via GUARD_CI_EVENT / GUARD_CI_HEAD_REF uniquement.
     env -u SERVICE_CONTRACT_HUMAN_ADMISSION \
       ${GUARD_CI_EVENT:+GITHUB_EVENT_NAME="$GUARD_CI_EVENT"} \
       ${GUARD_CI_HEAD_REF:+GITHUB_HEAD_REF="$GUARD_CI_HEAD_REF"} \
-      python3 -I "$guard" --repo "$repo" --base main --head HEAD
+      python3 -I "$guard" --repo "$repo" --base "${CASE_BASE:-main}" --head HEAD
   fi
 }
 
@@ -356,6 +365,33 @@ case_run "OKE : Job d'isolation de app absent : FAIL" FAIL 'R5\] oke: Job d.isol
 case_run "OKE : archivage WAL barman desactive sur pg-shared : FAIL" FAIL 'R5\] oke: Cluster pg-shared sans archivage WAL' "" m_oke_no_barman
 case_run "OKE : second Cluster CNPG sous cnpg-cluster : FAIL" FAIL 'R5\] nouveau Cluster CNPG pg-shared-2' "" m_oke_new_cluster
 case_run "OKE : Database backstage hors cnpg-cluster (hindsight/) : FAIL (regle hors voie OKE)" FAIL 'R5\] Database backstage nouvelle hors service admis' "" m_oke_database_outside_dir
+m_oke_revoke_annotation_only() {
+  v_oke
+  perl -0pi -e 's/REVOKE CONNECT ON DATABASE backstage FROM PUBLIC"/SELECT 1"/; s/(    argocd\.argoproj\.io\/hook: PostSync\n)/$1    note.example\/revoke: "REVOKE CONNECT ON DATABASE backstage FROM PUBLIC"\n/' "$repo/$OKE_JOBS"
+}
+m_oke_sched_not_plugin() { v_oke; perl -0pi -e 's/method: plugin/method: volumeSnapshot/' "$repo/$OKE/scheduledbackup.yaml"; }
+m_oke_mapping_other_key() {
+  v_oke
+  perl -0pi -e 's/- secretKey: password\n      remoteRef: \{key: ORACLE_A1_BACKSTAGE_DB_PASSWORD\}/- secretKey: unused\n      remoteRef: {key: ORACLE_A1_BACKSTAGE_DB_PASSWORD}/' "$repo/$OKE_ES"
+}
+m_oke_template_other_field() { v_oke; perl -0pi -e 's/(        username: backstage\n        password: )"\{\{ \.password \}\}"/$1"{{ .other }}"/' "$repo/$OKE_ES"; }
+m_oke_owner_role_absent() {
+  v_oke
+  perl -0pi -e 's/      - name: backstage\n.*?          name: pg-shared-backstage\n//s' "$repo/$OKE_CL"
+}
+m_oke_comment_only() { v_oke; printf '# note sans effet\n' >> "$repo/$OKE_DBS"; }
+case_run "OKE : REVOKE seulement dans une annotation (commande sans REVOKE) : FAIL" FAIL 'R5\] oke: Job pg-shared-backstage-isolation ne revoque pas' "" m_oke_revoke_annotation_only
+case_run "OKE : owner absent du Cluster (role managed retire) : FAIL" FAIL 'R5\] oke: owner backstage de la base backstage : 0 role managed' "" m_oke_owner_role_absent
+case_run "OKE : ExternalSecret mappe sur une autre cle (password absent) : FAIL" FAIL 'R5\] oke: ExternalSecret pg-shared-backstage : cle Doppler ORACLE_A1_BACKSTAGE_DB_PASSWORD attendue sur secretKey password' "" m_oke_mapping_other_key
+case_run "OKE : template password lit un autre champ : FAIL" FAIL 'R5\] oke: ExternalSecret pg-shared-backstage : template password' "" m_oke_template_other_field
+case_run "OKE : ScheduledBackup sans method plugin (volumeSnapshot) : FAIL" FAIL 'R5\] oke: ScheduledBackup de pg-shared sans method plugin' "" m_oke_sched_not_plugin
+CASE_BASE=main-post case_run "post-fusion : PR sans rapport avec oracle-a1 : PASS" PASS 'SERVICE_CONTRACT_GUARD=PASS services=-' "" m_nothing
+CASE_BASE=main-post case_run "post-fusion : commentaire ajoute a databases.yaml (backstage inchange, conforme) : PASS" PASS 'SERVICE_CONTRACT_GUARD=PASS services=-' "" m_oke_comment_only
+CASE_BASE=main-post case_run "post-fusion : Job backstage renomme, Database et role inchanges : FAIL" FAIL 'R5\] oke: Job d.isolation pg-shared-backstage-isolation absent' "" m_oke_job_absent
+CASE_BASE=main-post case_run "post-fusion : ExternalSecret du role supprime, role inchange : FAIL" FAIL 'R5\] oke: 0 ExternalSecret pour le secret pg-shared-backstage' "" m_oke_es_absent
+CASE_BASE=main-post case_run "post-fusion : role backstage retire, Database inchangee : FAIL" FAIL 'R5\] oke: owner backstage de la base backstage : 0 role managed' "" m_oke_owner_role_absent
+CASE_BASE=main-post case_run "post-fusion : REVOKE seulement dans une annotation : FAIL" FAIL 'R5\] oke: Job pg-shared-backstage-isolation ne revoque pas' "" m_oke_revoke_annotation_only
+CASE_BASE=main-post case_run "post-fusion : ScheduledBackup volumeSnapshot : FAIL" FAIL 'R5\] oke: ScheduledBackup de pg-shared sans method plugin' "" m_oke_sched_not_plugin
 case_run "homelab : Database backstage sur pg-shared-homelab : FAIL inchange" FAIL 'R5\] Database backstage nouvelle hors service admis' "" m_homelab_database_backstage
 case_run "homelab : Database backstage sur pg-shared-homelab avec admission humaine : FAIL inchange" FAIL 'R5\] Database backstage nouvelle hors service admis' "$ADM" m_homelab_database_backstage
 

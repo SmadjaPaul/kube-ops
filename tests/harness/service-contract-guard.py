@@ -746,8 +746,13 @@ def oke_isolation_job(rep, head, db):
     hooks = [h.strip() for h in str((meta(job).get("annotations") or {}).get("argocd.argoproj.io/hook", "")).split(",")]
     if "PostSync" not in hooks or ns_of(job) != OKE_NS:
         rep.fail("R5", "oke: Job %s doit etre un hook PostSync dans %s" % (jobname, OKE_NS))
-    if ("REVOKE CONNECT ON DATABASE %s FROM PUBLIC" % db) not in json.dumps(job):
-        rep.fail("R5", "oke: Job %s ne revoque pas CONNECT sur %s" % (jobname, db))
+    # Seule la commande executee compte (command/args des conteneurs) : une annotation ou un
+    # commentaire contenant le SQL ne satisfait pas C4.
+    execs = [{"command": c.get("command"), "args": c.get("args")}
+             for c in ((spec(job).get("template") or {}).get("spec") or {}).get("containers") or []
+             if isinstance(c, dict)]
+    if ("REVOKE CONNECT ON DATABASE %s FROM PUBLIC" % db) not in json.dumps(execs):
+        rep.fail("R5", "oke: Job %s ne revoque pas CONNECT sur %s (dans sa commande executee)" % (jobname, db))
 
 
 def oke_database(rep, head, rel, d):
@@ -765,6 +770,12 @@ def oke_database(rep, head, rel, d):
     if s.get("owner") != OKE_DB_ALLOW[name]:
         rep.fail("R5", "oke: owner de la base %s = %s (attendu %s : owner incoherent)"
                  % (name, s.get("owner"), OKE_DB_ALLOW[name]))
+    # Le proprietaire doit exister exactement une fois comme role managed du Cluster pg-shared.
+    owners = [r for rr, o in objects(head, OKE_DIR) if is_cnpg(o, "Cluster") and meta(o).get("name") == OKE_CLUSTER
+              for r in (spec(o).get("managed") or {}).get("roles") or [] if r.get("name") == s.get("owner")]
+    if len(owners) != 1:
+        rep.fail("R5", "oke: owner %s de la base %s : %d role managed de ce nom dans %s (attendu 1)"
+                 % (s.get("owner"), name, len(owners), OKE_CLUSTER))
     exts = [e.get("name") if isinstance(e, dict) else e for e in s.get("extensions") or []]
     bad = [x for x in exts if x not in OKE_EXT_ALLOW]
     if bad:
@@ -798,11 +809,19 @@ def oke_role(rep, head, role):
         return
     es = ess[0]
     key = "ORACLE_A1_%s_DB_PASSWORD" % name.upper()
-    if key not in [(d.get("remoteRef") or {}).get("key") for d in spec(es).get("data") or []]:
-        rep.fail("R5", "oke: ExternalSecret %s : cle Doppler %s attendue" % (secret, key))
-    tdata = ((spec(es).get("target") or {}).get("template") or {}).get("data") or {}
+    # La cle attendue doit alimenter exactement le champ secretKey "password", et le template
+    # doit lire ce champ : sinon CNPG et l'application recevraient des mots de passe differents.
+    mapped = [(d.get("remoteRef") or {}).get("key") for d in spec(es).get("data") or []
+              if isinstance(d, dict) and d.get("secretKey") == "password"]
+    if mapped != [key]:
+        rep.fail("R5", "oke: ExternalSecret %s : cle Doppler %s attendue sur secretKey password (trouve %s)"
+                 % (secret, key, mapped))
+    tmpl = (spec(es).get("target") or {}).get("template") or {}
+    tdata = tmpl.get("data") or {}
     if tdata.get("username") != name:
         rep.fail("R5", "oke: ExternalSecret %s : username %s != %s" % (secret, tdata.get("username"), name))
+    if tdata.get("password") != "{{ .password }}":
+        rep.fail("R5", "oke: ExternalSecret %s : template password doit lire {{ .password }}" % secret)
 
 
 def check_oke(ctx):
@@ -827,13 +846,23 @@ def check_oke(ctx):
                  and (spec(o).get("cluster") or {}).get("name") == OKE_CLUSTER]
         if not sched:
             rep.fail("R5", "oke: ScheduledBackup absent pour %s" % OKE_CLUSTER)
+        elif not any(spec(o).get("method") == "plugin"
+                     and (spec(o).get("pluginConfiguration") or {}).get("name") == OKE_BARMAN for o in sched):
+            rep.fail("R5", "oke: ScheduledBackup de %s sans method plugin + %s (sauvegarde R2 non couverte)"
+                     % (OKE_CLUSTER, OKE_BARMAN))
         oke_isolation_job(rep, head, OKE_APP_DB)
+    # Objets nouveaux ou modifies : jugés en entier. Objets retenus (allowlist) inchanges : leurs
+    # dependances (Job d'isolation, ExternalSecret, role) sont revalidees a chaque PR qui touche
+    # la voie, pour qu'un retrait ne passe pas. Les objets grandfathered (polyfin...) restent exemptés.
     for r, o in objects(head, OKE_DIR):
-        if is_cnpg(o, "Database") and base_canon.get(key_of(r, o)) != canon(o):
-            oke_database(rep, head, r, o)
+        if is_cnpg(o, "Database"):
+            name = spec(o).get("name") or meta(o).get("name")
+            if base_canon.get(key_of(r, o)) != canon(o) or name in OKE_DB_ALLOW:
+                oke_database(rep, head, r, o)
         if is_cnpg(o, "Cluster") and meta(o).get("name") == OKE_CLUSTER:
             for role in (spec(o).get("managed") or {}).get("roles") or []:
-                if base_roles.get(role.get("name")) != canon(role):
+                rname = role.get("name")
+                if base_roles.get(rname) != canon(role) or rname in OKE_DB_ALLOW.values():
                     oke_role(rep, head, role)
 
 

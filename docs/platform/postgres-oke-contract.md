@@ -12,19 +12,22 @@ les règles restent dans `k8s/infrastructure/database/pg-shared-homelab/` et la 
 
 | # | Règle | Contrôle |
 | --- | --- | --- |
-| C1 | Une base = un rôle propriétaire, non superuser, sans `createdb`, `createrole`, `replication`, `bypassrls`, sans `inRoles`, avec `login`. | garde R5 voie OKE (`oke_role`) |
+| C1 | Une base = un rôle propriétaire, non superuser, sans `createdb`, `createrole`, `replication`, `bypassrls`, sans `inRoles`, avec `login`. Le proprietaire doit exister exactement une fois comme role managed de `pg-shared`. | garde R5 voie OKE (`oke_role`, `oke_database`) |
 | C2 | Base admise seulement si présente dans l'allowlist `OKE_DB_ALLOW` de la garde. Aujourd'hui : `backstage` (rôle `backstage`). | `oke_database` |
 | C3 | Owner de la base = rôle homonyme de l'allowlist. Namespace `databases`, cluster `pg-shared` uniquement. | `oke_database` |
-| C4 | `REVOKE CONNECT ON DATABASE <base> FROM PUBLIC` pour chaque base, par un Job PostSync `pg-shared-<base>-isolation` dans `cnpg-cluster/` (isolation de la base : le CRD `Database` n'a pas de champ de grant). Y compris la base `app` créée par CNPG (`pg-shared-app-isolation`). | `oke_isolation_job` |
-| C5 | Mot de passe de rôle : ExternalSecret dans `databases`, Secret `pg-shared-<rôle>`, clé Doppler `ORACLE_A1_<RÔLE>_DB_PASSWORD`, `username` = rôle. Aucune valeur dans Git. | `oke_role` |
+| C4 | `REVOKE CONNECT ON DATABASE <base> FROM PUBLIC` pour chaque base, dans la **commande exécutée** (`command`/`args`) d'un Job PostSync `pg-shared-<base>-isolation` dans `cnpg-cluster/` (le CRD `Database` n'a pas de champ de grant ; une annotation ou un commentaire ne compte pas). Y compris la base `app` créée par CNPG (`pg-shared-app-isolation`). | `oke_isolation_job` |
+| C5 | Mot de passe de rôle : ExternalSecret dans `databases`, Secret `pg-shared-<rôle>`, clé Doppler `ORACLE_A1_<RÔLE>_DB_PASSWORD` mappée sur `secretKey: password`, template `password: "{{ .password }}"`, `username` = rôle. Aucune valeur dans Git. | `oke_role` |
 | C6 | Extensions interdites : `extensions` vide ou absent (allowlist d'extensions vide). Hindsight n'est pas dans `pg-shared`. | `oke_database` |
 | C7 | Pas de `databaseReclaimPolicy: delete` (les données partiraient avec l'objet). | `oke_database` |
-| C8 | Sauvegarde couverte par le cluster : `pg-shared` a un plugin `barman-cloud` en `isWALArchiver: true` (R2, préfixe `oracle-a1/pg-shared/`) et un `ScheduledBackup`. | `oke_backup` (via `check_oke`) |
+| C8 | Sauvegarde couverte par le cluster : `pg-shared` a un plugin `barman-cloud` en `isWALArchiver: true` (R2, préfixe `oracle-a1/pg-shared/`) et un `ScheduledBackup` en `method: plugin` avec `pluginConfiguration.name: barman-cloud.cloudnative-pg.io`. | `check_oke` |
 | C9 | Un seul Cluster CNPG (`pg-shared`) sur oracle-a1 ; un nouveau Cluster reste refusé. | règle R5 existante |
 
 Périmètre de la voie : objets de `k8s/clusters/oracle-a1/cnpg-cluster/` **nouveaux ou modifiés**
-par la PR. Un objet identique à `main` n'est pas re-jugé. Une Database ou un role PG ajouté
-ailleurs (`k8s/clusters/oracle-a1/hindsight/`, etc.) reste refusé par la règle R5 existante.
+par la PR, jugés en entier. Les objets **retenus** (base et rôle de l'allowlist) restent revalidés
+à chaque PR qui touche ce dossier, même inchangés : retirer leur Job, leur ExternalSecret ou leur
+rôle fait échouer la garde. Un objet hors allowlist identique à `main` n'est pas re-jugé (grandfathered).
+Une Database ou un role PG ajouté ailleurs (`k8s/clusters/oracle-a1/hindsight/`, etc.) reste refusé
+par la règle R5 existante.
 
 Admission : la voie OKE n'utilise **ni MANDAT ni `SERVICE_CONTRACT_HUMAN_ADMISSION`**. Un écart est un
 FAIL bloquant, même avec admission humaine ou hors golden-path. Une base conforme passe en PASS
@@ -103,6 +106,7 @@ alors que sa référence de store.
   `baseline.smadja.dev/automount-token`, requise par la VAP de baseline pour CNPG) redémarre l'unique
   instance à la synchro : prévoir la fenêtre (drill seulement, pas de donnée réelle).
 - Argo CD ne sait pas que CNPG est prêt (pas de health check). Les Jobs PostSync attendent donc la base et le
-  rôle, bornés à 5 minutes (`until psql` puis échec).
+  rôle : boucle `until psql` bornée à 5 minutes, `PGCONNECT_TIMEOUT=5` pour chaque tentative, et
+  `activeDeadlineSeconds: 600` pour le Job entier (`backoffLimit: 3`).
 - `polyfin` et `backup-drill` ne sont pas conformes à ce contrat : décision de Paul à prendre avant
   toute modification de leurs objets.
