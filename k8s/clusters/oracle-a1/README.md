@@ -57,9 +57,78 @@ Prerequisites outside Git (bootstrap steps, none blocks the static manifests):
   applies the new role password from `pg-shared-polyfin`; restart `polyfin` afterwards
   so it reads the new `polyfin-db-app` URI.
 
+## Reconstruction cible (ADR oke-target-architecture, homelab-infra PR #607)
+
+Target: OKE Basic recreated with VCN-native pod networking (`OCI_VCN_IP_NATIVE`)
+and Cilium in CNI chaining (`cni.chainingTarget=oci`). The CNI is fixed at cluster
+creation, so this tree describes the state AFTER the rebuild (Flannel is gone).
+
+- Cilium 1.20.4 (same as the homelab) is owned by the **operator bootstrap**,
+  not by Argo CD: `bootstrap/kustomization.yaml` installs it in `kube-system`
+  next to Argo CD, so the CNI exists before any Argo pod. Upgrading Cilium means
+  re-running the bootstrap command. Values: `bootstrap/cilium-values.yaml`
+  (Hubble, Envoy and Gateway API disabled to fit 1830m / 8,4 GiB).
+- `bootstrap/project.yaml` (AppProject `oracle-a1`): explicit destinations
+  (ntfy, gatus and media removed; auth and backstage admitted), enumerated
+  `namespaceResourceWhitelist`, minimal `clusterResourceWhitelist`.
+- `baseline/` (Argo Application `baseline`, wave 0): PSA labels, default-deny
+  ingress and egress on `auth`, `backstage`, `hindsight`, `databases`, allow-DNS,
+  the flow matrix (CiliumNetworkPolicy toFQDNs for GitHub and R2, toEntities
+  kube-apiserver for CNPG), deny of IMDS `169.254.169.254/32` for every pod
+  (CiliumClusterwideNetworkPolicy), ResourceQuota and LimitRange per domain.
+- `k8s/components/baseline-vap/` (library shared with the homelab): VAP + bindings
+  for privileged, host namespaces, hostPath (Deny, exemptions: kube-system,
+  cloudflared), automountServiceAccountToken (Deny on auth, backstage, hindsight,
+  databases unless `baseline.smadja.dev/automount-token: "true"`) and image digests
+  (Warn/Audit on auth, backstage, hindsight until the charts are pinned).
+  Tested by `tests/oke-baseline/run.sh` (CI job `oke-baseline`, kind).
+
+Network enforcement: Cilium enforces NetworkPolicy and CiliumNetworkPolicy after
+the rebuild. Namespaces not yet isolated (phase 2): argocd, external-secrets,
+cnpg-system, cert-manager, monitoring, cloudflared (netbird-router needs NetBird
+control-plane egress and NET_ADMIN).
+
+## Secrets par domaine (ADR section 6)
+
+- `secret-stores/` : one `SecretStore doppler` per namespace (`auth`,
+  `backstage`, `hindsight`, `databases` = domain system). Each reads the Secret
+  `doppler-token` (key `dopplerToken`) created by the operator in that namespace.
+  Expected Doppler service-token configs (read-only, one per config):
+  `oke-auth`, `oke-backstage`, `oke-hindsight`, `oke-system`.
+- Transition: no ExternalSecret uses these stores yet; they stay on
+  `ClusterSecretStore/doppler-cluster` until the tokens exist. Order: (1) Paul
+  creates the 4 configs and tokens; (2) operator creates the `doppler-token`
+  Secrets; (3) a follow-up PR switches each ExternalSecret to `doppler` and
+  removes `doppler-cluster` once no consumer is left.
+- Doppler keys expected for this PR: `ORACLE_A1_BACKSTAGE_DB_PASSWORD` (new,
+  role `backstage`). `APP_HINDSIGHT_DB_PASSWORD` already exists (role `hindsight`).
+
+## pg-shared (ADR section 4)
+
+- Hindsight moves into `databases/pg-shared`: Database `hindsight` (owner
+  `hindsight`, pgvector extension) and managed role `hindsight`. Its Helm values
+  point to `pg-shared-rw.databases`. The `hindsight-db` Cluster, its
+  ScheduledBackup and its ObjectStore are removed from Git. The Cluster carries
+  `Prune=false,Delete=false`, so Argo does not delete it: the operator removes it
+  explicitly (`kubectl -n hindsight delete cluster hindsight-db`) during the
+  rebuild, drill data only.
+- Backstage: Database and role `backstage` (password from
+  `ORACLE_A1_BACKSTAGE_DB_PASSWORD`).
+- Changes to `databases` roles and Databases are MANDAT for the service-contract
+  guard (admission by Paul), not FAIL, for paths under `k8s/clusters/oracle-a1/`.
+
+## Bootstrap order after the rebuild (operator)
+
+1. Terraform (homelab-infra, #607 ADR): cluster and node pool VCN-native.
+2. `kustomize build --enable-helm k8s/clusters/oracle-a1/bootstrap | kubectl apply --server-side -f -`
+   (run twice: CRDs of Cilium and Argo CD must be established).
+3. Wait for Cilium (`kubectl -n kube-system rollout status ds/cilium`), then Argo syncs `apps/`.
+4. Create `doppler-access-token` (cluster-wide store, existing) and the four `doppler-token` Secrets.
+
 Network: the OKE default CNI is flannel, which does not enforce NetworkPolicy, and
 no Cilium is installed on Oracle. Homelab Cilium policies are removed from the
 overlay and no policy is added; the Argo CD chart NetworkPolicies are inert.
+(Pre-rebuild state; superseded by the section above once the cluster is rebuilt.)
 
 ## Backup: no application with data may be activated on Oracle
 
@@ -98,7 +167,7 @@ the only writer until the cutover.
 - LLM: direct provider call with `APP_HINDSIGHT_OKE_LLM_API_KEY` (no route to
   the homelab Agentgateway). API and MCP require `Authorization: Bearer` with
   `APP_HINDSIGHT_MCP_API_KEY` (`ApiKeyTenantExtension`, schema `public`).
-- NetworkPolicy is written but inert under flannel.
+- NetworkPolicy: now in `baseline/` (default-deny on `hindsight`, Cilium after the rebuild).
 - Exposure: none. The public hostname is a maintained protection; the
   Cloudflare side is prepared in homelab-infra and stays disabled until Paul
   authorizes it.
