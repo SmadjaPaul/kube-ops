@@ -1,0 +1,99 @@
+# Configuration de base Backstage 1.56.5 (IDP agentic, hebergee en svc-backstage, PROVISOIRE).
+# Aucun secret ici : tout vient de l'environnement du pod (ExternalSecret doppler-cluster).
+# Documentation : docs/platform/backstage-github-app.md et docs/platform/backstage-hosting.md.
+app:
+  title: Backstage IDP (homelab, provisoire)
+  baseUrl: https://backstage.smadja.dev
+
+organization:
+  name: homelab
+
+backend:
+  baseUrl: https://backstage.smadja.dev
+  listen:
+    host: 0.0.0.0
+    port: 7007
+  actions:
+    # Retire ces actions du registre (listing ET invocation), toutes identites confondues.
+    filter:
+      exclude:
+        - id: 'catalog:register-entity'
+        - id: 'catalog:unregister-entity'
+        - id: 'catalog:refresh-catalog-entity'
+    pluginSources:
+      - catalog
+      - scaffolder
+      - search
+  auth:
+    # Aucun fournisseur humain (OIDC/guest) : provisoire, cf. docs/platform/backstage-hosting.md.
+    providers: {}
+    # Principals service (agents). Le token vient de l'environnement (BACKSTAGE_AGENT_*_TOKEN).
+    # Restrictions par plugin seulement : les restrictions par nom de permission cassent mcp-actions.
+    externalAccess:
+      - type: static
+        options:
+          token: ${BACKSTAGE_AGENT_A_TOKEN}
+          subject: agent:claude-idp
+        accessRestrictions:
+          - plugin: mcp-actions
+          - plugin: catalog
+          - plugin: scaffolder
+      - type: static
+        options:
+          token: ${BACKSTAGE_AGENT_B_TOKEN}
+          subject: agent:readonly-catalog
+        accessRestrictions:
+          - plugin: mcp-actions
+          - plugin: catalog
+  database:
+    client: better-sqlite3
+    connection:
+      # Fichier SQLite dans /tmp (emptyDir du chart) : stateless assume, catalogue reconstruit depuis Git.
+      directory: /tmp/backstage-data
+
+permission:
+  enabled: true
+
+integrations:
+  github:
+    - host: github.com
+      # GitHub App (pas de PAT). Schema : appId, clientId, clientSecret, privateKey requis.
+      apps:
+        - appId: ${BACKSTAGE_GH_APP_ID}
+          clientId: ${BACKSTAGE_GH_APP_CLIENT_ID}
+          clientSecret: ${BACKSTAGE_GH_APP_CLIENT_SECRET}
+          privateKey: ${BACKSTAGE_GH_APP_KEY_PEM}
+          allowedInstallationOwners:
+            - SmadjaPaul
+
+catalog:
+  readonly: true
+  rules:
+    - allow: [Component, System, API, Resource, Location, Template, User, Group]
+  locations:
+    # Template platform-application, epingle par SHA (meme SHA que le pilote, dernier commit du template).
+    - type: url
+      target: https://github.com/SmadjaPaul/kube-ops/blob/b97982bde369fa605029f3f79c0131efd298777f/golden-paths/platform-application/template.yaml
+      rules:
+        - allow: [Template]
+    # Decouverte des applications generees (lecture seule, depuis main).
+    - type: url
+      target: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/apps-generated/*/catalog-info.yaml
+      rules:
+        - allow: [Component]
+
+mcpActions:
+  servers:
+    readonly:
+      name: 'Backstage catalogue lecture seule'
+      description: 'Lecture du catalogue Backstage uniquement'
+      filter:
+        include:
+          - id: 'catalog:*'
+        exclude:
+          - attributes:
+              readOnly: false
+
+auth:
+  # Aucun fournisseur humain (OIDC/guest) : provisoire, cf. docs/platform/backstage-hosting.md.
+  providers: {}

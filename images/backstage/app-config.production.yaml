@@ -1,0 +1,3 @@
+# Surcharge production (image). Chargee apres app-config.yaml par le CMD du Dockerfile.
+auth:
+  environment: production
