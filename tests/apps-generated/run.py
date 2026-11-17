@@ -181,9 +181,7 @@ def static_checks() -> list[dict]:
     check("applications: destination namespace miniflux allowed (PR 1593)",
           any(d.get("namespace") == "miniflux" for d in apps["spec"]["destinations"]))
 
-    infra = load_yaml_docs(os.path.join(ROOT, "k8s/bootstrap/argocd-root/infrastructure-project.yaml"))[0]
-    check("infrastructure: destination databases allowed (pg-shared-homelab)",
-          any(d.get("namespace") == "databases" for d in infra["spec"]["destinations"]))
+    # destination databases (infrastructure) : portée de PR #1604, non testée ici.
 
     pol = load_yaml_docs(POLICY)
     check("kyverno: every ValidatingPolicy denies (Deny), none is Audit-only",
