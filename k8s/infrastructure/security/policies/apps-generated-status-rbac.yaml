@@ -1,0 +1,98 @@
+# MANDAT Paul (protege : RBAC cluster + politique Kyverno). Ne pas merger par l'agent.
+#
+# Objet : permettre a Backstage (SA backstage, namespace svc-backstage) de LIRE l'etat des applications
+# generees (Deployments, ReplicaSets, Pods, Services, HPA) pour le MCP, et seulement dans les namespaces
+# svc-* du golden path. Aucune lecture de secrets, de configmaps, de logs ou d'exec.
+#
+# Mecanisme :
+# - ClusterRole platform-svc-status-reader : verbes get/list/watch, ressources ci-dessous, rien d'autre.
+# - GeneratingPolicy apps-generated-status-reader : pour chaque namespace porteur du label golden path,
+#   Kyverno cree une RoleBinding (namespacee) vers le SA backstage. Aucune ClusterRoleBinding vers le SA :
+#   le ClusterRole n'accorde rien en dehors des namespaces lies.
+# - Kyverno doit pouvoir "bind" ce ClusterRole (controle d'escalade RBAC) : ClusterRole + ClusterRoleBinding dedies
+#   au SA du background controller.
+#
+# Non verifie hors cluster : la syntaxe CEL generator.Apply (CRD generatingpolicies.policies.kyverno.io v1 servie
+# sur le cluster, champ spec.generate[].expression). A valider par un dry-run serveur avant merge.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-svc-status-reader
+  labels:
+    app.kubernetes.io/managed-by: platform-governance
+    platform.smadja.dev/component: status-reader
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kyverno-bind-platform-svc-status-reader
+  labels:
+    app.kubernetes.io/managed-by: platform-governance
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    resourceNames: ["platform-svc-status-reader"]
+    verbs: ["bind"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kyverno-bind-platform-svc-status-reader
+  labels:
+    app.kubernetes.io/managed-by: platform-governance
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kyverno-bind-platform-svc-status-reader
+subjects:
+  - kind: ServiceAccount
+    name: kyverno-background-controller
+    namespace: kyverno
+---
+apiVersion: policies.kyverno.io/v1
+kind: GeneratingPolicy
+metadata:
+  name: apps-generated-status-reader
+spec:
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["namespaces"]
+    objectSelector:
+      matchExpressions:
+        - key: platform.smadja.dev/golden-path
+          operator: In
+          values: ["platform-application"]
+  generate:
+    - expression: >-
+        [generator.Apply(object.metadata.name, {
+          "apiVersion": "rbac.authorization.k8s.io/v1",
+          "kind": "RoleBinding",
+          "metadata": {
+            "name": "platform-svc-status-reader",
+            "namespace": object.metadata.name,
+            "labels": {"app.kubernetes.io/managed-by": "platform-governance"}
+          },
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "platform-svc-status-reader"
+          },
+          "subjects": [{
+            "kind": "ServiceAccount",
+            "name": "backstage",
+            "namespace": "svc-backstage"
+          }]
+        })]

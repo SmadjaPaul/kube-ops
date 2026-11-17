@@ -31,7 +31,7 @@ spec:
       kind: Namespace
       name: 'svc-*'
   namespaceResourceWhitelist:
-    # Exactement les kinds rendus par k8s/charts/platform-app (templates/*.yaml).
+    # Exactement les kinds rendus par k8s/charts/platform-app (templates/*.yaml), versions 0.1.0 et 0.2.0.
     - group: apps
       kind: Deployment
     - group: ''
@@ -46,6 +46,11 @@ spec:
       kind: HTTPRoute
     - group: cilium.io
       kind: CiliumNetworkPolicy
+    # Contrat 0.2.0 (secrets, config) : ExternalSecret (refs Doppler, pas de valeur) et ConfigMap (fichiers non secrets).
+    - group: external-secrets.io
+      kind: ExternalSecret
+    - group: ''
+      kind: ConfigMap
   namespaceResourceBlacklist:
     # Défense explicite : même si une entrée ci-dessus s'élargissait, ces kinds restent refusés.
     - group: rbac.authorization.k8s.io

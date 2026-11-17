@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - kyverno-policies.yaml
   - apps-generated-boundary.yaml
+  - apps-generated-status-rbac.yaml
   - templates/k8spspprohibited.yaml
   - gatekeeper-constraints.yaml
   - falco-custom-rules.yaml
