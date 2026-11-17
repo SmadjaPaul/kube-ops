@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Decide si la garde service-contract (check:service-contract) doit tourner pour ce job.
-# Sortie : "run" ou "skip". "run" par defaut : tout evenement autre que pull_request, diff
-# impossible, ou au moins un fichier touchant un chemin valide par la garde. Le job v1-contract
-# (nom de check requis) tourne et reste vert dans les deux cas : seule la garde est sautee.
+# Decide si le SELF-TEST de la garde service-contract (check:service-contract-selftest, ~34 relances
+# de la garde) doit tourner. Sortie : "run" ou "skip". La garde elle-meme (check:service-contract)
+# tourne toujours : c'est elle qui valide la PR. Le job v1-contract (check requis) reste vert dans
+# les deux cas ; seul le self-test est saute (SKIP_CHECKS dans le runner).
 #
-# Chemins couverts par la garde (leur modification declenche le run) :
-#   k8s/**, golden-paths/**, catalog/**, scripts/catalog/**, tests/fixtures/service-contract/**,
-#   tests/harness/service-contract*, tests/harness/pg-shared-homelab-isolation-guard-test.sh,
-#   package.json (definit les checks), scripts/run-checks-parallel.mjs, scripts/v1-guard-scope.sh,
-#   .github/workflows/v1-contract.yaml (le workflow lui-meme).
+# Le self-test tourne si la PR touche la garde, son test, le template golden-path, le chart
+# platform-app, les fixtures, l'outillage de checks ou le workflow. Erreur de diff : run (par defaut).
 #
 # V1_CHANGED_FILES (un chemin par ligne) surcharge le diff, pour les tests du detecteur.
 
@@ -28,8 +25,8 @@ fi
 
 while IFS= read -r path; do
   case "$path" in
-    k8s/*|golden-paths/*|catalog/*|scripts/catalog/*|tests/fixtures/service-contract/*) echo run; exit 0 ;;
     tests/harness/service-contract*|tests/harness/pg-shared-homelab-isolation-guard-test.sh) echo run; exit 0 ;;
+    tests/fixtures/service-contract/*|golden-paths/*|k8s/charts/platform-app/*) echo run; exit 0 ;;
     package.json|scripts/run-checks-parallel.mjs|scripts/v1-guard-scope.sh|.github/workflows/v1-contract.yaml) echo run; exit 0 ;;
   esac
 done <<< "$changed"
