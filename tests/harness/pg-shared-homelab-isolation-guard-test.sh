@@ -23,14 +23,63 @@ trap 'rm -rf "$tmp"' EXIT
 # and "JOB <job name> <db> <file>" for each PostSync Job revoking CONNECT from
 # PUBLIC on <db>. Any parse error exits non-zero (fail closed, never silent).
 scan() {
-  find "$1" \( -name '*.yaml' -o -name '*.yml' \) -type f | LC_ALL=C sort | while IFS= read -r f; do
+  # Pre-parse. Fichiers a syntaxe Helm ({{ }}) : parses un par un (erreur ou exclusion, comme avant).
+  # Les autres : UN seul appel yq (sortie etiquetee par fichier). Seuls les fichiers dont le contenu
+  # parse mentionne cnpg|PostSync|REVOKE sont inspectes (meme critere que l'ancienne boucle).
+  # Si le lot echoue : repli sur un yq par fichier (messages d'erreur et arret identiques).
+  local list="$tmp/pp.list" rel="$tmp/pp.rel" idx="$tmp/pp.idx" tl="$tmp/pp.tmpl" n f
+  local helm_re='\{\{-|\.Values|include |toYaml|\{\{ *(if|range|with|define|end|template|block) '
+  rm -rf "$tmp/pp"; mkdir -p "$tmp/pp"
+  find "$1" \( -name '*.yaml' -o -name '*.yml' \) -type f | LC_ALL=C sort > "$list"
+  awk '{print FNR"\t"$0}' "$list" > "$idx"
+  : > "$tl"; if [ -s "$list" ]; then tr '\n' '\0' < "$list" | xargs -0 grep -lE "$helm_re" > "$tl" 2>/dev/null || true; fi
+  awk -F'\t' 'NR==FNR{t[$0]=1; next} ($2 in t)' "$tl" "$idx" > "$tmp/pp.tidx"
+  awk -F'\t' 'NR==FNR{t[$0]=1; next} !($2 in t)' "$tl" "$idx" > "$tmp/pp.pidx"
+  : > "$rel"
+  if [ -s "$tmp/pp.pidx" ] && cut -f2 "$tmp/pp.pidx" | tr '\n' '\0' | xargs -0 yq -o=json -I=0 'select(. != null) | {"file": filename, "doc": .}' \
+      > "$tmp/pp.batch" 2>"$tmp/pp.err"; then
+    python3 -I -c '
+import json, re, sys
+pidx = [l.rstrip("\n").split("\t", 1) for l in open(sys.argv[1], encoding="utf-8") if l.strip()]
+path2i = {p: int(i) for i, p in pidx}
+docs = {int(i): [] for i, _ in pidx}
+for line in open(sys.argv[2], encoding="utf-8"):
+    if line.strip():
+        obj = json.loads(line)
+        docs[path2i[obj["file"]]].append(json.dumps(obj["doc"], ensure_ascii=False))
+rel = open(sys.argv[5], "w", encoding="utf-8")
+for i, path in pidx:
+    i = int(i); text = "\n".join(docs[i]) + ("\n" if docs[i] else "")
+    with open("%s/%d.json" % (sys.argv[3], i), "w", encoding="utf-8") as fh:
+        fh.write(text)
+    with open("%s/%d.rc" % (sys.argv[3], i), "w", encoding="utf-8") as fh:
+        fh.write("0\n")
+    if re.search(r"cnpg|PostSync|REVOKE", text):
+        rel.write("%d\t%s\n" % (i, path))
+rel.close()
+' "$tmp/pp.pidx" "$tmp/pp.batch" "$tmp/pp" "$rel" "$rel"
+    # fichiers a syntaxe Helm : parse individuel, toujours inspectes (erreur ou exclusion)
+    while IFS=$'\t' read -r n f; do
+      if yq -o=json -I=0 'select(. != null)' "$f" > "$tmp/pp/$n.json" 2>"$tmp/pp/$n.err"; then echo 0 > "$tmp/pp/$n.rc"; else echo 1 > "$tmp/pp/$n.rc"; fi
+      printf '%s\t%s\n' "$n" "$f" >> "$rel"
+    done < "$tmp/pp.tidx"
+    LC_ALL=C sort -n -o "$rel" "$rel"
+  else
+    # repli : un yq par fichier, tous fichiers inspectes
+    while IFS=$'\t' read -r n f; do
+      if yq -o=json -I=0 'select(. != null)' "$f" > "$tmp/pp/$n.json" 2>"$tmp/pp/$n.err"; then echo 0 > "$tmp/pp/$n.rc"; else echo 1 > "$tmp/pp/$n.rc"; fi
+    done < "$idx"
+    cp "$idx" "$rel"
+  fi
+  while IFS=$'\t' read -r n f; do
     # Parse first: ExternalSecret templates ("{{ .KEY }}" inside quoted values,
     # kube-ops#1593 miniflux/externalsecret.yaml) are valid YAML and are scanned.
     # Only a file that does not parse AND carries Helm template syntax is out of
     # scope (not YAML until rendered, as in db-storage-tier-guard). If such a file
     # mentions CNPG or pg-shared-homelab it cannot be checked: fail closed.
     # A file that does not parse and has no Helm syntax is a hard error.
-    if ! yq -o=json -I=0 'select(. != null)' "$f" > "$tmp/doc.json" 2>"$tmp/yq.err"; then
+    cp "$tmp/pp/$n.json" "$tmp/doc.json"; cp "$tmp/pp/$n.err" "$tmp/yq.err" 2>/dev/null || : > "$tmp/yq.err"
+    if [ "$(cat "$tmp/pp/$n.rc")" != 0 ]; then
       if grep -qE '\{\{-|\.Values|include |toYaml|\{\{ *(if|range|with|define|end|template|block) ' "$f"; then
         if grep -qE 'postgresql\.cnpg\.io|REVOKE CONNECT|pg-shared-homelab' "$f"; then
           echo "ERROR: ${f#"$1"/} is a Helm template that mentions CNPG: cannot be checked" >&2; exit 1
@@ -87,7 +136,7 @@ for line in open(sys.argv[2], encoding="utf-8"):
                     print("JOB", meta["name"], db, f)
 ' "$f" "$tmp/doc.json" || { echo "ERROR: cannot read ${f#"$1"/}" >&2; exit 1; }
     fi
-  done
+  done < "$rel"
 }
 
 check() {
