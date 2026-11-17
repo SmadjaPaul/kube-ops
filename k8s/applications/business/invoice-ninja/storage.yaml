@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: invoice-ninja-public
   namespace: invoice-ninja
   labels:
@@ -14,6 +16,8 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: invoice-ninja-storage
   namespace: invoice-ninja
   labels:
@@ -26,7 +30,11 @@ spec:
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: { name: invoice-ninja-redis, namespace: invoice-ninja }
+metadata:
+  name: invoice-ninja-redis
+  namespace: invoice-ninja
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: longhorn-bulk
