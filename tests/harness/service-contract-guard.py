@@ -641,7 +641,7 @@ def check_global(ctx):
                     rep.mandat("R7", "HTTPRoute %s sur Gateway external (MANDAT)" % meta(o).get("name"))
 
     for st, path in ctx.changes:
-        if st in ("A", "M") and path in ctx.skipped:
+        if st in ("A", "M") and path in ctx.skipped and not path.startswith(RENDERED_CHART_PREFIXES):
             rep.fail("R8", "%s : YAML templaté non analysable dans une PR (refus, pas d ignorance silencieuse)" % path)
 
     # R6 : motifs de secrets litteraux dans les fichiers ajoutes ou modifies sous k8s/.
@@ -787,6 +787,12 @@ def run(args):
         return report(ctx, args, skipped_h)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+# Templates Helm du renderer platform-app : non parsables en YAML brut, mais leur
+# sortie RENDUE est validée (schéma, déterminisme, kubeconform, refus) par
+# .github/workflows/platform-app-contract.yaml. Liste nominative, pas de joker.
+RENDERED_CHART_PREFIXES = ("k8s/charts/platform-app/templates/",)
 
 
 def report(ctx, args, skipped):

@@ -1,0 +1,16 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  description: ${{ values.description | dump }}
+  annotations:
+    homelab.smadja.dev/golden-path: platform-application@v1
+    homelab.smadja.dev/contract: platform.smadja.dev/v1
+    homelab.smadja.dev/cluster: homelab
+    homelab.smadja.dev/namespace: svc-${{ values.name }}
+    homelab.smadja.dev/exposure: private
+    homelab.smadja.dev/hostname: ${{ values.name }}.smadja.dev
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{ values.owner | dump }}

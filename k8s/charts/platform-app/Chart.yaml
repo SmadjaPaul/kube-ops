@@ -1,0 +1,8 @@
+apiVersion: v2
+name: platform-app
+description: >-
+  Renderer deterministe du contrat platform.smadja.dev/v1 Application (profil web).
+  Entree unique : k8s/apps-generated/<name>/app.yaml passe comme fichier de values.
+type: application
+version: 0.1.0
+appVersion: "1"
