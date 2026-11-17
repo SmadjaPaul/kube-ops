@@ -1,7 +1,8 @@
-# CODEOWNERS cible (PLT-131). Proprietaire unique : @SmadjaPaul.
-# Effet reel uniquement si « Require review from code owners » est active dans le
-# ruleset PLT-131 (reglage admin). Sans cela, ce fichier est inerte.
-# Seuls les chemins privilegies sont listes ; les PR applicatives (k8s/apps-generated/**,
+# CODEOWNERS (PLT-131) : DOCUMENTAIRE. Liste les chemins sensibles et leur proprietaire unique
+# (@SmadjaPaul, aussi auteur des PR). Aucune approbation obligatoire : ne PAS activer « Require
+# review from code owners » dans le ruleset (l'auteur ne peut pas approuver sa propre PR, sans
+# bypass les PR deviendraient non mergeables). Fichier inerte tant que cette option reste desactivee.
+# Seuls les chemins sensibles sont listes ; les PR applicatives (k8s/apps-generated/**,
 # k8s/applications/** hors manifestes de secrets) ne sont PAS capturees.
 
 # Authentik : auth, OIDC, blueprints
