@@ -1,0 +1,84 @@
+name: Stateful plan (advisory)
+
+# Garde de plan statique : rendu Kustomize base/head, classes A/B/C, refus ferme si le rendu
+# est impossible. Advisory pendant la premiere semaine (voir continue-on-error). Aucun acces cluster.
+
+on:
+  pull_request:
+    paths:
+      - 'k8s/**'
+      - 'scripts/plan/**'
+      - 'tests/plan/**'
+      - '.github/workflows/stateful-plan.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stateful-plan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    name: stateful-plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # ADVISORY (semaine 1) : le job reste rouge sans bloquer le merge. Retirer cette ligne
+    # pour rendre le garde bloquant ; ce n'est pas un check requis par la protection de branche.
+    continue-on-error: true
+    env:
+      PLAN_PYTHON: ${{ runner.temp }}/plan-venv/bin/python
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Check out with full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Helm
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
+      - name: Install Kustomize
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kustomize.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tgz -C /tmp
+          sudo install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Install PyYAML in a pinned venv
+        run: |
+          python3 -m venv "$RUNNER_TEMP/plan-venv"
+          "$RUNNER_TEMP/plan-venv/bin/pip" install --no-cache-dir 'pyyaml==6.0.2'
+          "$PLAN_PYTHON" -c "import yaml; print('pyyaml', yaml.__version__)"
+
+      - name: Unit tests of the plan tool
+        run: "$PLAN_PYTHON" -m unittest discover -s tests/plan -p 'test_*.py' -v
+
+      - name: Replay real commits (b9a307f7 blocks, e63fc72e blocks, 35326c66 passes)
+        run: bash tests/plan/replay.sh
+
+      - name: Plan base to head
+        run: |
+          set +e
+          "$PLAN_PYTHON" scripts/plan/plan_diff.py pr --repo . \
+            --base-ref "$BASE_SHA" --head-ref "$HEAD_SHA" \
+            --json "$RUNNER_TEMP/plan.json" --md "$RUNNER_TEMP/plan.md"
+          rc=$?
+          cat "$RUNNER_TEMP/plan.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "exit=$rc (0 PASS, 3 BLOCK, 2 BLOCKED)"
+          exit "$rc"
+
+      - name: Upload plan.v1
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stateful-plan-v1
+          path: ${{ runner.temp }}/plan.json
+          if-no-files-found: ignore
+          retention-days: 14
