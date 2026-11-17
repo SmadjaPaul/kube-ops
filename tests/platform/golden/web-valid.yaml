@@ -13,7 +13,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/managed-by: platform-app
     platform.smadja.dev/contract: v1
-    platform.smadja.dev/renderer: platform-app-0.1.0
+    platform.smadja.dev/renderer: platform-app-0.2.0
   annotations:
     platform.smadja.dev/owner: "group:default/platform"
     platform.smadja.dev/description: "Exemple de test du renderer (fixture, pas une app deployee)"
@@ -28,7 +28,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/managed-by: platform-app
     platform.smadja.dev/contract: v1
-    platform.smadja.dev/renderer: platform-app-0.1.0
+    platform.smadja.dev/renderer: platform-app-0.2.0
 spec:
   minAvailable: 1
   selector:
@@ -45,7 +45,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/managed-by: platform-app
     platform.smadja.dev/contract: v1
-    platform.smadja.dev/renderer: platform-app-0.1.0
+    platform.smadja.dev/renderer: platform-app-0.2.0
 automountServiceAccountToken: false
 ---
 # Source: platform-app/templates/workload.yaml
@@ -58,7 +58,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/managed-by: platform-app
     platform.smadja.dev/contract: v1
-    platform.smadja.dev/renderer: platform-app-0.1.0
+    platform.smadja.dev/renderer: platform-app-0.2.0
 spec:
   selector:
     app.kubernetes.io/name: demo-web
@@ -78,7 +78,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/managed-by: platform-app
     platform.smadja.dev/contract: v1
-    platform.smadja.dev/renderer: platform-app-0.1.0
+    platform.smadja.dev/renderer: platform-app-0.2.0
   annotations:
     platform.smadja.dev/owner: "group:default/platform"
     platform.smadja.dev/description: "Exemple de test du renderer (fixture, pas une app deployee)"
@@ -99,7 +99,7 @@ spec:
         app.kubernetes.io/name: demo-web
         app.kubernetes.io/managed-by: platform-app
         platform.smadja.dev/contract: v1
-        platform.smadja.dev/renderer: platform-app-0.1.0
+        platform.smadja.dev/renderer: platform-app-0.2.0
     spec:
       serviceAccountName: demo-web
       automountServiceAccountToken: false
@@ -167,7 +167,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/managed-by: platform-app
     platform.smadja.dev/contract: v1
-    platform.smadja.dev/renderer: platform-app-0.1.0
+    platform.smadja.dev/renderer: platform-app-0.2.0
 spec:
   endpointSelector:
     matchLabels:
@@ -216,7 +216,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/managed-by: platform-app
     platform.smadja.dev/contract: v1
-    platform.smadja.dev/renderer: platform-app-0.1.0
+    platform.smadja.dev/renderer: platform-app-0.2.0
 spec:
   parentRefs:
     - name: internal
@@ -238,7 +238,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/managed-by: platform-app
     platform.smadja.dev/contract: v1
-    platform.smadja.dev/renderer: platform-app-0.1.0
+    platform.smadja.dev/renderer: platform-app-0.2.0
 spec:
   selector:
     matchLabels:

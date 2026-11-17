@@ -62,7 +62,7 @@
             "replicas": { "type": "integer", "minimum": 1, "maximum": 3 },
             "size": { "enum": ["small", "medium"], "description": "Table requests/limits dans le chart (templates/_helpers.tpl)." },
             "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-            "healthPath": { "type": "string", "pattern": "^/[A-Za-z0-9/_-]*$", "maxLength": 128 },
+            "healthPath": { "type": "string", "pattern": "^/[A-Za-z0-9._/-]*$", "maxLength": 128, "description": "Chemin de sonde. Le point est accepté (ex. /.backstage/health/v1/liveness)." },
             "env": {
               "type": "object",
               "description": "Variables NON secrètes uniquement.",
@@ -106,6 +106,35 @@
           "required": ["policy"],
           "properties": {
             "policy": { "enum": ["stateless"] }
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "description": "Clés du store doppler-cluster. ExternalSecret dans svc-<name>, Secret cible <name>-env injecté en envFrom. Chaque clé commence par <NAME>_ (NAME = metadata.name en majuscules, - remplacé par _) ; verifié par le chart.",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$" }
+        },
+        "config": {
+          "type": "object",
+          "description": "Fichiers NON secrets, montés en lecture seule dans /etc/platform-config (ConfigMap <name>-config). Pas de clé privée (refusée par le chart).",
+          "maxProperties": 8,
+          "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$" },
+          "additionalProperties": { "type": "string", "maxLength": 65536 }
+        },
+        "egress": {
+          "type": "object",
+          "description": "Sorties explicites : FQDN exacts en HTTPS (port 443). Absent = aucune sortie hors DNS.",
+          "additionalProperties": false,
+          "required": ["https"],
+          "properties": {
+            "https": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "uniqueItems": true,
+              "items": { "type": "string", "maxLength": 253, "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$" }
+            }
           }
         },
         "observability": {
