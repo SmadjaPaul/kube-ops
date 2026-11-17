@@ -22,6 +22,10 @@ repo="$tmp/repo"
 mkdir -p "$repo"
 git -C "$repo_root" archive --format=tar "$base_ref" -- k8s tests/harness/pg-shared-homelab-isolation-guard-test.sh \
   | tar -x -C "$repo"
+# Base OKE : cnpg-cluster de main, gele dans tests/fixtures/service-contract/oke-base (la base
+# BASE_REF est anterieure a oracle-a1). Les cas OKE partent de ce main et ajoutent la PR.
+mkdir -p "$repo/k8s/clusters/oracle-a1/cnpg-cluster"
+cp -R "$fix/oke-base/cnpg-cluster/." "$repo/k8s/clusters/oracle-a1/cnpg-cluster/"
 git -C "$repo" init -q -b main
 git -C "$repo" -c user.name=t -c user.email=t@t -c commit.gpgsign=false add -A
 git -C "$repo" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -qm base
@@ -251,6 +255,109 @@ case_run "R8 probe absente" FAIL 'R8\] .*livenessProbe' "" m_no_probe
 case_run "R8 limite RAM au-dela du plafond" FAIL 'R8\] .*limite RAM' "" m_limit_over_plafond
 case_run "R9 namespace canari-pg-oidc absent de l'AppProject applications" FAIL 'R9\] namespace canari-pg-oidc absent' "" m_appproject_missing_ns
 case_run "perimetre : fichier ajoute hors du service" FAIL 'HORS \[perimetre\]' "" m_unrelated_file
+
+echo "--- 2b. voie OKE oracle-a1 (cnpg-cluster) : conforme = PASS, chaque ecart = FAIL"
+OKE="k8s/clusters/oracle-a1/cnpg-cluster"
+OKE_CL="$OKE/cluster.yaml"
+OKE_DBS="$OKE/databases.yaml"
+OKE_ES="$OKE/external-secrets.yaml"
+OKE_JOBS="$OKE/isolation-jobs.yaml"
+# Variante : le cnpg-cluster reel de ce depot (contenu de la PR), remplace la base gelee.
+v_oke() { rm -rf "$repo/$OKE"; cp -R "$repo_root/$OKE" "$repo/$OKE"; }
+case_run "OKE conforme : backstage (role, base, secret, isolation) : PASS" \
+  PASS 'SERVICE_CONTRACT_GUARD=PASS services=-' "" v_oke
+case_run "OKE conforme, admission humaine presente : PASS sans ADMIS-HUMAIN" \
+  PASS 'SERVICE_CONTRACT_GUARD=PASS services=-' "$ADM" v_oke
+m_oke_superuser() { v_oke; perl -0pi -e 's/superuser: false/superuser: true/' "$repo/$OKE_CL"; }
+m_oke_createdb() { v_oke; perl -0pi -e 's/createdb: false/createdb: true/' "$repo/$OKE_CL"; }
+m_oke_inroles() { v_oke; perl -0pi -e 's/(        bypassrls: false\n)/$1        inRoles: [pg_read_all_data]\n/' "$repo/$OKE_CL"; }
+m_oke_role_hors_allowlist() {
+  v_oke
+  perl -0pi -e 's/(    roles:\n)/$1      - {name: evil, ensure: present, login: true, passwordSecret: {name: pg-shared-evil}}\n/' "$repo/$OKE_CL"
+}
+m_oke_password_secret() { v_oke; perl -0pi -e 's/(        passwordSecret:\n          name: )pg-shared-backstage\n/$1pg-shared-backstage-x\n/' "$repo/$OKE_CL"; }
+m_oke_db_other_cluster() {
+  v_oke
+  perl -0pi -e 's/(  databaseReclaimPolicy: retain\n  cluster:\n    name: )pg-shared\n/$1pg-shared-homelab\n/' "$repo/$OKE_DBS"
+}
+m_oke_db_owner() { v_oke; perl -0pi -e 's/  owner: backstage\n  databaseReclaimPolicy/  owner: app\n  databaseReclaimPolicy/' "$repo/$OKE_DBS"; }
+m_oke_db_extension() {
+  v_oke
+  perl -0pi -e 's/(  databaseReclaimPolicy: retain\n)/$1  extensions: [{name: vector, ensure: present}]\n/' "$repo/$OKE_DBS"
+}
+m_oke_db_reclaim_delete() { v_oke; perl -0pi -e 's/databaseReclaimPolicy: retain/databaseReclaimPolicy: delete/' "$repo/$OKE_DBS"; }
+m_oke_db_hors_allowlist() {
+  v_oke
+  cat >> "$repo/$OKE_DBS" <<'EOF'
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata: {name: testdb, namespace: databases}
+spec: {name: testdb, owner: testdb, cluster: {name: pg-shared}}
+EOF
+}
+m_oke_doppler_key() {
+  v_oke
+  perl -0pi -e 's/remoteRef: \{key: ORACLE_A1_BACKSTAGE_DB_PASSWORD\}/remoteRef: {key: ORACLE_A1_POSTGRES_PASSWORD}/' "$repo/$OKE_ES"
+}
+m_oke_es_absent() { v_oke; perl -0pi -e 's/    name: pg-shared-backstage\n    creationPolicy/    name: pg-shared-backstage-x\n    creationPolicy/' "$repo/$OKE_ES"; }
+m_oke_es_username() { v_oke; perl -0pi -e 's/        username: backstage/        username: app/' "$repo/$OKE_ES"; }
+m_oke_job_absent() { v_oke; perl -0pi -e 's/name: pg-shared-backstage-isolation/name: pg-shared-backstage-isolation-x/' "$repo/$OKE_JOBS"; }
+m_oke_job_no_revoke() { v_oke; perl -0pi -e 's/REVOKE CONNECT ON DATABASE backstage FROM PUBLIC"/SELECT 1"/' "$repo/$OKE_JOBS"; }
+m_oke_job_not_postsync() { v_oke; perl -0pi -e 's/hook: PostSync/hook: Sync/' "$repo/$OKE_JOBS"; }
+m_oke_app_job_absent() { v_oke; perl -0pi -e 's/name: pg-shared-app-isolation/name: pg-shared-app-isolation-x/' "$repo/$OKE_JOBS"; }
+m_oke_no_barman() { v_oke; perl -0pi -e 's/isWALArchiver: true/isWALArchiver: false/' "$repo/$OKE_CL"; }
+m_oke_new_cluster() {
+  v_oke
+  cat > "$repo/$OKE/zz-second-cluster.yaml" <<'EOF'
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata: {name: pg-shared-2, namespace: databases}
+spec: {instances: 1}
+EOF
+}
+m_oke_database_outside_dir() {
+  v_oke
+  mkdir -p "$repo/k8s/clusters/oracle-a1/hindsight"
+  cat > "$repo/k8s/clusters/oracle-a1/hindsight/zz-backstage-database.yaml" <<'EOF'
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata: {name: backstage, namespace: databases}
+spec: {name: backstage, owner: backstage, cluster: {name: pg-shared}}
+EOF
+}
+m_homelab_database_backstage() {
+  cat > "$repo/k8s/infrastructure/database/pg-shared-homelab/zz-backstage-database.yaml" <<'EOF'
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata: {name: backstage, namespace: databases}
+spec: {name: backstage, owner: backstage, cluster: {name: pg-shared-homelab}}
+EOF
+}
+case_run "OKE : role PG hors allowlist (evil) : FAIL" FAIL 'R5\] oke: role PG evil hors allowlist' "" m_oke_role_hors_allowlist
+case_run "OKE : role superuser=true (backstage) : FAIL" FAIL 'R5\] oke: role backstage avec superuser=true' "" m_oke_superuser
+case_run "OKE : role createdb=true : FAIL" FAIL 'R5\] oke: role backstage avec createdb=true' "" m_oke_createdb
+case_run "OKE : role avec inRoles : FAIL" FAIL 'R5\] oke: role backstage avec inRoles' "" m_oke_inroles
+case_run "OKE : passwordSecret hors convention pg-shared-<role> : FAIL" FAIL 'R5\] oke: passwordSecret du role backstage' "" m_oke_password_secret
+case_run "OKE : base hors allowlist (testdb) : FAIL" FAIL 'R5\] oke: Database testdb hors allowlist' "" m_oke_db_hors_allowlist
+case_run "OKE : base hors allowlist meme avec admission humaine : FAIL (pas MANDAT)" FAIL 'R5\] oke: Database testdb hors allowlist' "$ADM" m_oke_db_hors_allowlist
+GUARD_CI_EVENT=pull_request GUARD_CI_HEAD_REF=idp/oke-backstage case_run "OKE : base hors allowlist en PR hors golden-path : FAIL (pas conseil)" FAIL 'R5\] oke: Database testdb hors allowlist' "" m_oke_db_hors_allowlist
+case_run "OKE : owner incoherent (app au lieu de backstage) : FAIL" FAIL 'R5\] oke: owner de la base backstage = app' "" m_oke_db_owner
+case_run "OKE : base sur un autre cluster (pg-shared-homelab) : FAIL" FAIL 'R5\] oke: Database backstage dans databases/pg-shared-homelab attendu' "" m_oke_db_other_cluster
+case_run "OKE : extension vector sur backstage : FAIL" FAIL 'R5\] oke: extensions interdites sur backstage' "" m_oke_db_extension
+case_run "OKE : databaseReclaimPolicy delete : FAIL" FAIL 'R5\] oke: databaseReclaimPolicy=delete' "" m_oke_db_reclaim_delete
+case_run "OKE : cle Doppler autre que ORACLE_A1_BACKSTAGE_DB_PASSWORD : FAIL" FAIL 'R5\] oke: ExternalSecret pg-shared-backstage : cle Doppler ORACLE_A1_BACKSTAGE_DB_PASSWORD' "" m_oke_doppler_key
+case_run "OKE : ExternalSecret du role absent : FAIL" FAIL 'R5\] oke: 0 ExternalSecret pour le secret pg-shared-backstage' "" m_oke_es_absent
+case_run "OKE : username du secret different du role : FAIL" FAIL 'R5\] oke: ExternalSecret pg-shared-backstage : username' "" m_oke_es_username
+case_run "OKE : Job d'isolation backstage absent (renomme) : FAIL" FAIL 'R5\] oke: Job d.isolation pg-shared-backstage-isolation absent' "" m_oke_job_absent
+case_run "OKE : Job backstage sans REVOKE CONNECT : FAIL" FAIL 'R5\] oke: Job pg-shared-backstage-isolation ne revoque pas' "" m_oke_job_no_revoke
+case_run "OKE : Job backstage non PostSync : FAIL" FAIL 'R5\] oke: Job pg-shared-backstage-isolation doit etre un hook PostSync' "" m_oke_job_not_postsync
+case_run "OKE : Job d'isolation de app absent : FAIL" FAIL 'R5\] oke: Job d.isolation pg-shared-app-isolation absent' "" m_oke_app_job_absent
+case_run "OKE : archivage WAL barman desactive sur pg-shared : FAIL" FAIL 'R5\] oke: Cluster pg-shared sans archivage WAL' "" m_oke_no_barman
+case_run "OKE : second Cluster CNPG sous cnpg-cluster : FAIL" FAIL 'R5\] nouveau Cluster CNPG pg-shared-2' "" m_oke_new_cluster
+case_run "OKE : Database backstage hors cnpg-cluster (hindsight/) : FAIL (regle hors voie OKE)" FAIL 'R5\] Database backstage nouvelle hors service admis' "" m_oke_database_outside_dir
+case_run "homelab : Database backstage sur pg-shared-homelab : FAIL inchange" FAIL 'R5\] Database backstage nouvelle hors service admis' "" m_homelab_database_backstage
+case_run "homelab : Database backstage sur pg-shared-homelab avec admission humaine : FAIL inchange" FAIL 'R5\] Database backstage nouvelle hors service admis' "$ADM" m_homelab_database_backstage
 
 echo "--- 3. controles"
 case_run "aucune modification : PASS" PASS 'SERVICE_CONTRACT_GUARD=PASS services=-' "" m_nothing

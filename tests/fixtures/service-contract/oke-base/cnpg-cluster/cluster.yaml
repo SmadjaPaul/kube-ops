@@ -1,0 +1,40 @@
+# Single shared PostgreSQL for all future Oracle databases (D-2026-11-11-17):
+# one block volume instead of one per application.
+#
+# PLT-190: WAL archive + daily base backups to R2 (bucket homelab-backup-cnpg,
+# prefix oracle-a1/pg-shared/), writer identity. The cluster stays OUT of the
+# Oracle root until the drill (docs/operations/pg-shared-oke-backup-drill.md)
+# has proven a restore OFF Oracle; no application with data before that.
+#
+# Image: same PostgreSQL 17.7 standard trixie multi-arch INDEX digest as the
+# OKE Hindsight cluster, so the off-Oracle restore on the homelab (amd64) runs
+# the exact same server version as this arm64 node.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-shared
+  namespace: databases
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:e079dae5253fa6ed26fc65fda06d515af764dbec392dd4b46b17ab11eebd8131
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: pg-shared-oke-r2
+        serverName: pg-shared
+  storage:
+    storageClass: oci-bv
+    size: 50Gi
+  managed:
+    roles:
+      - name: polyfin
+        ensure: present
+        login: true
+        passwordSecret:
+          name: pg-shared-polyfin
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {cpu: "1", memory: 1Gi}

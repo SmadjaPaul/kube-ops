@@ -9,3 +9,20 @@ spec:
   owner: polyfin
   cluster:
     name: pg-shared
+---
+# Base de plateforme admise par le contrat OKE (allowlist OKE_DB_ALLOW de la garde) :
+# Backstage. Proprietaire = role backstage. Isolation : Job pg-shared-backstage-isolation
+# (isolation-jobs.yaml). Pas d'extension. Retain : la suppression ne detruit pas les donnees.
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: backstage
+  namespace: databases
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  name: backstage
+  owner: backstage
+  databaseReclaimPolicy: retain
+  cluster:
+    name: pg-shared

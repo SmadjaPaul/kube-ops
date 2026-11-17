@@ -50,6 +50,17 @@ GROUPS_FILE = BLUEPRINTS + "/groups.yaml"
 PG_DIR = "k8s/infrastructure/database/pg-shared-homelab"
 PG_CLUSTER_FILE = PG_DIR + "/cluster.yaml"
 ISOLATION_GUARD = "tests/harness/pg-shared-homelab-isolation-guard-test.sh"
+# Voie OKE (docs/platform/postgres-oke-contract.md) : pg-shared sur oracle-a1, cluster distinct
+# du homelab. Seuls les objets sous OKE_DIR relevent de cette voie ; le reste garde les regles
+# pg-shared-homelab ci-dessus, inchangees. Un objet identique a main n'est pas re-juge.
+OKE_DIR = "k8s/clusters/oracle-a1/cnpg-cluster/"
+OKE_CLUSTER = "pg-shared"
+OKE_NS = "databases"
+OKE_DB_ALLOW = {"backstage": "backstage"}  # base de plateforme admise -> role proprietaire
+OKE_APP_DB = "app"  # base creee par CNPG (initdb) : isolee par un Job comme les autres
+OKE_EXT_ALLOW = ()  # aucune extension admise
+OKE_BARMAN = "barman-cloud.cloudnative-pg.io"
+OKE_PRIVILEGE_FLAGS = ("superuser", "createdb", "createrole", "replication", "bypassrls")
 # Fichiers existants que le template peut editer, par AJOUT PUR seulement (contrat).
 ADDITIVE = (
     "k8s/applications/catalog/kustomization.yaml",
@@ -578,13 +589,16 @@ def check_global(ctx):
     for rel, o in objects(head):
         if is_cnpg(o, "Cluster") and key_of(rel, o) not in ctx.base_keys:
             rep.fail("R5", "nouveau Cluster CNPG %s (%s) : interdit (base partagee)" % (meta(o).get("name"), rel))
-        if is_cnpg(o, "Database") and key_of(rel, o) not in ctx.base_keys and spec(o).get("name") not in adm_pgdb:
+        if (is_cnpg(o, "Database") and not rel.startswith(OKE_DIR) and key_of(rel, o) not in ctx.base_keys
+                and spec(o).get("name") not in adm_pgdb):
             rep.fail("R5", "Database %s nouvelle hors service admis" % spec(o).get("name"))
     head_roles = [r for doc in head.get(PG_CLUSTER_FILE, []) for o in flat(doc) if is_cnpg(o, "Cluster")
                   for r in (spec(o).get("managed") or {}).get("roles") or []]
     for role in head_roles:
         if role.get("name") not in ix["roles"] and role.get("name") not in adm_pgdb:
             rep.fail("R5", "role PG %s nouveau hors service admis" % role.get("name"))
+    # R5 (voie OKE) : Database et roles sous OKE_DIR, contrat PostgreSQL OKE.
+    check_oke(ctx)
 
     # R6 : RBAC. Aucun droit secret sans resourceNames, aucun cluster-wide, binding limite.
     roles_by_key = {}
@@ -713,6 +727,114 @@ def check_namespaces(path, docs, maps, projects, rep):
             if ns and ns not in dests and "*" not in dests:
                 rep.fail("R9", "namespace %s absent des destinations du projet %s (rendu par %s) : Argo refuse la synchro"
                          % (ns, proj, path))
+
+
+# ---------- contrat PostgreSQL OKE (R5, voie oracle-a1) ----------
+
+def canon(obj):
+    return json.dumps(obj, sort_keys=True)
+
+
+def oke_isolation_job(rep, head, db):
+    """Job PostSync qui revoque CONNECT sur db pour PUBLIC (pas de champ grant dans le CRD Database)."""
+    jobname = "pg-shared-%s-isolation" % db
+    jobs = [o for r, o in objects(head, OKE_DIR) if o.get("kind") == "Job" and meta(o).get("name") == jobname]
+    if len(jobs) != 1:
+        rep.fail("R5", "oke: Job d'isolation %s absent (cnpg-cluster)" % jobname)
+        return
+    job = jobs[0]
+    hooks = [h.strip() for h in str((meta(job).get("annotations") or {}).get("argocd.argoproj.io/hook", "")).split(",")]
+    if "PostSync" not in hooks or ns_of(job) != OKE_NS:
+        rep.fail("R5", "oke: Job %s doit etre un hook PostSync dans %s" % (jobname, OKE_NS))
+    if ("REVOKE CONNECT ON DATABASE %s FROM PUBLIC" % db) not in json.dumps(job):
+        rep.fail("R5", "oke: Job %s ne revoque pas CONNECT sur %s" % (jobname, db))
+
+
+def oke_database(rep, head, rel, d):
+    s = spec(d)
+    name = s.get("name") or meta(d).get("name")
+    cl = s.get("cluster")
+    cl_name = cl.get("name") if isinstance(cl, dict) else cl
+    if ns_of(d) != OKE_NS or cl_name != OKE_CLUSTER:
+        rep.fail("R5", "oke: Database %s dans %s/%s attendu (autre cluster ou namespace) (%s)"
+                 % (name, ns_of(d), cl_name, rel))
+    if name not in OKE_DB_ALLOW:
+        rep.fail("R5", "oke: Database %s hors allowlist plateforme (admises : %s)"
+                 % (name, ", ".join(sorted(OKE_DB_ALLOW))))
+        return
+    if s.get("owner") != OKE_DB_ALLOW[name]:
+        rep.fail("R5", "oke: owner de la base %s = %s (attendu %s : owner incoherent)"
+                 % (name, s.get("owner"), OKE_DB_ALLOW[name]))
+    exts = [e.get("name") if isinstance(e, dict) else e for e in s.get("extensions") or []]
+    bad = [x for x in exts if x not in OKE_EXT_ALLOW]
+    if bad:
+        rep.fail("R5", "oke: extensions interdites sur %s : %s (allowlist vide)" % (name, ", ".join(map(str, bad))))
+    if s.get("databaseReclaimPolicy") == "delete":
+        rep.fail("R5", "oke: databaseReclaimPolicy=delete sur %s (les donnees partiraient avec l'objet)" % name)
+    oke_isolation_job(rep, head, name)
+
+
+def oke_role(rep, head, role):
+    name = role.get("name")
+    if name not in OKE_DB_ALLOW.values():
+        rep.fail("R5", "oke: role PG %s hors allowlist plateforme" % name)
+        return
+    if role.get("ensure") != "present":
+        rep.fail("R5", "oke: role %s non present" % name)
+    if role.get("login") is not True:
+        rep.fail("R5", "oke: role %s sans login" % name)
+    for flag in OKE_PRIVILEGE_FLAGS:
+        if role.get(flag) is True:
+            rep.fail("R5", "oke: role %s avec %s=true (interdit)" % (name, flag))
+    if role.get("inRoles"):
+        rep.fail("R5", "oke: role %s avec inRoles (interdit)" % name)
+    secret = "pg-shared-%s" % name
+    if (role.get("passwordSecret") or {}).get("name") != secret:
+        rep.fail("R5", "oke: passwordSecret du role %s != %s" % (name, secret))
+    ess = [o for r, o in objects(head) if o.get("kind") == "ExternalSecret" and ns_of(o) == OKE_NS
+           and (spec(o).get("target") or {}).get("name") == secret]
+    if len(ess) != 1:
+        rep.fail("R5", "oke: %d ExternalSecret pour le secret %s du role %s (attendu 1)" % (len(ess), secret, name))
+        return
+    es = ess[0]
+    key = "ORACLE_A1_%s_DB_PASSWORD" % name.upper()
+    if key not in [(d.get("remoteRef") or {}).get("key") for d in spec(es).get("data") or []]:
+        rep.fail("R5", "oke: ExternalSecret %s : cle Doppler %s attendue" % (secret, key))
+    tdata = ((spec(es).get("target") or {}).get("template") or {}).get("data") or {}
+    if tdata.get("username") != name:
+        rep.fail("R5", "oke: ExternalSecret %s : username %s != %s" % (secret, tdata.get("username"), name))
+
+
+def check_oke(ctx):
+    """Voie OKE : active seulement si la PR touche OKE_DIR (sinon rien ne change sous cette voie)."""
+    if not any(p.startswith(OKE_DIR) for _, p in ctx.changes):
+        return
+    rep, head = ctx.rep, ctx.head_docs
+    base_canon = {key_of(r, o): canon(o) for r, o in objects(ctx.bdocs)}
+    base_roles = {}
+    for r, o in objects(ctx.bdocs, OKE_DIR):
+        if is_cnpg(o, "Cluster"):
+            for role in (spec(o).get("managed") or {}).get("roles") or []:
+                base_roles[role.get("name")] = canon(role)
+    clusters = [o for r, o in objects(head, OKE_DIR) if is_cnpg(o, "Cluster") and meta(o).get("name") == OKE_CLUSTER]
+    if len(clusters) != 1:
+        rep.fail("R5", "oke: Cluster %s absent ou en double sous cnpg-cluster" % OKE_CLUSTER)
+    else:
+        plugins = spec(clusters[0]).get("plugins") or []
+        if not any(p.get("name") == OKE_BARMAN and p.get("isWALArchiver") is True for p in plugins):
+            rep.fail("R5", "oke: Cluster %s sans archivage WAL barman (sauvegarde R2 non couverte)" % OKE_CLUSTER)
+        sched = [o for r, o in objects(head, OKE_DIR) if o.get("kind") == "ScheduledBackup"
+                 and (spec(o).get("cluster") or {}).get("name") == OKE_CLUSTER]
+        if not sched:
+            rep.fail("R5", "oke: ScheduledBackup absent pour %s" % OKE_CLUSTER)
+        oke_isolation_job(rep, head, OKE_APP_DB)
+    for r, o in objects(head, OKE_DIR):
+        if is_cnpg(o, "Database") and base_canon.get(key_of(r, o)) != canon(o):
+            oke_database(rep, head, r, o)
+        if is_cnpg(o, "Cluster") and meta(o).get("name") == OKE_CLUSTER:
+            for role in (spec(o).get("managed") or {}).get("roles") or []:
+                if base_roles.get(role.get("name")) != canon(role):
+                    oke_role(rep, head, role)
 
 
 # ---------- orchestration ----------

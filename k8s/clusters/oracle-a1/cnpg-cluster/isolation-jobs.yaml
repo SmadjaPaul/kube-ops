@@ -1,0 +1,87 @@
+# Contrat PostgreSQL OKE : isolation des bases. Le CRD Database n'a aucun champ de grant ; un
+# Job PostSync par base revoque CONNECT pour PUBLIC (modele : k8s/infrastructure/database/
+# pg-shared-homelab/app-database.example.tmpl, etape 3b). La garde (R5 voie OKE) refuse une base
+# declaree sans ce Job. Le Job attend la base et le role (Argo ne sait pas si CNPG est pret) :
+# attente bornee de 5 min, puis echec. Il tourne en utilisateur proprietaire de la base.
+# Pas de token de service, securityContext restricted (PSA).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pg-shared-backstage-isolation
+  namespace: databases
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 26, runAsGroup: 26, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: isolate
+          image: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:e079dae5253fa6ed26fc65fda06d515af764dbec392dd4b46b17ab11eebd8131
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          command: [sh, -ec]
+          args:
+            - |
+              i=0
+              until psql -tAc 'SELECT 1' >/dev/null 2>&1; do
+                i=$((i + 1))
+                [ "$i" -le 60 ] || { echo "backstage unreachable after 5 min" >&2; exit 1; }
+                sleep 5
+              done
+              psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE backstage FROM PUBLIC"
+              ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'backstage'")
+              test "$ok" = "t" || { echo "PUBLIC still has CONNECT on backstage" >&2; exit 1; }
+          env:
+            - {name: PGHOST, value: pg-shared-rw.databases.svc.cluster.local}
+            - {name: PGDATABASE, value: backstage}
+            - {name: PGSSLMODE, value: require}
+            - name: PGUSER
+              valueFrom: {secretKeyRef: {name: pg-shared-backstage, key: username}}
+            - name: PGPASSWORD
+              valueFrom: {secretKeyRef: {name: pg-shared-backstage, key: password}}
+---
+# Base par defaut de CNPG (initdb) : `app`, proprietaire `app`. Sans ce Job, CONNECT reste ouvert
+# a PUBLIC. Le role `app` et son Secret pg-shared-app sont generes par CNPG (pas dans Git).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pg-shared-app-isolation
+  namespace: databases
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 26, runAsGroup: 26, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: isolate
+          image: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:e079dae5253fa6ed26fc65fda06d515af764dbec392dd4b46b17ab11eebd8131
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          command: [sh, -ec]
+          args:
+            - |
+              i=0
+              until psql -tAc 'SELECT 1' >/dev/null 2>&1; do
+                i=$((i + 1))
+                [ "$i" -le 60 ] || { echo "app unreachable after 5 min" >&2; exit 1; }
+                sleep 5
+              done
+              psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE app FROM PUBLIC"
+              ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'app'")
+              test "$ok" = "t" || { echo "PUBLIC still has CONNECT on app" >&2; exit 1; }
+          env:
+            - {name: PGHOST, value: pg-shared-rw.databases.svc.cluster.local}
+            - {name: PGDATABASE, value: app}
+            - {name: PGSSLMODE, value: require}
+            - name: PGUSER
+              valueFrom: {secretKeyRef: {name: pg-shared-app, key: username}}
+            - name: PGPASSWORD
+              valueFrom: {secretKeyRef: {name: pg-shared-app, key: password}}

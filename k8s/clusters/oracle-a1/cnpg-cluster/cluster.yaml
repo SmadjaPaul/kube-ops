@@ -18,6 +18,11 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   instances: 1
+  # Instance manager CNPG : parle a l'API server (leases, statut). Token monte explicitement :
+  # la baseline (VAP baseline-automount-token, namespace databases) refuse automount sinon.
+  inheritedMetadata:
+    annotations:
+      baseline.smadja.dev/automount-token: "true"
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7-standard-trixie@sha256:e079dae5253fa6ed26fc65fda06d515af764dbec392dd4b46b17ab11eebd8131
   plugins:
     - name: barman-cloud.cloudnative-pg.io
@@ -35,6 +40,18 @@ spec:
         login: true
         passwordSecret:
           name: pg-shared-polyfin
+      # Contrat PostgreSQL OKE (docs/platform/postgres-oke-contract.md) : role de la base
+      # backstage, proprietaire non superuser, sans createdb/createrole/inRoles.
+      - name: backstage
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        replication: false
+        bypassrls: false
+        passwordSecret:
+          name: pg-shared-backstage
   resources:
     requests: {cpu: 100m, memory: 512Mi}
     limits: {cpu: "1", memory: 1Gi}
