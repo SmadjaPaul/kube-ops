@@ -27,7 +27,6 @@ jobs:
     # pour rendre le garde bloquant ; ce n'est pas un check requis par la protection de branche.
     continue-on-error: true
     env:
-      PLAN_PYTHON: ${{ runner.temp }}/plan-venv/bin/python
       BASE_SHA: ${{ github.event.pull_request.base.sha }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
@@ -55,7 +54,8 @@ jobs:
         run: |
           python3 -m venv "$RUNNER_TEMP/plan-venv"
           "$RUNNER_TEMP/plan-venv/bin/pip" install --no-cache-dir 'pyyaml==6.0.2'
-          "$PLAN_PYTHON" -c "import yaml; print('pyyaml', yaml.__version__)"
+          echo "PLAN_PYTHON=$RUNNER_TEMP/plan-venv/bin/python" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/plan-venv/bin/python" -c "import yaml; print('pyyaml', yaml.__version__)"
 
       - name: Unit tests of the plan tool
         run: |
