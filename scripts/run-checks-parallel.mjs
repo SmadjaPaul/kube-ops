@@ -7,9 +7,12 @@ import { mkdtempSync, openSync, readFileSync, closeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const names = process.argv.slice(2);
+// SKIP_CHECKS (virgules) : sous-checks sautes par le workflow quand leur perimetre n'est pas touche.
+const skipped = new Set((process.env.SKIP_CHECKS || "").split(",").map((x) => x.trim()).filter(Boolean));
+const names = process.argv.slice(2).filter((n) => !skipped.has(n));
+for (const n of skipped) console.log(`SKIPPED (perimetre non touche): ${n}`);
 if (names.length === 0) {
-  console.error("run-checks-parallel: aucun sous-check passe en argument");
+  console.error("run-checks-parallel: aucun sous-check a executer");
   process.exit(1);
 }
 

@@ -30,7 +30,7 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 yq -o=json '.' "$gp/template.yaml" > "$tmp/template.json"
 name="$(jq -r .name "$params")"
 
-# Base de rendu : k8s/ du depot. PREREQUIS MANDAT (Paul) : la ligne sentinelle `roles: # GOLDEN-PATH-ROLES`
+# Base de rendu : k8s/ du depot. PREREQUIS MANDAT (Paul) : la ligne sentinelle `roles: [] # GOLDEN-PATH-ROLES`
 # doit etre sur main dans pg-shared-homelab/cluster.yaml. Tant qu'elle n'y est pas, le test la pose dans
 # SA COPIE temporaire seulement (jamais dans le depot) et le dit. Sans sentinelle sur main, une execution
 # reelle du template ne ferait AUCUNE edition de cluster.yaml (fs:replace : 0 occurrence = silencieux).
@@ -42,7 +42,7 @@ if grep -q 'GOLDEN-PATH-ROLES' "$repo_root/k8s/infrastructure/database/pg-shared
   echo "INFO: ligne sentinelle presente sur le depot (prerequis pose)"
 else
   echo "INFO: PREREQUIS MANDAT non fait : sentinelle absente de main. Pose simulee dans la copie de test uniquement."
-  perl -0pi -e 's/  storage:\n    storageClass: longhorn-fast/  managed:\n    roles: # GOLDEN-PATH-ROLES\n  storage:\n    storageClass: longhorn-fast/' "$base_cluster"
+  perl -0pi -e 's/  storage:\n    storageClass: longhorn-fast/  managed:\n    roles: [] # GOLDEN-PATH-ROLES\n  storage:\n    storageClass: longhorn-fast/' "$base_cluster"
 fi
 
 step "1. rendu du template (validation JSON Schema + etapes)"

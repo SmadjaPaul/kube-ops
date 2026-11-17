@@ -75,9 +75,20 @@ jobs:
           GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
         run: echo "roots=$(bash scripts/select-v1-contract-roots.sh)" >> "$GITHUB_OUTPUT"
 
+      - name: Decide service-contract guard scope
+        id: guard_scope
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+        run: echo "decision=$(bash scripts/v1-guard-scope.sh)" >> "$GITHUB_OUTPUT"
+
       - name: Validate V1 desired state and backup coverage
         env:
           V1_CONTRACT_ROOTS: ${{ steps.scope.outputs.roots }}
+          # La garde (et son test) ne tourne que si la PR touche les chemins qu'elle valide.
+          # Le job v1-contract reste le check requis : il est vert dans les deux cas.
+          SKIP_CHECKS: ${{ steps.guard_scope.outputs.decision == 'skip' && 'check:service-contract' || '' }}
         run: npm run check
 
       - name: Validate Factory supervised promotion contract
