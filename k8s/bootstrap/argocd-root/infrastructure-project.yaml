@@ -40,6 +40,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: csi-proxmox
       server: https://kubernetes.default.svc
+    # PLT-375: shared PostgreSQL for the homelab (pg-shared-homelab, D-2026-11-16-09).
+    - namespace: databases
+      server: https://kubernetes.default.svc
     - namespace: external-dns-private
       server: https://kubernetes.default.svc
     - namespace: external-secrets
