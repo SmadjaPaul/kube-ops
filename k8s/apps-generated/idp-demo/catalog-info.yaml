@@ -1,0 +1,16 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: idp-demo
+  description: "Application de test IDP (whoami)"
+  annotations:
+    homelab.smadja.dev/golden-path: platform-application@v1
+    homelab.smadja.dev/contract: platform.smadja.dev/v1
+    homelab.smadja.dev/cluster: homelab
+    homelab.smadja.dev/namespace: svc-idp-demo
+    homelab.smadja.dev/exposure: private
+    homelab.smadja.dev/hostname: idp-demo.smadja.dev
+spec:
+  type: service
+  lifecycle: experimental
+  owner: "group:default/platform"

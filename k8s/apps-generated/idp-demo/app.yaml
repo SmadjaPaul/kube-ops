@@ -1,0 +1,23 @@
+apiVersion: platform.smadja.dev/v1
+kind: Application
+metadata:
+  name: idp-demo
+  owner: "group:default/platform"
+  description: "Application de test IDP (whoami)"
+spec:
+  profile: web
+  source:
+    image: "traefik/whoami:v1.10.3@sha256:43a68d10b9dfcfc3ffbfe4dd42100dc9aeaf29b3a5636c856337a5940f1b4f1c"
+  runtime:
+    replicas: 1
+    size: "small"
+    port: 80
+    healthPath: "/health"
+  exposure:
+    mode: private
+    auth: none
+  backup:
+    policy: stateless
+  observability:
+    metrics: false
+    path: "/metrics"
