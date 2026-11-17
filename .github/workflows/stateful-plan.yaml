@@ -58,7 +58,8 @@ jobs:
           "$PLAN_PYTHON" -c "import yaml; print('pyyaml', yaml.__version__)"
 
       - name: Unit tests of the plan tool
-        run: "$PLAN_PYTHON" -m unittest discover -s tests/plan -p 'test_*.py' -v
+        run: |
+          "$PLAN_PYTHON" -m unittest discover -s tests/plan -p 'test_*.py' -v
 
       - name: Replay real commits (b9a307f7 blocks, e63fc72e blocks, 35326c66 passes)
         run: bash tests/plan/replay.sh
