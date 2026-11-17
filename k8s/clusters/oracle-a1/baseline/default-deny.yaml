@@ -132,8 +132,10 @@ spec:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: cnpg-system}}
       ports: [{port: 8000, protocol: TCP}]
 ---
-# pg-shared : acces 5432 uniquement depuis les roles autorises (Backstage, Hindsight),
-# operateur CNPG (8000) et intra-namespace (replication, instance manager).
+# pg-shared (namespace databases) : intra-namespace (replication, instance manager)
+# et operateur CNPG (8000, 5432). Aucun client applicatif n'est ouvert ici : Hindsight
+# garde son cluster dedie hindsight-db (namespace hindsight, intra-namespace). Le flux
+# 5432 d'un client (ex. Backstage) est ajoute par la PR qui cree sa Database.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: allow-ingress-databases, namespace: databases}
@@ -144,17 +146,11 @@ spec:
     - from:
         - podSelector: {}
     - from:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: backstage}}
-      ports: [{port: 5432, protocol: TCP}]
-    - from:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: hindsight}}
-      ports: [{port: 5432, protocol: TCP}]
-    - from:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: cnpg-system}}
       ports: [{port: 8000, protocol: TCP}, {port: 5432, protocol: TCP}]
 ---
-# Egress applicatif (namespace -> namespace) : Backstage -> Authentik (OIDC), -> pg-shared ;
-# Hindsight -> pg-shared (migration, section 5 de l'ADR). Le reste (443 externe) est en CNP.
+# Egress applicatif (namespace -> namespace) : Backstage -> Authentik (OIDC) ;
+# Hindsight -> hindsight-db (intra-namespace). Le reste (443 externe) est en CNP.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: allow-egress-backstage, namespace: backstage}
@@ -165,9 +161,6 @@ spec:
     - to:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: auth}}
       ports: [{port: 9000, protocol: TCP}]
-    - to:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: databases}}
-      ports: [{port: 5432, protocol: TCP}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -178,9 +171,6 @@ spec:
   egress:
     - to:
         - podSelector: {}
-    - to:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: databases}}
-      ports: [{port: 5432, protocol: TCP}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

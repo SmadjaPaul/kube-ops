@@ -3,6 +3,7 @@
 #   run.sh static   : rendu kustomize (bootstrap, apps, baseline, secret-stores, overlays) + kubeconform.
 #   run.sh runtime  : admission serveur sur un cluster (kind en CI) : VAP chargees,
 #                     pods conformes acceptes, non conformes refuses (dry-run=server).
+#   run.sh static aussi : quotas de baseline/quotas.yaml == expected-quotas.tsv ; acceptance.sh est teste a part (--dry).
 # Aucun secret, aucun acces a un cluster reel. KUBECONFIG pointe le cluster de test.
 set -euo pipefail
 
@@ -28,7 +29,20 @@ static() {
   done
   # Schemas CRD absents : -ignore-missing-schemas (Cilium, CNPG, ESO, VAP v1 couverts par kubeconform 0.8).
   kubeconform -summary -strict -ignore-missing-schemas "$out"/*.yaml
+  quotas "$out/baseline.yaml"
   echo "STATIC=PASS"
+}
+
+# Quotas rendus == expected-quotas.tsv (arch/CAPACITY.md, S3). yq (mikefarah) requis.
+quotas() {
+  command -v yq >/dev/null || { echo "FAIL: yq requis" >&2; exit 2; }
+  local ns rcpu rmem lmem pods got bad=0
+  while IFS=$'\t' read -r ns rcpu rmem lmem pods; do
+    [[ -z "$ns" || "$ns" == \#* ]] && continue
+    got="$(yq ea -r "select(.kind == \"ResourceQuota\" and .metadata.namespace == \"$ns\") | .spec.hard | [.[\"requests.cpu\"], .[\"requests.memory\"], .[\"limits.memory\"], .pods] | join(\",\")" "$1")"
+    if [[ "$got" == "$rcpu,$rmem,$lmem,$pods" ]]; then echo "PASS: quota $ns $got"; else echo "FAIL: quota $ns attendu $rcpu,$rmem,$lmem,$pods lu '$got'"; bad=1; fi
+  done < "$root/tests/oke-baseline/expected-quotas.tsv"
+  [[ $bad -eq 0 ]]
 }
 
 runtime() {
