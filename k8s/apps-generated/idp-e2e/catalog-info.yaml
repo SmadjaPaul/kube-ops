@@ -10,6 +10,7 @@ metadata:
     homelab.smadja.dev/namespace: svc-idp-e2e
     homelab.smadja.dev/exposure: private
     homelab.smadja.dev/hostname: idp-e2e.smadja.dev
+    homelab.smadja.dev/app-status: bash scripts/app-status.sh idp-e2e --cluster homelab
 spec:
   type: service
   lifecycle: experimental

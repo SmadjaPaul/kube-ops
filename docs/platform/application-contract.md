@@ -70,7 +70,8 @@ qu'à la version du renderer).
 ## Catalogue
 
 `k8s/apps-generated/<name>/catalog-info.yaml` (Component Backstage) est écrit par le template à côté de `app.yaml`.
-La CI vérifie qu'il correspond exactement à `app.yaml` (`tests/platform/catalog_info.py`).
+La CI vérifie qu'il correspond exactement à `app.yaml` (`tests/platform/catalog_info.py`). Il porte l'annotation
+`homelab.smadja.dev/app-status` : la commande qui donne l'état de l'application (voir `docs/platform/app-status.md`).
 
 ## Tests
 

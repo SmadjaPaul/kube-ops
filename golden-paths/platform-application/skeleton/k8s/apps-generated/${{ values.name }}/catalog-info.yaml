@@ -10,6 +10,7 @@ metadata:
     homelab.smadja.dev/namespace: svc-${{ values.name }}
     homelab.smadja.dev/exposure: private
     homelab.smadja.dev/hostname: ${{ values.name }}.smadja.dev
+    homelab.smadja.dev/app-status: bash scripts/app-status.sh ${{ values.name }} --cluster homelab
 spec:
   type: service
   lifecycle: experimental
