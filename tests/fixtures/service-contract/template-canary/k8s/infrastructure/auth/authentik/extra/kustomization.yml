@@ -1,0 +1,70 @@
+---
+kind: Kustomization
+
+resources:
+  - canari-pg-oidc-oidc.yaml
+  - secrets.yml
+  - smtp-externalsecret.yaml
+  - talos-bluegreen-externalsecret.yaml
+  - factory-oidc-external-secret.dormant.yaml
+  - matrix-mas-oidc-externalsecret.yaml
+  # Legacy filename retained; this AIOStreams ExternalSecret is active.
+  - aiostreams-oidc-externalsecret.dormant.yaml
+  - rustical-oidc-externalsecret.yaml
+  - polyfin-oidc-externalsecret.yaml
+  - sparkyfitness-oidc-externalsecret.yaml
+  - bookorbit-oidc-externalsecret.yaml
+  # LibreChat activation PR: this reference is intentionally present only on
+  # the Draft activation branch until APP_LIBRECHAT_OIDC_CLIENT_SECRET exists.
+  - librechat-oidc-externalsecret.dormant.yaml
+
+generatorOptions:
+  disableNameSuffixHash: false
+
+configMapGenerator:
+  - name: authentik-blueprints
+    files:
+      - ./blueprints/apps-canari-pg-oidc.yaml
+      - ./blueprints/apps-opencode.yaml
+      - ./blueprints/apps-argocd.yaml
+      - ./blueprints/apps-grafana.yaml
+      - ./blueprints/apps-home-assistant.yaml
+      - ./blueprints/apps-immich.yaml
+      - ./blueprints/apps-karakeep.yaml
+      - ./blueprints/apps-kubernetes.yaml
+      - ./blueprints/apps-cloudflare.yaml
+      - ./blueprints/apps-pinepods.yaml
+      - ./blueprints/apps-romm.yaml
+      - ./blueprints/apps-mealie.yaml
+      - ./blueprints/apps-vikunja.yaml
+      - ./blueprints/apps-paperless.yaml
+      - ./blueprints/apps-ntfy.yaml
+      - ./blueprints/apps-stirling-pdf.yaml
+      - ./blueprints/apps-sure.yaml
+      - ./blueprints/apps-searxng.yaml
+      - ./blueprints/apps-invoice-ninja.yaml
+      - ./blueprints/groups.yaml
+      - ./blueprints/flows-invitation-operator.yaml
+      # PLT-176: admin-link password setup for human accounts declared without
+      # a password in groups.yaml (docs/operations/authentik-human-accounts.md).
+      - ./blueprints/flows-password-setup.yaml
+      - ./blueprints/qa-e2e-user.yaml
+      - ./blueprints/qa-agent-e2e.yaml
+      - ./blueprints/brands.yaml
+      - ./blueprints/authentication.yaml
+      - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml
+      - ./blueprints/oauth-scopes.yaml
+      - ./blueprints/outposts-v2.yaml    # Human users enroll through short-lived Authentik invitations; no human
+      - ./blueprints/outposts.yaml    # Legacy managed instance compatibility; source is Git-owned.
+      # password or invitation token is stored in Git/Doppler. notifications.yaml
+      # stays excluded until its optional Slack webhook exists.
+      - ./blueprints/apps-talos-bluegreen.yaml
+      - ./blueprints/apps-factory.yaml
+      - ./blueprints/apps-fleet.yaml
+      - ./blueprints/apps-matrix-mas.yaml
+      - ./blueprints/apps-aiostreams.yaml
+      - ./blueprints/apps-rustical.yaml
+      - ./blueprints/apps-polyfin.yaml
+      - ./blueprints/apps-bookorbit.yaml
+      - ./blueprints/apps-sparkyfitness.yaml
+      - ./blueprints/apps-librechat.dormant.yaml

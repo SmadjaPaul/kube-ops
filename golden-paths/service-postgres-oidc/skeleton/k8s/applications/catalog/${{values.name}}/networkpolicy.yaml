@@ -1,0 +1,39 @@
+# Default-deny implicite : seuls les flux listes sont autorises.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ${{ values.name }}
+  namespace: ${{ values.name }}
+spec:
+  endpointSelector: {matchLabels: {app.kubernetes.io/name: ${{ values.name }}}}
+  ingress:
+    # Gateway/internal (entree Cilium) vers le port HTTP.
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "${{ values.containerPort }}"}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {protocol: ANY, port: "53"}
+          rules:
+            dns:
+              - matchPattern: "*"
+    # PostgreSQL mutualise : uniquement le primaire du cluster, port 5432.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: databases
+            cnpg.io/cluster: pg-shared-homelab
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "5432"}
+    # OIDC cote serveur (token et userinfo) : Authentik uniquement.
+    - toFQDNs:
+        - matchName: auth.smadja.dev
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "443"}
