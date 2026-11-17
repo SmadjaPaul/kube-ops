@@ -202,3 +202,5 @@ The Implementation Engineer may write a feature branch and open a pull request,
 but it never self-merges. R1 release can still be autonomous when a separate
 release authority sees independent review, QA and required CI gates pass. R2
 always remains human-only.
+
+<!-- mesure CI hors perimetre de la garde (ci/measure-hors-perimetre) -->
