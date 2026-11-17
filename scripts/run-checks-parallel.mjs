@@ -1,16 +1,15 @@
-// Lance en parallele les sous-checks de `npm run check` (memes scripts, memes commandes,
-// aucun contrôle retire). La liste est lue dans package.json pour ne pas la dupliquer.
-// Chaque sous-check ecrit son journal dans un dossier temporaire ; le journal est
-// affiche dans l'ordre d'origine, avec la duree par sous-check. Echec si l'un echoue.
+// Lance en parallele les sous-checks passes en arguments (liste dans scripts.check).
+// Memes scripts, memes commandes : aucun controle retire. Chaque sous-check ecrit son
+// journal dans un dossier temporaire ; les journaux sont affiches dans l'ordre d'origine,
+// avec la duree par sous-check. Echec si l'un echoue.
 import { spawn } from "node:child_process";
-import { mkdtempSync, openSync, readFileSync, readSync, closeSync, statSync } from "node:fs";
+import { mkdtempSync, openSync, readFileSync, closeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const names = [...pkg.scripts["check:sequence"].matchAll(/npm run ([^\s&]+)/g)].map((m) => m[1]);
+const names = process.argv.slice(2);
 if (names.length === 0) {
-  console.error("run-checks-parallel: aucun sous-check trouve dans scripts.check");
+  console.error("run-checks-parallel: aucun sous-check passe en argument");
   process.exit(1);
 }
 
@@ -25,13 +24,12 @@ const runs = names.map((name) => {
     stdio: ["ignore", fd, fd],
     env: process.env,
   });
-  const done = new Promise((resolve) =>
+  return new Promise((resolve) =>
     child.on("close", (code) => {
       closeSync(fd);
       resolve({ name, code, ms: Date.now() - t0, log });
     }),
   );
-  return done;
 });
 
 const results = await Promise.all(runs);
