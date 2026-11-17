@@ -1,0 +1,110 @@
+# Configuration de base Backstage 1.56.5 (plateforme IDP agentic, hebergee sur OKE oracle-a1).
+# Aucun secret ici : tout vient de l'environnement du pod (ExternalSecret backstage-runtime, namespace backstage).
+# L'URL publique et le CORS sont fixes par l'overlay OKE (k8s/clusters/oracle-a1/backstage, ConfigMap backstage-config),
+# pas ici : ce fichier reste valide hors cluster (scripts/check-config.cjs).
+# Documentation : docs/platform/backstage-github-app.md et docs/platform/backstage-hosting.md.
+
+app:
+  title: Backstage IDP
+  baseUrl: http://localhost:7007
+
+organization:
+  name: homelab
+
+backend:
+  baseUrl: http://localhost:7007
+  listen:
+    host: 0.0.0.0
+    port: 7007
+  actions:
+    # Retire ces actions du registre (listing ET invocation), toutes identites confondues.
+    filter:
+      exclude:
+        - id: 'catalog:register-entity'
+        - id: 'catalog:unregister-entity'
+        - id: 'catalog:refresh-catalog-entity'
+    # Plugins dont les actions sont exposees (catalog, scaffolder, search). Pas kubernetes/argocd (non installes).
+    pluginSources:
+      - catalog
+      - scaffolder
+      - search
+  auth:
+    # Aucun fournisseur humain (OIDC/guest) : les agents passent par externalAccess uniquement.
+    providers: {}
+    # Principals service (agents). Les tokens viennent de l'environnement (BACKSTAGE_AGENT_*_TOKEN).
+    # Restrictions par plugin seulement : les restrictions par nom de permission cassent mcp-actions.
+    externalAccess:
+      - type: static
+        options:
+          token: ${BACKSTAGE_AGENT_A_TOKEN}
+          subject: agent:claude-idp
+        accessRestrictions:
+          - plugin: mcp-actions
+          - plugin: catalog
+          - plugin: scaffolder
+      - type: static
+        options:
+          token: ${BACKSTAGE_AGENT_B_TOKEN}
+          subject: agent:readonly-catalog
+        accessRestrictions:
+          - plugin: mcp-actions
+          - plugin: catalog
+  database:
+    # Base ephemere (SQLite dans /tmp, emptyDir) : aucune donnee durable sur Oracle tant que la
+    # restauration hors Oracle n'est pas prouvee (D-2026-11-11-17). Le catalogue vient de Git.
+    # PostgreSQL : app-config.database-pg.yaml, NON charge par defaut (cf. docs/platform/backstage-hosting.md).
+    client: better-sqlite3
+    connection:
+      directory: /tmp/backstage-data
+scaffolder:
+  # Reprise des taches Scaffolder interrompues (sinon une tache coupee reste "processing").
+  taskRecovery:
+    enabled: true
+
+permission:
+  enabled: true
+
+integrations:
+  github:
+    - host: github.com
+      # GitHub App (pas de PAT). Schema : appId, clientId, clientSecret, privateKey requis.
+      apps:
+        - appId: ${BACKSTAGE_GH_APP_ID}
+          clientId: ${BACKSTAGE_GH_APP_CLIENT_ID}
+          clientSecret: ${BACKSTAGE_GH_APP_CLIENT_SECRET}
+          privateKey: ${BACKSTAGE_GH_APP_KEY_PEM}
+          allowedInstallationOwners:
+            - SmadjaPaul
+
+catalog:
+  # Ecriture catalogue fermee (REST et MCP) : les locations viennent de cette configuration uniquement.
+  readonly: true
+  rules:
+    - allow: [Component, System, API, Resource, Location, Template, User, Group]
+  locations:
+    # Template platform-application, epingle par SHA.
+    - type: url
+      target: https://github.com/SmadjaPaul/kube-ops/blob/b97982bde369fa605029f3f79c0131efd298777f/golden-paths/platform-application/template.yaml
+      rules:
+        - allow: [Template]
+    # Decouverte des applications generees (lecture seule, depuis main).
+    - type: url
+      target: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/apps-generated/*/catalog-info.yaml
+      rules:
+        - allow: [Component]
+
+mcpActions:
+  servers:
+    readonly:
+      name: 'Backstage catalogue lecture seule'
+      description: 'Lecture du catalogue Backstage uniquement'
+      filter:
+        include:
+          - id: 'catalog:*'
+        exclude:
+          - attributes:
+              readOnly: false
+
+auth:
+  # Aucun fournisseur humain (OIDC/guest) : cf. docs/platform/backstage-hosting.md.
+  providers: {}
