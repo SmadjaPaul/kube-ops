@@ -4,9 +4,10 @@
 # `cloudflare` is the Authentik step of Cloudflare Access, used by every human
 # class (decision of Paul, 2026-11-15): binding `friends` there costs nothing.
 # searxng, stirling-pdf: G2 = family and friends (decision of Paul, 2026-11-15).
+# miniflux-lab: OKE lab Miniflux, low PostgreSQL storage (openchoreo-lab docs/IDENTITY.md).
 set -euo pipefail
 bp=k8s/infrastructure/auth/authentik/extra/blueprints
-ALLOWED="polyfin bookorbit romm cloudflare searxng stirling-pdf"
+ALLOWED="polyfin bookorbit romm cloudflare searxng stirling-pdf miniflux-lab"
 fail() { echo "AUTHENTIK_FRIENDS=FAIL $*" >&2; exit 1; }
 
 grep -Eq 'identifiers: \{name: friends\}' "$bp/groups.yaml" || fail 'friends group missing in groups.yaml'

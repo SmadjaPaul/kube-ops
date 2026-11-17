@@ -1,6 +1,6 @@
 # Modèle d'accès Authentik (PLT-176)
 
-Proposition consolidée par usage réel. Source des liaisons : `k8s/infrastructure/auth/authentik/extra/blueprints/`. Contrôles : `tests/harness/authentik-friends-contract-test.sh`, `tests/harness/authentik-human-users-contract-test.sh`.
+Proposition consolidée par usage réel. Source des liaisons : `k8s/infrastructure/auth/authentik/extra/blueprints/`. Contrôles : `tests/harness/authentik-friends-contract-test.sh`, `tests/harness/authentik-human-users-contract-test.sh`, `tests/harness/authentik-openchoreo-contract-test.sh`.
 
 L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. Ajouter une personne à une classe = l'ajouter au groupe, sans changer les liaisons.
 
@@ -10,7 +10,7 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 |---|---|---|
 | Admin | `authentik-admins` (superuser, existant) | Tout l'accès administratif : Authentik, applications d'admin. Paul y est rattaché par le groupe. Un futur admin = un ajout au groupe. Le groupe `admin` (ArgoCD, Factory) est un doublon à fusionner après vérification de ses membres. |
 | Famille | `family` (existant) | Applications qui peuvent coûter de l'argent à Paul (IA, stockage, comptes créés au premier login), plus tout ce qu'ont les amis. Rien d'admin. Immich reste dans `Immich Users`. |
-| Amis | `friends` (nouveau, vide) | Seulement les applications à coût marginal nul (coût identique pour 5 ou 150 utilisateurs) : Polyfin, RomM, BookOrbit, SearXNG, Stirling-PDF, plus l'étape Authentik de Cloudflare Access (application `cloudflare`). Un ami n'obtient jamais `family` par défaut ; aucune invitation n'ajoute `family` à un ami. |
+| Amis | `friends` (nouveau, vide) | Seulement les applications à coût marginal nul (coût identique pour 5 ou 150 utilisateurs) : Polyfin, RomM, BookOrbit, SearXNG, Stirling-PDF, Miniflux du labo, plus l'étape Authentik de Cloudflare Access (application `cloudflare`). Un ami n'obtient jamais `family` par défaut ; aucune invitation n'ajoute `family` à un ami. |
 | Comptes de service | pas de groupe d'accès | Voir plus bas. |
 
 ## Applications par coût marginal
@@ -21,6 +21,7 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 | romm | family, media | nul | friends + family |
 | bookorbit | family | faible (livres demandés stockés) | friends + family |
 | searxng, stirling-pdf | family, friends | nul en argent (CPU fixe) | famille et amis (G2, décision de Paul, 2026-11-15) |
+| miniflux-lab | family, friends | faible (flux stockés dans PostgreSQL du labo OKE) | famille et amis |
 | ntfy | family | nul en argent (CPU fixe) | family |
 | librechat | family | IA par requête | family |
 | karakeep | Karakeep Users | IA (étiquetage) + archives | family (groupe dédié conservé) |
@@ -31,6 +32,7 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 | home-assistant | Home Assistant Users | nul, mais pilote la maison | groupe dédié, foyer seulement |
 | invoice-ninja | family | données de l'activité de Maureen | groupe dédié proposé (`lechaplais`) |
 | argocd, kubectl, grafana, aiostreams, talos-* | admin, dev ; Kubectl/Grafana/Talos Users | admin | admin |
+| openchoreo, openchoreo-cli | openchoreo-viewers, openchoreo-developers | nul (labo OKE, Always Free) | groupes dédiés + admin ; ni family ni friends |
 | cloudflare | authentik-admins, admin, authentik Admins, family, friends | nul (fournisseur d'identité de Cloudflare Access pour les services derrière les tunnels) | toutes les classes humaines ; un compte sans groupe lié est refusé (décision de Paul, 2026-11-15) |
 | jellyfin, bazarr, lidarr, prowlarr, radarr, sonarr, sabnzbd, jellyseerr, audiobookshelf, openwebui, litellm, zigbee2mqtt | divers | service retiré ou non déployé | à supprimer d'Authentik |
 
@@ -41,6 +43,7 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 - Jeton `intent: api` lu par `!Env` depuis Doppler via ExternalSecret ; jamais dans Git. Rotation : nouvelle valeur dans Doppler, puis resynchronisation.
 - Création : Paul seulement (PR revue + merge). Un agent ne crée pas de compte de service.
 - Applications OIDC : un client confidentiel par application, secret dans Doppler (`APP_<APP>_OIDC_CLIENT_SECRET`), pas de compte utilisateur.
+- Exception OpenChoreo (labo OKE) : `openchoreo-backstage-service`, `openchoreo-agent-reader`, `openchoreo-agent-operator` sont des clients `client_credentials` sans liaison humaine ; leur secret est généré par Authentik et copié hors Git par Paul (pas de `!Env`). `issuer_mode: global` leur est réservé (avec `openchoreo-backstage-client` et `openchoreo-cli`) : `tests/harness/authentik-openchoreo-contract-test.sh`.
 - Aujourd'hui : `agent-e2e` (tests d'agents) ; outpost proxy (géré par Authentik) ; `e2e-user` / `e2e-user-secondary` sont des comptes `internal` de test avec mot de passe (Doppler), à classer.
 
 ## Break-glass (hors SSO)
