@@ -70,7 +70,7 @@ metadata:
   namespace: backstage
 spec:
   refreshInterval: 1h
-  secretStoreRef: {name: doppler-cluster, kind: ClusterSecretStore}
+  secretStoreRef: {name: doppler, kind: SecretStore}
   target:
     name: backstage-db
     creationPolicy: Owner

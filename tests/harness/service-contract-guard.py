@@ -808,6 +808,12 @@ def oke_role(rep, head, role):
         rep.fail("R5", "oke: %d ExternalSecret pour le secret %s du role %s (attendu 1)" % (len(ess), secret, name))
         return
     es = ess[0]
+    # Secrets par domaine (ADR OKE section 6) : SecretStore namespace "doppler" (cree par la
+    # baseline), jamais le ClusterSecretStore doppler-cluster.
+    ref = spec(es).get("secretStoreRef") or {}
+    if ref.get("kind") != "SecretStore" or ref.get("name") != "doppler":
+        rep.fail("R5", "oke: ExternalSecret %s : secretStoreRef doit etre SecretStore/doppler (trouve %s/%s)"
+                 % (secret, ref.get("kind"), ref.get("name")))
     key = "ORACLE_A1_%s_DB_PASSWORD" % name.upper()
     # La cle attendue doit alimenter exactement le champ secretKey "password", et le template
     # doit lire ce champ : sinon CNPG et l'application recevraient des mots de passe differents.

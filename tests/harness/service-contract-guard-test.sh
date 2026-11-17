@@ -309,6 +309,10 @@ m_oke_doppler_key() {
   v_oke
   perl -0pi -e 's/remoteRef: \{key: ORACLE_A1_BACKSTAGE_DB_PASSWORD\}/remoteRef: {key: ORACLE_A1_POSTGRES_PASSWORD}/' "$repo/$OKE_ES"
 }
+m_oke_es_clusterstore() {
+  v_oke
+  perl -0pi -e 's/(name: pg-shared-backstage\n  namespace: databases\nspec:\n  refreshInterval: 1h\n  secretStoreRef: )\{name: doppler, kind: SecretStore\}/$1\{name: doppler-cluster, kind: ClusterSecretStore\}/' "$repo/$OKE_ES"
+}
 m_oke_es_absent() { v_oke; perl -0pi -e 's/    name: pg-shared-backstage\n    creationPolicy/    name: pg-shared-backstage-x\n    creationPolicy/' "$repo/$OKE_ES"; }
 m_oke_es_username() { v_oke; perl -0pi -e 's/        username: backstage/        username: app/' "$repo/$OKE_ES"; }
 m_oke_job_absent() { v_oke; perl -0pi -e 's/name: pg-shared-backstage-isolation/name: pg-shared-backstage-isolation-x/' "$repo/$OKE_JOBS"; }
@@ -356,6 +360,7 @@ case_run "OKE : base sur un autre cluster (pg-shared-homelab) : FAIL" FAIL 'R5\]
 case_run "OKE : extension vector sur backstage : FAIL" FAIL 'R5\] oke: extensions interdites sur backstage' "" m_oke_db_extension
 case_run "OKE : databaseReclaimPolicy delete : FAIL" FAIL 'R5\] oke: databaseReclaimPolicy=delete' "" m_oke_db_reclaim_delete
 case_run "OKE : cle Doppler autre que ORACLE_A1_BACKSTAGE_DB_PASSWORD : FAIL" FAIL 'R5\] oke: ExternalSecret pg-shared-backstage : cle Doppler ORACLE_A1_BACKSTAGE_DB_PASSWORD' "" m_oke_doppler_key
+case_run "OKE : ExternalSecret du role sur ClusterSecretStore doppler-cluster : FAIL" FAIL 'R5\] oke: ExternalSecret pg-shared-backstage : secretStoreRef doit etre SecretStore/doppler' "" m_oke_es_clusterstore
 case_run "OKE : ExternalSecret du role absent : FAIL" FAIL 'R5\] oke: 0 ExternalSecret pour le secret pg-shared-backstage' "" m_oke_es_absent
 case_run "OKE : username du secret different du role : FAIL" FAIL 'R5\] oke: ExternalSecret pg-shared-backstage : username' "" m_oke_es_username
 case_run "OKE : Job d'isolation backstage absent (renomme) : FAIL" FAIL 'R5\] oke: Job d.isolation pg-shared-backstage-isolation absent' "" m_oke_job_absent
