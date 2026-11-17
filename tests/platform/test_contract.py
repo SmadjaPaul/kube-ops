@@ -39,6 +39,12 @@ def helm_template(app_doc, release="platform-test"):
         return proc.returncode, proc.stdout, proc.stderr
 
 
+def norm(text):
+    """Golden compare modulo lignes vides : Helm 4.x (patch) ajoute une ligne vide avant `---`
+    selon la version ; le contenu rendu est identique. Les autres differences restent bloquantes."""
+    return "\n".join(line.rstrip() for line in text.splitlines() if line.strip()) + "\n"
+
+
 def render_file(path):
     doc = yaml.safe_load(pathlib.Path(path).read_text(encoding="utf-8"))
     code, out, err = helm_template(doc)
@@ -61,9 +67,9 @@ class RenderDeterminism(unittest.TestCase):
         rendered = render_file(FIXTURES / "web-valid.yaml")
         golden = GOLDEN / "web-valid.yaml"
         if os.environ.get("UPDATE_GOLDEN") == "1":
-            golden.write_text(rendered, encoding="utf-8")
+            golden.write_text(norm(rendered), encoding="utf-8")
         self.assertTrue(golden.exists(), "golden absent : lancer avec UPDATE_GOLDEN=1")
-        self.assertEqual(golden.read_text(encoding="utf-8"), rendered)
+        self.assertEqual(golden.read_text(encoding="utf-8"), norm(rendered))
 
     def test_only_namespace_is_cluster_scoped(self):
         rendered = render_file(FIXTURES / "web-valid.yaml")
@@ -201,8 +207,8 @@ class PolicyAndCluster(unittest.TestCase):
                 self.assertEqual(catalog.read_text(encoding="utf-8"), render_catalog_info(app))
                 golden = GOLDEN / f"apps-{app_path.parent.name}.yaml"
                 if os.environ.get("UPDATE_GOLDEN") == "1":
-                    golden.write_text(rendered, encoding="utf-8")
-                self.assertEqual(golden.read_text(encoding="utf-8"), rendered)
+                    golden.write_text(norm(rendered), encoding="utf-8")
+                self.assertEqual(golden.read_text(encoding="utf-8"), norm(rendered))
         if not apps:
             print("\n[info] aucune app dans k8s/apps-generated : test applicatif vide (attendu avant la premiere app)")
 
