@@ -1,0 +1,27 @@
+# PLT-152: cross-namespace read of the miniflux role password (databases/pg-shared-homelab-miniflux).
+# ESO cannot read another namespace's Secret with the default store; this
+# SecretStore uses a dedicated ServiceAccount, granted one Secret by Role in databases.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: miniflux-db-reader
+  namespace: miniflux
+automountServiceAccountToken: false
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: miniflux-db-source
+  namespace: miniflux
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: databases
+      auth:
+        serviceAccount:
+          name: miniflux-db-reader
+      # In-cluster API: url omitted (docs), CA from kube-root-ca.crt.
+      caProvider:
+        type: ConfigMap
+        name: kube-root-ca.crt
+        key: ca.crt

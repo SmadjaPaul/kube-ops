@@ -1,0 +1,27 @@
+# Lets the ESO SecretStore miniflux-db-source (namespace miniflux) read ONE
+# Secret of this namespace: pg-shared-homelab-miniflux (resourceNames).
+# Nothing else in databases is readable through this binding.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: miniflux-db-source-reader
+  namespace: databases
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["pg-shared-homelab-miniflux"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: miniflux-db-source-reader
+  namespace: databases
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: miniflux-db-source-reader
+subjects:
+  - kind: ServiceAccount
+    name: miniflux-db-reader
+    namespace: miniflux

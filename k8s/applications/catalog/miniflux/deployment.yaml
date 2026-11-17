@@ -27,6 +27,8 @@ spec:
           envFrom:
             - secretRef:
                 name: miniflux-runtime
+            - secretRef:
+                name: miniflux-oidc
           env:
             - { name: BASE_URL, value: "https://rss.smadja.dev" }
             - { name: LISTEN_ADDR, value: "0.0.0.0:8080" }

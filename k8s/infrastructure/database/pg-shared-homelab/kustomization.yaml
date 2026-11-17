@@ -11,3 +11,4 @@ resources:
   - networkpolicy.yaml
   - miniflux-database.yaml
   - miniflux-isolation-job.yaml
+  - db-source-rbac.yaml

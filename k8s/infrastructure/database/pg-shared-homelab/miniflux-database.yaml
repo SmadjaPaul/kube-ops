@@ -1,17 +1,26 @@
 # PLT-152 (T3, golden path): Miniflux database in pg-shared-homelab. Owner
-# role miniflux (no superuser, no createdb). The role password is a Doppler
-# value that Paul creates (PG_SHARED_HOMELAB_MINIFLUX_PASSWORD, hex only, never
-# in Git); the application reads the same value to build DATABASE_URL.
+# role miniflux (no superuser, no createdb). The role password is generated
+# IN-CLUSTER by External Secrets (CreatedOnce, hex): no Doppler value, no
+# human gesture. miniflux/ reads it through the SecretStore miniflux-db-source
+# (kubernetes provider, RBAC in this namespace, see db-source-rbac.yaml).
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: pg-shared-homelab-miniflux
+  namespace: databases
+spec:
+  length: 48
+  symbols: 0
+  allowRepeat: true
+  encoding: hex
+---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: pg-shared-homelab-miniflux
   namespace: databases
 spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: doppler-cluster
-    kind: ClusterSecretStore
+  refreshPolicy: CreatedOnce
   target:
     name: pg-shared-homelab-miniflux
     creationPolicy: Owner
@@ -23,9 +32,12 @@ spec:
       data:
         username: miniflux
         password: "{{ .password }}"
-  data:
-    - secretKey: password
-      remoteRef: { key: PG_SHARED_HOMELAB_MINIFLUX_PASSWORD }
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: pg-shared-homelab-miniflux
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Database

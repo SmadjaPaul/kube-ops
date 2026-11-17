@@ -42,16 +42,9 @@ spec:
   # Sentinelle du golden path service-postgres-oidc : le template ajoute les roles
   # applicatifs ici (golden-paths/service-postgres-oidc/template.yaml). Ne pas supprimer.
   managed:
-    roles: [] # GOLDEN-PATH-ROLES
-  storage:
-    storageClass: longhorn-fast
-    size: 20Gi
-  walStorage:
-    storageClass: longhorn-fast
-    size: 5Gi
-  managed:
-    roles:
-      # PLT-152 (Miniflux). Password from pg-shared-homelab-miniflux (miniflux-database.yaml).
+    # PLT-152 (Miniflux) : entree ecrite a la main sous la sentinelle (memes champs que le template).
+    # Password from pg-shared-homelab-miniflux (miniflux-database.yaml).
+    roles: # GOLDEN-PATH-ROLES
       - name: miniflux
         ensure: present
         login: true
@@ -61,6 +54,12 @@ spec:
         connectionLimit: 10
         passwordSecret:
           name: pg-shared-homelab-miniflux
+  storage:
+    storageClass: longhorn-fast
+    size: 20Gi
+  walStorage:
+    storageClass: longhorn-fast
+    size: 5Gi
   resources:
     requests: {cpu: 200m, memory: 768Mi}
     limits: {cpu: "1", memory: 2Gi}
