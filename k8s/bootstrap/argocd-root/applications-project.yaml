@@ -37,6 +37,10 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: gpt-researcher
       server: https://kubernetes.default.svc
+    # PLT-190: drill de restauration hors Oracle (pg-shared OKE vers homelab),
+    # docs/operations/pg-shared-oke-backup-drill.md. Retrait avec le drill.
+    - namespace: pg-shared-oke-drill
+      server: https://kubernetes.default.svc
     - namespace: home-assistant
       server: https://kubernetes.default.svc
     - namespace: hindsight-personal
