@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - kyverno-policies.yaml
+  - apps-generated-boundary.yaml
   - templates/k8spspprohibited.yaml
   - gatekeeper-constraints.yaml
   - falco-custom-rules.yaml
