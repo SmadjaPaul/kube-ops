@@ -90,9 +90,14 @@ guard_run() {
 }
 
 # case_run LIBELLE ATTENDU(PASS|FAIL) MOTIF(regex|-) ADMISSION("" ou valeur) VARIANTE(fonction) [args]
+# Shards (SC_SHARDS / SC_SHARD, voir service-contract-guard-test-sharded.sh) : chaque cas est
+# execute par UN seul shard (cas independants : begin remet main a zero). Sans SC_SHARDS : tous.
+SC_SHARDS="${SC_SHARDS:-1}"; SC_SHARD="${SC_SHARD:-0}"; case_seq=0
 case_run() {
   local label="$1" expect="$2" want="$3" adm="$4"
   shift 4
+  case_seq=$((case_seq + 1))
+  if [ $(( (case_seq - 1) % SC_SHARDS )) -ne "$SC_SHARD" ]; then return 0; fi
   begin
   "$@"
   commit_case "$label"
