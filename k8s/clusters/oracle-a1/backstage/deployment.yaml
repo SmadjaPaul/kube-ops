@@ -1,0 +1,68 @@
+# Backstage 1.56.5 sur OKE (arm64). Image epinglee par digest dans kustomization.yaml (images:).
+# Aucune NetworkPolicy (flannel ne les applique pas). Aucun Service LoadBalancer.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: {app.kubernetes.io/name: backstage}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: backstage}
+    spec:
+      serviceAccountName: backstage
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      containers:
+        - name: backstage
+          image: ghcr.io/smadjapaul/backstage
+          imagePullPolicy: IfNotPresent
+          # Remplace le CMD de l'image : meme commande + la configuration OKE en dernier.
+          # Base SQLite ephemere dans /tmp (emptyDir) : pas de donnee durable sur Oracle (D-2026-11-11-17).
+          args:
+            - sh
+            - -c
+            - mkdir -p /tmp/backstage-data && exec node packages/backend --config app-config.yaml --config app-config.production.yaml --config /etc/backstage/app-config.oke.yaml
+          ports:
+            - {name: http, containerPort: 7007}
+          envFrom:
+            - secretRef: {name: backstage-runtime}
+          startupProbe:
+            httpGet: {path: /.backstage/health/v1/liveness, port: http}
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: {path: /.backstage/health/v1/liveness, port: http}
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet: {path: /.backstage/health/v1/readiness, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: config, mountPath: /etc/backstage, readOnly: true}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 512Mi}
+        - name: config
+          configMap: {name: backstage-config}

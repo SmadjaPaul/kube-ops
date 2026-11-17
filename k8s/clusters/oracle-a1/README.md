@@ -11,6 +11,7 @@ homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
 | `external-secrets/` | Overlay on the shared ESO + `ClusterSecretStore/doppler-cluster` base. |
 | `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster (R2 backup, PLT-190). One `Database` + role per application. |
 | `cert-manager/`, `cnpg-barman-plugin/` | CNPG barman-cloud plugin and its TLS prerequisite (PLT-301). No ACME issuer. |
+| `backstage/` | IDP agentic (PR MANDAT oracle-a1) : Backstage 1.56.5 arm64, namespace `backstage`, base SQLite éphémère (emptyDir, aucune donnée durable). **Hors racine** tant que le digest de l'image n'est pas publié et épinglé (`docs/platform/backstage-hosting.md`). |
 | `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster empty database (drill, PLT-303), Hindsight API, R2 backup. In the root. |
 | `cloudflared/` | Outbound-only tunnel (token from Doppler). |
 | `agent-operator/` | PLT-257: read-only agent identity (ServiceAccount `argocd/agent-operator`, ClusterRoles get/list/watch, no Secret, no pods/exec). In the root. Token: `scripts/agent-operator-oke-token.sh --provision` (run by Paul in an OKE admin session), then `kubectl-ro.sh --cluster oracle-a1 ...` reads it from Doppler `KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1`. |

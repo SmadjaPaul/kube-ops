@@ -1,0 +1,16 @@
+# Surcharge OKE (chargee en dernier par la commande du Deployment). Pas de secret.
+# L'hote doit correspondre a oracle_a1_backstage_hostname (homelab-infra, Cloudflare Access).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backstage-config
+  namespace: backstage
+data:
+  app-config.oke.yaml: |
+    app:
+      title: Backstage IDP (oracle-a1)
+      baseUrl: https://backstage-oke.smadja.dev
+    backend:
+      baseUrl: https://backstage-oke.smadja.dev
+      cors:
+        origin: https://backstage-oke.smadja.dev

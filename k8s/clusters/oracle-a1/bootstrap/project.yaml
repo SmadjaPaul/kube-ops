@@ -19,6 +19,8 @@ spec:
     - {server: https://kubernetes.default.svc, namespace: hindsight}
     # PLT-306: Grafana Cloud export (kube-state-metrics, Alloy).
     - {server: https://kubernetes.default.svc, namespace: monitoring}
+    # Backstage (IDP agentic, OKE). MANDAT Paul : ré-appliquer le bootstrap pour que le live change.
+    - {server: https://kubernetes.default.svc, namespace: backstage}
   # Explicit list (PLT-254): CRDs, RBAC, webhooks and Namespaces shipped by ESO
   # and CNPG, plus the ClusterSecretStore of the ESO base.
   clusterResourceWhitelist:

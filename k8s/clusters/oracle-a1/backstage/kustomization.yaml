@@ -1,0 +1,16 @@
+# Overlay Backstage oracle-a1. NON referencee par apps/kustomization.yaml tant que le digest
+# n'est pas publie (CI image-build, main) et epingle ci-dessous. Voir docs/platform/backstage-hosting.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: backstage
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - externalsecret.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+images:
+  - name: ghcr.io/smadjapaul/backstage
+    # PLACEHOLDER : remplacer par le digest arm64 du resume du job image-build (branche main).
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
