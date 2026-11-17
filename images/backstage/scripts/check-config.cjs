@@ -26,6 +26,12 @@ async function main() {
   process.env.BACKSTAGE_GH_APP_CLIENT_SECRET ??= 'fake-client-secret-for-config-check';
   process.env.BACKSTAGE_AGENT_A_TOKEN ??= 'fake-agent-a-token-for-config-check-only';
   process.env.BACKSTAGE_AGENT_B_TOKEN ??= 'fake-agent-b-token-for-config-check-only';
+  // PostgreSQL : valeurs factices (aucune connexion ouverte par ce script).
+  process.env.BACKSTAGE_PG_HOST ??= 'pg-check.invalid';
+  process.env.BACKSTAGE_PG_PORT ??= '5432';
+  process.env.BACKSTAGE_PG_USER ??= 'backstage';
+  process.env.BACKSTAGE_PG_PASSWORD ??= 'fake-pg-password-for-config-check-only';
+  process.env.BACKSTAGE_PG_DATABASE ??= 'backstage';
 
   const schema = await loadConfigSchema({ dependencies });
   const { appConfigs } = await loadConfig({
@@ -45,12 +51,16 @@ async function main() {
   if (!app) throw new Error('integrations.github.apps absent');
   if (github.token) throw new Error('un token PAT est encore configure pour github.com');
   if (typeof app.appId !== 'number') throw new Error('appId doit etre un nombre');
+  // Base de donnees : PostgreSQL uniquement en configuration de production (pas de SQLite).
+  if (config.getString('backend.database.client') !== 'pg') throw new Error('backend.database.client doit etre pg');
   console.log(JSON.stringify({
     schema: 'ok',
     github_apps: integrations.filter((c) => c.apps).map((c) => ({ host: c.host, appId: typeof c.apps[0].appId, owners: c.apps[0].allowedInstallationOwners })),
     github_token_pat: false,
     catalog_readonly: config.getOptionalBoolean('catalog.readonly'),
     guest_provider: config.has('auth.providers.guest'),
+    database_client: config.getString('backend.database.client'),
+    scaffolder_task_recovery: config.getOptionalBoolean('scaffolder.taskRecovery.enabled'),
     permission_enabled: config.getOptionalBoolean('permission.enabled'),
     externalAccess_subjects: (config.getOptionalConfigArray('backend.auth.externalAccess') ?? []).map((c) => c.getString('options.subject')),
   }, null, 2));

@@ -1,13 +1,14 @@
-# Backstage 1.56.5 : image de la plateforme IDP agentic (hebergee en svc-backstage, PROVISOIRE).
+# Backstage 1.56.5 : image de la plateforme IDP agentic (hebergee sur OKE oracle-a1, namespace backstage).
 # Contexte de build : images/backstage. Build multi-etapes : rien n'est compile sur l'hote.
 # Base pinnee par digest (node 24, trixie slim : meme base que packages/backend/Dockerfile officiel).
-# Execution : utilisateur non root, rootfs en lecture seule compatible (seul /tmp est ecrivable,
-# monte en emptyDir par le chart platform-app).
+# Plateforme : linux/arm64 (noeud A1 Ampere) ; le workflow image-build le selectionne.
+# Execution : utilisateur non root (node, uid 1000), rootfs en lecture seule compatible (seul /tmp
+# est ecrivable, monte en emptyDir par le Deployment). Base de donnees : PostgreSQL (variables d'env).
 
 ARG IMAGE_VERSION=backstage-1.56.5-node24
 
 FROM node:24-trixie-slim@sha256:af02d57b57719b9657a45199a79264a9437940cd55b3c7b3fc99615654f124a0 AS build
-# Toolchain native pour better-sqlite3 si aucun binaire precompile ne correspond.
+# Toolchain native (better-sqlite3 n'est plus utilise en prod ; garde pour les dependances natives eventuelles).
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
@@ -29,5 +30,5 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app /app
 EXPOSE 7007
 USER node
-# /tmp/backstage-data : base SQLite (emptyDir). Cree au demarrage, pas de volume persistant.
-CMD ["sh", "-c", "mkdir -p /tmp/backstage-data && exec node packages/backend --config app-config.yaml --config app-config.production.yaml"]
+# Configuration par defaut de l'image. Le Deployment ajoute la ConfigMap OKE en dernier --config.
+CMD ["node", "packages/backend", "--config", "app-config.yaml", "--config", "app-config.production.yaml"]

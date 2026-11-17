@@ -1,15 +1,18 @@
-# Configuration de base Backstage 1.56.5 (IDP agentic, hebergee en svc-backstage, PROVISOIRE).
-# Aucun secret ici : tout vient de l'environnement du pod (ExternalSecret doppler-cluster).
+# Configuration de base Backstage 1.56.5 (plateforme IDP agentic, hebergee sur OKE oracle-a1).
+# Aucun secret ici : tout vient de l'environnement du pod (ExternalSecret backstage-runtime, namespace backstage).
+# L'URL publique et le CORS sont fixes par l'overlay OKE (k8s/clusters/oracle-a1/backstage, ConfigMap backstage-config),
+# pas ici : ce fichier reste valide hors cluster (scripts/check-config.cjs).
 # Documentation : docs/platform/backstage-github-app.md et docs/platform/backstage-hosting.md.
+
 app:
-  title: Backstage IDP (homelab, provisoire)
-  baseUrl: https://backstage.smadja.dev
+  title: Backstage IDP
+  baseUrl: http://localhost:7007
 
 organization:
   name: homelab
 
 backend:
-  baseUrl: https://backstage.smadja.dev
+  baseUrl: http://localhost:7007
   listen:
     host: 0.0.0.0
     port: 7007
@@ -20,14 +23,15 @@ backend:
         - id: 'catalog:register-entity'
         - id: 'catalog:unregister-entity'
         - id: 'catalog:refresh-catalog-entity'
+    # Plugins dont les actions sont exposees (catalog, scaffolder, search). Pas kubernetes/argocd (non installes).
     pluginSources:
       - catalog
       - scaffolder
       - search
   auth:
-    # Aucun fournisseur humain (OIDC/guest) : provisoire, cf. docs/platform/backstage-hosting.md.
+    # Aucun fournisseur humain (OIDC/guest) : les agents passent par externalAccess uniquement.
     providers: {}
-    # Principals service (agents). Le token vient de l'environnement (BACKSTAGE_AGENT_*_TOKEN).
+    # Principals service (agents). Les tokens viennent de l'environnement (BACKSTAGE_AGENT_*_TOKEN).
     # Restrictions par plugin seulement : les restrictions par nom de permission cassent mcp-actions.
     externalAccess:
       - type: static
@@ -46,10 +50,22 @@ backend:
           - plugin: mcp-actions
           - plugin: catalog
   database:
-    client: better-sqlite3
+    # PostgreSQL uniquement (CNPG pg-shared, base et role dedies). Pas de SQLite, pas de /tmp.
+    # Durabilite : voir la PR MANDAT oracle-a1 (restauration hors Oracle non prouvee).
+    client: pg
     connection:
-      # Fichier SQLite dans /tmp (emptyDir du chart) : stateless assume, catalogue reconstruit depuis Git.
-      directory: /tmp/backstage-data
+      host: ${BACKSTAGE_PG_HOST}
+      port: ${BACKSTAGE_PG_PORT}
+      user: ${BACKSTAGE_PG_USER}
+      password: ${BACKSTAGE_PG_PASSWORD}
+      database: ${BACKSTAGE_PG_DATABASE}
+      # CNPG sert TLS avec un certificat interne ; la CA n'est pas montee ici (residuel documente).
+      ssl:
+        rejectUnauthorized: false
+  # Reprise des taches Scaffolder interrompues (sinon une tache coupee reste "processing").
+scaffolder:
+  taskRecovery:
+    enabled: true
 
 permission:
   enabled: true
@@ -67,11 +83,12 @@ integrations:
             - SmadjaPaul
 
 catalog:
+  # Ecriture catalogue fermee (REST et MCP) : les locations viennent de cette configuration uniquement.
   readonly: true
   rules:
     - allow: [Component, System, API, Resource, Location, Template, User, Group]
   locations:
-    # Template platform-application, epingle par SHA (meme SHA que le pilote, dernier commit du template).
+    # Template platform-application, epingle par SHA.
     - type: url
       target: https://github.com/SmadjaPaul/kube-ops/blob/b97982bde369fa605029f3f79c0131efd298777f/golden-paths/platform-application/template.yaml
       rules:
@@ -95,5 +112,5 @@ mcpActions:
               readOnly: false
 
 auth:
-  # Aucun fournisseur humain (OIDC/guest) : provisoire, cf. docs/platform/backstage-hosting.md.
+  # Aucun fournisseur humain (OIDC/guest) : cf. docs/platform/backstage-hosting.md.
   providers: {}
