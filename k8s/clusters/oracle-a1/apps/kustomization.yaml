@@ -25,6 +25,7 @@ kind: Kustomization
 # le drill ; retour en arrière : retirer cette ligne (Cluster en Prune=false).
 resources:
   - baseline.yaml
+  - secret-stores.yaml
   - guardrails.yaml
   - external-secrets.yaml
   - cert-manager.yaml

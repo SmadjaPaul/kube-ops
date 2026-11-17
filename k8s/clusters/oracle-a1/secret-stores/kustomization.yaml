@@ -1,0 +1,10 @@
+# Stores ESO namespaces par domaine (ADR section 6). Transition : les ExternalSecrets
+# existants restent sur ClusterSecretStore doppler-cluster tant que les tokens
+# doppler-token ne sont pas crees ; bascule ExternalSecret par ExternalSecret dans une PR suivante.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - auth.yaml
+  - backstage.yaml
+  - hindsight.yaml
+  - databases.yaml
