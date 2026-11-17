@@ -110,6 +110,13 @@ spec:
         draft: true
         update: true
         targetBranchName: main
+    # Les outils MCP (get-scaffolder-task-logs) n'exposent pas l'output de la tache :
+    # on journalise l'URL de la PR pour qu'un agent puisse suivre son traitement.
+    - id: report
+      name: Journaliser l'URL de la PR
+      action: debug:log
+      input:
+        message: "PR_URL=${{ steps.pr.output.remoteUrl }} PR_NUMBER=${{ steps.pr.output.pullRequestNumber }} BRANCH=idp-app-${{ parameters.name }}"
   output:
     links:
       - title: Pull request draft
