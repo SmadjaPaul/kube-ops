@@ -359,7 +359,8 @@ def render(repo, ref, roots, out_dir):
                 continue
             r = subprocess.run(["kustomize", "build", "--enable-helm", src], capture_output=True, text=True)
             if r.returncode != 0:
-                raise RenderError(f"{root} : {r.stderr.strip()[:300]}")
+                # La fin de stderr porte la cause reelle (ex. echec helm pull) : on la garde en entier.
+                raise RenderError(f"{root} : {r.stderr.strip()[-1500:]}")
             with open(os.path.join(out_dir, root.replace("/", "__") + ".yaml"), "w", encoding="utf-8") as fh:
                 fh.write(r.stdout)
             rendered.append(root)
