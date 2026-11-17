@@ -39,8 +39,8 @@ runtime() {
     kubectl get validatingadmissionpolicybinding baseline-pod-hardening >/dev/null 2>&1 && break; sleep 1
   done
   sleep 5
+  # PSA non applique ici : chaque cas teste une regle VAP precise (PSA restricted est couvert par baseline/namespaces.yaml).
   kubectl create namespace backstage --dry-run=client -o yaml | kubectl apply -f - >/dev/null
-  kubectl label namespace backstage pod-security.kubernetes.io/enforce=restricted --overwrite >/dev/null
   kubectl create namespace databases --dry-run=client -o yaml | kubectl apply -f - >/dev/null
   fails=0
   expect() { # expect LABEL ATTENDU(deny|allow) FICHIER [MOTIF]
