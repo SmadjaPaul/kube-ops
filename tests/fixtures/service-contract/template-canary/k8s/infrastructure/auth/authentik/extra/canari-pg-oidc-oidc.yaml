@@ -1,0 +1,62 @@
+# Secret client OIDC de canari-pg-oidc : genere une fois (CreatedOnce), lu par Authentik via envFrom
+# (authentik-blueprint-canari-pg-oidc), et lu par l'application via SecretStore auth-source.
+# La cle est propre au service (CANARIPGOIDC_OIDC_CLIENT_SECRET) car envFrom fusionne toutes les
+# authentik-blueprint-* dans le pod Authentik : deux cles identiques s'ecraseraient.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: authentik-blueprint-canari-pg-oidc
+  namespace: auth
+spec:
+  length: 64
+  digits: 10
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-blueprint-canari-pg-oidc
+  namespace: auth
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: authentik-blueprint-canari-pg-oidc
+    creationPolicy: Orphan
+    template:
+      engineVersion: v2
+      type: Opaque
+      data:
+        CANARIPGOIDC_OIDC_CLIENT_SECRET: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: authentik-blueprint-canari-pg-oidc
+---
+# Lecture du seul secret par le SA secret-reader de canari-pg-oidc (namespace auth, Role nommee).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: authentik-blueprint-canari-pg-oidc-reader
+  namespace: auth
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["authentik-blueprint-canari-pg-oidc"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: authentik-blueprint-canari-pg-oidc-reader
+  namespace: auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: authentik-blueprint-canari-pg-oidc-reader
+subjects:
+  - kind: ServiceAccount
+    name: canari-pg-oidc-secret-reader
+    namespace: canari-pg-oidc

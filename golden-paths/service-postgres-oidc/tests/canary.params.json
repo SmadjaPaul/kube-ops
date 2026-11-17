@@ -1,0 +1,22 @@
+{
+  "name": "canari-pg-oidc",
+  "pgDatabase": "canaripgoidc",
+  "owner": "user:default/paul",
+  "accessGroups": ["authentik-admins"],
+  "cluster": "homelab",
+  "exposure": "internal",
+  "domain": "smadja.dev",
+  "dataClass": "REBUILDABLE",
+  "restoreDrillStatus": "NOT_TESTED",
+  "image": "grafana/grafana-oss:12.4.3@sha256:2e986801428cd689c2358605289c90ab37d2b39e24808874971f54c99bcdc412",
+  "cpuRequestMillicores": 100,
+  "cpuLimitMillicores": 500,
+  "memoryRequestMi": 256,
+  "memoryLimitMi": 512,
+  "containerPort": 3000,
+  "healthPath": "/api/health",
+  "callbackPath": "/login/generic_oauth",
+  "oidcScopes": ["openid", "email", "profile"],
+  "backupRpo": "24h",
+  "backupRto": "4h"
+}

@@ -14,6 +14,9 @@ node --test tests/harness/agent-test-result-contract.test.mjs
 # PLT-312 (M5): doppler-safe (--only, closed project list), kubectl-ro identity, 24 h agent tokens.
 bash tests/agent-guard/secret-output-guard-test.sh
 
+# Mission resume without memory: idempotence, Git overrides file claims, attempt numbering (offline).
+python3 -m unittest discover -s scripts/mission/tests
+
 # PLT-210: bare `! cmd` assertions never trip `set -e`.
 bash scripts/check-harness-negations.sh
 

@@ -1,0 +1,301 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: service-postgres-oidc
+  title: Service PostgreSQL + OIDC (GitOps, homelab)
+  description: >-
+    Service au profil Miniflux : base dans pg-shared-homelab, login OIDC Authentik,
+    déploiement GitOps via une PR kube-ops. Pilote v1, cluster homelab, exposition interne.
+  tags: [golden-path, homelab, postgresql, oidc, gitops]
+  annotations:
+    homelab.smadja.dev/golden-path: service-postgres-oidc@v1
+spec:
+  owner: group:default/platform
+  type: service
+  parameters:
+    - title: Identité, propriétaire et données
+      required: [name, pgDatabase, owner, accessGroups, cluster, exposure, domain, dataClass, restoreDrillStatus]
+      properties:
+        name:
+          title: Nom du service
+          type: string
+          description: Namespace, Application Argo, slug Authentik et hostname. Doit être unique dans le dépôt.
+          pattern: '^[a-z][a-z0-9-]{1,18}[a-z0-9]$'
+          ui:autofocus: true
+        pgDatabase:
+          title: Base et rôle PostgreSQL
+          type: string
+          description: >-
+            Alphanumérique minuscule, sans tiret ni underscore (la garde d'isolation et le Job
+            PostSync ne lisent que [A-Za-z0-9_] ; un underscore ferait échouer le nom du Job Kubernetes).
+            Pas de nom réservé « app ».
+          pattern: '^(?!app$)[a-z][a-z0-9]{1,30}$'
+        owner:
+          title: Propriétaire (catalogue)
+          type: string
+          description: group:default/<équipe> ou user:default/paul
+          pattern: '^(group:default/[a-z][a-z0-9-]*|user:default/paul)$'
+        accessGroups:
+          title: Groupes Authentik autorisés
+          type: array
+          description: Sous-ensemble non vide. Jamais un utilisateur nommé.
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [family, friends, authentik-admins]
+          ui:widget: checkboxes
+        cluster:
+          title: Cluster
+          type: string
+          enum: [homelab]
+          default: homelab
+          description: Pilote limité à homelab (oracle-a1 refusé).
+        exposure:
+          title: Exposition
+          type: string
+          enum: [internal]
+          default: internal
+          description: Gateway/internal uniquement. L'exposition externe est hors template (mandat).
+        domain:
+          title: Domaine interne
+          type: string
+          enum: [smadja.dev]
+          default: smadja.dev
+        dataClass:
+          title: Classe de données
+          type: string
+          enum: [IRREPLACEABLE, USEFUL, REBUILDABLE]
+          description: Classes de docs/operations/backup-coverage-classes.tsv retenues par le pilote.
+        restoreDrillStatus:
+          title: Preuve de restauration
+          type: string
+          enum: [NOT_TESTED, PASS]
+          default: NOT_TESTED
+          description: Obligatoire à PASS pour IRREPLACEABLE ou USEFUL (drill de restauration, cf. pg-shared-app-restore-drill).
+      allOf:
+        - if:
+            properties:
+              dataClass:
+                enum: [IRREPLACEABLE, USEFUL]
+            required: [dataClass]
+          then:
+            properties:
+              restoreDrillStatus:
+                const: PASS
+    - title: Image, ressources et réseau
+      required: [image, cpuRequestMillicores, cpuLimitMillicores, memoryRequestMi, memoryLimitMi, containerPort, healthPath]
+      properties:
+        image:
+          title: Image (digest obligatoire)
+          type: string
+          description: registre/repo:tag@sha256:<64 hex>. Le digest doit être résolu avant l'appel.
+          pattern: '^[a-z0-9][a-z0-9._/-]*(:[A-Za-z0-9._-]+)?@sha256:[a-f0-9]{64}$'
+        cpuRequestMillicores:
+          title: CPU request (m)
+          type: integer
+          minimum: 10
+          maximum: 500
+          default: 100
+        cpuLimitMillicores:
+          title: CPU limit (m)
+          type: integer
+          minimum: 10
+          maximum: 500
+          default: 500
+        memoryRequestMi:
+          title: RAM request (Mi)
+          type: integer
+          minimum: 32
+          maximum: 512
+          default: 256
+        memoryLimitMi:
+          title: RAM limit (Mi)
+          type: integer
+          minimum: 32
+          maximum: 512
+          default: 512
+        containerPort:
+          title: Port HTTP du conteneur
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 3000
+        healthPath:
+          title: Chemin de sonde HTTP
+          type: string
+          pattern: '^/[A-Za-z0-9/_-]*$'
+          default: /api/health
+    - title: OIDC et sauvegarde
+      required: [callbackPath, oidcScopes, backupRpo, backupRto]
+      properties:
+        callbackPath:
+          title: Chemin de callback OIDC
+          type: string
+          description: La redirect URI exacte est https://<hostname><callbackPath>.
+          pattern: '^/[A-Za-z0-9/_-]+$'
+          default: /login/generic_oauth
+        oidcScopes:
+          title: Scopes OIDC
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [openid, email, profile]
+          default: [openid, email, profile]
+          ui:widget: checkboxes
+        backupRpo:
+          title: RPO cible
+          type: string
+          pattern: '^[0-9]+(min|h|d)$'
+          default: 24h
+        backupRto:
+          title: RTO cible
+          type: string
+          pattern: '^[0-9]+(min|h|d)$'
+          default: 4h
+  steps:
+    - id: skeleton
+      name: Générer les manifestes et le blueprint
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: ./out
+        values:
+          name: ${{ parameters.name }}
+          pgDatabase: ${{ parameters.pgDatabase }}
+          owner: ${{ parameters.owner }}
+          accessGroups: ${{ parameters.accessGroups }}
+          cluster: ${{ parameters.cluster }}
+          exposure: ${{ parameters.exposure }}
+          domain: ${{ parameters.domain }}
+          dataClass: ${{ parameters.dataClass }}
+          restoreDrillStatus: ${{ parameters.restoreDrillStatus }}
+          image: ${{ parameters.image }}
+          cpuRequestMillicores: ${{ parameters.cpuRequestMillicores }}
+          cpuLimitMillicores: ${{ parameters.cpuLimitMillicores }}
+          memoryRequestMi: ${{ parameters.memoryRequestMi }}
+          memoryLimitMi: ${{ parameters.memoryLimitMi }}
+          containerPort: ${{ parameters.containerPort }}
+          healthPath: ${{ parameters.healthPath }}
+          callbackPath: ${{ parameters.callbackPath }}
+          oidcScopes: ${{ parameters.oidcScopes }}
+          backupRpo: ${{ parameters.backupRpo }}
+          backupRto: ${{ parameters.backupRto }}
+          hostname: ${{ parameters.name }}.${{ parameters.domain }}
+          oidcEnvKey: ${{ parameters.pgDatabase | upper }}_OIDC_CLIENT_SECRET
+    # Fichiers EXISTANTS du dépôt : fetch:plain:file (UN fichier ; fetch:plain sur un fichier extrait 0 octet
+    # sans erreur) puis ajout exact par fs:replace. Backstage ne signale AUCUNE erreur si l'ancre est absente :
+    # le moteur de test exige exactement 1 occurrence, et l'ancre cluster.yaml doit exister sur main (pré-pose).
+    - id: fetch-catalog-kustomization
+      name: Lire catalog/kustomization.yaml
+      action: fetch:plain:file
+      input:
+        url: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/applications/catalog/kustomization.yaml
+        targetPath: ./out/k8s/applications/catalog/kustomization.yaml
+    - id: edit-catalog-kustomization
+      name: Ajouter le service au catalogue Argo
+      action: roadiehq:utils:fs:replace
+      input:
+        files:
+          - file: ./out/k8s/applications/catalog/kustomization.yaml
+            find: 'resources:'
+            replaceWith: "resources:\n  - ${{ parameters.name }}"
+    - id: fetch-pg-kustomization
+      name: Lire pg-shared-homelab/kustomization.yaml
+      action: fetch:plain:file
+      input:
+        url: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/infrastructure/database/pg-shared-homelab/kustomization.yaml
+        targetPath: ./out/k8s/infrastructure/database/pg-shared-homelab/kustomization.yaml
+    - id: edit-pg-kustomization
+      name: Ajouter la base à pg-shared-homelab
+      action: roadiehq:utils:fs:replace
+      input:
+        files:
+          - file: ./out/k8s/infrastructure/database/pg-shared-homelab/kustomization.yaml
+            find: 'resources:'
+            replaceWith: "resources:\n  - ${{ parameters.name }}-database.yaml"
+    - id: fetch-pg-cluster
+      name: Lire pg-shared-homelab/cluster.yaml
+      action: fetch:plain:file
+      input:
+        url: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml
+        targetPath: ./out/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml
+    - id: edit-pg-cluster
+      name: Ajouter le rôle géré de la base (ancre sentinelle, une entrée par service)
+      action: roadiehq:utils:fs:replace
+      input:
+        files:
+          # Ancre = ligne sentinelle pré-posée dans cluster.yaml (spec.managed.roles). Chaque service
+          # insère son rôle juste après : N services = N entrées, un seul bloc managed (pas de YAML dupliqué).
+          - file: ./out/k8s/infrastructure/database/pg-shared-homelab/cluster.yaml
+            find: "    roles: # GOLDEN-PATH-ROLES"
+            replaceWith: "    roles: # GOLDEN-PATH-ROLES\n      - name: ${{ parameters.pgDatabase }}\n        ensure: present\n        login: true\n        superuser: false\n        createdb: false\n        createrole: false\n        passwordSecret:\n          name: pg-shared-homelab-${{ parameters.name }}"
+            matchRegex: false
+    - id: fetch-authentik-extra
+      name: Lire authentik/extra/kustomization.yml
+      action: fetch:plain:file
+      input:
+        url: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/infrastructure/auth/authentik/extra/kustomization.yml
+        targetPath: ./out/k8s/infrastructure/auth/authentik/extra/kustomization.yml
+    - id: edit-authentik-extra
+      name: Ajouter le blueprint et le secret client
+      action: roadiehq:utils:fs:replace
+      input:
+        files:
+          - file: ./out/k8s/infrastructure/auth/authentik/extra/kustomization.yml
+            find: 'resources:'
+            replaceWith: "resources:\n  - ${{ parameters.name }}-oidc.yaml"
+          - file: ./out/k8s/infrastructure/auth/authentik/extra/kustomization.yml
+            find: '      - ./blueprints/apps-opencode.yaml'
+            replaceWith: "      - ./blueprints/apps-${{ parameters.name }}.yaml\n      - ./blueprints/apps-opencode.yaml"
+    - id: fetch-authentik-values
+      name: Lire authentik/values.yaml
+      action: fetch:plain:file
+      input:
+        url: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/infrastructure/auth/authentik/values.yaml
+        targetPath: ./out/k8s/infrastructure/auth/authentik/values.yaml
+    - id: edit-authentik-values
+      name: Injecter le secret blueprint dans Authentik
+      action: roadiehq:utils:fs:replace
+      input:
+        files:
+          - file: ./out/k8s/infrastructure/auth/authentik/values.yaml
+            find: '        name: authentik-blueprint-mealie'
+            replaceWith: "        name: authentik-blueprint-${{ parameters.name }}\n        optional: true\n    - secretRef:\n        name: authentik-blueprint-mealie"
+    - id: fetch-applications-project
+      name: Lire applications-project.yaml
+      action: fetch:plain:file
+      input:
+        url: https://github.com/SmadjaPaul/kube-ops/blob/main/k8s/bootstrap/argocd-root/applications-project.yaml
+        targetPath: ./out/k8s/bootstrap/argocd-root/applications-project.yaml
+    - id: edit-applications-project
+      name: Autoriser le namespace dans l'AppProject
+      action: roadiehq:utils:fs:replace
+      input:
+        files:
+          - file: ./out/k8s/bootstrap/argocd-root/applications-project.yaml
+            find: '  destinations:'
+            replaceWith: "  destinations:\n    - namespace: ${{ parameters.name }}\n      server: https://kubernetes.default.svc"
+    - id: publish
+      name: Ouvrir ou mettre à jour la PR kube-ops
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=SmadjaPaul&repo=kube-ops
+        branchName: golden-path-${{ parameters.name }}
+        draft: true
+        targetBranchName: main
+        title: 'golden-path service-postgres-oidc: ${{ parameters.name }}'
+        description: >-
+          Généré par le template service-postgres-oidc@v1. Base ${{ parameters.pgDatabase }} dans
+          pg-shared-homelab, OIDC Authentik (groupes ${{ parameters.accessGroups | join(', ') }}),
+          exposition interne ${{ parameters.name }}.${{ parameters.domain }}. Les secrets sont générés
+          dans le cluster (ESO Password CreatedOnce), aucune valeur n'est dans cette PR.
+        sourcePath: out
+        update: true
+        commitMessage: 'feat(golden-path): service-postgres-oidc ${{ parameters.name }}'
+  output:
+    links:
+      - title: Pull request kube-ops
+        url: ${{ steps['publish'].output.remoteUrl }}
