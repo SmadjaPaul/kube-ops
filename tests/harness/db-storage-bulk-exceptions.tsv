@@ -7,7 +7,6 @@ Cluster	wellness/sparkyfitness-db	Existing before the guard; lot 3 (drill of the
 Cluster	mastra-factory/mastra-factory-postgresql	Factory frozen, near-zero writes; lot 3 or retirement with Factory.
 Cluster	factory-platform/factory-platform-pg2	Factory frozen, near-zero writes; lot 3 or retirement with Factory.
 Cluster	factory-platform/factory-platform-postgresql	Closed forensic copy (Factory frozen), no writes; retired separately after a retention decision.
-Cluster	hindsight-restore-20261110/hindsight-db-restore	Restore drill copy, no writes; retired separately after the drill (not migrated).
 Cluster	hindsight-oke-drill/hindsight-db-offsite	Offsite restore drill (PLT-301), not migrated; retired after the drill.
 StatefulSet	invoice-ninja/invoice-ninja-mysql	Existing before the guard, near-zero writes; lot 3 (dump and restore to longhorn-fast).
 PersistentVolumeClaim	invoice-ninja/invoice-ninja-redis	Invoice Ninja cache next to its MySQL; moves with it in lot 3.
