@@ -120,6 +120,17 @@ class NegativeContract(unittest.TestCase):
         "database-on-web-profile": (lambda d: d["spec"].update(database={"engine": "postgres"}), DB_MSG),
         "web-postgres-profile": (lambda d: d["spec"].update(profile="web-postgres"), DB_MSG),
         "bad-owner": (lambda d: d["metadata"].update(owner="team-x"), "/metadata/owner"),
+        # Contrat 0.2.0 : secrets, config, egress (garde-fous)
+        "secret-wrong-prefix": (lambda d: d["spec"].update(secrets=["OTHER_TOKEN"]), "doit commencer par DEMO_WEB_"),
+        "secret-lowercase": (lambda d: d["spec"].update(secrets=["demo_web_token"]), "/spec/secrets/0"),
+        "secret-too-many": (lambda d: d["spec"].update(secrets=[f"DEMO_WEB_K{i}" for i in range(17)]), "/spec/secrets"),
+        "config-private-key": (lambda d: d["spec"].update(config={"key.pem": "-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----"}), "contient une cle privee"),
+        "config-bad-filename": (lambda d: d["spec"].update(config={"../escape": "x"}), "invalid propertyName"),
+        "egress-ip-address": (lambda d: d["spec"].update(egress={"https": ["10.0.0.1"]}), "pas d'adresse IP"),
+        "egress-wildcard": (lambda d: d["spec"].update(egress={"https": ["*.github.com"]}), "/spec/egress/https/0"),
+        "egress-cluster-local": (lambda d: d["spec"].update(egress={"https": ["kubernetes.default.svc"]}), "domaine interne"),
+        "egress-empty-list": (lambda d: d["spec"].update(egress={"https": []}), "/spec/egress/https"),
+        "egress-other-port-field": (lambda d: d["spec"].update(egress={"https": ["api.github.com"], "port": 80}), "port"),
     }
 
     def test_mutations_are_rejected(self):
@@ -226,6 +237,63 @@ class PolicyAndCluster(unittest.TestCase):
             os.unlink(f.name)
         print("\n[kubeconform]", proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else proc.stderr.strip())
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+
+class ExtendedContract(unittest.TestCase):
+    """Contrat 0.2.0 : secrets (ExternalSecret), config (ConfigMap), egress (toFQDNs), sonde a point."""
+
+    def _render(self, **spec):
+        doc = copy.deepcopy(valid_base())
+        doc["spec"].update(spec)
+        doc["spec"]["runtime"]["healthPath"] = "/.backstage/health/v1/liveness"
+        code, out, err = helm_template(doc)
+        self.assertEqual(code, 0, err)
+        return out, [d for d in yaml.safe_load_all(out) if d]
+
+    def test_secrets_render_externalsecret_and_envfrom_only(self):
+        out, docs = self._render(secrets=["DEMO_WEB_TOKEN", "DEMO_WEB_KEY_PEM"])
+        es = next(d for d in docs if d["kind"] == "ExternalSecret")
+        self.assertEqual(es["apiVersion"], "external-secrets.io/v1")
+        self.assertEqual(es["metadata"]["namespace"], "svc-demo-web")
+        self.assertEqual(es["spec"]["secretStoreRef"], {"name": "doppler-cluster", "kind": "ClusterSecretStore"})
+        self.assertEqual(es["spec"]["refreshInterval"], "1h")
+        self.assertEqual([d["secretKey"] for d in es["spec"]["data"]], ["DEMO_WEB_TOKEN", "DEMO_WEB_KEY_PEM"])
+        self.assertEqual([d["remoteRef"]["key"] for d in es["spec"]["data"]], ["DEMO_WEB_TOKEN", "DEMO_WEB_KEY_PEM"])
+        self.assertNotIn("Secret", {d["kind"] for d in docs}, "aucun Secret rendu par le chart")
+        dep = next(d for d in docs if d["kind"] == "Deployment")
+        self.assertEqual(dep["spec"]["template"]["spec"]["containers"][0]["envFrom"], [{"secretRef": {"name": "demo-web-env"}}])
+
+    def test_config_is_configmap_mounted_readonly(self):
+        _out, docs = self._render(config={"app.extra.yaml": "app:\n  title: demo\n"})
+        cm = next(d for d in docs if d["kind"] == "ConfigMap")
+        self.assertEqual(cm["data"], {"app.extra.yaml": "app:\n  title: demo\n"})
+        pod = next(d for d in docs if d["kind"] == "Deployment")["spec"]["template"]["spec"]
+        mount = next(m for m in pod["containers"][0]["volumeMounts"] if m["name"] == "config")
+        self.assertEqual((mount["mountPath"], mount["readOnly"]), ("/etc/platform-config", True))
+        self.assertEqual(next(v for v in pod["volumes"] if v["name"] == "config")["configMap"]["name"], "demo-web-config")
+
+    def test_egress_renders_fqdn_443_and_dns_visibility(self):
+        _out, docs = self._render(egress={"https": ["api.github.com", "github.com"]})
+        cnp = next(d for d in docs if d["kind"] == "CiliumNetworkPolicy")
+        fqdn = next(r for r in cnp["spec"]["egress"] if "toFQDNs" in r)
+        self.assertEqual(fqdn["toFQDNs"], [{"matchName": "api.github.com"}, {"matchName": "github.com"}])
+        self.assertEqual(fqdn["toPorts"], [{"ports": [{"port": "443", "protocol": "TCP"}]}])
+        dns = next(r for r in cnp["spec"]["egress"] if "toEndpoints" in r)
+        self.assertEqual(dns["toPorts"][0]["rules"]["dns"], [{"matchName": "api.github.com"}, {"matchName": "github.com"}])
+
+    def test_no_new_fields_means_no_new_resources(self):
+        _out, docs = self._render()
+        kinds = {d["kind"] for d in docs}
+        self.assertFalse({"ExternalSecret", "ConfigMap"} & kinds)
+        cnp = next(d for d in docs if d["kind"] == "CiliumNetworkPolicy")
+        self.assertFalse(any("toFQDNs" in r for r in cnp["spec"]["egress"]))
+
+    def test_private_key_in_config_is_not_rendered(self):
+        doc = copy.deepcopy(valid_base())
+        doc["spec"]["config"] = {"k.pem": "-----BEGIN PRIVATE KEY-----"}
+        code, out, err = helm_template(doc)
+        self.assertNotEqual(code, 0)
+        self.assertNotIn("BEGIN PRIVATE KEY", out)
 
 
 if __name__ == "__main__":

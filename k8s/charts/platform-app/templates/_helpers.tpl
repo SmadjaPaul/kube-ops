@@ -19,6 +19,31 @@ Aucune valeur ne vient de .Release (determinisme) : tout part de app.yaml.
 {{- end -}}
 {{- end -}}
 
+{{/* Garde-fous 0.2.0 : secrets (prefixe NAME_), config (aucune cle privee), egress (FQDN publics). */}}
+{{- define "platform-app.validateExtras" -}}
+{{- $prefix := printf "%s_" (upper (replace "-" "_" .Values.metadata.name)) -}}
+{{- range .Values.spec.secrets -}}
+{{- if not (hasPrefix $prefix .) -}}
+{{- fail (printf "secret %s refuse : la cle doit commencer par %s (NAME en majuscules). Aucun store ni prefixe arbitraire." . $prefix) -}}
+{{- end -}}
+{{- end -}}
+{{- range $k, $v := .Values.spec.config -}}
+{{- if regexMatch "-----BEGIN [A-Z ]*PRIVATE KEY-----" $v -}}
+{{- fail (printf "config %s contient une cle privee : la declarer dans spec.secrets, jamais dans spec.config." $k) -}}
+{{- end -}}
+{{- end -}}
+{{- if .Values.spec.egress -}}
+{{- range .Values.spec.egress.https -}}
+{{- if regexMatch "\\.(local|svc)$" . -}}
+{{- fail (printf "egress %s refuse : domaine interne du cluster" .) -}}
+{{- end -}}
+{{- if not (regexMatch "\\.[a-z]{2,}$" .) -}}
+{{- fail (printf "egress %s refuse : FQDN requis (pas d'adresse IP)" .) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "platform-app.labels" -}}
 app.kubernetes.io/name: {{ .Values.metadata.name }}
 app.kubernetes.io/managed-by: platform-app

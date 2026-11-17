@@ -64,6 +64,24 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
+          {{- if .Values.spec.egress }}
+          # DNS visible uniquement pour les FQDN declares (requis par toFQDNs).
+          rules:
+            dns:
+              {{- range .Values.spec.egress.https }}
+              - matchName: {{ . | quote }}
+              {{- end }}
+          {{- end }}
+    {{- if .Values.spec.egress }}
+    - toFQDNs:
+        {{- range .Values.spec.egress.https }}
+        - matchName: {{ . | quote }}
+        {{- end }}
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    {{- end }}
 {{- if .Values.spec.observability.metrics }}
 ---
 apiVersion: monitoring.coreos.com/v1

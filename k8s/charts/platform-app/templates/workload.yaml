@@ -56,6 +56,11 @@ spec:
               value: {{ $v | quote }}
             {{- end }}
           {{- end }}
+          {{- if .Values.spec.secrets }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.metadata.name }}-env
+          {{- end }}
           {{- include "platform-app.resources" . | nindent 10 }}
           readinessProbe:
             httpGet:
@@ -79,10 +84,20 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- if .Values.spec.config }}
+            - name: config
+              mountPath: /etc/platform-config
+              readOnly: true
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        {{- if .Values.spec.config }}
+        - name: config
+          configMap:
+            name: {{ .Values.metadata.name }}-config
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service
