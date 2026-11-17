@@ -4,6 +4,7 @@ metadata:
   name: matrix-synapse-postgresql-fast
   namespace: matrix
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
     argocd.argoproj.io/sync-wave: "-10"
   labels:
     backup.smadja.dev/cnpg-cluster: matrix-synapse-postgresql-fast

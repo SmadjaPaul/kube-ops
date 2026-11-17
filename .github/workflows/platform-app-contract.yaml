@@ -1,0 +1,73 @@
+name: Platform app contract
+
+# Contrat platform.smadja.dev/v1 Application : schema, rendu deterministe du chart
+# k8s/charts/platform-app, tests negatifs, catalog-info, kubeconform et artefact
+# platform-app-render.v1. Aucun cluster touche.
+on:
+  pull_request:
+    paths:
+      - 'k8s/apps-generated/**'
+      - 'k8s/charts/platform-app/**'
+      - 'tests/platform/**'
+      - 'golden-paths/platform-application/**'
+      - '.github/workflows/platform-app-contract.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-app-contract-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  platform-app-contract:
+    name: platform-app-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.22.1'
+
+      - name: Install Helm
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
+      - name: Install Kubeconform
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kubeconform.tgz https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tgz -C /tmp
+          sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
+
+      - name: Install Python test dependencies (pinned)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/platform-venv"
+          "$RUNNER_TEMP/platform-venv/bin/pip" install --disable-pip-version-check pyyaml==6.0.2 jsonschema==4.23.0
+          echo "$RUNNER_TEMP/platform-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Install nunjucks harness (lockfile)
+        working-directory: tests/platform/template
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Deterministic render, negative contract, catalog-info, template
+        run: python3 -m unittest discover -s tests/platform -p 'test_*.py' -v
+
+      - name: Render report (artefact platform-app-render.v1)
+        run: |
+          mkdir -p "$RUNNER_TEMP/platform-app-report"
+          python3 tests/platform/render_report.py "$RUNNER_TEMP/platform-app-report/platform-app-render.v1.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload render artefact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: platform-app-render-v1
+          path: ${{ runner.temp }}/platform-app-report/platform-app-render.v1.json
+          if-no-files-found: error
+          retention-days: 14

@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: open-connector
   labels:
     pod-security.kubernetes.io/enforce: restricted
@@ -8,6 +10,8 @@ metadata:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   name: open-connector-data
   namespace: open-connector
 spec:

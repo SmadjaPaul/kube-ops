@@ -39,6 +39,8 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: pg-shared-homelab-r2
+  # Sentinelle du golden path service-postgres-oidc : le template ajoute les roles
+  # applicatifs ici (golden-paths/service-postgres-oidc/template.yaml). Ne pas supprimer.
   managed:
     roles: # GOLDEN-PATH-ROLES
       - name: canaripgoidc

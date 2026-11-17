@@ -1,0 +1,123 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: platform-application
+  title: Application plateforme (contrat v1, profil web)
+  description: >-
+    Declare une application stateless par UN fichier k8s/apps-generated/<name>/app.yaml
+    et ouvre une PR draft. Le rendu est fait par le chart k8s/charts/platform-app.
+  tags: [golden-path, homelab, gitops, platform-app]
+  annotations:
+    homelab.smadja.dev/golden-path: platform-application@v1
+spec:
+  owner: group:default/platform
+  type: service
+  parameters:
+    - title: Identite
+      required: [name, owner, description]
+      properties:
+        name:
+          title: Nom de l'application
+          type: string
+          description: Unique dans le depot. Namespace svc-<nom>, hostname <nom>.smadja.dev. Une 2e execution avec le meme nom met a jour la meme PR (UPDATE).
+          pattern: '^[a-z][a-z0-9-]{1,18}[a-z0-9]$'
+          ui:autofocus: true
+        owner:
+          title: Proprietaire (catalogue)
+          type: string
+          pattern: '^(group:default/[a-z][a-z0-9-]*|user:default/paul)$'
+          description: group:default/<equipe> ou user:default/paul
+        description:
+          title: Description
+          type: string
+          minLength: 1
+          maxLength: 200
+    - title: Image et runtime
+      required: [image, replicas, size, port, healthPath]
+      properties:
+        image:
+          title: Image (digest obligatoire)
+          type: string
+          description: repo:tag@sha256:<64 hex>. Le digest doit etre resolu avant l'appel.
+          pattern: '^[a-z0-9][a-z0-9._/-]*(:[A-Za-z0-9._-]+)?@sha256:[a-f0-9]{64}$'
+        replicas:
+          title: Replicas
+          type: integer
+          minimum: 1
+          maximum: 3
+          default: 1
+        size:
+          title: Taille (requests/limits de la table du chart)
+          type: string
+          enum: [small, medium]
+          default: small
+        port:
+          title: Port HTTP du conteneur
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 8080
+        healthPath:
+          title: Chemin de sonde HTTP
+          type: string
+          pattern: '^/[A-Za-z0-9/_-]*$'
+          maxLength: 128
+          default: /healthz
+    - title: Observabilite
+      required: [metrics, metricsPath]
+      properties:
+        metrics:
+          title: Exposer des metriques Prometheus
+          type: boolean
+          default: false
+        metricsPath:
+          title: Chemin des metriques
+          type: string
+          pattern: '^/[A-Za-z0-9/_-]*$'
+          maxLength: 128
+          default: /metrics
+  steps:
+    - id: fetch
+      name: Generer app.yaml et catalog-info.yaml
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: ./out
+        values:
+          name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+          description: ${{ parameters.description }}
+          image: ${{ parameters.image }}
+          replicas: ${{ parameters.replicas }}
+          size: ${{ parameters.size }}
+          port: ${{ parameters.port }}
+          healthPath: ${{ parameters.healthPath }}
+          metrics: ${{ parameters.metrics }}
+          metricsPath: ${{ parameters.metricsPath }}
+    - id: pr
+      name: Ouvrir la PR draft kube-ops
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=SmadjaPaul&repo=kube-ops
+        branchName: idp-app-${{ parameters.name }}
+        title: "app: ${{ parameters.name }} (platform-app v1)"
+        description: |
+          Application **${{ parameters.name }}** declaree via le golden path platform-application (contrat platform.smadja.dev/v1).
+
+          Fichiers : `k8s/apps-generated/${{ parameters.name }}/app.yaml` et `catalog-info.yaml`. Aucun autre fichier.
+          Relancer le template avec le meme nom met a jour cette PR (update: true, branche reconstruite depuis main).
+        sourcePath: out
+        draft: true
+        update: true
+        targetBranchName: main
+    # Les outils MCP (get-scaffolder-task-logs) n'exposent pas l'output de la tache :
+    # on journalise l'URL de la PR pour qu'un agent puisse suivre son traitement.
+    - id: report
+      name: Journaliser l'URL de la PR
+      action: debug:log
+      input:
+        message: "PR_URL=${{ steps.pr.output.remoteUrl }} PR_NUMBER=${{ steps.pr.output.pullRequestNumber }} BRANCH=idp-app-${{ parameters.name }}"
+  output:
+    links:
+      - title: Pull request draft
+        url: ${{ steps.pr.output.remoteUrl }}
