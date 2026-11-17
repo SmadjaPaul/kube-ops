@@ -93,7 +93,9 @@ jobs:
   # credentials, cannot publish tags, and has read-only repository access.
   build-pr:
     name: Validate image build (PR, no publish)
-    runs-on: ubuntu-latest
+    # backstage: runner arm64 natif (gratuit sur depot public), sans QEMU.
+    # Garder ce mapping aligne avec la table de l'etape « Select target platform ».
+    runs-on: ${{ matrix.image == 'backstage' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     needs: detect-dockerfiles
     if: github.event_name == 'pull_request' && needs.detect-dockerfiles.outputs.images != '[]'
     permissions:
@@ -136,8 +138,21 @@ jobs:
           esac
           echo "platform=$platform" >> "$GITHUB_OUTPUT"
 
+      - name: Verify runner architecture matches target platform
+        env:
+          PLATFORM: ${{ steps.platform.outputs.platform }}
+        run: |
+          set -euo pipefail
+          case "$PLATFORM" in
+            linux/arm64) expected=aarch64 ;;
+            linux/amd64) expected=x86_64 ;;
+            *) echo "Unsupported platform: $PLATFORM" >&2; exit 1 ;;
+          esac
+          actual=$(uname -m)
+          [[ "$actual" == "$expected" ]] || { echo "Runner $actual != target $expected" >&2; exit 1; }
+
       - name: Set up QEMU (cross-build arm64)
-        if: steps.platform.outputs.platform != 'linux/amd64'
+        if: steps.platform.outputs.platform != 'linux/amd64' && runner.arch != 'ARM64'
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - name: Set up Docker Buildx
@@ -157,7 +172,9 @@ jobs:
   # receive packages:write or authenticate to GHCR.
   publish:
     name: Publish image (trusted main only)
-    runs-on: ubuntu-latest
+    # backstage: runner arm64 natif (gratuit sur depot public), sans QEMU.
+    # Garder ce mapping aligne avec la table de l'etape « Select target platform ».
+    runs-on: ${{ matrix.image == 'backstage' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     needs: detect-dockerfiles
     if: >-
       github.ref == 'refs/heads/main' &&
@@ -206,8 +223,21 @@ jobs:
           esac
           echo "platform=$platform" >> "$GITHUB_OUTPUT"
 
+      - name: Verify runner architecture matches target platform
+        env:
+          PLATFORM: ${{ steps.platform.outputs.platform }}
+        run: |
+          set -euo pipefail
+          case "$PLATFORM" in
+            linux/arm64) expected=aarch64 ;;
+            linux/amd64) expected=x86_64 ;;
+            *) echo "Unsupported platform: $PLATFORM" >&2; exit 1 ;;
+          esac
+          actual=$(uname -m)
+          [[ "$actual" == "$expected" ]] || { echo "Runner $actual != target $expected" >&2; exit 1; }
+
       - name: Set up QEMU (cross-build arm64)
-        if: steps.platform.outputs.platform != 'linux/amd64'
+        if: steps.platform.outputs.platform != 'linux/amd64' && runner.arch != 'ARM64'
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - name: Set up Docker Buildx
