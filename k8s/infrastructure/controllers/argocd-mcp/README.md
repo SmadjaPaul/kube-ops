@@ -17,7 +17,7 @@ Active since 2026-11-19 (`replicas: 1`, `externalsecret.yaml` rendered).
 
 - Argo token: `argocd account generate-token --core --account argocd-mcp` piped into `scripts/doppler-safe.sh set ARGOCD_MCP_API_TOKEN -p cluster -c prd`.
 - Inbound token: random, Doppler `cluster/prd` `ARGOCD_MCP_AUTH_TOKEN`.
-- Local operator access: `kubectl port-forward` to `svc/argocd-mcp` 3000; `localhost` is always an allowed Host. Port-forward does not cross the NetworkPolicy.
+- Local operator access (Claude Code): `scripts/argocd-mcp-headers.sh` is the MCP `headersHelper`; it opens `kubectl port-forward` 127.0.0.1:13030 → `svc/argocd-mcp:3000` when needed and emits the bearer header from Doppler. `localhost`/`127.0.0.1` are always allowed Host values. Port-forward does not cross the NetworkPolicy.
 - Rotation: generate a new token, `set` it in Doppler, let the ExternalSecret refresh (Reloader restarts the pod), then revoke the old token id with `argocd account delete-token`.
 
 No token value belongs in Git or diagnostic output.
