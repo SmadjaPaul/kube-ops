@@ -13,14 +13,11 @@ This deployment is the read-only machine interface to Argo CD for SRE agents.
 
 ## Activation
 
-The Deployment intentionally remains at `replicas: 0` and this directory intentionally does not render `externalsecret.yaml` yet.
+Active since 2026-11-19 (`replicas: 1`, `externalsecret.yaml` rendered).
 
-1. Reconcile the Argo account/RBAC changes.
-2. Generate an Argo CD API token for account `argocd-mcp`.
-3. Store it in Doppler `cluster/prd` as `ARGOCD_MCP_API_TOKEN`.
-4. Store an independent random inbound token as `ARGOCD_MCP_AUTH_TOKEN`.
-5. Add `externalsecret.yaml` to this kustomization.
-6. Scale the desired Deployment to one replica in Git.
-7. Prove read-only tools work and mutation/sync tools are unavailable.
+- Argo token: `argocd account generate-token --core --account argocd-mcp` piped into `scripts/doppler-safe.sh set ARGOCD_MCP_API_TOKEN -p cluster -c prd`.
+- Inbound token: random, Doppler `cluster/prd` `ARGOCD_MCP_AUTH_TOKEN`.
+- Local operator access (Claude Code): `scripts/argocd-mcp-headers.sh` is the MCP `headersHelper`; it opens `kubectl port-forward` 127.0.0.1:13030 → `svc/argocd-mcp:3000` when needed and emits the bearer header from Doppler. `localhost`/`127.0.0.1` are always allowed Host values. Port-forward does not cross the NetworkPolicy.
+- Rotation: generate a new token, `set` it in Doppler, let the ExternalSecret refresh (Reloader restarts the pod), then revoke the old token id with `argocd account delete-token`.
 
 No token value belongs in Git or diagnostic output.
