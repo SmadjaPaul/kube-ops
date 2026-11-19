@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: miniflux
+  description: Service miniflux (golden path service-postgres-oidc@v1), base miniflux dans pg-shared-homelab.
+  annotations:
+    homelab.smadja.dev/cluster: homelab
+    homelab.smadja.dev/namespace: miniflux
+    homelab.smadja.dev/exposure: internal
+    homelab.smadja.dev/hostname: miniflux.smadja.dev
+    homelab.smadja.dev/data-class: REBUILDABLE
+    homelab.smadja.dev/access-groups: family
+    homelab.smadja.dev/pg-database: miniflux
+    homelab.smadja.dev/backup-rpo: 24h
+    homelab.smadja.dev/backup-rto: 4h
+    homelab.smadja.dev/restore-drill: NOT_TESTED
+    homelab.smadja.dev/golden-path: service-postgres-oidc@v1
+    # Pas de ServiceMonitor dans le pilote : canari sans alerting, sonde HTTP via probes.
+    # Justification consignee ici pour la garde d'admission (non applicable, pas une omission).
+    homelab.smadja.dev/servicemonitor: not-applicable
+spec:
+  type: service
+  lifecycle: experimental
+  owner: user:default/paul

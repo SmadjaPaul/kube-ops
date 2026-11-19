@@ -1,0 +1,140 @@
+# Base et rôle geres pour miniflux dans pg-shared-homelab (aucun nouveau Cluster).
+# Le rôle est declare dans cluster.yaml (managed.roles) par l'edition du template.
+# Modele : k8s/infrastructure/database/pg-shared-homelab/app-database.example.tmpl (etapes 1 a 4).
+# Job d'isolation : modele kube-ops#1593 (miniflux-isolation-job.yaml).
+#
+# 1. Mot de passe du rôle : genere une fois dans le cluster (Password, hexadecimal), jamais dans Git.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: pg-shared-homelab-miniflux
+  namespace: databases
+spec:
+  length: 48
+  digits: 8
+  symbols: 0
+  allowRepeat: true
+  encoding: hex
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: pg-shared-homelab-miniflux
+  namespace: databases
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: pg-shared-homelab-miniflux
+    creationPolicy: Orphan
+    template:
+      engineVersion: v2
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: miniflux
+        password: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: pg-shared-homelab-miniflux
+---
+# 2. Lecture du seul Secret par le SA secret-reader du namespace de l'application (Role nommee, get seul).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pg-shared-homelab-miniflux-reader
+  namespace: databases
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["pg-shared-homelab-miniflux"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pg-shared-homelab-miniflux-reader
+  namespace: databases
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pg-shared-homelab-miniflux-reader
+subjects:
+  - kind: ServiceAccount
+    name: miniflux-secret-reader
+    namespace: miniflux
+---
+# 3. Base dont le proprietaire est le rôle geré.
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: miniflux
+  namespace: databases
+spec:
+  name: miniflux
+  owner: miniflux
+  cluster:
+    name: pg-shared-homelab
+---
+# 4. Isolation : REVOKE CONNECT FROM PUBLIC, PostSync, attente bornee (modele kube-ops#1593).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pg-shared-homelab-miniflux-isolation
+  namespace: databases
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 26
+        runAsGroup: 26
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: isolate
+          image: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie@sha256:ebf3919504d7523a63e8e2fee9b051211de714644b36469275558c624afd50ec
+          command: [sh, -ec]
+          args:
+            - |
+              i=0
+              until psql -tA -c "SELECT 1 FROM pg_database WHERE datname = 'miniflux'" | grep -q 1; do
+                i=$((i + 1)); [ "$i" -le 60 ] || { echo "database miniflux absente au plafond" >&2; exit 1; }
+                sleep 10
+              done
+              psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE miniflux FROM PUBLIC"
+              ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'miniflux'")
+              test "$ok" = "t" || { echo "PUBLIC still has CONNECT on miniflux" >&2; exit 1; }
+          env:
+            - {name: PGHOST, value: pg-shared-homelab-rw.databases.svc.cluster.local}
+            - {name: PGDATABASE, value: "miniflux"}
+            - {name: PGSSLMODE, value: require}
+            - name: PGUSER
+              valueFrom: {secretKeyRef: {name: pg-shared-homelab-miniflux, key: username}}
+            - name: PGPASSWORD
+              valueFrom: {secretKeyRef: {name: pg-shared-homelab-miniflux, key: password}}
+---
+# 5. Reseau : seul le namespace de l'application atteint le primaire, port 5432.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: pg-shared-homelab-miniflux
+  namespace: databases
+spec:
+  endpointSelector: {matchLabels: {cnpg.io/cluster: pg-shared-homelab}}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: miniflux
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "5432"}

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: miniflux
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    homelab.smadja.dev/golden-path: service-postgres-oidc

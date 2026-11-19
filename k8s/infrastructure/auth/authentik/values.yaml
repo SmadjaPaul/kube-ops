@@ -43,6 +43,9 @@ global:
     - secretRef:
         name: authentik-blueprint-oidc-existing
     - secretRef:
+        name: authentik-blueprint-miniflux
+        optional: true
+    - secretRef:
         name: authentik-blueprint-mealie
     - secretRef:
         name: authentik-blueprint-vikunja

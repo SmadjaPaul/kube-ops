@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: miniflux
+  namespace: miniflux
+spec:
+  selector: {app.kubernetes.io/name: miniflux}
+  ports:
+    - {name: http, port: 80, targetPort: http}
+---
+# Exposition interne uniquement : Gateway/internal (exposure = internal, non negociable dans le pilote).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: miniflux
+  namespace: miniflux
+spec:
+  parentRefs:
+    - {name: internal, namespace: gateway}
+  hostnames: ["miniflux.smadja.dev"]
+  rules:
+    - backendRefs:
+        - {name: miniflux, port: 80}
