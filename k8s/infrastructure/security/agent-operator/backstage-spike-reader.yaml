@@ -1,0 +1,58 @@
+# PLT-387 (spike Backstage) — identité de lecture seule pour RHDH local.
+# - SA sans jeton monté ; jeton émis à la main par Paul (TokenRequest, courte durée).
+# - ClusterRole intégré `view` : n'inclut pas les Secrets.
+# - Lecture en plus : CNPG (postgresql.cnpg.io) et Argo CD (argoproj.io).
+# - Aucun droit d'écriture. À retirer à la fin du spike (PR de revert).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backstage-spike-reader
+  namespace: agent-operator
+  labels:
+    app.kubernetes.io/name: backstage-spike-reader
+    app.kubernetes.io/part-of: security
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backstage-spike-reader-crd-read
+  labels:
+    app.kubernetes.io/name: backstage-spike-reader
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [postgresql.cnpg.io, argoproj.io]
+    resources: ["*"]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-spike-reader-view
+  labels:
+    app.kubernetes.io/name: backstage-spike-reader
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: backstage-spike-reader
+    namespace: agent-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-spike-reader-crd-read
+  labels:
+    app.kubernetes.io/name: backstage-spike-reader
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backstage-spike-reader-crd-read
+subjects:
+  - kind: ServiceAccount
+    name: backstage-spike-reader
+    namespace: agent-operator
