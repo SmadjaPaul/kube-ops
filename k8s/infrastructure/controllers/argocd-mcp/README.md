@@ -17,7 +17,8 @@ Active since 2026-11-19 (`replicas: 1`, `externalsecret.yaml` rendered).
 
 - Argo token: `argocd account generate-token --core --account argocd-mcp` piped into `scripts/doppler-safe.sh set ARGOCD_MCP_API_TOKEN -p cluster -c prd`.
 - Inbound token: random, Doppler `cluster/prd` `ARGOCD_MCP_AUTH_TOKEN`.
-- Local operator access (Claude Code): `scripts/argocd-mcp-headers.sh` is the MCP `headersHelper`; it opens `kubectl port-forward` 127.0.0.1:13030 → `svc/argocd-mcp:3000` when needed and emits the bearer header from Doppler. `localhost`/`127.0.0.1` are always allowed Host values. Port-forward does not cross the NetworkPolicy.
+- Local operator access (Claude Code): `claude mcp add -s local argocd -- bash <repo>/scripts/argocd-mcp-stdio.sh`. The script opens `kubectl port-forward` 127.0.0.1:13030 → `svc/argocd-mcp:3000` when needed and runs `scripts/lib/mcp-http-bridge.py` (stdio ↔ HTTP) under `doppler-safe.sh run --only ARGOCD_MCP_AUTH_TOKEN`; the token stays in the bridge environment. A `headersHelper` cannot work: doppler-mask replaces the token in stdout. Port-forward does not cross the NetworkPolicy.
+- Proof 2026-11-19: 11 tools exposed, all read-only; `list_applications` PASS; `sync_application` → `Tool ... not found`.
 - Rotation: generate a new token, `set` it in Doppler, let the ExternalSecret refresh (Reloader restarts the pod), then revoke the old token id with `argocd account delete-token`.
 
 No token value belongs in Git or diagnostic output.
