@@ -45,6 +45,7 @@ check:
     bash tests/harness/restic-backup-contract-test.sh
     bash tests/harness/decypharr-torbox-staged-test.sh
     bash tests/harness/aiostreams-staged-contract-test.sh
+    bash tests/harness/fleet-public-route-contract-test.sh
     bash tests/harness/aiostreams-sqlite-restore-test.sh
     bash tests/harness/aiostreams-oidc-dormant-contract-test.sh
     bash tests/harness/aiostreams-egress-global-exclusion-contract-test.sh
