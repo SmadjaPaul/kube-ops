@@ -42,6 +42,16 @@ spec:
         - ports:
             - port: "9000"
               protocol: TCP
+    # TorBox download client (BookOrbit >= 3.8.0): REST API plus the CDN
+    # links it returns for finished downloads. Configured in the BookOrbit UI
+    # (Settings > System > Requests), not through env vars.
+    - toFQDNs:
+        - matchName: api.torbox.app
+        - matchPattern: "*.tb-cdn.io"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     - toFQDNs:
         - matchName: auth.smadja.dev
       toPorts:

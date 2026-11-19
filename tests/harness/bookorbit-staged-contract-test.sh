@@ -14,7 +14,7 @@ assert_contains() {
 }
 
 assert_contains '- bookorbit' "$root/kustomization.yaml"
-assert_contains 'ghcr.io/bookorbit/bookorbit:3.6.0@sha256:bbb5da52e96dbbff1dd36f55454f9845e6cde264b4b3428a3ea783124a4ca62e' "$pkg/app.yaml"
+assert_contains 'ghcr.io/bookorbit/bookorbit:3.9.0@sha256:79cd9c66c990a82944514e3e82d5be5987f21eda96cb37a378ed1484043716fc' "$pkg/app.yaml"
 assert_contains 'value: /data/book-dock' "$pkg/app.yaml"
 assert_contains 'value: /data/media/books' "$pkg/app.yaml"
 assert_contains 'APP_BOOKORBIT_BOOK_REQUEST_ENCRYPTION_KEY' "$pkg/external-secret.yaml"
