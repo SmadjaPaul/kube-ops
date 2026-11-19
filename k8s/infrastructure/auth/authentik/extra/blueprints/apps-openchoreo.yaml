@@ -1,0 +1,186 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# OpenChoreo IDP (OKE lab): portal login, portal backend service, CLI occ.
+# Source and decisions: SmadjaPaul/openchoreo-lab docs/IDENTITY.md (OpenChoreo 1.3.3).
+#
+# - One issuer for OpenChoreo: every OpenChoreo provider is `issuer_mode: global`
+#   (iss = https://auth.smadja.dev/). The OpenChoreo API validates exactly one `iss`.
+#   One provider per client: distinct client_id, secret, revocation and OpenChoreo role.
+# - Signing key: the existing "authentik Self-signed Certificate" (RSA, RS256, kid in
+#   JWKS), like every other OIDC provider here. Isolation from the other applications
+#   comes from `iss`: they all stay `per_provider`, enforced by
+#   tests/harness/authentik-openchoreo-contract-test.sh.
+# - client_secret is NOT declared: Authentik generates it at creation and keeps it on
+#   update. Paul copies it out of Git (Secret backstage-secrets). No !Env, no ExternalSecret.
+# - Human subject = claim `groups` from the dedicated scope `openchoreo` (filtered list);
+#   service subject = claim `client_id` from the scope `openchoreo-client-id` (fixed value).
+version: 1
+metadata:
+  name: Apps - OpenChoreo (OKE lab)
+entries:
+  # Access groups (empty at creation). Admin stays `authentik-admins` (groups.yaml).
+  - id: openchoreo-developers
+    model: authentik_core.group
+    identifiers: {name: openchoreo-developers}
+    attrs: {name: openchoreo-developers, is_superuser: false}
+  - id: openchoreo-viewers
+    model: authentik_core.group
+    identifiers: {name: openchoreo-viewers}
+    attrs: {name: openchoreo-viewers, is_superuser: false}
+
+  # Human claims. Dedicated scope name: a second `groups` mapping would make the
+  # `!Find [scope_name, "groups"]` of the other blueprints ambiguous. A user without one of
+  # these groups gets `groups: []`, which the OpenChoreo API rejects (401).
+  - id: openchoreo-claims-mapping
+    model: authentik_providers_oauth2.scopemapping
+    identifiers:
+      name: "OAuth mapping: OpenChoreo 'openchoreo'"
+    attrs:
+      name: "OAuth mapping: OpenChoreo 'openchoreo'"
+      scope_name: openchoreo
+      description: OpenChoreo groups and names
+      expression: |
+        allowed = {"authentik-admins", "openchoreo-developers", "openchoreo-viewers"}
+        names = (request.user.name or "").split(" ", 1)
+        return {
+          "groups": sorted(g.name for g in request.user.ak_groups.all() if g.name in allowed),
+          "given_name": names[0],
+          "family_name": names[1] if len(names) > 1 else "",
+        }
+
+  # Portal backend identity (client_credentials). Fixed value = its client_id.
+  - id: openchoreo-backstage-service-client-id-mapping
+    model: authentik_providers_oauth2.scopemapping
+    identifiers:
+      name: "OAuth mapping: OpenChoreo client_id openchoreo-backstage-service"
+    attrs:
+      name: "OAuth mapping: OpenChoreo client_id openchoreo-backstage-service"
+      scope_name: openchoreo-client-id
+      description: OpenChoreo service identity
+      expression: |
+        return {"client_id": "openchoreo-backstage-service"}
+
+  # 1) Portal user login (backstage.auth.clientId): authorization_code, confidential.
+  - id: openchoreo-portal-provider
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: lab.smadja.dev/openchoreo-backstage
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      issuer_mode: global
+      client_type: confidential
+      grant_types: [authorization_code, refresh_token]
+      client_id: openchoreo-backstage-client
+      redirect_uris:
+        - {url: "http://localhost:7007/api/auth/openchoreo-auth/handler/frame", matching_mode: strict}
+      access_code_validity: minutes=1
+      access_token_validity: minutes=15
+      refresh_token_validity: hours=12
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "offline_access"]]
+        - !KeyOf openchoreo-claims-mapping
+  - id: openchoreo-portal-application
+    model: authentik_core.application
+    identifiers: {slug: openchoreo}
+    attrs:
+      name: OpenChoreo
+      group: Infrastructure
+      meta_description: OpenChoreo portal (OKE lab)
+      meta_launch_url: "http://localhost:7007"
+      provider: !KeyOf openchoreo-portal-provider
+      policy_engine_mode: any
+
+  # 2) Portal backend service (backstage.auth.serviceClientId): client_credentials.
+  - id: openchoreo-backstage-service-provider
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: lab.smadja.dev/openchoreo-backstage-service
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      issuer_mode: global
+      client_type: confidential
+      grant_types: [client_credentials]
+      client_id: openchoreo-backstage-service
+      redirect_uris: []
+      access_token_validity: minutes=15
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !KeyOf openchoreo-backstage-service-client-id-mapping
+  - id: openchoreo-backstage-service-application
+    model: authentik_core.application
+    identifiers: {slug: openchoreo-backstage-service}
+    attrs:
+      name: OpenChoreo portal service
+      group: Infrastructure
+      meta_description: OpenChoreo portal backend identity (client_credentials)
+      meta_launch_url: "blank://blank"
+      provider: !KeyOf openchoreo-backstage-service-provider
+      policy_engine_mode: any
+
+  # 3) CLI occ: authorization_code + PKCE, public client, fixed local callback of occ.
+  #    Usable only once https://auth.smadja.dev/.well-known/openid-configuration answers
+  #    (404 today; occ reads <issuer>/.well-known/openid-configuration). Separate decision.
+  - id: openchoreo-cli-provider
+    model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: lab.smadja.dev/openchoreo-cli
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, "default-provider-authorization-implicit-consent"]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, "default-provider-invalidation-flow"]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      issuer_mode: global
+      client_type: public
+      grant_types: [authorization_code, refresh_token]
+      client_id: openchoreo-cli
+      redirect_uris:
+        - {url: "http://127.0.0.1:55152/auth-callback", matching_mode: strict}
+      access_code_validity: minutes=1
+      access_token_validity: minutes=15
+      refresh_token_validity: hours=12
+      sub_mode: hashed_user_id
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "email"]]
+        - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "offline_access"]]
+        - !KeyOf openchoreo-claims-mapping
+  - id: openchoreo-cli-application
+    model: authentik_core.application
+    identifiers: {slug: openchoreo-cli}
+    attrs:
+      name: OpenChoreo CLI
+      group: Infrastructure
+      meta_description: CLI occ (OKE lab)
+      meta_launch_url: "blank://blank"
+      provider: !KeyOf openchoreo-cli-provider
+      policy_engine_mode: any
+
+  # Human access: groups only (PLT-176). No family/friends.
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf openchoreo-portal-application, group: !KeyOf openchoreo-viewers}
+    attrs: {order: 10}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf openchoreo-portal-application, group: !KeyOf openchoreo-developers}
+    attrs: {order: 20}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf openchoreo-portal-application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
+    attrs: {order: 100}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf openchoreo-cli-application, group: !KeyOf openchoreo-viewers}
+    attrs: {order: 10}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf openchoreo-cli-application, group: !KeyOf openchoreo-developers}
+    attrs: {order: 20}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf openchoreo-cli-application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}
+    attrs: {order: 100}
+# openchoreo-backstage-service: no binding. Only the secret holder gets a token
+# (to prove after merge: openchoreo-lab docs/IDENTITY.md T-A3).
