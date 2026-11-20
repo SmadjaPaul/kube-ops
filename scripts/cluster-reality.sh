@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Generate docs/state/cluster-reality.md from the LIVE cluster (read-only).
 #
-# - Only `kubectl get` / `kubectl get --raw` (Argo, workloads, PVC, CNPG,
-#   HTTPRoute, Prometheus and Loki through the API-server service proxy).
+# - Reads only through scripts/kubectl-ro.sh (`kro`: get, version, get --raw for Argo,
+#   workloads, PVC, CNPG, HTTPRoute, Prometheus and Loki through the API-server service proxy).
 # - Never reads Secret values (no `get secret`; only ExternalSecret key names).
 # - Idempotent: the output depends only on cluster state (+ the timestamp line).
 #
@@ -12,17 +12,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${1:-$ROOT/docs/state/cluster-reality.md}"
 
-# shellcheck source=scripts/lib/kube-preflight.sh
-source "$ROOT/scripts/lib/kube-preflight.sh"
-require_kube_access_quiet
-trap kube_access_cleanup EXIT
+# shellcheck source=scripts/lib/kube-read.sh
+source "$ROOT/scripts/lib/kube-read.sh"
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/cluster-reality.XXXXXX")"
-trap 'rm -rf "$WORK"; kube_access_cleanup' EXIT
+trap 'rm -rf "$WORK"' EXIT
 
-k() { kubectl --request-timeout=60s "$@"; }
+k() { kro "$@"; }
 
-k get --raw=/version >"$WORK/version.json"
+# `get --raw=/version` is outside the kubectl-ro.sh raw allowlist: use the `version` verb.
+k version -o json | jq '.serverVersion' >"$WORK/version.json"
 k get applications.argoproj.io -n argocd -o json >"$WORK/apps.json"
 k get deploy,sts,ds,cronjob -A -o json >"$WORK/workloads.json"
 k get pods -A -o json >"$WORK/pods.json"

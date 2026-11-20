@@ -18,6 +18,7 @@ cp "$ROOT/scripts/argo-terminate-stuck-sync.sh" "$WORK/repo/scripts/"
 cat >"$WORK/repo/scripts/lib/kube-preflight.sh" <<'EOF'
 kube_access_cleanup() { :; }
 require_kube_access() { [ "${FAKE_PREFLIGHT:-pass}" = pass ]; }
+require_kube_access_quiet() { require_kube_access; }
 EOF
 FX="$WORK/fx"
 # kubectl : application avant/après terminaison, annotations, listes par namespace.
