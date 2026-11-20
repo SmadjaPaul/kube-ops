@@ -4,11 +4,16 @@
 # reconstruit le 17/11/2026) :
 #  - deny-imds : egressDeny 169.254.169.254 sur les ports 80 et 443 (le port 53 reste
 #    ouvert : le resolveur VCN d'OKE est 169.254.169.254, CoreDNS y forward).
+#    Selectionne TOUS les endpoints, y compris les namespaces egress-isolated.
 #  - allow-egress-unisolated : un egressDeny SEUL met chaque endpoint selectionne en
 #    default-deny egress (constate : DNS, API et Internet coupes pour tout pod). Les
 #    namespaces non isoles (hors auth, hindsight, databases) recoivent donc
 #    un allow-all explicite ; le deny prevaut sur l'allow. Les namespaces de domaine
 #    gardent leur NetworkPolicy default-deny + allow listes (cilium-egress.yaml).
+#    Exclusion C1 : un namespace qui porte le label
+#    platform.smadja.dev/egress-isolated=true ne recoit PAS cet allow-all ; son egress
+#    est alors regi par ses propres policies (default-deny + allow listes). NotIn
+#    selectionne aussi les namespaces sans ce label : leur comportement ne change pas.
 # Limite : csi-oci-node tourne en hostNetwork et n'est pas couvert (la VAP l'exclut
 # des namespaces applicatifs, kube-system est exempte).
 apiVersion: cilium.io/v2
@@ -21,6 +26,9 @@ spec:
       - key: io.kubernetes.pod.namespace
         operator: NotIn
         values: [auth, hindsight, databases]
+      - key: io.cilium.k8s.namespace.labels.platform.smadja.dev/egress-isolated
+        operator: NotIn
+        values: ["true"]
   egress:
     - toEntities: [all]
 ---
