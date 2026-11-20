@@ -13,10 +13,9 @@ const applicationSets = [
   'k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml',
 ];
 
-// Historical, already-missing path on main: no rendered Kustomization exists.
-// Track separately; do not synthesize a dummy Kustomization or assume no live
-// resources are owned by the corresponding generated Application.
-const KNOWN_MISSING = new Set(['k8s/applications/restore']);
+// No waiver remains: k8s/applications/restore was removed from the ApplicationSet.
+// Add a path here only for a documented, temporary, already-missing root.
+const KNOWN_MISSING = new Set([]);
 
 function generatedPaths(source) {
   return [...source.matchAll(/^\s*- path:\s*(k8s\/[^\s#]+)\s*$/gm)].map(([, path]) => path);

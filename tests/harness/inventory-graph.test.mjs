@@ -52,8 +52,8 @@ test('inventory walks the actual main-compatible repository roots', { skip: !hav
     'removed BabyBuddy must not be active');
   assert.ok(!report.dormantApplicationDirs.some(path => path.includes('/babybuddy')),
     'removed BabyBuddy must not remain as a dormant candidate');
-  assert.ok(report.missingRoots.some(x => x.path === 'k8s/applications/restore'),
-    'missing Argo restore root must remain visible until reconciled');
+  assert.deepEqual(report.missingRoots, [],
+    'every Argo directory-generator root must exist in Git');
   assert.ok(!report.declaredHostnames.includes('frigate.smadja.dev'),
     'a removed inactive Frigate route cannot leak into the active route inventory');
 });

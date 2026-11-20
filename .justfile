@@ -18,7 +18,7 @@ context:
 
 [doc('Print compact active desired-state roots and routes')]
 inventory:
-    bash scripts/inventory.sh
+    node scripts/inventory.mjs
 
 [doc('Regenerate the Backstage catalog from Git (catalog/generated/all.yaml)')]
 catalog-generate:
