@@ -2,7 +2,7 @@
 
 Sources Argo lues : `directories` des ApplicationSets de k8s/bootstrap/argocd-root et
 `spec.source.path` des Applications de k8s/clusters/oracle-a1/apps. Un chemin absent du
-depot est signale, pas en erreur (ex. k8s/applications/restore).
+depot est signale, pas en erreur.
 """
 import glob
 import os

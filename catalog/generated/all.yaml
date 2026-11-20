@@ -441,6 +441,23 @@ spec:
 apiVersion: "backstage.io/v1alpha1"
 kind: "Component"
 metadata:
+  name: "prowlarr"
+  annotations:
+    backstage.io/source-location: "url:https://github.com/SmadjaPaul/kube-ops/tree/main/k8s/applications/media/prowlarr"
+    homelab.smadja.dev/cluster: "homelab"
+    homelab.smadja.dev/namespace: "media"
+    homelab.smadja.dev/exposure: "internal"
+    homelab.smadja.dev/hostname: "prowlarr.smadja.dev"
+    homelab.smadja.dev/data-class: "USEFUL"
+spec:
+  type: "service"
+  lifecycle: "production"
+  owner: "group:default/homelab"
+  system: "apps-media"
+---
+apiVersion: "backstage.io/v1alpha1"
+kind: "Component"
+metadata:
   name: "romm"
   annotations:
     backstage.io/source-location: "url:https://github.com/SmadjaPaul/kube-ops/tree/main/k8s/applications/games/romm"

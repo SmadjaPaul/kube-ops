@@ -18,7 +18,7 @@ context:
 
 [doc('Print compact active desired-state roots and routes')]
 inventory:
-    bash scripts/inventory.sh
+    node scripts/inventory.mjs
 
 [doc('Regenerate the Backstage catalog from Git (catalog/generated/all.yaml)')]
 catalog-generate:
@@ -42,6 +42,7 @@ check-affected:
     bash -n scripts/check-agent-harness-contract.sh scripts/check-v1-active-contract.sh scripts/backup-static-contract.sh
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/runtime-smoke-test.sh
+    bash tests/harness/argo-terminate-stuck-sync-test.sh
     bash tests/harness/invoice-restore-isolation-test.sh
     bash tests/harness/velero-storage-tier-test.sh
     bash tests/harness/longhorn-servicemonitor-contract-test.sh

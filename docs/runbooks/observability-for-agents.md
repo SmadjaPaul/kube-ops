@@ -1,6 +1,6 @@
 # Observability for agents: "what is happening?"
 
-Read-only runbook (PLT-312). Evidence level of everything here is RUNTIME for the
+Read-only runbook (PLT-312). Entry point: `.agents/skills/cluster-investigation` (Argo CD MCP, then `kubectl-ro.sh`, then `observe.sh`). Evidence level of everything here is RUNTIME for the
 observed signal only: it proves neither Git reconciliation nor a user path.
 
 ## Ask first
@@ -26,7 +26,7 @@ Rows are capped (`OBSERVE_MAX`, default 12). The token is injected by
 | Both clusters, bounded history | Grafana Cloud via `observe.sh` (label `cluster`: `homelab`, `oracle-a1`) |
 | Full fidelity, complete logs | homelab: local Prometheus/Loki via `observe.sh --local` or `kubectl-ro.sh get --raw` |
 | oracle-a1 | Grafana only (it runs Alloy and kube-state-metrics, no local Prometheus/Loki); pods and events via `kubectl-ro.sh --cluster oracle-a1` |
-| Argo state of one app | `just status-app`, `just diagnose-app` |
+| Argo state of one app | Argo CD MCP (read-only), `just status-app <app>`, `just diagnose-app <app>`; metrics: `observe.sh app <name>` |
 
 Local access identity (PLT-312): `kubectl-ro.sh` uses the `agent-operator` ServiceAccount.
 Its Role `agent-operator-monitoring-query` (`monitoring` namespace, `k8s/infrastructure/security/agent-operator/rbac.yaml`)
@@ -81,4 +81,4 @@ pods Pending.
   executors that run in ARC. Doppler `cluster/prd` is not reachable by agents:
   provision it through OpenTofu with a Doppler reference. Until then
   `observe.sh` works only where `infrastructure/prd` is readable.
-- Standard queries and limits: `.agents/skills/observability/SKILL.md`.
+- Standard queries and limits: `.agents/skills/cluster-investigation/queries.md`.

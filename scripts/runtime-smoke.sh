@@ -5,7 +5,7 @@ for cmd in kubectl jq curl dig python3; do command -v "$cmd" >/dev/null || { ech
 source "$(dirname "$0")/lib/output-mode.sh"
 mode="$(resolve_output_mode "${OUTPUT:-}")"
 source "$(dirname "$0")/lib/kube-preflight.sh"
-if [[ "$mode" == full ]]; then require_kube_access; else require_kube_access >/dev/null; fi
+if [[ "$mode" == full ]]; then require_kube_access; else require_kube_access_quiet; fi
 
 # OpenClaw's controller owns the generated HTTPRoute and publishes the
 # disablement state on the owning OpenClawInstance.  Keep this lookup generic:

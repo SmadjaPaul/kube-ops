@@ -14,7 +14,7 @@ OUT="${1:-$ROOT/docs/state/cluster-reality.md}"
 
 # shellcheck source=scripts/lib/kube-preflight.sh
 source "$ROOT/scripts/lib/kube-preflight.sh"
-require_kube_access >/dev/null
+require_kube_access_quiet
 trap kube_access_cleanup EXIT
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/cluster-reality.XXXXXX")"

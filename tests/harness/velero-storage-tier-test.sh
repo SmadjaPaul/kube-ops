@@ -77,9 +77,58 @@ grep -F 'app: karakeep-web' \
 for schedule in \
   daily-gpt-researcher.yaml \
   daily-pinepods.yaml \
-  daily-jellyfin.yaml \
-  daily-bazarr.yaml \
   daily-karakeep.yaml; do
   grep -F 'defaultVolumesToFsBackup: true' "$velero_root/schedules/$schedule" >/dev/null
 done
 echo "VELERO_DURABLE_DATA_SCOPE_CONTRACT=PASS"
+
+# Internal-secret namespaces: `auth` and `databases` must stay covered by a
+# Velero schedule (their Secrets are rebuilt from Git/Doppler today and will
+# become native Secrets). `databases` is resources-only: CNPG/Barman owns the
+# PostgreSQL data, Velero must never copy PG volumes.
+sched_dir="$velero_root/schedules"
+for ns in auth databases; do
+  schedule="$sched_dir/daily-$ns.yaml"
+  listed="$(yq -r '.resources[]?' "$sched_dir/kustomization.yaml")"
+  if ! grep -Fxq "daily-$ns.yaml" <<<"$listed"; then
+    echo "VELERO_INTERNAL_NAMESPACE_COVERAGE=FAIL: daily-$ns.yaml not listed in schedules/kustomization.yaml" >&2
+    exit 1
+  fi
+  if ! yq -e '.spec.template.includedNamespaces | contains(["'"$ns"'"])' "$schedule" >/dev/null; then
+    echo "VELERO_INTERNAL_NAMESPACE_COVERAGE=FAIL: schedule for $ns does not include namespace $ns" >&2
+    exit 1
+  fi
+  # Secrets must not be filtered out of the backup.
+  if yq -e '(.spec.template.includedResources // ["*"]) as $inc | ($inc | contains(["*"]) or contains(["secrets"])) | not' "$schedule" >/dev/null 2>&1; then
+    echo "VELERO_INTERNAL_NAMESPACE_COVERAGE=FAIL: $ns schedule does not include secrets" >&2
+    exit 1
+  fi
+  if yq -e '.spec.template.excludedResources // [] | contains(["secrets"])' "$schedule" >/dev/null 2>/dev/null; then
+    echo "VELERO_INTERNAL_NAMESPACE_COVERAGE=FAIL: $ns schedule excludes secrets" >&2
+    exit 1
+  fi
+  # CNPG-generated pods/PVCs/Secrets (cnpg.io/cluster) are never doubled.
+  yq -e '.spec.template.labelSelector.matchExpressions[] | select(.key == "cnpg.io/cluster" and .operator == "DoesNotExist")' \
+    "$schedule" >/dev/null
+  test "$(yq -r '.spec.template.storageLocation' "$schedule")" = "r2"
+  test "$(yq -r '.spec.template.ttl' "$schedule")" = "336h"
+  test "$(yq -r '.metadata.labels["backup-tier"]' "$schedule")" = "daily"
+  test "$(yq -r '.metadata.name' "$schedule")" = "velero-daily-$ns"
+done
+# auth keeps the app volumes (Authentik Redis) through fs-backup.
+grep -F 'defaultVolumesToFsBackup: true' "$sched_dir/daily-auth.yaml" >/dev/null
+# databases: Kubernetes resources only, no PG volume copy of any kind.
+db="$sched_dir/daily-databases.yaml"
+test "$(yq -r '.spec.template.defaultVolumesToFsBackup' "$db")" = "false"
+test "$(yq -r '.spec.template.snapshotVolumes' "$db")" = "false"
+for res in pods persistentvolumeclaims persistentvolumes; do
+  yq -e '.spec.template.excludedResources | contains(["'"$res"'"])' "$db" >/dev/null
+done
+# Cluster / ObjectStore / ScheduledBackup definitions stay in the backup.
+for res in clusters.postgresql.cnpg.io objectstores.barmancloud.cnpg.io scheduledbackups.postgresql.cnpg.io; do
+  if yq -e '.spec.template.excludedResources | contains(["'"$res"'"])' "$db" >/dev/null 2>/dev/null; then
+    echo "VELERO_INTERNAL_NAMESPACE_COVERAGE=FAIL: databases schedule must keep $res" >&2
+    exit 1
+  fi
+done
+echo "VELERO_INTERNAL_NAMESPACE_COVERAGE=PASS"

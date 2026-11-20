@@ -1,0 +1,32 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-auth
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: auth
+spec:
+  schedule: "30 4 * * *"
+  template:
+    includedNamespaces:
+      - auth
+    # Authentik PostgreSQL (cluster authentik-postgresql-restored) is protected
+    # by CNPG/Barman on R2. Its pods, PVCs (data + WAL) and operator-generated
+    # Secrets carry cnpg.io/cluster and are excluded so Velero never doubles it.
+    labelSelector:
+      matchExpressions:
+        - key: cnpg.io/cluster
+          operator: DoesNotExist
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+      - clusters.postgresql.cnpg.io
+      - backups.postgresql.cnpg.io
+      - scheduledbackups.postgresql.cnpg.io
+      - objectstores.barmancloud.cnpg.io
+    defaultVolumesToFsBackup: true
+    storageLocation: r2
+    ttl: 336h

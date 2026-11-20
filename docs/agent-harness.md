@@ -79,13 +79,18 @@ application pass.
 
 ## Kubernetes access preflight
 
-Every live-runtime recipe requires an operator-provided `KUBECONFIG`. The
-recipe fails closed with `KUBE_ACCESS=BLOCKED` when the file, context, or API
-is unavailable; it never falls back to the client default or
-`localhost:8080`. The infrastructure repository owns the canonical temporary
-kubeconfig broker (`just kube-access-check` and `just kubectl ...`). Export its
-temporary `KUBECONFIG` when invoking these kube-ops runtime scripts; kube-ops
-does not duplicate the Doppler broker.
+Every live-runtime recipe goes through `scripts/lib/kube-preflight.sh`: it
+materializes the canonical kubeconfig from Doppler (fingerprint and TLS
+verified, removed on exit) and ignores ambient kubeconfigs. It fails closed with
+`KUBE_ACCESS=BLOCKED` when the context or API is unavailable; it never falls
+back to the client default or `localhost:8080`. Its `KUBE_ACCESS=...` lines go
+to stderr, so the stdout of a wrapper stays machine-readable (`just
+kube-access-check` therefore prints them on stderr).
+
+Investigation reads go through one wrapper, `scripts/kubectl-ro.sh` (verb
+whitelist, no Secret data, limited `agent-operator` identity). `status-app`,
+`diagnose-app` and `observe.sh --local` call it; they never run `kubectl`
+themselves. Entry point for agents: `.agents/skills/cluster-investigation`.
 
 By default, runtime smoke artifacts are created in a temporary directory and
 removed at exit. Set `ARTIFACT_DIR` explicitly when a persisted report is

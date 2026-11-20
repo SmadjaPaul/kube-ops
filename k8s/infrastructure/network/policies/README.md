@@ -25,8 +25,7 @@ k8s/infrastructure/network/policies/
     ├── media/           # Media services
     ├── web/             # Web applications
     ├── games/           # Game servers
-    ├── tools/           # Utility services
-    └── network/         # Network management
+    └── tools/           # Utility services
 ```
 
 ## Policy Templates

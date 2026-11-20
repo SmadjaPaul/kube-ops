@@ -26,3 +26,15 @@ results:
   resources:
   - fs-backup-missing
   result: fail
+- isValidatingPolicy: true
+  kind: Schedule
+  policy: repo-contract-velero-fs-backup
+  resources:
+  - fs-backup-false-opt-out
+  result: pass
+- isValidatingPolicy: true
+  kind: Schedule
+  policy: repo-contract-velero-fs-backup
+  resources:
+  - fs-backup-false-empty-opt-out
+  result: fail
