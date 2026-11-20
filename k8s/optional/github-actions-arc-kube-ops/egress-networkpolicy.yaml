@@ -15,7 +15,7 @@ metadata:
     app.kubernetes.io/part-of: github-actions-arc
     policy-type: github-actions-arc
 spec:
-  description: "kube-ops post-merge runner: DNS, GitHub, Kubernetes API, dl.k8s.io, ntfy.sh, Cloudflare DoH and edge (public probe) only"
+  description: "kube-ops post-merge runner: DNS, GitHub, Kubernetes API, dl.k8s.io, get.helm.sh, ntfy.sh, Cloudflare DoH and edge (public probe) only"
   endpointSelector: {}
   egress:
     - toEndpoints:
@@ -47,6 +47,7 @@ spec:
         - matchPattern: "*.blob.core.windows.net"
         - matchName: dl.k8s.io
         - matchName: cdn.dl.k8s.io
+        - matchName: get.helm.sh
         - matchName: ntfy.sh
         - matchName: cloudflare-dns.com
       toPorts:

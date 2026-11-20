@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs the pinned tools the post-merge job needs on the stock ARC runner image (PLT-390 lot 3):
-# kubectl, jq, yq, just, into ~/.local/bin. Each download is checked against a pinned sha256 (linux/amd64).
-# Hosts: dl.k8s.io, github.com release assets (allowed by the egress policy of the kube-ops scale set).
+# kubectl, jq, yq, just, kustomize, helm, into ~/.local/bin. Each download is checked against a pinned sha256 (linux/amd64).
+# Hosts: dl.k8s.io, get.helm.sh, github.com release assets (allowed by the egress policy of the kube-ops scale set).
 # Usage: bash scripts/ci-install-tools.sh   (then PATH="$HOME/.local/bin:$PATH")
 set -euo pipefail
 [[ $(uname -m) == x86_64 ]] || { echo "ci-install-tools: linux/amd64 only (got $(uname -m))" >&2; exit 2; }
@@ -19,5 +19,15 @@ need yq || { fetch https://github.com/mikefarah/yq/releases/download/v4.54.3/yq_
 need just || {
   fetch https://github.com/casey/just/releases/download/1.59.0/just-1.59.0-x86_64-unknown-linux-musl.tar.gz 409044617b6f06517c1035e55ca38c8c856ff8b650e41bc2aa1ef82d5903a23e "$tmp/just.tgz"
   tar -xzf "$tmp/just.tgz" -C "$tmp" just && install -m 0755 "$tmp/just" "$bin/just"
+}
+# app-test --phase runtime reuses the static render of the app (kustomize build --enable-helm). Same
+# versions as .github/workflows/v1-contract.yaml; sha256 from the official checksum files.
+need kustomize || {
+  fetch https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz 029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d "$tmp/kustomize.tgz"
+  tar -xzf "$tmp/kustomize.tgz" -C "$tmp" kustomize && install -m 0755 "$tmp/kustomize" "$bin/kustomize"
+}
+need helm || {
+  fetch https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz 86584a54def73570558f66f5111cc53dfed56689637ae32c1201205d494f54fb "$tmp/helm.tgz"
+  tar -xzf "$tmp/helm.tgz" -C "$tmp" linux-amd64/helm && install -m 0755 "$tmp/linux-amd64/helm" "$bin/helm"
 }
 echo "CI_TOOLS=READY bin=$bin"
