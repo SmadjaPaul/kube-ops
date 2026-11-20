@@ -43,6 +43,9 @@ spec:
     # PLT-375: shared PostgreSQL for the homelab (pg-shared-homelab, D-2026-11-16-09).
     - namespace: databases
       server: https://kubernetes.default.svc
+    # PLT-149: exact-name split-DNS resolver (#1654).
+    - namespace: dns-exact-resolver
+      server: https://kubernetes.default.svc
     - namespace: external-dns-private
       server: https://kubernetes.default.svc
     - namespace: external-secrets
@@ -104,6 +107,9 @@ spec:
     - namespace: paperless
       server: https://kubernetes.default.svc
     - namespace: pinepods
+      server: https://kubernetes.default.svc
+    # PLT-390: preview sweeper (k8s/infrastructure/previews).
+    - namespace: preview-system
       server: https://kubernetes.default.svc
     - namespace: qdrant
       server: https://kubernetes.default.svc
