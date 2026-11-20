@@ -145,6 +145,15 @@ def problems(docs, corefile_override=None, service_ip=None, cnp_mutator=None, de
         bad.append("runAsUser must be non-zero")
     if not c.get("securityContext", {}).get("readOnlyRootFilesystem"):
         bad.append("readOnlyRootFilesystem must be true")
+    caps = c.get("securityContext", {}).get("capabilities", {})
+    if "ALL" not in caps.get("drop", []):
+        bad.append("capabilities.drop must contain ALL")
+    if caps.get("add", []) != ["NET_BIND_SERVICE"]:
+        bad.append(f"capabilities.add must be exactly [NET_BIND_SERVICE] (upstream /coredns file capability), got {caps.get('add')}")
+    if c.get("securityContext", {}).get("allowPrivilegeEscalation") is not False:
+        bad.append("allowPrivilegeEscalation must be false")
+    if pod.get("securityContext", {}).get("seccompProfile", {}).get("type") != "RuntimeDefault":
+        bad.append("seccompProfile must be RuntimeDefault")
     if dep["spec"].get("replicas", 1) != 1:
         bad.append("replicas must be 1 (single node, no PDB)")
 
@@ -212,7 +221,24 @@ if not bad:
     print("NEGATIVE_CASE_NOT_REJECTED dnsPolicy ClusterFirst", file=sys.stderr)
     sys.exit(1)
 
-print("negative cases rejected: %d" % (len(cases) + 3 + 2))
+def sec_mut(fn):
+    def m(dep):
+        fn(dep["spec"]["template"]["spec"]["containers"][0]["securityContext"])
+    return m
+
+for label, fn in {
+    "no capability added": lambda s: s["capabilities"].pop("add"),
+    "SYS_ADMIN added": lambda s: s["capabilities"].__setitem__("add", ["NET_BIND_SERVICE", "SYS_ADMIN"]),
+    "NET_RAW instead": lambda s: s["capabilities"].__setitem__("add", ["NET_RAW"]),
+    "drop ALL removed": lambda s: s["capabilities"].__setitem__("drop", ["NET_RAW"]),
+    "privilege escalation allowed": lambda s: s.__setitem__("allowPrivilegeEscalation", True),
+}.items():
+    bad, _ = problems(docs, deploy_mutator=sec_mut(fn))
+    if not bad:
+        print(f"NEGATIVE_CASE_NOT_REJECTED {label}", file=sys.stderr)
+        sys.exit(1)
+
+print("negative cases rejected: %d" % (len(cases) + 3 + 2 + 5))
 PY
 
 printf '%s\n' 'DNS_EXACT_RESOLVER_CONTRACT_TEST=PASS'
