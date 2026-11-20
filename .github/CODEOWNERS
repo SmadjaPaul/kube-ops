@@ -18,50 +18,50 @@
 
 # --- Pipeline, CI et gouvernance du depot ---------------------------------------------------------
 # Workflows (checks requis, workflow-integrity), actions, dependabot, instructions Copilot.
-/.github/
+/.github/ @SmadjaPaul
 # Point d'entree de tooling et garde du contrat de service (check v1-contract).
-/.justfile
-/scripts/plan/
-/tests/harness/service-contract-guard*
+/.justfile @SmadjaPaul
+/scripts/plan/ @SmadjaPaul
+/tests/harness/service-contract-guard* @SmadjaPaul
 
 # --- Golden paths : chaque changement se propage a toutes les PR generees ------------------------
-/golden-paths/
-/k8s/charts/platform-app/
+/golden-paths/ @SmadjaPaul
+/k8s/charts/platform-app/ @SmadjaPaul
 
 # --- Bootstrap Argo CD : root app (cluster-admin via Argo) et AppProjects -------------------------
-/k8s/bootstrap/
-/k8s/clusters/*/bootstrap/
-/k8s/clusters/*/apps/
+/k8s/bootstrap/ @SmadjaPaul
+/k8s/clusters/*/bootstrap/ @SmadjaPaul
+/k8s/clusters/*/apps/ @SmadjaPaul
 # Definit destinations, namespaces et ressources cluster autorisees de chaque projet Argo.
-/k8s/**/project.yaml
+/k8s/**/project.yaml @SmadjaPaul
 
 # --- Authentik : OIDC, blueprints, clients --------------------------------------------------------
-/k8s/infrastructure/auth/
+/k8s/infrastructure/auth/ @SmadjaPaul
 
 # --- Securite et admission : politiques, VAP, exceptions, garde-fous ------------------------------
-/k8s/infrastructure/security/
-/k8s/clusters/*/guardrails/
-/k8s/**/policy-exception*.yaml
-/k8s/**/validatingadmissionpolicy*.yaml
+/k8s/infrastructure/security/ @SmadjaPaul
+/k8s/clusters/*/guardrails/ @SmadjaPaul
+/k8s/**/policy-exception*.yaml @SmadjaPaul
+/k8s/**/validatingadmissionpolicy*.yaml @SmadjaPaul
 
 # --- Identite et RBAC (tout fichier RBAC, quel que soit le dossier) ------------------------------
-/k8s/**/rbac*.yaml
-/k8s/**/role*.yaml
-/k8s/**/clusterrole*.yaml
-/k8s/**/rolebinding*.yaml
-/k8s/**/clusterrolebinding*.yaml
-/k8s/clusters/*/agent-operator/
-/k8s/infrastructure/controllers/argocd/
+/k8s/**/rbac*.yaml @SmadjaPaul
+/k8s/**/role*.yaml @SmadjaPaul
+/k8s/**/clusterrole*.yaml @SmadjaPaul
+/k8s/**/rolebinding*.yaml @SmadjaPaul
+/k8s/**/clusterrolebinding*.yaml @SmadjaPaul
+/k8s/clusters/*/agent-operator/ @SmadjaPaul
+/k8s/infrastructure/controllers/argocd/ @SmadjaPaul
 
 # --- Secrets d'infrastructure : ESO (ClusterSecretStore), ExternalSecret plateforme --------------
 # Les ExternalSecret des applications (k8s/applications/**) ne sont PAS listes : voir le risque
 # residuel dans docs/platform/backstage-github-app.md.
-/k8s/infrastructure/controllers/external-secrets/
-/k8s/clusters/*/external-secrets/
-/k8s/**/*secret-store*.yaml
-/k8s/infrastructure/**/*external*secret*.yaml
-/k8s/clusters/**/*external*secret*.yaml
+/k8s/infrastructure/controllers/external-secrets/ @SmadjaPaul
+/k8s/clusters/*/external-secrets/ @SmadjaPaul
+/k8s/**/*secret-store*.yaml @SmadjaPaul
+/k8s/infrastructure/**/*external*secret*.yaml @SmadjaPaul
+/k8s/clusters/**/*external*secret*.yaml @SmadjaPaul
 
 # --- Exposition publique (tunnel, routes) ---------------------------------------------------------
-/k8s/infrastructure/network/cloudflared/
-/k8s/clusters/*/cloudflared/
+/k8s/infrastructure/network/cloudflared/ @SmadjaPaul
+/k8s/clusters/*/cloudflared/ @SmadjaPaul
