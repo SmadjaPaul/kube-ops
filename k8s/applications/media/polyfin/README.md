@@ -65,14 +65,8 @@ The scanner and date matter; reruns against newer advisories may differ.
   Never assert that rebuilding from the same source automatically fixes
   unfixed Debian packages or authenticates the publisher.
 
-The minimal downstream patch is recorded in
-`.github/polyfin/Dockerfile.v0.50.0.patch` and applies only to the exact
-upstream commit `e2cf9f08ac60400fdab20726671fa2e08fd09e1e`. The manual
-workflow `.github/workflows/polyfin-downstream-build.yaml` rebuilds that
-source for `linux/amd64`, emits an SPDX SBOM and BuildKit/GitHub provenance,
-signs and verifies the immutable digest with Cosign, then rescans it. It
-publishes evidence but fails closed while any HIGH/CRITICAL finding remains;
-it does not change the Polyfin deployment image.
+The downstream v0.50.0 builder (Dockerfile patch and manual build workflow)
+was removed: the deployment uses the official upstream image, pinned by digest.
 
 ## Approved downstream candidate
 
@@ -344,8 +338,8 @@ The original Authentik bridge PR #797 was closed and not merged. Polyfin
 upstream shipped OpenID Connect in v0.55.0, so no downstream auth bridge
 should be resurrected. The next candidate is official
 `ghcr.io/moodiness/polyfin:0.59.0@sha256:613dbcf3c87f1079f028e1ecce0dd04d3b28f3543187d0c5068d32b22c7c6ad3`,
-pinned in `k8s/optional/polyfin-v059/kustomization.yaml`. This overlay is
-Superseded by the official 0.61.1 image and its new digest-specific T2
+was pinned in an `optional/polyfin-v059` overlay, since removed. It is
+superseded by the official 0.61.1 image and its new digest-specific T2
 admission. The old downstream evidence remains historical and is not reused.
 
 `media.smadja.dev` is the future private Polyfin hostname. The staged

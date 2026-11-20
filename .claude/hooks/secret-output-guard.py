@@ -176,7 +176,10 @@ def main() -> int:
     if payload.get("tool_name") != "Bash":
         return 0
     command = (payload.get("tool_input") or {}).get("command") or ""
-    reason = check(command)
+    try:
+        reason = check(command)
+    except Exception as exc:  # fail closed: a parser bug must not let a command through
+        reason = f"analyse impossible ({type(exc).__name__}) : commande refusée par prudence"
     if reason:
         print(f"secret-output-guard : commande refusée — {reason}. "
               "Règle : AGENTS.md (Safety) ; aucune valeur de secret dans une sortie d'outil.", file=sys.stderr)

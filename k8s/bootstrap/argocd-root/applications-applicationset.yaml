@@ -23,7 +23,6 @@ spec:
           - path: k8s/applications/business/invoice-ninja
           - path: k8s/applications/catalog
           - path: k8s/applications/platform
-          - path: k8s/applications/restore
   # Retrait sans cascade : la suppression d'une Application générée par cet ApplicationSet
   # ne supprime plus ses ressources (pas de finalizer resources-finalizer à la génération,
   # et retrait du finalizer des Applications existantes au prochain reconcile).

@@ -18,7 +18,7 @@ context:
 
 [doc('Print compact active desired-state roots and routes')]
 inventory:
-    bash scripts/inventory.sh
+    node scripts/inventory.mjs
 
 [doc('Regenerate the Backstage catalog from Git (catalog/generated/all.yaml)')]
 catalog-generate:
@@ -30,10 +30,10 @@ check:
     bash tests/harness/grafana-dashboard-contract-test.sh
     bash tests/harness/grafana-tctl-contract-test.sh
     bash tests/harness/backup-audit-contract-test.sh
-    bash tests/harness/dr-synth-cleanup-contract-test.sh
     bash tests/harness/kube-preflight-test.sh
     bash tests/harness/affected-tests-test.sh
     bash tests/harness/runtime-smoke-test.sh
+    bash tests/harness/argo-terminate-stuck-sync-test.sh
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
@@ -43,7 +43,6 @@ check:
     bash tests/harness/arc-gitops-contract-test.sh
     bash tests/harness/invoice-backup-test.sh
     bash tests/harness/restic-backup-contract-test.sh
-    bash tests/harness/decypharr-torbox-staged-test.sh
     bash tests/harness/aiostreams-staged-contract-test.sh
     bash tests/harness/aiostreams-sqlite-restore-test.sh
     bash tests/harness/aiostreams-oidc-dormant-contract-test.sh
@@ -55,10 +54,11 @@ check:
     bash tests/harness/bookorbit-staged-contract-test.sh
     bash tests/harness/authentik-human-users-contract-test.sh
     bash tests/harness/authentik-friends-contract-test.sh
-    bash tests/harness/media-retired-contract-test.sh
     bash tests/harness/d-recovery-contract-test.sh
     bash tests/agent-guard/agent-operator-identity-test.sh
+    bash tests/agent-guard/kubectl-rw-exec-test.sh
     bash tests/agent-guard/secret-output-guard-test.sh
+    bash tests/agent-guard/investigation-read-path-test.sh
     bash tests/harness/cnpg-cluster-allowlist-test.sh
     bash tests/harness/db-storage-tier-guard-test.sh
     bash tests/harness/verify-delivery-test.sh
@@ -79,6 +79,7 @@ check-affected:
     bash -n scripts/check-agent-harness-contract.sh scripts/check-v1-active-contract.sh scripts/backup-static-contract.sh
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/runtime-smoke-test.sh
+    bash tests/harness/argo-terminate-stuck-sync-test.sh
     bash tests/harness/invoice-restore-isolation-test.sh
     bash tests/harness/velero-storage-tier-test.sh
     bash tests/harness/longhorn-servicemonitor-contract-test.sh

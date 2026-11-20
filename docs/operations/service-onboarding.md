@@ -24,9 +24,9 @@ Authority: [AGENTS.md](../../AGENTS.md). Keep upstream Kubernetes/Helm/Kustomize
 
 1. Edit the *actual* parent root and render it: `kustomize build --enable-helm <root>`. Run `just check` and `just inventory`; verify the service is included in `activeKustomizationDirs`.
 2. PR: identify the Argo Application owner, namespace, resources/limits, DNS/TLS exposure, ingress/egress, state/backup, rollout/rollback and agent test-result evidence.
-3. Independent review and CI before merge. After merge prove **separately** STATIC, RECONCILED (Argo), RUNTIME (Pods/Services/routes) and USER if applicable. Follow `.agents/skills/runtime-observer/` and `just status-app <app>`.
+3. Independent review and CI before merge. After merge prove **separately** STATIC, RECONCILED (Argo), RUNTIME (Pods/Services/routes) and USER if applicable. Follow `.agents/skills/cluster-investigation/` and `just status-app <app>`.
 4. Retirement: remove imports before deleting old manifests, classify retained state separately, check Argo prune ownership and existing PVC/PV and backup inventory. Never infer permission to erase data.
 
 ## Existing exception (2026-10-21)
 
-`k8s/applications/restore` is referenced by the ApplicationSet but absent from Git, tracked by a narrow static-test waiver. Do **not** remove that Argo path without runtime owner/prune evidence. Listmonk and Twenty have no Git manifest and no Argo Application; their Released `Retain` PVs (for example `twenty/twenty-postgresql-1`) are data to keep. Paperclip has no Git manifest; its Released `Retain` PV `paperclip-data` still holds rollback data. Dormant manifest deletion remains subject to an operator decision.
+The former `k8s/applications/restore` ApplicationSet path (absent from Git) was removed from the ApplicationSet; the ApplicationSet uses `preserveResourcesOnDeletion`, so any live `apps-restore` Application keeps its resources and needs a separate operator decision. Listmonk and Twenty have no Git manifest and no Argo Application; their Released `Retain` PVs (for example `twenty/twenty-postgresql-1`) are data to keep. Paperclip has no Git manifest; its Released `Retain` PV `paperclip-data` still holds rollback data. Dormant manifest deletion remains subject to an operator decision.

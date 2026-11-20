@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Compact, read-only cluster state for agents (PLT-312, .agents/skills/observability).
+# Compact, read-only cluster state for agents (PLT-312, .agents/skills/cluster-investigation).
 #
 # Usage: bash scripts/observe.sh [--local] [summary|alerts|backups|app <name>]
 #   summary  targets, firing alerts, nodes, pods, Argo, series budget (default)
 #   alerts   firing alerts by cluster / alertname / severity
 #   backups  CNPG, Velero, Longhorn, PVC, certificates
-#   app X    one app: Argo state, pods, restarts, error logs (namespace X)
+#   app X    one app: Argo state (Application X, apps-X or infra-X), pods, restarts,
+#            error logs (namespace X)
 #
 # Default source: Grafana Cloud (both clusters, label `cluster`), through
 # GRAFANA_AGENT_READ_TOKEN (Doppler infrastructure/prd, injected by
@@ -169,7 +170,9 @@ do_backups() {
 }
 
 do_app() {
-  q "Argo app $app" "argocd_app_info{name=\"$app\"}"
+  # The Argo Application is named apps-<app> or infra-<app> (like lib/argo-app.sh),
+  # not <app>: an exact match on the namespace name finds nothing and reads as "absent".
+  q "Argo app $app (name, apps-name or infra-name)" "argocd_app_info{name=~\"(apps-|infra-)?$app\"}"
   q "pods not ready in $app" "sum by (cluster, namespace, pod) (kube_pod_status_ready{condition=\"true\",namespace=\"$app\"}) == 0"
   q "waiting reasons in $app" "count by (cluster, namespace, reason) (kube_pod_container_status_waiting_reason{namespace=\"$app\"})"
   q "restarts 1h in $app" "topk(5, increase(kube_pod_container_status_restarts_total{namespace=\"$app\"}[1h]) > 0)"

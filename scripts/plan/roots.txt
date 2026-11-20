@@ -5,7 +5,7 @@
 # dans le plan (objets ajoutes ou retires).
 # Verifie par tests/plan/test_roots_sync.py : tout chemin Argo existant doit figurer ici.
 #
-# Applications (AppSet applications ; k8s/applications/restore absent du depot)
+# Applications (AppSet applications)
 k8s/applications/ai
 k8s/applications/automation
 k8s/applications/business/invoice-ninja
