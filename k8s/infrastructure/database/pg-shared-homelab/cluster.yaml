@@ -40,6 +40,7 @@ spec:
       parameters:
         barmanObjectName: pg-shared-homelab-r2
   # Roles applicatifs geres par CNPG : un bloc par base (modele : app-database.example.tmpl).
+  # Mot de passe de chaque role : Secret `pg-<namespace>` genere par ESO (CreatedOnce, Orphan), jamais une cle Doppler.
   managed:
     roles: []
   storage:
