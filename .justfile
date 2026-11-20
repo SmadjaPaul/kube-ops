@@ -58,6 +58,7 @@ check:
     bash tests/agent-guard/agent-operator-identity-test.sh
     bash tests/agent-guard/kubectl-rw-exec-test.sh
     bash tests/agent-guard/secret-output-guard-test.sh
+    bash tests/agent-guard/investigation-read-path-test.sh
     bash tests/harness/cnpg-cluster-allowlist-test.sh
     bash tests/harness/db-storage-tier-guard-test.sh
     bash tests/harness/verify-delivery-test.sh

@@ -194,8 +194,13 @@ require_kube_access() {
     reason=api_unreachable
   else
     api_reachable=yes
-    printf 'KUBE_ACCESS=PASS\nKUBECONFIG_PRESENT=yes\nAPI_REACHABLE=yes\nCLUSTER_VERSION=%s\nKUBE_ACCESS_SOURCE=%s\n' \
-      "$cluster_version" "$source"
+    # Diagnostic on stderr: stdout stays reserved for the output of the calling
+    # wrapper (JSON, key=value lines) that agents parse. KUBE_ACCESS_QUIET=1
+    # (require_kube_access_quiet) drops the PASS block for callers that only gate.
+    if [[ "${KUBE_ACCESS_QUIET:-}" != 1 ]]; then
+      printf 'KUBE_ACCESS=PASS\nKUBECONFIG_PRESENT=yes\nAPI_REACHABLE=yes\nCLUSTER_VERSION=%s\nKUBE_ACCESS_SOURCE=%s\n' \
+        "$cluster_version" "$source" >&2
+    fi
     return 0
   fi
 
@@ -209,4 +214,9 @@ require_kube_access() {
     "$kubeconfig_present" \
     "$api_reachable" \
     "$next_action"
+}
+
+# Gate only: no PASS block, BLOCKED diagnostics still go to stderr.
+require_kube_access_quiet() {
+  KUBE_ACCESS_QUIET=1 require_kube_access "$@"
 }

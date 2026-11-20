@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
+# Argo CD state of one Application (summary|errors|full). Read-only, through kubectl-ro.sh.
 set -euo pipefail
 app=${1:?usage: status-app.sh APP [summary|errors|full]}
-for cmd in kubectl jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
-source "$(dirname "$0")/lib/output-mode.sh"
+command -v jq >/dev/null || { echo "ERROR: jq required" >&2; exit 2; }
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/output-mode.sh
+source "$HERE/lib/output-mode.sh"
+# shellcheck source=lib/kube-read.sh
+source "$HERE/lib/kube-read.sh"
+# shellcheck source=lib/argo-app.sh
+source "$HERE/lib/argo-app.sh"
 mode="$(resolve_output_mode "${2:-}")"
-source "$(dirname "$0")/lib/kube-preflight.sh"
-if [[ "$mode" == full ]]; then require_kube_access; else require_kube_access >/dev/null; fi
-source "$(dirname "$0")/lib/argo-app.sh"
 resolved="$(resolve_argo_app "$app")"
 
-full_json="$(kubectl -n argocd get application.argoproj.io "$resolved" -o json | jq '{
+full_json="$(kro get application.argoproj.io "$resolved" -n argocd -o json | jq '{
   application:.metadata.name,
   project:.spec.project,
   source:{repo:.spec.source.repoURL,revision:.spec.source.targetRevision,path:.spec.source.path},
@@ -48,7 +52,7 @@ rev="$(jq -r '(.reconciledRevision // "none")[0:7]' <<<"$full_json")"
 ready=0; total=0
 while IFS= read -r ns; do
   [[ -z "$ns" ]] && continue
-  counts="$(kubectl get pods -n "$ns" -o json 2>/dev/null | jq -r '[.items[] | select(.status.phase != "Succeeded")] | "\(map(select(any(.status.conditions[]?; .type=="Ready" and .status=="True"))) | length) \(length)"' 2>/dev/null || echo "0 0")"
+  counts="$(kro get pods -n "$ns" -o json 2>/dev/null | jq -r '[.items[] | select(.status.phase != "Succeeded")] | "\(map(select(any(.status.conditions[]?; .type=="Ready" and .status=="True"))) | length) \(length)"' 2>/dev/null || echo "0 0")"
   ready=$((ready + ${counts%% *})); total=$((total + ${counts##* }))
 done < <(jq -r '[.resources[].namespace // empty] | unique | .[]' <<<"$full_json")
 last_error="$(jq -r '

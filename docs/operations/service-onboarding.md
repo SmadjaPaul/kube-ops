@@ -24,7 +24,7 @@ Authority: [AGENTS.md](../../AGENTS.md). Keep upstream Kubernetes/Helm/Kustomize
 
 1. Edit the *actual* parent root and render it: `kustomize build --enable-helm <root>`. Run `just check` and `just inventory`; verify the service is included in `activeKustomizationDirs`.
 2. PR: identify the Argo Application owner, namespace, resources/limits, DNS/TLS exposure, ingress/egress, state/backup, rollout/rollback and agent test-result evidence.
-3. Independent review and CI before merge. After merge prove **separately** STATIC, RECONCILED (Argo), RUNTIME (Pods/Services/routes) and USER if applicable. Follow `.agents/skills/runtime-observer/` and `just status-app <app>`.
+3. Independent review and CI before merge. After merge prove **separately** STATIC, RECONCILED (Argo), RUNTIME (Pods/Services/routes) and USER if applicable. Follow `.agents/skills/cluster-investigation/` and `just status-app <app>`.
 4. Retirement: remove imports before deleting old manifests, classify retained state separately, check Argo prune ownership and existing PVC/PV and backup inventory. Never infer permission to erase data.
 
 ## Existing exception (2026-10-21)
