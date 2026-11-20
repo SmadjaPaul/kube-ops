@@ -68,6 +68,10 @@ runtime-smoke OUTPUT="summary":
 investigate APP CLUSTER="homelab" OUTPUT="summary":
     bash scripts/investigate.sh app "{{APP}}" --cluster "{{CLUSTER}}" "{{OUTPUT}}"
 
+[doc('Test one app on the 7 golden paths: just app-test APP NAMESPACE [--phase static|runtime|all] [--cluster homelab] [--chaos]')]
+app-test APP NAMESPACE *ARGS:
+    bash scripts/app-test.sh "{{APP}}" "{{NAMESPACE}}" {{ARGS}}
+
 [doc('Show bounded read-only status for one Argo Application; OUTPUT=summary|errors|full')]
 status-app APP OUTPUT="summary":
     bash scripts/status-app.sh "{{APP}}" "{{OUTPUT}}"

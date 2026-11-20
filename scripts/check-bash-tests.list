@@ -40,3 +40,4 @@ tests/harness/agent-e2e-run-test.sh
 tests/agent-guard/kubectl-ro-session-test.sh
 tests/agent-guard/agent-memory-entry-test.sh
 tests/harness/dns-exact-resolver-contract-test.sh
+tests/harness/app-test-contract-test.sh
