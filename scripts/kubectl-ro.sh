@@ -268,9 +268,23 @@ fi
 session_user=""
 if [ "$in_cluster" = 1 ]; then
   unset KUBECONFIG
-  who=$(effective_user)
+  # shellcheck source=lib/in-cluster-kubeconfig.sh
+  . "$(dirname "${BASH_SOURCE[0]}")/lib/in-cluster-kubeconfig.sh"
+  in_cluster_kcfg=$(in_cluster_kubeconfig "$SA_DIR") || refuse "KUBECTL_RO_IN_CLUSTER=1 : ca.crt ou jeton ServiceAccount illisible"
+  export KUBECONFIG=$in_cluster_kcfg
+  trap 'kube_access_cleanup; rm -f "$status_file" "$in_cluster_kcfg"' EXIT
+  whoami_err=$(mktemp "${TMPDIR:-/tmp}/kubectl-ro-whoami.XXXXXX")
+  who=$(kubectl --request-timeout=15s auth whoami -o jsonpath='{.status.userInfo.username}' 2>"$whoami_err") || who=""
+  if [ -z "$who" ]; then
+    # Fallback: the `sub` claim of the kubelet-mounted ServiceAccount token (identity only, never printed whole).
+    # The API server still authenticates every call with this token, so RBAC remains the real boundary.
+    who=$(cut -d. -f2 "$SA_DIR/token" | tr '_-' '/+' | awk '{ n = length($0) % 4; if (n) $0 = $0 substr("===", 1, 4 - n); print }' |
+      base64 -d 2>/dev/null | jq -r '.sub // empty' 2>/dev/null) || who=""
+    [ -z "$who" ] || echo "kubectl-ro: auth whoami indisponible ($(tr '\n' ' ' <"$whoami_err" | cut -c1-160)), identité lue du jeton ServiceAccount" >&2
+  fi
   [ "$who" = "$IN_CLUSTER_USER" ] ||
-    refuse "identité effective '$who' : seule $IN_CLUSTER_USER est admise en mode in-cluster"
+    refuse "identité effective '$who' : seule $IN_CLUSTER_USER est admise en mode in-cluster (whoami: $(tr '\n' ' ' <"$whoami_err" | cut -c1-160))"
+  rm -f "$whoami_err"
   session_user=$who
   export KUBE_ACCESS_SOURCE=in_cluster_serviceaccount
 elif session_load; then

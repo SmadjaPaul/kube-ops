@@ -12,10 +12,15 @@ OUT=${REPLAY_OUT:-$(mktemp -d)}
 mkdir -p "$OUT"
 fail=0
 
+# Les racines Atlantis ont ete retirees de roots.txt (PLT-46), mais le rejeu de
+# e63fc72e doit encore les rendre : roots de rejeu = roots.txt + racines retirees.
+REPLAY_ROOTS="$OUT/replay-roots.txt"
+{ cat "$ROOT/scripts/plan/roots.txt"; echo "k8s/poc/atlantis-plan-only"; echo "k8s/poc/atlantis-apps"; } >"$REPLAY_ROOTS"
+
 replay() {
   local commit=$1 want=$2 label=$3
   local rc
-  "$PY" "$ROOT/scripts/plan/plan_diff.py" pr --repo "$ROOT" --roots "$ROOT/scripts/plan/roots.txt" \
+  "$PY" "$ROOT/scripts/plan/plan_diff.py" pr --repo "$ROOT" --roots "$REPLAY_ROOTS" \
     --base-ref "$commit^" --head-ref "$commit" \
     --json "$OUT/$commit.json" --md "$OUT/$commit.md" >"$OUT/$commit.stdout" 2>&1
   rc=$?

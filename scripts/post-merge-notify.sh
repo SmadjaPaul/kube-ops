@@ -15,7 +15,11 @@ title=$1; prio=$2; msg=$3
 case "$prio" in default|high|urgent) ;; *) echo "ERROR: bad priority" >&2; exit 2 ;; esac
 if (( dry )); then echo "NOTIFY=DRY_RUN title=\"$title\" priority=$prio message=\"$msg\""; exit 0; fi
 if [[ -z ${NTFY_PUBLISH_URL:-} && ${KUBECTL_RO_IN_CLUSTER:-} == 1 ]]; then
-  NTFY_PUBLISH_URL=$(kubectl -n monitoring get secret alertmanager-ntfy-url -o jsonpath='{.data.url}' 2>/dev/null | base64 -d 2>/dev/null) || true
+  # shellcheck source=lib/in-cluster-kubeconfig.sh
+  . "$here/lib/in-cluster-kubeconfig.sh"
+  kcfg=$(in_cluster_kubeconfig "${KUBECTL_RO_SA_DIR:-/var/run/secrets/kubernetes.io/serviceaccount}") || kcfg=""
+  NTFY_PUBLISH_URL=$(KUBECONFIG=${kcfg:-/nonexistent} kubectl -n monitoring get secret alertmanager-ntfy-url -o jsonpath='{.data.url}' 2>/dev/null | base64 -d 2>/dev/null) || true
+  [[ -z $kcfg ]] || rm -f "$kcfg"
   [[ -n $NTFY_PUBLISH_URL ]] || { echo "NOTIFY=BLOCKED reason=ntfy_secret_unreadable"; exit 2; }
   [[ -z ${GITHUB_ACTIONS:-} ]] || echo "::add-mask::$NTFY_PUBLISH_URL"
 fi
@@ -28,6 +32,14 @@ if [[ -z ${NTFY_PUBLISH_URL:-} ]]; then
   fi
   echo "NOTIFY=BLOCKED reason=no_ntfy_url"; exit 2
 fi
+# The Alertmanager URL may carry a query (e.g. ?template=alertmanager, which expects Alertmanager JSON):
+# publish plain text to the bare topic URL.
+NTFY_PUBLISH_URL=${NTFY_PUBLISH_URL%%\?*}
 # URL through a curl config on stdin: not in the process arguments.
-printf 'url = "%s"\n' "$NTFY_PUBLISH_URL" | curl -fsS --max-time 20 -K - -H "Title: $title" -H "Priority: $prio" -H "Tags: rotating_light" -d "$msg" >/dev/null \
-  && echo "NOTIFY=SENT" || { echo "NOTIFY=BLOCKED reason=ntfy_refused"; exit 2; }
+resp=$(mktemp "${TMPDIR:-/tmp}/ntfy.XXXXXX"); trap 'rm -f "$resp"' EXIT
+code=$(printf 'url = "%s"\n' "$NTFY_PUBLISH_URL" | curl -sS --max-time 20 -K - -o "$resp" -w '%{http_code}' \
+  -H "Title: $title" -H "Priority: $prio" -H "Tags: rotating_light" -d "$msg" 2>/dev/null) || code=000
+if [[ $code == 2?? ]]; then echo "NOTIFY=SENT"; else
+  # ntfy error body is JSON ({"code":..,"error":..}); it never contains the topic URL.
+  echo "NOTIFY=BLOCKED reason=ntfy_refused http=$code error=$(jq -r '.error // empty' "$resp" 2>/dev/null | cut -c1-120)"; exit 2
+fi

@@ -64,23 +64,12 @@ if [[ "$agentgateway_sc" != 'longhorn-fast' ]]; then
   exit 1
 fi
 
-# Retired Atlantis root (PLT-205, PLT-46; MANDAT 16 of D-2026-11-16-05). The recovery PVC
-# atlantis-pilot-data is deleted for good: the root must not define it again (Argo would
-# recreate it empty) and must not carry any workload, route or credential object. It only
-# keeps the namespace; the one-shot cleanup Job (kube-ops#1580) and its RBAC are retired.
-atlantis_root="$repo_root/k8s/poc/atlantis-plan-only"
-grep -F -- '- path: k8s/poc/atlantis-plan-only' \
-  "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" >/dev/null
-test "$(find "$atlantis_root" -type f -exec basename {} \; | sort | tr '\n' ' ')" = \
-  'kustomization.yaml namespace.yaml '
-atlantis_rendered="$(mktemp)"
-trap 'rm -f "$atlantis_rendered"' EXIT
-kustomize build "$atlantis_root" >"$atlantis_rendered"
-grep -q '^kind: Namespace$' "$atlantis_rendered"
-grep -q '^  name: atlantis-system$' "$atlantis_rendered"
-if grep -Eq '^kind: (PersistentVolumeClaim|Job|ServiceAccount|Role|RoleBinding|ClusterRole|ClusterRoleBinding|ConfigMap|StatefulSet|Deployment|Service|HTTPRoute|ExternalSecret|Secret|CiliumNetworkPolicy)$' \
-  "$atlantis_rendered"; then
-  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retired Atlantis root renders a PVC, Job, RBAC, workload, route or credential object' >&2
+# Atlantis (PLT-46; MANDAT 16 of D-2026-11-16-05): the PVC atlantis-pilot-data is deleted for good
+# and the retired recovery roots are removed from the Argo root; none may come back.
+if grep -Eq 'k8s/poc/atlantis-' "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" \
+  || test -e "$repo_root/k8s/poc/atlantis-plan-only" || test -e "$repo_root/k8s/poc/atlantis-apps" \
+  || test -e "$repo_root/k8s/infrastructure/controllers/velero/schedules/daily-atlantis.yaml"; then
+  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: retired Atlantis root reintroduced' >&2
   exit 1
 fi
 if rg -n 'atlantis-servicemonitor|atlantis-observability|atlantis-pilot' \
