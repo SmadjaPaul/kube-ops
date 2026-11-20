@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 # shellcheck source=lib/kube-preflight.sh
 source scripts/lib/kube-preflight.sh
 trap kube_access_cleanup EXIT
-require_kube_access >/dev/null || exit 2
+require_kube_access_quiet || exit 2
 
 out() { printf '%s=%s\n' "$1" "$2"; }
 

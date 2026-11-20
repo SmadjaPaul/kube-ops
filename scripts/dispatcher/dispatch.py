@@ -235,7 +235,9 @@ def kube_access_check() -> tuple[bool, str]:
         return False, "preflight_timeout"
     except OSError:
         return False, "preflight_not_runnable"
-    if proc.returncode == 0 and "KUBE_ACCESS=PASS" in proc.stdout.splitlines():
+    # The preflight writes its diagnostic on stderr (stdout is reserved for wrapper output).
+    lines = (proc.stdout or "").splitlines() + (proc.stderr or "").splitlines()
+    if proc.returncode == 0 and "KUBE_ACCESS=PASS" in lines:
         return True, "ok"
     match = REASON_RE.search(proc.stderr or "") or REASON_RE.search(proc.stdout or "")
     return False, match.group(1) if match else "unknown"

@@ -26,7 +26,7 @@ for command in argocd date jq kubectl; do
 done
 
 source "$(dirname "$0")/lib/kube-preflight.sh"
-require_kube_access >/dev/null
+require_kube_access_quiet
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/argo-orphan-inventory.XXXXXX")"
 trap 'rm -rf -- "$tmp"; kube_access_cleanup' EXIT
