@@ -7,7 +7,7 @@ description: Golden path to add a service to the cluster. Decision tree Q0-Q7 an
 
 Authority: `AGENTS.md`, `k8s/CLAUDE.md`, decisions in `homelab-infra/docs/decisions-active.md`. Answer Q0 to Q7 in order; each answer is written in the PR description. Detail lives in `docs/operations/service-onboarding.md`.
 
-**Who may do this.** Paul's AI merges after a green CI. A relative's AI (friend or family member) opens a PR and **never merges**. Authentik accounts and groups, Doppler values and Cloudflare Access remain Paul's; propose them in the PR, do not create them.
+**Who may do this.** Paul's AI merges after a green CI. A relative's AI (friend or family member) opens a PR and **never merges**. Authentik accounts and groups and Cloudflare Access remain Paul's; propose them in the PR, do not create them. Internal secrets need no manual gesture: they are generated in the cluster (Q4, Q6); Doppler values exist only for the external and root classes (T6 to T9) and are Paul's.
 
 ## Q0 — Does it already exist?
 Run `just inventory` and search the name. Found: extend or fix it, stop here. Retired or dormant manifest: ask in the PR, never revive silently.
@@ -29,7 +29,7 @@ Access is **always by group, never per user**. Model: `docs/operations/authentik
 - A restore must be proven before the data counts as safe. No PVC is ever removed as incidental cleanup.
 
 ## Q4 — Identity
-- App has native OIDC: Authentik blueprint (`k8s/infrastructure/auth/authentik/extra/blueprints/`), **confidential client**, secret `APP_<APP>_OIDC_CLIENT_SECRET` in Doppler delivered by ESO. Keep the local login until the first admin OIDC login works (`.agents/skills/oidc-integration`).
+- App has native OIDC: Authentik blueprint (`k8s/infrastructure/auth/authentik/extra/blueprints/`), **confidential client**. Its secret is generated in the cluster (class T3, `oidc-<namespace>` in `auth`, copy `<app>-oidc` through store `k8s-auth`); nothing goes to Doppler, the client id is a Git literal. Run `bash scripts/scaffold-app-secrets.sh APP --namespace NS --oidc CLIENT_ID` (dry-run, then `--write`). Keep the local login until the first admin OIDC login works (`.agents/skills/oidc-integration`).
 - No OIDC: forward-auth through the Authentik outpost.
 - Policy binds a group (Q1), never a user.
 
@@ -42,7 +42,12 @@ Access is **always by group, never per user**. Model: `docs/operations/authentik
 - Pod/container securityContext (non-root, no privilege escalation, drop ALL, read-only root fs), emptyDir size limits.
 - CPU and memory requests and limits on every container.
 - CiliumNetworkPolicy default-deny ingress and egress, then explicit allows.
-- ExternalSecret `external-secrets.io/v1`, store `doppler-cluster`, UPPER_SNAKE_CASE keys.
+- Secrets by class (`docs/architecture/secrets-migration-spec.md` section 4.1, runbook `docs/operations/secrets-generated-runbook.md`). Run `bash scripts/scaffold-app-secrets.sh APP --namespace NS [--oidc CLIENT_ID] [--pg-shared] [--local-key USAGE] [--external cloudflare-dns|r2-writer]` (dry-run by default, `--write` to apply; refuses an existing file; prints names only):
+  - T1 `pg-shared-homelab` role password, T3 OIDC client secret, T4 session or cookie key that encrypts nothing persisted, T5 secret shared in one namespace: **generated in the cluster** (`Password` + ExternalSecret `CreatedOnce`/`Orphan`), disposable, no Doppler value, no manual step. The copy in the app namespace uses store `k8s-auth` or `k8s-databases` (`refreshInterval: 1h`) and the Deployment carries `secret.reloader.stakater.com/reload`.
+  - T6 key that encrypts stored data (`--data-key USAGE`): never generated in the cluster; the script prints the homelab-infra PR (OpenTofu `random_bytes` + `doppler_secret`, `prevent_destroy`) and the `doppler-cluster` ExternalSecret. Doubt means T6.
+  - T7 roots, T8 external API tokens (reuse the existing Cloudflare or R2 keys with `--external`), T9 tokens issued by an app: Doppler through `doppler-cluster`, Paul's.
+  - T10 non-secret (URL, client id): literal in Git.
+  - UPPER_SNAKE_CASE keys.
 - ServiceMonitor and at least one alert.
 - Image pinned to a fixed tag, never `latest`.
 
@@ -50,5 +55,5 @@ Access is **always by group, never per user**. Model: `docs/operations/authentik
 PR -> `just check` (and `kustomize build --enable-helm <root>`) -> CI green -> merge without `--admin` -> `just verify-delivery <cluster> <app>`. Report four proofs separately: STATIC (render/tests), RECONCILED (Argo Synced/Healthy), RUNTIME (pods, route answer), USER (a real login by the right group, if applicable).
 
 ## Real example: Mealie (`k8s/applications/catalog/mealie`)
-Q1 `family`; Q2 homelab; Q3 one `longhorn-fast` PVC (Velero), no database; Q4 native OIDC with `APP_MEALIE_OIDC_CLIENT_SECRET` through ESO; fixed image tag, Cilium policy, requests/limits, non-root.
+Q1 `family`; Q2 homelab; Q3 one `longhorn-fast` PVC (Velero), no database; Q4 native OIDC with `APP_MEALIE_OIDC_CLIENT_SECRET` through ESO from Doppler (legacy: a new app generates its secret, see Q4); fixed image tag, Cilium policy, requests/limits, non-root.
 Known gaps, do not copy: no `readOnlyRootFilesystem`, no ServiceMonitor or alert, and its route also targets `Gateway/external` (legacy, to review under Q5). Do not copy the dedicated CNPG `Cluster` of paperless or RomM either: they are "to consolidate" into `pg-shared`.
