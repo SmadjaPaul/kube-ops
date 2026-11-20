@@ -39,7 +39,7 @@ preflight failed.
   per-repository watermarks, one-hour overlap and idempotent upserts rather than
   appending duplicates. Run evidence records inserted events, duplicates and
   errors.
-- WAL is archived continuously and a weekly base backup is written to Hetzner Object Storage.
+- WAL archiving to Hetzner Object Storage is stopped (PLT-94 lot 7) and no scheduled base backup is written; the loss of WAL archive and backup is an accepted decision (MANDAT 17 D-2026-11-16-06, MANDAT 21).
 
 ## Observability / cutover
 

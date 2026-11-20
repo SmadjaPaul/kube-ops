@@ -109,7 +109,7 @@ A shared canonical object layer is deferred until more than one important applic
 
 The infrastructure disaster-recovery path remains intentionally separate from user data portability.
 
-- ordinary Kubernetes filesystem state uses Velero with Kopia to Hetzner Object Storage;
+- ordinary Kubernetes filesystem state uses Velero with Kopia to Cloudflare R2;
 - PostgreSQL uses CloudNativePG with Barman Cloud and continuous WAL archiving to Hetzner Object Storage;
 - Git and Argo CD remain the desired-state authority;
 - Derived caches and indexes should be excluded when they are safely rebuildable.

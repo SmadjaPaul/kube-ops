@@ -1,5 +1,6 @@
 # Kopia Repository Configuration for Velero
-# Conservative settings for the single Hetzner S3 offsite tier.
+# Conservative settings for the Velero Kopia repository on the R2 BackupStorageLocation `r2`
+# (PLT-94 lot 6: the former Hetzner `default` BSL is retired).
 apiVersion: v1
 kind: ConfigMap
 metadata:
