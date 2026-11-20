@@ -26,6 +26,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: arc-runners-website
       server: https://kubernetes.default.svc
+    # PLT-390: post-merge verification runner scale set (apps-arc-kube-ops-ci).
+    - namespace: arc-runners-kube-ops
+      server: https://kubernetes.default.svc
     - namespace: agentgateway
       server: https://kubernetes.default.svc
     - namespace: executor
