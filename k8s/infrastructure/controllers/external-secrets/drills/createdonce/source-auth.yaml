@@ -35,6 +35,11 @@ spec:
     creationPolicy: Orphan
     template:
       engineVersion: v2
+      # Documentation only (proof 4 step 2b): changes metadata.generation to force one ESO reconcile of
+      # the source without rotation (same target.name, creationPolicy, key and generator).
+      metadata:
+        annotations:
+          kube-ops.io/drill-reconcile: "2026-11-20"
       data:
         password: "{{ .password }}"
   dataFrom:

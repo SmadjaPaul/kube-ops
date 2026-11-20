@@ -24,6 +24,10 @@ spec:
     creationPolicy: Owner
     template:
       engineVersion: v2
+      # Documentation only (proof 4 step 2b): forces one reconcile of the copy without rotation.
+      metadata:
+        annotations:
+          kube-ops.io/drill-reconcile: "2026-11-20"
       data:
         password: "{{ .password }}"
   data:
