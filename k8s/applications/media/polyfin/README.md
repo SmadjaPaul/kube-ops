@@ -65,14 +65,8 @@ The scanner and date matter; reruns against newer advisories may differ.
   Never assert that rebuilding from the same source automatically fixes
   unfixed Debian packages or authenticates the publisher.
 
-The minimal downstream patch is recorded in
-`.github/polyfin/Dockerfile.v0.50.0.patch` and applies only to the exact
-upstream commit `e2cf9f08ac60400fdab20726671fa2e08fd09e1e`. The manual
-workflow `.github/workflows/polyfin-downstream-build.yaml` rebuilds that
-source for `linux/amd64`, emits an SPDX SBOM and BuildKit/GitHub provenance,
-signs and verifies the immutable digest with Cosign, then rescans it. It
-publishes evidence but fails closed while any HIGH/CRITICAL finding remains;
-it does not change the Polyfin deployment image.
+The downstream v0.50.0 builder (Dockerfile patch and manual build workflow)
+was removed: the deployment uses the official upstream image, pinned by digest.
 
 ## Approved downstream candidate
 
