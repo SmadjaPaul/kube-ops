@@ -1,0 +1,48 @@
+# Default deny ingress and egress for every pod of the preview namespace, then
+# the minimum: DNS, Authentik (OIDC discovery and token endpoints), traffic from
+# the Gateway, and traffic between pods of the same namespace. No LAN, no
+# internet, no other namespace. (The clusterwide audit baseline excludes
+# namespaces labelled smadja.dev/preview=true, see network/policies/clusterwide.)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: preview-default-deny
+spec:
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: preview-allow-minimal
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEntities:
+        - ingress
+        - host
+        - remote-node
+    - fromEndpoints:
+        - {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+            - {port: "9000", protocol: TCP}
+    - toEndpoints:
+        - {}

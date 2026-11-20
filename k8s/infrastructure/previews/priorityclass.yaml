@@ -1,0 +1,12 @@
+# Lowest priority of the cluster and never preempting: a preview pod is evicted
+# before any real workload when the single node is under memory pressure.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: preview-low
+  labels:
+    app.kubernetes.io/part-of: previews
+value: -1000
+globalDefault: false
+preemptionPolicy: Never
+description: "Per-PR preview pods (PLT-390). Preemptible, never preempts."

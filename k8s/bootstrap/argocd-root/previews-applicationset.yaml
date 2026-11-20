@@ -1,0 +1,166 @@
+# PLT-390 lot 2: one throw-away Application per (open PR labelled `preview`) x
+# (app named by the label `preview:<app>`), deployed from the PR head SHA into
+# namespace pr-<number>-<app>.
+#
+# How an app is chosen: label `preview` (opt-in switch, required) plus label
+# `preview:<app>` where <app> is the directory name under k8s/applications/*/.
+# The git generator reads the PR head, so an app that exists only in the PR is
+# found. One app per PR; the name is validated by regex before it reaches a path.
+#
+# What is rewritten for every preview (Argo kustomize patches, no change to the
+# app's own manifests): Namespace objects dropped; HTTPRoute hostnames and parent
+# replaced; KEDA ScaledObject/InterceptorRoute dropped (they would claim the
+# production hostname); ExternalSecret store forced to doppler-preview; pods get
+# the low PriorityClass. Kyverno policy preview-namespace-guard denies the same
+# things if a patch does not apply.
+#
+# Exposure: hostname <app>-<n>-preview.smadja.dev (one DNS level under the
+# wildcard Cloudflare Universal SSL covers). The parent is Gateway/internal
+# (LAN only, nothing public). Switching to `external` is allowed only after the
+# Cloudflare Access application for *-preview.smadja.dev is applied
+# (homelab-infra PLT-390): Paul's gesture.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  namespace: argocd
+  name: previews
+  labels:
+    app.kubernetes.io/part-of: previews
+    app.kubernetes.io/managed-by: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - pullRequest:
+              github:
+                owner: SmadjaPaul
+                repo: kube-ops
+                labels:
+                  - preview
+              filters:
+                - targetBranchMatch: '^main$'
+              requeueAfterSeconds: 120
+          - git:
+              repoURL: https://github.com/SmadjaPaul/kube-ops.git
+              revision: '{{ .head_sha }}'
+              directories:
+                - path: >-
+                    k8s/applications/*/{{- $a := "" -}}{{- range .labels -}}{{- if hasPrefix "preview:" . -}}{{- $a = trimPrefix "preview:" . -}}{{- end -}}{{- end -}}{{- if regexMatch "^[a-z0-9][a-z0-9-]{0,37}$" $a -}}{{ $a }}{{- else -}}__none__{{- end -}}
+  template:
+    metadata:
+      name: 'preview-pr{{ .number }}-{{ .path.basename }}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/part-of: previews
+        smadja.dev/preview-namespace: 'pr-{{ .number }}-{{ .path.basename }}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: previews
+      sources:
+        - repoURL: https://github.com/SmadjaPaul/kube-ops.git
+          targetRevision: '{{ .head_sha }}'
+          path: '{{ .path.path }}'
+          kustomize:
+            namespace: 'pr-{{ .number }}-{{ .path.basename }}'
+            patches:
+              - target:
+                  kind: Namespace
+                patch: |-
+                  $patch: delete
+                  apiVersion: v1
+                  kind: Namespace
+                  metadata:
+                    name: dropped
+              - target:
+                  kind: ScaledObject
+                patch: |-
+                  $patch: delete
+                  apiVersion: keda.sh/v1alpha1
+                  kind: ScaledObject
+                  metadata:
+                    name: dropped
+              - target:
+                  kind: InterceptorRoute
+                patch: |-
+                  $patch: delete
+                  apiVersion: http.keda.sh/v1beta1
+                  kind: InterceptorRoute
+                  metadata:
+                    name: dropped
+              - target:
+                  kind: HTTPRoute
+                patch: |-
+                  - op: add
+                    path: /spec/hostnames
+                    value: ['{{ .path.basename }}-{{ .number }}-preview.smadja.dev']
+                  - op: add
+                    path: /spec/parentRefs
+                    value:
+                      - name: internal
+                        namespace: gateway
+              - target:
+                  kind: ExternalSecret
+                patch: |-
+                  - op: add
+                    path: /spec/secretStoreRef
+                    value:
+                      name: doppler-preview
+                      kind: ClusterSecretStore
+              - target:
+                  kind: Deployment
+                patch: |-
+                  - op: add
+                    path: /spec/template/spec/priorityClassName
+                    value: preview-low
+              - target:
+                  kind: StatefulSet
+                patch: |-
+                  - op: add
+                    path: /spec/template/spec/priorityClassName
+                    value: preview-low
+              - target:
+                  kind: Job
+                patch: |-
+                  - op: add
+                    path: /spec/template/spec/priorityClassName
+                    value: preview-low
+              - target:
+                  kind: CronJob
+                patch: |-
+                  - op: add
+                    path: /spec/jobTemplate/spec/template/spec/priorityClassName
+                    value: preview-low
+        # Guardrails come from main, never from the PR head: a PR cannot loosen
+        # its own quota or network policy.
+        - repoURL: https://github.com/SmadjaPaul/kube-ops.git
+          targetRevision: main
+          path: k8s/previews/guardrails
+          kustomize:
+            namespace: 'pr-{{ .number }}-{{ .path.basename }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'pr-{{ .number }}-{{ .path.basename }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        managedNamespaceMetadata:
+          labels:
+            pod-security.kubernetes.io/enforce: restricted
+            smadja.dev/preview: 'true'
+            smadja.dev/preview-pr: '{{ .number }}'
+          annotations:
+            smadja.dev/preview-app: '{{ .path.basename }}'
+            smadja.dev/preview-sha: '{{ .head_sha }}'
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

@@ -13,6 +13,12 @@ spec:
         operator: NotIn
         values:
           - matrix-authentication-service
+      # PLT-390: preview namespaces get only their own minimal policy, never the
+      # 10.0.0.0/8 allowance below (Cilium exposes namespace labels as selectors).
+      - key: k8s:io.cilium.k8s.namespace.labels.smadja.dev/preview
+        operator: NotIn
+        values:
+          - "true"
   enableDefaultDeny:
     ingress: false
     egress: false

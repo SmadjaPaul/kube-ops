@@ -1,0 +1,36 @@
+# Deny backstops for preview namespaces (label smadja.dev/preview=true). The
+# Argo patches in the ApplicationSet already rewrite these fields; these rules
+# make a mistake or a hostile PR fail closed. Scoped to preview namespaces only:
+# the rest of the cluster keeps the Audit-only platform baseline.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: preview-namespace-guard
+  annotations:
+    description: "Preview namespaces: Doppler preview store only, low priority, no LoadBalancer/NodePort (PLT-390)."
+spec:
+  validationActions: [Deny]
+  failurePolicy: Ignore
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        smadja.dev/preview: "true"
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods, services]
+      - apiGroups: ["external-secrets.io"]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [externalsecrets]
+  validations:
+    - expression: >-
+        object.kind != 'ExternalSecret' || (object.spec.secretStoreRef.name == 'doppler-preview' && object.spec.secretStoreRef.kind == 'ClusterSecretStore')
+      message: "In a preview namespace an ExternalSecret must use ClusterSecretStore doppler-preview, never a production store. (preview-secret-store)"
+    - expression: >-
+        object.kind != 'Pod' || (has(object.spec.priorityClassName) && object.spec.priorityClassName == 'preview-low')
+      message: "Preview pods must use priorityClassName preview-low. (preview-priority)"
+    - expression: >-
+        object.kind != 'Service' || !has(object.spec.type) || object.spec.type in ['ClusterIP', 'ExternalName']
+      message: "No LoadBalancer or NodePort Service in a preview namespace. (preview-no-lb)"

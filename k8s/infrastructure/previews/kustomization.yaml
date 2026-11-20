@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# PLT-390 lot 2: cluster-scoped and platform-side pieces of the per-PR preview
+# environments (the ApplicationSet and AppProject live in bootstrap/argocd-root).
+resources:
+  - namespace.yaml
+  - priorityclass.yaml
+  - secret-store.yaml
+  - admission-policy.yaml
+  - sweeper.yaml
