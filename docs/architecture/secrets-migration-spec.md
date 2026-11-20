@@ -234,7 +234,7 @@ Ordre : **H1** (décision) en parallèle de **0** ; **1** et **2** exigent H1 me
 
 **Drill D0 (RUNTIME)** — ressources dans `k8s/infrastructure/controllers/external-secrets/drills/createdonce/` (namespace `eso-drill`, label `kube-ops.io/drill: "true"`), branchées dans la PR du lot 0 puis retirées par une PR de nettoyage :
 - source `oidc-eso-drill` dans `auth` (ajoutée aux `resourceNames`) ; copie `eso-drill-oidc` dans `eso-drill` ;
-- un ExternalSecret `eso-drill-forbidden` qui lit `oidc-eso-drill--forbidden` : conforme à Kyverno, **absent** du Role ;
+- un ExternalSecret `eso-drill-forbidden` qui lit `oidc-eso-drill--forbidden` : conforme à Kyverno, **absent** du Role (retiré après les preuves 3 et 6 : son échec permanent rendait toute opération de synchro Argo `Failed`) ;
 - un Job hook `PostSync` dans `eso-drill` qui monte la copie et écrit seulement `FP=<12 premiers hex du SHA-256>`.
 
 Preuves attendues, consignées dans `docs/operations/secrets-migration-evidence.md` (une section par lot) :

@@ -8,8 +8,8 @@ Statut : manifestes livrés par la PR `claude/secrets-d0-drill` (DRAFT). Verdict
 | --- | --- |
 | F1 : une source `CreatedOnce` ne se régénère pas (resync Argo, redémarrage d'ESO) | `refreshTime` et empreinte `FP=` identiques avant et après une synchronisation forcée sans changement |
 | F3c : renommer l'ExternalSecret source en gardant `target.name` change la valeur, le Secret est mis à jour sur place | empreinte différente après la rotation, `target`/âge du Secret inchangés (étape 2) |
-| F4 : le RBAC refuse un nom hors `resourceNames` | `eso-drill-forbidden` : `SecretSyncedError`, 403 `forbidden` |
-| F9 : l'échec est visible | alerte `ExternalSecretNotReady` firing pour `eso-drill-forbidden` |
+| F4 : le RBAC refuse un nom hors `resourceNames` | `eso-drill-forbidden` : `SecretSyncedError`, 403 `forbidden` (acquis le 20/11/2026, objet retiré ensuite) |
+| F9 : l'échec est visible | alerte `ExternalSecretNotReady` firing pour `eso-drill-forbidden` (acquis le 20/11/2026) |
 
 ## Ce que le merge crée (Argo, aucun apply manuel)
 
@@ -21,15 +21,15 @@ Tout est TEMPORAIRE, marqué `kube-ops.io/drill: "true"` et branché dans la rac
 | CiliumNetworkPolicy `eso-drill-default-deny` | `.../network-policy.yaml` | default-deny entrée et sortie (`k8s/CLAUDE.md`) ; aucun accès ouvert, le Job lit seulement un Secret monté |
 | Password + ExternalSecret `oidc-eso-drill` (namespace `auth`) | `.../source-auth.yaml` | source générée, forme (C), `CreatedOnce`, `Orphan`, classe `T3` |
 | ExternalSecret `eso-drill-oidc` (namespace `eso-drill`) | `.../consumers.yaml` | copie par le store `k8s-auth`, `refreshInterval: 1h` |
-| ExternalSecret `eso-drill-forbidden` | `.../consumers.yaml` | lit `oidc-eso-drill--forbidden`, conforme à Kyverno, **absent** du Role : preuve négative RBAC |
 | Job `eso-drill-fingerprint` (hook `PostSync`, `BeforeHookCreation`) | `.../fingerprint-job.yaml` | monte la copie, écrit seulement `FP=<12 premiers hex du SHA-256>` |
 | `oidc-eso-drill` ajouté aux `resourceNames` (sentinelle conservée) | `k8s/infrastructure/auth/authentik/extra/eso-k8s-reader-rbac.yaml` | autorise le store à lire la source du drill, rien d'autre |
 | Destination `eso-drill` | `k8s/bootstrap/argocd-root/infrastructure-project.yaml` | projet Argo `infrastructure` |
-| Exemption `kube-ops.io/drill-expect-forbidden` (règle 4) | `tests/harness/eso-generated-secrets-contract-test.sh` | valable seulement avec le label de drill et si la clé reste **absente** du Role (fixtures positive et négatives) |
 
-Les trois ExternalSecret du drill portent `argocd.argoproj.io/ignore-healthcheck: "true"` : leur indisponibilité attendue (le `403` voulu, ou l'attente du Role posé par `infra-auth`) ne met pas `infra-controllers` en `Degraded`. La preuve est leur statut lu avec `kubectl-ro`, pas la santé Argo.
+Les ExternalSecret du drill portent `argocd.argoproj.io/ignore-healthcheck: "true"` (attente transitoire du Role posé par `infra-auth`). La preuve est leur statut lu avec `kubectl-ro`, pas la santé Argo.
 
-Effets attendus au merge : l'alerte `ExternalSecretNotReady` (sévérité `warning`) passe en firing pour `eso-drill-forbidden` après 15 min (c'est la preuve 6, pas un incident) ; aucun autre Secret, aucune des 10 clés de chiffrement, aucun ExternalSecret applicatif n'est touché.
+**Correctif du 20/11/2026 (PR `claude/secrets-d0-step2-stability`)** : l'ExternalSecret `eso-drill-forbidden` (preuves 3 et 6 acquises) a été retiré, ainsi que l'exemption `drill-expect-forbidden` du test. Son échec permanent (`could not get secret data from provider`) rendait la dernière opération Argo de `infra-controllers` `Failed` (l'annotation `ignore-healthcheck` n'agit que sur la santé, pas sur le résultat de la synchro), donc les hooks `PostSync` ne tournaient jamais et toute synchro future était en échec. Le Job d'empreinte n'a besoin d'aucun RBAC : le Secret est monté en volume (lu par le kubelet), le pod n'a pas de jeton de ServiceAccount.
+
+Effets attendus au merge : l'alerte `ExternalSecretNotReady` pour `eso-drill-forbidden` se résout ; aucun autre Secret, aucune des 10 clés de chiffrement, aucun ExternalSecret applicatif n'est touché.
 
 Les noms `eso-drill`, `eso-drill-*` et `oidc-eso-drill*` sont réservés au drill. Le drill D1 (`docs/operations/secrets-drill-d1-pg-shared-role.md`) réutilise le namespace `eso-drill` et le dossier `drills/createdonce/` : voir « Coordination avec D1 ».
 
@@ -39,7 +39,7 @@ Lecture seule : `bash scripts/kubectl-ro.sh` (`KUBECTL_RO_IDENTITY=agent`). Tout
 
 ### Étape 1 : état stable (cette PR)
 
-Après le merge et la synchronisation Argo : preuves 1 à 3 (stores `Ready`, source et copie `Ready`, `forbidden` refusé), puis relevé de l'état « avant » : `refreshTime` de la source, `FP` du Job. Preuve 4 : synchronisation Argo forcée sans changement (ou redémarrage d'ESO par `kubectl-rw.sh restart external-secrets deployment/external-secrets` si le namespace est dans `scope.tsv`) : `refreshTime` de la source inchangé, `FP` identique. Preuve 6 : alerte en firing.
+Preuves 0 à 3 et 6 : acquises le 20/11/2026 (voir le tableau d'évidence). Preuve 4 : après le merge de la PR de correctif, la synchro réussit et le hook produit FP#1 ; puis une seconde PR (modification sans effet destructeur de la spec de la source `oidc-eso-drill`, ex. annotation de documentation, pour forcer une réconciliation ESO) ; la synchro suivante produit FP#2 ; PASS si FP#2 = FP#1 et `refreshTime` de la source inchangé.
 
 ### Étape 2 : rotation par renommage (PAS dans cette PR, deux commits)
 
@@ -62,7 +62,7 @@ Condition : D0 consigné `PASS` (ou `FAIL` expliqué) dans la section lot 0 de `
 2. Retirer `- external-secrets/drills/createdonce` de `k8s/infrastructure/controllers/kustomization.yaml`.
 3. Retirer `oidc-eso-drill` de `resourceNames` dans `k8s/infrastructure/auth/authentik/extra/eso-k8s-reader-rbac.yaml` (la sentinelle `eso-k8s-sentinel-none` reste : une liste vide donnerait accès à tous les Secrets).
 4. Retirer la destination `eso-drill` de `k8s/bootstrap/argocd-root/infrastructure-project.yaml` (sauf si D1 est actif).
-5. Laisser l'exemption `kube-ops.io/drill-expect-forbidden` du test (inoffensive, sert aux drills suivants) ou la retirer avec ses trois fixtures.
+5. (L'exemption `kube-ops.io/drill-expect-forbidden` du test a déjà été retirée par la PR de correctif.)
 6. `git grep -nE 'eso-drill|oidc-eso-drill' -- k8s` ne doit plus rien renvoyer (hors exemption du test).
 7. `just check`, `kustomize build --enable-helm k8s/infrastructure/controllers`, `kustomize build --enable-helm k8s/infrastructure/auth`.
 

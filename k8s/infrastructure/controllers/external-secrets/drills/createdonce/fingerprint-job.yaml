@@ -2,6 +2,9 @@
 # FP=<first 12 hex of the SHA-256>. It re-runs at every Argo sync (BeforeHookCreation): two identical
 # FP before and after a forced sync prove CreatedOnce is stable (F1); a different FP after the rotation
 # proves the rename took effect (F3c). The value is never printed.
+# RBAC: none needed. The Secret is mounted as a volume (read by the kubelet, not by the pod identity) and
+# the pod has no ServiceAccount token (automountServiceAccountToken: false), so the Job identity (default
+# SA of eso-drill) holds no right at all: strictly less than a Role limited to `eso-drill-oidc`.
 apiVersion: batch/v1
 kind: Job
 metadata:

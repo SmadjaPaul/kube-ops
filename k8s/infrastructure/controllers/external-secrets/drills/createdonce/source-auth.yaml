@@ -2,9 +2,9 @@
 # Password generator + ExternalSecret CreatedOnce / Orphan. Its name `oidc-eso-drill` is also listed in
 # resourceNames of auth/authentik/extra/eso-k8s-reader-rbac.yaml (removed by the cleanup PR, sentinel kept).
 # NO rotation in this PR: the rename to `oidc-eso-drill-r2` is the second step of the drill (two commits).
-# The ExternalSecrets of this drill carry argocd.argoproj.io/ignore-healthcheck: their (expected)
-# unreadiness must not turn the Application `infra-controllers` Degraded; the proof is their status read
-# with kubectl-ro, and the ExternalSecretNotReady alert.
+# The ExternalSecrets of this drill carry argocd.argoproj.io/ignore-healthcheck: a transient unreadiness
+# (e.g. waiting for the Role applied by `infra-auth`) must not turn `infra-controllers` Degraded; the
+# proof is their status read with kubectl-ro.
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: Password
 metadata:
