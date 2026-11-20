@@ -24,5 +24,5 @@ Design notes:
 - OIDC JIT creation is enabled; Authentik is the authorization boundary.
 - One web pod + one worker pod + one ephemeral Valkey pod + one CNPG instance.
 - The 5Gi `/rails/storage` PVC is RWO and intentionally V1/single-node scoped.
-- PostgreSQL WAL/base backup uses the existing Hetzner CNPG pattern.
+- PostgreSQL WAL/base backup uses the R2 CNPG pattern (`sure-r2-store`, PLT-94/PLT-245).
 - Sure's built-in AI/MCP integration is not enabled in this first deployment.

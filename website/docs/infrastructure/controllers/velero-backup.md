@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: Velero Backup Strategy
-description: V1 Velero/Kopia disaster-recovery strategy using Hetzner Object Storage.
+description: V1 Velero/Kopia disaster-recovery strategy using Cloudflare R2.
 ---
 
 # Velero Backup Strategy
@@ -13,9 +13,9 @@ Velero remains enabled to preserve the upstream architecture with minimal diverg
 ```text
 Velero node-agent / Kopia
         |
-        +--> https://fsn1.your-objectstorage.com
-             bucket: smadja-dev-homelab-backups
-             prefix: velero/
+        +--> Cloudflare R2 (jurisdiction eu)
+             bucket: homelab-backup-velero
+             prefix: velero/        (BackupStorageLocation `r2`, default)
 ```
 
 There is no local MinIO/TrueNAS tier and no Backblaze B2 tier.
@@ -31,26 +31,27 @@ This keeps the desired state close to upstream while avoiding:
 - duplicate local + offsite backup schedules;
 - a second object-storage provider.
 
-## Hetzner contract
+## R2 contract
 
 ```text
-location: fsn1
-endpoint: https://fsn1.your-objectstorage.com
-bucket: smadja-dev-homelab-backups
+provider: aws (S3 API), Cloudflare R2, jurisdiction eu
+bucket: homelab-backup-velero
 prefix: velero/
-visibility: private
-versioning: disabled for V1
-object lock: disabled for V1
+backup storage location: r2 (default)
+access mode: ReadWrite
 ```
 
-Hetzner documents Falkenstein as `fsn1.your-objectstorage.com`. Upload traffic and S3 API calls are free, so the main cost driver is retained object volume rather than backup frequency.
+The Hetzner Object Storage `default` location was retired by PLT-94 lot 6; its
+Backup objects are orphaned cluster metadata without bucket objects. Hetzner-era
+copies are kept in the R2 bucket under `archive/hetzner-legacy/`, outside the
+`velero/` prefix, and are not touched by Velero.
 
 The runtime credentials are delivered by Doppler through `ClusterSecretStore/doppler-cluster`:
 
 ```text
-HETZNER_S3_ACCESS_KEY_ID
-HETZNER_S3_SECRET_ACCESS_KEY
-HETZNER_S3_VELERO_REPOSITORY_PASSWORD
+R2_VELERO_WRITER_ACCESS_KEY_ID        -> Secret velero-r2-credentials (BSL credential)
+R2_VELERO_WRITER_SECRET_ACCESS_KEY    -> Secret velero-r2-credentials
+HETZNER_S3_VELERO_REPOSITORY_PASSWORD -> Secret velero-repo-credentials (Kopia repository password; name kept on purpose)
 ```
 
 The Kopia repository password must remain stable. Rotating it without a migration makes existing repositories unreadable.
