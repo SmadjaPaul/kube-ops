@@ -1,0 +1,61 @@
+# TEMPORARY (drill D0). PostSync hook: mounts the copy `eso-drill-oidc` and prints ONLY
+# FP=<first 12 hex of the SHA-256>. It re-runs at every Argo sync (BeforeHookCreation): two identical
+# FP before and after a forced sync prove CreatedOnce is stable (F1); a different FP after the rotation
+# proves the rename took effect (F3c). The value is never printed.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: eso-drill-fingerprint
+  namespace: eso-drill
+  labels:
+    kube-ops.io/drill: "true"
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        kube-ops.io/drill: "true"
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: fingerprint
+          image: busybox:1.38@sha256:f97baa533a26513c453a362be331a43eb60214302f449c16571b23cea141dce4
+          command: [sh, -ec]
+          args:
+            - |
+              f=/drill/password
+              [ -s "$f" ] || { echo "FP=MISSING" >&2; exit 1; }
+              echo "FP=$(sha256sum "$f" | cut -c1-12)"
+          volumeMounts:
+            - name: copy
+              mountPath: /drill
+              readOnly: true
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 32Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: copy
+          secret:
+            secretName: eso-drill-oidc

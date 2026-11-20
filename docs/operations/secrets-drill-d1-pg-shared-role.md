@@ -10,8 +10,8 @@ D1b (restauration Barman + Secret neuf) est une procédure distincte : section �
 
 1. `bash scripts/kubectl-ro.sh get cluster -n databases pg-shared-homelab` : `Cluster in healthy state`.
 2. `bash scripts/kubectl-ro.sh get clustersecretstore k8s-auth k8s-databases` : `Ready=True` (lot 0).
-3. Le lot 0 est mergé. Son drill D0 n'a pas créé de ressources dans `k8s/infrastructure/controllers/external-secrets/drills/createdonce/` à ce jour (dossier absent de `main`) : ce drill crée le dossier.
-4. Le namespace `eso-drill` n'est pas dans les destinations de `k8s/bootstrap/argocd-root/infrastructure-project.yaml` : la PR de drill l'ajoute (et la retire au nettoyage), ou l'opérateur choisit un autre moyen approuvé. Le namespace `databases` y est déjà.
+3. Le lot 0 est mergé. Le drill D0 (`docs/operations/secrets-drill-d0-createdonce.md`) peut avoir déjà créé le dossier `k8s/infrastructure/controllers/external-secrets/drills/createdonce/` et le namespace `eso-drill` : vérifier `main`. Si D0 est présent, réutiliser son namespace et sa destination Argo (section « Coordination avec D1 » de D0) ; sinon ce drill crée le dossier.
+4. Sauf si D0 est encore présent (alors la destination existe déjà), le namespace `eso-drill` n'est pas dans les destinations de `k8s/bootstrap/argocd-root/infrastructure-project.yaml` : la PR de drill l'ajoute (et la retire au nettoyage), ou l'opérateur choisit un autre moyen approuvé. Le namespace `databases` y est déjà.
 5. La PR de drill est une PR **séparée**, en draft, jamais fusionnée avec le lot 1. Les noms `eso_drill`, `pg-eso-drill*`, `eso-drill*` sont réservés au drill.
 
 ## Fichiers de la PR de drill (à créer par l'opérateur)
