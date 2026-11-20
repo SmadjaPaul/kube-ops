@@ -24,6 +24,7 @@ k8s/infrastructure/deployment
 k8s/infrastructure/auth
 k8s/infrastructure/database
 k8s/infrastructure/security
+k8s/infrastructure/previews
 k8s/poc/atlantis-plan-only
 k8s/poc/atlantis-apps
 k8s/optional/github-actions-arc
