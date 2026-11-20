@@ -46,3 +46,4 @@ tests/harness/verify-revision-test.sh
 tests/harness/post-merge-decision-test.sh
 tests/harness/post-merge-verify-test.sh
 tests/agent-guard/kubectl-ro-in-cluster-test.sh
+tests/harness/argo-project-namespaces-contract-test.sh
