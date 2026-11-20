@@ -86,7 +86,7 @@ kind: ValidatingPolicy
 metadata:
   name: repo-contract-velero-fs-backup
   annotations:
-    description: "Schedule Velero avec defaultVolumesToFsBackup: true (sauvegarde Kopia des PVC)."
+    description: "Schedule Velero avec defaultVolumesToFsBackup: true (sauvegarde Kopia des PVC), ou exclusion motivee par l'annotation kube-ops.io/fs-backup-opt-out."
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
@@ -98,5 +98,6 @@ spec:
         resources: [schedules]
   validations:
     - expression: >-
-        has(object.spec.template) && has(object.spec.template.defaultVolumesToFsBackup) && object.spec.template.defaultVolumesToFsBackup
-      message: "Un Schedule Velero doit declarer template.defaultVolumesToFsBackup: true. (velero-fs-backup)"
+        (has(object.spec.template) && has(object.spec.template.defaultVolumesToFsBackup) && object.spec.template.defaultVolumesToFsBackup)
+        || size(object.metadata.?annotations[?'kube-ops.io/fs-backup-opt-out'].orValue('')) > 0
+      message: "Un Schedule Velero doit declarer template.defaultVolumesToFsBackup: true, ou motiver l'exclusion dans l'annotation kube-ops.io/fs-backup-opt-out. (velero-fs-backup)"

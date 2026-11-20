@@ -230,4 +230,3 @@ repo-contract-no-rendered-secret	matrix/Secret/matrix-synapse
 repo-contract-no-rendered-secret	matrix/Secret/matrix-synapse-hook
 repo-contract-no-rendered-secret	trivy-system/Secret/trivy-operator
 repo-contract-no-rendered-secret	trivy-system/Secret/trivy-operator-trivy-config
-repo-contract-velero-fs-backup	velero/Schedule/velero-daily-bookorbit

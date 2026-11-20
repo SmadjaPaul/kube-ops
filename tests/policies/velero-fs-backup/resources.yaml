@@ -33,3 +33,31 @@ spec:
   template:
     includedNamespaces:
     - app
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  annotations:
+    kube-ops.io/fs-backup-opt-out: donnees couvertes par barman
+  name: fs-backup-false-opt-out
+  namespace: velero
+spec:
+  schedule: 0 3 * * *
+  template:
+    defaultVolumesToFsBackup: false
+    includedNamespaces:
+    - app
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  annotations:
+    kube-ops.io/fs-backup-opt-out: ''
+  name: fs-backup-false-empty-opt-out
+  namespace: velero
+spec:
+  schedule: 0 3 * * *
+  template:
+    defaultVolumesToFsBackup: false
+    includedNamespaces:
+    - app

@@ -120,11 +120,13 @@ def es(api="external-secrets.io/v1", store="doppler-cluster", kind="ClusterSecre
     return s
 
 
-def schedule(fs):
+def schedule(fs, opt_out=None):
     s = {"apiVersion": "velero.io/v1", "kind": "Schedule", "metadata": {"name": "x", "namespace": "velero"},
          "spec": {"schedule": "0 3 * * *", "template": {"includedNamespaces": ["app"]}}}
     if fs is not None:
         s["spec"]["template"]["defaultVolumesToFsBackup"] = fs
+    if opt_out is not None:
+        s["metadata"]["annotations"] = {"kube-ops.io/fs-backup-opt-out": opt_out}
     return s
 
 
@@ -280,6 +282,8 @@ STATIC_RULES = {
         ("fs-backup-true", P, schedule(True)),
         ("fs-backup-false", F, schedule(False)),
         ("fs-backup-missing", F, schedule(None)),
+        ("fs-backup-false-opt-out", P, schedule(False, "donnees couvertes par barman")),
+        ("fs-backup-false-empty-opt-out", F, schedule(False, "")),
     ],
 }
 

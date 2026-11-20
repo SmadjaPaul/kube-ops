@@ -3,6 +3,8 @@ kind: Schedule
 metadata:
   name: velero-daily-databases
   namespace: velero
+  annotations:
+    kube-ops.io/fs-backup-opt-out: "donnees PG couvertes par barman vers R2 ; une copie Kopia d un PGDATA vivant serait incoherente"
   labels:
     backup-tier: daily
     backup-app: databases

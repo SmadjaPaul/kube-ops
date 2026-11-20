@@ -6,6 +6,8 @@ kind: Schedule
 metadata:
   name: velero-daily-bookorbit
   namespace: velero
+  annotations:
+    kube-ops.io/fs-backup-opt-out: "opt-in par volume : annotation de pod backup.velero.io/backup-volumes (data -> /appdata seulement)"
   labels:
     backup-tier: daily
     backup-app: bookorbit
