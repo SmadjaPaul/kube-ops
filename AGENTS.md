@@ -24,7 +24,6 @@ This file → one skill from the table → only the application or infrastructur
 | OIDC/Authentik | `.agents/skills/oidc-integration` |
 | backup/restore | `.agents/skills/backup-restore` |
 | ticket start/end memory (Hindsight MCP configured) | `.agents/skills/agent-memory` |
-| resume a mission with no memory (compaction, interruption, model change) | `python3 scripts/mission/resume.py <mission-key>` (mission commits carry `Mission-Key`, `Mission-Step`, `Mission-Attempt` trailers) |
 
 `.agents/` is the single agent knowledge tree; Claude reaches it through the `.claude/skills` symlink.
 

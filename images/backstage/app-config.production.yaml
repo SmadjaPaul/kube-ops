@@ -1,5 +1,0 @@
-# Surcharge production (image). Chargee apres app-config.yaml par la commande du Deployment.
-# Les valeurs propres a l'OKE (URL publique, CORS) sont dans la ConfigMap backstage-config
-# de l'overlay k8s/clusters/oracle-a1/backstage, chargee en dernier.
-auth:
-  environment: production

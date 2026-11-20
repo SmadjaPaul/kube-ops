@@ -1,1 +1,0 @@
-Error from server (Forbidden): services "demo-web:80" is forbidden: User "system:serviceaccount:agent-operator:agent-operator" cannot get resource "services/proxy"

@@ -33,7 +33,6 @@ missing_ref_scope="$(GITHUB_EVENT_NAME=pull_request GITHUB_BASE_SHA=missing GITH
 mg_scope="$(GITHUB_EVENT_NAME=merge_group GITHUB_BASE_SHA=missing GITHUB_HEAD_SHA=missing bash "$selector")"
 [[ "$mg_scope" == all ]] || { echo 'merge_group with unreadable shas must fail closed to all' >&2; exit 1; }
 [[ "$(GITHUB_EVENT_NAME=merge_group bash "$selector")" == all ]] || { echo 'merge_group without shas must be all' >&2; exit 1; }
-[[ "$(GITHUB_EVENT_NAME=merge_group GITHUB_BASE_SHA=missing GITHUB_HEAD_SHA=missing bash "$repo_root/scripts/v1-guard-scope.sh")" == run ]] || { echo 'merge_group guard scope must default to run' >&2; exit 1; }
 # merge_group avec de vrais commits : le diff base..head est celui de la file (ici docs seuls -> fumee, hors perimetre garde -> skip).
 mg_tmp="$(mktemp -d)"; trap 'rm -rf "$mg_tmp"' EXIT
 git -C "$mg_tmp" init -q && git -C "$mg_tmp" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
@@ -41,10 +40,8 @@ mg_base="$(git -C "$mg_tmp" rev-parse HEAD)"
 mkdir -p "$mg_tmp/docs" && echo x > "$mg_tmp/docs/a.md" && git -C "$mg_tmp" add . && git -C "$mg_tmp" -c user.name=t -c user.email=t@t commit -q -m docs
 mg_head="$(git -C "$mg_tmp" rev-parse HEAD)"
 [[ "$(cd "$mg_tmp" && GITHUB_EVENT_NAME=merge_group GITHUB_BASE_SHA=$mg_base GITHUB_HEAD_SHA=$mg_head bash "$selector")" == k8s/infrastructure/network/policies/auth ]] || { echo 'merge_group docs-only diff must select the smoke root' >&2; exit 1; }
-[[ "$(cd "$mg_tmp" && GITHUB_EVENT_NAME=merge_group GITHUB_BASE_SHA=$mg_base GITHUB_HEAD_SHA=$mg_head bash "$repo_root/scripts/v1-guard-scope.sh")" == skip ]] || { echo 'merge_group docs-only diff must skip the guard self-test' >&2; exit 1; }
 mkdir -p "$mg_tmp/tests/harness" && echo x > "$mg_tmp/tests/harness/service-contract-guard.py" && git -C "$mg_tmp" add . && git -C "$mg_tmp" -c user.name=t -c user.email=t@t commit -q -m guard
 mg_head2="$(git -C "$mg_tmp" rev-parse HEAD)"
-[[ "$(cd "$mg_tmp" && GITHUB_EVENT_NAME=merge_group GITHUB_BASE_SHA=$mg_base GITHUB_HEAD_SHA=$mg_head2 bash "$repo_root/scripts/v1-guard-scope.sh")" == run ]] || { echo 'merge_group touching the guard must run the self-test' >&2; exit 1; }
 [[ "$(cd "$mg_tmp" && GITHUB_EVENT_NAME=merge_group GITHUB_BASE_SHA=$mg_base GITHUB_HEAD_SHA=$mg_head2 bash "$selector")" == all ]] || { echo 'merge_group touching tests/harness must render all' >&2; exit 1; }
 
 if V1_CHANGED_FILES='k8s/optional/does-not-exist/file.yaml' V1_CONTRACT_ROOTS='k8s/optional/does-not-exist' bash "$repo_root/scripts/check-v1-active-contract.sh" >/dev/null 2>&1; then
