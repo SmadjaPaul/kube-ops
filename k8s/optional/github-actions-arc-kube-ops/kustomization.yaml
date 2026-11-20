@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# PLT-390 lot 3: dedicated ARC scale set for SmadjaPaul/kube-ops (post-merge verification, push on main only).
+# Synced from main by the infrastructure ApplicationSet (k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml).
+# The shared controller in arc-systems (github-actions-arc) watches every namespace.
+# The runner pod has its own identity: ServiceAccount kube-ops-post-merge, read-only RBAC in rbac.yaml
+# (no Secret except one named ntfy Secret). No Doppler token, no kubeconfig.
+resources:
+  - namespace.yaml
+  - github-app-secret.yaml
+  - serviceaccount.yaml
+  - rbac.yaml
+  - runner-quota.yaml
+  - egress-networkpolicy.yaml
+  - runner-application.yaml

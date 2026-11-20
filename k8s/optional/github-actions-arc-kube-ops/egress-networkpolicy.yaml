@@ -1,0 +1,75 @@
+# Default deny egress for every pod of the namespace. Allowed: DNS; GitHub (job protocol, checkout);
+# the Kubernetes API (read-only identity, rbac.yaml); dl.k8s.io (kubectl, pinned and checked by sha256 in the
+# workflow); ntfy.sh (notification); the public probe of app-test (Cloudflare DoH, then HTTPS to the Cloudflare
+# edge, because the probe pins the resolved address with `curl --resolve`, so an FQDN rule cannot match).
+# The LAN (10.0.0.0/8) is not allowed. Cloudflare ranges: https://www.cloudflare.com/ips-v4 (checked 20/11/2026);
+# observe the real destinations in Hubble before narrowing.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-kube-ops-egress
+  namespace: arc-runners-kube-ops
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "kube-ops post-merge runner: DNS, GitHub, Kubernetes API, dl.k8s.io, ntfy.sh, Cloudflare DoH and edge (public probe) only"
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEntities:
+        - kube-apiserver
+    - toFQDNs:
+        - matchName: github.com
+        - matchName: api.github.com
+        - matchName: codeload.github.com
+        - matchName: objects.githubusercontent.com
+        - matchName: objects-origin.githubusercontent.com
+        - matchName: github-releases.githubusercontent.com
+        - matchName: github-registry-files.githubusercontent.com
+        - matchName: release-assets.githubusercontent.com
+        - matchName: raw.githubusercontent.com
+        - matchPattern: "*.actions.githubusercontent.com"
+        - matchPattern: "*.blob.core.windows.net"
+        - matchName: dl.k8s.io
+        - matchName: cdn.dl.k8s.io
+        - matchName: ntfy.sh
+        - matchName: cloudflare-dns.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toCIDR:
+        - 173.245.48.0/20
+        - 103.21.244.0/22
+        - 103.22.200.0/22
+        - 103.31.4.0/22
+        - 141.101.64.0/18
+        - 108.162.192.0/18
+        - 190.93.240.0/20
+        - 188.114.96.0/20
+        - 197.234.240.0/22
+        - 198.41.128.0/17
+        - 162.158.0.0/15
+        - 104.16.0.0/13
+        - 104.24.0.0/14
+        - 172.64.0.0/13
+        - 131.0.72.0/22
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

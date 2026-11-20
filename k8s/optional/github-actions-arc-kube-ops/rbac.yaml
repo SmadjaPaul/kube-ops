@@ -1,0 +1,138 @@
+# Minimal RBAC of the post-merge runner (PLT-390 lot 3): exactly what scripts/verify-revision.sh and
+# `app-test --phase runtime` read, through scripts/kubectl-ro.sh in in-cluster mode. get/list only: no create,
+# update, patch, delete, no watch, no exec, no logs. No Secret in the ClusterRole; one named Secret in `monitoring`.
+#
+# Why a ClusterRole for the app resources: the namespace of the app under test is not known in advance
+# (media, tools, ai, ...). The kinds are the ones app-test reads (scripts/app-test.sh, runtime phase).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-ops-post-merge-read
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+rules:
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [pods, services, persistentvolumeclaims]
+    verbs: [get, list]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes]
+    verbs: [get, list]
+  - apiGroups: [postgresql.cnpg.io]
+    resources: [clusters, backups]
+    verbs: [get, list]
+  - apiGroups: [keda.sh]
+    resources: [scaledobjects]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-ops-post-merge-read
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-ops-post-merge-read
+subjects:
+  - kind: ServiceAccount
+    name: kube-ops-post-merge
+    namespace: arc-runners-kube-ops
+---
+# verify-revision.sh: status.sync.revision and status.operationState of one Application.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kube-ops-post-merge-argocd
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+rules:
+  - apiGroups: [argoproj.io]
+    resources: [applications]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kube-ops-post-merge-argocd
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kube-ops-post-merge-argocd
+subjects:
+  - kind: ServiceAccount
+    name: kube-ops-post-merge
+    namespace: arc-runners-kube-ops
+---
+# app-test backup check: last Velero backup.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kube-ops-post-merge-velero
+  namespace: velero
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+rules:
+  - apiGroups: [velero.io]
+    resources: [backups]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kube-ops-post-merge-velero
+  namespace: velero
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kube-ops-post-merge-velero
+subjects:
+  - kind: ServiceAccount
+    name: kube-ops-post-merge
+    namespace: arc-runners-kube-ops
+---
+# app-test observability check (Prometheus query proxy, same scope as agent-operator-monitoring-query minus Loki)
+# and the ntfy publish URL. The topic of that URL is the secret (ntfy.sh topics have no auth): it stays a
+# cluster Secret (ESO from Doppler, alertmanager-secrets.yaml) readable under ONE resourceName, never a GitHub secret.
+# resourceNames limit `get` only: the SA cannot list or watch Secrets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kube-ops-post-merge-monitoring
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+rules:
+  - apiGroups: [""]
+    resources: [services/proxy]
+    resourceNames: [kube-prometheus-stack-prometheus:9090]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [alertmanager-ntfy-url]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kube-ops-post-merge-monitoring
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kube-ops-post-merge-monitoring
+subjects:
+  - kind: ServiceAccount
+    name: kube-ops-post-merge
+    namespace: arc-runners-kube-ops

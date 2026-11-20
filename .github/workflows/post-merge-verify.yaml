@@ -8,10 +8,11 @@ name: Post-merge verify
 # INERT until Paul sets the repository variable POST_MERGE_VERIFY_ENABLED=true (prerequisites in
 # docs/operations/post-merge-verify.md). Triggered by push on main only: the self-hosted job never runs PR code.
 #
-# Three jobs, three identities:
-#   verify    cluster runner (label from vars.POST_MERGE_RUNNER, read-only kubectl-ro, Doppler token). Decides.
+# Three jobs, two identities, no Doppler and no kubeconfig:
+#   verify    ARC runner in the cluster (scale set kube-ops-ci-arc), identity = its own ServiceAccount
+#             kube-ops-post-merge (read-only RBAC, k8s/optional/github-actions-arc-kube-ops). Decides.
 #   revert    GitHub-hosted, revert bot GitHub App token. Opens the revert PR. Never has cluster access.
-#   announce  cluster runner. ntfy of the revert PR (ntfy URL comes from Doppler, never from a GitHub secret).
+#   announce  same runner. ntfy of the revert PR; the URL is read from one cluster Secret by the ServiceAccount.
 
 on:
   push:
@@ -29,7 +30,7 @@ concurrency:
 jobs:
   verify:
     if: ${{ vars.POST_MERGE_VERIFY_ENABLED == 'true' }}
-    runs-on: ${{ vars.POST_MERGE_RUNNER || 'kube-ops-ci-arc' }}
+    runs-on: kube-ops-ci-arc
     timeout-minutes: 30
     outputs:
       decision: ${{ steps.verify.outputs.decision }}
@@ -44,13 +45,11 @@ jobs:
       - name: Verify and decide
         id: verify
         env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-          KUBECTL_RO_IDENTITY: agent
+          KUBECTL_RO_IN_CLUSTER: "1"
         run: |
           set -uo pipefail
-          for t in jq just kubectl doppler; do
-            command -v "$t" >/dev/null || { echo "::error::$t missing on the runner: POST_MERGE=BLOCKED"; echo "decision=NOTIFY" >>"$GITHUB_OUTPUT"; echo "reason=runner_lacks_$t" >>"$GITHUB_OUTPUT"; exit 0; }
-          done
+          bash scripts/ci-install-tools.sh || { echo "::error::tool install failed: POST_MERGE=BLOCKED"; echo "decision=NOTIFY" >>"$GITHUB_OUTPUT"; echo "reason=tool_install_failed" >>"$GITHUB_OUTPUT"; exit 0; }
+          export PATH="$HOME/.local/bin:$PATH"
           bash scripts/post-merge-verify.sh "$GITHUB_SHA" --timeout 600 || true
   revert:
     needs: verify
@@ -92,7 +91,7 @@ jobs:
   announce:
     needs: [verify, revert]
     if: ${{ always() && needs.verify.outputs.decision == 'REVERT' }}
-    runs-on: ${{ vars.POST_MERGE_RUNNER || 'kube-ops-ci-arc' }}
+    runs-on: kube-ops-ci-arc
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -100,11 +99,13 @@ jobs:
           persist-credentials: false
       - name: ntfy
         env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          KUBECTL_RO_IN_CLUSTER: "1"
           PR: ${{ needs.revert.outputs.pr }}
           SHA: ${{ needs.verify.outputs.sha }}
           STATEFUL: ${{ needs.verify.outputs.stateful }}
         run: |
+          bash scripts/ci-install-tools.sh
+          export PATH="$HOME/.local/bin:$PATH"
           msg="app-test FAIL after merge ${SHA:0:12}. Revert PR: ${PR:-not created (see run ${GITHUB_RUN_ID})}. The revert does not restore data."
           [[ $STATEFUL == yes ]] && msg="$msg Stateful app: verify the migration."
           [[ ${PR:-FAILED} == FAILED || ${PR:-} == REFUSED* || ${PR:-} == CONFLICT* ]] && prio=urgent || prio=high
