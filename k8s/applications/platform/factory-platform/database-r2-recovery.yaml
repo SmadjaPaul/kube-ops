@@ -1,0 +1,73 @@
+# PLT-332: read-only R2 source for the PITR recovery of factory-platform-pg2.
+# The Hetzner archive of the frozen cluster factory-platform-postgresql
+# (serverName factory-platform-postgresql) was copied byte-for-byte to
+# s3://homelab-backup-cnpg/cnpg/factory-platform/ (391 objects, 372 965 353 bytes,
+# MD5 identical, PLT-219 proof). This store reads that copy; the bootstrap
+# block of factory-platform-pg2 is ignored once the Cluster exists.
+#
+# Identity: the existing read-only token of bucket homelab-backup-cnpg
+# (Object Read only, Doppler R2_CNPG_RESTORE_RO_*, same as pg-shared-oke-drill).
+# No WAL archiver and no Backup here: nothing in this namespace writes to R2.
+# The Hetzner store factory-platform-hetzner-store is kept (fenced cluster,
+# rollback). Values live in Doppler cluster/prd only.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: factory-platform-cnpg-r2-ro
+  namespace: factory-platform
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-cluster
+    kind: ClusterSecretStore
+  target:
+    name: factory-platform-cnpg-r2-ro
+    creationPolicy: Owner
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef:
+        key: R2_CNPG_RESTORE_RO_ACCESS_KEY_ID
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef:
+        key: R2_CNPG_RESTORE_RO_SECRET_ACCESS_KEY
+    - secretKey: AWS_ENDPOINT_URL_S3
+      remoteRef:
+        key: R2_S3_ENDPOINT
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: factory-platform-r2-recovery-store
+  namespace: factory-platform
+spec:
+  instanceSidecarConfiguration:
+    env:
+      # plugin-barman-cloud v0.11.0 / boto3: R2 does not support the default
+      # flexible CRC checksums (same as the R2 stores of paperless and mastra-factory).
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+      - name: AWS_DEFAULT_REGION
+        value: auto
+      - name: AWS_ENDPOINT_URL_S3
+        valueFrom:
+          secretKeyRef:
+            name: factory-platform-cnpg-r2-ro
+            key: AWS_ENDPOINT_URL_S3
+    resources:
+      requests: {cpu: 50m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 512Mi}
+  configuration:
+    # Same key layout as the Hetzner archive: serverName factory-platform-postgresql
+    # resolves to cnpg/factory-platform/factory-platform-postgresql/ in both buckets.
+    destinationPath: s3://homelab-backup-cnpg/cnpg/factory-platform
+    s3Credentials:
+      accessKeyId:
+        name: factory-platform-cnpg-r2-ro
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: factory-platform-cnpg-r2-ro
+        key: AWS_SECRET_ACCESS_KEY
+    wal: {compression: gzip}
+    data: {compression: gzip}

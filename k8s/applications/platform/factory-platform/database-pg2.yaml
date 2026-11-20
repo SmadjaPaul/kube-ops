@@ -23,7 +23,9 @@ spec:
       plugin:
         name: barman-cloud.cloudnative-pg.io
         parameters:
-          barmanObjectName: factory-platform-hetzner-store
+          # PLT-332: source read from R2 (copy of the Hetzner archive, same
+          # serverName). Was factory-platform-hetzner-store.
+          barmanObjectName: factory-platform-r2-recovery-store
           serverName: factory-platform-postgresql
   managed:
     roles:
