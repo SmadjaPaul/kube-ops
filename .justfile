@@ -34,6 +34,7 @@ check:
     bash tests/harness/kube-preflight-test.sh
     bash tests/harness/affected-tests-test.sh
     bash tests/harness/runtime-smoke-test.sh
+    bash tests/harness/argo-terminate-stuck-sync-test.sh
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/trilium-probe-test.sh
     bash tests/harness/mastra-factory-readiness-test.sh
@@ -58,6 +59,7 @@ check:
     bash tests/harness/media-retired-contract-test.sh
     bash tests/harness/d-recovery-contract-test.sh
     bash tests/agent-guard/agent-operator-identity-test.sh
+    bash tests/agent-guard/kubectl-rw-exec-test.sh
     bash tests/agent-guard/secret-output-guard-test.sh
     bash tests/harness/cnpg-cluster-allowlist-test.sh
     bash tests/harness/db-storage-tier-guard-test.sh
@@ -70,6 +72,7 @@ check-affected:
     bash -n scripts/check-agent-harness-contract.sh scripts/check-v1-active-contract.sh scripts/backup-static-contract.sh
     bash tests/harness/argo-orphan-contract-test.sh
     bash tests/harness/runtime-smoke-test.sh
+    bash tests/harness/argo-terminate-stuck-sync-test.sh
     bash tests/harness/invoice-restore-isolation-test.sh
     bash tests/harness/velero-storage-tier-test.sh
     bash tests/harness/longhorn-servicemonitor-contract-test.sh
