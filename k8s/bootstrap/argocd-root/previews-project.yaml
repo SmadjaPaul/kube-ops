@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: previews
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: previews
+    app.kubernetes.io/managed-by: argocd
+spec:
+  description: Per-PR preview environments (PLT-390), namespaces pr-* only
+  sourceRepos:
+    - https://github.com/SmadjaPaul/kube-ops.git
+  destinations:
+    - namespace: 'pr-*'
+      server: https://kubernetes.default.svc
+  # No clusterResourceWhitelist: a preview cannot create any cluster-scoped
+  # object. The namespace itself comes from the CreateNamespace sync option.
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  # Never in a preview: cross-namespace grants, non-HTTP routes, backups.
+  namespaceResourceBlacklist:
+    - group: gateway.networking.k8s.io
+      kind: ReferenceGrant
+    - group: gateway.networking.k8s.io
+      kind: TCPRoute
+    - group: gateway.networking.k8s.io
+      kind: UDPRoute
+    - group: gateway.networking.k8s.io
+      kind: TLSRoute
+    - group: velero.io
+      kind: '*'
+    - group: postgresql.cnpg.io
+      kind: ScheduledBackup
+    - group: postgresql.cnpg.io
+      kind: Backup
+    - group: barmancloud.cnpg.io
+      kind: ObjectStore
+  orphanedResources:
+    warn: false

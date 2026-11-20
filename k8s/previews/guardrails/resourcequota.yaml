@@ -1,0 +1,18 @@
+# Whole-preview ceiling: ~0.75 GiB requested, 1.5 GiB limit, 8 pods, 2 GiB disk,
+# no LoadBalancer or NodePort Service.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: preview
+spec:
+  hard:
+    requests.cpu: 500m
+    requests.memory: 768Mi
+    limits.cpu: "2"
+    limits.memory: 1536Mi
+    pods: "8"
+    persistentvolumeclaims: "2"
+    requests.storage: 2Gi
+    services.loadbalancers: "0"
+    services.nodeports: "0"
+    count/ingresses.networking.k8s.io: "0"

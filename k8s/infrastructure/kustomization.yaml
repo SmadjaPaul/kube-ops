@@ -10,6 +10,7 @@ resources:
 - auth
 - database
 - security
+- previews
 
 generatorOptions:
   disableNameSuffixHash: true

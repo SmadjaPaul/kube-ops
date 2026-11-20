@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Second source of every preview Application (PLT-390). The ApplicationSet sets
+# the namespace (pr-<n>-<app>) with source.kustomize.namespace; nothing here
+# names a namespace.
+resources:
+  - resourcequota.yaml
+  - limitrange.yaml
+  - network-policy.yaml
