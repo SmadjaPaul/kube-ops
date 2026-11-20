@@ -1,34 +1,59 @@
-# PLT-375 (T3): template for ONE application database in
-# pg-shared-homelab. Not a kustomize resource (.tmpl, not listed): copy the
-# blocks into the application folder or into pg-shared-homelab/ in the PR that
-# adds the application, then replace APP (lowercase) and APP_UPPER (UPPER_SNAKE_CASE).
+# PLT-375 (T3) + secrets lot 1 (docs/architecture/secrets-migration-spec.md): template for ONE
+# application database in pg-shared-homelab. Not a kustomize resource (.tmpl, not listed): copy the
+# blocks into the PR that adds the application, then replace
+#   APP        database and role name (lowercase, snake_case, never `app`: reserved by cluster.yaml)
+#   APP_NS     exact namespace of the consuming application (the Secret name pg-APP_NS follows it)
+# One application per PR. Only NEW databases use this template; an existing database is never
+# migrated here (spec rule 2: no mass migration).
 #
-# 1. cluster.yaml: add to spec.managed.roles (the block is absent until the first app):
+# The role password is GENERATED inside the cluster (ESO Password generator, CreatedOnce, Orphan,
+# class T1) and read by the application namespace through the ClusterSecretStore k8s-databases. No
+# Doppler key is created by hand, and the value is never in Git. The blocks between the markers
+# `>>> yaml` and `<<< yaml` are extracted and checked by
+# tests/harness/eso-generated-secrets-contract-test.sh (both ExternalSecret contracts, the Role
+# rule and the namespace rule): keep them valid YAML after removing the leading "# ".
 #
-#    managed:
-#      roles:
-#        - name: APP
-#          ensure: present
-#          login: true
-#          superuser: false
-#          createdb: false
-#          createrole: false
-#          passwordSecret:
-#            name: pg-shared-homelab-APP
+# 1. cluster.yaml: add to spec.managed.roles (replace `roles: []` for the first app):
 #
-# 2. ExternalSecret: role password only, value in Doppler cluster/prd under
-#    PG_SHARED_HOMELAB_APP_PASSWORD (the key is created by Paul, never in Git).
+# >>> yaml cluster-role
+# managed:
+#   roles:
+#     - name: APP
+#       ensure: present
+#       login: true
+#       superuser: false
+#       createdb: false
+#       createrole: false
+#       passwordSecret:
+#         name: pg-APP_NS
+# <<< yaml
 #
+# 2. Generated source, namespace `databases`, in pg-shared-homelab/ next to cluster.yaml (list the
+#    file in the kustomization). Form (C) of the ExternalSecret contract. Class T1.
+#    `symbols: 0`: the value is safe in a URL or a DSN. Pattern: factory-platform
+#    database-source-credentials.yaml. `cnpg.io/reload` makes CNPG apply a new value immediately.
+#    Adding a key later does nothing (CreatedOnce, spec F1). Rotation: runbook
+#    docs/operations/secrets-generated-runbook.md (rename the source ExternalSecret, keep target.name).
+#
+# >>> yaml source
+# apiVersion: generators.external-secrets.io/v1alpha1
+# kind: Password
+# metadata: {name: pg-APP_NS, namespace: databases}
+# spec: {length: 48, digits: 10, symbols: 0, allowRepeat: true}
+# ---
 # apiVersion: external-secrets.io/v1
 # kind: ExternalSecret
-# metadata: {name: pg-shared-homelab-APP, namespace: databases}
+# metadata:
+#   name: pg-APP_NS
+#   namespace: databases
+#   annotations: {kube-ops.io/secret-class: T1}
 # spec:
-#   refreshInterval: 1h
-#   secretStoreRef: {name: doppler-cluster, kind: ClusterSecretStore}
+#   refreshPolicy: CreatedOnce
 #   target:
-#     name: pg-shared-homelab-APP
-#     creationPolicy: Owner
+#     name: pg-APP_NS
+#     creationPolicy: Orphan
 #     template:
+#       engineVersion: v2
 #       type: kubernetes.io/basic-auth
 #       metadata:
 #         labels:
@@ -36,12 +61,65 @@
 #       data:
 #         username: APP
 #         password: "{{ .password }}"
+#   dataFrom:
+#     - sourceRef:
+#         generatorRef: {apiVersion: generators.external-secrets.io/v1alpha1, kind: Password, name: pg-APP_NS}
+# <<< yaml
+#
+# 2b. Reader allow-list: add the source name to `resourceNames` of the Role in
+#     pg-shared-homelab/eso-k8s-reader-rbac.yaml. Keep the sentinel: an empty list would grant every
+#     Secret of the namespace (spec F4). The result for one application:
+#
+# >>> yaml reader-role
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: Role
+# metadata:
+#   name: eso-k8s-databases-reader
+#   namespace: databases
+# rules:
+#   - apiGroups: [""]
+#     resources: [secrets]
+#     verbs: [get]
+#     resourceNames:
+#       - eso-k8s-sentinel-none
+#       - pg-APP_NS
+# <<< yaml
+#
+# 2c. Copy in the NAMESPACE OF THE APPLICATION (APP_NS), in the application folder. Form (B):
+#     ClusterSecretStore k8s-databases, refreshInterval 1h, no dataFrom, and the key read is
+#     exactly pg-APP_NS (or pg-APP_NS--<usage>): the admission rule eso-k8s-store-guard and the CI
+#     rule refuse any other name. Host, port, database and user are literals (T10, not secrets); the
+#     password is the only value read. The standard libpq variables PG* are given, rename them to
+#     what the application expects. The Deployment carries
+#     `secret.reloader.stakater.com/reload: APP-db` so the application restarts on a new value.
+#
+# >>> yaml copy
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata: {name: APP-db, namespace: APP_NS}
+# spec:
+#   refreshInterval: 1h
+#   secretStoreRef: {kind: ClusterSecretStore, name: k8s-databases}
+#   target:
+#     name: APP-db
+#     creationPolicy: Owner
+#     template:
+#       engineVersion: v2
+#       data:
+#         PGHOST: pg-shared-homelab-rw.databases.svc.cluster.local
+#         PGPORT: "5432"
+#         PGDATABASE: APP
+#         PGUSER: APP
+#         PGSSLMODE: require
+#         PGPASSWORD: "{{ .password }}"
 #   data:
 #     - secretKey: password
-#       remoteRef: {key: PG_SHARED_HOMELAB_APP_PASSWORD}
+#       remoteRef: {key: pg-APP_NS, property: password}
+# <<< yaml
 #
 # 3. Database: one per application, owner = its managed role.
 #
+# >>> yaml database
 # apiVersion: postgresql.cnpg.io/v1
 # kind: Database
 # metadata: {name: APP, namespace: databases}
@@ -49,6 +127,7 @@
 #   name: APP
 #   owner: APP
 #   cluster: {name: pg-shared-homelab}
+# <<< yaml
 #
 # 3b. Database isolation, REQUIRED and standard path: a PostSync Job per
 #     database, copied into the PR that adds the Database (model:
@@ -60,48 +139,53 @@
 #     checked), and CREATE DATABASE does not copy database-level GRANTs from
 #     template1 (PostgreSQL docs), so postInitTemplateSQL cannot close new bases.
 #     Database `app` is closed by cluster.yaml bootstrap, not by this Job.
+#     The Job lives in `databases`: it reads the generated Secret pg-APP_NS directly
+#     (secretKeyRef, same namespace), not a copy.
 #
 #     Argo CD timing (no health check): Argo CD has no health.lua for
 #     postgresql.cnpg.io (checked in argocd/values.yaml), so the Cluster and the
 #     Database are Healthy as soon as they exist, before the role, the database
 #     or the instance are ready. The PostSync Job can therefore start first and
-#     fail (no pg-shared-homelab-rw yet, or no database yet). The Job must wait
+#     fail (no pg-shared-homelab-rw yet, or no database yet, or the role password
+#     not yet applied: ESO generates the Secret, then CNPG applies it). The Job must wait
 #     in a bounded loop for the database and the role before the REVOKE, and
 #     exit non-zero at the ceiling. Model: kube-ops#1593 miniflux-isolation-job.yaml
 #     (see kube-ops#1593 for the bounded wait). Without it the first sync fails.
 #
-#     apiVersion: batch/v1
-#     kind: Job
-#     metadata:
-#       name: pg-shared-homelab-APP-isolation
-#       namespace: databases
-#       annotations:
-#         argocd.argoproj.io/hook: PostSync
-#         argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+# >>> yaml isolation-job
+# apiVersion: batch/v1
+# kind: Job
+# metadata:
+#   name: pg-shared-homelab-APP-isolation
+#   namespace: databases
+#   annotations:
+#     argocd.argoproj.io/hook: PostSync
+#     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+# spec:
+#   backoffLimit: 3
+#   template:
 #     spec:
-#       backoffLimit: 3
-#       template:
-#         spec:
-#           restartPolicy: Never
-#           automountServiceAccountToken: false
-#           securityContext: {runAsNonRoot: true, runAsUser: 26, runAsGroup: 26, seccompProfile: {type: RuntimeDefault}}
-#           containers:
-#             - name: isolate
-#               image: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie@sha256:<same digest as cluster.yaml>
-#               command: [sh, -ec]
-#               args:
-#                 - |
-#                   psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE APP FROM PUBLIC"
-#                   ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'APP'")
-#                   test "$ok" = "t" || { echo "PUBLIC still has CONNECT on APP" >&2; exit 1; }
-#               env:
-#                 - {name: PGHOST, value: pg-shared-homelab-rw.databases.svc.cluster.local}
-#                 - {name: PGDATABASE, value: APP}
-#                 - {name: PGSSLMODE, value: require}
-#                 - name: PGUSER
-#                   valueFrom: {secretKeyRef: {name: pg-shared-homelab-APP, key: username}}
-#                 - name: PGPASSWORD
-#                   valueFrom: {secretKeyRef: {name: pg-shared-homelab-APP, key: password}}
+#       restartPolicy: Never
+#       automountServiceAccountToken: false
+#       securityContext: {runAsNonRoot: true, runAsUser: 26, runAsGroup: 26, seccompProfile: {type: RuntimeDefault}}
+#       containers:
+#         - name: isolate
+#           image: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie@sha256:<same digest as cluster.yaml>
+#           command: [sh, -ec]
+#           args:
+#             - |
+#               psql -v ON_ERROR_STOP=1 -c "REVOKE CONNECT ON DATABASE APP FROM PUBLIC"
+#               ok=$(psql -v ON_ERROR_STOP=1 -tA -c "SELECT d.datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) a WHERE a.grantee = 0 AND a.privilege_type = 'CONNECT') FROM pg_database d WHERE d.datname = 'APP'")
+#               test "$ok" = "t" || { echo "PUBLIC still has CONNECT on APP" >&2; exit 1; }
+#           env:
+#             - {name: PGHOST, value: pg-shared-homelab-rw.databases.svc.cluster.local}
+#             - {name: PGDATABASE, value: APP}
+#             - {name: PGSSLMODE, value: require}
+#             - name: PGUSER
+#               valueFrom: {secretKeyRef: {name: pg-APP_NS, key: username}}
+#             - name: PGPASSWORD
+#               valueFrom: {secretKeyRef: {name: pg-APP_NS, key: password}}
+# <<< yaml
 #
 #     Runtime proof still required, recorded in the PR that adds the database:
 #     negative test as role OTHER, expected "permission denied for database APP":
@@ -116,6 +200,7 @@
 #    namespace, port 5432) on the pg-shared-homelab selector, like
 #    vikunja-postgresql in vikunja/networkpolicy.yaml. This policy filters by
 #    source namespace only, so it does not isolate databases from each other.
+#    The application namespace also needs its own egress rule to databases:5432.
 #
 # apiVersion: cilium.io/v2
 # kind: CiliumNetworkPolicy
@@ -125,14 +210,17 @@
 #   ingress:
 #     - fromEndpoints:
 #         - matchLabels:
-#             k8s:io.kubernetes.pod.namespace: APP_NAMESPACE
+#             k8s:io.kubernetes.pod.namespace: APP_NS
 #       toPorts:
 #         - ports:
 #             - {protocol: TCP, port: "5432"}
 #
-# 5. Application: connect with the generated role Secret (pg-shared-homelab-APP),
-#    not a copy of the password. Add a line to docs/operations/cnpg-cluster-inventory.md
+# 5. Application: connect with the copy APP-db of step 2c (envFrom or secretKeyRef), never with a
+#    password written in Git or in Doppler. Add a line to docs/operations/cnpg-cluster-inventory.md
 #    only if the application is a new cluster (never for pg-shared-homelab).
 #
-# Before real data: restore drill PASS (see study section 4.4), then the first
-# migration of a database with a dump, one base per PR.
+# Rotation of a role password (no manual step): runbook docs/operations/secrets-generated-runbook.md.
+# Proof drills, written as procedures and NOT run: D1 (rotation of a role) in
+# docs/operations/secrets-drill-d1-pg-shared-role.md, D1b (Barman restore + new Secret) in
+# docs/operations/pg-shared-app-restore-drill.md. D1b must have PASSed before the first real data in
+# pg-shared-homelab and before migrating an existing database (one base per PR, with a dump).

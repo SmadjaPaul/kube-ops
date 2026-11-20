@@ -43,3 +43,7 @@ Allowed: `bash scripts/kubectl-ro.sh get clustersecretstore k8s-auth k8s-databas
 ## Drill D0 (operator, after merge)
 
 Proves that `CreatedOnce` is stable, that a rename rotates, that RBAC refuses a name outside the list and that the alert fires. Steps and expected results are in the PR description of lot 0; they use a temporary namespace `eso-drill` and the source `oidc-eso-drill` (added to `resourceNames`, then removed by a cleanup PR that keeps the sentinel). Do not run it before the operator has read the PR.
+
+## Database role passwords of `pg-shared-homelab` (lot 1)
+
+A NEW application database no longer needs a Doppler key created by hand: follow `k8s/infrastructure/database/pg-shared-homelab/app-database.example.tmpl` (managed role `passwordSecret: pg-<ns>`, generated source `pg-<ns>` in `databases` class `T1`, allow-list entry in `eso-k8s-reader-rbac.yaml`, copy `<app>-db` in the application namespace through `k8s-databases`). Existing databases are not migrated: migrating a secret to a generator is a rotation (spec F3a), and needs D1b first. Rotation: rename the source ExternalSecret `pg-<ns>` to `pg-<ns>-r2` (keep `target.name`); CNPG applies the new value immediately (`cnpg.io/reload`, condition `PasswordSecretChange` changes), the copy follows within 1 h or by renaming the copy in a second commit, Reloader restarts the application. Drills, not run: D1 `docs/operations/secrets-drill-d1-pg-shared-role.md`; D1b (before any real data) `docs/operations/pg-shared-app-restore-drill.md`.

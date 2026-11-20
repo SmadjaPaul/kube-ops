@@ -13,6 +13,8 @@
 #      namespace;
 #   5. a generator whose template key looks like a data-encryption key (T6) is refused, unless the
 #      source is class T4 AND carries the annotation kube-ops.io/not-data-key with a justification;
+#   7. lot 1: the pg-shared-homelab template (app-database.example.tmpl) renders an example that passes
+#      both contracts, uses one Secret name everywhere and no hand-made Doppler key (see below);
 #   6. self-test: one negative fixture per rule must be refused (with the expected rule code), the
 #      positive fixtures accepted. No secret value is read: only names, kinds and policies.
 # Fixtures live in mktemp; nothing is written in the repository; no fixed port.
@@ -340,6 +342,84 @@ while IFS=$'\t' read -r name code; do
 done < "$tmp/fx/manifest.tsv"
 
 # ---------------------------------------------------------------------------------------------
+# Lot 1: the golden-path template of pg-shared-homelab. The YAML blocks between the markers
+# `>>> yaml NAME` and `<<< yaml` are extracted, rendered for an example application (APP=probe,
+# APP_NS=probe-ns) and must pass both contracts (analyzer above + the Kyverno rules
+# repo-contract-externalsecret-contract and repo-contract-eso-k8s-store-own-namespace). The template
+# must not ask for a Doppler key created by hand any more. Negative variants must be refused.
+# ---------------------------------------------------------------------------------------------
+tmpl=k8s/infrastructure/database/pg-shared-homelab/app-database.example.tmpl
+command -v kyverno >/dev/null || { echo "ERROR: kyverno is required" >&2; exit 1; }
+[ -f "$tmpl" ] || { echo "TEMPLATE FAIL: $tmpl is missing" >&2; exit 1; }
+if grep -nEi 'created by Paul|doppler-cluster|PG_SHARED_HOMELAB_[A-Z_]*PASSWORD' "$tmpl" >&2; then
+  echo "TEMPLATE FAIL: $tmpl still asks for a hand-made Doppler key for the role password" >&2; exit 1
+fi
+render_template() { # render_template OUTDIR [sed-expression]: one file per block, placeholders replaced
+  local out="$1" extra="${2:-}"
+  mkdir -p "$out"
+  awk -v out="$out" '
+    /^# >>> yaml [a-z0-9-]+$/ { name = $4; f = out "/" name ".raw"; on = 1; next }
+    /^# <<< yaml$/ { on = 0; next }
+    on { sub(/^# ?/, ""); print > f }
+  ' "$tmpl"
+  local n
+  for n in cluster-role source reader-role copy database isolation-job; do
+    [ -s "$out/$n.raw" ] || { echo "TEMPLATE FAIL: block '$n' missing in $tmpl" >&2; return 1; }
+    sed -e 's/APP_NS/probe-ns/g' -e 's/APP/probe/g' ${extra:+-e "$extra"} "$out/$n.raw" > "$out/$n.yaml"
+    yq -o=json -I=0 'select(. != null)' "$out/$n.yaml" > "$out/$n.jsonl" || { echo "TEMPLATE FAIL: block '$n' is not valid YAML" >&2; return 1; }
+  done
+}
+template_contracts() { # template_contracts DIR -> 0 when both contracts accept the rendered example
+  local d="$1" rc=0
+  python3 -I - "$d" <<'PYEOF' > "$d/world.jsonl"
+import json, sys
+d = sys.argv[1]
+for n in ("source", "reader-role", "copy"):
+    for line in open("%s/%s.jsonl" % (d, n), encoding="utf-8"):
+        if line.strip():
+            print(line.strip())
+print(json.dumps({"apiVersion": "external-secrets.io/v1", "kind": "ClusterSecretStore", "metadata": {"name": "k8s-databases"},
+                  "spec": {"provider": {"kubernetes": {"remoteNamespace": "databases"}}}}))
+print(json.dumps({"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "eso-k8s-databases-reader", "namespace": "databases"},
+                  "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "eso-k8s-databases-reader"},
+                  "subjects": [{"kind": "ServiceAccount", "name": "eso-k8s-databases-reader", "namespace": "external-secrets"}]}))
+PYEOF
+  python3 -I "$tmp/analyze.py" "$d/world.jsonl" > "$d/analyze.txt" 2>&1 || { cat "$d/analyze.txt"; rc=1; }
+  # Kyverno: both ExternalSecret contracts on the source (form C) and on the copy (form B).
+  { cat "$d/source.yaml"; echo '---'; cat "$d/copy.yaml"; } > "$d/es.yaml"
+  kyverno apply policy/static/repo-contract.yaml --resource "$d/es.yaml" --remove-color > "$d/kyverno.txt" 2>&1 || true
+  grep -E '^policy repo-contract-(externalsecret-contract|eso-k8s-store-own-namespace) -> resource .* failed' "$d/kyverno.txt" >> "$d/analyze.txt" && rc=1
+  grep -qE '^pass: [1-9][0-9]*, fail: 0' "$d/kyverno.txt" || { echo "kyverno summary not pass/fail 0:"; grep -E '^pass:' "$d/kyverno.txt"; rc=1; }
+  return "$rc"
+}
+tpl_ok="$tmp/tpl-ok"
+render_template "$tpl_ok" || exit 1
+if ! template_contracts "$tpl_ok" >"$tmp/tpl-ok.out" 2>&1; then
+  cat "$tmp/tpl-ok.out" "$tpl_ok/analyze.txt" >&2
+  echo "TEMPLATE FAIL: the rendered example of $tmpl does not pass the contracts" >&2; exit 1
+fi
+# The role password Secret name is the same everywhere: managed role, generated source, Role allow-list,
+# copy key and isolation Job. One typo would break CNPG or the application silently.
+names="$(
+  { yq -r '.managed.roles[0].passwordSecret.name' "$tpl_ok/cluster-role.yaml"
+    yq -r 'select(.kind == "ExternalSecret") | .spec.target.name' "$tpl_ok/source.yaml"
+    yq -r '.rules[0].resourceNames[1]' "$tpl_ok/reader-role.yaml"
+    yq -r '.spec.data[0].remoteRef.key' "$tpl_ok/copy.yaml"
+    yq -r '.spec.template.spec.containers[0].env[] | select(.valueFrom) | .valueFrom.secretKeyRef.name' "$tpl_ok/isolation-job.yaml"
+  } | sort -u
+)"
+[ "$names" = "pg-probe-ns" ] || { echo "TEMPLATE FAIL: the role password Secret name is not the same in every block: $names" >&2; exit 1; }
+# Negative variants of the template (they must be refused, each for its own contract).
+tpl_bad="$tmp/tpl-bad-key"; render_template "$tpl_bad" 's/key: pg-probe-ns/key: pg-other/' || exit 1
+if template_contracts "$tpl_bad" >"$tmp/tpl-bad.out" 2>&1; then echo "SELF-TEST FAIL: the template copy reading another namespace's Secret was accepted" >&2; exit 1; fi
+grep -q 'key-not-in-role' "$tpl_bad/analyze.txt" && grep -q 'eso-k8s-store-own-namespace' "$tpl_bad/analyze.txt" \
+  || { echo "SELF-TEST FAIL: wrong refusal reason for the cross-namespace template variant:" >&2; cat "$tpl_bad/analyze.txt" >&2; exit 1; }
+tpl_bad="$tmp/tpl-bad-orphan"; render_template "$tpl_bad" 's/creationPolicy: Orphan/creationPolicy: Owner/' || exit 1
+if template_contracts "$tpl_bad" >"$tmp/tpl-bad.out" 2>&1; then echo "SELF-TEST FAIL: the template source without Orphan was accepted" >&2; exit 1; fi
+tpl_bad="$tmp/tpl-bad-interval"; render_template "$tpl_bad" 's/refreshInterval: 1h/refreshInterval: 24h/' || exit 1
+if template_contracts "$tpl_bad" >"$tmp/tpl-bad.out" 2>&1; then echo "SELF-TEST FAIL: the template copy with refreshInterval 24h was accepted" >&2; exit 1; fi
+
+# ---------------------------------------------------------------------------------------------
 # Real tree: rendered roots (shared render cache, as scripts/policy-check.sh).
 # ---------------------------------------------------------------------------------------------
 roots=()
@@ -356,4 +436,4 @@ if ! python3 -I "$tmp/analyze.py" --require-stores "$tmp/real.jsonl" > "$tmp/rea
   echo "ESO_GENERATED_SECRETS_CONTRACT=FAIL" >&2
   exit 1
 fi
-echo "ESO_GENERATED_SECRETS_CONTRACT=PASS (self-test ok: $npass compliant, $nfail negative fixtures; ${#roots[@]} rendered roots)"
+echo "ESO_GENERATED_SECRETS_CONTRACT=PASS (self-test ok: $npass compliant, $nfail negative fixtures; pg-shared-homelab template ok; ${#roots[@]} rendered roots)"

@@ -102,6 +102,24 @@ Décisions hors périmètre de ce drill :
 - Le mode `dump` mesure le chemin dump au moment du drill, pas le RPO du dump quotidien (24 h).
 - Le RPO ≤ 5 min de `pg-shared` dépend aussi de `archive_timeout: 5min` sur le cluster source. Il est à vérifier séparément, pas par ce drill.
 
+## D1b : restauration Barman avec un Secret de rôle neuf (secrets, lot 1)
+
+Statut : **NOT_RUN.** Procédure seulement. **Obligatoire avant la première donnée réelle** dans `pg-shared-homelab` et avant de migrer une base existante vers un rôle au mot de passe généré. Elle ne bloque pas le merge du lot 1 (`docs/architecture/secrets-migration-spec.md`, §3.4 et lot 1). Exécution sous **MANDAT** : un opérateur la lance ; aucun agent ne la lance.
+
+Ce qu'elle prouve (fait F5/F6 de la spec) : Barman ne sauvegarde aucun Secret ; sur un cluster reconstruit, l'ExternalSecret `pg-<ns>` est neuf (statut vide), ESO génère une valeur **neuve**, CNPG l'applique au rôle de la base restaurée, et la connexion réussit. Cette réapplication au premier passage après restauration est attendue mais non documentée par CNPG : c'est ce que D1b prouve.
+
+Prérequis : les blocants B1 à B6 ci-dessus levés ; une application de test déjà créée avec le gabarit `app-database.example.tmpl` (rôle `<app>`, Secret `pg-<ns>`), avec des lignes synthétiques (jamais de donnée réelle).
+
+Procédure :
+
+1. Lancer le drill de restauration ci-dessus (`--mode pitr`) : le cluster temporaire `bootstrap.recovery` est créé dans un namespace `*-drill`.
+2. Dans ce namespace, créer le rôle géré `<app>` avec un Secret **neuf** : un `Password` et un ExternalSecret `pg-<ns-du-drill>` (forme C : `CreatedOnce`, `Orphan`, classe `T1`, `cnpg.io/reload: "true"`), et la ligne `managed.roles` correspondante dans le Cluster temporaire. Aucune copie de la valeur de la source.
+3. Observer, sans lire de valeur : `get cluster -n <ns-drill> <cluster> -o yaml` : condition `PasswordSecretChange` présente, rôle dans `managedRolesStatus` avec l'état `reconciled`.
+4. Job de connexion dans le namespace du drill, avec les variables `PG*` de la copie : `psql -c 'select count(*) from restore_drill_marks'` réussit (lignes synthétiques restaurées).
+5. Nettoyage : comme le drill (le script nettoie le Cluster temporaire) ; le Secret `Orphan` du drill est supprimé par l'opérateur (**MANDAT**).
+
+Critère `PASS` (spec §3.4) : cluster temporaire restauré depuis R2, rôle géré avec un Secret neuf, connexion réussie, aucune valeur lue. `FAIL` : la connexion est refusée (mot de passe non réappliqué après restauration) ; dans ce cas T1 n'est plus « jetable » et le lot 1 doit être rouvert avant toute donnée réelle. Preuves : `docs/operations/secrets-migration-evidence.md`, section lot 1.
+
 ## Preuves
 
 Vide. À remplir uniquement après exécution réelle, avec les lignes `STATUS=`, `RTO_S=`,
