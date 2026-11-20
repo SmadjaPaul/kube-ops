@@ -1,0 +1,32 @@
+# Lot 0 of docs/architecture/secrets-migration-spec.md (F2, F9): a generated Secret is created with
+# creationPolicy Orphan, so a lost Secret is not recreated and the failure must be visible.
+# Metric: externalsecret_status_condition (ESO v2.6.0, same expression as the vendored Grafana
+# dashboard charts/external-secrets/files/monitoring/grafana-dashboard.json). Scraped through the
+# ServiceMonitor rendered by values.yaml (serviceMonitor.enabled).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: external-secrets-alerts
+  namespace: external-secrets
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: external-secrets
+    app.kubernetes.io/part-of: external-secrets
+spec:
+  groups:
+    - name: external-secrets.readiness
+      rules:
+        - alert: ExternalSecretNotReady
+          expr: externalsecret_status_condition{condition="Ready",status="False"} == 1
+          for: 15m
+          labels:
+            severity: warning
+            root_cause_layer: secrets
+          annotations:
+            summary: "ExternalSecret {{ $labels.namespace }}/{{ $labels.name }} is not Ready"
+            description: >-
+              ExternalSecret {{ $labels.namespace }}/{{ $labels.name }} has been not Ready for 15 minutes.
+              Read its status condition (kubectl-ro get externalsecret -n {{ $labels.namespace }} {{ $labels.name }}),
+              never the Secret value. For a generated source (creationPolicy Orphan) a deleted Secret is
+              not recreated: see docs/operations/secrets-generated-runbook.md.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/secrets-generated-runbook.md
