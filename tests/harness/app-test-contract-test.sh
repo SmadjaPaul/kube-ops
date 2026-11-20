@@ -295,6 +295,7 @@ mkdir -p "$root/policy"; printf 'good\tselfheal\tFAIL\n' >"$root/policy/app-test
 rt_setup; jq '.items[0].status.conditions[0].status = "False"' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"
 run_rt good; expect "violation gelee au runtime" selfheal PASS 0
 grep -q '^CHECK selfheal PASS baselined' "$tmp/out" || fail "cliquet: mention baselined absente ($(grep '^CHECK selfheal' "$tmp/out"))"
+grep -q '^DEPLOY_HEALTH=FAIL$' "$tmp/out" || fail "cliquet: un pod non Ready gele doit rester DEPLOY_HEALTH=FAIL (drill #1688)"
 run_rt good --no-ratchet; expect "--no-ratchet" selfheal FAIL 1
 rt_setup unrestricted; jq '.items[0].status.conditions[0].status = "False"' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"
 jq '.data.result[0].value[1] = "0"' "$FAKE_DIR/up.json" | sponge_to "$FAKE_DIR/up.json"
