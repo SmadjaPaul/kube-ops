@@ -1,0 +1,55 @@
+# Lot 0 of docs/architecture/secrets-migration-spec.md (section 4.5, layer 2): an ExternalSecret may
+# read the stores k8s-auth / k8s-databases only for the Secrets of its OWN namespace. RBAC (layer 1)
+# limits WHICH Secrets the store can read; this rule limits WHO may ask for them, so an app cannot
+# read the OIDC or database secret of another app. The same rule runs in CI on the rendered tree as
+# repo-contract-eso-k8s-store-own-namespace (layer 3, policy/static/repo-contract.yaml).
+#
+# Deny with failurePolicy Ignore (decision of the spec): `Fail` would make Kyverno a single point of
+# failure for EVERY ExternalSecret of the cluster. Git is the only write path and layer 3 blocks in CI,
+# so an unavailable Kyverno degrades to "layers 1 and 3 only", never to "no secrets synchronised".
+# Tests: tests/policies/eso-k8s-store-guard (gen-tests.py, `kyverno test`).
+#
+# Convention checked: remoteRef.key == P<ns> or starts with P<ns>--, P = oidc- (k8s-auth) or pg-
+# (k8s-databases), <ns> = namespace of the ExternalSecret being admitted.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: eso-k8s-store-guard
+  annotations:
+    description: "Un ExternalSecret lisant k8s-auth ou k8s-databases ne lit que les Secrets de son propre namespace (oidc-<ns>, pg-<ns>)."
+spec:
+  validationActions: [Deny]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["external-secrets.io"]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [externalsecrets]
+  matchConditions:
+    - name: reads-a-k8s-store
+      expression: >-
+        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['k8s-auth', 'k8s-databases']
+  variables:
+    - name: ns
+      expression: >-
+        has(request.namespace) && size(request.namespace) > 0 ? request.namespace : object.metadata.namespace
+    - name: prefix
+      expression: >-
+        object.spec.secretStoreRef.name == 'k8s-auth' ? 'oidc-' : 'pg-'
+    - name: data
+      expression: >-
+        has(object.spec.data) ? object.spec.data : []
+  validations:
+    - expression: >-
+        has(object.spec.secretStoreRef.kind) && object.spec.secretStoreRef.kind == 'ClusterSecretStore'
+      message: "Les stores k8s-auth et k8s-databases sont des ClusterSecretStore. (eso-k8s-store-guard)"
+    - expression: >-
+        !has(object.spec.dataFrom)
+      message: "dataFrom est interdit sur k8s-auth et k8s-databases : lire chaque cle par data[].remoteRef. (eso-k8s-store-guard)"
+    - expression: >-
+        variables.data.all(d, !has(d.sourceRef))
+      message: "data[].sourceRef est interdit sur k8s-auth et k8s-databases. (eso-k8s-store-guard)"
+    - expression: >-
+        variables.data.all(d, has(d.remoteRef) && has(d.remoteRef.key) && (d.remoteRef.key == variables.prefix + variables.ns || d.remoteRef.key.startsWith(variables.prefix + variables.ns + '--')))
+      message: "remoteRef.key doit valoir <prefixe><namespace> ou <prefixe><namespace>--<usage> (oidc- pour k8s-auth, pg- pour k8s-databases) : un ExternalSecret ne lit que les Secrets de son namespace. (eso-k8s-store-guard)"

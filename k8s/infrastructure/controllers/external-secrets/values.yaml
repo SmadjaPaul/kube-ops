@@ -133,14 +133,18 @@ resources:
     memory: 100Mi
 
 serviceMonitor:
-  # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
-  enabled: false
+  # Lot 0 of the secrets migration: ExternalSecretNotReady (prometheusrule.yaml) needs the
+  # externalsecret_* metrics. alwaysRender: `kustomize build --enable-helm` has no cluster
+  # API discovery, so the default skipIfMissing would silently render nothing.
+  enabled: true
+  renderMode: alwaysRender
 
   # -- namespace where you want to install ServiceMonitors
   namespace: ''
 
-  # -- Additional labels
-  additionalLabels: {}
+  # -- Additional labels (the homelab Prometheus selects ServiceMonitors by this label)
+  additionalLabels:
+    release: kube-prometheus-stack
 
   # --  Interval to scrape metrics
   interval: 30s

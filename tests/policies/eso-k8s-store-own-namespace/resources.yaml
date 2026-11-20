@@ -1,0 +1,304 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-own-namespace
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-own-namespace-usage
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app--mas
+      property: P
+    secretKey: K0
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K1
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: pg-own-namespace
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: pg-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-databases
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: pg-own-namespace-usage
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: pg-app--ro
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-databases
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-other-namespace
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-autre
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-one-key-other-namespace
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  - remoteRef:
+      key: oidc-autre
+      property: P
+    secretKey: K1
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-prefix-collision
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app-pilot
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-namespace-substring
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app--x
+      property: P
+    secretKey: K0
+  - remoteRef:
+      key: oidc-appx
+      property: P
+    secretKey: K1
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: pg-key-on-auth-store
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: pg-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-key-on-databases-store
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-databases
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: authentik-core-secrets
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: authentik-core-secrets
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: datafrom-extract
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  dataFrom:
+  - extract:
+      key: oidc-app
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: datafrom-find
+  namespace: app
+spec:
+  data: []
+  dataFrom:
+  - find:
+      name:
+        regexp: .*
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-databases
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: data-sourceref
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+    secretKey: A
+    sourceRef:
+      storeRef:
+        name: k8s-auth
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: secretstore-kind
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: doppler-store-not-concerned
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-cluster
+  target:
+    name: x

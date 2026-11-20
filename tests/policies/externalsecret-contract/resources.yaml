@@ -99,3 +99,295 @@ spec:
     name: doppler-cluster
   target:
     name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8s-auth-copy
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8s-databases-copy
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: pg-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-databases
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8s-auth-namespaced-store
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8s-auth-refresh-720h
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 720h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8s-auth-refresh-missing
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8s-unknown-store
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-other
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-source
+  namespace: auth
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-without-createdonce
+  namespace: auth
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-refresh-periodic
+  namespace: auth
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: Periodic
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-owner
+  namespace: auth
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Owner
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-creation-policy-missing
+  namespace: auth
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: CreatedOnce
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-mixed-with-data
+  namespace: auth
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-with-store
+  namespace: auth
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: CreatedOnce
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-cluster
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-datafrom-extract
+  namespace: auth
+spec:
+  dataFrom:
+  - extract:
+      key: A
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-datafrom-mixed
+  namespace: auth
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  - extract:
+      key: A
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-datafrom-empty
+  namespace: auth
+spec:
+  dataFrom: []
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-system-namespace
+  namespace: monitoring
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  target:
+    creationPolicy: Orphan
+    name: x

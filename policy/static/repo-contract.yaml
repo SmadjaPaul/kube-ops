@@ -56,7 +56,7 @@ kind: ValidatingPolicy
 metadata:
   name: repo-contract-externalsecret-contract
   annotations:
-    description: "ExternalSecret external-secrets.io/v1, ClusterSecretStore doppler-cluster, refreshInterval 1h."
+    description: "ExternalSecret external-secrets.io/v1 dans une des trois formes : (A) doppler-cluster, (B) k8s-auth ou k8s-databases, tous deux ClusterSecretStore avec refreshInterval 1h, (C) source generee (generatorRef, CreatedOnce, Orphan)."
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
@@ -70,16 +70,62 @@ spec:
     - name: not-system-namespace
       expression: >-
         !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    # Formes (A) et (B) : copie lue dans un store, ClusterSecretStore, refreshInterval 1h.
+    - name: storeForm
+      expression: >-
+        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.kind) && object.spec.secretStoreRef.kind == 'ClusterSecretStore' && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['doppler-cluster', 'k8s-auth', 'k8s-databases'] && has(object.spec.refreshInterval) && object.spec.refreshInterval == '1h'
+    # Forme (C) : source generee, valeur creee une seule fois, Secret conserve si l'ExternalSecret disparait (secrets-migration-spec F1, F2).
+    - name: generatedForm
+      expression: >-
+        !has(object.spec.secretStoreRef) && !has(object.spec.data) && has(object.spec.dataFrom) && size(object.spec.dataFrom) > 0 && object.spec.dataFrom.all(d, has(d.sourceRef) && has(d.sourceRef.generatorRef)) && has(object.spec.refreshPolicy) && object.spec.refreshPolicy == 'CreatedOnce' && has(object.spec.target) && has(object.spec.target.creationPolicy) && object.spec.target.creationPolicy == 'Orphan'
   validations:
     - expression: >-
         object.apiVersion == 'external-secrets.io/v1'
       message: "Un ExternalSecret doit etre en external-secrets.io/v1. (externalsecret-contract)"
     - expression: >-
-        has(object.spec.secretStoreRef) && object.spec.secretStoreRef.name == 'doppler-cluster' && has(object.spec.secretStoreRef.kind) && object.spec.secretStoreRef.kind == 'ClusterSecretStore'
-      message: "Un ExternalSecret doit referencer le ClusterSecretStore doppler-cluster. (externalsecret-contract)"
+        variables.storeForm || variables.generatedForm
+      message: "Un ExternalSecret est (A) lu dans le ClusterSecretStore doppler-cluster, ou (B) lu dans le ClusterSecretStore k8s-auth ou k8s-databases (refreshInterval 1h pour A et B), ou (C) une source generee : pas de secretStoreRef ni de data, dataFrom[].sourceRef.generatorRef, refreshPolicy CreatedOnce, target.creationPolicy Orphan. (externalsecret-contract)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: repo-contract-eso-k8s-store-own-namespace
+  annotations:
+    description: "Un ExternalSecret lisant k8s-auth ou k8s-databases ne lit que les Secrets de son propre namespace (oidc-<ns>, pg-<ns>) ; meme regle que l'admission Kyverno eso-k8s-store-guard (secrets-migration-spec 4.5)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["external-secrets.io"]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [externalsecrets]
+  matchConditions:
+    - name: reads-a-k8s-store
+      expression: >-
+        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['k8s-auth', 'k8s-databases']
+  variables:
+    - name: prefix
+      expression: >-
+        object.spec.secretStoreRef.name == 'k8s-auth' ? 'oidc-' : 'pg-'
+    - name: data
+      expression: >-
+        has(object.spec.data) ? object.spec.data : []
+  validations:
     - expression: >-
-        has(object.spec.refreshInterval) && object.spec.refreshInterval == '1h'
-      message: "Un ExternalSecret doit declarer refreshInterval: 1h. (externalsecret-contract)"
+        has(object.spec.secretStoreRef.kind) && object.spec.secretStoreRef.kind == 'ClusterSecretStore'
+      message: "Les stores k8s-auth et k8s-databases sont des ClusterSecretStore. (eso-k8s-store-own-namespace)"
+    - expression: >-
+        !has(object.spec.dataFrom)
+      message: "dataFrom est interdit sur k8s-auth et k8s-databases : lire chaque cle par data[].remoteRef. (eso-k8s-store-own-namespace)"
+    - expression: >-
+        variables.data.all(d, !has(d.sourceRef))
+      message: "data[].sourceRef est interdit sur k8s-auth et k8s-databases. (eso-k8s-store-own-namespace)"
+    - expression: >-
+        variables.data.all(d, has(d.remoteRef) && has(d.remoteRef.key) && (d.remoteRef.key == variables.prefix + object.metadata.namespace || d.remoteRef.key.startsWith(variables.prefix + object.metadata.namespace + '--')))
+      message: "remoteRef.key doit valoir <prefixe><namespace> ou <prefixe><namespace>--<usage> (oidc- pour k8s-auth, pg- pour k8s-databases). (eso-k8s-store-own-namespace)"
 ---
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy

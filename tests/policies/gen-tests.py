@@ -15,6 +15,7 @@ import yaml
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASELINE = "../../../k8s/infrastructure/security/policies/platform-baseline.yaml"
 STATIC = "../../../policy/static/repo-contract.yaml"
+ADMISSION = "../../../k8s/infrastructure/security/policies/eso-k8s-store-guard.yaml"
 DIGEST = "sha256:" + "a" * 64
 
 
@@ -120,6 +121,29 @@ def es(api="external-secrets.io/v1", store="doppler-cluster", kind="ClusterSecre
     return s
 
 
+def es_k8s(store="k8s-auth", kind="ClusterSecretStore", keys=("oidc-app",), ns="app", refresh="1h", **extra):
+    """Copie lue dans un store k8s-* (formes B) : une cle `remoteRef.key` par element de `keys`."""
+    s = es(store=store, kind=kind, refresh=refresh)
+    s["metadata"]["namespace"] = ns
+    s["spec"]["data"] = [{"secretKey": f"K{i}", "remoteRef": {"key": k, "property": "P"}} for i, k in enumerate(keys)]
+    s["spec"].update(extra)
+    return s
+
+
+def es_gen(**over):
+    """Source generee (forme C) conforme ; `over` ecrase ou, avec la valeur None, supprime un champ de spec."""
+    s = {"apiVersion": "external-secrets.io/v1", "kind": "ExternalSecret", "metadata": {"name": "x", "namespace": "auth"},
+         "spec": {"refreshPolicy": "CreatedOnce", "target": {"name": "x", "creationPolicy": "Orphan"},
+                  "dataFrom": [{"sourceRef": {"generatorRef": {"apiVersion": "generators.external-secrets.io/v1alpha1",
+                                                                "kind": "Password", "name": "x"}}}]}}
+    for k, v in over.items():
+        if v is None:
+            s["spec"].pop(k, None)
+        else:
+            s["spec"][k] = v
+    return s
+
+
 def schedule(fs, opt_out=None):
     s = {"apiVersion": "velero.io/v1", "kind": "Schedule", "metadata": {"name": "x", "namespace": "velero"},
          "spec": {"schedule": "0 3 * * *", "template": {"includedNamespaces": ["app"]}}}
@@ -138,8 +162,31 @@ def env(name, **kw):
 
 REF = {"valueFrom": {"secretKeyRef": {"name": "s", "key": "k"}}}
 
+
 # règle -> (fichier de politique, préfixe de politique, kind, [(cas, attendu, objet)])
 P, F, S = "pass", "fail", "skip"
+
+# Lecture croisee (secrets-migration-spec 4.5) : memes cas pour la regle statique et pour l'admission.
+OWN_NS_CASES = [
+    ("oidc-own-namespace", P, es_k8s("k8s-auth", keys=("oidc-app",))),
+    ("oidc-own-namespace-usage", P, es_k8s("k8s-auth", keys=("oidc-app--mas", "oidc-app"))),
+    ("pg-own-namespace", P, es_k8s("k8s-databases", keys=("pg-app",))),
+    ("pg-own-namespace-usage", P, es_k8s("k8s-databases", keys=("pg-app--ro",))),
+    ("oidc-other-namespace", F, es_k8s("k8s-auth", keys=("oidc-autre",))),
+    ("oidc-one-key-other-namespace", F, es_k8s("k8s-auth", keys=("oidc-app", "oidc-autre"))),
+    ("oidc-prefix-collision", F, es_k8s("k8s-auth", keys=("oidc-app-pilot",))),
+    ("oidc-namespace-substring", F, es_k8s("k8s-auth", keys=("oidc-app--x", "oidc-appx"))),
+    ("pg-key-on-auth-store", F, es_k8s("k8s-auth", keys=("pg-app",))),
+    ("oidc-key-on-databases-store", F, es_k8s("k8s-databases", keys=("oidc-app",))),
+    ("authentik-core-secrets", F, es_k8s("k8s-auth", keys=("authentik-core-secrets",))),
+    ("datafrom-extract", F, es_k8s("k8s-auth", keys=("oidc-app",), dataFrom=[{"extract": {"key": "oidc-app"}}])),
+    ("datafrom-find", F, es_k8s("k8s-databases", keys=(), dataFrom=[{"find": {"name": {"regexp": ".*"}}}])),
+    ("data-sourceref", F, es_k8s("k8s-auth", keys=("oidc-app",), data=[{"secretKey": "A", "sourceRef": {"storeRef": {"name": "k8s-auth"}},
+                                                                       "remoteRef": {"key": "oidc-app"}}])),
+    ("secretstore-kind", F, es_k8s("k8s-auth", kind="SecretStore", keys=("oidc-app",))),
+    ("doppler-store-not-concerned", S, es(store="doppler-cluster")),
+]
+
 RULES = {
     "non-root-containers": [
         ("clean", P, pod_case()),
@@ -277,7 +324,27 @@ STATIC_RULES = {
         ("namespaced-secretstore", F, es(kind="SecretStore")),
         ("refresh-720h", F, es(refresh="720h")),
         ("refresh-missing", F, es(refresh=None)),
+        # (B) copie lue dans k8s-auth / k8s-databases
+        ("k8s-auth-copy", P, es_k8s("k8s-auth")),
+        ("k8s-databases-copy", P, es_k8s("k8s-databases", keys=("pg-app",))),
+        ("k8s-auth-namespaced-store", F, es_k8s("k8s-auth", kind="SecretStore")),
+        ("k8s-auth-refresh-720h", F, es_k8s("k8s-auth", refresh="720h")),
+        ("k8s-auth-refresh-missing", F, es_k8s("k8s-auth", refresh=None)),
+        ("k8s-unknown-store", F, es_k8s("k8s-other")),
+        # (C) source generee
+        ("generated-source", P, es_gen()),
+        ("generated-without-createdonce", F, es_gen(refreshPolicy=None)),
+        ("generated-refresh-periodic", F, es_gen(refreshPolicy="Periodic")),
+        ("generated-owner", F, es_gen(target={"name": "x", "creationPolicy": "Owner"})),
+        ("generated-creation-policy-missing", F, es_gen(target={"name": "x"})),
+        ("generated-mixed-with-data", F, es_gen(data=[{"secretKey": "A", "remoteRef": {"key": "A"}}])),
+        ("generated-with-store", F, es_gen(secretStoreRef={"name": "doppler-cluster", "kind": "ClusterSecretStore"})),
+        ("generated-datafrom-extract", F, es_gen(dataFrom=[{"extract": {"key": "A"}}])),
+        ("generated-datafrom-mixed", F, es_gen(dataFrom=[es_gen()["spec"]["dataFrom"][0], {"extract": {"key": "A"}}])),
+        ("generated-datafrom-empty", F, es_gen(dataFrom=[])),
+        ("generated-system-namespace", S, {**es_gen(refreshPolicy=None), "metadata": {"name": "x", "namespace": "monitoring"}}),
     ],
+    "eso-k8s-store-own-namespace": OWN_NS_CASES,
     "velero-fs-backup": [
         ("fs-backup-true", P, schedule(True)),
         ("fs-backup-false", F, schedule(False)),
@@ -286,6 +353,9 @@ STATIC_RULES = {
         ("fs-backup-false-empty-opt-out", F, schedule(False, "")),
     ],
 }
+
+
+ADMISSION_RULES = {"k8s-store-guard": OWN_NS_CASES}
 
 
 def render(rule, cases, policy_file, prefix):
@@ -308,7 +378,7 @@ def render(rule, cases, policy_file, prefix):
 def main():
     check = "--check" in sys.argv
     stale = []
-    for table, pf, prefix in ((RULES, BASELINE, "platform-baseline"), (STATIC_RULES, STATIC, "repo-contract")):
+    for table, pf, prefix in ((RULES, BASELINE, "platform-baseline"), (STATIC_RULES, STATIC, "repo-contract"), (ADMISSION_RULES, ADMISSION, "eso")):
         for rule, cases in table.items():
             got = {c[1] for c in cases}
             assert F in got and (P in got or S in got), f"{rule}: il faut un cas fail et un cas pass ou skip"

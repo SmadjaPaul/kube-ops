@@ -1,0 +1,106 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: repo-contract-eso-k8s-store-own-namespace
+policies:
+- ../../../policy/static/repo-contract.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - oidc-own-namespace
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - oidc-own-namespace-usage
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - pg-own-namespace
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - pg-own-namespace-usage
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - oidc-other-namespace
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - oidc-one-key-other-namespace
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - oidc-prefix-collision
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - oidc-namespace-substring
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - pg-key-on-auth-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - oidc-key-on-databases-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - authentik-core-secrets
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - datafrom-extract
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - datafrom-find
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - data-sourceref
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - secretstore-kind
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - doppler-store-not-concerned
+  result: skip
