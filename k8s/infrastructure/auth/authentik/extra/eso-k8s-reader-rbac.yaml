@@ -14,8 +14,6 @@ rules:
     verbs: [get]
     resourceNames:
       - eso-k8s-sentinel-none   # never remove: an empty list would grant all Secrets
-      - oidc-eso-drill          # TEMPORARY drill D0: remove with the cleanup PR (keep the sentinel)
-      - oidc-eso-drill--r2       # TEMPORARY drill D0 proof 5 (rotation by rename): remove with the cleanup PR
       - oidc-rustical-pilot
 ---
 apiVersion: rbac.authorization.k8s.io/v1
