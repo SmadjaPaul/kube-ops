@@ -55,11 +55,14 @@ if [[ -n "${ARTIFACT_DIR:-}" ]]; then
 else
   artifact_dir="$(mktemp -d "${TMPDIR:-/tmp}/kube-ops-runtime-smoke.XXXXXX")"
 fi
+# Private dir for the read session (never the artifact dir, which may be kept).
+session_parent="$(mktemp -d "${TMPDIR:-/tmp}/kube-ops-runtime-smoke-session.XXXXXX")"
 if [[ "$keep_artifacts" == no ]]; then
-  trap 'rm -rf "$artifact_dir"' EXIT
+  trap 'rm -rf "$artifact_dir" "$session_parent"' EXIT
 else
-  :
+  trap 'rm -rf "$session_parent"' EXIT
 fi
+kro_session_begin "$session_parent" # one preflight for all reads
 mkdir -p "$artifact_dir"
 ARTIFACT_DIR="$artifact_dir"
 report="$ARTIFACT_DIR/results.jsonl"
