@@ -15,6 +15,9 @@
 pm_decide() {
   PM_DECISION=NONE; PM_REASON=ok; PM_PRIORITY=default; PM_EXTRA=""
   if [[ ${PM_CLASS:-none} == none ]]; then PM_REASON=no_app_touched; return; fi
+  # A broken deployment (DEPLOY_HEALTH=FAIL: pods not Ready, recent restarts) goes to the revert guards even when
+  # the aggregated app-test verdict is PASS or BLOCKED: frozen or declared selfheal debt can turn it green (drill #1691).
+  [[ ${PM_DEPLOY:-UNKNOWN} == FAIL ]] && PM_APP_TEST=FAIL
   if [[ ${PM_IS_REVERT:-no} == yes ]]; then
     if [[ ${PM_APP_TEST:-} == PASS && ${PM_REVISION:-} == PROVEN ]]; then PM_REASON=revert_verified_prod_restored; return; fi
     PM_DECISION=ESCALATE; PM_REASON=revert_of_revert_refused; PM_PRIORITY=urgent; return

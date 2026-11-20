@@ -36,5 +36,7 @@ base; PM_APP_TEST=FAIL PM_DEPLOY=UNKNOWN; case_ "FAIL, deploy unknown (no pod): 
 base; PM_APP_TEST=FAIL; unset PM_DEPLOY; case_ "FAIL, PM_DEPLOY unset: notify" NOTIFY golden_path_fail_no_revert
 base; PM_APP_TEST=FAIL PM_DEPLOY=PASS PM_CLASS=mixed; case_ "golden-path FAIL on mixed: notify, not escalate" NOTIFY golden_path_fail_no_revert
 base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_CLASS=mixed; case_ "deploy FAIL + mixed: escalate" ESCALATE more_than_apps
-base; PM_APP_TEST=PASS PM_DEPLOY=FAIL; case_ "app-test PASS wins over stray deploy FAIL" NONE app_test_pass
+base; PM_APP_TEST=PASS PM_DEPLOY=FAIL; case_ "deploy FAIL wins over app-test PASS (frozen selfheal debt, drill #1691)" REVERT deploy_unhealthy
+base; PM_APP_TEST=BLOCKED PM_DEPLOY=FAIL; case_ "deploy FAIL wins over app-test BLOCKED" REVERT deploy_unhealthy
+base; PM_APP_TEST=PASS PM_DEPLOY=FAIL PM_IS_REVERT=yes; case_ "deploy FAIL on a revert: never revert a revert" ESCALATE revert_of_revert
 echo "post-merge decision test: PASS ($n cases)"
