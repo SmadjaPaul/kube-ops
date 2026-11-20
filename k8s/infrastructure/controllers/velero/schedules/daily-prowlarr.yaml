@@ -1,0 +1,27 @@
+# Prowlarr /config (indexer definitions and API key) is the only durable state.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-prowlarr
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: prowlarr
+spec:
+  schedule: "30 2 * * *"
+  template:
+    includedNamespaces:
+      - media
+    orLabelSelectors:
+      - matchLabels:
+          app.kubernetes.io/name: prowlarr
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    # Pod annotation backup.velero.io/backup-volumes: config permits only /config.
+    defaultVolumesToFsBackup: false
+    snapshotVolumes: false
+    storageLocation: r2
+    ttl: 336h

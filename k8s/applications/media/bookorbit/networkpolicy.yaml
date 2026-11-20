@@ -42,6 +42,15 @@ spec:
         - ports:
             - port: "9000"
               protocol: TCP
+    # Prowlarr indexer manager (Torznab API); Service port 80 -> pod 9696.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: prowlarr
+      toPorts:
+        - ports:
+            - port: "9696"
+              protocol: TCP
     # TorBox download client (BookOrbit >= 3.8.0): REST API plus the CDN
     # links it returns for finished downloads. Configured in the BookOrbit UI
     # (Settings > System > Requests), not through env vars.
