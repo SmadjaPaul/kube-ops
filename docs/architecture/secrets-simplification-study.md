@@ -174,6 +174,8 @@ spec:
 | Reconstruction complète du cluster | toutes les valeurs (a) sont régénérées. CNPG restaure les données depuis R2 ; les rôles reçoivent les nouveaux mots de passe | à prouver par le drill de reconstruction existant |
 | OKE recréé (D-2026-11-18-01, cluster jetable) | régénération automatique, rien à nettoyer dans Doppler | avantage net par rapport à aujourd'hui |
 
+**Correctif (2026-11-20, après lecture du code ESO v2.6.0) :** avec `creationPolicy: Orphan`, un Secret supprimé alors que l'ExternalSecret a déjà un statut **n'est pas recréé** (échec visible). La régénération se produit quand l'ExternalSecret est neuf (cluster reconstruit, ou ExternalSecret renommé). Dans ce cas, ESO écrase aussi un Secret restauré par Velero. Détails, politique de sauvegarde par type et drills : `secrets-migration-spec.md` §2 et §3.
+
 Les plannings Velero `daily-auth` et `daily-databases` (`k8s/infrastructure/controllers/velero/schedules/`) incluent déjà toutes les ressources des namespaces, Secrets compris (`includedResources: '*'`). Ils donnent une copie de secours, mais ne sont **pas** le chemin de reprise prévu. Point à vérifier à part, indépendant de cette étude : les manifestes de ressources Velero, Secrets compris, sont stockés dans le bucket objet de Velero. Leur chiffrement au repos mérite un contrôle.
 
 **Doppler ne peut pas servir de séquestre automatique.** Le tableau de stabilité ESO marque PushSecret comme non supporté pour Doppler. Les clés (a\*) restent donc générées par OpenTofu → Doppler, comme aujourd'hui.
