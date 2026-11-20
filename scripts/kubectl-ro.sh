@@ -40,8 +40,7 @@
 # (monitoring/kube-prometheus-stack-prometheus:9090, monitoring/loki-gateway:80,
 # monitoring/loki:3100), or the health smoke of a generated application: GET of a
 # plain path (no query string) through the service proxy of a svc-<name> namespace
-# (/api/v1/namespaces/svc-<name>/services/<svc>:<port>/proxy/<path>, used by
-# scripts/app-status.sh). The API-side RBAC decides whether the identity may do it.
+# (/api/v1/namespaces/svc-<name>/services/<svc>:<port>/proxy/<path>). The API-side RBAC decides whether the identity may do it.
 # Query strings must be percent-encoded (PromQL/LogQL).
 set -uo pipefail
 
