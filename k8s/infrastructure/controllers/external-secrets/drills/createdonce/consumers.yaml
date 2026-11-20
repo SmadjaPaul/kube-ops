@@ -14,6 +14,9 @@ metadata:
     kube-ops.io/drill: "true"
   annotations:
     argocd.argoproj.io/ignore-healthcheck: "true"
+    # Proof 5: applied after the new source `oidc-eso-drill--r2` (wave 0). The Role (infra-auth) is another
+    # Argo Application: until it is synced the copy retries (403), the old Secret stays in place.
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   refreshInterval: 1h
   secretStoreRef:
@@ -33,5 +36,5 @@ spec:
   data:
     - secretKey: password
       remoteRef:
-        key: oidc-eso-drill
+        key: oidc-eso-drill--r2
         property: password
