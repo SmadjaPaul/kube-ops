@@ -268,6 +268,11 @@ fi
 session_user=""
 if [ "$in_cluster" = 1 ]; then
   unset KUBECONFIG
+  # shellcheck source=lib/in-cluster-kubeconfig.sh
+  . "$(dirname "${BASH_SOURCE[0]}")/lib/in-cluster-kubeconfig.sh"
+  in_cluster_kcfg=$(in_cluster_kubeconfig "$SA_DIR") || refuse "KUBECTL_RO_IN_CLUSTER=1 : ca.crt ou jeton ServiceAccount illisible"
+  export KUBECONFIG=$in_cluster_kcfg
+  trap 'kube_access_cleanup; rm -f "$status_file" "$in_cluster_kcfg"' EXIT
   whoami_err=$(mktemp "${TMPDIR:-/tmp}/kubectl-ro-whoami.XXXXXX")
   who=$(kubectl --request-timeout=15s auth whoami -o jsonpath='{.status.userInfo.username}' 2>"$whoami_err") || who=""
   if [ -z "$who" ]; then

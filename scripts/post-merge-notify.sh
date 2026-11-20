@@ -15,7 +15,11 @@ title=$1; prio=$2; msg=$3
 case "$prio" in default|high|urgent) ;; *) echo "ERROR: bad priority" >&2; exit 2 ;; esac
 if (( dry )); then echo "NOTIFY=DRY_RUN title=\"$title\" priority=$prio message=\"$msg\""; exit 0; fi
 if [[ -z ${NTFY_PUBLISH_URL:-} && ${KUBECTL_RO_IN_CLUSTER:-} == 1 ]]; then
-  NTFY_PUBLISH_URL=$(kubectl -n monitoring get secret alertmanager-ntfy-url -o jsonpath='{.data.url}' 2>/dev/null | base64 -d 2>/dev/null) || true
+  # shellcheck source=lib/in-cluster-kubeconfig.sh
+  . "$here/lib/in-cluster-kubeconfig.sh"
+  kcfg=$(in_cluster_kubeconfig "${KUBECTL_RO_SA_DIR:-/var/run/secrets/kubernetes.io/serviceaccount}") || kcfg=""
+  NTFY_PUBLISH_URL=$(KUBECONFIG=${kcfg:-/nonexistent} kubectl -n monitoring get secret alertmanager-ntfy-url -o jsonpath='{.data.url}' 2>/dev/null | base64 -d 2>/dev/null) || true
+  [[ -z $kcfg ]] || rm -f "$kcfg"
   [[ -n $NTFY_PUBLISH_URL ]] || { echo "NOTIFY=BLOCKED reason=ntfy_secret_unreadable"; exit 2; }
   [[ -z ${GITHUB_ACTIONS:-} ]] || echo "::add-mask::$NTFY_PUBLISH_URL"
 fi
