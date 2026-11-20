@@ -1,0 +1,112 @@
+name: Post-merge verify
+
+# PLT-390 lot 3. After a merge to main that touches an app: wait for Argo to reconcile that commit, run
+# `just app-test APP NS --phase runtime`, and on FAIL open ONE auto-merge `git revert` PR, then notify via ntfy.
+# Rules of PLT-141: no revert if the commit touches more than apps, if a newer commit touches the same app,
+# for a revert itself, or if a revert was already attempted (escalation instead). BLOCKED => notification only.
+#
+# INERT until Paul sets the repository variable POST_MERGE_VERIFY_ENABLED=true (prerequisites in
+# docs/operations/post-merge-verify.md). Triggered by push on main only: the self-hosted job never runs PR code.
+#
+# Three jobs, two identities, no Doppler and no kubeconfig:
+#   verify    ARC runner in the cluster (scale set kube-ops-ci-arc), identity = its own ServiceAccount
+#             kube-ops-post-merge (read-only RBAC, k8s/optional/github-actions-arc-kube-ops). Decides.
+#   revert    GitHub-hosted, revert bot GitHub App token. Opens the revert PR. Never has cluster access.
+#   announce  same runner. ntfy of the revert PR; the URL is read from one cluster Secret by the ServiceAccount.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'k8s/applications/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-merge-verify-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: ${{ vars.POST_MERGE_VERIFY_ENABLED == 'true' }}
+    runs-on: kube-ops-ci-arc
+    timeout-minutes: 30
+    outputs:
+      decision: ${{ steps.verify.outputs.decision }}
+      reason: ${{ steps.verify.outputs.reason }}
+      stateful: ${{ steps.verify.outputs.stateful }}
+      sha: ${{ steps.verify.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify and decide
+        id: verify
+        env:
+          KUBECTL_RO_IN_CLUSTER: "1"
+        run: |
+          set -uo pipefail
+          bash scripts/ci-install-tools.sh || { echo "::error::tool install failed: POST_MERGE=BLOCKED"; echo "decision=NOTIFY" >>"$GITHUB_OUTPUT"; echo "reason=tool_install_failed" >>"$GITHUB_OUTPUT"; exit 0; }
+          export PATH="$HOME/.local/bin:$PATH"
+          bash scripts/post-merge-verify.sh "$GITHUB_SHA" --timeout 600 || true
+  revert:
+    needs: verify
+    if: ${{ needs.verify.outputs.decision == 'REVERT' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      pr: ${{ steps.pr.outputs.pr }}
+    steps:
+      - name: Mint the revert bot token
+        id: app
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.REVERT_BOT_APP_ID }}
+          private-key: ${{ secrets.REVERT_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app.outputs.token }}
+      - name: Open the revert PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          SHA: ${{ needs.verify.outputs.sha }}
+          STATEFUL: ${{ needs.verify.outputs.stateful }}
+          REASON: ${{ needs.verify.outputs.reason }}
+        run: |
+          set -euo pipefail
+          git config user.name "kube-ops-revert-bot[bot]"
+          git config user.email "kube-ops-revert-bot[bot]@users.noreply.github.com"
+          st=(); [[ $STATEFUL == yes ]] && st=(--stateful)
+          out=$(bash scripts/post-merge-revert.sh "$SHA" ${st[@]+"${st[@]}"} --reason "$REASON") || { echo "$out"; echo "pr=FAILED" >>"$GITHUB_OUTPUT"; exit 0; }
+          echo "$out"
+          echo "pr=$(sed -n 's/^REVERT_PR=//p' <<<"$out")" >>"$GITHUB_OUTPUT"
+  announce:
+    needs: [verify, revert]
+    if: ${{ always() && needs.verify.outputs.decision == 'REVERT' }}
+    runs-on: kube-ops-ci-arc
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: ntfy
+        env:
+          KUBECTL_RO_IN_CLUSTER: "1"
+          PR: ${{ needs.revert.outputs.pr }}
+          SHA: ${{ needs.verify.outputs.sha }}
+          STATEFUL: ${{ needs.verify.outputs.stateful }}
+        run: |
+          bash scripts/ci-install-tools.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          msg="app-test FAIL after merge ${SHA:0:12}. Revert PR: ${PR:-not created (see run ${GITHUB_RUN_ID})}. The revert does not restore data."
+          [[ $STATEFUL == yes ]] && msg="$msg Stateful app: verify the migration."
+          [[ ${PR:-FAILED} == FAILED || ${PR:-} == REFUSED* || ${PR:-} == CONFLICT* ]] && prio=urgent || prio=high
+          bash scripts/post-merge-notify.sh "kube-ops post-merge REVERT" "$prio" "$msg"

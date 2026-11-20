@@ -42,3 +42,7 @@ tests/agent-guard/agent-memory-entry-test.sh
 tests/harness/dns-exact-resolver-contract-test.sh
 tests/harness/app-test-contract-test.sh
 tests/harness/eso-generated-secrets-contract-test.sh
+tests/harness/verify-revision-test.sh
+tests/harness/post-merge-decision-test.sh
+tests/harness/post-merge-verify-test.sh
+tests/agent-guard/kubectl-ro-in-cluster-test.sh

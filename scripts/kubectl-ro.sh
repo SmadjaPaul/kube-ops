@@ -33,6 +33,11 @@
 #   AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision      (homelab)
 #   AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-oke-token.sh --provision  (oracle-a1)
 #
+# In-cluster mode (PLT-390 lot 3): KUBECTL_RO_IN_CLUSTER=1, homelab only, inside a pod. No Doppler and no
+# kubeconfig: kubectl uses the pod's own ServiceAccount token, and the effective identity must be exactly
+# system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge (post-merge runner, RBAC in
+# k8s/optional/github-actions-arc-kube-ops/rbac.yaml). All the filters above still apply.
+#
 # Refused: any verb outside the list above; Secret contents (get secret with
 # -o/--output other than `-o name`, -v>=6); flags that swap credentials or weaken TLS;
 # --raw except the exact form `get --raw <path>` where <path> is a read-only
@@ -251,8 +256,24 @@ session_store() { # session_store USER : copy the freshly verified kubeconfig (a
   export KUBECONFIG="$session_dir/$session_name.kubeconfig"
 }
 
+IN_CLUSTER_USER=${KUBECTL_RO_IN_CLUSTER_USER:-system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge}
+SA_DIR=${KUBECTL_RO_SA_DIR:-/var/run/secrets/kubernetes.io/serviceaccount}
+in_cluster=0
+if [ "${KUBECTL_RO_IN_CLUSTER:-}" = 1 ]; then
+  [ "$cluster" = homelab ] || refuse "KUBECTL_RO_IN_CLUSTER=1 : homelab uniquement"
+  [ -r "$SA_DIR/token" ] || refuse "KUBECTL_RO_IN_CLUSTER=1 hors pod (jeton ServiceAccount absent) : pas de repli sur Doppler"
+  in_cluster=1
+fi
+
 session_user=""
-if session_load; then
+if [ "$in_cluster" = 1 ]; then
+  unset KUBECONFIG
+  who=$(effective_user)
+  [ "$who" = "$IN_CLUSTER_USER" ] ||
+    refuse "identité effective '$who' : seule $IN_CLUSTER_USER est admise en mode in-cluster"
+  session_user=$who
+  export KUBE_ACCESS_SOURCE=in_cluster_serviceaccount
+elif session_load; then
   :
 elif [ "$cluster" = oracle-a1 ]; then
   acquire KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 || blocked_exit

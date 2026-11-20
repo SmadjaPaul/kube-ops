@@ -1,0 +1,62 @@
+# Post-merge verification and automatic revert (PLT-390 lot 3)
+
+Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the production to be reconciled at that commit, run `just app-test APP NAMESPACE --phase runtime --cluster homelab`, and on `FAIL` open a `git revert` PR in auto-merge and notify through ntfy. Rules of revert come from PLT-141.
+
+## Chain
+
+1. `scripts/post-merge-affected.sh SHA`: files of the commit to apps. `k8s/applications/<domain>/<app>/**` gives app `<app>`, Argo Application `apps-<domain>` (one Application per domain directory), namespace from the kustomization. Documentation is ignored. Everything else (domain-level files, `platform`, infrastructure, optional, policy, scripts, tests, workflows) is OTHER.
+2. `scripts/verify-revision.sh ARGO_APP SHA`: `status.sync.revision` contains the commit, `Synced`, `Healthy`, last operation not `Running`/`Failed`/`Error`. Evidence level RECONCILED. Timeout at most 600 s, then FAIL.
+3. `just app-test` (lot 1): `CHECK ...` lines then `APP_TEST=PASS|FAIL|BLOCKED`. Evidence level RUNTIME.
+4. `scripts/lib/post-merge-decision.sh`: `NONE`, `NOTIFY`, `REVERT` or `ESCALATE`.
+5. `scripts/post-merge-revert.sh`: branch `claude/post-merge-revert-<sha12>`, PR labelled `post-merge-revert`, auto-merge squash, trailer `Post-merge-revert-of: <sha>`.
+6. `scripts/post-merge-notify.sh`: ntfy; in the runner pod the URL comes from the cluster Secret `monitoring/alertmanager-ntfy-url`, elsewhere from Doppler through `doppler-safe.sh`.
+
+## Decision table
+
+| Situation | Decision |
+|---|---|
+| no app touched | NONE |
+| revision not proven in 10 min (any verdict) | NOTIFY, no revert |
+| `APP_TEST=PASS` | NONE |
+| `APP_TEST=BLOCKED` or recipe absent | NOTIFY, no revert |
+| `FAIL`, commit touches more than apps | ESCALATE, no revert |
+| `FAIL`, newer commit touches the same app | ESCALATE, no revert |
+| `FAIL`, a revert of this commit already exists | ESCALATE (one revert, then escalation) |
+| `FAIL` on a commit that is itself a revert | ESCALATE (never a revert of a revert) |
+| `FAIL`, otherwise | REVERT, plus `verify-migration` when the app has a PVC or a CNPG Cluster |
+
+The revert restores manifests only. It does not restore data or undo a migration: the PR body and the ntfy message say so.
+
+## Identities and RBAC
+
+No Doppler token and no kubeconfig in GitHub or in the workflow. The `verify` and `announce` jobs run on an ARC runner inside the cluster (scale set `kube-ops-ci-arc`, `k8s/optional/github-actions-arc-kube-ops`) with the pod's own ServiceAccount `arc-runners-kube-ops/kube-ops-post-merge`. `scripts/kubectl-ro.sh` runs in in-cluster mode there (`KUBECTL_RO_IN_CLUSTER=1`): no preflight, no Doppler, and the effective identity must be exactly that ServiceAccount. All read filters of the wrapper stay.
+
+Rights (`rbac.yaml`, get/list only; no watch, create, update, patch, delete, exec, logs):
+
+| Scope | Resource | Verbs | Used by |
+|---|---|---|---|
+| cluster | `namespaces` | get | app-test |
+| cluster | `pods`, `services`, `persistentvolumeclaims` | get, list | app-test |
+| cluster | `httproutes.gateway.networking.k8s.io` | get, list | app-test |
+| cluster | `clusters.postgresql.cnpg.io`, `backups.postgresql.cnpg.io` | get, list | app-test |
+| cluster | `scaledobjects.keda.sh` | get, list | app-test |
+| `argocd` | `applications.argoproj.io` | get | verify-revision |
+| `velero` | `backups.velero.io` | get, list | app-test |
+| `monitoring` | `services/proxy` named `kube-prometheus-stack-prometheus:9090` | get | app-test |
+| `monitoring` | `secrets` named `alertmanager-ntfy-url` | get | ntfy |
+
+The only Secret is the ntfy publish URL. ntfy.sh topics have no authentication: the topic in the URL is the secret, so it stays a cluster Secret (External Secrets from Doppler, `alertmanager-secrets.yaml`) readable under one `resourceName`, never a GitHub variable or secret. The runner registers with GitHub through the existing ARC GitHub App (`arc-github-app`, copied by External Secrets from Doppler like the other scale sets); no new registration secret. Tools missing from the stock runner image (kubectl, jq, yq, just) are installed by `scripts/ci-install-tools.sh` with pinned versions and sha256.
+
+Egress (CiliumNetworkPolicy, default deny): DNS, GitHub, Kubernetes API, `dl.k8s.io`, `ntfy.sh`, `cloudflare-dns.com`, and the Cloudflare edge ranges on 443 (the public probe of app-test pins the address with `curl --resolve`).
+
+## Gestures of Paul (all that remains)
+
+1. ARC GitHub App installation: add `SmadjaPaul/kube-ops` to the installation of the existing ARC App (GitHub, Settings, Applications), as for `website`. Without it the scale set cannot register.
+2. Revert bot, one-time: create the GitHub App `kube-ops-revert-bot`, installed on `kube-ops` only, permissions Contents read/write, Pull requests read/write, Metadata read. Then set `vars.REVERT_BOT_APP_ID` and `secrets.REVERT_BOT_PRIVATE_KEY` (the one external identity: only a GitHub App can write to `main` and start the required checks; `GITHUB_TOKEN` cannot, and `AGENT_GITHUB_TOKEN` is a personal admin token).
+3. Switch: set `vars.POST_MERGE_VERIFY_ENABLED=true` once the scale set is Healthy and the App exists.
+
+Nothing else: no Doppler token, no kubeconfig, no ntfy URL in GitHub. The repository already allows auto-merge and squash; the required checks stay in force on the revert PR. The workflow runs on `push` to `main` only, never on PR code (the repository is public).
+
+## Evidence
+
+Contract tests: `tests/harness/verify-revision-test.sh`, `post-merge-decision-test.sh`, `post-merge-verify-test.sh`, `tests/agent-guard/kubectl-ro-in-cluster-test.sh`. `just post-merge-verify --dry-run SHA` shows the decision and the revert plan without creating a PR or sending ntfy.

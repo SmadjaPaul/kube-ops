@@ -1,0 +1,18 @@
+# One runner at a time: the node sits at 67 % of allocatable CPU requests and the
+# ceiling is 70 % (D-2026-11-15-05); a 250m request is the most that fits.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: arc-runner-kube-ops-bounds
+  namespace: arc-runners-kube-ops
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  hard:
+    pods: "1"
+    requests.cpu: 250m
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 4Gi
+    requests.ephemeral-storage: 1Gi
+    limits.ephemeral-storage: 6Gi
