@@ -16,13 +16,24 @@ est une décision de Paul, destructive, hors de ce runbook).
   (ExternalSecret Doppler). Aucune valeur n'est écrite dans Git ni dans ce runbook.
 - Maintenance : dimanche 11:45, rétention, `restic check` et décodage du dump (`pg_restore --file=/dev/null`).
   Ce décodage ne prouve pas que la base se restaure : seule la section 3 le prouve.
-- Limite de fraîcheur : RPO jusqu'à 24 h. Pas d'archivage WAL vers R2 pour pg2 (PLT-94 lot 7).
+- Limite de fraîcheur : la cible nominale est un dump par jour (RPO nominal d'environ 24 h), pas un
+  maximum garanti. Le Job a `backoffLimit: 0` : un échec (panne de R2, de pg2 ou du nœud) n'est pas
+  rejoué avant le lendemain, et une panne d'un jour laisse un snapshot plus ancien que 24 h. Le
+  RPO réel est l'âge du dernier snapshot, à lire dans `restic snapshots` avant toute restauration.
+  Pas d'archivage WAL vers R2 pour pg2 (PLT-94 lot 7).
 
 ## 1. Préparer l'accès (namespace de restauration uniquement)
 
 Créer un namespace de restauration dédié, sans lien avec `factory-platform`. Y placer une copie du
 Secret restic (ESO ou copie par un opérateur habilité). Ne jamais afficher les valeurs
 (`kubectl get secret -o yaml` interdit dans le terminal partagé).
+
+Avant de restaurer, relancer l'audit de couverture (lecture seule, depuis le poste d'un opérateur) et
+vérifier que la sauvegarde de `factory-platform-pg2` y apparaît et que le dernier snapshot est récent :
+
+```sh
+just backup-audit
+```
 
 Vérifier l'accès au dépôt sans rien écrire :
 
@@ -49,6 +60,18 @@ L'absence de l'une d'elles est un échec de la sauvegarde.
 
 Sur une instance PostgreSQL 17 jetable (même version majeure que le dump, pas d'archivage, pas de
 sauvegarde, non exposée) :
+
+Forcer l'hôte vers le serveur jetable avant toute commande, afin qu'aucune variable d'environnement
+héritée (`PGHOST`, `PGSERVICE`, `PGPASSFILE`) ne pointe vers pg2 de production. Remplacer
+`<hote-jetable>` par l'adresse du serveur jetable et contrôler le résultat avant de continuer :
+
+```sh
+unset PGSERVICE PGPASSFILE PGHOSTADDR
+export PGHOST=<hote-jetable> PGPORT=5432
+psql -Atc "select inet_server_addr(), current_setting('cluster_name', true)"   # doit désigner le serveur jetable
+```
+
+Si l'adresse affichée est celle de `factory-platform-pg2`, s'arrêter : ne rien restaurer.
 
 ```sh
 createdb factory_restore
