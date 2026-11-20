@@ -20,6 +20,11 @@
 # runtime : lecture seule via scripts/kubectl-ro.sh. --chaos supprime UN pod via
 #           scripts/kubectl-rw.sh, uniquement si NAMESPACE = pr-* (jamais en prod).
 #
+# Portee runtime : l'app, pas le namespace. Les routes, services, workloads/pods, PVC et clusters CNPG
+# sont ceux du rendu de l'app (un namespace partage comme media est le cas normal). Cliquet : un FAIL
+# deja gele pour cette app dans policy/app-test-baseline.tsv devient PASS "baselined" (--no-ratchet
+# l'ignore) ; seule une regression echoue.
+#
 # Exceptions : fichier optionnel `app-test.yaml` dans le dossier de l'app (format minimal) :
 #     auth: none | oidc      # none = pas d'auth devant la route externe ; oidc = OIDC natif declare
 #     backup: none           # rien a sauvegarder (sans etat)
@@ -40,17 +45,18 @@ SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${APP_TEST_ROOT:-$(cd "$SELF_DIR/.." && pwd)}"
 cd "$ROOT" || exit 2
 
-usage() { echo "usage: app-test.sh APP NAMESPACE [--phase static|runtime|all] [--cluster homelab|oracle-a1] [--chaos] [--app-dir DIR]" >&2; exit 2; }
+usage() { echo "usage: app-test.sh APP NAMESPACE [--phase static|runtime|all] [--cluster homelab|oracle-a1] [--chaos] [--no-ratchet] [--app-dir DIR]" >&2; exit 2; }
 blocked_all() { echo "CHECK setup BLOCKED $1"; echo "APP_TEST=BLOCKED"; exit 2; }
 
 [[ $# -ge 2 ]] || usage
 APP=$1; NS=$2; shift 2
-PHASE=all; CLUSTER=homelab; CHAOS=no; APP_DIR=""
+PHASE=all; CLUSTER=homelab; CHAOS=no; APP_DIR=""; RATCHET=yes
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --phase) [[ $# -ge 2 ]] || usage; PHASE=$2; shift 2 ;;
     --cluster) [[ $# -ge 2 ]] || usage; CLUSTER=$2; shift 2 ;;
     --chaos) CHAOS=yes; shift ;;
+    --no-ratchet) RATCHET=no; shift ;;
     --app-dir) [[ $# -ge 2 ]] || usage; APP_DIR=$2; shift 2 ;;
     *) usage ;;
   esac
@@ -65,7 +71,16 @@ for cmd in jq yq; do command -v "$cmd" >/dev/null || blocked_all "outil manquant
 work="$(mktemp -d "${TMPDIR:-/tmp}/app-test.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 RES="$work/results.tsv"; : >"$RES"
-res() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" >>"$RES"; } # id phase status reason
+# Cliquet (policy/app-test-baseline.tsv) : un FAIL deja gele pour cette app/id devient PASS "baselined" ;
+# seule une regression echoue. --no-ratchet montre la dette brute.
+BASELINE_FILE=policy/app-test-baseline.tsv
+res() { # res ID PHASE STATUS REASON
+  local st=$3 rs=$4
+  if [[ $st == FAIL && $RATCHET == yes && -f $BASELINE_FILE ]] && grep -qxF "$APP"$'\t'"$1"$'\tFAIL' "$BASELINE_FILE"; then
+    st=PASS; rs="baselined (dette gelee): $rs"
+  fi
+  printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$st" "$rs" >>"$RES"
+}
 IDS="oidc exposure backup renovate observability selfheal network"
 
 # ------------------------------------------------------------------ localisation de l'app
@@ -131,12 +146,15 @@ render_dir() { # render_dir DIR : tableau JSON des objets rendus sur stdout
 }
 
 static_ready=no
-if [[ $PHASE != runtime ]]; then
+# Le rendu sert aux deux phases : la phase runtime en tire la PORTEE de l'app (ses routes, workloads,
+# services, PVC, clusters CNPG), car un namespace partage (media, catalog...) heberge plusieurs apps.
+if true; then
   if ! command -v kustomize >/dev/null; then
-    for id in $IDS; do res "$id" static BLOCKED "outil manquant: kustomize"; done
+    [[ $PHASE == runtime ]] || for id in $IDS; do res "$id" static BLOCKED "outil manquant: kustomize"; done
   elif ! render_dir "$APP_DIR" >"$DOCS" || ! jq -e 'length > 0' "$DOCS" >/dev/null 2>&1; then
     msg="$(tail -1 "$work/render.err" 2>/dev/null | tr -d '\n' | cut -c1-100)"
-    for id in $IDS; do res "$id" static BLOCKED "rendu kustomize impossible: ${msg:-vide}"; done
+    scope_err="rendu kustomize impossible: ${msg:-vide}"
+    [[ $PHASE == runtime ]] || for id in $IDS; do res "$id" static BLOCKED "$scope_err"; done
   else
     static_ready=yes
     parts=("$DOCS")
@@ -147,6 +165,9 @@ if [[ $PHASE != runtime ]]; then
     jq -s 'add | map(select(.kind|IN("Schedule","ScheduledBackup","CiliumNetworkPolicy","NetworkPolicy","SecurityPolicy")))' "${parts[@]}" >"$CTX"
   fi
 fi
+
+scope_ready=$static_ready
+[[ $PHASE == runtime ]] && static_ready=no
 
 # static_run ID PASS_NOTE JQPROG : chaque ligne produite est un probleme, sauf SKIP:<raison>.
 # Un FAIL devient SKIP si exceptions.<ID> porte une raison. EXTRA (fichier) ajoute des problemes.
@@ -359,10 +380,41 @@ if [[ $PHASE != static ]]; then
     for id in $IDS; do rr "$id" BLOCKED "acces cluster impossible: $(kerr)"; done
   elif [[ $ns_state == absent ]]; then
     for id in $IDS; do rr "$id" FAIL "namespace $NS absent du cluster $CLUSTER"; done
+  elif [[ $scope_ready != yes ]]; then
+    for id in $IDS; do rr "$id" BLOCKED "portee de l'app indisponible: $scope_err"; done
   else
-    kget pods -n "$NS" >"$work/pods.json" || rr selfheal BLOCKED "lecture pods impossible: $(kerr)"
-    kget services -n "$NS" >"$work/svc.json" || echo '{"items":[]}' >"$work/svc.json"
-    kget httproutes.gateway.networking.k8s.io -n "$NS" >"$work/routes.json" 2>/dev/null || echo '{"items":[]}' >"$work/routes.json"
+    # PORTEE de l'app (namespace partage = cas normal) : tout ce qui est lu est filtre sur les
+    # ressources rendues de l'app (noms de routes/services/clusters, selectors des workloads).
+    jq --arg ns "$NS" --slurpfile ctx "$CTX" "$PRE"'
+      . as $d
+      | ([ wls[] | select(islong) | (tmpl.metadata.labels // {}) ]) as $wl
+      | {routes: [ .[] | select(.kind=="HTTPRoute") | .metadata.name ],
+         svcs: [ .[] | select(.kind=="Service") | .metadata.name ],
+         wls: [ .[] | select(islong) | {name: .metadata.name, sel: (.spec.selector.matchLabels // {})} ],
+         cnpg: [ .[] | select(.kind=="Cluster" and ((.apiVersion // "")|startswith("postgresql.cnpg.io"))) | .metadata.name ],
+         npvc: (([ .[] | select(.kind=="PersistentVolumeClaim") ] | length) + ([ .[] | select(.kind=="StatefulSet") | (.spec.volumeClaimTemplates // [])[] ] | length)),
+         ownns: any(.[]; .kind=="Namespace"),
+         scheds: [ $ctx[0][] | select(.kind=="Schedule" and ((.apiVersion // "")|startswith("velero.io")))
+                   | . as $s | ($s.spec.template // {}) as $t
+                   | select((($t.excludedNamespaces // []) | any(. == $ns)) | not)
+                   | select(((($t.labelSelector // null) == null) and ((($t.orLabelSelectors // []) | length) == 0))
+                            or any($wl[]; . as $l | ([($t.labelSelector // empty)] + ($t.orLabelSelectors // [])) | any(selmatch($l))))
+                   | select((($t.includedNamespaces // []) | length) == 0 or (($t.includedNamespaces // []) | any(. == "*" or . == ($d | map(select(islong)) | .[0].metadata.namespace // $ns))))
+                   | .metadata.name ]}' "$DOCS" >"$work/scope.json"
+    # pods de l'app : proprietaire = workload de l'app (ou Cluster CNPG de l'app) et selector satisfait
+    scope_pods() { # scope_pods FILE -> {"items":[pods de l app non Succeeded]}
+      jq --slurpfile sc "$work/scope.json" '{items: [ .items[] | select(.status.phase != "Succeeded") | . as $p
+        | select( any($sc[0].wls[]; . as $w
+                      | ($p.metadata.ownerReferences // [] | any(.name == $w.name or (.name | startswith($w.name + "-"))))
+                      and ($w.sel | to_entries | all($p.metadata.labels[.key] == .value)))
+                  or any(($p.metadata.ownerReferences // [])[]; .kind == "Cluster" and (.name | IN($sc[0].cnpg[]))) ) ]}' "$1"
+    }
+    if kget pods -n "$NS" >"$work/pods-all.json"; then scope_pods "$work/pods-all.json" >"$work/pods.json"
+    else rr selfheal BLOCKED "lecture pods impossible: $(kerr)"; echo '{"items":[]}' >"$work/pods.json"; fi
+    kget services -n "$NS" >"$work/svc-all.json" || echo '{"items":[]}' >"$work/svc-all.json"
+    jq --slurpfile sc "$work/scope.json" '{items: [ .items[] | select(.metadata.name | IN($sc[0].svcs[])) ]}' "$work/svc-all.json" >"$work/svc.json"
+    kget httproutes.gateway.networking.k8s.io -n "$NS" >"$work/routes-all.json" 2>/dev/null || echo '{"items":[]}' >"$work/routes-all.json"
+    jq --slurpfile sc "$work/scope.json" '{items: [ .items[] | select(.metadata.name | IN($sc[0].routes[])) ]}' "$work/routes-all.json" >"$work/routes.json"
 
     ext_hosts="$(jq -r '.items[] | select(any(.spec.parentRefs[]?; .name=="external")) | .spec.hostnames[]?' "$work/routes.json" | sort -u)"
     all_hosts="$(jq -r '.items[] | .spec.hostnames[]?' "$work/routes.json" | sort -u)"
@@ -370,7 +422,7 @@ if [[ $PHASE != static ]]; then
     auth_probe="$(jq -r '.auth_probe // "/"' "$EXC")"
 
     # 1. oidc
-    if [[ -z $ext_hosts ]]; then rr oidc SKIP "aucune route externe dans $NS"
+    if [[ -z $ext_hosts ]]; then rr oidc SKIP "aucune route externe parmi les routes de l'app"
     elif [[ $auth_mode == none ]]; then rr oidc SKIP "exception auth none: $(exc_reason auth)"
     elif [[ $PROBE_OK == no ]]; then rr oidc BLOCKED "curl absent: sonde publique impossible"
     else
@@ -410,25 +462,32 @@ if [[ $PHASE != static ]]; then
     if [[ $(jq -r '.backup // ""' "$EXC") == none ]]; then rr backup SKIP "exception backup none: $(exc_reason backup)"
     elif is_pr_ns; then rr backup SKIP "namespace de preview $NS: pas de backup attendu"
     else
-      pvcn="$(kget pvc -n "$NS" 2>/dev/null | jq '.items | length' 2>/dev/null)"; pvcn=${pvcn:-0}
-      cnpgn="$(kget clusters.postgresql.cnpg.io -n "$NS" 2>/dev/null | jq '.items | length' 2>/dev/null)"; cnpgn=${cnpgn:-0}
-      if [[ $pvcn == 0 && $cnpgn == 0 ]]; then rr backup SKIP "aucun PVC ni Cluster CNPG dans $NS"
+      pvcn="$(jq '.npvc' "$work/scope.json")"; cnpgn="$(jq '.cnpg | length' "$work/scope.json")"
+      if [[ $pvcn == 0 && $cnpgn == 0 ]]; then rr backup SKIP "l'app ne declare aucun PVC ni Cluster CNPG"
       elif ! kget backups.velero.io -n velero >"$work/vb.json"; then rr backup BLOCKED "lecture backups Velero impossible: $(kerr)"
       else
-        vlast="$(jq -r --arg ns "$NS" --argjson h "$max_age_h" '
-          [.items[] | select(.status.phase == "Completed")
+        vlast="$(jq -r --arg ns "$NS" --slurpfile sc "$work/scope.json" '
+          ($sc[0].scheds) as $mine
+          | [.items[] | select(.status.phase == "Completed")
+           | select(($mine | length) == 0 or ((.metadata.labels["velero.io/schedule-name"] // "") | IN($mine[])))
            | select(((.spec.includedNamespaces // []) | length == 0) or ((.spec.includedNamespaces // []) | any(. == $ns or . == "*")))
            | select(((.spec.excludedNamespaces // []) | any(. == $ns)) | not)
            | .status.completionTimestamp | fromdateiso8601] | max // empty
           | ((now - .) / 3600 | floor) | tostring' "$work/vb.json")"
         clast=""
         if [[ $cnpgn != 0 ]] && kget backups.postgresql.cnpg.io -n "$NS" >"$work/cb.json"; then
-          clast="$(jq -r '[.items[] | select(.status.phase == "completed") | .status.stoppedAt | fromdateiso8601] | max // empty | ((now - .) / 3600 | floor) | tostring' "$work/cb.json")"
+          clast="$(jq -r --slurpfile sc "$work/scope.json" '[.items[] | select(.status.phase == "completed" and (.spec.cluster.name | IN($sc[0].cnpg[]))) | .status.stoppedAt | fromdateiso8601] | max // empty | ((now - .) / 3600 | floor) | tostring' "$work/cb.json")"
         fi
-        if [[ -n $vlast && $vlast -lt $max_age_h && ( $cnpgn == 0 || ( -n $clast && $clast -lt $max_age_h ) || $pvcn != 0 ) ]]; then
-          rr backup PASS "dernier backup Velero il y a ${vlast} h${clast:+, CNPG il y a ${clast} h}"
-        elif [[ -z $vlast && $pvcn == 0 && -n $clast && $clast -lt $max_age_h ]]; then rr backup PASS "dernier backup CNPG il y a ${clast} h"
-        else rr_fail backup "aucun backup reussi < ${max_age_h} h (Velero: ${vlast:-aucun}$([[ $cnpgn != 0 ]] && echo ", CNPG: ${clast:-aucun}"))"; fi
+        okv=yes; okc=yes
+        [[ $pvcn == 0 || ( -n $vlast && $vlast -lt $max_age_h ) ]] || okv=no
+        # CNPG : seuil derive du ScheduledBackup (hebdomadaire/mensuel -> 8 j), sinon le seuil Velero
+        cmax=$max_age_h
+        if [[ $cnpgn != 0 ]] && kget scheduledbackups.postgresql.cnpg.io -n "$NS" >"$work/sb.json" 2>/dev/null \
+           && jq -e --slurpfile sc "$work/scope.json" '[.items[] | select(.spec.cluster.name | IN($sc[0].cnpg[])) | (.spec.schedule | split(" ")) | select(length >= 6 and (.[3] != "*" or .[5] != "*"))] | length > 0' "$work/sb.json" >/dev/null; then cmax=192; fi
+        [[ $cnpgn == 0 || ( -n $clast && $clast -lt $cmax ) ]] || okc=no
+        if [[ $okv == yes && $okc == yes ]]; then
+          rr backup PASS "dernier backup$([[ $pvcn != 0 ]] && echo " Velero il y a ${vlast} h")$([[ $cnpgn != 0 ]] && echo " CNPG il y a ${clast} h")"
+        else rr_fail backup "aucun backup reussi < ${max_age_h} h de l'app (Velero: ${vlast:-aucun}$([[ $cnpgn != 0 ]] && echo ", CNPG: ${clast:-aucun}"))"; fi
       fi
     fi
 
@@ -436,11 +495,18 @@ if [[ $PHASE != static ]]; then
     prom='/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query='
     q="$(jq -rn --arg ns "$NS" '"up{namespace=\"\($ns)\"}" | @uri')"
     npods="$(jq '[.items[] | select(.status.phase != "Succeeded")] | length' "$work/pods.json" 2>/dev/null)"; npods=${npods:-0}
-    if kro get --raw "$prom$q" >"$work/up.json" 2>"$work/kget.err" && jq -e '.status == "success"' "$work/up.json" >/dev/null 2>&1; then
+    if kro get --raw "$prom$q" >"$work/up-all.json" 2>"$work/kget.err" && jq -e '.status == "success"' "$work/up-all.json" >/dev/null 2>&1; then
+      # cibles de l'app seulement : pod de l'app, ou service/job portant le nom d'un Service rendu de l'app
+      jq --slurpfile sc "$work/scope.json" --slurpfile pd "$work/pods.json" '
+        ([ $pd[0].items[].metadata.name ]) as $pods
+        | {status, data: {result: [ .data.result[] | .metric as $m
+            | select(($m.pod // "") as $x | ($x != "" and ($pods | index($x)) != null)
+                     or (($m.service // "") as $v | $v != "" and ($sc[0].svcs | index($v)) != null)
+                     or (($m.job // "") as $v | $v != "" and ($sc[0].svcs | index($v)) != null)) ]}}' "$work/up-all.json" >"$work/up.json"
       tot="$(jq '.data.result | length' "$work/up.json")"; down="$(jq -r '[.data.result[] | select(.value[1] != "1") | .metric.job // .metric.pod // "?"] | unique | join(",")' "$work/up.json")"
       if ((tot == 0)); then
         if [[ $npods == 0 ]]; then rr observability SKIP "aucun pod (scale a zero), aucune cible"
-        else rr_fail observability "aucune cible up{namespace=$NS} dans Prometheus"; fi
+        else rr_fail observability "aucune cible up de l app dans $NS (pods/services rendus de l app)"; fi
       elif [[ -n $down ]]; then rr_fail observability "cible(s) up==0: ${down:0:80}"
       else rr observability PASS "$tot cible(s) up==1 (Prometheus local)"; fi
     else rr observability BLOCKED "requete Prometheus impossible: $(kerr)"; fi
@@ -457,9 +523,9 @@ if [[ $PHASE != static ]]; then
         | "\($n)|\($nr)|\($rs)"' "$work/pods.json")"
       n="${sh%%|*}"; rest="${sh#*|}"; nr="${rest%%|*}"; rs="${rest#*|}"
       if [[ $n == 0 ]]; then
-        if kget scaledobjects.keda.sh -n "$NS" 2>/dev/null | jq -e '[.items[] | select((.spec.minReplicaCount // 1) == 0)] | length > 0' >/dev/null 2>&1; then
+        if kget scaledobjects.keda.sh -n "$NS" 2>/dev/null | jq -e --slurpfile sc "$work/scope.json" '[.items[] | select((.spec.minReplicaCount // 1) == 0 and (.spec.scaleTargetRef.name | IN($sc[0].wls[].name)))] | length > 0' >/dev/null 2>&1; then
           rr selfheal SKIP "scale a zero (KEDA): aucun pod a evaluer"
-        else rr_fail selfheal "aucun pod dans $NS"; fi
+        else rr_fail selfheal "aucun pod de l app dans $NS"; fi
       elif [[ -n $nr ]]; then rr_fail selfheal "pods non Ready: $nr"
       elif [[ -n $rs ]]; then rr_fail selfheal "restarts recents > $restart_max: $rs"
       else
@@ -475,7 +541,7 @@ if [[ $PHASE != static ]]; then
               healed=no
               for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
                 sleep "${APP_TEST_CHAOS_INTERVAL:-10}"
-                if kget pods -n "$NS" >"$work/pods2.json" && jq -e --arg v "$victim" '
+                if kget pods -n "$NS" >"$work/pods2-all.json" && scope_pods "$work/pods2-all.json" >"$work/pods2.json" && jq -e --arg v "$victim" '
                      [.items[] | select(.status.phase != "Succeeded")] as $p
                      | ($p | length) > 0 and all($p[]; .metadata.name != $v and any(.status.conditions[]?; .type == "Ready" and .status == "True"))' "$work/pods2.json" >/dev/null; then healed=yes; break; fi
               done
@@ -489,7 +555,10 @@ if [[ $PHASE != static ]]; then
 
     # 7. network
     enf="$(jq -r '.metadata.labels["pod-security.kubernetes.io/enforce"] // "absent"' "$work/ns.json")"
-    if [[ $enf == restricted ]]; then rr network PASS "PSA enforce=restricted"
+    if [[ $(jq '.ownns' "$work/scope.json") != true ]]; then
+      # namespace partage : le label PSA n'est pas une propriete de l'app, information seulement
+      rr network PASS "namespace partage: PSA enforce=$enf non impute a l'app"
+    elif [[ $enf == restricted ]]; then rr network PASS "PSA enforce=restricted"
     else rr_fail network "label PSA enforce=$enf (restricted attendu)"; fi
 
     # 4. renovate : aucun signal runtime (le digest est une propriete de Git).

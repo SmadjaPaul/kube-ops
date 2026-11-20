@@ -219,21 +219,31 @@ FAKE_PROBE_SH
 chmod +x "$tmp/fake-ro.sh" "$tmp/fake-rw.sh" "$tmp/probe.sh"
 export APP_TEST_CHAOS_INTERVAL=0 FAKE_DIR="$tmp/fake" KUBECTL_RO_SCRIPT="$tmp/fake-ro.sh" KUBECTL_RW_SCRIPT="$tmp/fake-rw.sh" APP_TEST_PUBLIC_PROBE="$tmp/probe.sh"
 
+sponge_to() { local t; t="$(cat)"; printf '%s\n' "$t" >"$1"; }
 now_minus_h() { jq -rn --argjson h "$1" '(now - $h * 3600) | todate'; }
+A=good
 rt_setup() { # [PSA enforce]
-  echo "{\"metadata\":{\"name\":\"good\",\"labels\":{\"pod-security.kubernetes.io/enforce\":\"${1:-restricted}\"}}}" >"$FAKE_DIR/ns.json"
-  echo '{"items":[{"metadata":{"name":"good-1"},"status":{"phase":"Running","conditions":[{"type":"Ready","status":"True"}],"containerStatuses":[{"name":"good","restartCount":0}]}}]}' >"$FAKE_DIR/pods.json"
-  sed 's/good-1/good-2/' "$FAKE_DIR/pods.json" >"$FAKE_DIR/pods-after.json"
-  echo '{"items":[]}' >"$FAKE_DIR/svc.json"
-  echo '{"items":[{"spec":{"parentRefs":[{"name":"external"}],"hostnames":["good.example.test"]}}]}' >"$FAKE_DIR/routes.json"
+  echo "{\"metadata\":{\"name\":\"$A\",\"labels\":{\"pod-security.kubernetes.io/enforce\":\"${1:-restricted}\"}}}" >"$FAKE_DIR/ns.json"
+  # un namespace PARTAGE : pods/routes/services/series d'une autre app (other), toutes en defaut
+  jq -n --arg a "$A" '{items:[
+    {metadata:{name:($a+"-abc-1"),labels:{app:$a},ownerReferences:[{kind:"ReplicaSet",name:($a+"-abc")}]},status:{phase:"Running",conditions:[{type:"Ready",status:"True"}],containerStatuses:[{name:$a,restartCount:0}]}},
+    {metadata:{name:"other-xyz-1",labels:{app:"other"},ownerReferences:[{kind:"ReplicaSet",name:"other-xyz"}]},status:{phase:"Running",conditions:[{type:"Ready",status:"False"}],containerStatuses:[{name:"other",restartCount:9}]}}]}' >"$FAKE_DIR/pods.json"
+  jq 'del(.items[1])' "$FAKE_DIR/pods.json" | sed "s/$A-abc-1/$A-abc-2/" >"$FAKE_DIR/pods-after.json"
+  # apres chaos : l'autre app reste en defaut
+  jq -s '.[0].items + [.[1].items[1]] | {items: .}' "$FAKE_DIR/pods-after.json" "$FAKE_DIR/pods.json" >"$FAKE_DIR/pods-after2.json" && mv "$FAKE_DIR/pods-after2.json" "$FAKE_DIR/pods-after.json"
+  jq -n --arg a "$A" '{items:[{metadata:{name:$a},spec:{type:"ClusterIP"}},{metadata:{name:"other-lb"},spec:{type:"NodePort"}}]}' >"$FAKE_DIR/svc.json"
+  jq -n --arg a "$A" '{items:[{metadata:{name:$a},spec:{parentRefs:[{name:"external"}],hostnames:[($a+".example.test")]}},
+    {metadata:{name:"other"},spec:{parentRefs:[{name:"external"}],hostnames:["other.example.test"]}}]}' >"$FAKE_DIR/routes.json"
   echo '{"items":[{}]}' >"$FAKE_DIR/pvc.json"; echo '{"items":[]}' >"$FAKE_DIR/cnpg.json"
-  echo "{\"items\":[{\"status\":{\"phase\":\"Completed\",\"completionTimestamp\":\"$(now_minus_h 5)\"},\"spec\":{\"includedNamespaces\":[\"good\"]}}]}" >"$FAKE_DIR/vb.json"
-  echo '{"status":"success","data":{"result":[{"metric":{"job":"good"},"value":[0,"1"]}]}}' >"$FAKE_DIR/up.json"
+  jq -n --arg a "$A" --arg t "$(now_minus_h 5)" --arg o "$(now_minus_h 90)" '{items:[
+    {status:{phase:"Completed",completionTimestamp:$t},metadata:{labels:{"velero.io/schedule-name":("daily-"+$a)}},spec:{includedNamespaces:[$a]}},
+    {status:{phase:"Completed",completionTimestamp:$o},metadata:{labels:{"velero.io/schedule-name":"daily-other"}},spec:{includedNamespaces:[$a]}}]}' >"$FAKE_DIR/vb.json"
+  jq -n --arg a "$A" '{status:"success",data:{result:[{metric:{job:$a,service:$a,pod:($a+"-abc-1")},value:[0,"1"]},{metric:{job:"monitoring/cnpg-instances",pod:"other-db-1"},value:[0,"0"]}]}}' >"$FAKE_DIR/up.json"
   rm -f "$FAKE_DIR/so.json" "$FAKE_DIR/rw.log"
 }
 run_rt() { # run_rt NS [args]
   local ns=$1; shift
-  APP_TEST_ROOT="$root" bash "$root/scripts/app-test.sh" good "$ns" --phase runtime "$@" >"$tmp/out" 2>"$tmp/err"; rc=$?
+  APP_TEST_ROOT="$root" bash "$root/scripts/app-test.sh" "$A" "$ns" --phase runtime "$@" >"$tmp/out" 2>"$tmp/err"; rc=$?
 }
 rt_setup; run_rt good
 expect "runtime conforme" oidc PASS 0
@@ -245,23 +255,48 @@ grep -q '^CHECK renovate SKIP ' "$tmp/out" || fail "runtime seul: renovate doit 
 rt_setup; FAKE_PROBE="200 " run_rt good; expect "GET sans cookie => 200" oidc FAIL 1
 rt_setup; FAKE_PROBE="302 https://auth.smadja.dev/application/o/authorize/" run_rt good; expect "302 Authentik" oidc PASS 0
 rt_setup; FAKE_PROBE="302 https://evil.example/" run_rt good; expect "302 hors Authentik" oidc FAIL 1
-rt_setup; echo "{\"items\":[{\"status\":{\"phase\":\"Completed\",\"completionTimestamp\":\"$(now_minus_h 40)\"},\"spec\":{\"includedNamespaces\":[\"good\"]}}]}" >"$FAKE_DIR/vb.json"
+rt_setup; jq --arg t "$(now_minus_h 40)" '.items[0].status.completionTimestamp = $t' "$FAKE_DIR/vb.json" | sponge_to "$FAKE_DIR/vb.json"
 run_rt good; expect "backup de 40 h" backup FAIL 1
-rt_setup; echo '{"status":"success","data":{"result":[{"metric":{"job":"good"},"value":[0,"0"]}]}}' >"$FAKE_DIR/up.json"; run_rt good
+rt_setup; jq '.data.result[0].value[1] = "0"' "$FAKE_DIR/up.json" | sponge_to "$FAKE_DIR/up.json"; run_rt good
 expect "cible up==0" observability FAIL 1
-rt_setup; sed -i.bak 's/"True"/"False"/' "$FAKE_DIR/pods.json"; run_rt good; expect "pod non Ready" selfheal FAIL 1
+rt_setup; jq '.items[0].status.conditions[0].status = "False"' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"; run_rt good; expect "pod non Ready" selfheal FAIL 1
 rt_setup unrestricted; run_rt good; expect "PSA non restricted" network FAIL 1
 rt_setup; rm "$FAKE_DIR/ns.json"; run_rt good; expect "namespace absent" selfheal FAIL 1
 rt_setup; FAKE_FAIL=1 run_rt good; expect "cluster injoignable" selfheal BLOCKED 2
-rt_setup; echo '{"items":[{"spec":{"type":"NodePort"},"metadata":{"name":"x"}}]}' >"$FAKE_DIR/svc.json"; run_rt good; expect "Service NodePort runtime" exposure FAIL 1
+rt_setup; jq '.items[0].spec.type = "NodePort"' "$FAKE_DIR/svc.json" | sponge_to "$FAKE_DIR/svc.json"; run_rt good; expect "Service NodePort runtime" exposure FAIL 1
 
 # chaos : refuse hors pr-*, delegue a kubectl-rw dans pr-*
 rt_setup; run_rt good --chaos
 [[ ! -f $FAKE_DIR/rw.log ]] || fail "chaos hors pr-* : aucune suppression permise"
 grep -q 'refuse hors namespace pr-' "$tmp/out" || fail "chaos hors pr-*: refus non signale ($(grep '^CHECK selfheal' "$tmp/out"))"
 rt_setup; run_rt pr-12-good --chaos
-grep -q '^delete pr-12-good pod/good-1' "$FAKE_DIR/rw.log" 2>/dev/null || fail "chaos pr-*: kubectl-rw delete attendu ($(cat "$FAKE_DIR/rw.log" 2>/dev/null))"
-grep -q 'chaos: pod good-1 supprime' "$tmp/out" || fail "chaos pr-*: remplacement Ready non constate ($(grep '^CHECK selfheal' "$tmp/out"))"
+grep -q '^delete pr-12-good pod/good-abc-1' "$FAKE_DIR/rw.log" 2>/dev/null || fail "chaos pr-*: kubectl-rw delete attendu ($(cat "$FAKE_DIR/rw.log" 2>/dev/null))"
+grep -q 'chaos: pod good-abc-1 supprime' "$tmp/out" || fail "chaos pr-*: remplacement Ready non constate ($(grep '^CHECK selfheal' "$tmp/out"))"
+
+# --- portee app (namespace partage) et cliquet runtime (PLT-390 correctif) -----------------------
+# Les fixtures contiennent une AUTRE app en defaut dans le meme namespace : rien ne doit lui etre impute.
+rt_setup; run_rt good
+for id in oidc exposure backup observability selfheal; do
+  grep -q "^CHECK $id PASS " "$tmp/out" || fail "portee app: $id doit ignorer l'autre app du namespace ($(grep "^CHECK $id " "$tmp/out"))"
+done
+grep -q 'other' "$tmp/out" && fail "portee app: une ressource de l autre app est citee ($(grep other "$tmp/out" | head -1))"
+
+# namespace non cree par l'app : le label PSA n'est pas impute (PASS informatif)
+mk_app shared; rm "$(app shared)/namespace.yaml"; sed -i.bak 's/namespace.yaml, //' "$(app shared)/kustomization.yaml"
+A=shared; rt_setup unrestricted; run_rt shared
+grep -q '^CHECK network PASS namespace partage' "$tmp/out" || fail "namespace partage: PSA ne doit pas etre impute ($(grep '^CHECK network' "$tmp/out"))"
+A=good
+
+# cliquet : violation gelee = PASS baselined ; regression = FAIL ; --no-ratchet montre la dette
+mkdir -p "$root/policy"; printf 'good\tselfheal\tFAIL\n' >"$root/policy/app-test-baseline.tsv"
+rt_setup; jq '.items[0].status.conditions[0].status = "False"' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"
+run_rt good; expect "violation gelee au runtime" selfheal PASS 0
+grep -q '^CHECK selfheal PASS baselined' "$tmp/out" || fail "cliquet: mention baselined absente ($(grep '^CHECK selfheal' "$tmp/out"))"
+run_rt good --no-ratchet; expect "--no-ratchet" selfheal FAIL 1
+rt_setup unrestricted; jq '.items[0].status.conditions[0].status = "False"' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"
+jq '.data.result[0].value[1] = "0"' "$FAKE_DIR/up.json" | sponge_to "$FAKE_DIR/up.json"
+run_rt good; expect "regression non gelee (observability)" observability FAIL 1
+rm -f "$root/policy/app-test-baseline.tsv"
 
 if ((fails > 0)); then echo "APP_TEST_CONTRACT=FAIL failures=$fails"; exit 1; fi
 echo "APP_TEST_CONTRACT=PASS"
