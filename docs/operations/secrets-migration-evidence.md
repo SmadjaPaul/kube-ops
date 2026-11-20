@@ -8,14 +8,18 @@ Procedure and temporary manifests: `docs/operations/secrets-drill-d0-createdonce
 
 | # | Proof | Status | Verdict |
 | --- | --- | --- | --- |
-| 0 | Argo state of the drill | NOT_RUN | NOT_PROVEN |
-| 1 | Stores `k8s-auth`, `k8s-databases` Ready | NOT_RUN | NOT_PROVEN |
-| 2 | Source and copy Ready | NOT_RUN | NOT_PROVEN |
-| 3 | `eso-drill-forbidden` refused by RBAC (403) | NOT_RUN | NOT_PROVEN |
-| 4 | `CreatedOnce` stable after a forced sync (F1) | NOT_RUN | NOT_PROVEN |
-| 5 | Rotation by rename changes the value (F3c), second step, separate PR | NOT_RUN | NOT_PROVEN |
-| 6 | Alert `ExternalSecretNotReady` firing for `eso-drill-forbidden` | NOT_RUN | NOT_PROVEN |
-| 7 | Kyverno negative layer (static `kyverno test` only; optional runtime `--dry-run=server` by Paul: MANDAT) | NOT_RUN | NOT_PROVEN |
+| 0 | Argo state of the drill | RECONCILED, 2026-11-20 ~18:25 UTC | PASS |
+| 1 | Stores `k8s-auth`, `k8s-databases` Ready | RECONCILED, 2026-11-20 ~18:25 UTC | PASS |
+| 2 | Source and copy Ready | RECONCILED, 2026-11-20 ~18:25 UTC | PASS |
+| 3 | `eso-drill-forbidden` refused by RBAC (403) | RECONCILED, 2026-11-20 ~18:25 UTC | PASS |
+| 4 | `CreatedOnce` stable after a forced sync (F1) | REMAINING (blocked until the fix PR syncs; see note) | NOT_PROVEN |
+| 5 | Rotation by rename changes the value (F3c), second step, separate PR | REMAINING | NOT_PROVEN |
+| 6 | Alert `ExternalSecretNotReady` firing for `eso-drill-forbidden` | RECONCILED, 2026-11-20 ~18:25 UTC | PASS |
+| 7 | Kyverno negative layer (static `kyverno test` only; optional runtime `--dry-run=server` by Paul: MANDAT) | REMAINING | NOT_PROVEN |
+
+Reading of 2026-11-20 ~18:25 UTC (read-only, level RECONCILED, after the merge of #1671 at 18:06 UTC): proofs 0 to 3 and 6 PASS (Applications Synced/Healthy, both stores Ready, source `auth/oidc-eso-drill` and copy `eso-drill/eso-drill-oidc` Ready with `CreatedOnce`, `eso-drill-forbidden` refused with a 403 by the RBAC, alert `ExternalSecretNotReady` firing). Remaining: 4, 5, 7.
+
+Finding: the last Argo operation of `infra-controllers` was `Failed` because `eso-drill-forbidden` failed to sync (`could not get secret data from provider`); `ignore-healthcheck` does not prevent that, so the PostSync hooks (Job `eso-drill-fingerprint`) never ran and proof 4 could not be taken. Fix: `eso-drill-forbidden` removed (PR `claude/secrets-d0-step2-stability`); proofs 3 and 6 stay PASS from the reading above. Proof 4 sequence: merge of the fix, sync succeeds, hook gives FP#1 (BEFORE); second PR touching only a documentation annotation on the source `oidc-eso-drill` forces an ESO reconciliation, next sync gives FP#2; PASS if FP#2 = FP#1 and the source `refreshTime` is unchanged.
 
 ### Commands and criteria (to run after the merge; rotation excluded from this PR)
 
@@ -40,7 +44,7 @@ bash scripts/kubectl-ro.sh get externalsecret -n eso-drill eso-drill-oidc -o yam
 ```
 PASS: both `status.conditions` `Ready=True` (reason `SecretSynced`), `status.refreshTime` filled; the source has `spec.refreshPolicy: CreatedOnce`. Record `status.refreshTime` and `status.syncedResourceVersion` of the source as BEFORE values. FAIL: `SecretSyncedError` on either.
 
-Proof 3:
+Proof 3 (taken 2026-11-20 before the object was removed; not repeatable afterwards):
 ```
 bash scripts/kubectl-ro.sh get externalsecret -n eso-drill eso-drill-forbidden -o yaml
 bash scripts/kubectl-ro.sh describe externalsecret -n eso-drill eso-drill-forbidden
@@ -55,7 +59,7 @@ record `FP=<12 hex>` and the source `refreshTime`. Force a sync without change (
 
 Proof 5 (F3c), SECOND STEP, separate PR with two commits, after proofs 1 to 4 are PASS: rename the source ExternalSecret and Password `oidc-eso-drill` to `oidc-eso-drill-r2`, keep `target.name: oidc-eso-drill`; then rename the copy `eso-drill-oidc` to `eso-drill-oidc-r2` (`target.name` kept). Read `logs` of the rerun Job and the source status. PASS: `FP` different from proof 4, `oidc-eso-drill-r2` `Ready=True` with a new `refreshTime`, Secret `oidc-eso-drill` updated in place (`syncedResourceVersion` changed; same `uid`/age under MANDAT). FAIL: `FP` identical after both commits, or ESO recreates/refuses the Secret (record the exact condition message). Not run in this lot.
 
-Proof 6:
+Proof 6 (taken 2026-11-20 before the object was removed; the alert resolves afterwards):
 ```
 bash scripts/kubectl-ro.sh get --raw '/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=ALERTS%7Balertname%3D%22ExternalSecretNotReady%22%2Cname%3D%22eso-drill-forbidden%22%7D'
 ```

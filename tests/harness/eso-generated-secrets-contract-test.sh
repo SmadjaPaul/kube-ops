@@ -11,8 +11,6 @@
 #   4. every remoteRef.key read through k8s-auth / k8s-databases is listed in resourceNames of the
 #      Role of that store and has a source (ExternalSecret with the same target.name) in the source
 #      namespace;
-#      Exception (D0 drill, temporary): label kube-ops.io/drill=true + annotation
-#      kube-ops.io/drill-expect-forbidden on the copy; the key must then be ABSENT from the Role;
 #   5. a generator whose template key looks like a data-encryption key (T6) is refused, unless the
 #      source is class T4 AND carries the annotation kube-ops.io/not-data-key with a justification;
 #   7. lot 1: the pg-shared-homelab template (app-database.example.tmpl) renders an example that passes
@@ -82,11 +80,6 @@ def target_name(es):
 def template_keys(es):
     t = (spec(es).get("target") or {}).get("template") or {}
     return list((t.get("data") or {}).keys())
-
-
-def expect_forbidden(es):
-    md = es.get("metadata") or {}
-    return (md.get("labels") or {}).get("kube-ops.io/drill") == "true" and str((md.get("annotations") or {}).get("kube-ops.io/drill-expect-forbidden", "")).strip() != ""
 
 
 def main(argv):
@@ -194,13 +187,6 @@ def main(argv):
         for item in s.get("data") or []:
             key = ((item or {}).get("remoteRef") or {}).get("key")
             if not key:
-                continue
-            # D0 drill (temporary): an ExternalSecret labelled kube-ops.io/drill=true AND annotated
-            # kube-ops.io/drill-expect-forbidden is MEANT to read a name that is NOT in the Role (the
-            # RBAC negative proof). The exemption only holds while the key really is absent from the Role.
-            if expect_forbidden(es):
-                if key in role_names.get(store, set()):
-                    bad("drill-forbidden-in-role", es, "remoteRef.key %s is annotated drill-expect-forbidden but IS in resourceNames" % key)
                 continue
             if key not in role_names.get(store, set()):
                 bad("key-not-in-role", es, "remoteRef.key %s is not in resourceNames of the %s reader Role" % (key, store))
@@ -322,19 +308,6 @@ add("bad-store-wrong-namespace", "store-namespace", lambda w: w["store-db"]["spe
 # rule 4
 add("bad-key-not-in-role", "key-not-in-role", lambda w: w["copy-auth"]["spec"]["data"][0]["remoteRef"].update(key="oidc-other"))
 add("bad-key-without-source", "key-without-source", lambda w: w.pop("src-db"))
-# D0 drill: a copy that is meant to be refused (absent from the Role), temporary and drill-labelled
-def _forbidden(label=True):
-    d = copy_es("eso-drill-forbidden", "eso-drill", "k8s-auth", "oidc-eso-drill--forbidden")
-    d["metadata"]["annotations"] = {"kube-ops.io/drill-expect-forbidden": "RBAC negative proof: the name is not in resourceNames"}
-    if label:
-        d["metadata"]["labels"] = {"kube-ops.io/drill": "true"}
-    return d
-
-
-add("good-drill-forbidden-absent-from-role", None, lambda w: w.update(forb=_forbidden()))
-add("bad-drill-forbidden-but-in-role", "drill-forbidden-in-role", lambda w: (w.update(forb=_forbidden()),
-                                                                           w["role-auth"]["rules"][0]["resourceNames"].append("oidc-eso-drill--forbidden")))
-add("bad-forbidden-without-drill-label", "key-not-in-role", lambda w: w.update(forb=_forbidden(False)))
 # rule 5
 add("bad-t6-encryption-key", "generator-t6-key", lambda w: w["src-auth"]["spec"]["target"]["template"]["data"].update(SPARKY_API_ENCRYPTION_KEY="x"))
 add("bad-t6-key-base", "generator-t6-key", lambda w: w.update(sure=source("sure-secret", "sure", "T4", "SECRET_KEY_BASE")))

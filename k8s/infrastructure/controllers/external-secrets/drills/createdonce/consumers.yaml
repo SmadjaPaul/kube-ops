@@ -1,5 +1,8 @@
 # TEMPORARY (drill D0). Consumers in `eso-drill`, form (B): store k8s-auth, one remoteRef per key, no
 # dataFrom, key = oidc-<namespace> or oidc-<namespace>--<usage> (admission rule eso-k8s-store-guard).
+# The negative RBAC ExternalSecret (`eso-drill-forbidden`) was removed once proofs 3 and 6 were recorded:
+# its permanent failure made every Argo sync operation of `infra-controllers` Failed, so the PostSync
+# fingerprint Job (proof 4) never ran.
 ---
 # Copy of the source: must become Ready (proof 2).
 apiVersion: external-secrets.io/v1
@@ -27,32 +30,4 @@ spec:
     - secretKey: password
       remoteRef:
         key: oidc-eso-drill
-        property: password
----
-# Negative proof (RBAC layer): Kyverno-compliant name, but ABSENT from resourceNames of the Role
-# eso-k8s-auth-reader. Expected: SecretSyncedError with a 403 forbidden (proof 3) and, after 15 min,
-# the alert ExternalSecretNotReady (proof 6). The annotation below is the only exemption of rule 4 of
-# tests/harness/eso-generated-secrets-contract-test.sh (the key must stay absent from the Role).
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: eso-drill-forbidden
-  namespace: eso-drill
-  labels:
-    kube-ops.io/drill: "true"
-  annotations:
-    kube-ops.io/drill-expect-forbidden: "RBAC negative proof (drill D0): this name is deliberately not in resourceNames"
-    argocd.argoproj.io/ignore-healthcheck: "true"
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    kind: ClusterSecretStore
-    name: k8s-auth
-  target:
-    name: eso-drill-forbidden
-    creationPolicy: Owner
-  data:
-    - secretKey: password
-      remoteRef:
-        key: oidc-eso-drill--forbidden
         property: password
