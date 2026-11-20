@@ -31,7 +31,10 @@ spec:
       dnsPolicy: Default
       automountServiceAccountToken: false
       # Non-root (platform-baseline Kyverno rule). Listens on 1053; the Service
-      # maps 53 to it, so no NET_BIND_SERVICE capability is needed.
+      # maps 53 to it. NET_BIND_SERVICE is still added back because the
+      # upstream /coredns binary carries a file capability (cap_net_bind_service):
+      # with drop ALL and no allowPrivilegeEscalation the exec is refused
+      # ("exec /coredns: operation not permitted") unless it is in the bounding set.
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -51,6 +54,8 @@ spec:
             capabilities:
               drop:
                 - ALL
+              add:
+                - NET_BIND_SERVICE
           ports:
             - name: dns-udp
               containerPort: 1053
