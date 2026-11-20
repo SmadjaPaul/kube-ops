@@ -65,7 +65,7 @@
 | argo-rollouts | infra-controllers | OUI 1/1 | 0.001/0.002 | 28/89 | aucune | socle | **ALLÉGER** : D-06 : contrôleur à retirer sur preuve (coût mesuré, consommateur réel) ou à justifier |
 | argocd | infra-controllers | OUI 6/6 | 0.108/0.612 | 1155/1578 | argocd.smadja.dev [public] OIDC | socle | **GARDER** : reconciler unique |
 | atlantis-apps | infra-atlantis-apps | sans workload | —/— | —/— | aucune | reconstructible (PVC 1/5Gi) | **RETIRER** : Atlantis retiré ; PVC de recovery gardé jusqu'à validation (suppression = Paul, D-13) |
-| atlantis-system | infra-atlantis-plan-only | sans workload | 0.001/0.004 | 43/44 | aucune | reconstructible (PVC 1/5Gi) | **RETIRER** : Atlantis retiré ; PVC de recovery gardé jusqu'à validation (suppression = Paul, D-13) |
+| atlantis-system | infra-atlantis-plan-only | sans workload | 0.001/0.004 | 43/44 | aucune | reconstructible (PVC 1/5Gi) | **RETIRER** : Atlantis retiré ; PVC de recovery supprimé (MANDAT 16, kube-ops#1580) ; namespace vide conservé |
 | auth | infra-auth | OUI 3/3 | 0.096/0.163 | 1108/1248 | auth.smadja.dev [public] IdP | irremplaçable (PVC 2/70Gi, CNPG 1) | **GARDER** : Authentik = autorité d'identité |
 | cert-manager | infra-controllers | OUI 3/3 | 0.001/0.003 | 131/260 | aucune | socle | **GARDER** : TLS |
 | cloudflared | infra-network | OUI 1/1 | 0.002/0.007 | 21/33 | aucune | socle | **GARDER** : accès public (tunnel) |
