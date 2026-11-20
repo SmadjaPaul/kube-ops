@@ -17,7 +17,7 @@ This file → one skill from the table → only the application or infrastructur
 | Task | Entry |
 |---|---|
 | unfamiliar repository | `.agents/skills/repo-navigation` |
-| add a service | `.agents/skills/deploy-a-service` |
+| add a service (golden path, `just app-test`, preview, post-merge revert) | `.agents/skills/deploy-a-service` |
 | retire a service | `docs/operations/service-onboarding.md` |
 | any live-cluster question: Argo sync/health, workload failure, incident triage, runtime or post-merge proof, cluster state from Grafana Cloud, deliver on homelab or oracle-a1 | `.agents/skills/cluster-investigation` |
 | Cilium policy drops | `.agents/skills/cilium-hubble` |
