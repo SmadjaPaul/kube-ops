@@ -27,7 +27,8 @@ static() {
   for d in cnpg-cluster hindsight external-secrets cloudflared; do
     kustomize build --enable-helm "$root/$cluster/$d" > "$out/$d.yaml"
   done
-  # Schemas CRD absents : -ignore-missing-schemas (Cilium, CNPG, ESO, VAP v1 couverts par kubeconform 0.8).
+  # Schemas CRD absents : -ignore-missing-schemas ignore les kinds Cilium, CNPG et ESO (aucun schema CRD
+  # fourni) ; ils ne sont PAS valides ici. Seuls les kinds natifs Kubernetes le sont.
   kubeconform -summary -strict -ignore-missing-schemas "$out"/*.yaml
   quotas "$out/baseline.yaml"
   echo "STATIC=PASS"
@@ -75,7 +76,7 @@ runtime() {
   expect "deployment sans automount refuse (auth)" deny deployment-no-automount-fail.yaml "automountServiceAccountToken"
   expect "deployment avec annotation automount accepte (databases)" allow deployment-automount-annotated.yaml
   expect "pod conforme accepte (auth)" allow pod-ok.yaml
-  expect "tag non epingle : warning seulement (auth)" allow pod-tag-warn.yaml
+  expect "tag non epingle : warning seulement (auth)" allow pod-tag-warn.yaml "container images must be pinned by digest"
   expect "privilegie accepte dans kube-system (exemption)" allow pod-kube-system-privileged.yaml
   echo "RUNTIME=$([[ $fails -eq 0 ]] && echo PASS || echo FAIL) fails=$fails"
   [[ $fails -eq 0 ]]

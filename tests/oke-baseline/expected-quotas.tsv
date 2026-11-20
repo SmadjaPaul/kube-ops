@@ -2,5 +2,5 @@
 # Source de verite des quotas attendus (arch/CAPACITY.md, scenario S3).
 # Lue par run.sh static (contre baseline/quotas.yaml) et par acceptance.sh (contre le cluster).
 auth	500m	2Gi	4Gi	5
-hindsight	600m	1536Mi	4Gi	4
+hindsight	600m	2Gi	6Gi	4
 databases	500m	1536Mi	3Gi	3

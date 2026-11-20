@@ -72,4 +72,4 @@ spec:
         - ports: [{port: "443", protocol: TCP}]
     - toEntities: [kube-apiserver]
       toPorts:
-        - ports: [{port: "6443", protocol: TCP}]
+        - ports: [{port: "6443", protocol: TCP}, {port: "443", protocol: TCP}]

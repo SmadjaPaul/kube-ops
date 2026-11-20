@@ -141,15 +141,21 @@ check_network() {
     return
   fi
   local rc
-  # curl : 6 = resolution impossible, 28 = timeout, 7 = connexion refusee ; 0 = joignable.
+  # curl : 28 = timeout, 7 = connexion refusee (seuls codes qui prouvent un blocage) ;
+  # 6 = DNS casse, 60 = certificat (le serveur repond donc est JOIGNABLE), 1/126/127 = curl ou exec en echec.
+  blocked() { [[ "$1" -eq 28 || "$1" -eq 7 ]]; }
+  if ! in_pod curl --version >/dev/null; then
+    fail "curl indisponible dans le pod de test (reseau non teste)"
+    return
+  fi
   rc=0; in_pod curl -sS --max-time 3 -o /dev/null http://169.254.169.254/ || rc=$?
-  if [[ "$rc" -ne 0 ]]; then pass "IMDS injoignable depuis un pod non privilegie (curl rc=$rc)"; else fail "IMDS JOIGNABLE depuis un pod non privilegie"; fi
+  if blocked "$rc"; then pass "IMDS injoignable depuis un pod non privilegie (curl rc=$rc)"; else fail "IMDS non prouve bloque (rc=$rc ; 0 = JOIGNABLE, seuls 28/7 valident)"; fi
   rc=0; in_pod curl -sS --max-time 3 -o /dev/null https://example.com/ || rc=$?
-  if [[ "$rc" -ne 0 && "$rc" -ne 6 ]]; then pass "egress non liste bloque (example.com, rc=$rc)"; else fail "egress non liste bloque (rc=$rc ; 0 = joignable, 6 = DNS casse)"; fi
+  if blocked "$rc"; then pass "egress non liste bloque (example.com, rc=$rc)"; else fail "egress non liste non prouve bloque (rc=$rc ; 0 = joignable, 6 = DNS casse, seuls 28/7 valident)"; fi
   rc=0; in_pod curl -sS --max-time 3 -o /dev/null https://kubernetes.default.svc.cluster.local/ || rc=$?
-  if [[ "$rc" -ne 0 && "$rc" -ne 6 ]]; then pass "API server non joignable depuis auth (rc=$rc), resolution OK"; else fail "API server depuis auth (rc=$rc)"; fi
+  if blocked "$rc"; then pass "API server non joignable depuis auth (rc=$rc)"; else fail "API server depuis auth non prouve bloque (rc=$rc ; 60 = certificat, donc JOIGNABLE)"; fi
   rc=0; in_pod curl -sS --max-time 3 -o /dev/null http://kubernetes.default.svc.cluster.local/ || rc=$?
-  if [[ "$rc" -ne 6 ]]; then pass "DNS : kubernetes.default.svc.cluster.local se resout"; else fail "DNS : resolution impossible depuis le pod de test"; fi
+  if [[ "$rc" -ne 6 ]]; then pass "DNS : kubernetes.default.svc.cluster.local se resout (rc=$rc)"; else fail "DNS : resolution impossible depuis le pod de test"; fi
 }
 
 case "${1:-}" in

@@ -121,7 +121,7 @@ pods. Source of truth: `tests/oke-baseline/expected-quotas.tsv` (checked against
 | Namespace | requests.cpu | requests.memory | limits.memory | pods |
 | --- | --- | --- | --- | --- |
 | auth | 500m | 2Gi | 4Gi | 5 |
-| hindsight | 600m | 1536Mi (1.5Gi) | 4Gi | 4 |
+| hindsight | 600m | 2Gi | 6Gi | 4 |
 | databases | 500m | 1536Mi | 3Gi | 3 |
 
 Pod quotas add up to 15; with the ~16 IP-bearing system pods of S3 this stays at

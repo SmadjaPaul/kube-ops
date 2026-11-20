@@ -41,9 +41,11 @@ kind: ResourceQuota
 metadata: {name: compute, namespace: hindsight}
 spec:
   hard:
+    # Dimensionne pour un rolling update (RollingUpdate par defaut, replicaCount 1) : ancien pod
+    # + pod surge = 2016Mi de requests (2 x API 768Mi + db 384Mi + sidecar 96Mi) et 5504Mi de limits.
     requests.cpu: "600m"
-    requests.memory: 1536Mi
-    limits.memory: 4Gi
+    requests.memory: 2Gi
+    limits.memory: 6Gi
     pods: "4"
 ---
 apiVersion: v1
