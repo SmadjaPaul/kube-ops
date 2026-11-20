@@ -87,20 +87,9 @@ jobs:
           GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || '' }}
         run: echo "roots=$(bash scripts/select-v1-contract-roots.sh)" >> "$GITHUB_OUTPUT"
 
-      - name: Decide service-contract self-test scope
-        id: guard_scope
-        env:
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
-          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || '' }}
-        run: echo "decision=$(bash scripts/v1-guard-scope.sh)" >> "$GITHUB_OUTPUT"
-
       - name: Validate V1 desired state and backup coverage
         env:
           V1_CONTRACT_ROOTS: ${{ steps.scope.outputs.roots }}
-          # Le self-test de la garde ne tourne que si la PR touche son perimetre ; la garde elle-meme
-          # tourne toujours. Le job v1-contract reste le check requis : vert dans les deux cas.
-          SKIP_CHECKS: ${{ steps.guard_scope.outputs.decision == 'skip' && 'check:service-contract-selftest' || '' }}
         run: npm run check
 
       - name: Validate Factory supervised promotion contract

@@ -381,4 +381,43 @@ set -e
 grep -F 'CNPG_BACKUP_CONFIGURATION=FAIL' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_LEGACY_GAPS=3' "$output" >/dev/null
 
+# Live collection: every read goes through an injected fake kubectl-ro.sh (no direct kubectl).
+live_dir="$(mktemp -d)"
+trap 'rm -f "$output"; rm -rf "$live_dir" "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$selector_dir" "$fsb_dir" "$shared_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
+mkdir -p "$live_dir/bin"
+cat >"$live_dir/bin/kubectl" <<'SH'
+#!/usr/bin/env bash
+echo "DIRECT_KUBECTL $*" >&2
+exit 99
+SH
+cat >"$live_dir/kubectl-ro.sh" <<'SH'
+#!/usr/bin/env bash
+echo "$*" >>"${LIVE_RO_LOG:?}"
+[[ "$1" == get && "${*: -2}" == "-o json" ]] || { echo "unexpected: $*" >&2; exit 1; }
+case "$2" in
+  pvc) f=pvc ;; pv) f=pv ;; pods) f=pods ;;
+  schedules.velero.io) f=schedules ;; backups.velero.io) f=backups ;;
+  restores.velero.io) f=restores ;; podvolumebackups.velero.io) f=pvbs ;;
+  clusters.postgresql.cnpg.io) f=cnpg ;; backups.postgresql.cnpg.io) f=cnpg-backups ;;
+  scheduledbackups.postgresql.cnpg.io) f=cnpg-scheduled-backups ;;
+  objectstores.barmancloud.cnpg.io) f=objectstores ;;
+  volumes.longhorn.io) f=longhorn-volumes ;; backups.longhorn.io) f=longhorn-backups ;;
+  recurringjobs.longhorn.io) f=longhorn-recurringjobs ;;
+  *) echo "unexpected resource: $2" >&2; exit 1 ;;
+esac
+[[ "$f" == "${LIVE_RO_FAIL:-}" ]] && { echo "forbidden" >&2; exit 1; }
+cat "$LIVE_FIXTURES/$f.json"
+SH
+chmod +x "$live_dir/bin/kubectl" "$live_dir/kubectl-ro.sh"
+: >"$live_dir/ro.log"
+PATH="$live_dir/bin:$PATH" KUBECTL_RO_SCRIPT="$live_dir/kubectl-ro.sh" LIVE_RO_LOG="$live_dir/ro.log" \
+  LIVE_FIXTURES="$fixture_dir" bash "$repo_root/scripts/backup-audit.sh" >"$output" 2>&1 || true
+[[ "$(wc -l <"$live_dir/ro.log")" -eq 14 ]]
+grep -F 'BACKUP_AUDIT_STATUS=COMPLETE' "$output" >/dev/null
+grep -F 'CNPG_BACKUP_CONFIGURATION=PASS (1/1)' "$output" >/dev/null
+if grep -F 'forbidden' "$output" >/dev/null; then exit 1; fi
+PATH="$live_dir/bin:$PATH" KUBECTL_RO_SCRIPT="$live_dir/kubectl-ro.sh" LIVE_RO_LOG="$live_dir/ro.log" \
+  LIVE_FIXTURES="$fixture_dir" LIVE_RO_FAIL=pvc bash "$repo_root/scripts/backup-audit.sh" >"$output" 2>&1 || true
+grep -F 'BACKUP_AUDIT_STATUS=PARTIAL' "$output" >/dev/null
+
 echo "backup-audit contract: PASS"

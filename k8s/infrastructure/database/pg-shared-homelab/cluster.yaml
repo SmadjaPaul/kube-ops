@@ -39,10 +39,9 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: pg-shared-homelab-r2
-  # Sentinelle du golden path service-postgres-oidc : le template ajoute les roles
-  # applicatifs ici (golden-paths/service-postgres-oidc/template.yaml). Ne pas supprimer.
+  # Roles applicatifs geres par CNPG : un bloc par base (modele : app-database.example.tmpl).
   managed:
-    roles: [] # GOLDEN-PATH-ROLES
+    roles: []
   storage:
     storageClass: longhorn-fast
     size: 20Gi

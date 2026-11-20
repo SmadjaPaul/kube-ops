@@ -6,10 +6,8 @@
     "check:v1-contract": "bash scripts/check-v1-active-contract.sh",
     "check:backup-contract": "bash scripts/backup-static-contract.sh",
     "check:gatekeeper-contract": "bash tests/harness/gatekeeper-audit-values-test.sh",
-    "check": "node scripts/run-checks-parallel.mjs check:documentation check:service-contract check:service-contract-selftest check:golden-path check:catalog check:v1-contract check:backup-contract check:gatekeeper-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:policy check:policy-tests",
-    "check:service-contract": "python3 -I tests/harness/service-contract-guard.py --base origin/main",
-    "check:golden-path": "bash tests/harness/service-postgres-oidc-template-test.sh",
-    "check:catalog": "bash tests/harness/catalog-generated-fresh-test.sh",
+    "check": "node scripts/run-checks-parallel.mjs check:documentation check:v1-contract check:backup-contract check:gatekeeper-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:policy check:policy-tests",
+    "check:local": "node scripts/run-checks-parallel.mjs --first check:v1-contract,check:agent-harness,check:backup-contract,tests/agent-guard/secret-output-guard-test.sh --bash-list scripts/check-bash-tests.list check:documentation check:v1-contract check:backup-contract check:gatekeeper-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:policy check:policy-tests",
     "check:documentation": "node scripts/check-documentation-integrity.mjs && node --test tests/harness/documentation-integrity-test.mjs",
     "check:cluster-contract": "npm run check:v1-contract",
     "check:agent-harness": "bash scripts/check-agent-harness-contract.sh",
@@ -18,8 +16,7 @@
     "check:inventory-graph": "node --test tests/harness/inventory-graph.test.mjs",
     "check:policy": "bash scripts/policy-check.sh",
     "check:policy-tests": "bash scripts/policy-check.sh --tests",
-    "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh",
-    "check:service-contract-selftest": "bash tests/harness/service-contract-guard-test-sharded.sh"
+    "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.2.4",

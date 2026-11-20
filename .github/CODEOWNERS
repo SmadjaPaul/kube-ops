@@ -2,8 +2,8 @@
 # (@SmadjaPaul, aussi auteur des PR). Aucune approbation obligatoire : ne PAS activer « Require
 # review from code owners » dans le ruleset (l'auteur ne peut pas approuver sa propre PR, sans
 # bypass les PR deviendraient non mergeables). Fichier inerte tant que cette option reste desactivee.
-# Seuls les chemins sensibles sont listes ; les PR applicatives (k8s/apps-generated/**,
-# k8s/applications/** hors manifestes de secrets) ne sont PAS capturees.
+# Seuls les chemins sensibles sont listes ; les PR applicatives (k8s/applications/** hors
+# manifestes de secrets) ne sont PAS capturees.
 
 # Authentik : auth, OIDC, blueprints
 /k8s/infrastructure/auth/ @SmadjaPaul
@@ -20,16 +20,13 @@
 /k8s/clusters/*/secret-stores/ @SmadjaPaul
 /k8s/clusters/*/external-secrets/ @SmadjaPaul
 
-# Politiques d'admission et garde service-contract
+# Politiques d'admission
 /k8s/infrastructure/security/policies/ @SmadjaPaul
-/tests/harness/service-contract-guard* @SmadjaPaul
 
 # Bootstrap du cluster
 /k8s/bootstrap/ @SmadjaPaul
 
-# Workflows CI, justfile, golden paths (admission), et ce fichier
+# Workflows CI, justfile, et ce fichier
 /.github/workflows/ @SmadjaPaul
 /.github/CODEOWNERS @SmadjaPaul
 /.justfile @SmadjaPaul
-/golden-paths/*/template.yaml @SmadjaPaul
-/golden-paths/*/tests/ @SmadjaPaul

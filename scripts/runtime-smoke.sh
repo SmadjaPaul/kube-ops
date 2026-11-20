@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for cmd in kubectl jq curl dig python3; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
+for cmd in jq curl dig python3; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
 source "$(dirname "$0")/lib/output-mode.sh"
 mode="$(resolve_output_mode "${OUTPUT:-}")"
-source "$(dirname "$0")/lib/kube-preflight.sh"
-if [[ "$mode" == full ]]; then require_kube_access; else require_kube_access_quiet; fi
+# shellcheck source=lib/kube-read.sh
+source "$(dirname "$0")/lib/kube-read.sh"
 
 # OpenClaw's controller owns the generated HTTPRoute and publishes the
 # disablement state on the owning OpenClawInstance.  Keep this lookup generic:
 # a missing CR or missing owner relationship is indeterminate and must not
 # suppress a real smoke failure.
 openclaw_instances='{"items":[]}'
-if ! openclaw_instances="$(kubectl get openclawinstances.openclaw.rocks -A -o json 2>/dev/null)" ||
+if ! openclaw_instances="$(kro get openclawinstances.openclaw.rocks -A -o json 2>/dev/null)" ||
   ! jq -e '.items | type == "array"' >/dev/null <<<"$openclaw_instances"; then
   openclaw_instances='{"items":[]}'
 fi
@@ -24,7 +24,7 @@ route_disabled_by_zero_scaled_statefulset() {
   ns="$(jq -r '.metadata.namespace' <<<"$route")"
   name="$(jq -r '.metadata.annotations["qa.smadja.dev/disabled-statefulset"] // empty' <<<"$route")"
   [[ -n "$name" && "$name" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]] || return 1
-  statefulset="$(kubectl get statefulset "$name" -n "$ns" -o json 2>/dev/null)" || return 1
+  statefulset="$(kro get statefulset "$name" -n "$ns" -o json 2>/dev/null)" || return 1
   jq -e '.spec.replicas == 0 and (.status.replicas // 0) == 0 and
     (.status.readyReplicas // 0) == 0 and
     (.status.observedGeneration // 0) >= (.metadata.generation // 1)' <<<"$statefulset" >/dev/null
@@ -56,9 +56,9 @@ else
   artifact_dir="$(mktemp -d "${TMPDIR:-/tmp}/kube-ops-runtime-smoke.XXXXXX")"
 fi
 if [[ "$keep_artifacts" == no ]]; then
-  trap 'rm -rf "$artifact_dir"; kube_access_cleanup' EXIT
+  trap 'rm -rf "$artifact_dir"' EXIT
 else
-  trap 'kube_access_cleanup' EXIT
+  :
 fi
 mkdir -p "$artifact_dir"
 ARTIFACT_DIR="$artifact_dir"
@@ -68,9 +68,9 @@ emit_row() {
   if [[ "$mode" == full ]]; then tee -a "$report"; else cat >>"$report"; fi
 }
 
-routes="$(kubectl get httproutes.gateway.networking.k8s.io -A -o json)"
+routes="$(kro get httproutes.gateway.networking.k8s.io -A -o json)"
 keda_interceptor_routes='{"items":[]}'
-if ! keda_interceptor_routes="$(kubectl get interceptorroutes -A -o json 2>/dev/null)" ||
+if ! keda_interceptor_routes="$(kro get interceptorroutes -A -o json 2>/dev/null)" ||
   ! jq -e '.items | type == "array"' >/dev/null <<<"$keda_interceptor_routes"; then
   keda_interceptor_routes='{"items":[]}'
 fi
@@ -147,7 +147,7 @@ while IFS= read -r route; do
       [[ -z "$backend" ]] && continue
       svc="$(jq -r '.name' <<<"$backend")"
       bns="$(jq -r --arg ns "$ns" '.namespace // $ns' <<<"$backend")"
-      count="$(kubectl get endpointslices.discovery.k8s.io -n "$bns" -l "kubernetes.io/service-name=$svc" -o json 2>/dev/null | jq '[.items[].endpoints[]? | select(.conditions.ready != false)] | length' || echo 0)"
+      count="$(kro get endpointslices.discovery.k8s.io -n "$bns" -l "kubernetes.io/service-name=$svc" -o json 2>/dev/null | jq '[.items[].endpoints[]? | select(.conditions.ready != false)] | length' || echo 0)"
       endpoint_count=$((endpoint_count + count))
     done < <(jq -c '.spec.rules[]?.backendRefs[]? | select((.kind // "Service")=="Service")' <<<"$route")
   fi

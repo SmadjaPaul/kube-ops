@@ -7,10 +7,14 @@ description: Investigate the live clusters (homelab, oracle-a1) read-only - Argo
 
 One entry for every runtime question. Evidence is RUNTIME for the observed signal only: it proves neither Git reconciliation nor a user path. Repair proven defects in Git.
 
-## Tool order (stop at the first that answers)
+## Start here
 
-1. **Argo CD MCP (`argocd`, read-only)**: Application state, sync/health, conditions, resources (11 read-only tools). Local bridge `scripts/argocd-mcp-stdio.sh`. It never syncs and never writes. Without it: `just status-app <app>` (Argo state), then `just diagnose-app <app>` (workloads and warning events). Both accept `OUTPUT=summary|errors|full` and take the app name or `apps-`/`infra-` name.
-2. **`bash scripts/kubectl-ro.sh [--cluster homelab|oracle-a1] <get|describe|logs|top|events|...>`**: the only kubectl read path (no Secret data, limited identity, preflight). Never run `kubectl` directly to read; never `kubectl get secret -o ...`.
+`just investigate <app> [homelab|oracle-a1] [summary|errors|full]` (`bash scripts/investigate.sh app <name> [--cluster homelab|oracle-a1]`): one read-only call returning `=== ARGO ===` (sync, health, revision, last error), `=== WORKLOADS ===` (pods Ready, warning events) and `=== METRICS ===` (Grafana Cloud, `METRICS=UNAVAILABLE` when absent: not a failure), then `VERIFY=PASS|FAIL`, `EVIDENCE_SCOPE=RUNTIME` and a private `EVIDENCE=` file. Takes the app name or its `apps-`/`infra-` name. `just status-app` and `just diagnose-app` remain as its internal modules for one section only.
+
+## Tool order (go further only when `just investigate` does not answer)
+
+1. **Argo CD MCP (`argocd`, read-only)**: Application state, conditions, resources (11 read-only tools). Local bridge `scripts/argocd-mcp-stdio.sh`.
+2. **`bash scripts/kubectl-ro.sh [--cluster homelab|oracle-a1] <get|describe|logs|top|events|...>`**: the only kubectl read path (no Secret data, limited identity, preflight); every investigation script reads through it. Never run `kubectl` directly to read; never `kubectl get secret -o ...`.
 3. **`bash scripts/observe.sh [--local] summary|alerts|backups|app <name>`**: bounded Grafana Cloud (both clusters) or in-cluster Prometheus/Loki (`--local`, homelab). Queries and limits: `queries.md` here; runbook `docs/runbooks/observability-for-agents.md`.
 4. Broad checks: `just runtime-inventory`, `just runtime-smoke` (routes, endpoints, DNS, TLS/HTTP), `just backup-audit`; cluster snapshot `docs/state/cluster-reality.md`.
 5. Network policy drops: `.agents/skills/cilium-hubble`.
@@ -44,7 +48,7 @@ Two independent Argo CD instances, one workflow (`docs/operations/two-argo-one-w
 3. OKE: `just scaffold-oke-app <group>/<app> <name> <namespace>` creates `k8s/clusters/oracle-a1/<name>/`, `apps/<name>.yaml` and the root entry. Put OKE-only differences in patches in that folder. The scaffold refuses data (PVC, CNPG) before PLT-190, and a namespace missing from `bootstrap/project.yaml` (bootstrap-only: needs one operator apply, `exec:local` ticket).
 4. `just check`, then PR and merge (CI green, CodeRabbit handled). Argo reconciles by itself; never sync by hand.
 5. Verify: `just verify-delivery <homelab|oracle-a1> <app> --since <merge epoch> --timeout 1200`. Cloud session: no cluster access needed (Grafana Cloud, `GRAFANA_AGENT_READ_TOKEN`).
-6. `VERIFY=PASS` is RUNTIME for Argo sync/health and pods Ready only (see `EVIDENCE_SCOPE`: no route, DNS, TLS); `REVISION=NOT_PROVEN`. FAIL: read `LAST_ERROR`, then `queries.md`; with cluster access `just diagnose-app <app>`.
+6. `VERIFY=PASS` is RUNTIME for Argo sync/health and pods Ready only (see `EVIDENCE_SCOPE`: no route, DNS, TLS); `REVISION=NOT_PROVEN`. FAIL: read `LAST_ERROR`, then `queries.md`; with cluster access `just investigate <app>`.
 7. Absent series = FAIL, not health. First check the Application name and that it exists in Git (a typo gives the same result). Only then suspect a collection gap and fix the Alloy allowlist (homelab `monitoring/alloy/values.yaml`, OKE `clusters/oracle-a1/observability/alloy-values.yaml`) and check the series budget (< 8,000).
 
 ## Current platform (for interpreting results)
