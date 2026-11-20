@@ -10,4 +10,5 @@ resources:
 - gateway
 - coredns
 - externaldns-private
+- dns-exact-resolver
 - policies
