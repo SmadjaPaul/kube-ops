@@ -10,8 +10,8 @@
 #   DEPLOY_HEALTH=PASS|FAIL|UNKNOWN                      seulement si le runtime a tourne (--phase runtime|all)
 #   APP_TEST=PASS|FAIL|BLOCKED
 # DEPLOY_HEALTH : sante du deploiement lui-meme (pods Ready, pas de restarts recents), lue sur le check
-# selfheal runtime. FAIL = pods non Ready ou restarts recents ; PASS = pods Ready ; UNKNOWN sinon (aucun pod,
-# scale a zero, exception, cliquet, BLOCKED). Signal machine du post-merge (revert seulement sur FAIL).
+# selfheal runtime, etat brut (ni exception ni cliquet). FAIL = pods non Ready ou restarts recents ; PASS = pods
+# Ready ; UNKNOWN sinon (aucun pod, scale a zero, BLOCKED). Signal machine du post-merge (revert seulement sur FAIL).
 # Code : 0 PASS, 1 FAIL, 2 BLOCKED (acces cluster, outil manquant, rendu impossible).
 #
 # Ids : oidc exposure backup renovate observability selfheal network.
@@ -602,11 +602,11 @@ for id in $IDS; do
   case "$best" in FAIL) overall=FAIL ;; BLOCKED) [[ $overall == FAIL ]] || overall=BLOCKED ;; esac
 done
 if [[ $PHASE != static ]]; then
-  # statut final du check selfheal runtime (apres exception et cliquet) : seul un FAIL sur pods non Ready /
-  # restarts recents est un deploiement casse ; "aucun pod" (dossier sans workload) reste UNKNOWN.
-  sh_rt="$(awk -F'\t' '$1=="selfheal" && $2=="runtime" {s=$3} END {print s}' "$RES")"
+  # Etat BRUT des pods (avant exception et cliquet) : la dette selfheal gelee ou declaree concerne la conformite
+  # (probes, PDB, requests) et ne doit jamais masquer un deploiement casse (drill #1688 : pods non Ready
+  # "baselined"). "aucun pod" (dossier sans workload), scale a zero ou BLOCKED restent UNKNOWN.
   dh=UNKNOWN
-  case "${deploy_kind:-unknown}:$sh_rt" in broken:FAIL) dh=FAIL ;; healthy:PASS) dh=PASS ;; esac
+  case "${deploy_kind:-unknown}" in broken) dh=FAIL ;; healthy) dh=PASS ;; esac
   echo "DEPLOY_HEALTH=$dh"
 fi
 echo "APP_TEST=$overall"
