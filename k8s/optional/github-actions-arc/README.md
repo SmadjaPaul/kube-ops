@@ -33,14 +33,14 @@ Private pull works, per CI evidence: CI run `ci` of factory-platform on 13/11/20
 1. Owner provisions `APP_FACTORY_ARC_GHCR_READ_TOKEN` in the existing Doppler environment with the minimum `read:packages` permission and confirmed access to `ghcr.io/smadjapaul/factory-ci-arc`. Never print the token or registry auth data in CI, logs, PRs or Linear. Check the token's actual scopes without disclosing its value.
 2. Confirm `ExternalSecret/arc-factory-ghcr-pull` is Ready, and its target Secret exists in `arc-runners` with `type=kubernetes.io/dockerconfigjson`. Do not print or decode `.dockerconfigjson`.
 3. Confirm ARC Helm renders `template.spec.imagePullSecrets` into the ephemeral runner pod (not only the ARC listener/controller). On a single deliberate pilot run, verify pod image pull and `runner` readiness before running a trusted workflow.
-4. Bound the canary to one trusted workflow/job; the current `maxRunners: 3` and PR triggers do not themselves enforce single-runner isolation. Keep the existing thermal stop and rollback to the official pinned digest. Do not claim CPU/IO improvements until the workflow actually runs and comparable before/after windows are captured.
+4. Bound the canary to one trusted workflow/job; the current `maxRunners: 3` and PR triggers do not themselves enforce single-runner isolation. Keep the rollback to the official pinned digest. Do not claim CPU/IO improvements until the workflow actually runs and comparable before/after windows are captured.
 
 ## Blocking gates before activation
 
 1. Ensure pinned chart 0.15.0 exists and Helm renders with pinned release names: the actual generated controller ServiceAccount is `arc-gha-rs-controller`, matching `controllerServiceAccount.name` in the scale set.
 2. Review AppProjects `applications` and `infrastructure` for permissions to install these namespaced and cluster-scoped resources. CRDs must be installed before the scale set.
 3. Verify Pod Security admission: the *runner* should be restricted. The controller chart might need separately reviewed security permissions.
-4. Inspect Talos node capacity and deployment disruption risk on this single-node cluster. The three-runner setting requires 1.05 CPU/2.3Gi requests and 9 CPU/9Gi limits across three pods; keep the quota and node headroom aligned with those bounds.
+4. Inspect Talos node capacity and deployment disruption risk on this single-node cluster. The three-runner setting requires 1.05 CPU/2.3Gi requests and 9 CPU/9Gi limits across three pods; keep the quota aligned with those bounds.
 5. Restrict the existing ARC App installation to exactly `factory-platform`, `homelab-infra` and `website`, then verify the live permissions and installation ID. If that cannot be done, provision a separate ARC App instead. Never reuse the Factory source-control GitHub App or store keys in Git.
 6. Design/test egress policy for GitHub endpoints and DNS. The controller and listener need GitHub API outbound access. The staged policies are narrow FQDN policies and must be observed in Cilium audit mode before enforcement.
 7. Fully qualify non-privileged runner image and version pinning, chart values, and the behavior of `automountServiceAccountToken: false` with the chosen template.

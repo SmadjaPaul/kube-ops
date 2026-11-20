@@ -3,6 +3,7 @@
 **Première lecture de tout agent.** Cet état vient du cluster vivant (Argo, kubectl, Prometheus, Loki), pas des manifests. En cas de désaccord avec Git ou un ticket, ceci décrit le runtime observé ; Git reste l'autorité du désiré (AGENTS.md).
 
 - Généré le 2026-11-11 18:10 UTC par `bash scripts/cluster-reality.sh` (lecture seule, idempotent, aucun secret).
+- Décision Paul du 20/11/2026 : le cluster homelab n'est plus sous contrainte de ressources (CPU, mémoire, thermique). Ne pas supposer de contrainte de ressources sur ce nœud.
 - Cluster Kubernetes v1.36.3, 30 Applications Argo, 60 lignes (namespaces ; drills regroupés).
 - En marche : 51 ; à l'arrêt/dégradé : 6 (agent-observers, drills/recovery (15 ns), executor, it-tools, kubechecks, openclaw-operator-system) ; sans workload : 3.
 - Verdicts : ALLÉGER 11, DÉPLACER-ORACLE 1, GARDER 46, RETIRER 2.

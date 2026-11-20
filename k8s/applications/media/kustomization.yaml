@@ -17,7 +17,7 @@ resources:
 - polyfin-media-route.yaml
 
 # Intentionally disabled from V1:
-# - whisperasr: local CPU transcription is too expensive on the current single-node host.
+# - whisperasr: local CPU transcription, not enabled from V1; reconsider when the need is confirmed.
 
 # Keep Polyfin's Authentik OIDC discovery on the same private HTTPS Gateway
 # as its existing AIOStreams addon. This Pod-scoped /etc/hosts override

@@ -393,6 +393,7 @@ L = ["# État réel du cluster", "",
      "pas des manifests. En cas de désaccord avec Git ou un ticket, ceci décrit le runtime observé ; Git reste l'autorité "
      "du désiré (AGENTS.md).", "",
      f"- Généré le {ts} par `bash scripts/cluster-reality.sh` (lecture seule, idempotent, aucun secret).",
+     "- Décision Paul du 20/11/2026 : le cluster homelab n'est plus sous contrainte de ressources (CPU, mémoire, thermique). Ne pas supposer de contrainte de ressources sur ce nœud.",
      f"- Cluster Kubernetes {version}, {len(apps)} Applications Argo, {len(recs)} lignes (namespaces ; drills regroupés).",
      f"- En marche : {running} ; à l'arrêt/dégradé : {len(notrun)}"
      + (f" ({', '.join(notrun)})" if notrun else "") + f" ; sans workload : {none}.",
