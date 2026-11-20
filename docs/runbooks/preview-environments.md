@@ -17,7 +17,6 @@ Un namespace jetable `pr-<n>-<app>` par PR, sur le cluster de prod, déployé de
 | `Namespace` | retiré (le namespace vient de l'Application, PSA `restricted`) |
 | `HTTPRoute` | hostname `<app>-<n>-preview.smadja.dev`, parent `Gateway/internal` |
 | `ScaledObject`, `InterceptorRoute` | retirés (ils réclameraient le hostname de prod) |
-| `ExternalSecret` | store forcé à `doppler-preview` (jamais `doppler-cluster`) |
 | `Deployment`, `StatefulSet`, `Job`, `CronJob` | `priorityClassName: preview-low` |
 
 Garde-fous (source `k8s/previews/guardrails`, lue sur `main`) : ResourceQuota (0,75 Gio demandés, 1,5 Gio limite, 8 pods, 2 Gio de disque), LimitRange, CiliumNetworkPolicy default-deny puis DNS, Authentik, Gateway, même namespace. Politique Kyverno `preview-namespace-guard` (Deny, limitée aux namespaces `smadja.dev/preview=true`) et AppProject `previews` (destinations `pr-*`, aucun objet cluster, ReferenceGrant et routes non HTTP refusés).
@@ -26,7 +25,8 @@ Garde-fous (source `k8s/previews/guardrails`, lue sur `main`) : ResourceQuota (0
 
 - Une app derrière KEDA (HTTPRoute vers `keda-add-ons-http-interceptor-proxy`) n'est pas joignable par le hostname de preview ; le test runtime passe par le Service du namespace.
 - Les apps avec base de données partagée (`pg-shared`) ne sont pas supportées : la preview n'a pas de CNPG éphémère dans cette version.
-- Les secrets de preview viennent de la config Doppler `preview` (store `doppler-preview`) ; sans elle, une app qui a un ExternalSecret reste Degraded.
+- Secrets (D-2026-11-20-04) : une preview ne lit jamais un secret de prod. Le seul ExternalSecret admis est la forme C du contrat (générateur `Password`, `refreshPolicy: CreatedOnce`, sans `secretStoreRef` ni `data`), dans le namespace de la preview. Une app dont l'ExternalSecret lit un store (`doppler-cluster`, `k8s-auth`, `k8s-databases` ou tout autre) est refusée par Kyverno `preview-namespace-guard` et reste Degraded : la preview n'est pas possible tant que l'app n'a pas de forme C. Un jeton externe réel (API tierce) est hors périmètre : aucun secret par défaut.
+- Aucune base partagée : la ressource `Database` CNPG est refusée (AppProject et Kyverno), et le default-deny coupe l'accès à `databases`. Une preview n'obtient jamais de rôle ni de mot de passe `pg-shared-homelab`.
 
 ## Exposition par Cloudflare Access (gestes de Paul)
 

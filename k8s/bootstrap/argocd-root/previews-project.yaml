@@ -36,5 +36,13 @@ spec:
       kind: Backup
     - group: barmancloud.cnpg.io
       kind: ObjectStore
+    # No shared database: a preview never gets a pg-shared-homelab role or base.
+    - group: postgresql.cnpg.io
+      kind: Database
+    # No store of its own and no push: secrets come from in-namespace generators.
+    - group: external-secrets.io
+      kind: SecretStore
+    - group: external-secrets.io
+      kind: PushSecret
   orphanedResources:
     warn: false

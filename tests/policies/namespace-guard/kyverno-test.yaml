@@ -1,0 +1,130 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: preview-namespace-guard
+policies:
+- ../../../k8s/infrastructure/previews/admission-policy.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - generated-form-c
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - generated-form-c-outside-preview-ns-is-skipped
+  result: skip
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - store-doppler-cluster
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - store-k8s-auth
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - store-k8s-databases
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - store-other-doppler
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - store-namespaced-secretstore
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - generated-with-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - generated-mixed-with-data
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - generated-datafrom-extract
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - generated-without-createdonce
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - generated-non-password-generator
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: preview-namespace-guard
+  resources:
+  - generated-datafrom-store-ref
+  result: fail
+- isValidatingPolicy: true
+  kind: SecretStore
+  policy: preview-namespace-guard
+  resources:
+  - secretstore-in-preview
+  result: fail
+- isValidatingPolicy: true
+  kind: Database
+  policy: preview-namespace-guard
+  resources:
+  - database-in-preview
+  result: fail
+- isValidatingPolicy: true
+  kind: Database
+  policy: preview-namespace-guard
+  resources:
+  - database-outside-preview-is-skipped
+  result: skip
+- isValidatingPolicy: true
+  kind: Pod
+  policy: preview-namespace-guard
+  resources:
+  - pod-low-priority
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: preview-namespace-guard
+  resources:
+  - pod-default-priority
+  result: fail
+- isValidatingPolicy: true
+  kind: Service
+  policy: preview-namespace-guard
+  resources:
+  - service-loadbalancer
+  result: fail
+- isValidatingPolicy: true
+  kind: Service
+  policy: preview-namespace-guard
+  resources:
+  - service-clusterip
+  result: pass
