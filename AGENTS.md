@@ -39,7 +39,7 @@ This file → one skill from the table → only the application or infrastructur
 - `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]`: ends a sync stuck on hooks/health; it refuses when a PVC, PV, CNPG Cluster, ObjectStore or VolumeSnapshot would be pruned. Check first that the Application is in the admitted scope.
 - `bash scripts/doppler-safe.sh <names|has|set|delete|run>`: the only Doppler entry point. `run` requires `--only KEY[,KEY...]` (only those secrets are injected, never the whole config); projects/configs are a closed list (Doppler projects `infrastructure`, `cluster`, `apps`, config `prd` only). Example: `bash scripts/doppler-safe.sh run --only LINEAR_API_KEY -- <cmd>`.
 
-Every kubectl call goes through `scripts/lib/kube-preflight.sh` (the wrappers do it); it writes its `KUBE_ACCESS=…` diagnostic on stderr, so wrapper stdout stays parseable.
+Every kubectl call goes through `scripts/lib/kube-preflight.sh` (the wrappers do it); it writes its `KUBE_ACCESS=…` diagnostic on stderr, so wrapper stdout stays parseable. A script that reads many times calls `kro_session_begin <private-tmp-dir>` (`scripts/lib/kube-read.sh`): one preflight per session, reused by every `scripts/kubectl-ro.sh` call while cluster, identity mode, TTL (`KUBECTL_RO_SESSION_TTL`, 300 s) and kubeconfig SHA-256 still match.
 
 ## Cluster access
 

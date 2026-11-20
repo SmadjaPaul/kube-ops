@@ -35,6 +35,7 @@ else
   command -v timeout >/dev/null || { echo "ERROR: timeout required for bounded collection" >&2; exit 2; }
   tmp="$(mktemp -d)"
   input_dir="$tmp"
+  kro_session_begin "$scratch" # one preflight for the 14 parallel reads
   resources=(
     'pvc|pvc -A'
     'pv|pv'

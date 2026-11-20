@@ -17,6 +17,7 @@ source "$ROOT/scripts/lib/kube-read.sh"
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/cluster-reality.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
+kro_session_begin "$WORK" # one preflight for all reads
 
 k() { kro "$@"; }
 

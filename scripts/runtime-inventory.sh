@@ -6,6 +6,7 @@ source "$(dirname "$0")/lib/kube-read.sh"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+kro_session_begin "$tmp" # one preflight for all reads
 
 kro get applications.argoproj.io -n argocd -o json >"$tmp/apps.json"
 kro get gateways.gateway.networking.k8s.io -A -o json >"$tmp/gateways.json"

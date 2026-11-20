@@ -203,7 +203,58 @@ acquire() {
 
 blocked_exit() { grep -E '^(KUBE_ACCESS|REASON|NEXT_ACTION)=' "$status_file" >&2; exit 2; }
 
-if [ "$cluster" = oracle-a1 ]; then
+# --- read session (KUBECTL_RO_SESSION_DIR, set by kro_session_begin in lib/kube-read.sh)
+# A script that reads many times pays the preflight (Doppler, SHA-256, TLS, API,
+# identity: ~1.5 s) once. The verified kubeconfig is copied 0600 into the caller's
+# private 0700 dir (removed by the caller's EXIT trap) and reused only while:
+# same cluster and identity mode, TTL not elapsed (KUBECTL_RO_SESSION_TTL, default
+# 300 s, max 900), same SHA-256 as when stored, no TLS bypass in it. Anything else:
+# full preflight. The filters above run before, whatever the session.
+session_dir=${KUBECTL_RO_SESSION_DIR:-}
+session_ttl=${KUBECTL_RO_SESSION_TTL:-300}
+case "$session_ttl" in ''|*[!0-9]*) session_ttl=300 ;; esac
+[ "$session_ttl" -le 900 ] || session_ttl=900
+session_name="$cluster-$identity_mode"
+stat_owner_mode() { stat -f '%u %Lp' "$1" 2>/dev/null || stat -c '%u %a' "$1" 2>/dev/null; }
+if [ -n "$session_dir" ]; then
+  if [ -L "$session_dir" ] || [ ! -d "$session_dir" ] || [ "$(stat_owner_mode "$session_dir")" != "$(id -u) 700" ]; then
+    echo "kubectl-ro: KUBECTL_RO_SESSION_DIR ignoré (dossier absent, lien symbolique ou droits différents de 0700 à l'utilisateur courant)" >&2
+    session_dir=""
+  fi
+fi
+session_load() { # -> 0 and KUBECONFIG/KUBE_ACCESS_SOURCE/session_user set when the entry is valid
+  [ -n "$session_dir" ] && [ "$session_ttl" -gt 0 ] || return 1
+  local kc="$session_dir/$session_name.kubeconfig" meta="$session_dir/$session_name.meta" expires sha
+  [ -f "$kc" ] && [ ! -L "$kc" ] && [ -f "$meta" ] && [ ! -L "$meta" ] || return 1
+  [ "$(stat_owner_mode "$kc")" = "$(id -u) 600" ] || return 1
+  expires=$(sed -n 's/^expires=//p' "$meta"); sha=$(sed -n 's/^sha256=//p' "$meta")
+  case "$expires" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$(date +%s)" -lt "$expires" ] || return 1
+  [ -n "$sha" ] && [ "$(_kube_access_sha256_stream <"$kc")" = "$sha" ] || return 1
+  ! grep -qiE 'insecure-skip-tls-verify' "$kc" || return 1
+  session_user=$(sed -n 's/^user=//p' "$meta")
+  [ -n "$session_user" ] || return 1
+  kube_access_cleanup
+  KUBE_ACCESS_SOURCE="$(sed -n 's/^source=//p' "$meta")+session"
+  export KUBECONFIG="$kc" KUBE_ACCESS_SOURCE
+}
+session_store() { # session_store USER : copy the freshly verified kubeconfig (atomic)
+  [ -n "$session_dir" ] && [ "$session_ttl" -gt 0 ] && [ -n "$1" ] && [ -f "${KUBECONFIG:-}" ] || return 0
+  local tmpk tmpm
+  tmpk=$(mktemp "$session_dir/.kc.XXXXXX") && tmpm=$(mktemp "$session_dir/.meta.XXXXXX") || return 0
+  cat "$KUBECONFIG" >"$tmpk" && chmod 600 "$tmpk" "$tmpm"
+  printf 'expires=%s\nsha256=%s\nuser=%s\nsource=%s\n' "$(( $(date +%s) + session_ttl ))" \
+    "$(_kube_access_sha256_stream <"$tmpk")" "$1" "${KUBE_ACCESS_SOURCE:-?}" >"$tmpm"
+  mv -f "$tmpk" "$session_dir/$session_name.kubeconfig" && mv -f "$tmpm" "$session_dir/$session_name.meta" || return 0
+  # same copy for this call and the next ones; the preflight temp dir goes now
+  kube_access_cleanup
+  export KUBECONFIG="$session_dir/$session_name.kubeconfig"
+}
+
+session_user=""
+if session_load; then
+  :
+elif [ "$cluster" = oracle-a1 ]; then
   acquire KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 || blocked_exit
   who=$(effective_user)
   [ "$who" = "$OKE_AGENT_USER" ] ||
@@ -230,9 +281,13 @@ else
     acquire "" || blocked_exit
   fi
 fi
+if [ -z "$session_user" ] && [ -n "$session_dir" ]; then
+  [ "$cluster" = homelab ] && [ "${agent_ok:-0}" = 1 ] || who=$(effective_user)
+  session_store "$who"
+fi
 
 if [ "$whoami_mode" = 1 ]; then
-  who=$(effective_user)
+  who=${session_user:-$(effective_user)}
   [ -n "$who" ] || { echo "kubectl-ro: identité illisible" >&2; exit 2; }
   echo "cluster=$cluster identity=$who source=${KUBE_ACCESS_SOURCE:-?}"
   exit 0

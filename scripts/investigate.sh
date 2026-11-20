@@ -44,6 +44,9 @@ mode="$(resolve_output_mode "${mode_arg:-${OUTPUT:-summary}}")"
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/investigate.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
+# shellcheck source=lib/kube-read.sh
+source "$(dirname "$0")/lib/kube-read.sh"
+kro_session_begin "$tmp" # status-app, diagnose-app and observe share one preflight
 evidence="$(evidence_file "investigate-$app")"
 
 # Verdict inputs: both modules in summary mode (stdout captured, stderr passes through).
