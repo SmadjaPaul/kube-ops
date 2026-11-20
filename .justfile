@@ -96,6 +96,10 @@ runtime-smoke OUTPUT="summary":
     OUTPUT="{{OUTPUT}}" bash scripts/runtime-smoke.sh
     if [ "{{OUTPUT}}" = full ]; then bash scripts/github-queued-runs-check.sh; else bash scripts/github-queued-runs-check.sh | sed -n 1p; fi
 
+[doc('Investigate one app in one call: Argo state, pods/events, metrics (read-only); CLUSTER=homelab|oracle-a1, OUTPUT=summary|errors|full')]
+investigate APP CLUSTER="homelab" OUTPUT="summary":
+    bash scripts/investigate.sh app "{{APP}}" --cluster "{{CLUSTER}}" "{{OUTPUT}}"
+
 [doc('Show bounded read-only status for one Argo Application; OUTPUT=summary|errors|full')]
 status-app APP OUTPUT="summary":
     bash scripts/status-app.sh "{{APP}}" "{{OUTPUT}}"
