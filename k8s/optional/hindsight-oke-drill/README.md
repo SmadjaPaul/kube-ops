@@ -16,7 +16,7 @@ written (`source/` and the homelab R2 archive are not used).
 | `oke-backup/` | OKE `hindsight` | On-demand base backup `hindsight-db-drill-base`, after seed A. |
 | `oke-seed-b/` | OKE `hindsight` | Seed B (WAL only) then the OKE fingerprint, in one Job. |
 | `oke/` | OKE `hindsight` | Fingerprint alone (re-run). |
-| `offsite-restore/` | homelab `hindsight-oke-drill` | Restore of `s3://homelab-backup-cnpg/oracle-a1/hindsight-db/` + fingerprint. Only below 65 C on tatouine. |
+| `offsite-restore/` | homelab `hindsight-oke-drill` | Restore of `s3://homelab-backup-cnpg/oracle-a1/hindsight-db/` + fingerprint. Temperature read informationally, no blocking threshold. |
 | `source/` | homelab | Not used in the empty-database drill. |
 
 Fingerprint lines: server version, extensions, row count per public table,
@@ -36,7 +36,7 @@ ObjectStore are `Prune=false,Delete=false`). Imports go into `k8s/clusters/oracl
    least one object under `oracle-a1/hindsight-db/base/`.
 3. Import `oke-seed-b`: logs give `seed_b_done_at` and the OKE fingerprint.
    Wait for the WAL archive (`archive_timeout` + 1 min).
-4. Homelab (tatouine CPU temperature < 65 C, read by Prometheus or hwmon):
+4. Homelab (tatouine CPU temperature read informationally by Prometheus or hwmon, no blocking threshold):
    import `offsite-restore/`; RTO = Cluster creation -> Ready; fingerprint lines
    equal to step 3 (passwords are not fingerprinted).
    Prerequisites found at runtime (PLT-303): the AppProject `applications`

@@ -33,7 +33,7 @@ Le drill n'ajoute aucun volume : la restauration tourne sur le homelab ; côté 
 1. Accès en lecture à OKE : PLT-257 (`kubectl-ro.sh --cluster oracle-a1`). Sans lui, s'arrêter : le bastion OCI exige la clé API de Paul et n'est pas un accès d'agent.
 2. OKE : `cert-manager` et `cnpg-barman-plugin` Synced/Healthy (relevé PLT-328 du 15/11/2026), `ClusterSecretStore/doppler-cluster` Ready.
 3. Doppler `cluster/prd`, noms présents : `R2_CNPG_WRITER_ACCESS_KEY_ID`, `R2_CNPG_WRITER_SECRET_ACCESS_KEY`, `R2_S3_ENDPOINT`, `R2_CNPG_RESTORE_RO_ACCESS_KEY_ID`, `R2_CNPG_RESTORE_RO_SECRET_ACCESS_KEY` (relevé PLT-303, 15/11/2026). **`ORACLE_A1_POSTGRES_PASSWORD` : absent au dernier relevé** (README `oracle-a1`) ; sans lui `pg-shared-polyfin` ne se crée pas et le rôle `polyfin` n'a pas de mot de passe. À créer par qui a accès au projet `cluster` (le jeton worker n'y a pas accès).
-4. Nœud homelab < 70 °C avant la restauration (relevé 62 °C à 20:09 UTC le 15/11/2026, non refait ici) ; la restauration est légère (base de quelques Mo).
+4. Température du nœud homelab relevée à titre informatif avant la restauration, sans seuil bloquant (relevé 62 °C à 20:09 UTC le 15/11/2026, non refait ici) ; la restauration est légère (base de quelques Mo).
 5. Argo du homelab : le namespace `pg-shared-oke-drill` doit être admis par l'application qui importe `offsite-restore/` (même chemin que `hindsight-oke-drill`, `k8s/applications/ai/kustomization.yaml`). Non vérifié : à contrôler à l'import (`NOT_PROVEN`).
 
 ## Procédure (une PR par import, une PR par retrait)

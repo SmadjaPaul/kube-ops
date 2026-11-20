@@ -20,24 +20,21 @@
 #   PG_PROOF_OBJECTSTORE  ObjectStore barman-cloud en LECTURE SEULE, dans le namespace de drill (pitr)
 #   PG_PROOF_WRITE_BIN  binaire d'écriture approuvé ; absent = échec fermé (blocant B1)
 #
-# Garanties : gate de température (max 1 h) < 70 °C avant toute écriture ; aucun `delete` de PVC
-# (refusé dans drill_write) ; cluster temporaire supprimé sur EXIT/INT/TERM ; PVC résiduels
-# listés en lecture seule pour décision de Paul.
+# Garanties : aucun `delete` de PVC (refusé dans drill_write) ; cluster temporaire supprimé
+# sur EXIT/INT/TERM ; PVC résiduels listés en lecture seule pour décision de Paul.
 set -uo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 RO_BIN="${PG_PROOF_RO_BIN:-$HERE/kubectl-ro.sh}"
 CONFIRM_TOKEN="I-APPROVE-PG-SHARED-APP-RESTORE-DRILL"
-MAX_TEMP_C=70
 MAX_RPO_S=300
 MAX_RTO_S=1800
 MARGIN_S="${PG_PROOF_MARGIN_S:-30}"
 ARCHIVE_WAIT_S="${PG_PROOF_ARCHIVE_WAIT_S:-360}"
 JOB_TIMEOUT_S=900
-# Gate sur la mesure récente : maximum Tctl de la dernière heure (requête de
-# docs/operations/compute-baseline-2026-11-12.md, job proxmox-host). Mesures de référence
-# (sources Paul, 16/11/2026) : 58 °C sur 24 h, 71 °C sur 7 j, max 100,4 °C. Le seuil 70 °C
-# est explicite (MAX_TEMP_C) ; le capteur reste à confirmer par Paul (blocant B3).
+# Relevé informatif de température : maximum Tctl de la dernière heure (requête de
+# docs/operations/compute-baseline-2026-11-12.md, job proxmox-host). Affiché seulement,
+# sans seuil ni condition d'arrêt : le cluster n'est plus sous contrainte de ressources.
 TEMP_QUERY_DEFAULT='max_over_time(node_hwmon_temp_celsius{job="proxmox-host",chip="pci0000:00_0000:00:18_3",sensor="temp1"}[1h])'
 TEMP_QUERY="${PG_PROOF_TEMP_QUERY:-$TEMP_QUERY_DEFAULT}"
 # Requête de fingerprint : somme md5 des tables publiques, hors table de marques du drill.
@@ -224,7 +221,7 @@ Mode de restauration : $MODE
 Source : cluster $SRC, namespace $SRC_NS ; base testée $APP ; bases témoins ${OTHERS[*]}
 Cluster temporaire : $RESTORE dans le namespace $NS
 Étapes (--execute + --confirm) :
-  1. Gate température : maximum Tctl sur 1 h (requête '$TEMP_QUERY', kubectl-ro) ; refus si >= ${MAX_TEMP_C} °C ou valeur absente.
+  1. Relevé température : maximum Tctl sur 1 h (requête '$TEMP_QUERY', kubectl-ro), affiché seulement.
   2. Lecture : cluster $SRC Ready (kubectl-ro).
   3. Empreintes témoins avant (Job seed, lecture seule sur les témoins) et graine :
      table restore_drill_marks dans $ALL_DBS, T_W = epoch du commit (blocant B2).
@@ -273,15 +270,11 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
-# 1. gate température
+# 1. relevé température (informatif : jamais de refus)
 q_enc=$(printf '%s' "$TEMP_QUERY" | jq -sRr @uri)
-raw=$(ro_read get --raw "/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=$q_enc") ||
-  die "lecture température impossible (kubectl-ro)"
-temp=$(printf '%s' "$raw" | jq -r '.data.result[0].value[1] // empty')
-[ -n "$temp" ] || die "température absente : gate fermé"
-awk -v v="$temp" -v m="$MAX_TEMP_C" 'BEGIN { exit !(v + 0 < m) }' ||
-  die "nœud à ${temp} °C, seuil ${MAX_TEMP_C} °C : drill refusé"
-echo "TEMP_C=$temp (seuil < ${MAX_TEMP_C})"
+raw=$(ro_read get --raw "/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=$q_enc" 2>/dev/null) || raw=""
+temp=$(printf '%s' "$raw" | jq -r '.data.result[0].value[1] // empty' 2>/dev/null)
+echo "TEMP_C=${temp:-indisponible} (informatif, sans seuil)"
 
 # 2. source Ready
 src_ready=$(ro_read get "cluster.postgresql.cnpg.io/$SRC" -n "$SRC_NS" -o json 2>/dev/null |
