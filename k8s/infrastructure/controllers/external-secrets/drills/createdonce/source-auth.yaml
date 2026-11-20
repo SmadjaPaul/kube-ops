@@ -1,7 +1,8 @@
 # TEMPORARY (drill D0). Generated source in `auth`, form (C) of repo-contract-externalsecret-contract:
 # Password generator + ExternalSecret CreatedOnce / Orphan. Its name `oidc-eso-drill` is also listed in
 # resourceNames of auth/authentik/extra/eso-k8s-reader-rbac.yaml (removed by the cleanup PR, sentinel kept).
-# NO rotation in this PR: the rename to `oidc-eso-drill-r2` is the second step of the drill (two commits).
+# Proof 5 (rotation by rename): `oidc-eso-drill--r2` below is the NEW source (own Password, own target Secret
+# `oidc-eso-drill--r2`). The old source `oidc-eso-drill` is KEPT untouched (Orphan) until the cleanup PR.
 # The ExternalSecrets of this drill carry argocd.argoproj.io/ignore-healthcheck: a transient unreadiness
 # (e.g. waiting for the Role applied by `infra-auth`) must not turn `infra-controllers` Degraded; the
 # proof is their status read with kubectl-ro.
@@ -48,3 +49,47 @@ spec:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: Password
           name: oidc-eso-drill
+---
+# Rotation by rename (proof 5): NEW source, new Password and new target Secret `oidc-eso-drill--r2`. ESO sees a
+# never-synced ExternalSecret and generates a new value. sync-wave 0: applied before the copy (wave 1).
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: oidc-eso-drill--r2
+  namespace: auth
+  labels:
+    kube-ops.io/drill: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  length: 48
+  digits: 10
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-eso-drill--r2
+  namespace: auth
+  labels:
+    kube-ops.io/drill: "true"
+  annotations:
+    kube-ops.io/secret-class: T3
+    argocd.argoproj.io/ignore-healthcheck: "true"
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: oidc-eso-drill--r2
+    creationPolicy: Orphan
+    template:
+      engineVersion: v2
+      data:
+        password: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: oidc-eso-drill--r2
