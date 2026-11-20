@@ -1,6 +1,6 @@
 ---
 name: deploy-a-service
-description: Golden path to add a service to the cluster. Decision tree Q0-Q7 an AI follows from "does it exist" to a verified delivery.
+description: Golden path to add a service to the cluster. Decision tree Q0-Q7, proven by `just app-test`, a PR preview and the post-merge check (auto-revert of a broken deployment).
 ---
 
 # Deploy a service — golden path
@@ -51,8 +51,17 @@ Access is **always by group, never per user**. Model: `docs/operations/authentik
 - ServiceMonitor and at least one alert.
 - Image pinned to a fixed tag, never `latest`.
 
-## Q7 — Delivery
-PR -> `just check` (and `kustomize build --enable-helm <root>`) -> CI green -> merge without `--admin` -> `just verify-delivery <cluster> <app>`. Report four proofs separately: STATIC (render/tests), RECONCILED (Argo Synced/Healthy), RUNTIME (pods, route answer), USER (a real login by the right group, if applicable).
+## Q7 — Prove it: `just app-test`, preview, post-merge
+The questions are the guide; `just app-test` is the guarantee (7 checks: `oidc exposure backup renovate observability selfheal network`; output `CHECK <id> PASS|FAIL|SKIP|BLOCKED`, then `APP_TEST=`).
+1. Branch `claude/<ticket>-<app>`. `just app-test <app> <ns> --phase static` until `APP_TEST=PASS`, plus `kustomize build --enable-helm k8s/applications/<domain>/<app>` and `just check`. A new app is judged strictly; never extend `policy/app-test-baseline.tsv` or `policy/baseline.tsv` by hand (`--no-ratchet` shows raw debt).
+2. PR (draft while red) with labels `preview` and `preview:<app>` (one app per PR). Argo deploys it in namespace `pr-<n>-<app>`, host `<app>-<n>-preview.smadja.dev` behind Cloudflare Access. Preview secrets are **generated in the preview namespace** (form C only): no production store (`doppler-cluster`, `k8s-auth`, `k8s-databases`), no `pg-shared` database, no real third-party token. When Healthy: `just app-test <app> pr-<n>-<app> --phase runtime --chaos` (deletes one pod, `pr-*` only). Runbook: `docs/runbooks/preview-environments.md`.
+3. Merge (Paul's AI only, never `--admin`) when CI and preview are green; PR body lists checks run with result and checks not run with reason.
+4. After merge, the `Post-merge verify` workflow (`docs/operations/post-merge-verify.md`) waits for the Argo revision, runs `app-test --phase runtime` and **reverts only a broken deployment** (`DEPLOY_HEALTH=FAIL`: pods not Ready or recent restarts). Golden-path debt (oidc, network, backup...) or `BLOCKED` sends a ntfy notification, no revert: read it and fix. Replay without risk: `gh workflow run post-merge-verify.yaml -f sha=<sha>` (dry-run).
+5. Report STATIC, CI, RECONCILED, RUNTIME (and USER when a real login matters) separately.
+
+**Exceptions.** Only when the app cannot comply, in `app-test.yaml` next to the app, each with a non-empty reason (format: header of `scripts/app-test.sh`): `exceptions.observability` (no `/metrics`), `backup: none` + `exceptions.backup`, `exceptions.rootfs`, `auth: none` + `exceptions.auth` (Paul decides), `admin: true` (internal-only admin app). OIDC apps declare `auth: oidc` and `auth_probe: <protected path>`. An exception is a decision stated in the PR, not a way to turn the test green.
+
+**Limits.** A revert restores manifests, not data or a migration: back up and prove one restore before merging an app with a PVC or database (`.agents/skills/backup-restore`). A KEDA scale-to-zero app has no pod to judge (`selfheal` SKIP). Cluster or Argo trouble: `.agents/skills/cluster-investigation`.
 
 ## Real example: Mealie (`k8s/applications/catalog/mealie`)
 Q1 `family`; Q2 homelab; Q3 one `longhorn-fast` PVC (Velero), no database; Q4 native OIDC with `APP_MEALIE_OIDC_CLIENT_SECRET` through ESO from Doppler (legacy: a new app generates its secret, see Q4); fixed image tag, Cilium policy, requests/limits, non-root.
