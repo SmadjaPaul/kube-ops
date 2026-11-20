@@ -616,7 +616,7 @@ fi
 summary_status=0
 summary="$(
   PATH="$tmp/bin:$PATH" SMOKE_FIXTURE_DIR="$tmp" SMOKE_CURL_LOG="$tmp/curl.log" \
-    KUBE_ACCESS_BOOTSTRAP=never KUBECONFIG="$tmp/kubeconfig" KEDA_WAKE_RETRY_DELAY_SECONDS=0 \
+    KUBECTL_RO_SCRIPT="$tmp/kubectl-ro.sh" KEDA_WAKE_RETRY_DELAY_SECONDS=0 \
     ARTIFACT_DIR="$tmp/artifacts-summary" OUTPUT=summary bash "$repo_root/scripts/runtime-smoke.sh"
 )" || summary_status=$?
 [[ "$summary_status" -ne 0 ]] || { printf 'summary mode must exit non-zero on failures\n%s\n' "$summary" >&2; exit 1; }
