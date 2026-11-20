@@ -1,6 +1,6 @@
 # Drill D0 : `CreatedOnce`, rotation par renommage, RBAC hors liste (manifestes TEMPORAIRES)
 
-Statut : manifestes livrés par la PR `claude/secrets-d0-drill` (DRAFT). Verdict : **NOT_PROVEN** tant que les preuves de `docs/operations/secrets-migration-evidence.md` (section lot 0) ne sont pas relevées. Spec : `docs/architecture/secrets-migration-spec.md` (section « Drill D0 », lot 0). Aucune valeur de secret n'apparaît dans Git, la PR, les journaux ou les preuves : seulement des statuts, conditions, dates et une empreinte de 12 caractères calculée dans le cluster.
+Statut : **TERMINÉ (20/11/2026).** Preuves 0 à 7 consignées dans `docs/operations/secrets-migration-evidence.md` (4 PASS avec réserve, 5 PASS : FP#3 `41cf5cc63ed2` ≠ FP#1 `6ff2efa1dedc`, 7 statique PASS). Les manifestes ont été retirés par la PR `claude/secrets-d0-cleanup` ; ce document reste comme historique de la procédure. Les sections ci-dessous décrivent l'état AVANT nettoyage. Spec : `docs/architecture/secrets-migration-spec.md` (section « Drill D0 », lot 0). Aucune valeur de secret n'apparaît dans Git, la PR, les journaux ou les preuves : seulement des statuts, conditions, dates et une empreinte de 12 caractères calculée dans le cluster.
 
 ## Ce que D0 prouve
 
@@ -56,7 +56,7 @@ Résultat : le Job `PostSync` relancé affiche une empreinte **différente** (pr
 
 D1 ajoute ses propres fichiers dans `drills/createdonce/` et suppose le namespace `eso-drill` absent du projet Argo. Si D0 est encore présent : D1 réutilise le namespace et la destination existants (ne pas les redéclarer) et son nettoyage ne retire le namespace qu'après celui de D0. Si D0 est nettoyé d'abord, D1 recrée namespace et destination comme décrit dans sa procédure.
 
-## Nettoyage (PR de nettoyage, écrite, NON ouverte)
+## Nettoyage (PR `claude/secrets-d0-cleanup`, DRAFT)
 
 Condition : D0 consigné `PASS` (ou `FAIL` expliqué) dans la section lot 0 de `docs/operations/secrets-migration-evidence.md`. Branche `claude/secrets-d0-cleanup`, titre `chore(secrets): lot 0 — nettoyage du drill D0`. Un seul commit suffit (aucun rôle externe à supprimer avant) :
 
@@ -69,3 +69,5 @@ Condition : D0 consigné `PASS` (ou `FAIL` expliqué) dans la section lot 0 de `
 7. `just check`, `kustomize build --enable-helm k8s/infrastructure/controllers`, `kustomize build --enable-helm k8s/infrastructure/auth`.
 
 Effet au merge : Argo élague (`prune`) le namespace `eso-drill` et ses objets ; les ExternalSecret `oidc-eso-drill` et le Password sont élagués dans `auth`. Le Secret `oidc-eso-drill` (source, `Orphan`) **survit** à la suppression de son ExternalSecret : sa suppression est hors de `scripts/kubectl-rw.sh` (politique `agent-operator-guard`), donc **MANDAT** de l'opérateur : `kubectl delete secret -n auth oidc-eso-drill` (et `oidc-eso-drill--r2` n'existe pas comme Secret : le `target.name` est resté `oidc-eso-drill`). À consigner. Vérifier ensuite avec `kubectl-ro get ns eso-drill` (`NotFound`) et `get externalsecret -A | grep eso-drill` (vide).
+
+État de la PR de nettoyage : dossier `drills/createdonce/` supprimé, entrée retirée de `controllers/kustomization.yaml`, `oidc-eso-drill` et `oidc-eso-drill--r2` retirés des `resourceNames` (sentinelle `eso-k8s-sentinel-none` et `oidc-rustical-pilot` conservées), destination `eso-drill` retirée (D1 n'a pas été lancé : aucun fichier D1 dans le dépôt). Les Secrets `auth/oidc-eso-drill` et `auth/oidc-eso-drill--r2` survivent (Orphan) : suppression par l'opérateur après le merge, `kubectl delete secret -n auth oidc-eso-drill oidc-eso-drill--r2`.

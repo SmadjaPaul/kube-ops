@@ -46,9 +46,6 @@ spec:
     # PLT-149: exact-name split-DNS resolver (#1654).
     - namespace: dns-exact-resolver
       server: https://kubernetes.default.svc
-    # TEMPORARY drill D0 (secrets lot 0): removed by the cleanup PR.
-    - namespace: eso-drill
-      server: https://kubernetes.default.svc
     - namespace: external-dns-private
       server: https://kubernetes.default.svc
     - namespace: external-secrets
