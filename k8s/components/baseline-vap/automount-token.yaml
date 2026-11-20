@@ -45,4 +45,4 @@ spec:
       matchExpressions:
         - key: kubernetes.io/metadata.name
           operator: In
-          values: [auth, backstage, hindsight, databases]
+          values: [auth, hindsight, databases]

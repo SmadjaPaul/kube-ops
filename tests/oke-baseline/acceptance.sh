@@ -6,13 +6,13 @@
 #   acceptance.sh         : controles sur le cluster du contexte kubectl courant.
 #
 # Ce que le script fait : lectures (get) et dry-run serveur d'admission, plus UN pod
-# ephemere (namespace backstage, restreint, sans token, supprime en sortie) pour les tests
+# ephemere (namespace auth, restreint, sans token, supprime en sortie) pour les tests
 # reseau. Il ne detruit rien d'autre et ne lit ni n'affiche aucun Secret.
 #
 # Controles :
 #   1 Cilium : DaemonSet cilium Ready sur tous les noeuds, operator disponible.
-#   2 default-deny : NetworkPolicy default-deny presente dans auth, backstage, hindsight,
-#     databases ; effet : depuis un pod backstage, un egress non liste (https://example.com
+#   2 default-deny : NetworkPolicy default-deny presente dans auth, auth, hindsight,
+#     databases ; effet : depuis un pod auth, un egress non liste (https://example.com
 #     et l'API server) echoue.
 #   3 IMDS : depuis ce pod NON privilegie, curl --max-time 3 http://169.254.169.254/ doit
 #     echouer. Hors couverture, documente : un pod hostNetwork (ex. csi-oci-node, exempte
@@ -24,14 +24,14 @@
 #   6 DNS : le nom du service API se resout depuis le pod de test (egress DNS autorise).
 #
 # Variables : ACCEPTANCE_IMAGE (image avec sh, sleep et curl ; defaut curlimages/curl, a
-# epingler par digest dans un runbook), ACCEPTANCE_NS (defaut backstage), KUBECTL.
+# epingler par digest dans un runbook), ACCEPTANCE_NS (defaut auth), KUBECTL.
 # Code de sortie : 0 si tout passe, 1 sinon, 2 si un prerequis manque.
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 here="$root/tests/oke-baseline"
 KUBECTL="${KUBECTL:-kubectl}"
-NS="${ACCEPTANCE_NS:-backstage}"
+NS="${ACCEPTANCE_NS:-auth}"
 IMAGE="${ACCEPTANCE_IMAGE:-docker.io/curlimages/curl:8.11.1}"
 POD="acceptance-$$"
 fails=0
@@ -81,7 +81,7 @@ check_cilium() {
 
 check_default_deny_objects() {
   local ns
-  for ns in auth backstage hindsight databases; do
+  for ns in auth auth hindsight databases; do
     if k -n "$ns" get networkpolicy default-deny >/dev/null 2>&1; then pass "NetworkPolicy default-deny presente ($ns)"; else fail "NetworkPolicy default-deny presente ($ns)"; fi
   done
   if k get ciliumclusterwidenetworkpolicy deny-imds >/dev/null 2>&1; then pass "CCNP deny-imds presente"; else fail "CCNP deny-imds presente"; fi
@@ -100,7 +100,7 @@ check_vap() {
   local f out rc
   for f in pod-privileged pod-hostnetwork; do
     rc=0
-    out="$(sed 's/namespace: backstage/namespace: databases/' "$here/fixtures/$f.yaml" | k apply --dry-run=server -f - 2>&1)" || rc=$?
+    out="$(sed 's/namespace: auth/namespace: databases/' "$here/fixtures/$f.yaml" | k apply --dry-run=server -f - 2>&1)" || rc=$?
     if [[ "$rc" -ne 0 ]] && grep -q 'baseline-pod-hardening' <<<"$out"; then pass "VAP refuse $f"; else fail "VAP refuse $f"; fi
   done
 }
@@ -147,7 +147,7 @@ check_network() {
   rc=0; in_pod curl -sS --max-time 3 -o /dev/null https://example.com/ || rc=$?
   if [[ "$rc" -ne 0 && "$rc" -ne 6 ]]; then pass "egress non liste bloque (example.com, rc=$rc)"; else fail "egress non liste bloque (rc=$rc ; 0 = joignable, 6 = DNS casse)"; fi
   rc=0; in_pod curl -sS --max-time 3 -o /dev/null https://kubernetes.default.svc.cluster.local/ || rc=$?
-  if [[ "$rc" -ne 0 && "$rc" -ne 6 ]]; then pass "API server non joignable depuis backstage (rc=$rc), resolution OK"; else fail "API server depuis backstage (rc=$rc)"; fi
+  if [[ "$rc" -ne 0 && "$rc" -ne 6 ]]; then pass "API server non joignable depuis auth (rc=$rc), resolution OK"; else fail "API server depuis auth (rc=$rc)"; fi
   rc=0; in_pod curl -sS --max-time 3 -o /dev/null http://kubernetes.default.svc.cluster.local/ || rc=$?
   if [[ "$rc" -ne 6 ]]; then pass "DNS : kubernetes.default.svc.cluster.local se resout"; else fail "DNS : resolution impossible depuis le pod de test"; fi
 }

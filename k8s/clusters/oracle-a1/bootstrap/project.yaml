@@ -8,8 +8,8 @@ spec:
   sourceRepos:
     - https://github.com/SmadjaPaul/kube-ops.git
   # Destinations explicites (ADR oke-target-architecture, section 6). ntfy et gatus
-  # (PLT-328) et media (hors racine, PLT-190) sont retires. auth et backstage sont
-  # admis pour la reconstruction ; leurs Applications arrivent dans des PR suivantes.
+  # (PLT-328) et media (hors racine, PLT-190) sont retires. auth est admis
+  # pour la reconstruction ; leurs Applications arrivent dans des PR suivantes.
   destinations:
     - {server: https://kubernetes.default.svc, namespace: argocd}
     - {server: https://kubernetes.default.svc, namespace: external-secrets}
@@ -22,8 +22,6 @@ spec:
     - {server: https://kubernetes.default.svc, namespace: auth}
     # PLT-306: Grafana Cloud export (kube-state-metrics, Alloy).
     - {server: https://kubernetes.default.svc, namespace: monitoring}
-    # Backstage (IDP agentic, OKE). MANDAT Paul : ré-appliquer le bootstrap pour que le live change.
-    - {server: https://kubernetes.default.svc, namespace: backstage}
   # Explicit list (PLT-254): CRDs, RBAC, webhooks and Namespaces shipped by ESO
   # and CNPG, ESO ClusterSecretStore (remplace par des SecretStore namespaces,
   # cf. secrets par domaine) et VAP.

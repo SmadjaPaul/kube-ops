@@ -6,7 +6,7 @@
 #    ouvert : le resolveur VCN d'OKE est 169.254.169.254, CoreDNS y forward).
 #  - allow-egress-unisolated : un egressDeny SEUL met chaque endpoint selectionne en
 #    default-deny egress (constate : DNS, API et Internet coupes pour tout pod). Les
-#    namespaces non isoles (hors auth, backstage, hindsight, databases) recoivent donc
+#    namespaces non isoles (hors auth, hindsight, databases) recoivent donc
 #    un allow-all explicite ; le deny prevaut sur l'allow. Les namespaces de domaine
 #    gardent leur NetworkPolicy default-deny + allow listes (cilium-egress.yaml).
 # Limite : csi-oci-node tourne en hostNetwork et n'est pas couvert (la VAP l'exclut
@@ -20,7 +20,7 @@ spec:
     matchExpressions:
       - key: io.kubernetes.pod.namespace
         operator: NotIn
-        values: [auth, backstage, hindsight, databases]
+        values: [auth, hindsight, databases]
   egress:
     - toEntities: [all]
 ---

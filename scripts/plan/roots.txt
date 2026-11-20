@@ -32,7 +32,6 @@ k8s/optional/github-actions-arc-kube-ops
 k8s/optional/github-actions-arc-homelab-iac-pilot
 # Oracle-a1 (Applications enfants de k8s/clusters/oracle-a1/apps ; media hors racine)
 k8s/clusters/oracle-a1/agent-operator
-k8s/clusters/oracle-a1/backstage
 k8s/clusters/oracle-a1/cert-manager
 k8s/clusters/oracle-a1/baseline
 k8s/clusters/oracle-a1/cloudflared

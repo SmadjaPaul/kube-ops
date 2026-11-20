@@ -12,13 +12,6 @@ spec:
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata: {name: default-deny, namespace: backstage}
-spec:
-  podSelector: {}
-  policyTypes: [Ingress, Egress]
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
 metadata: {name: default-deny, namespace: hindsight}
 spec:
   podSelector: {}
@@ -35,20 +28,6 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: allow-dns, namespace: auth}
-spec:
-  podSelector: {}
-  policyTypes: [Egress]
-  egress:
-    - to:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
-          podSelector: {matchLabels: {k8s-app: kube-dns}}
-      ports:
-        - {port: 53, protocol: UDP}
-        - {port: 53, protocol: TCP}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata: {name: allow-dns, namespace: backstage}
 spec:
   podSelector: {}
   policyTypes: [Egress]
@@ -99,21 +78,6 @@ spec:
     - from:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: cloudflared}}
       ports: [{port: 9000, protocol: TCP}]
-    # OIDC interne depuis Backstage (Service interne, pas via le tunnel).
-    - from:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: backstage}}
-      ports: [{port: 9000, protocol: TCP}]
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata: {name: allow-ingress-backstage, namespace: backstage}
-spec:
-  podSelector: {}
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: cloudflared}}
-      ports: [{port: 7007, protocol: TCP}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -135,7 +99,7 @@ spec:
 # pg-shared (namespace databases) : intra-namespace (replication, instance manager)
 # et operateur CNPG (8000, 5432). Aucun client applicatif n'est ouvert ici : Hindsight
 # garde son cluster dedie hindsight-db (namespace hindsight, intra-namespace). Le flux
-# 5432 d'un client (ex. Backstage) est ajoute par la PR qui cree sa Database.
+# 5432 d'un client est ajoute par la PR qui cree sa Database.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: allow-ingress-databases, namespace: databases}
@@ -148,19 +112,6 @@ spec:
     - from:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: cnpg-system}}
       ports: [{port: 8000, protocol: TCP}, {port: 5432, protocol: TCP}]
----
-# Egress applicatif (namespace -> namespace) : Backstage -> Authentik (OIDC) ;
-# Hindsight -> hindsight-db (intra-namespace). Le reste (443 externe) est en CNP.
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata: {name: allow-egress-backstage, namespace: backstage}
-spec:
-  podSelector: {}
-  policyTypes: [Egress]
-  egress:
-    - to:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: auth}}
-      ports: [{port: 9000, protocol: TCP}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

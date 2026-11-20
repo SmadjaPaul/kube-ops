@@ -1,5 +1,6 @@
 # Pods et controleurs : pas de privileged, pas de hostNetwork/hostPID/hostIPC, pas de hostPath.
-# Exceptions par binding (kube-system, cloudflared pour netbird-router : /dev/net/tun).
+# Couvre aussi le sous-resource pods/ephemeralcontainers (kubectl debug : conteneur ephemere
+# privilegie sur un pod existant). Exceptions par binding (kube-system, cloudflared pour netbird-router : /dev/net/tun).
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -11,7 +12,7 @@ spec:
       - apiGroups: [""]
         apiVersions: ["v1"]
         operations: ["CREATE", "UPDATE"]
-        resources: ["pods"]
+        resources: ["pods", "pods/ephemeralcontainers"]
       - apiGroups: ["apps"]
         apiVersions: ["v1"]
         operations: ["CREATE", "UPDATE"]

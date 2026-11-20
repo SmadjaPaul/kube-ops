@@ -1,19 +1,26 @@
 # Egress FQDN / API server, Cilium (CiliumNetworkPolicy). Un pod non liste n'a
 # aucun egress 443 : le default-deny NetworkPolicy ci-dessus le bloque.
 # toFQDNs : noms stables des services de la matrice de flux (ADR section 5).
+# DNS : un toFQDNs n'est resolu que si Cilium voit les reponses DNS. Chaque namespace
+# qui utilise toFQDNs recoit donc un CNP allow-dns-visibility (kube-dns, regle dns
+# matchPattern "*") ; sans lui Cilium n'apprend aucune IP et l'egress FQDN est bloque.
 # R2 : *.r2.cloudflarestorage.com (endpoint du compte a verifier dans Doppler R2_S3_ENDPOINT).
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
-metadata: {name: allow-egress-github-backstage, namespace: backstage}
+metadata: {name: allow-dns-visibility, namespace: databases}
 spec:
   endpointSelector: {}
   egress:
-    - toFQDNs:
-        - matchName: api.github.com
-        - matchName: github.com
-        - matchName: raw.githubusercontent.com
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
       toPorts:
-        - ports: [{port: "443", protocol: TCP}]
+        - ports:
+            - {port: "53", protocol: ANY}
+          rules:
+            dns:
+              - matchPattern: "*"
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -30,6 +37,23 @@ spec:
         - matchPattern: "*.r2.cloudflarestorage.com"
       toPorts:
         - ports: [{port: "443", protocol: TCP}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: allow-dns-visibility, namespace: hindsight}
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: ANY}
+          rules:
+            dns:
+              - matchPattern: "*"
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

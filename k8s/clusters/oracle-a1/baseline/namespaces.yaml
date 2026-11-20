@@ -1,9 +1,15 @@
-# Namespaces de domaine crees par la baseline (PSA restricted enforce).
-# Les namespaces existants portent leurs labels dans leur propre namespace.yaml.
+# Namespaces de domaine crees par la baseline (sync-wave 0), SEUL proprietaire : les
+# kustomizations hindsight/ et cnpg-cluster/ ne les declarent plus (sinon namespace
+# cree en wave 2 alors que secret-stores/ (wave 1) y depose des SecretStore).
+# Les annotations Prune=false/Delete=false sont conservees (jamais de suppression par Argo).
+# auth et hindsight : PSA restricted enforce. databases : warn/audit seulement
+# (enforce a decider avec les pods CNPG, inchange par cette PR).
 apiVersion: v1
 kind: Namespace
 metadata:
   name: auth
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   labels:
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/enforce-version: latest
@@ -14,10 +20,22 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: backstage
+  name: hindsight
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   labels:
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/enforce-version: latest
     pod-security.kubernetes.io/warn: restricted
     pod-security.kubernetes.io/audit: restricted
-    app.kubernetes.io/part-of: control-plane
+    app.kubernetes.io/part-of: agent-memory
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databases
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

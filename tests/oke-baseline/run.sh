@@ -54,7 +54,7 @@ runtime() {
   done
   sleep 5
   # PSA non applique ici : chaque cas teste une regle VAP precise (PSA restricted est couvert par baseline/namespaces.yaml).
-  kubectl create namespace backstage --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  kubectl create namespace auth --dry-run=client -o yaml | kubectl apply -f - >/dev/null
   kubectl create namespace databases --dry-run=client -o yaml | kubectl apply -f - >/dev/null
   fails=0
   expect() { # expect LABEL ATTENDU(deny|allow) FICHIER [MOTIF]
@@ -68,14 +68,14 @@ runtime() {
     if [[ -n "$motif" ]] && ! grep -q -- "$motif" <<<"$out"; then ok=0; fi
     if [[ "$ok" -eq 1 ]]; then echo "PASS: $label"; else fails=$((fails+1)); echo "FAIL: $label (rc=$rc)"; echo "$out" | sed 's/^/    /'; fi
   }
-  expect "pod privilegie refuse (backstage)" deny pod-privileged.yaml "baseline-pod-hardening"
-  expect "hostPath refuse (backstage)" deny pod-hostpath.yaml "hostPath"
-  expect "hostNetwork refuse (backstage)" deny pod-hostnetwork.yaml "hostNetwork"
-  expect "automount sans annotation refuse (backstage, pod)" deny pod-automount.yaml "automountServiceAccountToken"
-  expect "deployment sans automount refuse (backstage)" deny deployment-no-automount-fail.yaml "automountServiceAccountToken"
+  expect "pod privilegie refuse (auth)" deny pod-privileged.yaml "baseline-pod-hardening"
+  expect "hostPath refuse (auth)" deny pod-hostpath.yaml "hostPath"
+  expect "hostNetwork refuse (auth)" deny pod-hostnetwork.yaml "hostNetwork"
+  expect "automount sans annotation refuse (auth, pod)" deny pod-automount.yaml "automountServiceAccountToken"
+  expect "deployment sans automount refuse (auth)" deny deployment-no-automount-fail.yaml "automountServiceAccountToken"
   expect "deployment avec annotation automount accepte (databases)" allow deployment-automount-annotated.yaml
-  expect "pod conforme accepte (backstage)" allow pod-ok.yaml
-  expect "tag non epingle : warning seulement (backstage)" allow pod-tag-warn.yaml
+  expect "pod conforme accepte (auth)" allow pod-ok.yaml
+  expect "tag non epingle : warning seulement (auth)" allow pod-tag-warn.yaml
   expect "privilegie accepte dans kube-system (exemption)" allow pod-kube-system-privileged.yaml
   echo "RUNTIME=$([[ $fails -eq 0 ]] && echo PASS || echo FAIL) fails=$fails"
   [[ $fails -eq 0 ]]

@@ -69,18 +69,18 @@ creation, so this tree describes the state AFTER the rebuild (Flannel is gone).
   re-running the bootstrap command. Values: `bootstrap/cilium-values.yaml`
   (Hubble, Envoy and Gateway API disabled to fit 1830m / 8,4 GiB).
 - `bootstrap/project.yaml` (AppProject `oracle-a1`): explicit destinations
-  (ntfy, gatus and media removed; auth and backstage admitted), enumerated
+  (ntfy, gatus and media removed; auth admitted), enumerated
   `namespaceResourceWhitelist`, minimal `clusterResourceWhitelist`.
 - `baseline/` (Argo Application `baseline`, wave 0): PSA labels, default-deny
-  ingress and egress on `auth`, `backstage`, `hindsight`, `databases`, allow-DNS,
-  the flow matrix (CiliumNetworkPolicy toFQDNs for GitHub and R2, toEntities
+  ingress and egress on `auth`, `hindsight`, `databases`, allow-DNS,
+  the flow matrix (CiliumNetworkPolicy toFQDNs for R2 with a DNS-visibility rule to kube-dns per namespace, toEntities
   kube-apiserver for CNPG), deny of IMDS `169.254.169.254/32` for every pod
   (CiliumClusterwideNetworkPolicy), ResourceQuota and LimitRange per domain.
 - `k8s/components/baseline-vap/` (library shared with the homelab): VAP + bindings
   for privileged, host namespaces, hostPath (Deny, exemptions: kube-system,
-  cloudflared), automountServiceAccountToken (Deny on auth, backstage, hindsight,
+  cloudflared), automountServiceAccountToken (Deny on auth, hindsight,
   databases unless `baseline.smadja.dev/automount-token: "true"`) and image digests
-  (Warn/Audit on auth, backstage, hindsight until the charts are pinned).
+  (Warn/Audit on auth, hindsight until the charts are pinned).
   Tested by `tests/oke-baseline/run.sh` (CI job `oke-baseline`, kind).
 
 Network enforcement: Cilium enforces NetworkPolicy and CiliumNetworkPolicy after
@@ -91,17 +91,16 @@ control-plane egress and NET_ADMIN).
 ## Secrets par domaine (ADR section 6)
 
 - `secret-stores/` : one `SecretStore doppler` per namespace (`auth`,
-  `backstage`, `hindsight`, `databases` = domain system). Each reads the Secret
+  `hindsight`, `databases` = domain system). Each reads the Secret
   `doppler-token` (key `dopplerToken`) created by the operator in that namespace.
   Expected Doppler service-token configs (read-only, one per config):
-  `oke-auth`, `oke-backstage`, `oke-hindsight`, `oke-system`.
+  `oke-auth`, `oke-hindsight`, `oke-system`.
 - Transition: no ExternalSecret uses these stores yet; they stay on
   `ClusterSecretStore/doppler-cluster` until the tokens exist. Order: (1) Paul
-  creates the 4 configs and tokens; (2) operator creates the `doppler-token`
+  creates the 3 configs and tokens; (2) operator creates the `doppler-token`
   Secrets; (3) a follow-up PR switches each ExternalSecret to `doppler` and
   removes `doppler-cluster` once no consumer is left.
-- Doppler keys expected for this PR: `ORACLE_A1_BACKSTAGE_DB_PASSWORD` (new,
-  role `backstage`). `APP_HINDSIGHT_DB_PASSWORD` already exists (role `hindsight`).
+- Doppler key expected: `APP_HINDSIGHT_DB_PASSWORD` already exists (role `hindsight`).
 
 ## Databases (Hindsight and pg-shared)
 
@@ -109,11 +108,9 @@ control-plane egress and NET_ADMIN).
   own R2 archive). It does NOT move into `pg-shared` and stays in Git. The
   baseline only adds the CNPG instance-manager token annotation to it.
 - `pg-shared` (`databases`) is unchanged by this PR: no new Database or role. No
-  application client (Backstage, Hindsight) is opened to port 5432 of `databases`
+  application client (Hindsight) is opened to port 5432 of `databases`
   by the NetworkPolicies; the PR that creates a Database also adds its 5432 flow.
-  Rule R5 of the service-contract guard is handled in PR #1621, not here.
-- Doppler key names: `ORACLE_A1_BACKSTAGE_DB_PASSWORD` (role `backstage`, to be
-  created by Paul with the Database) and `APP_HINDSIGHT_DB_PASSWORD` (existing).
+- Doppler key name: `APP_HINDSIGHT_DB_PASSWORD` (existing).
 
 ## Quotas (arch/CAPACITY.md, scenario S3)
 
@@ -124,15 +121,13 @@ pods. Source of truth: `tests/oke-baseline/expected-quotas.tsv` (checked against
 | Namespace | requests.cpu | requests.memory | limits.memory | pods |
 | --- | --- | --- | --- | --- |
 | auth | 500m | 2Gi | 4Gi | 5 |
-| backstage | 500m | 1Gi | 2Gi | 3 |
 | hindsight | 600m | 1536Mi (1.5Gi) | 4Gi | 4 |
 | databases | 500m | 1536Mi | 3Gi | 3 |
 
 Pod quotas add up to 15; with the ~16 IP-bearing system pods of S3 this stays at
 31 (estimate from CAPACITY.md, not measured). Hindsight api (2Gi limit) plus its
 CNPG instance (1Gi) need more than the previous 2Gi limit; `databases` fits
-`pg-shared` plus one restore instance. Backstage container limit is raised to 1Gi
-(LimitRange max) to match the CAPACITY.md recommendation.
+`pg-shared` plus one restore instance.
 
 ## Bootstrap procedure after the rebuild (operator)
 
@@ -196,7 +191,7 @@ Pods already running keep their network (CNI runs at pod creation only).
 ### Acceptance (`tests/oke-baseline/acceptance.sh`)
 
 Run after the rebuild, with the kubectl context on `oracle-a1` (read-only access
-plus one ephemeral pod in `backstage`, removed on exit; no Secret is read or printed):
+plus one ephemeral pod in `auth`, removed on exit; no Secret is read or printed):
 
     bash tests/oke-baseline/acceptance.sh --dry   # no cluster: syntax, list of checks (CI)
     bash tests/oke-baseline/acceptance.sh         # cluster: Cilium agents Ready,
