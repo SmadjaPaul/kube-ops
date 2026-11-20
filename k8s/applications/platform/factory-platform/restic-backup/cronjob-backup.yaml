@@ -48,7 +48,7 @@ spec:
             seccompProfile: { type: RuntimeDefault }
           initContainers:
             - name: restic-binary
-              image: restic/restic:0.19.1
+              image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
               command: ["cp", "/usr/bin/restic", "/restic-bin/restic"]
               securityContext:
                 allowPrivilegeEscalation: false
@@ -62,7 +62,7 @@ spec:
           containers:
             - name: postgres-dump
               # Same major version as the factory-platform-pg2 Cluster image (17.7).
-              image: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie
+              image: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie@sha256:08775f8bdeb112878b8f2ef63578c47959ee332fc9e076d5d6735a710c4500e2
               command: ["/bin/bash", "/scripts/backup-db.sh"]
               env:
                 - { name: APP, value: factory-platform }
