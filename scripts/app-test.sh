@@ -7,7 +7,11 @@
 #
 # Sortie (interface figee, appelee par le lot 2 preview et le lot 3 post-merge) :
 #   CHECK <id> PASS|FAIL|SKIP|BLOCKED <raison courte>     une ligne par verification
+#   DEPLOY_HEALTH=PASS|FAIL|UNKNOWN                      seulement si le runtime a tourne (--phase runtime|all)
 #   APP_TEST=PASS|FAIL|BLOCKED
+# DEPLOY_HEALTH : sante du deploiement lui-meme (pods Ready, pas de restarts recents), lue sur le check
+# selfheal runtime. FAIL = pods non Ready ou restarts recents ; PASS = pods Ready ; UNKNOWN sinon (aucun pod,
+# scale a zero, exception, cliquet, BLOCKED). Signal machine du post-merge (revert seulement sur FAIL).
 # Code : 0 PASS, 1 FAIL, 2 BLOCKED (acces cluster, outil manquant, rendu impossible).
 #
 # Ids : oidc exposure backup renovate observability selfheal network.
@@ -512,6 +516,7 @@ if [[ $PHASE != static ]]; then
     else rr observability BLOCKED "requete Prometheus impossible: $(kerr)"; fi
 
     # 6. selfheal
+    deploy_kind=unknown
     if [[ -s $work/pods.json ]]; then
       sh="$(jq -r --argjson max "$restart_max" '
         [.items[] | select(.status.phase != "Succeeded")] as $p
@@ -526,9 +531,10 @@ if [[ $PHASE != static ]]; then
         if kget scaledobjects.keda.sh -n "$NS" 2>/dev/null | jq -e --slurpfile sc "$work/scope.json" '[.items[] | select((.spec.minReplicaCount // 1) == 0 and (.spec.scaleTargetRef.name | IN($sc[0].wls[].name)))] | length > 0' >/dev/null 2>&1; then
           rr selfheal SKIP "scale a zero (KEDA): aucun pod a evaluer"
         else rr_fail selfheal "aucun pod de l app dans $NS"; fi
-      elif [[ -n $nr ]]; then rr_fail selfheal "pods non Ready: $nr"
-      elif [[ -n $rs ]]; then rr_fail selfheal "restarts recents > $restart_max: $rs"
+      elif [[ -n $nr ]]; then deploy_kind=broken; rr_fail selfheal "pods non Ready: $nr"
+      elif [[ -n $rs ]]; then deploy_kind=broken; rr_fail selfheal "restarts recents > $restart_max: $rs"
       else
+        deploy_kind=healthy
         rr selfheal PASS "$n pod(s) Ready, restarts <= $restart_max"
         if [[ $CHAOS == yes ]]; then
           if ! is_pr_ns; then rr selfheal SKIP "--chaos refuse hors namespace pr-* (jamais de suppression en prod)"
@@ -595,5 +601,13 @@ for id in $IDS; do
   echo "CHECK $id $best $reason"
   case "$best" in FAIL) overall=FAIL ;; BLOCKED) [[ $overall == FAIL ]] || overall=BLOCKED ;; esac
 done
+if [[ $PHASE != static ]]; then
+  # statut final du check selfheal runtime (apres exception et cliquet) : seul un FAIL sur pods non Ready /
+  # restarts recents est un deploiement casse ; "aucun pod" (dossier sans workload) reste UNKNOWN.
+  sh_rt="$(awk -F'\t' '$1=="selfheal" && $2=="runtime" {s=$3} END {print s}' "$RES")"
+  dh=UNKNOWN
+  case "${deploy_kind:-unknown}:$sh_rt" in broken:FAIL) dh=FAIL ;; healthy:PASS) dh=PASS ;; esac
+  echo "DEPLOY_HEALTH=$dh"
+fi
 echo "APP_TEST=$overall"
 case "$overall" in PASS) exit 0 ;; FAIL) exit 1 ;; *) exit 2 ;; esac

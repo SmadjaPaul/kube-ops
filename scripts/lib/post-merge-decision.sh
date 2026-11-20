@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Pure decision logic of the post-merge verification (PLT-390 lot 3, rules of PLT-141). Source it, then:
 #   PM_APP_TEST=PASS|FAIL|BLOCKED|NOT_RUN  aggregated `just app-test` verdict
+#   PM_DEPLOY=PASS|FAIL|UNKNOWN            deployment health (app-test DEPLOY_HEALTH: pods Ready, no recent restarts)
 #   PM_REVISION=PROVEN|NOT_PROVEN          Argo Synced+Healthy at the merge commit
 #   PM_CLASS=apps-only|mixed|none          what the commit touches (post-merge-affected.sh)
 #   PM_IS_REVERT=yes|no                    the commit is itself a post-merge revert
@@ -8,6 +9,7 @@
 #   PM_NEWER_COMMIT=yes|no                 a more recent commit touches the same app
 #   PM_STATEFUL=yes|no                     an affected app has a PVC or a CNPG Cluster
 #   pm_decide   -> sets PM_DECISION (NONE|NOTIFY|REVERT|ESCALATE), PM_REASON, PM_PRIORITY, PM_EXTRA
+# Only PM_DEPLOY=FAIL justifies a revert: golden-path debt (oidc, network, backup...) is NOTIFY. Unset = UNKNOWN.
 # NONE: nothing to do. NOTIFY: tell Paul, no revert. REVERT: open one auto-merge revert PR + notify.
 # ESCALATE: tell Paul urgently, never a revert (one revert per commit, never a revert of a revert).
 pm_decide() {
@@ -25,7 +27,11 @@ pm_decide() {
     FAIL) ;;
     *) PM_DECISION=NOTIFY; PM_REASON=app_test_${PM_APP_TEST:-unknown}_no_revert; PM_PRIORITY=high; return ;;
   esac
-  # app-test FAIL: guards, then revert.
+  # app-test FAIL but the deployment itself is not proven broken: golden-path debt, tell Paul, never revert.
+  if [[ ${PM_DEPLOY:-UNKNOWN} != FAIL ]]; then
+    PM_DECISION=NOTIFY; PM_REASON=golden_path_fail_no_revert; PM_PRIORITY=high; return
+  fi
+  # deployment broken: guards, then revert.
   if [[ ${PM_CLASS} == mixed ]]; then
     PM_DECISION=ESCALATE; PM_REASON=commit_touches_more_than_apps_no_revert; PM_PRIORITY=urgent; return
   fi
@@ -35,7 +41,7 @@ pm_decide() {
   if [[ ${PM_REVERT_ATTEMPTED:-no} == yes ]]; then
     PM_DECISION=ESCALATE; PM_REASON=already_reverted_once_escalate; PM_PRIORITY=urgent; return
   fi
-  PM_DECISION=REVERT; PM_REASON=app_test_fail; PM_PRIORITY=urgent
+  PM_DECISION=REVERT; PM_REASON=deploy_unhealthy; PM_PRIORITY=urgent
   [[ ${PM_STATEFUL:-no} == yes ]] && PM_EXTRA=verify-migration
   return 0
 }

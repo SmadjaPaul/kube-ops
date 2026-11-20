@@ -1,6 +1,6 @@
 # Post-merge verification and automatic revert (PLT-390 lot 3)
 
-Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the production to be reconciled at that commit, run `just app-test APP NAMESPACE --phase runtime --cluster homelab`, and on `FAIL` open a `git revert` PR in auto-merge and notify through ntfy. Rules of revert come from PLT-141.
+Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the production to be reconciled at that commit, run `just app-test APP NAMESPACE --phase runtime --cluster homelab`, and, when the deployment itself is broken, open a `git revert` PR in auto-merge and notify through ntfy. Rules of revert come from PLT-141.
 
 ## Chain
 
@@ -19,11 +19,14 @@ Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the pro
 | revision not proven in 10 min (any verdict) | NOTIFY, no revert |
 | `APP_TEST=PASS` | NONE |
 | `APP_TEST=BLOCKED` or recipe absent | NOTIFY, no revert |
-| `FAIL`, commit touches more than apps | ESCALATE, no revert |
-| `FAIL`, newer commit touches the same app | ESCALATE, no revert |
-| `FAIL`, a revert of this commit already exists | ESCALATE (one revert, then escalation) |
+| `FAIL` but `DEPLOY_HEALTH` is not `FAIL` (golden-path debt: oidc, network, backup, exposure, observability, renovate; or `selfheal` "aucun pod", no workload) | NOTIFY `golden_path_fail_no_revert`, failing check ids in the message, no revert |
+| `FAIL` with `DEPLOY_HEALTH=FAIL`, commit touches more than apps | ESCALATE, no revert |
+| `DEPLOY_HEALTH=FAIL`, newer commit touches the same app | ESCALATE, no revert |
+| `DEPLOY_HEALTH=FAIL`, a revert of this commit already exists | ESCALATE (one revert, then escalation) |
 | `FAIL` on a commit that is itself a revert | ESCALATE (never a revert of a revert) |
-| `FAIL`, otherwise | REVERT, plus `verify-migration` when the app has a PVC or a CNPG Cluster |
+| `DEPLOY_HEALTH=FAIL`, otherwise | REVERT, plus `verify-migration` when the app has a PVC or a CNPG Cluster |
+
+`DEPLOY_HEALTH=PASS|FAIL|UNKNOWN` is printed by `app-test` (runtime) from the `selfheal` check: `FAIL` only for pods not Ready or recent restarts (after exceptions and ratchet); `UNKNOWN` for no pod, scale to zero, BLOCKED. The runtime ratchet freezes only static debt, so the other checks cannot gate a revert. With several apps, one `FAIL` is enough.
 
 The revert restores manifests only. It does not restore data or undo a migration: the PR body and the ntfy message say so.
 

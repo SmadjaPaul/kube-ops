@@ -22,7 +22,8 @@ cat >"$tmp/bin/just" <<'SH'
 #!/usr/bin/env bash
 case "$1" in
   --summary) [[ ${FX_NORECIPE:-} == 1 ]] && echo "check" || echo "check app-test" ;;
-  app-test) echo "CHECK probe app=$2 ns=$3 result=x"; echo "APP_TEST=${FX_APPTEST:-PASS}"; [[ ${FX_APPTEST:-PASS} == PASS ]] ;;
+  app-test) echo "CHECK probe app=$2 ns=$3 result=x"; [[ -z ${FX_CHECKS:-} ]] || printf '%b\n' "$FX_CHECKS"
+    [[ -z ${FX_DEPLOY:-} ]] || echo "DEPLOY_HEALTH=$FX_DEPLOY"; echo "APP_TEST=${FX_APPTEST:-PASS}"; [[ ${FX_APPTEST:-PASS} == PASS ]] ;;
 esac
 SH
 cat >"$tmp/bin/gh" <<'SH'
@@ -63,28 +64,37 @@ out=$(bash scripts/post-merge-affected.sh "$s4"); expect "AFFECTED_CLASS=mixed"
 # --- orchestrator cases (each on its own commit; PM_MAIN_REF=HEAD so a later commit on the same app is "newer")
 echo z >>k8s/applications/tools/it-tools/d.yaml; pass_sha=$(commit "feat(tools): it-tools")
 FX_APPTEST=PASS run 0 --dry-run "$pass_sha";  expect "DECISION=NONE"; expect "POST_MERGE=PASS"; refute "DRY_RUN"
-FX_APPTEST=FAIL run 1 --dry-run "$pass_sha";  expect "DECISION=REVERT"; expect "DRY_RUN git switch -c claude/post-merge-revert-${pass_sha:0:12}"; expect "DRY_RUN git push"; expect "--label post-merge-revert"; expect "pr merge --auto"; expect "NOTIFY=DRY_RUN"
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$pass_sha";  expect "DECISION=REVERT"; expect "DRY_RUN git switch -c claude/post-merge-revert-${pass_sha:0:12}"; expect "DRY_RUN git push"; expect "--label post-merge-revert"; expect "pr merge --auto"; expect "NOTIFY=DRY_RUN"
 FX_APPTEST=BLOCKED run 0 --dry-run "$pass_sha"; expect "DECISION=NOTIFY"; expect "POST_MERGE=BLOCKED"; refute "DRY_RUN git switch"
 FX_NORECIPE=1 run 0 --dry-run "$pass_sha"; expect "just_app_test_recipe_absent"; expect "DECISION=NOTIFY"
-FX_REV=timeout FX_APPTEST=FAIL run 0 --dry-run "$pass_sha"; expect "revision_not_proven"; refute "DECISION=REVERT"
-FX_PR_EXISTS=1 FX_APPTEST=FAIL run 1 --dry-run "$pass_sha"; expect "DECISION=ESCALATE"; expect "already_reverted"; refute "DRY_RUN git switch"
-FX_APPTEST=FAIL run 1 --dry-run "$s4";        expect "DECISION=ESCALATE"; expect "more_than_apps"     # app + infra: no revert
-FX_APPTEST=FAIL run 1 --dry-run "$s2";        expect "DECISION=REVERT"; expect "stateful=yes"; expect "verify-migration"   # PVC: warning
+FX_REV=timeout FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$pass_sha"; expect "revision_not_proven"; refute "DECISION=REVERT"
+FX_PR_EXISTS=1 FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$pass_sha"; expect "DECISION=ESCALATE"; expect "already_reverted"; refute "DRY_RUN git switch"
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$s4";        expect "DECISION=ESCALATE"; expect "more_than_apps"     # app + infra: no revert
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$s2";        expect "DECISION=REVERT"; expect "stateful=yes"; expect "verify-migration"   # PVC: warning
 # Synced at the commit but Degraded: verify-revision (called with --allow-unhealthy) proves the revision, app-test judges.
-FX_VREV_LOG="$tmp/vrev.log" FX_REV=degraded FX_APPTEST=FAIL run 1 --dry-run "$pass_sha"; expect "DECISION=REVERT"; expect "HEALTH=Degraded"; expect "revision=PROVEN"
+FX_VREV_LOG="$tmp/vrev.log" FX_REV=degraded FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$pass_sha"; expect "DECISION=REVERT"; expect "HEALTH=Degraded"; expect "revision=PROVEN"
 grep -q -- '--allow-unhealthy' "$tmp/vrev.log" || { echo "FAIL: verify-revision not called with --allow-unhealthy"; exit 1; }
 FX_REV=degraded FX_APPTEST=PASS run 0 --dry-run "$pass_sha"; expect "DECISION=NONE"
 echo w >>k8s/applications/tools/it-tools/d.yaml; commit "fix(tools): newer" >/dev/null
-FX_APPTEST=FAIL run 1 --dry-run "$pass_sha";  expect "newer_commit_touches_same_app"; expect "DECISION=ESCALATE"; refute "DRY_RUN git switch"
-FX_APPTEST=FAIL run 0 --dry-run "$s3";        expect "no_app_touched"   # platform-only commit: not an app, nothing to revert
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$pass_sha";  expect "newer_commit_touches_same_app"; expect "DECISION=ESCALATE"; refute "DRY_RUN git switch"
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$s3";        expect "no_app_touched"   # platform-only commit: not an app, nothing to revert
 # revert of a revert: refused
 echo q >>k8s/applications/media/prowlarr/app.yaml; rv=$(commit "revert: feat(media): two apps (post-merge abcdef123456)")
-FX_APPTEST=FAIL run 1 --dry-run "$rv";        expect "revert_of_revert_refused"; refute "DRY_RUN git switch"
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$rv";        expect "revert_of_revert_refused"; refute "DRY_RUN git switch"
 FX_APPTEST=PASS run 0 --dry-run "$rv";        expect "revert_verified_prod_restored"
 # Trailer on main marks the commit as already reverted.
 echo p >>k8s/applications/tools/it-tools/d.yaml; t1=$(commit "feat(tools): t1")
 git commit -q --allow-empty -m "revert: x" -m "Post-merge-revert-of: $t1"
-FX_APPTEST=FAIL run 1 --dry-run "$t1";        expect "already_reverted"
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$t1";        expect "already_reverted"
+# Golden-path debt without a broken deployment: notify, never revert (PLT-390).
+echo v >>k8s/applications/tools/it-tools/d.yaml; g=$(commit "chore(tools): renovate bump")
+FX_APPTEST=FAIL FX_DEPLOY=PASS FX_CHECKS='CHECK oidc FAIL tasks.smadja.dev/ repond 200 sans cookie\nCHECK network FAIL label PSA enforce=absent' run 0 --dry-run "$g"
+expect "DECISION=NOTIFY"; expect "golden_path_fail_no_revert"; expect "checks FAIL: it-tools:oidc,network"; refute "DRY_RUN git switch"; refute "DECISION=REVERT"
+FX_APPTEST=FAIL FX_DEPLOY=UNKNOWN FX_CHECKS='CHECK selfheal FAIL aucun pod de l app dans it-tools' run 0 --dry-run "$g"
+expect "DECISION=NOTIFY"; expect "golden_path_fail_no_revert"; refute "DRY_RUN git switch"
+FX_APPTEST=FAIL FX_CHECKS='CHECK oidc FAIL x' run 0 --dry-run "$g"; expect "DECISION=NOTIFY"   # old app-test without DEPLOY_HEALTH: safe
+FX_APPTEST=FAIL FX_DEPLOY=FAIL FX_CHECKS='CHECK oidc FAIL x\nCHECK selfheal FAIL pods non Ready: it-tools-abc' run 1 --dry-run "$g"
+expect "DECISION=REVERT"; expect "deploy=FAIL"; expect "DRY_RUN git switch"
 # Secrets never printed; usage errors.
 run 2 --bogus
 echo "post-merge verify test: PASS"
