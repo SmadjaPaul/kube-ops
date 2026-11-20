@@ -1,14 +1,9 @@
----
-name: observability
-description: Read the state of the homelab and oracle-a1 clusters from Grafana Cloud (Prometheus and Loki) with bounded, read-only queries. Use first for "what is happening on the cluster / on OKE?", failing pods, backups, Argo sync, certificates.
----
-
-# Observability (Grafana Cloud, read-only)
+# Grafana Cloud queries (reference of `cluster-investigation`)
 
 Grafana Cloud stack `smadja` holds a bounded copy of both clusters (PLT-306).
 Label `cluster` is `homelab` or `oracle-a1`. Local Prometheus/Loki stay the
-full-fidelity source; use them (`runtime-observer`) only when this copy lacks
-the series.
+full-fidelity source; use them (`kubectl-ro.sh get --raw`, `observe.sh --local`)
+only when this copy lacks the series.
 
 ## Access
 
@@ -38,6 +33,7 @@ bash scripts/doppler-safe.sh run --only GRAFANA_AGENT_READ_TOKEN -- bash -c '
 ```
 
 One command for the standard questions: `bash scripts/observe.sh [summary|alerts|backups|app <name>]`
+(`app` matches the Argo Application `<name>`, `apps-<name>` or `infra-<name>`)
 (`--local` for homelab in-cluster Prometheus/Loki); runbook
 `docs/runbooks/observability-for-agents.md`.
 
