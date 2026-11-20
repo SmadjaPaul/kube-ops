@@ -1,0 +1,144 @@
+# Prowlarr: indexer manager for BookOrbit book requests (restored from the
+# pre-PLT-46 Arr stack, rebuilt on the current baseline). No Sonarr/Radarr.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  name: prowlarr-config
+  namespace: media
+  labels:
+    app.kubernetes.io/name: prowlarr
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: prowlarr
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prowlarr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prowlarr
+      annotations:
+        # Opt-in only /config (indexer definitions, API key, history).
+        backup.velero.io/backup-volumes: config
+    spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2502
+        runAsGroup: 2502
+        fsGroup: 2502
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prowlarr
+          image: ghcr.io/home-operations/prowlarr:3.0.2.5780@sha256:58fa5dbed20738ce0a72077315e818eeb731cb4b4a5173c4a837d343a9573750
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Europe/Paris
+            # The UI is reachable from the internal Gateway: always require a login.
+            - name: PROWLARR__AUTH__METHOD
+              value: Forms
+            - name: PROWLARR__AUTH__REQUIRED
+              value: Enabled
+            - name: PROWLARR__LOG__ANALYTICSENABLED
+              value: "False"
+          ports:
+            - name: http
+              containerPort: 9696
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: prowlarr-config
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prowlarr
+  namespace: media
+spec:
+  selector:
+    app.kubernetes.io/name: prowlarr
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: prowlarr
+  namespace: media
+spec:
+  parentRefs:
+    - name: internal
+      namespace: gateway
+  hostnames:
+    - prowlarr.smadja.dev
+  rules:
+    - backendRefs:
+        - name: prowlarr
+          port: 80

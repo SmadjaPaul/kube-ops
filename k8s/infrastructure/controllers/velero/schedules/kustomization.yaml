@@ -9,6 +9,7 @@ resources:
   # application-data policy; dashboards and rules are GitOps state.
   - daily-immich.yaml
   - daily-bookorbit.yaml
+  - daily-prowlarr.yaml
   - daily-karakeep.yaml
   - daily-pinepods.yaml
   - daily-mqtt.yaml
