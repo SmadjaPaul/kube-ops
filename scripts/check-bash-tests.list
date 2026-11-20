@@ -38,3 +38,4 @@ tests/harness/verify-delivery-test.sh
 tests/harness/scaffold-oke-app-test.sh
 tests/harness/agent-e2e-run-test.sh
 tests/agent-guard/kubectl-ro-session-test.sh
+tests/agent-guard/agent-memory-entry-test.sh
