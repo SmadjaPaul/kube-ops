@@ -20,10 +20,6 @@ context:
 inventory:
     node scripts/inventory.mjs
 
-[doc('Regenerate the Backstage catalog from Git (catalog/generated/all.yaml)')]
-catalog-generate:
-    node scripts/catalog/generate-catalog.mjs
-
 [doc('Run deterministic clusterless V1 + backup validation')]
 check:
     npm run check:local

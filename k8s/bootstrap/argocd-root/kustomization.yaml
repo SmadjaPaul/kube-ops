@@ -6,5 +6,3 @@ resources:
   - infrastructure-applicationset.yaml
   - applications-project.yaml
   - applications-applicationset.yaml
-  - apps-generated-project.yaml
-  - apps-generated-applicationset.yaml

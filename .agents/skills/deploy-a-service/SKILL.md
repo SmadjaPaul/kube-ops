@@ -49,10 +49,6 @@ Access is **always by group, never per user**. Model: `docs/operations/authentik
 ## Q7 — Delivery
 PR -> `just check` (and `kustomize build --enable-helm <root>`) -> CI green -> merge without `--admin` -> `just verify-delivery <cluster> <app>`. Report four proofs separately: STATIC (render/tests), RECONCILED (Argo Synced/Healthy), RUNTIME (pods, route answer), USER (a real login by the right group, if applicable).
 
-## Mission in progress (Backstage pilot)
-
-The `service-postgres-oidc@v1` golden path is not on `main` yet: its template lives on branch `origin/claude/backstage-pilote-template`, under `golden-paths/service-postgres-oidc/`. Do not copy files from main. Resume the mission with no memory: `python3 scripts/mission/resume.py backstage-pilote-canari`. Its output is the source of truth for the next step.
-
 ## Real example: Mealie (`k8s/applications/catalog/mealie`)
 Q1 `family`; Q2 homelab; Q3 one `longhorn-fast` PVC (Velero), no database; Q4 native OIDC with `APP_MEALIE_OIDC_CLIENT_SECRET` through ESO; fixed image tag, Cilium policy, requests/limits, non-root.
 Known gaps, do not copy: no `readOnlyRootFilesystem`, no ServiceMonitor or alert, and its route also targets `Gateway/external` (legacy, to review under Q5). Do not copy the dedicated CNPG `Cluster` of paperless or RomM either: they are "to consolidate" into `pg-shared`.

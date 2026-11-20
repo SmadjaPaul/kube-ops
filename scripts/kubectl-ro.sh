@@ -38,9 +38,7 @@
 # --raw except the exact form `get --raw <path>` where <path> is a read-only
 # Prometheus/Loki query API reached through the API server service proxy
 # (monitoring/kube-prometheus-stack-prometheus:9090, monitoring/loki-gateway:80,
-# monitoring/loki:3100), or the health smoke of a generated application: GET of a
-# plain path (no query string) through the service proxy of a svc-<name> namespace
-# (/api/v1/namespaces/svc-<name>/services/<svc>:<port>/proxy/<path>). The API-side RBAC decides whether the identity may do it.
+# monitoring/loki:3100). The API-side RBAC decides whether the identity may do it.
 # Query strings must be percent-encoded (PromQL/LogQL).
 set -uo pipefail
 
@@ -86,8 +84,6 @@ RAW_LABEL='label/[A-Za-z_][A-Za-z0-9_]*/values'
 RAW_PROM="kube-prometheus-stack-prometheus:9090/proxy/api/v1/(query|query_range|series|labels|$RAW_LABEL)"
 RAW_LOKI="(loki-gateway:80|loki:3100)/proxy/loki/api/v1/(query|query_range|series|labels|$RAW_LABEL)"
 RAW_PATH_RE="^$RAW_SVC/($RAW_PROM|$RAW_LOKI)\$"
-# app smoke: svc-* namespace, one named Service:port, a plain path of [A-Za-z0-9._-] segments
-RAW_APP_RE='^/api/v1/namespaces/svc-[a-z0-9]([a-z0-9-]*[a-z0-9])?/services/[a-z0-9]([a-z0-9-]*[a-z0-9])?:[0-9]{1,5}/proxy(/[A-Za-z0-9._-]+)*/?$'
 # query: unreserved chars, & = + , : and printable %XX (literal '/', '?', '#' refused; %2F/%3F
 # only reach the backend as decoded query values, never the proxied path)
 RAW_QUERY_RE='^([A-Za-z0-9._~=&+,:-]|%[2-7][0-9A-Fa-f])*$'
@@ -97,10 +93,6 @@ raw_check() { # raw_check PATH -> refuse unless allowed
   case "$raw" in *..*|*//*|*'#'*|*\\*) refuse "--raw : '..', '//', '#' ou '\\' interdits" ;; esac
   path=${raw%%\?*}
   [ "$path" = "$raw" ] || query=${raw#*\?}
-  if [[ "$path" =~ $RAW_APP_RE ]]; then
-    [ "$path" = "$raw" ] || refuse "--raw : pas de paramètres de requête sur le proxy d'une application svc-*"
-    return 0
-  fi
   [[ "$path" =~ $RAW_PATH_RE ]] ||
     refuse "--raw '$path' : seul le proxy de lecture Prometheus/Loki est autorisé ($RAW_SVC/{kube-prometheus-stack-prometheus:9090|loki-gateway:80|loki:3100}/proxy/.../(query|query_range|series|labels|label/<nom>/values))"
   [[ "$query" =~ $RAW_QUERY_RE ]] ||

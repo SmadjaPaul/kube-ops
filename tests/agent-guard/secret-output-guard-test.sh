@@ -235,12 +235,13 @@ raw_refused=(
   "$SVC/loki-gateway:80/proxy/api/v1/query" "$SVC/loki-gateway:80/proxy/loki/api/v1/push" "$SVC/loki-gateway:80/proxy/loki/api/v1/tail"
   "$SVC/loki:3100/proxy/loki/api/v1/delete" "$SVC/loki-gateway:8080/proxy/loki/api/v1/query"
   "$PROM/query?query=$(printf 'a%.0s' $(seq 1 4100))" "$PROM/query?query=é"
-  # app smoke proxy (scripts/app-status.sh): svc-* namespaces and services only, plain path, no query
+  # application service proxies (svc-* and others) are refused
   "/api/v1/namespaces/svc-demo/services/demo:80/proxy/healthz?x=1" "/api/v1/namespaces/svc-demo/pods/demo-0/proxy/healthz"
   "/api/v1/namespaces/auth/services/authentik-server:80/proxy/healthz" "/api/v1/namespaces/svc-demo/services/demo:80/proxy/../secrets"
   "/api/v1/namespaces/svc-demo/services/demo:80/proxy//x" "/api/v1/namespaces/svc-demo/services/demo:80/proxy/a%2Fb"
   "/api/v1/namespaces/svc-demo/services/http:demo:80/proxy/healthz" "/api/v1/namespaces/svc-demo/services/demo/proxy/healthz"
   "/api/v1/namespaces/svc-demo/services/demo:80/exec" "/api/v1/namespaces/svc-/services/demo:80/proxy/healthz"
+  "/api/v1/namespaces/svc-demo/services/demo:80/proxy/healthz" "/api/v1/namespaces/svc-demo/services/demo:80/proxy"
 )
 for p in "${raw_refused[@]}"; do
   PATH="$WORK/bin:$PATH" bash "$RO" get --raw "$p" >/dev/null 2>&1; rc=$?
@@ -259,9 +260,7 @@ mkdir -p "$WORK/ro/scripts/lib" "$WORK/robin"
 cp "$RO" "$WORK/ro/scripts/kubectl-ro.sh"
 printf '%s\n' 'kube_access_cleanup() { :; }' 'require_kube_access() { echo KUBE_ACCESS=PASS; }' >"$WORK/ro/scripts/lib/kube-preflight.sh"
 printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"%s/raw-args"\necho "$KUBERC" >"%s/kuberc"\n' "$WORK" "$WORK" >"$WORK/robin/kubectl"; chmod +x "$WORK/robin/kubectl"
-for p in "/api/v1/namespaces/svc-demo/services/demo:80/proxy/healthz" "/api/v1/namespaces/svc-idp-e2e/services/idp-e2e:80/proxy/.backstage/health/v1/liveness" \
-         "/api/v1/namespaces/svc-demo/services/demo:80/proxy" \
-         "$PROM/query?query=sum%28rate%28node_cpu_seconds_total%7Bmode%21%3D%22idle%22%7D%5B5m%5D%29%29" \
+for p in "$PROM/query?query=sum%28rate%28node_cpu_seconds_total%7Bmode%21%3D%22idle%22%7D%5B5m%5D%29%29" \
          "$PROM/query_range?query=node_hwmon_temp_celsius&start=2026-11-12T00:00:00Z&end=2026-11-12T06:00:00Z&step=60" \
          "$PROM/series?match%5B%5D=up" "$PROM/labels" "$PROM/label/__name__/values" "$PROM/query?query=up" \
          "$LOKI/query_range?query=%7Bnamespace%3D%22monitoring%22%7D&limit=50" "$LOKI/labels" "$LOKI/label/namespace/values" \
