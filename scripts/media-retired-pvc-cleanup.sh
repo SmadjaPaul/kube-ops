@@ -23,7 +23,7 @@ for cmd in kubectl jq; do
   command -v "$cmd" >/dev/null || { echo "MISSING=$cmd" >&2; exit 2; }
 done
 source "$(dirname "$0")/lib/kube-preflight.sh"
-require_kube_access_quiet
+require_kube_access >/dev/null
 trap 'kube_access_cleanup' EXIT
 
 if grep -Eq '^[[:space:]]*-[[:space:]]*(sabnzbd|audiobookshelf)[[:space:]]*$' \

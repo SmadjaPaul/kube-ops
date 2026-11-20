@@ -89,7 +89,7 @@ fi
 if [[ "${PV_CLEANUP_IN_CLUSTER:-}" != yes ]]; then
   # shellcheck source=lib/kube-preflight.sh
   source "$(dirname "$0")/lib/kube-preflight.sh"
-  require_kube_access_quiet
+  require_kube_access >/dev/null
   trap 'kube_access_cleanup' EXIT
 fi
 
