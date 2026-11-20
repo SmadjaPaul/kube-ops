@@ -28,6 +28,8 @@ Only internal secrets: database role passwords (T1), OIDC client secrets (T3), s
 
 Adding a key to an existing `CreatedOnce` source does nothing (no refresh): use a new source, or rotate by renaming.
 
+Shortcut for a new app: `bash scripts/scaffold-app-secrets.sh APP --namespace NS [--oidc CLIENT_ID] [--pg-shared] [--local-key USAGE[:T5]] [--data-key USAGE] [--external cloudflare-dns|r2-writer]` writes steps 1 to 4 (dry-run by default, `--write` to apply, refuses an existing target file, prints names only). `--pg-shared` follows `app-database.example.tmpl` (`tests/harness/scaffold-app-secrets-test.sh` compares the two). `--data-key` writes nothing: it prints the OpenTofu PR and the `doppler-cluster` ExternalSecret of a T6 key.
+
 ## Rotate
 
 Rename the source ExternalSecret and keep `target.name`. The new name must still follow the source naming rule `oidc-<ns>` or `oidc-<ns>--<usage>` (`pg-<ns>`, `pg-<ns>--<usage>` for databases): `oidc-<ns>-r2` is REFUSED by `repo-contract-eso-k8s-store-own-namespace`. Rotation by renaming uses the double dash: `oidc-<ns>--r2`. Add the new name to `resourceNames` if it is also a new `target.name` (a rotation that keeps `target.name` needs no Role change). ESO treats it as new, generates a new value and updates the existing Secret in place. The copy follows within `refreshInterval` (1 h); to be immediate, rename the copy ExternalSecret in a second commit. Reloader restarts the consumers. The old Password generator may be renamed with it. Never edit a Secret by hand.

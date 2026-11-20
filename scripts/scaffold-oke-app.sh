@@ -72,3 +72,4 @@ spec:
 YAML
 printf '  - %s.yaml\n' "$name" >>"$root/k8s/clusters/oracle-a1/apps/kustomization.yaml"
 echo "CREATED k8s/clusters/oracle-a1/$name/ and apps/$name.yaml; registered in apps/kustomization.yaml"
+echo "NEXT secrets: bash scripts/scaffold-app-secrets.sh APP --namespace $ns [--oidc CLIENT_ID] [--pg-shared] [--local-key USAGE] (dry-run; spec docs/architecture/secrets-migration-spec.md lot 3)"
