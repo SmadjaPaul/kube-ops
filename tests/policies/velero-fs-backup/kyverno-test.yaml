@@ -1,0 +1,28 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: repo-contract-velero-fs-backup
+policies:
+- ../../../policy/static/repo-contract.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Schedule
+  policy: repo-contract-velero-fs-backup
+  resources:
+  - fs-backup-true
+  result: pass
+- isValidatingPolicy: true
+  kind: Schedule
+  policy: repo-contract-velero-fs-backup
+  resources:
+  - fs-backup-false
+  result: fail
+- isValidatingPolicy: true
+  kind: Schedule
+  policy: repo-contract-velero-fs-backup
+  resources:
+  - fs-backup-missing
+  result: fail

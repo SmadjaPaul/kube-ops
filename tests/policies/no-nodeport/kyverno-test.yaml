@@ -1,0 +1,34 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-no-nodeport
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-nodeport
+  resources:
+  - cluster-ip
+  result: pass
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-nodeport
+  resources:
+  - explicit-cluster-ip
+  result: pass
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-nodeport
+  resources:
+  - load-balancer
+  result: pass
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-nodeport
+  resources:
+  - node-port
+  result: fail

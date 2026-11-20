@@ -1,0 +1,77 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: longhorn-fast
+  namespace: app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn-fast
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: longhorn-bulk
+  namespace: app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn-bulk
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oci-bv
+  namespace: app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: oci-bv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-client
+  namespace: app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: nfs-client
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: proxmox-csi
+  namespace: app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: proxmox-csi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: default-class-implicit
+  namespace: app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

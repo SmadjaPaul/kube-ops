@@ -1,0 +1,209 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clean
+  namespace: app
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged-false
+  namespace: app
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      privileged: false
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged
+  namespace: app
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      privileged: true
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-privileged
+  namespace: app
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+  initContainers:
+  - image: registry.example/app:1.2.3
+    name: init
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      privileged: true
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-privileged
+  namespace: app
+spec:
+  selector:
+    matchLabels:
+      a: b
+  template:
+    metadata:
+      labels:
+        a: b
+    spec:
+      containers:
+      - image: registry.example/app:1.2.3
+        name: main
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: true
+          readOnlyRootFilesystem: true
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      volumes:
+      - emptyDir:
+          sizeLimit: 64Mi
+        name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: system-namespace-privileged
+  namespace: monitoring
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      privileged: true
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp

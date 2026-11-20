@@ -1,0 +1,40 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-no-added-capabilities
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-added-capabilities
+  resources:
+  - clean
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-added-capabilities
+  resources:
+  - add-net-bind-service
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-added-capabilities
+  resources:
+  - add-net-admin
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-added-capabilities
+  resources:
+  - add-sys-admin-init
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-added-capabilities
+  resources:
+  - system-namespace
+  result: skip

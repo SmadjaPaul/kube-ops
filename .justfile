@@ -65,6 +65,15 @@ check:
     bash tests/harness/scaffold-oke-app-test.sh
     bash tests/harness/agent-e2e-run-test.sh
 
+[doc('Kyverno static gate: render roots, apply ValidatingPolicy, ratchet against policy/baseline.tsv')]
+policy-check:
+    bash scripts/policy-check.sh
+    bash scripts/policy-check.sh --tests
+
+[doc('Tighten policy/baseline.tsv after fixing violations (full render only)')]
+policy-baseline-update:
+    bash scripts/policy-check.sh --update
+
 [doc('Run validators only for Git-diff affected Kustomize components')]
 check-affected:
     bash -n scripts/check-agent-harness-contract.sh scripts/check-v1-active-contract.sh scripts/backup-static-contract.sh

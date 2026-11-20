@@ -1,0 +1,391 @@
+# Socle de durcissement de la plateforme : ValidatingPolicy CEL (policies.kyverno.io/v1).
+# Remplace la ClusterPolicy legacy nsa-hardening-all-namespaces (kyverno.io/v1), refusee par la
+# CLI Kyverno 1.20 et deprecated cote serveur.
+#
+# Versions : Kyverno 1.18.1 deploye (chart 3.8.1, CRD validatingpolicies.policies.kyverno.io :
+# v1 servie ; verifie sur le rendu de k8s/infrastructure/security/kyverno) ; CLI de test 1.20.0
+# (CI figee sur la meme version). Meme source pour le cluster (Audit) et pour `just check`
+# (scripts/policy-check.sh : `kyverno apply` sur le rendu, avec cliquet sur policy/baseline.tsv).
+#
+# Mode Audit uniquement : comme la politique legacy, aucune admission n'est refusee. Le gate
+# statique est ce qui bloque (violation nouvelle = echec). Les politiques ciblent Pod ; Kyverno
+# genere les regles pour Deployment, StatefulSet, DaemonSet, Job et CronJob (autogen).
+# Namespaces systeme exclus : meme liste que l'ancienne politique (+ kyverno).
+# Exceptions : policies.kyverno.io/v1 PolicyException (voir opencode et hassio). Rappel : le chart
+# lance les controleurs avec --enablePolicyException=false, donc elles n'ont pas d'effet runtime.
+# Regles reservees au depot (pas d'admission) : policy/static/repo-contract.yaml.
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-non-root-containers
+  annotations:
+    description: "Conteneurs en non-root (k8s/CLAUDE.md, NSA/CISA 3.4.4)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, (has(c.securityContext) && has(c.securityContext.runAsNonRoot)) ? c.securityContext.runAsNonRoot : (has(object.spec.securityContext) && has(object.spec.securityContext.runAsNonRoot) && object.spec.securityContext.runAsNonRoot))
+      message: "Chaque conteneur doit tourner avec runAsNonRoot: true (niveau conteneur ou pod). (non-root-containers)"
+    - expression: >-
+        variables.c.all(c, (has(c.securityContext) && has(c.securityContext.runAsUser)) ? c.securityContext.runAsUser != 0 : !(has(object.spec.securityContext) && has(object.spec.securityContext.runAsUser) && object.spec.securityContext.runAsUser == 0))
+      message: "Aucun conteneur ne doit tourner avec runAsUser: 0. (non-root-containers)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-no-privileged
+  annotations:
+    description: "Aucun conteneur privilegie (NSA/CISA 4.1)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, !(has(c.securityContext) && has(c.securityContext.privileged) && c.securityContext.privileged))
+      message: "Aucun conteneur privilegie (privileged: true). (no-privileged)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-no-privilege-escalation
+  annotations:
+    description: "allowPrivilegeEscalation: false sur chaque conteneur."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, has(c.securityContext) && has(c.securityContext.allowPrivilegeEscalation) && !c.securityContext.allowPrivilegeEscalation)
+      message: "Chaque conteneur doit declarer allowPrivilegeEscalation: false. (no-privilege-escalation)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-drop-all-capabilities
+  annotations:
+    description: "capabilities.drop: [ALL] sur chaque conteneur (NSA/CISA 5.1.5)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, has(c.securityContext) && has(c.securityContext.capabilities) && has(c.securityContext.capabilities.drop) && 'ALL' in c.securityContext.capabilities.drop)
+      message: "Chaque conteneur doit retirer toutes les capabilities (capabilities.drop: [ALL]). (drop-all-capabilities)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-no-added-capabilities
+  annotations:
+    description: "Aucune capability ajoutee, sauf NET_BIND_SERVICE (profil restricted)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, !(has(c.securityContext) && has(c.securityContext.capabilities) && has(c.securityContext.capabilities.add)) || c.securityContext.capabilities.add.all(a, a == 'NET_BIND_SERVICE'))
+      message: "Aucune capability ajoutee hors NET_BIND_SERVICE. (no-added-capabilities)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-read-only-root-filesystem
+  annotations:
+    description: "readOnlyRootFilesystem: true sur chaque conteneur (NSA/CISA 4.2.1)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, has(c.securityContext) && has(c.securityContext.readOnlyRootFilesystem) && c.securityContext.readOnlyRootFilesystem)
+      message: "Chaque conteneur doit avoir un systeme de fichiers racine en lecture seule. (read-only-root-filesystem)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-no-host-namespaces
+  annotations:
+    description: "hostNetwork, hostPID et hostIPC interdits (NSA/CISA 5.2.2)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  validations:
+    - expression: >-
+        !(has(object.spec.hostNetwork) && object.spec.hostNetwork) && !(has(object.spec.hostPID) && object.spec.hostPID) && !(has(object.spec.hostIPC) && object.spec.hostIPC)
+      message: "hostNetwork, hostPID et hostIPC doivent rester a false. (no-host-namespaces)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-no-hostpath-volume
+  annotations:
+    description: "Aucun volume hostPath."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  validations:
+    - expression: >-
+        !has(object.spec.volumes) || object.spec.volumes.all(v, !has(v.hostPath))
+      message: "Aucun volume hostPath. (no-hostpath-volume)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-require-resources
+  annotations:
+    description: "requests et limits cpu/memory sur chaque conteneur."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, has(c.resources) && has(c.resources.requests) && has(c.resources.limits) && 'cpu' in c.resources.requests && 'memory' in c.resources.requests && 'cpu' in c.resources.limits && 'memory' in c.resources.limits)
+      message: "Chaque conteneur doit declarer requests et limits de cpu et de memory. (require-resources)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-emptydir-size-limit
+  annotations:
+    description: "sizeLimit sur chaque emptyDir."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  validations:
+    - expression: >-
+        !has(object.spec.volumes) || object.spec.volumes.all(v, !has(v.emptyDir) || has(v.emptyDir.sizeLimit))
+      message: "Chaque emptyDir doit porter un sizeLimit. (emptydir-size-limit)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-no-latest-tag
+  annotations:
+    description: "Image epinglee : tag explicite hors latest/main, ou digest."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, c.image.contains('@') || (c.image.matches('^([^/]+/)*[^/:@]+:[^/:@]+$') && !c.image.matches('^.*:(latest|main)$')))
+      message: "Chaque image doit etre epinglee (tag explicite autre que latest/main, ou digest). (no-latest-tag)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-no-nodeport
+  annotations:
+    description: "Pas de Service NodePort (k8s/CLAUDE.md, Network)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [services]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  validations:
+    - expression: >-
+        !has(object.spec.type) || object.spec.type != 'NodePort'
+      message: "Un Service ne doit pas etre de type NodePort. (no-nodeport)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-storage-class-allowed
+  annotations:
+    description: "PVC sur longhorn-fast, longhorn-bulk ou oci-bv (k8s/CLAUDE.md, Storage)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [persistentvolumeclaims]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  validations:
+    - expression: >-
+        has(object.spec.storageClassName) && object.spec.storageClassName in ['longhorn-fast', 'longhorn-bulk', 'oci-bv']
+      message: "Un PVC doit declarer storageClassName parmi longhorn-fast, longhorn-bulk, oci-bv. (storage-class-allowed)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-env-secret-via-secretkeyref
+  annotations:
+    description: "Les variables d'environnement secretes viennent d'un secretKeyRef, jamais d'une valeur litterale."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  variables:
+    - name: c
+      expression: >-
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+  validations:
+    - expression: >-
+        variables.c.all(c, !has(c.env) || c.env == null || c.env.all(e, !e.name.matches('(?i).*(PASSWORD|PASSWD|SECRET|TOKEN|API_?KEY|PRIVATE_?KEY|CREDENTIAL).*') || e.name.matches('(?i).*(_FILE|_PATH|_NAME|_ENABLED|_URL)$') || !has(e.value) || string(e.value) == ''))
+      message: "Une variable d'environnement de type secret doit utiliser valueFrom.secretKeyRef, pas une valeur litterale. (env-secret-via-secretkeyref)"

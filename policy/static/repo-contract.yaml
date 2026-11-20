@@ -1,0 +1,102 @@
+# Regles du depot qui n'ont pas de sens a l'admission (les operateurs et charts creent legitimement
+# des Secret et des NetworkPolicy dans le cluster) : appliquees uniquement par `just check`
+# (scripts/policy-check.sh) sur le rendu Kustomize. Ne pas deployer ce fichier via Argo CD.
+# Meme dialecte que k8s/infrastructure/security/policies/platform-baseline.yaml.
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: repo-contract-no-networkpolicy
+  annotations:
+    description: "Jamais de NetworkPolicy standard : CiliumNetworkPolicy v2 uniquement (k8s/CLAUDE.md, Network)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["networking.k8s.io"]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [networkpolicies]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  validations:
+    - expression: >-
+        false
+      message: "Une NetworkPolicy standard est interdite : utiliser une CiliumNetworkPolicy v2. (no-networkpolicy)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: repo-contract-no-rendered-secret
+  annotations:
+    description: "Aucun kind Secret dans le rendu Git (secrets via ExternalSecret)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [secrets]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  validations:
+    - expression: >-
+        false
+      message: "Un Secret rendu depuis Git est interdit : utiliser un ExternalSecret (doppler-cluster). (no-rendered-secret)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: repo-contract-externalsecret-contract
+  annotations:
+    description: "ExternalSecret external-secrets.io/v1, ClusterSecretStore doppler-cluster, refreshInterval 1h."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["external-secrets.io"]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [externalsecrets]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+  validations:
+    - expression: >-
+        object.apiVersion == 'external-secrets.io/v1'
+      message: "Un ExternalSecret doit etre en external-secrets.io/v1. (externalsecret-contract)"
+    - expression: >-
+        has(object.spec.secretStoreRef) && object.spec.secretStoreRef.name == 'doppler-cluster' && has(object.spec.secretStoreRef.kind) && object.spec.secretStoreRef.kind == 'ClusterSecretStore'
+      message: "Un ExternalSecret doit referencer le ClusterSecretStore doppler-cluster. (externalsecret-contract)"
+    - expression: >-
+        has(object.spec.refreshInterval) && object.spec.refreshInterval == '1h'
+      message: "Un ExternalSecret doit declarer refreshInterval: 1h. (externalsecret-contract)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: repo-contract-velero-fs-backup
+  annotations:
+    description: "Schedule Velero avec defaultVolumesToFsBackup: true (sauvegarde Kopia des PVC)."
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["velero.io"]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [schedules]
+  validations:
+    - expression: >-
+        has(object.spec.template) && has(object.spec.template.defaultVolumesToFsBackup) && object.spec.template.defaultVolumesToFsBackup
+      message: "Un Schedule Velero doit declarer template.defaultVolumesToFsBackup: true. (velero-fs-backup)"

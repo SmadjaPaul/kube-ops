@@ -1,0 +1,35 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: fs-backup-true
+  namespace: velero
+spec:
+  schedule: 0 3 * * *
+  template:
+    defaultVolumesToFsBackup: true
+    includedNamespaces:
+    - app
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: fs-backup-false
+  namespace: velero
+spec:
+  schedule: 0 3 * * *
+  template:
+    defaultVolumesToFsBackup: false
+    includedNamespaces:
+    - app
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: fs-backup-missing
+  namespace: velero
+spec:
+  schedule: 0 3 * * *
+  template:
+    includedNamespaces:
+    - app

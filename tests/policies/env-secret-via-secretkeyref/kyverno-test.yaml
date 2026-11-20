@@ -1,0 +1,82 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-env-secret-via-secretkeyref
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - no-env
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - env-null
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - secretkeyref
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - plain-env
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - password-file-path
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - empty-value
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - literal-password
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - literal-token
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - secret-named-numeric-value
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - literal-client-secret
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - init-literal-password
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-env-secret-via-secretkeyref
+  resources:
+  - system-namespace
+  result: skip

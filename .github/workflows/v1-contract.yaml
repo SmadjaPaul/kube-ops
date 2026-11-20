@@ -12,6 +12,8 @@ on:
     paths:
       - 'k8s/**'
       - 'scripts/**'
+      - 'policy/**'
+      - 'tests/policies/**'
       - 'docs/contracts/**'
       - 'tests/harness/**'
       - 'AGENTS.md'
@@ -66,6 +68,14 @@ jobs:
           tar -xzf /tmp/kubeconform.tgz -C /tmp
           sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
           kubeconform -v
+
+      - name: Install Kyverno CLI (pinned, sha256 from the v1.20.0 release digest)
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kyverno.tgz https://github.com/kyverno/kyverno/releases/download/v1.20.0/kyverno-cli_v1.20.0_linux_x86_64.tar.gz
+          echo "06b8f3ca7b5626473be8fb4d343ad54ab84e317142766f72420e7d44b80942e2  /tmp/kyverno.tgz" | sha256sum -c -
+          mkdir -p /tmp/kyverno-cli && tar -xzf /tmp/kyverno.tgz -C /tmp/kyverno-cli
+          sudo install -m 0755 /tmp/kyverno-cli/kyverno /usr/local/bin/kyverno
+          kyverno version
 
       - name: Validate Renovate configuration syntax
         run: python3 -m json.tool renovate.json > /dev/null

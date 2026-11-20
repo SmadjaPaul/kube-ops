@@ -35,6 +35,7 @@ This file → one skill from the table → only the application or infrastructur
 ## Command surface
 
 - `just check`: canonical gate for every desired-state change. Run `kustomize build --enable-helm` on each changed path.
+- Kyverno step of `just check` (`scripts/policy-check.sh`): policies in `k8s/infrastructure/security/policies/platform-baseline.yaml` and `policy/static/repo-contract.yaml`, ratchet `policy/baseline.tsv`. A new violation fails; fix the manifest, never extend the baseline. After fixing existing ones, run `just policy-baseline-update`.
 - `just verify-delivery CLUSTER APP`: post-merge PASS/FAIL from Grafana Cloud for `homelab` or `oracle-a1`; `just scaffold-oke-app`: OKE overlay + Application.
 - `just inventory`: Git-only active imports and dormant candidates (not runtime evidence).
 - `just kube-access-check`, `just runtime-inventory`, `just runtime-smoke`, `just status-app <app>`, `just diagnose-app <app>`, `just backup-audit`, `just e2e-list`.

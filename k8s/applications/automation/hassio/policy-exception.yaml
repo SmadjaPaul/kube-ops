@@ -1,4 +1,7 @@
-apiVersion: kyverno.io/v2
+# Dérogation migrée de kyverno.io/v2 vers policies.kyverno.io/v1 (le socle est en ValidatingPolicy).
+# Rappel : le chart Kyverno lance les controleurs avec --enablePolicyException=false : sans effet
+# runtime tant que cette option reste a false ; le gate statique (policy/baseline.tsv) porte la dette.
+apiVersion: policies.kyverno.io/v1
 kind: PolicyException
 metadata:
   name: home-assistant-required-host-access
@@ -6,30 +9,18 @@ metadata:
   annotations:
     description: "Narrow exception for Home Assistant host networking and required device capabilities."
 spec:
-  match:
-    any:
-      - resources:
-          kinds:
-            - StatefulSet
-          namespaces:
-            - home-assistant
-          names:
-            - home-assistant
-      - resources:
-          kinds:
-            - Pod
-          namespaces:
-            - home-assistant
-          names:
-            - home-assistant-0
-  exceptions:
-    - policyName: nsa-hardening-all-namespaces
-      ruleNames:
-        - require-non-root-containers
-        - require-dropped-capabilities
-        - require-read-only-root-filesystem
-        - disallow-host-namespace-sharing
-        - autogen-require-non-root-containers
-        - autogen-require-dropped-capabilities
-        - autogen-require-read-only-root-filesystem
-        - autogen-disallow-host-namespace-sharing
+  policyRefs:
+    - name: platform-baseline-non-root-containers
+      kind: ValidatingPolicy
+    - name: platform-baseline-drop-all-capabilities
+      kind: ValidatingPolicy
+    - name: platform-baseline-no-added-capabilities
+      kind: ValidatingPolicy
+    - name: platform-baseline-read-only-root-filesystem
+      kind: ValidatingPolicy
+    - name: platform-baseline-no-host-namespaces
+      kind: ValidatingPolicy
+  matchConditions:
+    - name: home-assistant
+      expression: >-
+        has(object.metadata.namespace) && object.metadata.namespace == 'home-assistant' && has(object.metadata.name) && object.metadata.name.startsWith('home-assistant')

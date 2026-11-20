@@ -1,0 +1,46 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-no-privileged
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-privileged
+  resources:
+  - clean
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-privileged
+  resources:
+  - privileged-false
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-privileged
+  resources:
+  - privileged
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-privileged
+  resources:
+  - init-privileged
+  result: fail
+- isValidatingPolicy: true
+  kind: Deployment
+  policy: platform-baseline-no-privileged
+  resources:
+  - deployment-privileged
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-privileged
+  resources:
+  - system-namespace-privileged
+  result: skip

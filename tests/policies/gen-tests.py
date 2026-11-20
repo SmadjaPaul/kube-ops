@@ -1,0 +1,327 @@
+#!/usr/bin/env python3
+"""Génère les cas `kyverno test` (un dossier par règle) de platform-baseline et repo-contract.
+
+Usage : python3 -I tests/policies/gen-tests.py [--check]
+Écrit (ou, avec --check, compare sans écrire) tests/policies/<règle>/{resources,kyverno-test}.yaml.
+Chaque règle a au moins un cas fail et un cas pass (ou skip quand la règle refuse tout) ; les cas skip vérifient l'exclusion des
+namespaces système. Les ressources sont dérivées d'un objet propre : un cas = une mutation.
+"""
+import copy
+import os
+import sys
+
+import yaml
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+BASELINE = "../../../k8s/infrastructure/security/policies/platform-baseline.yaml"
+STATIC = "../../../policy/static/repo-contract.yaml"
+DIGEST = "sha256:" + "a" * 64
+
+
+def pod(ns="app"):
+    return {
+        "apiVersion": "v1", "kind": "Pod", "metadata": {"name": "x", "namespace": ns},
+        "spec": {
+            "securityContext": {"runAsNonRoot": True, "runAsUser": 1000},
+            "containers": [{
+                "name": "main", "image": "registry.example/app:1.2.3",
+                "securityContext": {
+                    "allowPrivilegeEscalation": False, "readOnlyRootFilesystem": True,
+                    "capabilities": {"drop": ["ALL"]},
+                },
+                "resources": {"requests": {"cpu": "10m", "memory": "32Mi"}, "limits": {"cpu": "100m", "memory": "64Mi"}},
+            }],
+            "volumes": [{"name": "tmp", "emptyDir": {"sizeLimit": "64Mi"}}],
+        },
+    }
+
+
+def with_init(p):
+    init = copy.deepcopy(p["spec"]["containers"][0])
+    init["name"] = "init"
+    p["spec"]["initContainers"] = [init]
+    return init
+
+
+def c0(p):
+    return p["spec"]["containers"][0]
+
+
+def deployment(p):
+    return {
+        "apiVersion": "apps/v1", "kind": "Deployment",
+        "metadata": {"name": "x", "namespace": p["metadata"]["namespace"]},
+        "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}, "spec": p["spec"]}},
+    }
+
+
+def pod_case(fn=None, ns="app", init=False, wrap=None):
+    p = pod(ns)
+    if init:
+        i = with_init(p)
+        if fn:
+            fn(p, i)
+    elif fn:
+        fn(p, c0(p))
+    return deployment(p) if wrap == "deployment" else p
+
+
+def setp(**kw):
+    def f(p, c):
+        for k, v in kw.items():
+            p["spec"][k] = v
+    return f
+
+
+def setc(key, val):
+    def f(p, c):
+        c["securityContext"][key] = val
+    return f
+
+
+def delc(*path):
+    def f(p, c):
+        d = c
+        for k in path[:-1]:
+            d = d[k]
+        del d[path[-1]]
+    return f
+
+
+def both(*fns):
+    def f(p, c):
+        for fn in fns:
+            fn(p, c)
+    return f
+
+
+def svc(t=None):
+    s = {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "x", "namespace": "app"},
+         "spec": {"ports": [{"port": 80}], "selector": {"a": "b"}}}
+    if t:
+        s["spec"]["type"] = t
+    return s
+
+
+def pvc(sc=None):
+    o = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": "x", "namespace": "app"},
+         "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": "1Gi"}}}}
+    if sc:
+        o["spec"]["storageClassName"] = sc
+    return o
+
+
+def es(api="external-secrets.io/v1", store="doppler-cluster", kind="ClusterSecretStore", refresh="1h"):
+    s = {"apiVersion": api, "kind": "ExternalSecret", "metadata": {"name": "x", "namespace": "app"},
+         "spec": {"secretStoreRef": {"name": store, "kind": kind},
+                  "target": {"name": "x"}, "data": [{"secretKey": "A", "remoteRef": {"key": "A"}}]}}
+    if refresh:
+        s["spec"]["refreshInterval"] = refresh
+    return s
+
+
+def schedule(fs):
+    s = {"apiVersion": "velero.io/v1", "kind": "Schedule", "metadata": {"name": "x", "namespace": "velero"},
+         "spec": {"schedule": "0 3 * * *", "template": {"includedNamespaces": ["app"]}}}
+    if fs is not None:
+        s["spec"]["template"]["defaultVolumesToFsBackup"] = fs
+    return s
+
+
+def env(name, **kw):
+    def f(p, c):
+        c["env"] = [dict(name=name, **kw)]
+    return f
+
+
+REF = {"valueFrom": {"secretKeyRef": {"name": "s", "key": "k"}}}
+
+# règle -> (fichier de politique, préfixe de politique, kind, [(cas, attendu, objet)])
+P, F, S = "pass", "fail", "skip"
+RULES = {
+    "non-root-containers": [
+        ("clean", P, pod_case()),
+        ("container-overrides-pod", P, pod_case(both(setp(securityContext={"runAsNonRoot": False}), setc("runAsNonRoot", True)))),
+        ("pod-run-as-non-root-false", F, pod_case(setp(securityContext={"runAsNonRoot": False, "runAsUser": 1000}))),
+        ("uid-0-container", F, pod_case(setc("runAsUser", 0))),
+        ("uid-0-pod", F, pod_case(setp(securityContext={"runAsNonRoot": True, "runAsUser": 0}))),
+        ("no-non-root-anywhere", F, pod_case(setp(securityContext={}))),
+        ("init-root", F, pod_case(setc("runAsUser", 0), init=True)),
+        ("deployment-root", F, pod_case(setp(securityContext={"runAsNonRoot": False}), wrap="deployment")),
+        ("system-namespace-root", S, pod_case(setp(securityContext={}), ns="kube-system")),
+    ],
+    "no-privileged": [
+        ("clean", P, pod_case()),
+        ("privileged-false", P, pod_case(setc("privileged", False))),
+        ("privileged", F, pod_case(setc("privileged", True))),
+        ("init-privileged", F, pod_case(setc("privileged", True), init=True)),
+        ("deployment-privileged", F, pod_case(setc("privileged", True), wrap="deployment")),
+        ("system-namespace-privileged", S, pod_case(setc("privileged", True), ns="monitoring")),
+    ],
+    "no-privilege-escalation": [
+        ("clean", P, pod_case()),
+        ("escalation-true", F, pod_case(setc("allowPrivilegeEscalation", True))),
+        ("escalation-missing", F, pod_case(delc("securityContext", "allowPrivilegeEscalation"))),
+        ("init-escalation", F, pod_case(setc("allowPrivilegeEscalation", True), init=True)),
+        ("system-namespace", S, pod_case(setc("allowPrivilegeEscalation", True), ns="kube-system")),
+    ],
+    "drop-all-capabilities": [
+        ("clean", P, pod_case()),
+        ("drop-other", F, pod_case(setc("capabilities", {"drop": ["NET_RAW"]}))),
+        ("no-capabilities", F, pod_case(delc("securityContext", "capabilities"))),
+        ("no-security-context", F, pod_case(delc("securityContext"))),
+        ("init-no-drop", F, pod_case(setc("capabilities", {"add": ["CHOWN"]}), init=True)),
+        ("system-namespace", S, pod_case(delc("securityContext"), ns="kube-system")),
+    ],
+    "no-added-capabilities": [
+        ("clean", P, pod_case()),
+        ("add-net-bind-service", P, pod_case(setc("capabilities", {"drop": ["ALL"], "add": ["NET_BIND_SERVICE"]}))),
+        ("add-net-admin", F, pod_case(setc("capabilities", {"drop": ["ALL"], "add": ["NET_ADMIN"]}))),
+        ("add-sys-admin-init", F, pod_case(setc("capabilities", {"drop": ["ALL"], "add": ["SYS_ADMIN"]}), init=True)),
+        ("system-namespace", S, pod_case(setc("capabilities", {"add": ["NET_ADMIN"]}), ns="kube-system")),
+    ],
+    "read-only-root-filesystem": [
+        ("clean", P, pod_case()),
+        ("writable", F, pod_case(setc("readOnlyRootFilesystem", False))),
+        ("missing", F, pod_case(delc("securityContext", "readOnlyRootFilesystem"))),
+        ("init-writable", F, pod_case(setc("readOnlyRootFilesystem", False), init=True)),
+        ("system-namespace", S, pod_case(setc("readOnlyRootFilesystem", False), ns="kube-system")),
+    ],
+    "no-host-namespaces": [
+        ("clean", P, pod_case()),
+        ("explicit-false", P, pod_case(setp(hostNetwork=False, hostPID=False, hostIPC=False))),
+        ("host-network", F, pod_case(setp(hostNetwork=True))),
+        ("host-pid", F, pod_case(setp(hostPID=True))),
+        ("host-ipc", F, pod_case(setp(hostIPC=True))),
+        ("system-namespace", S, pod_case(setp(hostNetwork=True), ns="kube-system")),
+    ],
+    "no-hostpath-volume": [
+        ("clean", P, pod_case()),
+        ("hostpath", F, pod_case(setp(volumes=[{"name": "h", "hostPath": {"path": "/var/run"}}]))),
+        ("no-volumes", P, pod_case(setp(volumes=[]))),
+        ("system-namespace", S, pod_case(setp(volumes=[{"name": "h", "hostPath": {"path": "/"}}]), ns="kube-system")),
+    ],
+    "require-resources": [
+        ("clean", P, pod_case()),
+        ("no-resources", F, pod_case(delc("resources"))),
+        ("no-memory-limit", F, pod_case(lambda p, c: c["resources"]["limits"].pop("memory"))),
+        ("no-cpu-request", F, pod_case(lambda p, c: c["resources"]["requests"].pop("cpu"))),
+        ("init-no-resources", F, pod_case(delc("resources"), init=True)),
+        ("system-namespace", S, pod_case(delc("resources"), ns="kube-system")),
+    ],
+    "emptydir-size-limit": [
+        ("clean", P, pod_case()),
+        ("no-volumes", P, pod_case(setp(volumes=[]))),
+        ("unbounded", F, pod_case(setp(volumes=[{"name": "t", "emptyDir": {}}]))),
+        ("memory-unbounded", F, pod_case(setp(volumes=[{"name": "t", "emptyDir": {"medium": "Memory"}}]))),
+        ("system-namespace", S, pod_case(setp(volumes=[{"name": "t", "emptyDir": {}}]), ns="kube-system")),
+    ],
+    "no-latest-tag": [
+        ("pinned-tag", P, pod_case()),
+        ("digest-only", P, pod_case(lambda p, c: c.update(image=f"registry.example/app@{DIGEST}"))),
+        ("registry-port-tag", P, pod_case(lambda p, c: c.update(image="registry.example:5000/team/app:v2"))),
+        ("latest", F, pod_case(lambda p, c: c.update(image="registry.example/app:latest"))),
+        ("no-tag", F, pod_case(lambda p, c: c.update(image="registry.example/app"))),
+        ("main-tag", F, pod_case(lambda p, c: c.update(image="registry.example/app:main"))),
+        ("init-latest", F, pod_case(lambda p, c: c.update(image="busybox:latest"), init=True)),
+        ("system-namespace", S, pod_case(lambda p, c: c.update(image="x:latest"), ns="kube-system")),
+    ],
+    "no-nodeport": [
+        ("cluster-ip", P, svc()),
+        ("explicit-cluster-ip", P, svc("ClusterIP")),
+        ("load-balancer", P, svc("LoadBalancer")),
+        ("node-port", F, svc("NodePort")),
+    ],
+    "storage-class-allowed": [
+        ("longhorn-fast", P, pvc("longhorn-fast")),
+        ("longhorn-bulk", P, pvc("longhorn-bulk")),
+        ("oci-bv", P, pvc("oci-bv")),
+        ("nfs-client", F, pvc("nfs-client")),
+        ("proxmox-csi", F, pvc("proxmox-csi")),
+        ("default-class-implicit", F, pvc()),
+    ],
+    "env-secret-via-secretkeyref": [
+        ("no-env", P, pod_case()),
+        ("env-null", P, pod_case(lambda p, c: c.update(env=None))),
+        ("secretkeyref", P, pod_case(env("DB_PASSWORD", **REF))),
+        ("plain-env", P, pod_case(env("LOG_LEVEL", value="debug"))),
+        ("password-file-path", P, pod_case(env("DB_PASSWORD_FILE", value="/run/secrets/db"))),
+        ("empty-value", P, pod_case(env("API_TOKEN", value=""))),
+        ("literal-password", F, pod_case(env("DB_PASSWORD", value="not-a-real-value"))),
+        ("literal-token", F, pod_case(env("API_TOKEN", value="not-a-real-value"))),
+        ("secret-named-numeric-value", F, pod_case(env("TOKEN_VALIDITY", value=3600))),
+        ("literal-client-secret", F, pod_case(env("OIDC_CLIENT_SECRET", value="not-a-real-value"))),
+        ("init-literal-password", F, pod_case(env("DB_PASSWORD", value="not-a-real-value"), init=True)),
+        ("system-namespace", S, pod_case(env("DB_PASSWORD", value="not-a-real-value"), ns="kube-system")),
+    ],
+}
+STATIC_RULES = {
+    "no-networkpolicy": [
+        ("standard-networkpolicy", F, {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy",
+                                       "metadata": {"name": "x", "namespace": "app"}, "spec": {"podSelector": {}}}),
+        ("system-namespace", S, {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy",
+                                 "metadata": {"name": "x", "namespace": "kube-system"}, "spec": {"podSelector": {}}}),
+    ],
+    "no-rendered-secret": [
+        ("literal-secret", F, {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "x", "namespace": "app"},
+                               "type": "Opaque", "stringData": {"k": "placeholder"}}),
+        ("system-namespace", S, {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "x", "namespace": "kube-system"},
+                                 "type": "Opaque", "stringData": {"k": "placeholder"}}),
+    ],
+    "externalsecret-contract": [
+        ("compliant", P, es()),
+        ("v1beta1", F, es(api="external-secrets.io/v1beta1")),
+        ("other-store", F, es(store="other-store")),
+        ("namespaced-secretstore", F, es(kind="SecretStore")),
+        ("refresh-720h", F, es(refresh="720h")),
+        ("refresh-missing", F, es(refresh=None)),
+    ],
+    "velero-fs-backup": [
+        ("fs-backup-true", P, schedule(True)),
+        ("fs-backup-false", F, schedule(False)),
+        ("fs-backup-missing", F, schedule(None)),
+    ],
+}
+
+
+def render(rule, cases, policy_file, prefix):
+    pol = f"{prefix}-{rule}"
+    res, results = [], []
+    for cid, expected, obj in cases:
+        o = copy.deepcopy(obj)
+        o["metadata"]["name"] = cid
+        res.append(o)
+        results.append({"policy": pol, "isValidatingPolicy": True, "kind": o["kind"], "resources": [cid], "result": expected})
+    test = {"apiVersion": "cli.kyverno.io/v1alpha1", "kind": "Test", "metadata": {"name": pol},
+            "policies": [policy_file], "resources": ["resources.yaml"], "results": results}
+    hdr = "# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.\n"
+    return {
+        "resources.yaml": hdr + yaml.safe_dump_all(res, sort_keys=True, allow_unicode=True),
+        "kyverno-test.yaml": hdr + yaml.safe_dump(test, sort_keys=True, allow_unicode=True),
+    }
+
+
+def main():
+    check = "--check" in sys.argv
+    stale = []
+    for table, pf, prefix in ((RULES, BASELINE, "platform-baseline"), (STATIC_RULES, STATIC, "repo-contract")):
+        for rule, cases in table.items():
+            got = {c[1] for c in cases}
+            assert F in got and (P in got or S in got), f"{rule}: il faut un cas fail et un cas pass ou skip"
+            d = os.path.join(HERE, rule)
+            for name, content in render(rule, cases, pf, prefix).items():
+                path = os.path.join(d, name)
+                if check:
+                    if not os.path.exists(path) or open(path, encoding="utf-8").read() != content:
+                        stale.append(path)
+                else:
+                    os.makedirs(d, exist_ok=True)
+                    open(path, "w", encoding="utf-8").write(content)
+    if stale:
+        print("Cas de test périmés (relancer gen-tests.py) :\n  " + "\n  ".join(stale), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

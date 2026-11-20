@@ -1,0 +1,46 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-drop-all-capabilities
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-drop-all-capabilities
+  resources:
+  - clean
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-drop-all-capabilities
+  resources:
+  - drop-other
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-drop-all-capabilities
+  resources:
+  - no-capabilities
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-drop-all-capabilities
+  resources:
+  - no-security-context
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-drop-all-capabilities
+  resources:
+  - init-no-drop
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-drop-all-capabilities
+  resources:
+  - system-namespace
+  result: skip

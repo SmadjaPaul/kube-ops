@@ -1,0 +1,16 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: standard-networkpolicy
+  namespace: app
+spec:
+  podSelector: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: system-namespace
+  namespace: kube-system
+spec:
+  podSelector: {}

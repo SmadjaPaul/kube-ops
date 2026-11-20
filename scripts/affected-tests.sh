@@ -114,8 +114,8 @@ while IFS= read -r root; do
   kustomize build --enable-helm "$root" >"$output"
   kubeconform -strict -summary -ignore-missing-schemas -kubernetes-version 1.36.0 <"$output"
 done < <(printf '%s\n' "${selected[@]}" | sort -u)
-if command -v kyverno >/dev/null 2>&1 && [[ -f k8s/infrastructure/security/policies/kyverno-policies.yaml ]]; then
-  echo "AFFECTED_KYVERNO=AVAILABLE policy_source=k8s/infrastructure/security/policies/kyverno-policies.yaml"
+if command -v kyverno >/dev/null 2>&1 && [[ -f k8s/infrastructure/security/policies/platform-baseline.yaml ]]; then
+  echo "AFFECTED_KYVERNO=AVAILABLE policy_source=k8s/infrastructure/security/policies/platform-baseline.yaml"
 else
   echo "AFFECTED_KYVERNO=NOT_RUN reason=kyverno_cli_unavailable_or_no_active_policy_tests"
 fi
