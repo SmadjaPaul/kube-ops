@@ -247,6 +247,7 @@ run_rt() { # run_rt NS [args]
 }
 rt_setup; run_rt good
 expect "runtime conforme" oidc PASS 0
+grep -q '^DEPLOY_HEALTH=PASS$' "$tmp/out" || fail "runtime conforme: DEPLOY_HEALTH=PASS absent"
 for id in exposure backup observability selfheal network; do
   grep -q "^CHECK $id PASS " "$tmp/out" || fail "runtime conforme: $id ($(grep "^CHECK $id " "$tmp/out"))"
 done
@@ -260,8 +261,10 @@ run_rt good; expect "backup de 40 h" backup FAIL 1
 rt_setup; jq '.data.result[0].value[1] = "0"' "$FAKE_DIR/up.json" | sponge_to "$FAKE_DIR/up.json"; run_rt good
 expect "cible up==0" observability FAIL 1
 rt_setup; jq '.items[0].status.conditions[0].status = "False"' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"; run_rt good; expect "pod non Ready" selfheal FAIL 1
+grep -q '^DEPLOY_HEALTH=FAIL$' "$tmp/out" || fail "pod non Ready: DEPLOY_HEALTH=FAIL absent"
 rt_setup unrestricted; run_rt good; expect "PSA non restricted" network FAIL 1
 rt_setup; rm "$FAKE_DIR/ns.json"; run_rt good; expect "namespace absent" selfheal FAIL 1
+grep -q '^DEPLOY_HEALTH=UNKNOWN$' "$tmp/out" || fail "aucun pod: DEPLOY_HEALTH doit etre UNKNOWN (pas de revert)"
 rt_setup; FAKE_FAIL=1 run_rt good; expect "cluster injoignable" selfheal BLOCKED 2
 rt_setup; jq '.items[0].spec.type = "NodePort"' "$FAKE_DIR/svc.json" | sponge_to "$FAKE_DIR/svc.json"; run_rt good; expect "Service NodePort runtime" exposure FAIL 1
 

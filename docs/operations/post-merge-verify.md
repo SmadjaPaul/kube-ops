@@ -1,11 +1,11 @@
 # Post-merge verification and automatic revert (PLT-390 lot 3)
 
-Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the production to be reconciled at that commit, run `just app-test APP NAMESPACE --phase runtime --cluster homelab`, and on `FAIL` open a `git revert` PR in auto-merge and notify through ntfy. Rules of revert come from PLT-141.
+Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the production to be reconciled at that commit, run `just app-test APP NAMESPACE --phase runtime --cluster homelab`, and, when the deployment itself is broken, open a `git revert` PR in auto-merge and notify through ntfy. Rules of revert come from PLT-141.
 
 ## Chain
 
 1. `scripts/post-merge-affected.sh SHA`: files of the commit to apps. `k8s/applications/<domain>/<app>/**` gives app `<app>`, Argo Application `apps-<domain>` (one Application per domain directory), namespace from the kustomization. Documentation is ignored. Everything else (domain-level files, `platform`, infrastructure, optional, policy, scripts, tests, workflows) is OTHER.
-2. `scripts/verify-revision.sh ARGO_APP SHA`: `status.sync.revision` contains the commit, `Synced`, `Healthy`, last operation not `Running`/`Failed`/`Error`. Evidence level RECONCILED. Timeout at most 600 s, then FAIL.
+2. `scripts/verify-revision.sh ARGO_APP SHA`: `status.sync.revision` contains the commit, `Synced`, `Healthy`, last operation not `Running`/`Failed`/`Error`. Evidence level RECONCILED. Timeout at most 600 s, then FAIL. The orchestrator passes `--allow-unhealthy`: it still waits for `Healthy`, but at the deadline a `Synced` Application whose last operation `Succeeded` at the commit proves the revision (`HEALTH=<status>` printed). Argo health is aggregate over the domain Application, so it does not gate the proof; a broken deploy (CrashLoop, bad image) reaches `app-test` runtime, whose FAIL leads to REVERT. A sync failure or a revision never reached stays NOT_PROVEN, hence NOTIFY.
 3. `just app-test` (lot 1): `CHECK ...` lines then `APP_TEST=PASS|FAIL|BLOCKED`. Evidence level RUNTIME.
 4. `scripts/lib/post-merge-decision.sh`: `NONE`, `NOTIFY`, `REVERT` or `ESCALATE`.
 5. `scripts/post-merge-revert.sh`: branch `claude/post-merge-revert-<sha12>`, PR labelled `post-merge-revert`, auto-merge squash, trailer `Post-merge-revert-of: <sha>`.
@@ -19,11 +19,14 @@ Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the pro
 | revision not proven in 10 min (any verdict) | NOTIFY, no revert |
 | `APP_TEST=PASS` | NONE |
 | `APP_TEST=BLOCKED` or recipe absent | NOTIFY, no revert |
-| `FAIL`, commit touches more than apps | ESCALATE, no revert |
-| `FAIL`, newer commit touches the same app | ESCALATE, no revert |
-| `FAIL`, a revert of this commit already exists | ESCALATE (one revert, then escalation) |
+| `FAIL` but `DEPLOY_HEALTH` is not `FAIL` (golden-path debt: oidc, network, backup, exposure, observability, renovate; or `selfheal` "aucun pod", no workload) | NOTIFY `golden_path_fail_no_revert`, failing check ids in the message, no revert |
+| `FAIL` with `DEPLOY_HEALTH=FAIL`, commit touches more than apps | ESCALATE, no revert |
+| `DEPLOY_HEALTH=FAIL`, newer commit touches the same app | ESCALATE, no revert |
+| `DEPLOY_HEALTH=FAIL`, a revert of this commit already exists | ESCALATE (one revert, then escalation) |
 | `FAIL` on a commit that is itself a revert | ESCALATE (never a revert of a revert) |
-| `FAIL`, otherwise | REVERT, plus `verify-migration` when the app has a PVC or a CNPG Cluster |
+| `DEPLOY_HEALTH=FAIL`, otherwise | REVERT, plus `verify-migration` when the app has a PVC or a CNPG Cluster |
+
+`DEPLOY_HEALTH=PASS|FAIL|UNKNOWN` is printed by `app-test` (runtime) from the `selfheal` check: `FAIL` only for pods not Ready or recent restarts (after exceptions and ratchet); `UNKNOWN` for no pod, scale to zero, BLOCKED. The runtime ratchet freezes only static debt, so the other checks cannot gate a revert. With several apps, one `FAIL` is enough.
 
 The revert restores manifests only. It does not restore data or undo a migration: the PR body and the ntfy message say so.
 
