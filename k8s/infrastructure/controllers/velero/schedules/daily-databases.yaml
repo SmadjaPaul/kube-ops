@@ -1,0 +1,43 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-databases
+  namespace: velero
+  labels:
+    backup-tier: daily
+    backup-app: databases
+spec:
+  schedule: "5 5 * * *"
+  template:
+    includedNamespaces:
+      - databases
+    # Kubernetes-resources-only backup: Secrets, ConfigMaps, ExternalSecrets,
+    # Cluster / ScheduledBackup / ObjectStore CRs and network policies.
+    # PostgreSQL DATA is NOT backed up by Velero: CNPG/Barman (WAL + base
+    # backups on R2) is the single source of truth for pg-shared-homelab.
+    # A Kopia copy of a live PGDATA is neither consistent nor needed, so:
+    #  - no fs-backup, no CSI/native snapshot (defaultVolumesToFsBackup and
+    #    snapshotVolumes are both false),
+    #  - pods, PVCs and PVs are excluded from the resource list,
+    #  - anything labelled cnpg.io/cluster (pods, PVCs, operator-generated
+    #    Secrets) is filtered out; those are rebuilt by CNPG.
+    # Backup CRs are excluded: they are runtime history, not configuration.
+    labelSelector:
+      matchExpressions:
+        - key: cnpg.io/cluster
+          operator: DoesNotExist
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+      - pods
+      - persistentvolumeclaims
+      - persistentvolumes
+      - volumesnapshots.snapshot.storage.k8s.io
+      - volumesnapshotcontents.snapshot.storage.k8s.io
+      - backups.postgresql.cnpg.io
+    snapshotVolumes: false
+    defaultVolumesToFsBackup: false
+    storageLocation: r2
+    ttl: 336h
