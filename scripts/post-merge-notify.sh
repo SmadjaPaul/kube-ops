@@ -28,6 +28,14 @@ if [[ -z ${NTFY_PUBLISH_URL:-} ]]; then
   fi
   echo "NOTIFY=BLOCKED reason=no_ntfy_url"; exit 2
 fi
+# The Alertmanager URL may carry a query (e.g. ?template=alertmanager, which expects Alertmanager JSON):
+# publish plain text to the bare topic URL.
+NTFY_PUBLISH_URL=${NTFY_PUBLISH_URL%%\?*}
 # URL through a curl config on stdin: not in the process arguments.
-printf 'url = "%s"\n' "$NTFY_PUBLISH_URL" | curl -fsS --max-time 20 -K - -H "Title: $title" -H "Priority: $prio" -H "Tags: rotating_light" -d "$msg" >/dev/null \
-  && echo "NOTIFY=SENT" || { echo "NOTIFY=BLOCKED reason=ntfy_refused"; exit 2; }
+resp=$(mktemp "${TMPDIR:-/tmp}/ntfy.XXXXXX"); trap 'rm -f "$resp"' EXIT
+code=$(printf 'url = "%s"\n' "$NTFY_PUBLISH_URL" | curl -sS --max-time 20 -K - -o "$resp" -w '%{http_code}' \
+  -H "Title: $title" -H "Priority: $prio" -H "Tags: rotating_light" -d "$msg" 2>/dev/null) || code=000
+if [[ $code == 2?? ]]; then echo "NOTIFY=SENT"; else
+  # ntfy error body is JSON ({"code":..,"error":..}); it never contains the topic URL.
+  echo "NOTIFY=BLOCKED reason=ntfy_refused http=$code error=$(jq -r '.error // empty' "$resp" 2>/dev/null | cut -c1-120)"; exit 2
+fi

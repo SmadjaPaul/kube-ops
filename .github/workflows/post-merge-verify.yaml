@@ -19,6 +19,12 @@ on:
     branches: [main]
     paths:
       - 'k8s/applications/**'
+  # Drill / diagnosis on main code only: always --dry-run (no revert PR, no ntfy).
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Merge commit to verify (dry-run)'
+        required: true
 
 permissions:
   contents: read
@@ -46,14 +52,20 @@ jobs:
         id: verify
         env:
           KUBECTL_RO_IN_CLUSTER: "1"
+          INPUT_SHA: ${{ inputs.sha }}
         run: |
           set -uo pipefail
           bash scripts/ci-install-tools.sh || { echo "::error::tool install failed: POST_MERGE=BLOCKED"; echo "decision=NOTIFY" >>"$GITHUB_OUTPUT"; echo "reason=tool_install_failed" >>"$GITHUB_OUTPUT"; exit 0; }
           export PATH="$HOME/.local/bin:$PATH"
-          bash scripts/post-merge-verify.sh "$GITHUB_SHA" --timeout 600 || true
+          if [[ $GITHUB_EVENT_NAME == workflow_dispatch ]]; then
+            git cat-file -e "${INPUT_SHA}^{commit}" || { echo "::error::unknown sha"; exit 1; }
+            bash scripts/post-merge-verify.sh --dry-run "$INPUT_SHA" --timeout 600 || true
+          else
+            bash scripts/post-merge-verify.sh "$GITHUB_SHA" --timeout 600 || true
+          fi
   revert:
     needs: verify
-    if: ${{ needs.verify.outputs.decision == 'REVERT' }}
+    if: ${{ github.event_name == 'push' && needs.verify.outputs.decision == 'REVERT' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -90,7 +102,7 @@ jobs:
           echo "pr=$(sed -n 's/^REVERT_PR=//p' <<<"$out")" >>"$GITHUB_OUTPUT"
   announce:
     needs: [verify, revert]
-    if: ${{ always() && needs.verify.outputs.decision == 'REVERT' }}
+    if: ${{ always() && github.event_name == 'push' && needs.verify.outputs.decision == 'REVERT' }}
     runs-on: kube-ops-ci-arc
     timeout-minutes: 5
     steps:
