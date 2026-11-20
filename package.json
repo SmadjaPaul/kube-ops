@@ -7,6 +7,7 @@
     "check:backup-contract": "bash scripts/backup-static-contract.sh",
     "check:gatekeeper-contract": "bash tests/harness/gatekeeper-audit-values-test.sh",
     "check": "node scripts/run-checks-parallel.mjs check:documentation check:service-contract check:service-contract-selftest check:golden-path check:catalog check:v1-contract check:backup-contract check:gatekeeper-contract check:agent-harness check:alerting-stage check:argocd-roots check:paperclip-retirement-stage check:inventory-graph check:resource-efficiency check:policy check:policy-tests",
+    "check:local": "node scripts/run-checks-parallel.mjs --first check:service-contract-selftest,check:golden-path,check:v1-contract,check:service-contract,check:agent-harness,check:backup-contract,tests/agent-guard/secret-output-guard-test.sh,check:catalog --bash-list scripts/check-bash-tests.list check:documentation check:service-contract check:service-contract-selftest check:golden-path check:catalog check:v1-contract check:backup-contract check:gatekeeper-contract check:agent-harness check:alerting-stage check:argocd-roots check:paperclip-retirement-stage check:inventory-graph check:resource-efficiency check:policy check:policy-tests",
     "check:service-contract": "python3 -I tests/harness/service-contract-guard.py --base origin/main",
     "check:golden-path": "bash tests/harness/service-postgres-oidc-template-test.sh",
     "check:catalog": "bash tests/harness/catalog-generated-fresh-test.sh",

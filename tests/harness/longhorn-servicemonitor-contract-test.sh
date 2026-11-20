@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 longhorn_root="$repo_root/k8s/infrastructure/storage/longhorn"
 
-rendered="$(kustomize build --enable-helm "$longhorn_root")"
+rendered="$(cd "$repo_root" && cat "$(bash scripts/lib/render-cache.sh render k8s/infrastructure/storage/longhorn)")" # rendu partage (cache)
 
 printf '%s\n' "$rendered" |
   yq -e '

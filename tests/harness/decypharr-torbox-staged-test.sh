@@ -6,7 +6,7 @@ pol="k8s/infrastructure/network/policies/applications/media/media"
 if grep -Fxq -- '- decypharr' "$media"; then echo 'DECYPHARR_RETIRED=FAIL: forbidden match at line 6' >&2; exit 1; fi
 if grep -Fxq -- '- allow-arr-to-decypharr.yaml' "$pol/kustomization.yaml"; then echo 'DECYPHARR_RETIRED=FAIL: forbidden match at line 7' >&2; exit 1; fi
 if grep -Eq '^[[:space:]]*-[[:space:]]*qbittorrent([[:space:]]|$)' "$media"; then echo 'DECYPHARR_RETIRED=FAIL: forbidden match at line 8' >&2; exit 1; fi
-rendered="$(kustomize build --enable-helm k8s/applications/media)"
+rendered="$(cat "$(bash scripts/lib/render-cache.sh render k8s/applications/media)")" # rendu partage (cache invalide a tout changement de k8s/)
 if grep -Eq '^[[:space:]]+name: decypharr$' <<<"$rendered"; then echo 'DECYPHARR_RETIRED=FAIL: decypharr still rendered' >&2; exit 1; fi
 grep -Fxq -- '- bookorbit' "$media"
 grep -Fxq -- '- aiostreams' "$media"

@@ -57,23 +57,20 @@ else
   IFS=',' read -r -a roots <<<"$requested"
 fi
 
-# Rendu en parallele (chaque racine dans son fichier) ; un echec de rendu echoue l'etape.
-render() { kustomize build --enable-helm "$1" >"$2" 2>"$2.err" || { echo "POLICY_CHECK=FAIL render_failed root=$1" >&2; tail -5 "$2.err" >&2; return 1; }; }
-pids=()
-i=0
+# Rendu partage et parallele (scripts/lib/render-cache.sh, meme cache que v1-contract et
+# backup-contract) ; un echec de rendu echoue l'etape.
 for root in "${roots[@]}"; do
   [[ -f "$root/kustomization.yaml" || -f "$root/kustomization.yml" ]] || { echo "POLICY_CHECK=FAIL no_kustomization root=$root" >&2; exit 1; }
-  render "$root" "$work/$i.yaml" &
-  pids+=($!)
-  i=$((i + 1))
-  while (($(jobs -rp | wc -l) >= 6)); do sleep 0.2; done
 done
-rc=0
-for p in "${pids[@]}"; do wait "$p" || rc=1; done
-((rc == 0)) || exit 1
+bash scripts/lib/render-cache.sh prerender "${roots[@]}" || { echo "POLICY_CHECK=FAIL render_failed" >&2; exit 1; }
+files=()
+for root in "${roots[@]}"; do
+  files+=("$(bash scripts/lib/render-cache.sh render "$root")") || { echo "POLICY_CHECK=FAIL render_failed root=$root" >&2; exit 1; }
+done
+i=${#files[@]}
 
 args=()
-for ((j = 0; j < i; j++)); do args+=(--resource "$work/$j.yaml"); done
+for ((j = 0; j < i; j++)); do args+=(--resource "${files[j]}"); done
 ctx=()
 [[ -n "${KYVERNO_CONTEXT_FILE:-}" ]] && ctx=(--context-file "$KYVERNO_CONTEXT_FILE")
 # kyverno sort en 0 meme avec des violations (pas de --audit-warn) ; on lit le resultat sur stdout.
@@ -97,10 +94,10 @@ if [[ $requested == all ]]; then
   need yq
   sys_ns='gatekeeper-system|kube-node-lease|kube-public|kube-system|kubearmor|kyverno|monitoring|security-system'
   for ((j = 0; j < i; j++)); do
-    yq eval-all 'select(.kind == "Deployment" or .kind == "StatefulSet" or .kind == "DaemonSet" or .kind == "CronJob") | .metadata.namespace' "$work/$j.yaml"
+    yq eval-all 'select(.kind == "Deployment" or .kind == "StatefulSet" or .kind == "DaemonSet" or .kind == "CronJob") | .metadata.namespace' "${files[j]}"
   done | grep -vE '^(---|null)$|^$' | grep -vE "^($sys_ns)$" | sort -u >"$work/ns-workloads.txt"
   for ((j = 0; j < i; j++)); do
-    yq eval-all 'select(.kind == "CiliumNetworkPolicy") | .metadata.namespace' "$work/$j.yaml"
+    yq eval-all 'select(.kind == "CiliumNetworkPolicy") | .metadata.namespace' "${files[j]}"
   done | grep -vE '^(---|null)$|^$' | sort -u >"$work/ns-cnp.txt"
   comm -23 "$work/ns-workloads.txt" "$work/ns-cnp.txt" | sed 's/.*/repo-contract-cnp-per-namespace\t&/' >>"$work/current.tsv"
   sort -u -o "$work/current.tsv" "$work/current.tsv"

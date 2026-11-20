@@ -25,8 +25,10 @@ roots=(
   k8s/applications/games
   k8s/infrastructure/controllers
 )
+# Rendu partage et parallele (scripts/lib/render-cache.sh)
+bash scripts/lib/render-cache.sh prerender "${roots[@]}"
 for root in "${roots[@]}"; do
-  kustomize build --enable-helm "$root" >>"$rendered"
+  cat "$(bash scripts/lib/render-cache.sh render "$root")" >>"$rendered"
   printf '\n---\n' >>"$rendered"
 done
 
