@@ -68,8 +68,8 @@ for l in "${app_lines[@]:-}"; do
   [[ -n $l ]] || continue
   app=$(sed -n 's/.* name=\([^ ]*\).*/\1/p' <<<"$l"); ns=$(sed -n 's/.* namespace=\([^ ]*\).*/\1/p' <<<"$l"); argo=$(sed -n 's/.* argo=\([^ ]*\).*/\1/p' <<<"$l")
   # shellcheck disable=SC2086
-  rev_out=$($VREV "$argo" "$sha" --cluster "$cluster" --timeout "$timeout" 2>&1); rev_rc=$?
-  echo "CHECK revision app=$app argo=$argo $(grep -E '^(ARGO|REVISION|LAST_ERROR)=' <<<"$rev_out" | tr '\n' ' ')"
+  rev_out=$($VREV "$argo" "$sha" --cluster "$cluster" --timeout "$timeout" --allow-unhealthy 2>&1); rev_rc=$?
+  echo "CHECK revision app=$app argo=$argo $(grep -E '^(ARGO|HEALTH|REVISION|LAST_ERROR)=' <<<"$rev_out" | tr '\n' ' ')"
   if (( rev_rc != 0 )); then PM_REVISION=NOT_PROVEN; continue; fi
   if ! "$JUST" --summary 2>/dev/null | tr ' ' '\n' | grep -qx 'app-test'; then
     echo "CHECK app-test app=$app APP_TEST=BLOCKED reason=just_app_test_recipe_absent"; any_block=1; continue

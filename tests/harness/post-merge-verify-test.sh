@@ -32,7 +32,9 @@ exit 0
 SH
 cat >"$tmp/bin/vrev" <<'SH'
 #!/usr/bin/env bash
-if [[ ${FX_REV:-ok} == ok ]]; then echo "ARGO=Synced/Healthy"; echo "REVISION=PROVEN"; echo "VERIFY_REVISION=PASS"; else echo "REVISION=NOT_PROVEN"; echo "LAST_ERROR=timeout"; exit 1; fi
+echo "$*" >>"${FX_VREV_LOG:-/dev/null}"
+if [[ ${FX_REV:-ok} == degraded ]]; then echo "ARGO=Synced/Degraded"; echo "HEALTH=Degraded"; echo "REVISION=PROVEN"; echo "VERIFY_REVISION=PASS"
+elif [[ ${FX_REV:-ok} == ok ]]; then echo "ARGO=Synced/Healthy"; echo "REVISION=PROVEN"; echo "VERIFY_REVISION=PASS"; else echo "REVISION=NOT_PROVEN"; echo "LAST_ERROR=timeout"; exit 1; fi
 SH
 chmod +x "$tmp/bin"/*
 run() { # want_exit args...
@@ -68,6 +70,10 @@ FX_REV=timeout FX_APPTEST=FAIL run 0 --dry-run "$pass_sha"; expect "revision_not
 FX_PR_EXISTS=1 FX_APPTEST=FAIL run 1 --dry-run "$pass_sha"; expect "DECISION=ESCALATE"; expect "already_reverted"; refute "DRY_RUN git switch"
 FX_APPTEST=FAIL run 1 --dry-run "$s4";        expect "DECISION=ESCALATE"; expect "more_than_apps"     # app + infra: no revert
 FX_APPTEST=FAIL run 1 --dry-run "$s2";        expect "DECISION=REVERT"; expect "stateful=yes"; expect "verify-migration"   # PVC: warning
+# Synced at the commit but Degraded: verify-revision (called with --allow-unhealthy) proves the revision, app-test judges.
+FX_VREV_LOG="$tmp/vrev.log" FX_REV=degraded FX_APPTEST=FAIL run 1 --dry-run "$pass_sha"; expect "DECISION=REVERT"; expect "HEALTH=Degraded"; expect "revision=PROVEN"
+grep -q -- '--allow-unhealthy' "$tmp/vrev.log" || { echo "FAIL: verify-revision not called with --allow-unhealthy"; exit 1; }
+FX_REV=degraded FX_APPTEST=PASS run 0 --dry-run "$pass_sha"; expect "DECISION=NONE"
 echo w >>k8s/applications/tools/it-tools/d.yaml; commit "fix(tools): newer" >/dev/null
 FX_APPTEST=FAIL run 1 --dry-run "$pass_sha";  expect "newer_commit_touches_same_app"; expect "DECISION=ESCALATE"; refute "DRY_RUN git switch"
 FX_APPTEST=FAIL run 0 --dry-run "$s3";        expect "no_app_touched"   # platform-only commit: not an app, nothing to revert

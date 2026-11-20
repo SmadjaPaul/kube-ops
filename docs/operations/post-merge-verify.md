@@ -5,7 +5,7 @@ Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the pro
 ## Chain
 
 1. `scripts/post-merge-affected.sh SHA`: files of the commit to apps. `k8s/applications/<domain>/<app>/**` gives app `<app>`, Argo Application `apps-<domain>` (one Application per domain directory), namespace from the kustomization. Documentation is ignored. Everything else (domain-level files, `platform`, infrastructure, optional, policy, scripts, tests, workflows) is OTHER.
-2. `scripts/verify-revision.sh ARGO_APP SHA`: `status.sync.revision` contains the commit, `Synced`, `Healthy`, last operation not `Running`/`Failed`/`Error`. Evidence level RECONCILED. Timeout at most 600 s, then FAIL.
+2. `scripts/verify-revision.sh ARGO_APP SHA`: `status.sync.revision` contains the commit, `Synced`, `Healthy`, last operation not `Running`/`Failed`/`Error`. Evidence level RECONCILED. Timeout at most 600 s, then FAIL. The orchestrator passes `--allow-unhealthy`: it still waits for `Healthy`, but at the deadline a `Synced` Application whose last operation `Succeeded` at the commit proves the revision (`HEALTH=<status>` printed). Argo health is aggregate over the domain Application, so it does not gate the proof; a broken deploy (CrashLoop, bad image) reaches `app-test` runtime, whose FAIL leads to REVERT. A sync failure or a revision never reached stays NOT_PROVEN, hence NOTIFY.
 3. `just app-test` (lot 1): `CHECK ...` lines then `APP_TEST=PASS|FAIL|BLOCKED`. Evidence level RUNTIME.
 4. `scripts/lib/post-merge-decision.sh`: `NONE`, `NOTIFY`, `REVERT` or `ESCALATE`.
 5. `scripts/post-merge-revert.sh`: branch `claude/post-merge-revert-<sha12>`, PR labelled `post-merge-revert`, auto-merge squash, trailer `Post-merge-revert-of: <sha>`.
