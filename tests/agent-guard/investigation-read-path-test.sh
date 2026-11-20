@@ -78,14 +78,58 @@ grep -q 'argocd_app_info{name=~"(apps-|infra-)?media"}' <<<"$argo_query" &&
   ok "observe app : requête Argo apps-/infra-/nom nu" || ko "observe app : requête Argo inattendue : $argo_query"
 ! grep -q 'argocd_app_info{name="media"}' <<<"$argo_query" && ok "observe app : plus de nom exact" || ko "observe app : nom exact"
 
-# plus d'appel direct à kubectl en lecture dans les scripts d'investigation
-for f in scripts/status-app.sh scripts/diagnose-app.sh scripts/observe.sh scripts/lib/argo-app.sh scripts/lib/kube-read.sh; do
+# investigate.sh : point d'entrée unique, faux kubectl-ro.sh + faux observe
+cat >"$tmp/observe.sh" <<'SH'
+#!/usr/bin/env bash
+echo "OBSERVE $*" >>"${FAKE_LOG:?}"
+[ "${OBSERVE_FAIL:-}" = 1 ] && { echo "observe: token absent" >&2; exit 2; }
+echo "  homelab pods_running=1"
+SH
+run_inv() { PATH="$tmp/bin:$PATH" KUBECTL_RO_SCRIPT="$tmp/kubectl-ro.sh" OBSERVE_SCRIPT="$tmp/observe.sh" "$@"; }
+: >"$FAKE_LOG"
+inv=$(run_inv bash scripts/investigate.sh app media 2>"$tmp/inv.err") || ko "investigate app a échoué : $(cat "$tmp/inv.err")"
+for marker in '=== ARGO ===' '=== WORKLOADS ===' '=== METRICS ===' 'pods_running=1' 'ARGO=Synced/Healthy' 'VERIFY=PASS' 'EVIDENCE_SCOPE=RUNTIME'; do
+  grep -qF "$marker" <<<"$inv" && ok "investigate : $marker" || ko "investigate : $marker absent"
+done
+[ "$(grep -c '^VERIFY=' <<<"$inv")" = 1 ] && ok "investigate : un seul VERIFY=" || ko "investigate : VERIFY= multiple"
+ev=$(sed -n 's/^EVIDENCE=//p' <<<"$inv")
+[ -s "$ev" ] && [ "$(stat -f %Lp "$ev" 2>/dev/null || stat -c %a "$ev")" = 600 ] && ok "investigate : EVIDENCE privé 0600" || ko "investigate : EVIDENCE absent ou non 0600"
+grep -q '^OBSERVE app media$' "$FAKE_LOG" && ok "investigate : observe app media appelé" || ko "investigate : observe non appelé"
+! grep -q DIRECT_KUBECTL "$FAKE_LOG" && ok "investigate : aucun kubectl direct" || ko "investigate : kubectl direct"
+# métriques indisponibles : non bloquant
+inv2=$(OBSERVE_FAIL=1 run_inv bash scripts/investigate.sh app apps-media 2>/dev/null) && ok "investigate : métriques absentes sans échec" || ko "investigate : métriques absentes font échouer"
+grep -q 'METRICS=UNAVAILABLE' <<<"$inv2" && grep -q '^VERIFY=PASS$' <<<"$inv2" && ok "investigate : METRICS=UNAVAILABLE, VERIFY inchangé" || ko "investigate : METRICS=UNAVAILABLE absent"
+# cluster : transmis à kubectl-ro.sh
+: >"$FAKE_LOG"
+run_inv bash scripts/investigate.sh app media --cluster oracle-a1 >/dev/null 2>&1 || true
+grep -q '^RO --cluster oracle-a1 get ' "$FAKE_LOG" && ok "investigate : --cluster transmis" || ko "investigate : --cluster non transmis"
+! run_inv bash scripts/investigate.sh app media --cluster nope >/dev/null 2>&1 && ok "investigate : cluster inconnu refusé" || ko "investigate : cluster inconnu accepté"
+! run_inv bash scripts/investigate.sh app nope >/dev/null 2>&1 && ok "investigate : application inconnue -> échec" || ko "investigate : application inconnue acceptée"
+! run_inv bash scripts/investigate.sh pods media >/dev/null 2>&1 && ok "investigate : sous-commande inconnue refusée" || ko "investigate : sous-commande inconnue acceptée"
+
+# Garde : aucun script d'investigation n'appelle kubectl directement (lecture via kubectl-ro.sh).
+# Exception documentée : .agents/skills/cilium-hubble/scripts/hubble-check.sh ouvre un
+# `kubectl port-forward` (verbe hors liste blanche de kubectl-ro.sh, ne lit aucune ressource).
+INVESTIGATION_SCRIPTS=(
+  scripts/investigate.sh scripts/status-app.sh scripts/diagnose-app.sh scripts/observe.sh
+  scripts/runtime-inventory.sh scripts/runtime-smoke.sh scripts/cluster-reality.sh scripts/backup-audit.sh
+  scripts/lib/argo-app.sh scripts/lib/kube-read.sh
+)
+for f in "${INVESTIGATION_SCRIPTS[@]}"; do
   if grep -nE '(^|[^-/.[:alnum:]_])kubectl( |$)' "$f" | grep -vE '^[0-9]+:\s*#' | grep -q .; then
     ko "$f appelle kubectl directement"
   else
     ok "$f : lecture par kubectl-ro.sh seulement"
   fi
+  grep -q 'kube-preflight.sh' "$f" && ko "$f source kube-preflight.sh (le préflight appartient à kubectl-ro.sh)" || true
 done
+# hubble-check : seule exception, et seulement pour port-forward
+hc_direct=$(grep -nE '(^|[^-/.[:alnum:]_])kubectl( |$)' .agents/skills/cilium-hubble/scripts/hubble-check.sh | grep -vE '^[0-9]+:\s*#|command -v' || true)
+if [ -n "$hc_direct" ] && ! grep -v 'port-forward' <<<"$hc_direct" | grep -q .; then
+  ok "hubble-check : kubectl limité à port-forward"
+else
+  ko "hubble-check : appel kubectl autre que port-forward : $hc_direct"
+fi
 
 # hubble-check : préflight obligatoire
 hc=.agents/skills/cilium-hubble/scripts/hubble-check.sh

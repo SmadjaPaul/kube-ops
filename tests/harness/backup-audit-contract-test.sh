@@ -15,8 +15,9 @@ recovery_label_dir="$(mktemp -d)"
 stale_evidence_dir="$(mktemp -d)"
 policy_dir="$(mktemp -d)"
 stale_policy_dir="$(mktemp -d)"
+internal_dir="$(mktemp -d)"
 tmp_json="$longhorn_dir/mutation.tmp.json"
-trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$selector_dir" "$fsb_dir" "$shared_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
+trap 'rm -f "$output"; rm -rf "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$selector_dir" "$fsb_dir" "$shared_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir" "$internal_dir"' EXIT
 
 qualification_evidence="$repo_root/docs/operations/dr-restore-evidence-2026-10-20.json"
 jq -e '
@@ -312,6 +313,51 @@ BACKUP_AUDIT_INPUT_DIR="$stale_policy_dir" BACKUP_AUDIT_REPORT_FILE="$stale_poli
 jq -e '[.productionPVCs[] | select(.namespace == "mastra-sandbox" and .name == "workspace-sandbox-claim-05473af3")][0] | .policyMatched == false and .recoveryStatus == "UNPROTECTED"' \
   "$stale_policy_report" >/dev/null
 
+# Internal-secret namespaces (auth, databases): the Authentik Redis PVC must
+# stay covered by the Velero schedule selector, while CNPG PVCs (label
+# cnpg.io/cluster) must NOT be claimed by Velero. If either schedule loses its
+# namespace the Redis PVC turns unscheduled and the audit fails.
+cp -R "$fixture_dir/." "$internal_dir/"
+jq '.items += [
+  {"metadata":{"namespace":"auth","name":"redis-data","labels":{}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-auth-redis"},"status":{"phase":"Bound"}},
+  {"metadata":{"namespace":"databases","name":"pg-shared-homelab-1","labels":{"cnpg.io/cluster":"pg-shared-homelab"}},"spec":{"storageClassName":"longhorn-fast","volumeName":"pv-db-pg"},"status":{"phase":"Bound"}}
+]' "$internal_dir/pvc.json" >"$tmp_json"
+mv "$tmp_json" "$internal_dir/pvc.json"
+jq '.items += [
+  {"metadata":{"name":"pv-auth-redis"},"spec":{"claimRef":{"namespace":"auth","name":"redis-data"}},"status":{"phase":"Bound"}},
+  {"metadata":{"name":"pv-db-pg"},"spec":{"claimRef":{"namespace":"databases","name":"pg-shared-homelab-1"}},"status":{"phase":"Bound"}}
+]' "$internal_dir/pv.json" >"$tmp_json"
+mv "$tmp_json" "$internal_dir/pv.json"
+jq '.items += [
+  {"metadata":{"namespace":"auth","name":"redis-pod","labels":{}},"spec":{"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"redis-data"}}]}},
+  {"metadata":{"namespace":"databases","name":"pg-shared-homelab-1","labels":{"cnpg.io/cluster":"pg-shared-homelab"}},"spec":{"volumes":[{"name":"pgdata","persistentVolumeClaim":{"claimName":"pg-shared-homelab-1"}}]}}
+]' "$internal_dir/pods.json" >"$tmp_json"
+mv "$tmp_json" "$internal_dir/pods.json"
+# Schedules mirror k8s/infrastructure/controllers/velero/schedules/daily-{auth,databases}.yaml.
+yq -o=json '[{"metadata":{"namespace":"velero","name":.metadata.name},"spec":{"template":.spec.template}}]' \
+  "$repo_root/k8s/infrastructure/controllers/velero/schedules/daily-auth.yaml" >"$internal_dir/auth-schedule.json"
+yq -o=json '[{"metadata":{"namespace":"velero","name":.metadata.name},"spec":{"template":.spec.template}}]' \
+  "$repo_root/k8s/infrastructure/controllers/velero/schedules/daily-databases.yaml" >"$internal_dir/db-schedule.json"
+jq --slurpfile a "$internal_dir/auth-schedule.json" --slurpfile d "$internal_dir/db-schedule.json" \
+  '.items += $a[0] + $d[0]' "$internal_dir/schedules.json" >"$tmp_json"
+mv "$tmp_json" "$internal_dir/schedules.json"
+rm -f "$internal_dir/auth-schedule.json" "$internal_dir/db-schedule.json"
+internal_report="$internal_dir/report.json"
+BACKUP_AUDIT_INPUT_DIR="$internal_dir" BACKUP_AUDIT_REPORT_FILE="$internal_report" \
+  bash "$repo_root/scripts/backup-audit.sh" >"$output" || true
+jq -e '[.productionPVCs[] | select(.namespace == "auth" and .name == "redis-data")][0] | .scheduled == true' \
+  "$internal_report" >/dev/null
+jq -e '[.productionPVCs[] | select(.namespace == "databases")] | length == 0' "$internal_report" >/dev/null
+jq -e '[.pvc[] | select(.namespace == "databases" and .name == "pg-shared-homelab-1")][0] | .scheduled == false' \
+  "$internal_report" >/dev/null
+# Negative: dropping the auth schedule must unschedule the Redis PVC.
+jq '.items |= map(select(.metadata.name != "velero-daily-auth"))' "$internal_dir/schedules.json" >"$tmp_json"
+mv "$tmp_json" "$internal_dir/schedules.json"
+BACKUP_AUDIT_INPUT_DIR="$internal_dir" BACKUP_AUDIT_REPORT_FILE="$internal_report" \
+  bash "$repo_root/scripts/backup-audit.sh" >"$output" || true
+jq -e '[.productionPVCs[] | select(.namespace == "auth" and .name == "redis-data")][0] | .scheduled == false' \
+  "$internal_report" >/dev/null
+
 cp -R "$fixture_dir/." "$negative_dir/"
 tmp_json="$negative_dir/pvbs.tmp.json"
 jq '.items=[]' "$negative_dir/pvbs.json" >"$tmp_json"
@@ -334,5 +380,44 @@ set -e
 (( failed_cnpg_rc != 0 ))
 grep -F 'CNPG_BACKUP_CONFIGURATION=FAIL' "$output" >/dev/null
 grep -F 'BACKUP_AUDIT_LEGACY_GAPS=3' "$output" >/dev/null
+
+# Live collection: every read goes through an injected fake kubectl-ro.sh (no direct kubectl).
+live_dir="$(mktemp -d)"
+trap 'rm -f "$output"; rm -rf "$live_dir" "$positive_dir" "$negative_dir" "$cnpg_negative_dir" "$longhorn_dir" "$selector_dir" "$fsb_dir" "$shared_dir" "$recovery_label_dir" "$stale_evidence_dir" "$policy_dir" "$stale_policy_dir"' EXIT
+mkdir -p "$live_dir/bin"
+cat >"$live_dir/bin/kubectl" <<'SH'
+#!/usr/bin/env bash
+echo "DIRECT_KUBECTL $*" >&2
+exit 99
+SH
+cat >"$live_dir/kubectl-ro.sh" <<'SH'
+#!/usr/bin/env bash
+echo "$*" >>"${LIVE_RO_LOG:?}"
+[[ "$1" == get && "${*: -2}" == "-o json" ]] || { echo "unexpected: $*" >&2; exit 1; }
+case "$2" in
+  pvc) f=pvc ;; pv) f=pv ;; pods) f=pods ;;
+  schedules.velero.io) f=schedules ;; backups.velero.io) f=backups ;;
+  restores.velero.io) f=restores ;; podvolumebackups.velero.io) f=pvbs ;;
+  clusters.postgresql.cnpg.io) f=cnpg ;; backups.postgresql.cnpg.io) f=cnpg-backups ;;
+  scheduledbackups.postgresql.cnpg.io) f=cnpg-scheduled-backups ;;
+  objectstores.barmancloud.cnpg.io) f=objectstores ;;
+  volumes.longhorn.io) f=longhorn-volumes ;; backups.longhorn.io) f=longhorn-backups ;;
+  recurringjobs.longhorn.io) f=longhorn-recurringjobs ;;
+  *) echo "unexpected resource: $2" >&2; exit 1 ;;
+esac
+[[ "$f" == "${LIVE_RO_FAIL:-}" ]] && { echo "forbidden" >&2; exit 1; }
+cat "$LIVE_FIXTURES/$f.json"
+SH
+chmod +x "$live_dir/bin/kubectl" "$live_dir/kubectl-ro.sh"
+: >"$live_dir/ro.log"
+PATH="$live_dir/bin:$PATH" KUBECTL_RO_SCRIPT="$live_dir/kubectl-ro.sh" LIVE_RO_LOG="$live_dir/ro.log" \
+  LIVE_FIXTURES="$fixture_dir" bash "$repo_root/scripts/backup-audit.sh" >"$output" 2>&1 || true
+[[ "$(wc -l <"$live_dir/ro.log")" -eq 14 ]]
+grep -F 'BACKUP_AUDIT_STATUS=COMPLETE' "$output" >/dev/null
+grep -F 'CNPG_BACKUP_CONFIGURATION=PASS (1/1)' "$output" >/dev/null
+if grep -F 'forbidden' "$output" >/dev/null; then exit 1; fi
+PATH="$live_dir/bin:$PATH" KUBECTL_RO_SCRIPT="$live_dir/kubectl-ro.sh" LIVE_RO_LOG="$live_dir/ro.log" \
+  LIVE_FIXTURES="$fixture_dir" LIVE_RO_FAIL=pvc bash "$repo_root/scripts/backup-audit.sh" >"$output" 2>&1 || true
+grep -F 'BACKUP_AUDIT_STATUS=PARTIAL' "$output" >/dev/null
 
 echo "backup-audit contract: PASS"

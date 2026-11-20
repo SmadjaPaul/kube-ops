@@ -34,3 +34,9 @@ resources:
   - daily-sparkyfitness.yaml
   # PLT-315: Fleet MySQL (logical dump by pre-backup hook).
   - daily-fleet.yaml
+  # Namespaces holding internal secrets that are rebuilt from Git/Doppler today
+  # and must stay restorable once they become native Secrets.
+  # auth: Authentik Secrets + Redis volume, PostgreSQL left to CNPG/Barman.
+  - daily-auth.yaml
+  # databases: Kubernetes resources only (no PG volumes; Barman covers data).
+  - daily-databases.yaml
