@@ -1,0 +1,9 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata: {name: applications, namespace: argocd}
+spec:
+  destinations:
+    - {namespace: '', server: https://kubernetes.default.svc}
+    - {namespace: argocd, server: https://kubernetes.default.svc}
+    - {namespace: arc-runners, server: https://kubernetes.default.svc}
+    - {namespace: arc-runners-kube-ops, server: https://kubernetes.default.svc}

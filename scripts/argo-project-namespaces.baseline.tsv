@@ -1,0 +1,3 @@
+# Ecarts connus (PR d'introduction du controle), a corriger puis a retirer d'ici. projet<TAB>namespace<TAB>raison
+infrastructure	kubearmor	Namespace rendu par k8s/infrastructure/security (namespaces.yaml), absent des destinations : sync infra-security a risque
+applications	lasuite	Applications imbriquees dormantes k8s/optional/lasuite (hors ApplicationSet), a ajouter au projet avant activation
