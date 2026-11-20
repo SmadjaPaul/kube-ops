@@ -92,6 +92,12 @@ jobs:
           V1_CONTRACT_ROOTS: ${{ steps.scope.outputs.roots }}
         run: npm run check
 
+      - name: App-test static on the apps touched by the diff (PLT-390, ratchet policy/app-test-baseline.tsv)
+        env:
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || '' }}
+        run: bash scripts/app-test-changed.sh
+
       - name: Validate Factory supervised promotion contract
         run: bash tests/harness/mastra-factory-supervised-promotion-test.sh
 

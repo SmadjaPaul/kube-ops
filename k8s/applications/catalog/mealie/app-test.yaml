@@ -1,0 +1,4 @@
+# Contrat de test (just app-test mealie mealie) : OIDC natif, la racine / sert la page de login (200).
+# La sonde runtime vise donc un endpoint protege, qui doit repondre 401 sans cookie.
+auth: oidc
+auth_probe: /api/users/self
