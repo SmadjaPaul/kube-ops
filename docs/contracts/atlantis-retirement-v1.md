@@ -31,3 +31,7 @@ apply-candidate check; no production apply is enabled by this retirement.
 The former Mastra-to-Atlantis dispatcher contract was offline-only and had no
 deployed workload or credential. Its code and contract were removed to avoid
 maintaining a dead transport surface.
+
+The Atlantis OSS v0.48.1 server contract (pilot policy, locking and hook
+specification) was removed from the tree after this retirement; its history is
+kept in Git and no active file depends on it.

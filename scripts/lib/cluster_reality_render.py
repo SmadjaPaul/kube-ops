@@ -103,7 +103,7 @@ MAP = {
     "argo-rollouts": ("SOCLE", "ALLÉGER", D06[0]),
     "node-feature-discovery": ("SOCLE", "ALLÉGER", D06[0]),
     # --- retraits décidés / démos
-    "atlantis-system": ("REC", "RETIRER", "Atlantis retiré ; PVC de recovery gardé jusqu'à validation (suppression = Paul, D-13)"),
+    "atlantis-system": ("REC", "RETIRER", "Atlantis retiré ; PVC de recovery supprimé (MANDAT 16, kube-ops#1580) ; namespace vide conservé"),
     "atlantis-apps": ("REC", "RETIRER", "Atlantis retiré ; PVC de recovery gardé jusqu'à validation (suppression = Paul, D-13)"),
     "argo-rollouts-demo": ("REC", "RETIRER", "démo PLT-141 de test, sans donnée"),
 }
