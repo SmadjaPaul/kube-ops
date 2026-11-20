@@ -19,14 +19,10 @@ This file → one skill from the table → only the application or infrastructur
 | unfamiliar repository | `.agents/skills/repo-navigation` |
 | add a service | `.agents/skills/deploy-a-service` |
 | retire a service | `docs/operations/service-onboarding.md` |
-| Argo sync/health; deliver on homelab or oracle-a1 | `.agents/skills/argocd-debug` |
-| Kubernetes workload failure | `.agents/skills/kubernetes-debug` |
-| runtime or post-merge proof | `.agents/skills/runtime-observer` |
+| any live-cluster question: Argo sync/health, workload failure, incident triage, runtime or post-merge proof, cluster state from Grafana Cloud, deliver on homelab or oracle-a1 | `.agents/skills/cluster-investigation` |
 | Cilium policy drops | `.agents/skills/cilium-hubble` |
 | OIDC/Authentik | `.agents/skills/oidc-integration` |
 | backup/restore | `.agents/skills/backup-restore` |
-| incident triage | `.agents/skills/sre-triage` |
-| cluster state from Grafana Cloud (homelab, oracle-a1) | `.agents/skills/observability` |
 | ticket start/end memory (Hindsight MCP configured) | `.agents/skills/agent-memory` |
 
 `.agents/` is the single agent knowledge tree; Claude reaches it through the `.claude/skills` symlink.
@@ -37,12 +33,12 @@ This file → one skill from the table → only the application or infrastructur
 - `just verify-delivery CLUSTER APP`: post-merge PASS/FAIL from Grafana Cloud for `homelab` or `oracle-a1`; `just scaffold-oke-app`: OKE overlay + Application.
 - `just inventory`: Git-only active imports and dormant candidates (not runtime evidence).
 - `just kube-access-check`, `just runtime-inventory`, `just runtime-smoke`, `just status-app <app>`, `just diagnose-app <app>`, `just backup-audit`, `just e2e-list`.
-- `bash scripts/kubectl-ro.sh [--cluster homelab|oracle-a1] <get|describe|logs|top|events|api-resources|version> ...`: read-only kubectl; `get --raw` admits the Prometheus/Loki query APIs only (the `agent-operator` Role `agent-operator-monitoring-query` grants `get` on the service proxy of `kube-prometheus-stack-prometheus:9090` and `loki-gateway:80` only). On homelab it uses the limited `agent-operator` ServiceAccount (RBAC enforces: no Secret data) when its kubeconfig is distributed and valid, else falls back to the operator copy with a warning on stderr; `KUBECTL_RO_IDENTITY=auto|agent|operator` (default `auto`; `agent` refuses the fallback, `operator` is the legacy rollback). `bash scripts/kubectl-ro.sh [--cluster ...] auth whoami` prints the effective identity (no secret). Tokens are issued for 24 h by Paul with `AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision` (homelab) or `scripts/agent-operator-oke-token.sh --provision` (oracle-a1).
+- `bash scripts/kubectl-ro.sh [--cluster homelab|oracle-a1] <get|describe|logs|top|events|api-resources|version> ...`: the single read path for every investigation script and agent (read-only kubectl; `status-app`, `diagnose-app` and `observe.sh --local` go through it); `get --raw` admits the Prometheus/Loki query APIs only (the `agent-operator` Role `agent-operator-monitoring-query` grants `get` on the service proxy of `kube-prometheus-stack-prometheus:9090` and `loki-gateway:80` only). On homelab it uses the limited `agent-operator` ServiceAccount (RBAC enforces: no Secret data) when its kubeconfig is distributed and valid, else falls back to the operator copy with a warning on stderr; `KUBECTL_RO_IDENTITY=auto|agent|operator` (default `auto`; `agent` refuses the fallback, `operator` is the legacy rollback). `bash scripts/kubectl-ro.sh [--cluster ...] auth whoami` prints the effective identity (no secret). Tokens are issued for 24 h by Paul with `AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision` (homelab) or `scripts/agent-operator-oke-token.sh --provision` (oracle-a1).
 - `bash scripts/kubectl-rw.sh [--dry-run] <patch|scale|restart|undo|set-image|suspend|resume|delete|apply> <namespace> <target> [arg]`: bounded writes with the `agent-operator` identity (PLT-237), admitted namespaces in `k8s/infrastructure/security/agent-operator/scope.tsv`. If its kubeconfig is not distributed (`scripts/agent-operator-token.sh --provision`), stay read-only and repair through Git.
 - `bash scripts/argo-terminate-stuck-sync.sh APP [MIN_AGE] [--dry-run]`: ends a sync stuck on hooks/health; it refuses when a PVC, PV, CNPG Cluster, ObjectStore or VolumeSnapshot would be pruned. Check first that the Application is in the admitted scope.
 - `bash scripts/doppler-safe.sh <names|has|set|delete|run>`: the only Doppler entry point. `run` requires `--only KEY[,KEY...]` (only those secrets are injected, never the whole config); projects/configs are a closed list (Doppler projects `infrastructure`, `cluster`, `apps`, config `prd` only). Example: `bash scripts/doppler-safe.sh run --only LINEAR_API_KEY -- <cmd>`.
 
-Every kubectl call goes through `scripts/lib/kube-preflight.sh` (the wrappers do it).
+Every kubectl call goes through `scripts/lib/kube-preflight.sh` (the wrappers do it); it writes its `KUBE_ACCESS=…` diagnostic on stderr, so wrapper stdout stays parseable.
 
 ## Cluster access
 

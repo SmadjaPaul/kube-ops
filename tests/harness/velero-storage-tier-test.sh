@@ -77,8 +77,6 @@ grep -F 'app: karakeep-web' \
 for schedule in \
   daily-gpt-researcher.yaml \
   daily-pinepods.yaml \
-  daily-jellyfin.yaml \
-  daily-bazarr.yaml \
   daily-karakeep.yaml; do
   grep -F 'defaultVolumesToFsBackup: true' "$velero_root/schedules/$schedule" >/dev/null
 done

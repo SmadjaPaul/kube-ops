@@ -100,15 +100,33 @@ pass_output="$(
   FAKE_KUBECTL_MODE=pass \
     KUBE_ACCESS_BOOTSTRAP=never \
     KUBECONFIG="$test_kubeconfig" \
-    require_kube_access
+    require_kube_access 2>&1
 )"
 assert_contains "$pass_output" 'KUBE_ACCESS=PASS'
 assert_contains "$pass_output" 'KUBECONFIG_PRESENT=yes'
 assert_contains "$pass_output" 'API_REACHABLE=yes'
 assert_contains "$pass_output" 'CLUSTER_VERSION=v1.36.3'
 
+# stdout stays clean (wrapper output is parsed by agents); quiet gate prints no PASS block.
+stdout_only="$(
+  FAKE_KUBECTL_MODE=pass KUBE_ACCESS_BOOTSTRAP=never KUBECONFIG="$test_kubeconfig" \
+    require_kube_access 2>/dev/null
+)"
+[[ -z "$stdout_only" ]] || {
+  printf 'ASSERTION_FAILED preflight wrote on stdout: %s\n' "$stdout_only" >&2
+  exit 1
+}
+quiet_output="$(
+  FAKE_KUBECTL_MODE=pass KUBE_ACCESS_BOOTSTRAP=never KUBECONFIG="$test_kubeconfig" \
+    require_kube_access_quiet 2>&1
+)"
+[[ -z "$quiet_output" ]] || {
+  printf 'ASSERTION_FAILED quiet gate printed: %s\n' "$quiet_output" >&2
+  exit 1
+}
+
 unset KUBECONFIG
-auto_output="$(FAKE_KUBECTL_MODE=pass KUBE_ACCESS_BOOTSTRAP=auto require_kube_access)"
+auto_output="$(FAKE_KUBECTL_MODE=pass KUBE_ACCESS_BOOTSTRAP=auto require_kube_access 2>&1)"
 assert_contains "$auto_output" 'KUBE_ACCESS=PASS'
 assert_contains "$auto_output" 'KUBE_ACCESS_SOURCE=doppler_operator_distribution'
 assert_contains "$auto_output" 'CLUSTER_VERSION=v1.36.3'
@@ -120,7 +138,7 @@ ambient_output="$(
   FAKE_KUBECTL_MODE=pass \
     KUBE_ACCESS_BOOTSTRAP=auto \
     KUBECONFIG="$test_tmp/stale-kubeconfig" \
-    require_kube_access
+    require_kube_access 2>&1
 )"
 assert_contains "$ambient_output" 'KUBE_ACCESS=PASS'
 assert_contains "$ambient_output" 'KUBE_ACCESS_SOURCE=doppler_operator_distribution'

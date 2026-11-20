@@ -33,6 +33,20 @@ assert any("secret-output-guard.py" in h["command"] and h.get("onFailure") == "b
 EOF
 then ok "settings.json: PreToolUse Bash -> secret-output-guard.py (onFailure block)"; else ko "settings.json wiring"; fi
 
+# --- 1b. hook fails closed when its own analysis raises (exit 2, not 1)
+rc=$(python3 -I - "$HOOK" <<'EOF' 2>/dev/null
+import importlib.util, io, json, sys
+spec = importlib.util.spec_from_file_location("guard", sys.argv[1])
+guard = importlib.util.module_from_spec(spec); spec.loader.exec_module(guard)
+def boom(_):
+    raise IndexError("parser bug")
+guard.check = boom
+sys.stdin = io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}}))
+print(guard.main())
+EOF
+)
+[ "$rc" = 2 ] && ok "hook : exception d'analyse -> refus (fail-closed)" || ko "hook : exception d'analyse laisse passer ($rc)"
+
 # --- 2. hook refuses value-printing commands (exit 2)
 while IFS= read -r cmd; do
   [ -n "$cmd" ] || continue
@@ -166,6 +180,20 @@ rm -f "$WORK/doppler-run-args"
 out=$(bash "$SAFE" run --only FAKE_TOKEN --only FOO -p cluster -c prd -- true 2>&1); rc=$?
 grep -q -- "^run -p cluster -c prd --only-secrets FAKE_TOKEN,FOO -- " "$WORK/doppler-run-args" \
   && ok "doppler-safe run : --only répétable, -p/-c de la liste" || ko "doppler-safe run --only répété ($rc: $out)"
+# has : présence par les noms seulement, arité stricte
+out=$(bash "$SAFE" has FOO 2>&1); rc=$?
+[ "$rc" = 0 ] && [ "$out" = present ] && ok "doppler-safe has : clé présente" || ko "doppler-safe has présent ($rc: $out)"
+out=$(bash "$SAFE" has BAZ 2>&1); rc=$?
+[ "$rc" = 1 ] && [ "$out" = absent ] && ok "doppler-safe has : clé absente -> 1" || ko "doppler-safe has absent ($rc: $out)"
+for args in "has" "has FOO BAR" "has foo"; do
+  out=$(eval "bash \"\$SAFE\" $args" 2>&1); rc=$?
+  [ "$rc" = 64 ] && ok "doppler-safe refuse : $args" || ko "doppler-safe laisse passer : $args ($rc)"
+done
+# --only : exactement ONLY_MAX (16) noms est admis (la limite refuse 17, testé plus haut)
+rm -f "$WORK/doppler-run-args"
+out=$(bash "$SAFE" run --only K1,K2,K3,K4,K5,K6,K7,K8,K9,K10,K11,K12,K13,K14,K15,K16 -- true 2>&1); rc=$?
+[ "$rc" = 0 ] && grep -q -- "--only-secrets K1,.*,K16 -- " "$WORK/doppler-run-args" \
+  && ok "doppler-safe run : 16 noms admis (borne exacte)" || ko "doppler-safe run 16 noms ($rc: $out)"
 unset DOPPLER_SAFE_BIN
 
 # --- 5. kubectl-ro.sh refuses before any cluster access (fake kubectl/doppler record calls)

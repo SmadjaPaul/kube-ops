@@ -1,14 +1,29 @@
 #!/usr/bin/env bash
+# Argo Application plus namespace workload/event evidence (summary|errors|full).
+# Read-only, through kubectl-ro.sh.
 set -euo pipefail
 app=${1:?usage: diagnose-app.sh APP [summary|errors|full]}
-for cmd in kubectl jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
-source "$(dirname "$0")/lib/output-mode.sh"
+command -v jq >/dev/null || { echo "ERROR: jq required" >&2; exit 2; }
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/output-mode.sh
+source "$HERE/lib/output-mode.sh"
+# shellcheck source=lib/kube-read.sh
+source "$HERE/lib/kube-read.sh"
+# shellcheck source=lib/argo-app.sh
+source "$HERE/lib/argo-app.sh"
 mode="$(resolve_output_mode "${2:-}")"
-source "$(dirname "$0")/lib/kube-preflight.sh"
-if [[ "$mode" == full ]]; then require_kube_access; else require_kube_access >/dev/null; fi
-source "$(dirname "$0")/lib/argo-app.sh"
 resolved="$(resolve_argo_app "$app")"
-obj="$(kubectl -n argocd get application.argoproj.io "$resolved" -o json)"
+obj="$(kro get application.argoproj.io "$resolved" -n argocd -o json)"
+
+# ns_listing NS: workload listing and warning events of one namespace.
+ns_listing() {
+  local ns=$1
+  echo "=== NAMESPACE $ns ==="
+  kro get pods,pvc,httproute.gateway.networking.k8s.io,externalsecret.external-secrets.io -n "$ns" -o wide 2>/dev/null || true
+  kro get clusters.postgresql.cnpg.io -n "$ns" 2>/dev/null || true
+  echo "--- warning events ---"
+  kro get events -n "$ns" --field-selector type=Warning --sort-by=.lastTimestamp 2>/dev/null | tail -30 || true
+}
 
 if [[ "$mode" != full ]]; then
   sync="$(jq -r '.status.sync.status // "Unknown"' <<<"$obj")"
@@ -19,18 +34,13 @@ if [[ "$mode" != full ]]; then
   errs=""
   while IFS= read -r ns; do
     [[ -z "$ns" ]] && continue
-    {
-      echo "=== NAMESPACE $ns ==="
-      kubectl get pods,pvc,httproute.gateway.networking.k8s.io,externalsecret.external-secrets.io -n "$ns" -o wide 2>/dev/null || true
-      kubectl get clusters.postgresql.cnpg.io -n "$ns" 2>/dev/null || true
-      echo "--- warning events ---"
-      kubectl get events -n "$ns" --field-selector type=Warning --sort-by=.lastTimestamp 2>/dev/null | tail -30 || true
-    } >>"$evidence"
-    counts="$(kubectl get pods -n "$ns" -o json 2>/dev/null | jq -r '[.items[] | select(.status.phase != "Succeeded")] | "\(map(select(any(.status.conditions[]?; .type=="Ready" and .status=="True"))) | length) \(length)"' 2>/dev/null || echo "0 0")"
+    ns_listing "$ns" >>"$evidence"
+    pods_json="$(kro get pods -n "$ns" -o json 2>/dev/null || true)"
+    counts="$(jq -r '[.items[] | select(.status.phase != "Succeeded")] | "\(map(select(any(.status.conditions[]?; .type=="Ready" and .status=="True"))) | length) \(length)"' <<<"$pods_json" 2>/dev/null || echo "0 0")"
     ready=$((ready + ${counts%% *})); total=$((total + ${counts##* }))
-    bad="$(kubectl get pods -n "$ns" -o json 2>/dev/null | jq -r '.items[] | select(.status.phase != "Succeeded" and (any(.status.conditions[]?; .type=="Ready" and .status=="True") | not)) | "pod/\(.metadata.name) \(.status.phase)"' 2>/dev/null || true)"
+    bad="$(jq -r '.items[] | select(.status.phase != "Succeeded" and (any(.status.conditions[]?; .type=="Ready" and .status=="True") | not)) | "pod/\(.metadata.name) \(.status.phase)"' <<<"$pods_json" 2>/dev/null || true)"
     [[ -n "$bad" ]] && errs+="$ns: $bad"$'\n'
-    ev="$(kubectl get events -n "$ns" --field-selector type=Warning --sort-by=.lastTimestamp 2>/dev/null | tail -5 || true)"
+    ev="$(kro get events -n "$ns" --field-selector type=Warning --sort-by=.lastTimestamp 2>/dev/null | tail -5 || true)"
     if [[ "$(wc -l <<<"$ev")" -gt 1 ]]; then
       warnings=$((warnings + 1))
       [[ "$last_error" == none ]] && last_error="$(tail -1 <<<"$ev" | sanitize_line)"
@@ -45,7 +55,7 @@ if [[ "$mode" != full ]]; then
   fi
   verify=FAIL
   [[ "$sync" == Synced && "$health" == Healthy && "$ready" -eq "$total" && "$warnings" -eq 0 ]] && verify=PASS
-    echo "ARGO=$sync/$health"
+  echo "ARGO=$sync/$health"
   echo "REVISION=$rev"
   echo "PODS=$ready/$total"
   echo "LAST_ERROR=$last_error"
@@ -57,12 +67,7 @@ fi
 echo "=== ARGO ==="
 jq '{name:.metadata.name,sync:.status.sync.status,health:.status.health.status,targetRevision:.spec.source.targetRevision,operationRevision:.status.operationState.operation.sync.revision,operationPhase:.status.operationState.phase,operationMessage:.status.operationState.message,conditions:(.status.conditions//[])}' <<<"$obj"
 
-mapfile -t namespaces < <(jq -r '.status.resources[]?.namespace // empty' <<<"$obj" | sort -u)
-for ns in "${namespaces[@]}"; do
+while IFS= read -r ns; do
   [[ -z "$ns" ]] && continue
-  echo "=== NAMESPACE $ns ==="
-  kubectl get pods,pvc,httproute.gateway.networking.k8s.io,externalsecret.external-secrets.io -n "$ns" -o wide 2>/dev/null || true
-  kubectl get clusters.postgresql.cnpg.io -n "$ns" 2>/dev/null || true
-  echo "--- warning events ---"
-  kubectl get events -n "$ns" --field-selector type=Warning --sort-by=.lastTimestamp 2>/dev/null | tail -30 || true
-done
+  ns_listing "$ns"
+done < <(jq -r '.status.resources[]?.namespace // empty' <<<"$obj" | sort -u)
