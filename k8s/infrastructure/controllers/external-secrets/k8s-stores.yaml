@@ -1,0 +1,66 @@
+# Lot 0 of docs/architecture/secrets-migration-spec.md (section 4.3): ESO stores that read the
+# Secrets generated inside the cluster (provider kubernetes). Each store reads ONE source namespace
+# through its own ServiceAccount; the Role granting `get` on named Secrets lives next to the
+# sources (auth/authentik/extra, database/pg-shared-homelab). ESO obtains the token with
+# TokenRequest, so the ServiceAccounts do not automount one.
+# Usage: docs/operations/secrets-generated-runbook.md.
+---
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: k8s-auth
+  annotations:
+    smadja.dev/provider: kubernetes
+    kube-ops.io/secret-store-scope: "namespace auth, read-only, get on named Secrets only (RBAC next to the sources)"
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: auth
+      server:
+        url: https://kubernetes.default.svc
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+          namespace: external-secrets
+      auth:
+        serviceAccount:
+          name: eso-k8s-auth-reader
+          namespace: external-secrets
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eso-k8s-auth-reader
+  namespace: external-secrets
+automountServiceAccountToken: false
+---
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: k8s-databases
+  annotations:
+    smadja.dev/provider: kubernetes
+    kube-ops.io/secret-store-scope: "namespace databases, read-only, get on named Secrets only (RBAC next to the sources)"
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: databases
+      server:
+        url: https://kubernetes.default.svc
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+          namespace: external-secrets
+      auth:
+        serviceAccount:
+          name: eso-k8s-databases-reader
+          namespace: external-secrets
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eso-k8s-databases-reader
+  namespace: external-secrets
+automountServiceAccountToken: false

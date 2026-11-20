@@ -3,6 +3,8 @@ kind: Kustomization
 namespace: external-secrets
 resources:
 - doppler-store.yaml
+- k8s-stores.yaml
+- prometheusrule.yaml
 - namespace.yaml
 - clusterrolebinding-clusterpushsecret.yaml
 - clusterrole-clusterpushsecret.yaml

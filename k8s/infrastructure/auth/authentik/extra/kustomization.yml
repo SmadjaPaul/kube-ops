@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - secrets.yml
+  - eso-k8s-reader-rbac.yaml
   - smtp-externalsecret.yaml
   - talos-bluegreen-externalsecret.yaml
   - factory-oidc-external-secret.dormant.yaml
