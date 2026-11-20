@@ -182,9 +182,12 @@ spec:
           workingDir: /data
           envFrom:
             - secretRef: {name: agentgateway-runtime}
-            # Dedicated Optio client key (PLT-339). Optional so the gateway
-            # still starts if the Doppler key is not provisioned yet.
-            - secretRef: {name: agentgateway-optio, optional: true}
+            # Dedicated Optio client key (PLT-339). NOT optional on purpose:
+            # if the Secret is absent the literal "$OPTIO_AGENTGATEWAY_KEY"
+            # would stay in the config as a valid, publicly known bearer.
+            # Fail closed: the pod waits (CreateContainerConfigError) and
+            # the previous ReplicaSet keeps serving during a rollout.
+            - secretRef: {name: agentgateway-optio}
           ports:
             - {name: llm, containerPort: 4000}
           readinessProbe:
