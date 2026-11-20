@@ -1,0 +1,39 @@
+# Lot 2 of docs/architecture/secrets-migration-spec.md (pilot): the RustiCal OIDC client secret is
+# generated inside the cluster (T3, disposable). Authentik reads it through `envFrom`
+# (values.yaml, optional: true) for the blueprint `apps-rustical.yaml` (`!Env`, unchanged);
+# the app copy `rustical-oidc` (namespace rustical-pilot) is read through the store k8s-auth.
+# Rotate: rename both ExternalSecrets `oidc-rustical-pilot` -> `oidc-rustical-pilot-r2` (keep
+# target.name), docs/operations/secrets-generated-runbook.md. Never add a key to this source (F1).
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: oidc-rustical-pilot
+  namespace: auth
+spec:
+  length: 48
+  digits: 10
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-rustical-pilot
+  namespace: auth
+  annotations:
+    kube-ops.io/secret-class: T3
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: oidc-rustical-pilot
+    creationPolicy: Orphan
+    template:
+      engineVersion: v2
+      data:
+        RUSTICAL_OIDC_CLIENT_SECRET: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: oidc-rustical-pilot

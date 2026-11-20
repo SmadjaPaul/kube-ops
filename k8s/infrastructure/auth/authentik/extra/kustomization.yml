@@ -10,7 +10,7 @@ resources:
   - matrix-mas-oidc-externalsecret.yaml
   # Legacy filename retained; this AIOStreams ExternalSecret is active.
   - aiostreams-oidc-externalsecret.dormant.yaml
-  - rustical-oidc-externalsecret.yaml
+  - oidc-rustical-pilot.yaml
   - polyfin-oidc-externalsecret.yaml
   - sparkyfitness-oidc-externalsecret.yaml
   - bookorbit-oidc-externalsecret.yaml
