@@ -2,6 +2,69 @@
 
 Plan: `docs/architecture/secrets-migration-spec.md`. One section per lot, filled only after a real run. No secret value ever appears here: only statuses, conditions, ages, sizes and functional results.
 
+## Lot 0: common bricks, drill D0 (`CreatedOnce`)
+
+Procedure and temporary manifests: `docs/operations/secrets-drill-d0-createdonce.md` (PR `claude/secrets-d0-drill`). Cleanup: same document, section "Nettoyage". Read-only commands: `bash scripts/kubectl-ro.sh` with `KUBECTL_RO_IDENTITY=agent`, run by an agent after the merge and the Argo sync. The agent identity cannot read Secrets: a Secret age or `uid` is MANDAT (operator), the ExternalSecret status is the agent-readable evidence. No value is ever read or recorded; `FP` is a 12-character SHA-256 prefix computed in the cluster.
+
+| # | Proof | Status | Verdict |
+| --- | --- | --- | --- |
+| 0 | Argo state of the drill | NOT_RUN | NOT_PROVEN |
+| 1 | Stores `k8s-auth`, `k8s-databases` Ready | NOT_RUN | NOT_PROVEN |
+| 2 | Source and copy Ready | NOT_RUN | NOT_PROVEN |
+| 3 | `eso-drill-forbidden` refused by RBAC (403) | NOT_RUN | NOT_PROVEN |
+| 4 | `CreatedOnce` stable after a forced sync (F1) | NOT_RUN | NOT_PROVEN |
+| 5 | Rotation by rename changes the value (F3c), second step, separate PR | NOT_RUN | NOT_PROVEN |
+| 6 | Alert `ExternalSecretNotReady` firing for `eso-drill-forbidden` | NOT_RUN | NOT_PROVEN |
+| 7 | Kyverno negative layer (static `kyverno test` only; optional runtime `--dry-run=server` by Paul: MANDAT) | NOT_RUN | NOT_PROVEN |
+
+### Commands and criteria (to run after the merge; rotation excluded from this PR)
+
+Proof 0, drill present and reconciled (RECONCILED level):
+```
+bash scripts/kubectl-ro.sh get application -n argocd infra-controllers infra-auth
+bash scripts/kubectl-ro.sh get ns eso-drill
+bash scripts/kubectl-ro.sh get externalsecret,job,ciliumnetworkpolicy -n eso-drill
+```
+PASS: both Applications `Synced` at the merge revision, namespace `Active`, the CiliumNetworkPolicy and the three ExternalSecrets present. FAIL: namespace or object missing after 10 minutes, or Application `OutOfSync` on a drill object. Argo `Healthy` is not required (`ignore-healthcheck` on the drill ExternalSecrets).
+
+Proof 1:
+```
+bash scripts/kubectl-ro.sh get clustersecretstore k8s-auth k8s-databases
+```
+PASS: both `STATUS=Valid`, `READY=True`. FAIL: otherwise (read `describe`, never a value).
+
+Proof 2:
+```
+bash scripts/kubectl-ro.sh get externalsecret -n auth oidc-eso-drill -o yaml
+bash scripts/kubectl-ro.sh get externalsecret -n eso-drill eso-drill-oidc -o yaml
+```
+PASS: both `status.conditions` `Ready=True` (reason `SecretSynced`), `status.refreshTime` filled; the source has `spec.refreshPolicy: CreatedOnce`. Record `status.refreshTime` and `status.syncedResourceVersion` of the source as BEFORE values. FAIL: `SecretSyncedError` on either.
+
+Proof 3:
+```
+bash scripts/kubectl-ro.sh get externalsecret -n eso-drill eso-drill-forbidden -o yaml
+bash scripts/kubectl-ro.sh describe externalsecret -n eso-drill eso-drill-forbidden
+```
+PASS: `Ready=False`, reason `SecretSyncedError`, message containing `forbidden` / `403` (RBAC layer), and the target Secret not created. FAIL: `Ready=True` (the Role grants too much: stop and report, this is a security finding), or an error that is not a 403 (e.g. store not found: NOT_PROVEN).
+
+Proof 4 (F1), BEFORE:
+```
+bash scripts/kubectl-ro.sh logs -n eso-drill job/eso-drill-fingerprint
+```
+record `FP=<12 hex>` and the source `refreshTime`. Force a sync without change (an operator-approved Argo refresh/sync of `infra-controllers`, or `bash scripts/kubectl-rw.sh restart external-secrets deployment/external-secrets` if the namespace is in `scope.tsv`; otherwise BLOCKED, ask Paul). AFTER: wait for the `PostSync` Job to rerun (`get job -n eso-drill eso-drill-fingerprint`, new `startTime`), read `logs` again. PASS: `FP` identical AND source `refreshTime` unchanged. FAIL: `FP` or `refreshTime` differs (CreatedOnce is not stable: the whole generator pattern is NOT usable). BLOCKED: no way to force a sync, or the Job did not rerun.
+
+Proof 5 (F3c), SECOND STEP, separate PR with two commits, after proofs 1 to 4 are PASS: rename the source ExternalSecret and Password `oidc-eso-drill` to `oidc-eso-drill-r2`, keep `target.name: oidc-eso-drill`; then rename the copy `eso-drill-oidc` to `eso-drill-oidc-r2` (`target.name` kept). Read `logs` of the rerun Job and the source status. PASS: `FP` different from proof 4, `oidc-eso-drill-r2` `Ready=True` with a new `refreshTime`, Secret `oidc-eso-drill` updated in place (`syncedResourceVersion` changed; same `uid`/age under MANDAT). FAIL: `FP` identical after both commits, or ESO recreates/refuses the Secret (record the exact condition message). Not run in this lot.
+
+Proof 6:
+```
+bash scripts/kubectl-ro.sh get --raw '/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=ALERTS%7Balertname%3D%22ExternalSecretNotReady%22%2Cname%3D%22eso-drill-forbidden%22%7D'
+```
+PASS: a result with `alertstate="firing"` (at least 15 minutes after the sync) for `eso-drill-forbidden`. FAIL: empty result after 30 minutes while proof 3 is PASS (metric label names to check against `externalsecret_status_condition`). BLOCKED: Prometheus API not reachable through `kubectl-ro`.
+
+Proof 7: `bash scripts/policy-check.sh --tests` (`kyverno test tests/policies`, STATIC, also run by `just check` and CI). Runtime refusal: MANDAT (Paul, `kubectl apply --dry-run=server` of a copy that reads another namespace).
+
+Verdict D0: PASS only if 1 to 6 are PASS. A merged PR proves no runtime level; update this table with the evidence level (`RECONCILED` or `RUNTIME`) when each proof is read.
+
 ## Lot 1: `pg-shared-homelab` role passwords
 
 | Drill | Procedure | Status | Verdict |

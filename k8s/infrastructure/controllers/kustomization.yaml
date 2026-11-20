@@ -9,6 +9,8 @@ resources:
 - grafana-mcp
 - cert-manager
 - external-secrets
+# TEMPORARY drill D0 (secrets lot 0): remove with the cleanup PR, docs/operations/secrets-drill-d0-createdonce.md
+- external-secrets/drills/createdonce
 - reloader
 - keda
 - metrics-server

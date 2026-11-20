@@ -1,0 +1,45 @@
+# TEMPORARY (drill D0). Generated source in `auth`, form (C) of repo-contract-externalsecret-contract:
+# Password generator + ExternalSecret CreatedOnce / Orphan. Its name `oidc-eso-drill` is also listed in
+# resourceNames of auth/authentik/extra/eso-k8s-reader-rbac.yaml (removed by the cleanup PR, sentinel kept).
+# NO rotation in this PR: the rename to `oidc-eso-drill-r2` is the second step of the drill (two commits).
+# The ExternalSecrets of this drill carry argocd.argoproj.io/ignore-healthcheck: their (expected)
+# unreadiness must not turn the Application `infra-controllers` Degraded; the proof is their status read
+# with kubectl-ro, and the ExternalSecretNotReady alert.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: oidc-eso-drill
+  namespace: auth
+  labels:
+    kube-ops.io/drill: "true"
+spec:
+  length: 48
+  digits: 10
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-eso-drill
+  namespace: auth
+  labels:
+    kube-ops.io/drill: "true"
+  annotations:
+    kube-ops.io/secret-class: T3
+    argocd.argoproj.io/ignore-healthcheck: "true"
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: oidc-eso-drill
+    creationPolicy: Orphan
+    template:
+      engineVersion: v2
+      data:
+        password: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: oidc-eso-drill

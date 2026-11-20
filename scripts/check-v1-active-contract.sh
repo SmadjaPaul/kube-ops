@@ -209,12 +209,12 @@ if grep -Ein "$forbidden" "$rendered"; then
 fi
 
 inventory="$(awk '
-  /^---[[:space:]]*$/ { external=0; want_store=0; want_key=0 }
+  /^---[[:space:]]*$/ { external=0; want_store=0; want_key=0; doc++ }
   /^kind:[[:space:]]*ExternalSecret[[:space:]]*$/ { external=1 }
   external && /^[[:space:]]+secretStoreRef:[[:space:]]*$/ { want_store=1; next }
   external && want_store && /^[[:space:]]+name:[[:space:]]*/ {
     v=$0; sub(/^[[:space:]]+name:[[:space:]]*/, "", v); gsub(/["'\''"]/, "", v)
-    print "STORE " v
+    print "STORE " doc " " v
     want_store=0
   }
   external && /^[[:space:]]*-?[[:space:]]*remoteRef:[[:space:]]*\{[^}]*key:[[:space:]]*/ {
@@ -222,25 +222,28 @@ inventory="$(awk '
     sub(/^.*key:[[:space:]]*/, "", v)
     sub(/[[:space:]}].*$/, "", v)
     gsub(/["'\''"]/, "", v)
-    print "KEY " v
+    print "KEY " doc " " v
     next
   }
   external && /^[[:space:]]*-?[[:space:]]*remoteRef:[[:space:]]*$/ { want_key=1; next }
   external && want_key && /^[[:space:]]+key:[[:space:]]*/ {
     v=$0; sub(/^[[:space:]]+key:[[:space:]]*/, "", v); gsub(/["'\''"]/, "", v)
-    print "KEY " v
+    print "KEY " doc " " v
     want_key=0
   }
 ' "$rendered")"
 
-bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $2!="doppler-cluster" {print $2}' | sort -u)"
+# Lot 0 of docs/architecture/secrets-migration-spec.md: the stores k8s-auth and k8s-databases (secrets
+# generated inside the cluster) are active alongside doppler-cluster; their remoteRef keys are Secret
+# names (oidc-<ns>, pg-<ns>), not Doppler keys, so only doppler-cluster keys are checked below.
+bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $3!="doppler-cluster" && $3!="k8s-auth" && $3!="k8s-databases" {print $3}' | sort -u)"
 [[ -z "$bad_stores" ]] || {
   echo "ERROR: active ExternalSecrets reference non-Doppler stores:" >&2
   printf '%s\n' "$bad_stores" >&2
   exit 1
 }
 
-bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="KEY" {print $2}' | grep -Ev '^[A-Z][A-Z0-9_]*$' || true)"
+bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="STORE" {st[$2]=$3} $1=="KEY" {key[++n]=$3; doc[n]=$2} END {for (i = 1; i <= n; i++) if (st[doc[i]] == "doppler-cluster" || st[doc[i]] == "") print key[i]}' | grep -Ev '^[A-Z][A-Z0-9_]*$' || true)"
 [[ -z "$bad_keys" ]] || {
   echo "ERROR: active Doppler keys must be UPPER_SNAKE_CASE:" >&2
   printf '%s\n' "$bad_keys" >&2

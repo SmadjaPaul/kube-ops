@@ -42,7 +42,7 @@ Allowed: `bash scripts/kubectl-ro.sh get clustersecretstore k8s-auth k8s-databas
 
 ## Drill D0 (operator, after merge)
 
-Proves that `CreatedOnce` is stable, that a rename rotates, that RBAC refuses a name outside the list and that the alert fires. Steps and expected results are in the PR description of lot 0; they use a temporary namespace `eso-drill` and the source `oidc-eso-drill` (added to `resourceNames`, then removed by a cleanup PR that keeps the sentinel). Do not run it before the operator has read the PR.
+Proves that `CreatedOnce` is stable, that a rename rotates, that RBAC refuses a name outside the list and that the alert fires. Procedure, temporary manifests and cleanup: `docs/operations/secrets-drill-d0-createdonce.md` (namespace `eso-drill`, source `oidc-eso-drill` added to `resourceNames` then removed by a cleanup PR that keeps the sentinel). Read-only commands and PASS/FAIL criteria: `docs/operations/secrets-migration-evidence.md`, section lot 0. The rotation is the second step (two commits, separate PR).
 
 ## Database role passwords of `pg-shared-homelab` (lot 1)
 
