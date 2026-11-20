@@ -1,0 +1,46 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-require-resources
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-require-resources
+  resources:
+  - clean
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-require-resources
+  resources:
+  - no-resources
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-require-resources
+  resources:
+  - no-memory-limit
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-require-resources
+  resources:
+  - no-cpu-request
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-require-resources
+  resources:
+  - init-no-resources
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-require-resources
+  resources:
+  - system-namespace
+  result: skip

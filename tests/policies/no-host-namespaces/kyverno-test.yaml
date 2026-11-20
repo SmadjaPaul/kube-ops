@@ -1,0 +1,46 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-no-host-namespaces
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-host-namespaces
+  resources:
+  - clean
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-host-namespaces
+  resources:
+  - explicit-false
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-host-namespaces
+  resources:
+  - host-network
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-host-namespaces
+  resources:
+  - host-pid
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-host-namespaces
+  resources:
+  - host-ipc
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-host-namespaces
+  resources:
+  - system-namespace
+  result: skip

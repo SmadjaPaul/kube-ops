@@ -1,0 +1,101 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: compliant
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-cluster
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: v1beta1
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-cluster
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: other-store
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: other-store
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: namespaced-secretstore
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: doppler-cluster
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: refresh-720h
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 720h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-cluster
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: refresh-missing
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-cluster
+  target:
+    name: x

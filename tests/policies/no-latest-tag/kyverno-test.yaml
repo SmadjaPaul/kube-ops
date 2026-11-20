@@ -1,0 +1,58 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-no-latest-tag
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-latest-tag
+  resources:
+  - pinned-tag
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-latest-tag
+  resources:
+  - digest-only
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-latest-tag
+  resources:
+  - registry-port-tag
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-latest-tag
+  resources:
+  - latest
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-latest-tag
+  resources:
+  - no-tag
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-latest-tag
+  resources:
+  - main-tag
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-latest-tag
+  resources:
+  - init-latest
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-latest-tag
+  resources:
+  - system-namespace
+  result: skip

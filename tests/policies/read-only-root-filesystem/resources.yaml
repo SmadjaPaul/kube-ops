@@ -1,0 +1,165 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clean
+  namespace: app
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: writable
+  namespace: app
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: missing
+  namespace: app
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-writable
+  namespace: app
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+  initContainers:
+  - image: registry.example/app:1.2.3
+    name: init
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: system-namespace
+  namespace: kube-system
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp

@@ -1,4 +1,7 @@
-apiVersion: kyverno.io/v2
+# Dérogation migrée de kyverno.io/v2 vers policies.kyverno.io/v1 (le socle est en ValidatingPolicy).
+# Rappel : le chart Kyverno lance les controleurs avec --enablePolicyException=false : sans effet
+# runtime tant que cette option reste a false ; le gate statique (policy/baseline.tsv) porte la dette.
+apiVersion: policies.kyverno.io/v1
 kind: PolicyException
 metadata:
   name: opencode-initcontainer-root
@@ -6,17 +9,12 @@ metadata:
   annotations:
     description: "Exception for OpenCode's upstream entrypoint and initContainers, which require narrowly scoped root capabilities for writable-volume setup and tool installation."
 spec:
-  match:
-    any:
-    - resources:
-        kinds:
-          - Deployment
-        namespaces:
-          - opencode
-        names:
-          - opencode-web
-  exceptions:
-    - policyName: nsa-hardening-all-namespaces
-      ruleNames:
-        - require-non-root-containers
-        - require-read-only-root-filesystem
+  policyRefs:
+    - name: platform-baseline-non-root-containers
+      kind: ValidatingPolicy
+    - name: platform-baseline-read-only-root-filesystem
+      kind: ValidatingPolicy
+  matchConditions:
+    - name: opencode-web
+      expression: >-
+        has(object.metadata.namespace) && object.metadata.namespace == 'opencode' && has(object.metadata.name) && object.metadata.name.startsWith('opencode-web')

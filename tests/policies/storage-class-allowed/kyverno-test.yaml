@@ -1,0 +1,46 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-storage-class-allowed
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: PersistentVolumeClaim
+  policy: platform-baseline-storage-class-allowed
+  resources:
+  - longhorn-fast
+  result: pass
+- isValidatingPolicy: true
+  kind: PersistentVolumeClaim
+  policy: platform-baseline-storage-class-allowed
+  resources:
+  - longhorn-bulk
+  result: pass
+- isValidatingPolicy: true
+  kind: PersistentVolumeClaim
+  policy: platform-baseline-storage-class-allowed
+  resources:
+  - oci-bv
+  result: pass
+- isValidatingPolicy: true
+  kind: PersistentVolumeClaim
+  policy: platform-baseline-storage-class-allowed
+  resources:
+  - nfs-client
+  result: fail
+- isValidatingPolicy: true
+  kind: PersistentVolumeClaim
+  policy: platform-baseline-storage-class-allowed
+  resources:
+  - proxmox-csi
+  result: fail
+- isValidatingPolicy: true
+  kind: PersistentVolumeClaim
+  policy: platform-baseline-storage-class-allowed
+  resources:
+  - default-class-implicit
+  result: fail

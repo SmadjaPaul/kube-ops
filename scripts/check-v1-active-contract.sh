@@ -173,13 +173,18 @@ fi
 rendered="$(mktemp)"
 trap 'rm -f "$rendered"' EXIT
 
+# Rendu partage (scripts/lib/render-cache.sh) : racines rendues en parallele, reutilisees par
+# backup-contract et policy-check ; cache invalide des qu'un fichier de k8s/ change.
 for root in "${selected_roots[@]}"; do
   [[ -f "$root/kustomization.yaml" || -f "$root/kustomization.yml" ]] || {
     echo "ERROR: active root has no kustomization: $root" >&2
     exit 1
   }
+done
+bash scripts/lib/render-cache.sh prerender "${selected_roots[@]}"
+for root in "${selected_roots[@]}"; do
   echo "# ROOT: $root" >>"$rendered"
-  kustomize build --enable-helm "$root" >>"$rendered"
+  cat "$(bash scripts/lib/render-cache.sh render "$root")" >>"$rendered"
   printf '\n---\n' >>"$rendered"
 done
 

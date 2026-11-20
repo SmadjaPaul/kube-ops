@@ -10,7 +10,7 @@ restore_doc="$repo_root/website/docs/disaster/cnpg-velero-synthetic-restore.md"
 alert_doc="$repo_root/docs/operations/homeops-observability-alerting.md"
 eso_doc="$repo_root/docs/operations/e4-eso-orphans-acceptance.md"
 prom_values="$repo_root/k8s/infrastructure/monitoring/prometheus-stack/values.yaml"
-kyverno="$repo_root/k8s/infrastructure/security/policies/kyverno-policies.yaml"
+kyverno="$repo_root/k8s/infrastructure/security/policies/platform-baseline.yaml"
 gatekeeper="$repo_root/k8s/infrastructure/security/policies/gatekeeper-constraints.yaml"
 
 for file in "$alert_fixture" "$policy_fixture" "$storage_fixture" "$restore_fixture" "$restore_doc" "$alert_doc" "$eso_doc"; do
@@ -77,7 +77,12 @@ yq -e '
   (([.spec.cases[] | select(.expectedFinding == "violation")] | length) >= 3) and
   .spec.tenantIsolation.status == "not-executed"
 ' "$policy_fixture" >/dev/null
-yq -e '.spec.validationFailureAction == "Audit"' "$kyverno" >/dev/null
+# Socle Kyverno : ValidatingPolicy, toutes en Audit (aucune admission refusee tant que la qualification runtime n'est pas faite).
+[ "$(yq 'select(.kind == "ValidatingPolicy") | select((.spec.validationActions | join(",")) != "Audit") | .metadata.name' "$kyverno" | grep -c .)" -eq 0 ] &&
+  [ "$(yq 'select(.kind == "ValidatingPolicy") | .metadata.name' "$kyverno" | grep -c .)" -ge 1 ] || {
+  echo 'ERROR: platform-baseline.yaml must hold only Audit-mode ValidatingPolicy' >&2
+  exit 1
+}
 yq -e '.spec.enforcementAction == "dryrun"' "$gatekeeper" >/dev/null
 
 yq -e '

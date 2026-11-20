@@ -29,7 +29,8 @@ This file → one skill from the table → only the application or infrastructur
 
 ## Command surface
 
-- `just check`: canonical gate for every desired-state change. Run `kustomize build --enable-helm` on each changed path.
+- `just check`: canonical local gate for every desired-state change. Run `kustomize build --enable-helm` on each changed path. `just check` = `npm run check:local`: the npm sub-checks and the bash tests of `scripts/check-bash-tests.list` run in parallel (`scripts/run-checks-parallel.mjs`, `CHECK_JOBS` to tune, output grouped per test, summary sorted by duration). Roots are rendered once and shared through `scripts/lib/render-cache.sh` (cache `~/.cache/kube-ops/render`, invalidated by any change under `k8s/`; use `render_root` instead of a direct `kustomize build --enable-helm` in a check). A new bash test must use `mktemp`, no fixed port, no write into the repository. CI runs `npm run check` (same sub-checks, narrowed by `V1_CONTRACT_ROOTS`) plus dedicated workflow steps; `just check-affected` stays the quick path for a diff.
+- Kyverno step of `just check` (`scripts/policy-check.sh`): policies in `k8s/infrastructure/security/policies/platform-baseline.yaml` and `policy/static/repo-contract.yaml`, ratchet `policy/baseline.tsv`. A new violation fails; fix the manifest, never extend the baseline. After fixing existing ones, run `just policy-baseline-update`.
 - `just verify-delivery CLUSTER APP`: post-merge PASS/FAIL from Grafana Cloud for `homelab` or `oracle-a1`; `just scaffold-oke-app`: OKE overlay + Application.
 - `just inventory`: Git-only active imports and dormant candidates (not runtime evidence).
 - `just investigate <app> [homelab|oracle-a1]`: starting command for any live-cluster question (Argo state, pods/events, metrics, `VERIFY=`/`EVIDENCE=`). `just kube-access-check`, `just runtime-inventory`, `just runtime-smoke`, `just status-app <app>`, `just diagnose-app <app>`, `just backup-audit`, `just e2e-list`.

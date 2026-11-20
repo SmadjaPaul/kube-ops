@@ -1,0 +1,40 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-emptydir-size-limit
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-emptydir-size-limit
+  resources:
+  - clean
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-emptydir-size-limit
+  resources:
+  - no-volumes
+  result: pass
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-emptydir-size-limit
+  resources:
+  - unbounded
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-emptydir-size-limit
+  resources:
+  - memory-unbounded
+  result: fail
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-emptydir-size-limit
+  resources:
+  - system-namespace
+  result: skip
