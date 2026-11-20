@@ -1,33 +1,53 @@
-# Deny backstops for preview namespaces (label smadja.dev/preview=true). The
-# Argo patches in the ApplicationSet already rewrite these fields; these rules
-# make a mistake or a hostile PR fail closed. Scoped to preview namespaces only:
-# the rest of the cluster keeps the Audit-only platform baseline.
+# Deny backstops for preview namespaces (pr-<n>-<app>). The ApplicationSet patches
+# rewrite some fields; these rules make a mistake or a hostile PR fail closed.
+# Scoped by namespace name: the rest of the cluster keeps the Audit-only baseline.
+#
+# Secrets (D-2026-11-20-04): a preview never reads a production secret. The only
+# ExternalSecret admitted is form C of the ExternalSecret contract: no secretStoreRef,
+# no data, refreshPolicy CreatedOnce, every dataFrom a `Password` generatorRef. That
+# refuses doppler-cluster (A), k8s-auth and k8s-databases (B) and any other store.
+# No SecretStore, no ClusterSecretStore, no CNPG Database (no pg-shared-homelab role).
+# Tests: tests/policies/namespace-guard (gen-tests.py, `kyverno test`).
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 metadata:
   name: preview-namespace-guard
   annotations:
-    description: "Preview namespaces: Doppler preview store only, low priority, no LoadBalancer/NodePort (PLT-390)."
+    description: "Preview namespaces: generated secrets only (form C), no store, no shared database, low priority, no LoadBalancer/NodePort (PLT-390)."
 spec:
   validationActions: [Deny]
   failurePolicy: Ignore
   matchConstraints:
-    namespaceSelector:
-      matchLabels:
-        smadja.dev/preview: "true"
     resourceRules:
       - apiGroups: [""]
         apiVersions: ["v1"]
         operations: [CREATE, UPDATE]
         resources: [pods, services]
       - apiGroups: ["external-secrets.io"]
-        apiVersions: ["v1"]
+        apiVersions: ["*"]
         operations: [CREATE, UPDATE]
-        resources: [externalsecrets]
+        resources: [externalsecrets, secretstores, clustersecretstores]
+      - apiGroups: ["postgresql.cnpg.io"]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [databases]
+  matchConditions:
+    - name: preview-namespace
+      expression: >-
+        has(object.metadata.namespace) && object.metadata.namespace.matches('^pr-[0-9]+-[a-z0-9-]+$')
   validations:
     - expression: >-
-        object.kind != 'ExternalSecret' || (object.spec.secretStoreRef.name == 'doppler-preview' && object.spec.secretStoreRef.kind == 'ClusterSecretStore')
-      message: "In a preview namespace an ExternalSecret must use ClusterSecretStore doppler-preview, never a production store. (preview-secret-store)"
+        object.kind != 'ExternalSecret' || (!has(object.spec.secretStoreRef) && !has(object.spec.data))
+      message: "In a preview an ExternalSecret reads no store (not doppler-cluster, k8s-auth, k8s-databases, nor any other): only a Password generator, form C. (preview-no-store)"
+    - expression: >-
+        object.kind != 'ExternalSecret' || (has(object.spec.refreshPolicy) && object.spec.refreshPolicy == 'CreatedOnce' && has(object.spec.dataFrom) && size(object.spec.dataFrom) > 0 && object.spec.dataFrom.all(d, has(d.sourceRef) && has(d.sourceRef.generatorRef) && d.sourceRef.generatorRef.kind == 'Password' && !has(d.sourceRef.storeRef) && !has(d.extract) && !has(d.find)))
+      message: "In a preview an ExternalSecret must be form C: refreshPolicy CreatedOnce and dataFrom made only of sourceRef.generatorRef of kind Password. (preview-generated-only)"
+    - expression: >-
+        object.kind != 'SecretStore' && object.kind != 'ClusterSecretStore'
+      message: "No SecretStore or ClusterSecretStore in a preview namespace. (preview-no-secret-store)"
+    - expression: >-
+        object.kind != 'Database'
+      message: "No CNPG Database in a preview: a preview never gets a pg-shared-homelab role or base. (preview-no-shared-database)"
     - expression: >-
         object.kind != 'Pod' || (has(object.spec.priorityClassName) && object.spec.priorityClassName == 'preview-low')
       message: "Preview pods must use priorityClassName preview-low. (preview-priority)"

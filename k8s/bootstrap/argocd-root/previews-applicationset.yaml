@@ -10,9 +10,11 @@
 # What is rewritten for every preview (Argo kustomize patches, no change to the
 # app's own manifests): Namespace objects dropped; HTTPRoute hostnames and parent
 # replaced; KEDA ScaledObject/InterceptorRoute dropped (they would claim the
-# production hostname); ExternalSecret store forced to doppler-preview; pods get
-# the low PriorityClass. Kyverno policy preview-namespace-guard denies the same
-# things if a patch does not apply.
+# production hostname); pods get the low PriorityClass. Secrets are NOT rewritten:
+# the only ExternalSecret admitted in a preview is form C (Password generator,
+# CreatedOnce, no store). An app whose ExternalSecret reads a store (form A, B or
+# any Doppler store) is refused by Kyverno preview-namespace-guard and stays
+# Degraded: a preview never reads a production secret (D-2026-11-20-04).
 #
 # Exposure: hostname <app>-<n>-preview.smadja.dev (one DNS level under the
 # wildcard Cloudflare Universal SSL covers). The parent is Gateway/internal
@@ -101,14 +103,6 @@ spec:
                     value:
                       - name: internal
                         namespace: gateway
-              - target:
-                  kind: ExternalSecret
-                patch: |-
-                  - op: add
-                    path: /spec/secretStoreRef
-                    value:
-                      name: doppler-preview
-                      kind: ClusterSecretStore
               - target:
                   kind: Deployment
                 patch: |-

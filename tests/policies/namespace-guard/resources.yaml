@@ -1,0 +1,347 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-form-c
+  namespace: pr-7-demo
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-form-c-outside-preview-ns-is-skipped
+  namespace: auth
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: store-doppler-cluster
+  namespace: pr-7-demo
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-cluster
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: store-k8s-auth
+  namespace: pr-7-demo
+spec:
+  data:
+  - remoteRef:
+      key: oidc-pr-7-demo
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-auth
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: store-k8s-databases
+  namespace: pr-7-demo
+spec:
+  data:
+  - remoteRef:
+      key: pg-pr-7-demo
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-databases
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: store-other-doppler
+  namespace: pr-7-demo
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-other
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: store-namespaced-secretstore
+  namespace: pr-7-demo
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: own
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-with-store
+  namespace: pr-7-demo
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: CreatedOnce
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-cluster
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-mixed-with-data
+  namespace: pr-7-demo
+spec:
+  data:
+  - remoteRef:
+      key: A
+    secretKey: A
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-datafrom-extract
+  namespace: pr-7-demo
+spec:
+  dataFrom:
+  - extract:
+      key: A
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-without-createdonce
+  namespace: pr-7-demo
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: x
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-non-password-generator
+  namespace: pr-7-demo
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Webhook
+        name: x
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: generated-datafrom-store-ref
+  namespace: pr-7-demo
+spec:
+  dataFrom:
+  - sourceRef:
+      storeRef:
+        kind: ClusterSecretStore
+        name: doppler-cluster
+  refreshPolicy: CreatedOnce
+  target:
+    creationPolicy: Orphan
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secretstore-in-preview
+  namespace: pr-7-demo
+spec:
+  provider:
+    doppler:
+      auth:
+        secretRef:
+          dopplerToken:
+            key: token
+            name: t
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: database-in-preview
+  namespace: pr-7-demo
+spec:
+  cluster:
+    name: pg-shared-homelab
+  name: demo
+  owner: demo
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: database-outside-preview-is-skipped
+  namespace: databases
+spec:
+  cluster:
+    name: pg-shared-homelab
+  name: demo
+  owner: demo
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-low-priority
+  namespace: pr-7-demo
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+  priorityClassName: preview-low
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-default-priority
+  namespace: pr-7-demo
+spec:
+  containers:
+  - image: registry.example/app:1.2.3
+    name: main
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  volumes:
+  - emptyDir:
+      sizeLimit: 64Mi
+    name: tmp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-loadbalancer
+  namespace: pr-7-demo
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-clusterip
+  namespace: pr-7-demo
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: ClusterIP

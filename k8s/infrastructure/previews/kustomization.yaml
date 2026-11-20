@@ -6,6 +6,5 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - priorityclass.yaml
-  - secret-store.yaml
   - admission-policy.yaml
   - sweeper.yaml

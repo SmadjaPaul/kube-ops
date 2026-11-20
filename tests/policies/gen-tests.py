@@ -16,6 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BASELINE = "../../../k8s/infrastructure/security/policies/platform-baseline.yaml"
 STATIC = "../../../policy/static/repo-contract.yaml"
 ADMISSION = "../../../k8s/infrastructure/security/policies/eso-k8s-store-guard.yaml"
+PREVIEW = "../../../k8s/infrastructure/previews/admission-policy.yaml"
 DIGEST = "sha256:" + "a" * 64
 
 
@@ -358,6 +359,62 @@ STATIC_RULES = {
 ADMISSION_RULES = {"k8s-store-guard": OWN_NS_CASES}
 
 
+def prev(obj, ns="pr-7-demo"):
+    o = copy.deepcopy(obj)
+    o["metadata"]["namespace"] = ns
+    return o
+
+
+def prev_pod(**kw):
+    p = pod("pr-7-demo")
+    p["spec"]["priorityClassName"] = "preview-low"
+    p["spec"].update(kw)
+    return p
+
+
+def store_obj(kind, ns=None):
+    o = {"apiVersion": "external-secrets.io/v1", "kind": kind, "metadata": {"name": "x"},
+         "spec": {"provider": {"doppler": {"auth": {"secretRef": {"dopplerToken": {"key": "token", "name": "t"}}}}}}}
+    if ns:
+        o["metadata"]["namespace"] = ns
+    return o
+
+
+PREVIEW_CASES = [
+    # form C: the only admitted ExternalSecret
+    ("generated-form-c", P, prev(es_gen())),
+    ("generated-form-c-outside-preview-ns-is-skipped", S, es_k8s("k8s-auth", ns="auth")),
+    # the three production stores, and any other store
+    ("store-doppler-cluster", F, prev(es())),
+    ("store-k8s-auth", F, prev(es_k8s("k8s-auth", keys=("oidc-pr-7-demo",)))),
+    ("store-k8s-databases", F, prev(es_k8s("k8s-databases", keys=("pg-pr-7-demo",)))),
+    ("store-other-doppler", F, prev(es(store="doppler-other"))),
+    ("store-namespaced-secretstore", F, prev(es(kind="SecretStore", store="own"))),
+    ("generated-with-store", F, prev(es_gen(secretStoreRef={"name": "doppler-cluster", "kind": "ClusterSecretStore"}))),
+    ("generated-mixed-with-data", F, prev(es_gen(data=[{"secretKey": "A", "remoteRef": {"key": "A"}}]))),
+    ("generated-datafrom-extract", F, prev(es_gen(dataFrom=[{"extract": {"key": "A"}}]))),
+    ("generated-without-createdonce", F, prev(es_gen(refreshPolicy=None))),
+    ("generated-non-password-generator", F, prev(es_gen(dataFrom=[{"sourceRef": {"generatorRef": {
+        "apiVersion": "generators.external-secrets.io/v1alpha1", "kind": "Webhook", "name": "x"}}}]))),
+    ("generated-datafrom-store-ref", F, prev(es_gen(dataFrom=[{"sourceRef": {"storeRef": {"name": "doppler-cluster", "kind": "ClusterSecretStore"}}}]))),
+    # no store of its own, no shared database
+    ("secretstore-in-preview", F, store_obj("SecretStore", "pr-7-demo")),
+    ("database-in-preview", F, {"apiVersion": "postgresql.cnpg.io/v1", "kind": "Database",
+                                "metadata": {"name": "x", "namespace": "pr-7-demo"},
+                                "spec": {"name": "demo", "owner": "demo", "cluster": {"name": "pg-shared-homelab"}}}),
+    ("database-outside-preview-is-skipped", S, {"apiVersion": "postgresql.cnpg.io/v1", "kind": "Database",
+                                                "metadata": {"name": "x", "namespace": "databases"},
+                                                "spec": {"name": "demo", "owner": "demo", "cluster": {"name": "pg-shared-homelab"}}}),
+    # priority and exposure
+    ("pod-low-priority", P, prev_pod()),
+    ("pod-default-priority", F, {**prev_pod(), "spec": {k: v for k, v in prev_pod()["spec"].items() if k != "priorityClassName"}}),
+    ("service-loadbalancer", F, prev(svc("LoadBalancer"))),
+    ("service-clusterip", P, prev(svc("ClusterIP"))),
+]
+
+PREVIEW_RULES = {"namespace-guard": PREVIEW_CASES}
+
+
 def render(rule, cases, policy_file, prefix):
     pol = f"{prefix}-{rule}"
     res, results = [], []
@@ -378,7 +435,7 @@ def render(rule, cases, policy_file, prefix):
 def main():
     check = "--check" in sys.argv
     stale = []
-    for table, pf, prefix in ((RULES, BASELINE, "platform-baseline"), (STATIC_RULES, STATIC, "repo-contract"), (ADMISSION_RULES, ADMISSION, "eso")):
+    for table, pf, prefix in ((RULES, BASELINE, "platform-baseline"), (STATIC_RULES, STATIC, "repo-contract"), (ADMISSION_RULES, ADMISSION, "eso"), (PREVIEW_RULES, PREVIEW, "preview")):
         for rule, cases in table.items():
             got = {c[1] for c in cases}
             assert F in got and (P in got or S in got), f"{rule}: il faut un cas fail et un cas pass ou skip"
