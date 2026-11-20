@@ -31,7 +31,7 @@ credentials:
 configuration:
   uploaderType: kopia
   uploaderConfig:
-    # Keep WAN pressure and local disk contention bounded on the single node.
+    # Two parallel file uploads (WAN and local disk I/O).
     parallelFilesUpload: 2
   # R2 does not support every flexible checksum of recent AWS SDKs (aws-sdk-go-v2).
   extraEnvVars:

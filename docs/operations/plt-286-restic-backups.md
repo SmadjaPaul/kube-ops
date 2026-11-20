@@ -43,7 +43,7 @@ Mot de passe : homelab-infra D-2026-11-15-10 et
 - Volume au 15/11/2026 (taille réelle Longhorn, borne haute) : bibliothèque
   Immich 6,8 GiB, Paperless 0,7 GiB, bases 1,9 GiB avant compression. Dépôt
   initial estimé sous 10 GiB.
-- Requests CPU de 10m par conteneur (J4 : somme des requests ≤ 70 %).
+- Requests CPU de 10m par conteneur.
 
 ## Préalables à l'activation (ordre)
 
@@ -74,15 +74,14 @@ Mot de passe : homelab-infra D-2026-11-15-10 et
 Aucune commande ne lit ni n'affiche `RESTIC_PASSWORD` : les scripts ne
 journalisent ni l'environnement ni les noms de fichiers.
 
-## Horaires et limites thermiques
+## Horaires
 
 - Le serveur est éteint par la touche d'alimentation, de façon irrégulière,
   entre 01:15 et 03:40 environ : 02:30/03:00 tombaient souvent dans la fenêtre
   éteinte. Sauvegardes quotidiennes : Paperless 21:30, Immich 22:00 (Europe/Paris).
   Un passage manqué repart au boot suivant (`startingDeadlineSeconds` 18 h,
   `concurrencyPolicy: Forbid`).
-- Le CPU (k10temp) oscille entre 63 et 71 °C sous la CI : alerte 70 °C, arrêt
-  75 °C. Les sauvegardes tournent en `ionice -c3 nice -n 19`, `GOMAXPROCS=1`,
+- Les sauvegardes tournent en `ionice -c3 nice -n 19`, `GOMAXPROCS=1`,
   limite CPU 500m, `--limit-upload` 4096 KiB/s (`LIMIT_UPLOAD_KIB`). Tags et
   rétention inchangés.
 

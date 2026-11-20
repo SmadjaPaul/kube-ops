@@ -38,8 +38,7 @@ as a hypothesis.
 | Tempo | 1.9k spans in 24 h (0.02 spans/s), retention 168h |
 
 The observability stack costs well under 0.2 CPU core and about 0.2 MB/s of
-disk writes in total. It is not the source of the NVMe bursts or of the thermal
-load: the gains here are series count, ingestion, TSDB size and signal quality.
+disk writes in total. It is not the source of the NVMe bursts: the gains here are series count, ingestion, TSDB size and signal quality.
 
 ## Metrics policy
 

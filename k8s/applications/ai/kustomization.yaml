@@ -16,7 +16,7 @@ resources:
 # Intentionally disabled from the V1 active catalog:
 # - perplexica: decommissioned in favor of Mastra research tools; manifests removed (PLT-46).
 # - vllm-embed: inactive CPU embedder; migration to pgvector/search TBD.
-# - pocket-tts: local CPU TTS is too expensive on the current single-node host.
+# - pocket-tts: local CPU TTS, not enabled from V1; reconsider when the need is confirmed.
 
 # Direct cutover: Open WebUI, LiteLLM, Qdrant, OpenClaw workloads and
 # their desired-state data resources are intentionally retired.
