@@ -1,0 +1,106 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: eso-k8s-store-guard
+policies:
+- ../../../k8s/infrastructure/security/policies/eso-k8s-store-guard.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - oidc-own-namespace
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - oidc-own-namespace-usage
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - pg-own-namespace
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - pg-own-namespace-usage
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - oidc-other-namespace
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - oidc-one-key-other-namespace
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - oidc-prefix-collision
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - oidc-namespace-substring
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - pg-key-on-auth-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - oidc-key-on-databases-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - authentik-core-secrets
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - datafrom-extract
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - datafrom-find
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - data-sourceref
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - secretstore-kind
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - doppler-store-not-concerned
+  result: skip

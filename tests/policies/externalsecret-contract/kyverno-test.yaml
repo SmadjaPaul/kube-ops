@@ -44,3 +44,105 @@ results:
   resources:
   - refresh-missing
   result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - k8s-auth-copy
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - k8s-databases-copy
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - k8s-auth-namespaced-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - k8s-auth-refresh-720h
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - k8s-auth-refresh-missing
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - k8s-unknown-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-source
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-without-createdonce
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-refresh-periodic
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-owner
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-creation-policy-missing
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-mixed-with-data
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-with-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-datafrom-extract
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-datafrom-mixed
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-datafrom-empty
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-externalsecret-contract
+  resources:
+  - generated-system-namespace
+  result: skip

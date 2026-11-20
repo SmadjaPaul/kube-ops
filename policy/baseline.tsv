@@ -211,7 +211,6 @@ repo-contract-cnp-per-namespace	sure
 repo-contract-cnp-per-namespace	trivy-system
 repo-contract-cnp-per-namespace	velero
 repo-contract-cnp-per-namespace	vertical-pod-autoscaler
-repo-contract-externalsecret-contract	factory-platform/ExternalSecret/factory-platform-postgresql-source
 repo-contract-no-networkpolicy	agent-observers/NetworkPolicy/argocd-mcp
 repo-contract-no-networkpolicy	agent-observers/NetworkPolicy/grafana-mcp-ingress
 repo-contract-no-networkpolicy	argocd/NetworkPolicy/argocd-application-controller
