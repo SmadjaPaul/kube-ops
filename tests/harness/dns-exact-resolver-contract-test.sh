@@ -56,6 +56,27 @@ def names_from_regex(regex):
     return [n.replace("[.]", ".") for n in regex[2:-len(")[.]$")].split("|")]
 
 
+
+def simulate(blocks, qname, qtype):
+    """Documented CoreDNS 1.14 template semantics (plugin/template: ServeDNS + match):
+    zone gate (smadja.dev) else next plugin; per template in Corefile order: a TYPE
+    mismatch always continues to the next template; a regex mismatch continues only
+    with `fallthrough`, else SERVFAIL; a regex match answers (empty answer + NOERROR
+    = NODATA) and never falls through; no template left = next plugin (forward)."""
+    if not (qname == "smadja.dev." or qname.endswith(".smadja.dev.")):
+        return "forward"
+    for t in ("A", "AAAA", "HTTPS", "SVCB"):  # Corefile order is checked separately
+        if t not in blocks:
+            continue
+        regex, answer, rcode, fall = blocks[t]
+        if t != qtype:
+            continue
+        if re.search(regex, qname):
+            return "A:" + answer.rsplit(" ", 1)[-1] if answer else "NODATA" if rcode == "NOERROR" else "rcode:" + str(rcode)
+        if not fall:
+            return "SERVFAIL"
+    return "forward"
+
 def problems(docs, corefile_override=None, service_ip=None, cnp_mutator=None, deploy_mutator=None):
     bad = []
     cm = find(docs, "ConfigMap", "dns-exact-resolver")
@@ -107,6 +128,25 @@ def problems(docs, corefile_override=None, service_ip=None, cnp_mutator=None, de
             bad.append(f"{q} must be NOERROR/NODATA (no answer, rcode NOERROR)")
         if not fall:
             bad.append(f"{q} must fall through non-listed names")
+
+    # Behavioural check on the documented template semantics (no runtime available in CI).
+    if not bad and names:
+        order = re.findall(r"template IN (\w+) smadja\.dev", text)
+        if order != list(TYPES):
+            bad.append(f"template block order must be {TYPES}, got {order}")
+        for n in (names[0], "media.smadja.dev"):
+            q = n + "."
+            if simulate(blocks, q, "A") != "A:" + VIP:
+                bad.append(f"{n} A must answer the VIP")
+            for t in ("AAAA", "HTTPS", "SVCB"):
+                if simulate(blocks, q, t) != "NODATA":
+                    bad.append(f"{n} {t} must be NODATA, never forwarded")
+            if simulate(blocks, q, "TXT") != "forward":
+                bad.append(f"{n} TXT must be forwarded")
+        for n in ("tv.smadja.dev.", "smadja.dev.", "x.media.smadja.dev.", "mediaXsmadja.dev.", "example.com."):
+            for t in TYPES:
+                if simulate(blocks, n, t) != "forward":
+                    bad.append(f"{n} {t} must be forwarded to UniFi (got {simulate(blocks, n, t)})")
 
     svc = find(docs, "Service", "dns-exact-resolver")
     ip = service_ip or svc["metadata"]["annotations"].get("lbipam.cilium.io/ips", "")
@@ -192,6 +232,11 @@ cases = {
     "tv excluded name listed": core.replace(first_regex, first_regex.replace("^(", "^(tv[.]smadja[.]dev|", 1)),
     "blocks disagree": core.replace('match "' + first_regex + '"', 'match "' + first_regex.replace("^(", "^(zz[.]smadja[.]dev|", 1) + '"', 1),
     "AAAA answers": core.replace("template IN AAAA smadja.dev {", "template IN AAAA smadja.dev {\n        answer \"{{ .Name }} 300 IN AAAA 2001:db8::1\"", 1),
+    "A without fallthrough (breaks non-listed A)": re.sub(r"(template IN A smadja\.dev \{.*?rcode NOERROR)\n\s*fallthrough", r"\1", core, count=1, flags=re.S),
+    "AAAA without fallthrough (non-listed AAAA SERVFAIL)": re.sub(r"(template IN AAAA smadja\.dev \{.*?rcode NOERROR)\n\s*fallthrough", r"\1", core, count=1, flags=re.S),
+    "SVCB without fallthrough": re.sub(r"(template IN SVCB smadja\.dev \{.*?rcode NOERROR)\n\s*fallthrough", r"\1", core, count=1, flags=re.S),
+    "HTTPS rcode NXDOMAIN": re.sub(r"(template IN HTTPS smadja\.dev \{.*?)rcode NOERROR", r"\1rcode NXDOMAIN", core, count=1, flags=re.S),
+    "blocks reordered": core.replace("template IN AAAA smadja.dev {", "template IN ZZZZ smadja.dev {", 1),
     "forward to kube-dns": core.replace("forward . 10.0.20.1", "forward . 10.96.0.10"),
     "A points elsewhere": core.replace("300 IN A 10.0.20.192\"", "300 IN A 10.0.20.194\"", 1),
 }
@@ -239,6 +284,33 @@ for label, fn in {
         sys.exit(1)
 
 print("negative cases rejected: %d" % (len(cases) + 3 + 2 + 5))
+PY
+
+# Offline self-test of the runtime checker (no network): packet parsing + verdicts.
+python3 -I - "$repo_root/scripts/plt149/check_resolver_nodata.py" <<'PY'
+import importlib.util, struct, sys
+spec = importlib.util.spec_from_file_location("chk", sys.argv[1])
+chk = importlib.util.module_from_spec(spec); spec.loader.exec_module(chk)
+
+def reply(name, qtype, answers=(), rcode=0, ttl=300):
+    q = chk.build_query(name, qtype)[12:]
+    body = b"".join(b"\xc0\x0c" + struct.pack(">HHIH", t, 1, ttl, len(r)) + r for t, r in answers)
+    return struct.pack(">HHHHHH", 0x1234, 0x8400 | rcode, 1, len(answers), 0, 0) + q + body
+
+vip = bytes([10, 0, 20, 192])
+good = {"A": chk.parse_response(reply("a.smadja.dev", 1, [(1, vip)]))}
+for t in ("AAAA", "HTTPS", "SVCB"):
+    good[t] = chk.parse_response(reply("a.smadja.dev", chk.QTYPES[t]))
+assert chk.evaluate("a.smadja.dev", good) == [], "good verdict"
+bad = dict(good); bad["AAAA"] = chk.parse_response(reply("a.smadja.dev", 28, [(28, bytes(16))] * 2))
+assert len(chk.evaluate("a.smadja.dev", bad)) == 1, "AAAA with answers must fail"
+bad = dict(good); bad["HTTPS"] = chk.parse_response(reply("a.smadja.dev", 65, rcode=2))
+assert chk.evaluate("a.smadja.dev", bad), "HTTPS SERVFAIL must fail"
+bad = dict(good); bad["A"] = chk.parse_response(reply("a.smadja.dev", 1, [(1, vip)], ttl=5))
+assert chk.evaluate("a.smadja.dev", bad), "A with upstream TTL must fail"
+bad = dict(good); bad["A"] = chk.parse_response(reply("a.smadja.dev", 1, [(1, bytes([10, 0, 20, 194]))]))
+assert chk.evaluate("a.smadja.dev", bad), "A != VIP must fail"
+print("checker self-test ok")
 PY
 
 printf '%s\n' 'DNS_EXACT_RESOLVER_CONTRACT_TEST=PASS'

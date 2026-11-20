@@ -75,3 +75,7 @@ are not touched.
   listed names.
 - No ServiceMonitor is declared. Metrics are exposed on the pod (9153) for
   Prometheus through the NetworkPolicy.
+
+## Preuve runtime (PLT-149)
+
+`python3 scripts/plt149/check_resolver_nodata.py` : A = VIP avec TTL 300 (signature du template ; UniFi répond en TTL 5), AAAA/HTTPS/SVCB = NOERROR sans réponse. Piège constaté le 20/11/2026 : depuis le VLAN 10.0.10.0/24, UniFi redirige tout UDP/53 vers lui-même (une IP inexistante comme 10.0.20.199 répond) ; le script détecte ce cas (sortie 3) et la mesure est alors invalide. Le résolveur n'accepte que 10.0.20.1 (CiliumNetworkPolicy) : mesurer via UniFi une fois le forward conditionnel en place (`--server 10.0.20.1 --skip-sentinel`) ou depuis un chemin non intercepté.
