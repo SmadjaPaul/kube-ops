@@ -22,14 +22,18 @@ cat >"$WORK/bin/kubectl" <<'SH'
 #!/usr/bin/env bash
 echo "kubectl KUBECONFIG=${KUBECONFIG:-unset} $*" >>"$WORK_LOG"
 case "$*" in
-  *"auth whoami"*) printf '%s' "${FAKE_WHO:-system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge}" ;;
-  *"get secret alertmanager-ntfy-url"*) printf '%s' "$(printf 'https://ntfy.example/secret-topic-123' | base64)" ;;
+  *"auth whoami"*) [[ -n ${FAKE_WHOAMI_FAIL:-} ]] && { echo "selfsubjectreviews forbidden" >&2; exit 1; }
+                  printf '%s' "${FAKE_WHO:-system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge}" ;;
+  *"get secret alertmanager-ntfy-url"*) printf '%s' "$(printf 'https://ntfy.example/secret-topic-123%s' "${FAKE_NTFY_QUERY:-}" | base64)" ;;
   *) echo "KUBECTL_OK $*" ;;
 esac
 SH
 cat >"$WORK/bin/curl" <<'SH'
 #!/usr/bin/env bash
 cat >"$WORK_CURL_STDIN"; echo "curl-args: $*" >>"$WORK_LOG"
+out=""; prev=""; for a in "$@"; do [[ $prev == -o ]] && out=$a; prev=$a; done
+if [[ -n ${FAKE_NTFY_CODE:-} ]]; then [[ -n $out ]] && echo '{"code":40001,"error":"invalid request"}' >"$out"; printf '%s' "$FAKE_NTFY_CODE"
+else printf '200'; fi
 SH
 chmod +x "$WORK/bin/kubectl" "$WORK/bin/curl"
 export WORK_LOG="$WORK/log" WORK_CURL_STDIN="$WORK/curl-stdin"; : >"$WORK_LOG"
@@ -55,5 +59,19 @@ out=$(run bash "$ROOT/scripts/post-merge-notify.sh" "t" high "m" 2>&1); rc=$?
 [[ $out != *secret-topic-123* ]] && ok "URL not printed" || ko "URL printed"
 grep -q 'secret-topic-123' "$WORK_LOG" && ko "URL in arguments/log" || ok "URL not in arguments"
 grep -q 'secret-topic-123' "$WORK_CURL_STDIN" && ok "URL given on stdin" || ko "URL missing from curl stdin"
+# whoami unavailable: identity from the ServiceAccount token `sub` claim; another `sub` is still refused.
+jwt() { printf '{"alg":"RS256"}' | base64 | tr -d '=\n' ; printf '.'; printf '{"sub":"%s"}' "$1" | base64 | tr -d '=\n' | tr '/+' '_-'; printf '.sig'; }
+jwt system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge >"$WORK/sa/token"
+out=$(FAKE_WHOAMI_FAIL=1 run bash "$WORK/scripts/kubectl-ro.sh" get pods -n media 2>&1); rc=$?
+[[ $rc -eq 0 && $out == *"identité lue du jeton"* ]] && ok "whoami fallback to token sub" || ko "whoami fallback (rc=$rc): $out"
+jwt system:serviceaccount:agent-operator:agent-operator >"$WORK/sa/token"
+out=$(FAKE_WHOAMI_FAIL=1 run bash "$WORK/scripts/kubectl-ro.sh" get pods 2>&1); rc=$?
+[[ $rc -ne 0 && $out == *"selfsubjectreviews forbidden"* ]] && ok "fallback: other sub refused, whoami error shown" || ko "fallback other sub (rc=$rc): $out"
+echo faketoken >"$WORK/sa/token"
+# ntfy: query string (Alertmanager template) stripped; refusal reports HTTP code and ntfy error, never the URL.
+out=$(FAKE_NTFY_QUERY='?template=alertmanager' run bash "$ROOT/scripts/post-merge-notify.sh" "t" high "m" 2>&1); rc=$?
+[[ $rc -eq 0 ]] && ! grep -q template "$WORK_CURL_STDIN" && ok "ntfy query stripped" || ko "ntfy query (rc=$rc)"
+out=$(FAKE_NTFY_CODE=400 run bash "$ROOT/scripts/post-merge-notify.sh" "t" high "m" 2>&1); rc=$?
+[[ $rc -eq 2 && $out == *"http=400 error=invalid request"* && $out != *secret-topic* ]] && ok "ntfy refusal explained" || ko "ntfy refusal (rc=$rc): $out"
 echo "kubectl-ro in-cluster test: $([[ $FAIL -eq 0 ]] && echo PASS || echo "FAIL ($FAIL)")"
 exit "$FAIL"
