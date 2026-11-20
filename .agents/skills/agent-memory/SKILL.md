@@ -5,15 +5,55 @@ description: Read and write the shared agent memory (Hindsight MCP, bank agents-
 
 # Agent memory (Hindsight)
 
-Decision: D-2026-11-14-03 (homelab-infra `docs/decisions.md`). Tracking: PLT-301.
-Status: the MCP endpoint is NOT active yet (public hostname awaits Paul). If the
-`hindsight` MCP server is absent or fails, continue the ticket without memory.
+Decision: D-2026-11-14-03 (homelab-infra `docs/decisions.md`), amended by
+D-2026-11-18-01 rule 3: Hindsight runs on the homelab, not on OKE. Tracking: PLT-305
+(agent switch), PLT-368 (security and backup proof), PLT-304 (access path, needs Paul).
+Status: NO agent endpoint is active. The Cloudflare edge in `terraform/cloudflare/oracle-a1.tf`
+targets OKE, not the homelab, and must not be applied for memory. If the `hindsight`
+MCP server is absent or fails, continue the ticket without memory.
 Memory never blocks a ticket and never replaces `docs/decisions.md`.
 
-## Bank
+## Three layers, never mixed
 
-- Engineering agents use one bank: `agents-homelab` (single-bank URL `/mcp/agents-homelab/`).
-- Never read or write another bank (personal banks belong to their owners).
+1. Personal memory: per principal, in that principal's own bank. Agents do not read or write it.
+2. Operational memory: this skill, bank `agents-homelab`, pointers and traps only.
+3. Authoritative state: Git, Linear, runtime. Memory never stores status or decisions as truth.
+
+A write that belongs to layer 3 is refused: write a ticket or a decision instead.
+
+## Bank and access
+
+| Bank | Who | Agent access |
+|---|---|---|
+| `agents-homelab` | engineering agents (Claude Code, Codex) | read and write, via MCP, this skill's rules |
+| personal banks | their owner | none |
+
+Complete list of banks: not yet read from the homelab instance (no admin read done for
+this change). To complete with a read-only check before PLT-305.
+
+Access: one Hindsight API key (`APP_HINDSIGHT_MCP_API_KEY`, cluster/prd) reaches every
+bank, so the edge must route only `/mcp/agents-homelab/` (PLT-304). Cloudflare Access
+service token on top (names: `HINDSIGHT_CF_ACCESS_CLIENT_ID` / `_SECRET`, infrastructure/prd).
+
+## Retention (proposal, not decided)
+
+Proposed for Paul's decision: entries are kept without automatic expiry. A wrong entry is
+corrected by a new entry that cites the decision, never edited silently. Deletion is done
+by Paul only. PLT-368 stays open until this is decided.
+
+## No secret in memory (rule, checked before every write)
+
+Before `retain`, save the candidate entry to a file and run:
+
+```bash
+python3 -I scripts/agent-memory-entry-check.py entry.txt
+```
+
+It refuses an entry with a private key, a known token format, a `name=value` secret,
+a sensitive URL parameter or a long mixed alphanumeric string, and prints only the rule
+name, never the value. Test: `bash tests/agent-guard/agent-memory-entry-test.sh`.
+Limit: this check is procedural. The server-side enforcement on Hindsight is still open
+in PLT-368; a value that slips through must be reported and not repeated.
 
 ## When to read (ticket start, once)
 
