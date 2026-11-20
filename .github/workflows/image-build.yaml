@@ -93,9 +93,7 @@ jobs:
   # credentials, cannot publish tags, and has read-only repository access.
   build-pr:
     name: Validate image build (PR, no publish)
-    # backstage: runner arm64 natif (gratuit sur depot public), sans QEMU.
-    # Garder ce mapping aligne avec la table de l'etape « Select target platform ».
-    runs-on: ${{ matrix.image == 'backstage' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     needs: detect-dockerfiles
     if: github.event_name == 'pull_request' && needs.detect-dockerfiles.outputs.images != '[]'
     permissions:
@@ -130,12 +128,8 @@ jobs:
           IMAGE_NAME: ${{ matrix.image }}
         run: |
           set -euo pipefail
-          # backstage tourne sur le noeud arm64 de l'OKE oracle-a1 : build arm64 seulement.
-          # Les autres images restent en linux/amd64 (aucun changement).
-          case "$IMAGE_NAME" in
-            backstage) platform=linux/arm64 ;;
-            *) platform=linux/amd64 ;;
-          esac
+          # Toutes les images sont construites pour linux/amd64.
+          platform=linux/amd64
           echo "platform=$platform" >> "$GITHUB_OUTPUT"
 
       - name: Verify runner architecture matches target platform
@@ -172,9 +166,7 @@ jobs:
   # receive packages:write or authenticate to GHCR.
   publish:
     name: Publish image (trusted main only)
-    # backstage: runner arm64 natif (gratuit sur depot public), sans QEMU.
-    # Garder ce mapping aligne avec la table de l'etape « Select target platform ».
-    runs-on: ${{ matrix.image == 'backstage' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     needs: detect-dockerfiles
     if: >-
       github.ref == 'refs/heads/main' &&
@@ -215,12 +207,8 @@ jobs:
           IMAGE_NAME: ${{ matrix.image }}
         run: |
           set -euo pipefail
-          # backstage tourne sur le noeud arm64 de l'OKE oracle-a1 : build arm64 seulement.
-          # Les autres images restent en linux/amd64 (aucun changement).
-          case "$IMAGE_NAME" in
-            backstage) platform=linux/arm64 ;;
-            *) platform=linux/amd64 ;;
-          esac
+          # Toutes les images sont construites pour linux/amd64.
+          platform=linux/amd64
           echo "platform=$platform" >> "$GITHUB_OUTPUT"
 
       - name: Verify runner architecture matches target platform

@@ -1,9 +1,0 @@
-{
-  "name": "platform-app-template-harness",
-  "private": true,
-  "description": "Rendu nunjucks du skeleton golden-paths/platform-application (meme moteur que Backstage scaffolder)",
-  "type": "module",
-  "dependencies": {
-    "nunjitsu": "0.6.2"
-  }
-}
