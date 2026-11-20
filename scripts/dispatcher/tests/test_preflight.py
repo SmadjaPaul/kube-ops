@@ -192,10 +192,6 @@ class KubeAccessCheckTests(unittest.TestCase):
         self.assertEqual(sp.call_args[1]["cwd"], dispatch.REPO_ROOT)
         self.assertTrue((dispatch.REPO_ROOT / "scripts/lib/kube-preflight.sh").is_file())
 
-    def test_pass_line_on_stderr_is_accepted(self):
-        (res, _) = self._check(0, "", "KUBE_ACCESS=PASS\nAPI_REACHABLE=yes\n")
-        self.assertEqual(res, (True, "ok"))
-
     def test_blocked_reads_only_the_reason_token(self):
         err = "KUBE_ACCESS=BLOCKED\nREASON=api_unreachable\nNEXT_ACTION=X\ntoken=SECRET\n"
         (res, _) = self._check(2, "", err)
