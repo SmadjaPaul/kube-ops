@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
-for cmd in kubectl jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $cmd required" >&2; exit 2; }; done
-source "$(dirname "$0")/lib/kube-preflight.sh"
-require_kube_access
+command -v jq >/dev/null || { echo "ERROR: jq required" >&2; exit 2; }
+# shellcheck source=lib/kube-read.sh
+source "$(dirname "$0")/lib/kube-read.sh"
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"; kube_access_cleanup' EXIT
+trap 'rm -rf "$tmp"' EXIT
 
-kubectl get applications.argoproj.io -n argocd -o json >"$tmp/apps.json"
-kubectl get gateways.gateway.networking.k8s.io -A -o json >"$tmp/gateways.json"
-kubectl get httproutes.gateway.networking.k8s.io -A -o json >"$tmp/routes.json"
-kubectl get pods -A -o json >"$tmp/pods.json"
-kubectl get pvc -A -o json >"$tmp/pvcs.json"
-kubectl get externalsecrets.external-secrets.io -A -o json >"$tmp/eso.json" 2>/dev/null || printf '{"items":[]}' >"$tmp/eso.json"
-kubectl get clusters.postgresql.cnpg.io -A -o json >"$tmp/cnpg.json" 2>/dev/null || printf '{"items":[]}' >"$tmp/cnpg.json"
+kro get applications.argoproj.io -n argocd -o json >"$tmp/apps.json"
+kro get gateways.gateway.networking.k8s.io -A -o json >"$tmp/gateways.json"
+kro get httproutes.gateway.networking.k8s.io -A -o json >"$tmp/routes.json"
+kro get pods -A -o json >"$tmp/pods.json"
+kro get pvc -A -o json >"$tmp/pvcs.json"
+kro get externalsecrets.external-secrets.io -A -o json >"$tmp/eso.json" 2>/dev/null || printf '{"items":[]}' >"$tmp/eso.json"
+kro get clusters.postgresql.cnpg.io -A -o json >"$tmp/cnpg.json" 2>/dev/null || printf '{"items":[]}' >"$tmp/cnpg.json"
 
 jq -n   --slurpfile apps "$tmp/apps.json"   --slurpfile gateways "$tmp/gateways.json"   --slurpfile routes "$tmp/routes.json"   --slurpfile pods "$tmp/pods.json"   --slurpfile pvcs "$tmp/pvcs.json"   --slurpfile eso "$tmp/eso.json"   --slurpfile cnpg "$tmp/cnpg.json" '
 {

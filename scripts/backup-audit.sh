@@ -12,9 +12,6 @@ cleanup() {
   [[ -z "$tmp" ]] || rm -rf "$tmp"
   [[ -z "$report_file" ]] || rm -f "$report_file"
   rm -rf "$scratch"
-  if declare -F kube_access_cleanup >/dev/null; then
-    kube_access_cleanup
-  fi
 }
 trap cleanup EXIT
 
@@ -33,9 +30,8 @@ if [[ -n "${BACKUP_AUDIT_INPUT_DIR:-}" ]]; then
   done
   [[ -s "$input_dir/recovery-policy.json" ]] || printf '%s\n' '{"policies":[]}' >"$scratch/recovery-policy.json"
 else
-  command -v kubectl >/dev/null || { echo "ERROR: kubectl required" >&2; exit 2; }
-  source "$(dirname "$0")/lib/kube-preflight.sh"
-  require_kube_access
+  # shellcheck source=lib/kube-read.sh
+  source "$(dirname "$0")/lib/kube-read.sh"
   command -v timeout >/dev/null || { echo "ERROR: timeout required for bounded collection" >&2; exit 2; }
   tmp="$(mktemp -d)"
   input_dir="$tmp"
@@ -59,12 +55,16 @@ else
   overall_timeout="${BACKUP_AUDIT_TIMEOUT_SECONDS:-30}"
   effective_timeout="$request_timeout"
   (( overall_timeout < effective_timeout )) && effective_timeout="$overall_timeout"
+  # kubectl-ro.sh runs its own preflight per call (Doppler, TLS, API auth) before
+  # the 30 s request: the bound covers that start-up on top of the request budget.
+  preflight_slack="${BACKUP_AUDIT_PREFLIGHT_SECONDS:-20}"
+  call_timeout=$((effective_timeout + preflight_slack))
   pids=()
   names=()
   for spec in "${resources[@]}"; do
     IFS='|' read -r name args <<<"$spec"
     read -r -a argv <<<"$args"
-    timeout "${effective_timeout}s" kubectl --request-timeout="${effective_timeout}s" get "${argv[@]}" -o json \
+    timeout "${call_timeout}s" bash "${KUBECTL_RO_SCRIPT:-$KUBE_READ_DIR/kubectl-ro.sh}" get "${argv[@]}" -o json \
       >"$tmp/$name.json" 2>"$scratch/$name.stderr" &
     pids+=("$!")
     names+=("$name")

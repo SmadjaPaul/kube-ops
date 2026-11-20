@@ -479,25 +479,13 @@ cat >"$tmp/interceptorroutes.json" <<'JSON'
 }
 JSON
 
-cat >"$tmp/bin/kubectl" <<'SH'
+# Fake kubectl-ro.sh injected through KUBECTL_RO_SCRIPT (the script reads only via kro).
+cat >"$tmp/kubectl-ro.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 
 args="$*"
 case "$args" in
-  config\ view\ *)
-    if [[ "$args" == *jsonpath* ]]; then
-      printf '%s\n' 'https://operator.example.test'
-    else
-      printf '{}\n'
-    fi
-    ;;
-  *'get --raw=/version'*)
-    printf '%s\n' '{"gitVersion":"v1.36.3"}'
-    ;;
-  *'get namespace/default'*)
-    printf '%s\n' 'namespace/default'
-    ;;
   *'get openclawinstances.openclaw.rocks -A -o json'*)
     cat "$SMOKE_FIXTURE_DIR/openclawinstances.json"
     ;;
@@ -526,7 +514,7 @@ case "$args" in
     esac
     ;;
   *)
-    printf 'unexpected kubectl call: %s\n' "$args" >&2
+    printf 'unexpected kubectl-ro call: %s\n' "$args" >&2
     exit 1
     ;;
 esac
@@ -562,8 +550,13 @@ case "$*" in
 esac
 SH
 
-chmod +x "$tmp/bin/kubectl" "$tmp/bin/dig" "$tmp/bin/curl"
-: >"$tmp/kubeconfig"
+# a direct kubectl call is a failure: the script must go through kubectl-ro.sh
+cat >"$tmp/bin/kubectl" <<'SH'
+#!/usr/bin/env bash
+echo "DIRECT_KUBECTL $*" >&2
+exit 99
+SH
+chmod +x "$tmp/bin/kubectl" "$tmp/kubectl-ro.sh" "$tmp/bin/dig" "$tmp/bin/curl"
 : >"$tmp/curl.log"
 output=""
 status=0
@@ -571,8 +564,7 @@ if output="$(
   PATH="$tmp/bin:$PATH" \
     SMOKE_FIXTURE_DIR="$tmp" \
     SMOKE_CURL_LOG="$tmp/curl.log" \
-    KUBE_ACCESS_BOOTSTRAP=never \
-    KUBECONFIG="$tmp/kubeconfig" \
+    KUBECTL_RO_SCRIPT="$tmp/kubectl-ro.sh" \
     KEDA_WAKE_RETRY_DELAY_SECONDS=0 \
     ARTIFACT_DIR="$tmp/artifacts" \
     bash "$repo_root/scripts/runtime-smoke.sh"
