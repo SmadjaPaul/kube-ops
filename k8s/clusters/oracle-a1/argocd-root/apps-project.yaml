@@ -38,6 +38,8 @@ spec:
       server: '*'
     - namespace: '!monitoring'
       server: '*'
+    - namespace: '!netbird'
+      server: '*'
   # Pas de ClusterRole ni de ClusterRoleBinding : une application ne peut pas
   # accorder de privilege cluster-wide par Git.
   clusterResourceWhitelist:

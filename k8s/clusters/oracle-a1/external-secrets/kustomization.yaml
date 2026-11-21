@@ -1,7 +1,65 @@
-# Shared base: ESO chart + ClusterSecretStore doppler-cluster. The Doppler
-# token Secret `doppler-access-token` (ns external-secrets) is injected once by
-# the operator and is never stored in Git.
+# Overlay OKE d'External Secrets (PLT-406). Base : chart ESO vendore + ClusterSecretStore
+# doppler-cluster. OKE n'a ni Prometheus Operator ni namespaces auth/databases, donc on retire ce qui
+# ne s'y applique pas (la base homelab reste inchangee) :
+#   - PrometheusRule et ServiceMonitor : CRD monitoring.coreos.com absentes, la synchro echouerait ;
+#   - ClusterSecretStore k8s-auth et k8s-databases et leurs ServiceAccounts : sources absentes d'OKE.
+# Le Secret `external-secrets-webhook` du rendu est le conteneur vide du chart (aucune donnee) :
+# le cert-controller y ecrit le certificat du webhook a l'execution, rien de secret dans Git.
+# Le Secret `doppler-access-token` (ns external-secrets) n'est PAS dans Git : Paul le pose une fois
+# (README de ce cluster). Tant qu'il manque, doppler-cluster reste non Ready, sans autre effet.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../../infrastructure/controllers/external-secrets
+patches:
+  - target: {group: monitoring.coreos.com, kind: PrometheusRule}
+    patch: |-
+      $patch: delete
+      apiVersion: monitoring.coreos.com/v1
+      kind: PrometheusRule
+      metadata:
+        name: external-secrets-alerts
+  - target: {group: monitoring.coreos.com, kind: ServiceMonitor}
+    patch: |-
+      $patch: delete
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: unused
+  - target: {group: external-secrets.io, kind: ClusterSecretStore, name: k8s-auth}
+    patch: |-
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ClusterSecretStore
+      metadata:
+        name: k8s-auth
+  - target: {group: external-secrets.io, kind: ClusterSecretStore, name: k8s-databases}
+    patch: |-
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ClusterSecretStore
+      metadata:
+        name: k8s-databases
+  - target: {version: v1, kind: ServiceAccount, name: eso-k8s-auth-reader}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: eso-k8s-auth-reader
+  - target: {version: v1, kind: ServiceAccount, name: eso-k8s-databases-reader}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: eso-k8s-databases-reader
+  # Le store n'est applique qu'apres les CRD et le webhook ESO (vague 0, Deployments Healthy).
+  - target: {group: external-secrets.io, kind: ClusterSecretStore, name: doppler-cluster}
+    patch: |-
+      apiVersion: external-secrets.io/v1
+      kind: ClusterSecretStore
+      metadata:
+        name: doppler-cluster
+        annotations:
+          argocd.argoproj.io/sync-wave: "1"

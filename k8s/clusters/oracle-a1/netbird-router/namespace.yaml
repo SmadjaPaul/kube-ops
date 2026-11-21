@@ -1,0 +1,10 @@
+# Namespace dedie : le routeur exige NET_ADMIN, SYS_ADMIN et SYS_RESOURCE, donc le niveau Pod Security
+# `privileged`, declare explicitement. Rien d autre ne tourne ici.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: netbird
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
