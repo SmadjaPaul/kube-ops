@@ -52,6 +52,17 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # LibriVox plugin (public-domain audiobooks): catalogue API on librivox.org,
+    # chapter zips served by the Internet Archive.
+    - toFQDNs:
+        - matchName: librivox.org
+        - matchName: archive.org
+        - matchPattern: "*.archive.org"
+        - matchPattern: "*.us.archive.org"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     - toFQDNs:
         - matchName: auth.smadja.dev
       toPorts:
