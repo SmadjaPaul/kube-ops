@@ -1,6 +1,7 @@
 # Polyfin — family media pilot (private LAN/VPN)
 
-Status: **OFFICIAL 0.61.1 PRIVATE PILOT / ROUTE DISABLED**. The parent media
+Status: **OFFICIAL 0.85.0 PRIVATE PILOT / ROUTE DISABLED** (upgraded from
+0.61.1; runtime requalification pending). The parent media
 Kustomization keeps the workload and its data resources staged, but its Gateway
 HTTPRoute is intentionally disabled. `tv.smadja.dev` remains reserved for the
 native AIOStreams family player; this migration does not delete Polyfin data.
@@ -15,7 +16,7 @@ does not remove application data or cache contents.
 The T2 acceptance is machine-checked by
 `.github/polyfin/private-pilot-admission.json` and
 `scripts/polyfin-admission-check.sh`. It is bound to the official upstream
-`ghcr.io/moodiness/polyfin:0.61.1` linux/amd64 digest and expires at
+`ghcr.io/moodiness/polyfin:0.85.0` linux/amd64 digest and expires at
 `2026-12-05T23:59:59Z`. The upstream release and GHCR digest are recorded, but
 no upstream Cosign signature or GitHub artifact attestation was found and none
 is claimed. Trivy output remains complete and visible.
@@ -27,6 +28,49 @@ findings (`CVE-2026-115506`, `CVE-2026-119374`, `CVE-2026-119379`) and two
 findings marked fixed (`CVE-2026-85091`, `CVE-2026-78661`). The new affected
 findings are explicitly recorded as temporary T2 residuals; the fixed ones
 are tracked as `mustBeAbsent`. Trivy output remains complete and visible.
+
+### Upgrade 0.61.1 to 0.85.0
+
+Complete Trivy scan of the `linux/amd64` digest (Trivy 0.68.2, Debian 13.7,
+`HIGH,CRITICAL`, vulnerabilities only): **70 occurrences**. Five tracked CVEs
+are gone (`CVE-2026-111943`, `CVE-2026-78667`, `CVE-2026-78669`,
+`CVE-2026-97031` and the zlib `CVE-2026-76844`), and the policy entries were
+removed. One CVE is new and unreviewed: **`CVE-2026-124709`** (HIGH,
+`libssl3t64` and `openssl-provider-legacy` 3.5.7-1~deb13u2, no fix), so
+`scripts/polyfin-admission-check.sh` failed against the real scan until the
+operator accepted it as a temporary T2 residual (same private perimeter and
+the same 2026-12-05 expiry); the check now passes on the real scan. The `linux/arm64` image (the A1 cluster
+architecture) reports a subset of the same CVE ids.
+
+Behaviour changes to decide or perform at the operator console (none of them
+is in Git; the Polyfin provider root is dormant):
+
+- **Server addon streams go through Polyfin for members** (0.83.0). The
+  setting **Send apps to the source** (Settings > Playback, off by default)
+  sends apps back to the source, but then shows the source address, its keys
+  and IPTV credentials to the users who play. Keeping it off creates a media
+  relay path through the server, which conflicts with the direct-TorBox rule;
+  turning it on is only acceptable if every user may know the AIOStreams
+  manifest URL. Decide before opening the route to members.
+- List the Gateway under **Settings > Security > Known proxies**, or users
+  restricted to the local network cannot sign in or play through it.
+- The AIOStreams source is added by its in-cluster address, which counts as
+  local: a source added by a public address no longer reaches local addresses.
+  If AIOStreams answers redirect to a public host, add that host separately.
+- Subtitle files and playback addresses are bound to a user and device;
+  scripts must use the `DeliveryUrl` from PlaybackInfo.
+- `POLYFIN_SECRET_KEY` now derives the signing secret: everything signed
+  before stops working once at first start. Keep the key with the backups.
+- 24 database migrations (0233 to 0257) run at first start; take a backup
+  first. The connection pool is capped at 10.
+- The security release 0.83.0 fixes twelve medium advisories that 0.61.1
+  still has, among them subtitle files served without credentials and a
+  member reading source addresses with addon keys.
+
+Suggested operator settings from the research pass (unverified on this
+server): order versions by **Preferred audio language** first, keep **Sync
+addon subtitles** on and keep playback without conversion preferred. No
+release up to 0.85.0 adds a subtitle-language allow-list.
 
 The previous downstream build/backport evidence is historical only. It is
 preserved in closed PR [#1018](https://github.com/SmadjaPaul/kube-ops/pull/1018)
@@ -231,7 +275,7 @@ recording intentionally moves bytes through the server. Therefore:
 Polyfin SSO is **not configured**. This is intentional: upstream issue
 [#217](https://github.com/moodiness/polyfin/issues/217) remains open in the
 `Later` milestone, with no linked implementation branch or pull request. The
-current official pilot uses Polyfin `0.61.1`; upstream's
+current official pilot uses Polyfin `0.85.0`; upstream's
 current Silo capability contract still advertises both OAuth and external sign
 in as unsupported, and the deployed web login remains the native username /
 password flow.

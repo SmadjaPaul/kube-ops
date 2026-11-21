@@ -1,4 +1,4 @@
-# AIOStreams v2.37.0 — native video app (PRIVATE ROUTE)
+# AIOStreams v2.38.1 — native video app (PRIVATE ROUTE)
 
 The Media root already deploys AIOStreams with an internal-only
 `Gateway/internal` route. There is no public Gateway parent, Cloudflare
@@ -22,8 +22,12 @@ route, or blanket external egress.
 
 ## Upstream-verified startup contract
 
-- Verified version: stable `v2.37.0`, published 2026-10-23.
-- Official image: `ghcr.io/viren070/aiostreams:v2.37.0` (must pin digest
+- Verified version: stable `v2.38.1`, published 2026-11-14 (from `v2.37.0`).
+  Statically checked only: the 2.37.0 to 2.38.1 diff of the environment
+  variables shows none removed that this Deployment sets; runtime
+  requalification (health, family manifest, TorBox stream resolution) is
+  pending.
+- Official image: `ghcr.io/viren070/aiostreams:v2.38.1` (must pin digest
   after registry inspection; unpinned tag is a merge blocker).
 - Official Docker volume: `/app/data`. SQLite default:
   `sqlite://./data/db.sqlite`; 1 replica with RWO data PVC.
@@ -80,9 +84,9 @@ route, or blanket external egress.
 ## Audit evidence and admission blockers
 
 - The admission pins the multi-architecture image index to
-  `sha256:bcfd8580695a50c8f464578a0e25af065f3bd17eac35ed82a733a18342ca9718`;
+  `sha256:1b90bc2fda70f365dff2ce98fc311a24708cca9841efe09aefe309cd4da1fb2c`;
   its Linux/amd64 child manifest is
-  `sha256:c1dd8ef7d5db9dbddbf829545e18e9ab6e5eef09ebb705924c9db89729d47dfd`.
+  `sha256:560fd7dfe8106cbf6fc22c9c28daf313bc500f58224920d859a36dbf47a76f69`.
   The exact image config declares UID 0, so the pod-level UID/GID 2501,
   `runAsNonRoot`, dropped capabilities and read-only root filesystem are
   mandatory runtime controls. They must be rechecked when the digest changes.
@@ -94,10 +98,18 @@ route, or blanket external egress.
   the reviewed metadata/addon/TorBox control-plane FQDN matrix over TCP/443.
   It has no `world:443` rule and does not authorize media/CDN bytes. The
   current matrix covers `api.torbox.app`, `search-api.torbox.app`,
-  `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`, `remuxdb.1632022.xyz`,
+  `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`,
   `comet.feels.legal`, `meteorfortheweebs.midnightignite.me`,
-  `stremthru.13377001.xyz`, `opensubtitles.stremio.homes` and the selected
-  public AIOMetadata instance at `aiometadata.streetle.dev`; additional
+  `stremthru.13377001.xyz`, `opensubtitles.stremio.homes` (OpenSubtitles V3+,
+  the only subtitle source that restricts languages: the family allows
+  fr/en/es), the selected public AIOMetadata instance at
+  `aiometadata.streetle.dev`, `tmdb.elfhosted.com` (TMDB metadata) and
+  `1fe84bc728af-stremio-anime-catalogs.baby-beamup.club` (Kitsu anime
+  catalogs), and, for the anime/ID/scene datasets whose startup sync failed in
+  the logs, `raw.githubusercontent.com`, `services.sonarr.tv` and
+  `releases.moe` (with `ANIME_DB_LEVEL_OF_DETAIL=required`; RemuxDB is disabled
+  and its FQDN removed). `stremthru.13377001.xyz` also serves the StremThru Torz preset, so
+  that preset needs no further FQDN. Additional
   user-selected addons/indexers/debrid services require separately reviewed
   FQDN admission.
 - `FORCE_PROXY_ENABLED=false`, `DEFAULT_PROXY_ENABLED=false`, no proxy URL or
@@ -159,7 +171,7 @@ qualify the separate sign-in, PIN, isolation and TV Quick Connect.
 
 The family configuration uses native per-profile PIN hashes. `JELLYFIN_PIN_SIGN_IN`
 is explicitly disabled, so a PIN cannot authenticate publicly without the
-shared configuration password. AIOStreams v2.37.0 does not expose a native
+shared configuration password. AIOStreams v2.37.0 (not rechecked on v2.38.1) does not expose a native
 self-service PIN-change endpoint; profile PIN changes remain configuration
 edits and must not be added as a custom API.
 
@@ -184,9 +196,12 @@ Cilium/Hubble positive and negative flows after GitOps reconciliation.
 - Active egress allows CoreDNS, narrowly scoped Authentik issuer access and
   the reviewed control-plane hosts over HTTPS: `api.torbox.app`,
   `search-api.torbox.app`, `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`,
-  `remuxdb.1632022.xyz`, `comet.feels.legal`,
+  `comet.feels.legal`,
   `meteorfortheweebs.midnightignite.me`, `stremthru.13377001.xyz`,
-  `opensubtitles.stremio.homes` and `aiometadata.streetle.dev`. These are
+  `opensubtitles.stremio.homes`, `aiometadata.streetle.dev`,
+  `tmdb.elfhosted.com`, `raw.githubusercontent.com`, `services.sonarr.tv`,
+  `releases.moe` and
+  `1fe84bc728af-stremio-anime-catalogs.baby-beamup.club`. These are
   control-plane dependencies only;
   no CDN/media egress is granted to the Pod.
 - Upstream v2.37.0 has these baseline outbound dependencies when its default

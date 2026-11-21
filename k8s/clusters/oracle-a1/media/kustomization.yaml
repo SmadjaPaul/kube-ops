@@ -14,8 +14,8 @@ resources:
 images:
   # The base digest is the linux/amd64 manifest; use the multi-arch index.
   - name: ghcr.io/moodiness/polyfin
-    newTag: 0.61.1
-    digest: sha256:fdeb10f87e596fc04677b0801cbb8c0cc6728b2bb38d9fe89b9bf3685dbfdcc4
+    newTag: 0.85.0
+    digest: sha256:4193cc608ecb94e62a5e9615d57639dbee80acba684823304b61ca130aec92d8
 
 patches:
   # OKE block volumes: 50Gi is the provider minimum (PLT-183).

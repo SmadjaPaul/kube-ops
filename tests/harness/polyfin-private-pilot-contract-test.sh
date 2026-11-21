@@ -69,15 +69,15 @@ yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[1].fromEndp
 yq -r 'select(.metadata.name == "polyfin-db-access") | .spec.ingress[1].toPorts[0].ports[0].port' "$root/networkpolicy.yaml" | grep -Fx 8000 >/dev/null || {
   echo 'POLYFIN_STATIC=FAIL CNPG status port mismatch' >&2; exit 1
 }
-eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/moodiness/polyfin:0.61.1@sha256:1e55720ea21bca9448ddbdd80a21251622d21448ee2e31974ad18ae2a9f6c975'
-[[ "$(jq -r '.image.repository + ":" + .image.tag + "@" + .image.digest' .github/polyfin/private-pilot-admission.json)" == "ghcr.io/moodiness/polyfin:0.61.1@sha256:1e55720ea21bca9448ddbdd80a21251622d21448ee2e31974ad18ae2a9f6c975" ]] || {
+eq '.spec.template.spec.containers[0].image' "$root/deployment.yaml" 'ghcr.io/moodiness/polyfin:0.85.0@sha256:ea4fd8f69ec8a9e893ddb4d41622b660b5387c3d57be54951fc89930db8dde04'
+[[ "$(jq -r '.image.repository + ":" + .image.tag + "@" + .image.digest' .github/polyfin/private-pilot-admission.json)" == "ghcr.io/moodiness/polyfin:0.85.0@sha256:ea4fd8f69ec8a9e893ddb4d41622b660b5387c3d57be54951fc89930db8dde04" ]] || {
   echo 'POLYFIN_STATIC=FAIL admission digest mismatch' >&2; exit 1
 }
 [[ "$(jq -r '.approval.expiresAt' .github/polyfin/private-pilot-admission.json)" == '2026-12-05T23:59:59Z' ]] || {
   echo 'POLYFIN_STATIC=FAIL admission expiry mismatch' >&2; exit 1
 }
-[[ "$(jq '[.acceptedFindings[]] | length' .github/polyfin/private-pilot-admission.json)" == '25' ]] || {
-  echo 'POLYFIN_STATIC=FAIL expected 25 tracked official-image findings' >&2; exit 1
+[[ "$(jq '[.acceptedFindings[]] | length' .github/polyfin/private-pilot-admission.json)" == '20' ]] || {
+  echo 'POLYFIN_STATIC=FAIL expected 20 tracked official-image findings' >&2; exit 1
 }
 [[ "$(jq '[.acceptedFindings[] | select(.id == "CVE-2026-6653")] | length' .github/polyfin/private-pilot-admission.json)" == '1' ]] || {
   echo 'POLYFIN_STATIC=FAIL CRITICAL CVE-2026-6653 must remain separate' >&2; exit 1
@@ -92,7 +92,7 @@ if grep -Eq '^[[:space:]]*toEntities:|^[[:space:]]*matchPattern:|^[[:space:]]*to
 fi
 jq -r '.acceptedFindings[] | "target\t" + .id + "\tpkg\t1\t" + (if .disposition == "fixed-required" then "1.0" else "UNFIXED" end) + "\tHIGH\t" + (if .disposition == "fixed-required" then "fixed" else "affected" end)' .github/polyfin/private-pilot-admission.json > "$tmpfindings"
 bash scripts/polyfin-admission-check.sh \
-  --image 'ghcr.io/moodiness/polyfin:0.61.1@sha256:1e55720ea21bca9448ddbdd80a21251622d21448ee2e31974ad18ae2a9f6c975' \
+  --image 'ghcr.io/moodiness/polyfin:0.85.0@sha256:ea4fd8f69ec8a9e893ddb4d41622b660b5387c3d57be54951fc89930db8dde04' \
   --findings "$tmpfindings" \
   --policy .github/polyfin/private-pilot-admission.json >/dev/null
 echo 'POLYFIN_STATIC=PASS; PRIVATE_PILOT=ADMITTED_UNTIL_2026-12-05; RUNTIME=PENDING'
