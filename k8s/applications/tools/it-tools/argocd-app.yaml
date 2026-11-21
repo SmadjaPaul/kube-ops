@@ -1,0 +1,4 @@
+name: it-tools
+namespace: it-tools
+postMerge: revert
+preview: true

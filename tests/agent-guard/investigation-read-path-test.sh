@@ -74,7 +74,7 @@ cp "$tmp/kubectl-ro.sh" "$tmp/obs/kubectl-ro.sh"
 : >"$FAKE_LOG"
 PATH="$tmp/bin:$PATH" bash "$tmp/obs/observe.sh" --local app media >"$tmp/obs.out" 2>&1 || ko "observe --local app a échoué"
 argo_query=$(grep -m1 'argocd_app_info' "$FAKE_LOG" | python3 -c 'import sys,urllib.parse as u; print(u.unquote(sys.stdin.read()))' || true)
-grep -q 'argocd_app_info{name=~"(apps-|infra-)?media"}' <<<"$argo_query" &&
+grep -q 'argocd_app_info{name=~"(app-|apps-|infra-)?media"}' <<<"$argo_query" &&
   ok "observe app : requête Argo apps-/infra-/nom nu" || ko "observe app : requête Argo inattendue : $argo_query"
 ! grep -q 'argocd_app_info{name="media"}' <<<"$argo_query" && ok "observe app : plus de nom exact" || ko "observe app : nom exact"
 
