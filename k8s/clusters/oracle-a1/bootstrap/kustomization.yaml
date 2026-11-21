@@ -1,5 +1,6 @@
 # One-time operator bootstrap on the Oracle cluster (never synced by the
-# homelab Argo CD):
+# homelab Argo CD). Owns Cilium (chaining, kube-system) AND Argo CD: Argo does
+# not manage Cilium, so the CNI is upgraded only by re-running this command.
 #   kustomize build --enable-helm k8s/clusters/oracle-a1/bootstrap | kubectl apply --server-side -f -
 # kubectl has no --enable-helm. Re-run the same command once if the
 # Application/AppProject CRDs were not yet established on the first pass.
@@ -11,6 +12,13 @@ resources:
   - root-application.yaml
 
 helmCharts:
+  - name: cilium
+    repo: https://helm.cilium.io
+    version: 1.20.4
+    releaseName: cilium
+    namespace: kube-system
+    includeCRDs: true
+    valuesFile: cilium-values.yaml
   - name: argo-cd
     namespace: argocd
     releaseName: argocd

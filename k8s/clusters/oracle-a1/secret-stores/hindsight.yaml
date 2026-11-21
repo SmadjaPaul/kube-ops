@@ -1,0 +1,16 @@
+# Store Doppler namespace (hindsight). Jeton de service read-only, config Doppler oke-hindsight
+# uniquement (ADR section 6). Le Secret doppler-token est cree par l'operateur dans
+# le namespace, jamais dans Git (voir README, section Secrets par domaine).
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: doppler
+  namespace: hindsight
+spec:
+  provider:
+    doppler:
+      auth:
+        secretRef:
+          dopplerToken:
+            name: doppler-token
+            key: dopplerToken

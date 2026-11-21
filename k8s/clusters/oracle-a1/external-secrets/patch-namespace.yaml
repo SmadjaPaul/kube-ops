@@ -1,0 +1,8 @@
+# PSA warn/audit restricted sur le namespace ESO (exception : aucune si ESO passe le warn).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-secrets
+  labels:
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

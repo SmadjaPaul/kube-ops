@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: t-automount-fail, namespace: auth}
+spec:
+  selector: {matchLabels: {app: t}}
+  template:
+    metadata: {labels: {app: t}}
+    spec:
+      containers:
+        - name: c
+          image: registry.k8s.io/pause@sha256:0000000000000000000000000000000000000000000000000000000000000001

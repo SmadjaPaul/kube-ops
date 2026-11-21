@@ -1,0 +1,68 @@
+name: OKE baseline
+# Tests de la baseline oracle-a1 et de la bibliotheque VAP (k8s/components/baseline-vap).
+# Statique : rendu kustomize + kubeconform. Runtime : kind, admission serveur (dry-run).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - 'k8s/clusters/oracle-a1/**'
+      - 'k8s/components/baseline-vap/**'
+      - 'tests/oke-baseline/**'
+      - '.github/workflows/oke-baseline.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oke-baseline-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  baseline:
+    name: oke-baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install Helm
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+
+      - name: Install Kustomize
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kustomize.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tgz -C /tmp
+          sudo install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
+
+      - name: Install Kubeconform
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kubeconform.tgz https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tgz -C /tmp
+          sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
+
+      - name: Acceptance script (syntax and dry run, no cluster)
+        run: |
+          bash -n tests/oke-baseline/acceptance.sh
+          shellcheck tests/oke-baseline/acceptance.sh
+          bash tests/oke-baseline/acceptance.sh --dry
+
+      - name: Install kind
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.27.0/kind-linux-amd64
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+
+      - name: Static render and schema validation
+        run: bash tests/oke-baseline/run.sh static
+
+      - name: Create kind cluster (Kubernetes 1.33, ValidatingAdmissionPolicy GA)
+        run: kind create cluster --name oke-baseline --image kindest/node:v1.33.1 --wait 180s
+
+      - name: Runtime admission tests
+        run: bash tests/oke-baseline/run.sh runtime

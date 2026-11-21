@@ -1,0 +1,61 @@
+# Pods et controleurs : pas de privileged, pas de hostNetwork/hostPID/hostIPC, pas de hostPath.
+# Couvre aussi le sous-resource pods/ephemeralcontainers (kubectl debug : conteneur ephemere
+# privilegie sur un pod existant). Exceptions par binding (kube-system, cloudflared pour netbird-router : /dev/net/tun).
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: baseline-pod-hardening
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods", "pods/ephemeralcontainers"]
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+      - apiGroups: ["batch"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["jobs"]
+  variables:
+    - name: podSpec
+      expression: "has(object.spec.template) ? object.spec.template.spec : object.spec"
+    - name: allContainers
+      expression: >-
+        (has(variables.podSpec.containers) ? variables.podSpec.containers : []) +
+        (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) +
+        (has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])
+  validations:
+    - expression: "variables.allContainers.all(c, !has(c.securityContext) || !has(c.securityContext.privileged) || !c.securityContext.privileged)"
+      message: "privileged containers are denied (baseline, oke/homelab)."
+      reason: Forbidden
+    - expression: "!has(variables.podSpec.hostNetwork) || !variables.podSpec.hostNetwork"
+      message: "hostNetwork is denied (baseline)."
+      reason: Forbidden
+    - expression: "!has(variables.podSpec.hostPID) || !variables.podSpec.hostPID"
+      message: "hostPID is denied (baseline)."
+      reason: Forbidden
+    - expression: "!has(variables.podSpec.hostIPC) || !variables.podSpec.hostIPC"
+      message: "hostIPC is denied (baseline)."
+      reason: Forbidden
+    - expression: "!has(variables.podSpec.volumes) || variables.podSpec.volumes.all(v, !has(v.hostPath))"
+      message: "hostPath volumes are denied (baseline)."
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: baseline-pod-hardening
+spec:
+  policyName: baseline-pod-hardening
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [kube-system, cloudflared]

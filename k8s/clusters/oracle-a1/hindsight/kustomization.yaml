@@ -5,11 +5,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: hindsight
 resources:
-  - namespace.yaml
   - externalsecrets.yaml
   - objectstores.yaml
   - database.yaml
-  - networkpolicy.yaml
+  # NetworkPolicy : porte par baseline/default-deny.yaml (namespace hindsight).
   # PLT-303 drill imports removed after the proof (fingerprints identical, off-Oracle
   # restore done); sources kept in k8s/optional/hindsight-oke-drill.
 helmCharts:

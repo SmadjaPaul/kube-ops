@@ -1,0 +1,11 @@
+# Baseline de securite oracle-a1 (ADR section 4, 7 et 11 etape 4).
+# Appliquee par Argo (Application baseline, sync-wave 0), apres le bootstrap (Cilium, Argo).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespaces.yaml
+  - ../../../components/baseline-vap
+  - default-deny.yaml
+  - cilium-egress.yaml
+  - imds-deny.yaml
+  - quotas.yaml

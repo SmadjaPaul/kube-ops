@@ -1,0 +1,71 @@
+# ResourceQuota et LimitRange par namespace applicatif (A1 : 8,4 GiB allouables au total).
+# Dimensionnement : arch/CAPACITY.md, scenario S3 (cible 76 % CPU / 54 % RAM / 21 IP, nœud
+# limite a 31 pods). Quotas pods : auth 5 + hindsight 4 + databases 3 = 12 ;
+# les ~16 pods IP du systeme (S3 hors apps, estimation) portent le total a 31 au plus.
+# Requests : auth 500m/2Gi, hindsight 600m/1,5Gi, databases 500m/1,5Gi
+# (pg-shared + une instance de restauration). Les limits.memory couvrent les limites des
+# charts (Authentik 2 x 1Gi + CNPG 1Gi ; Hindsight api 2Gi + db 1Gi ; pg-shared 2 x 1,3Gi).
+# LimitRange : defauts pour les pods sans requests/limits (sinon refus par quota).
+apiVersion: v1
+kind: LimitRange
+metadata: {name: defaults, namespace: auth}
+spec:
+  limits:
+    - type: Container
+      default: {memory: 512Mi, cpu: 500m}
+      defaultRequest: {memory: 128Mi, cpu: 50m}
+      max: {memory: 1Gi, cpu: "1"}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata: {name: compute, namespace: auth}
+spec:
+  hard:
+    requests.cpu: "500m"
+    requests.memory: 2Gi
+    limits.memory: 4Gi
+    pods: "5"
+---
+apiVersion: v1
+kind: LimitRange
+metadata: {name: defaults, namespace: hindsight}
+spec:
+  limits:
+    - type: Container
+      default: {memory: 1Gi, cpu: 500m}
+      defaultRequest: {memory: 256Mi, cpu: 50m}
+      max: {memory: 2Gi, cpu: "1"}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata: {name: compute, namespace: hindsight}
+spec:
+  hard:
+    # Dimensionne pour un rolling update (RollingUpdate par defaut, replicaCount 1) : ancien pod
+    # + pod surge = 2016Mi de requests (2 x API 768Mi + db 384Mi + sidecar 96Mi) et 5504Mi de limits.
+    requests.cpu: "600m"
+    requests.memory: 2Gi
+    limits.memory: 6Gi
+    pods: "4"
+---
+apiVersion: v1
+kind: LimitRange
+metadata: {name: defaults, namespace: databases}
+spec:
+  limits:
+    - type: Container
+      default: {memory: 1Gi, cpu: 500m}
+      defaultRequest: {memory: 256Mi, cpu: 50m}
+      max: {memory: 2Gi, cpu: "1"}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata: {name: compute, namespace: databases}
+spec:
+  hard:
+    requests.cpu: "500m"
+    requests.memory: 1536Mi
+    limits.memory: 3Gi
+    pods: "3"
+    requests.storage: 100Gi
+    persistentvolumeclaims: "4"

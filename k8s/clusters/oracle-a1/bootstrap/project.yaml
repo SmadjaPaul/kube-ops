@@ -7,20 +7,26 @@ spec:
   description: Oracle cluster Argo CD; same repository, in-cluster destination only
   sourceRepos:
     - https://github.com/SmadjaPaul/kube-ops.git
+  # Destinations explicites (ADR oke-target-architecture, section 6). ntfy et gatus
+  # (PLT-328) et media (hors racine, PLT-190) sont retires. auth est admis
+  # pour la reconstruction ; leurs Applications arrivent dans des PR suivantes.
   destinations:
     - {server: https://kubernetes.default.svc, namespace: argocd}
     - {server: https://kubernetes.default.svc, namespace: external-secrets}
     - {server: https://kubernetes.default.svc, namespace: cnpg-system}
     - {server: https://kubernetes.default.svc, namespace: databases}
     - {server: https://kubernetes.default.svc, namespace: cloudflared}
-    - {server: https://kubernetes.default.svc, namespace: media}
     # PLT-301: CNPG barman-cloud prerequisites and Hindsight.
     - {server: https://kubernetes.default.svc, namespace: cert-manager}
     - {server: https://kubernetes.default.svc, namespace: hindsight}
+    - {server: https://kubernetes.default.svc, namespace: auth}
     # PLT-306: Grafana Cloud export (kube-state-metrics, Alloy).
     - {server: https://kubernetes.default.svc, namespace: monitoring}
   # Explicit list (PLT-254): CRDs, RBAC, webhooks and Namespaces shipped by ESO
-  # and CNPG, plus the ClusterSecretStore of the ESO base.
+  # and CNPG, ESO ClusterSecretStore (remplace par des SecretStore namespaces,
+  # cf. secrets par domaine) et VAP.
+  # Pas de ClusterRole/ClusterRoleBinding dans les workloads : ceux-ci sont
+  # reserves aux CRD/operateurs listes ci-dessous.
   clusterResourceWhitelist:
     - {group: "", kind: Namespace}
     - {group: apiextensions.k8s.io, kind: CustomResourceDefinition}
@@ -31,3 +37,27 @@ spec:
     - {group: external-secrets.io, kind: ClusterSecretStore}
     - {group: admissionregistration.k8s.io, kind: ValidatingAdmissionPolicy}
     - {group: admissionregistration.k8s.io, kind: ValidatingAdmissionPolicyBinding}
+    - {group: cilium.io, kind: CiliumClusterwideNetworkPolicy}
+  # Enumeree (rendu kustomize --enable-helm de apps/ au 17/11) : pas de joker.
+  # Ajouter un kind ici est une decision revue, jamais un defaut.
+  namespaceResourceWhitelist:
+    - {group: "", kind: ConfigMap}
+    - {group: "", kind: Secret}
+    - {group: "", kind: Service}
+    - {group: "", kind: ServiceAccount}
+    - {group: "", kind: ResourceQuota}
+    - {group: "", kind: LimitRange}
+    - {group: apps, kind: Deployment}
+    - {group: rbac.authorization.k8s.io, kind: Role}
+    - {group: rbac.authorization.k8s.io, kind: RoleBinding}
+    - {group: networking.k8s.io, kind: NetworkPolicy}
+    - {group: cilium.io, kind: CiliumNetworkPolicy}
+    - {group: external-secrets.io, kind: ExternalSecret}
+    - {group: external-secrets.io, kind: SecretStore}
+    - {group: postgresql.cnpg.io, kind: Cluster}
+    - {group: postgresql.cnpg.io, kind: Database}
+    - {group: postgresql.cnpg.io, kind: ScheduledBackup}
+    - {group: barmancloud.cnpg.io, kind: ObjectStore}
+    - {group: cert-manager.io, kind: Certificate}
+    - {group: cert-manager.io, kind: Issuer}
+    - {group: argoproj.io, kind: Application}

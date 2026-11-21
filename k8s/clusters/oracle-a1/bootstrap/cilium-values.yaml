@@ -1,0 +1,53 @@
+# Cilium en chaining sur OKE VCN-native (ADR oke-target-architecture §1, §4 option A).
+# Doc Cilium "CNI chaining Oracle OKE" : cni.chainingTarget=oci, exclusive=false,
+# routingMode native, pas de masquerade, kube-proxy conserve.
+# Version identique au homelab (k8s/infrastructure/network/cilium : 1.20.4).
+# Le CNI OCI (vcn-native-ip-cni) reste proprietaire de l'attribution d'IP des pods :
+# ipam.mode reste "cluster-pool" pour satisfaire le chart, sans CIDR routable.
+routingMode: native
+enableIPv4Masquerade: false
+kubeProxyReplacement: false
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4PodCIDRList:
+      - 100.64.0.0/16
+
+# Policies : NetworkPolicy standard + CiliumNetworkPolicy (FQDN) sont appliquees.
+policyEnforcementMode: default
+
+# A1 : 1830m / 8,4 GiB allouables au total pour le noeud unique.
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: 500m, memory: 384Mi}
+# Init containers de l'agent (config, mount-cgroup, sysctl, bpf-fs, clean-state) : le chart les
+# laisse sans budget par defaut ; cni.resources budgete install-cni-binaries (defaut 1 CPU / 1Gi).
+initResources:
+  requests: {cpu: 10m, memory: 16Mi}
+  limits: {cpu: 100m, memory: 64Mi}
+cni:
+  chainingTarget: oci
+  exclusive: false
+  resources:
+    requests: {cpu: 10m, memory: 10Mi}
+    limits: {cpu: 100m, memory: 64Mi}
+operator:
+  replicas: 1
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 128Mi}
+
+# Hubble desactive : relay et UI consomment ~130 Mi et un port 4245 supplementaire ;
+# les policies ne dependent pas de Hubble. Reactivation possible via PR dediee.
+hubble:
+  enabled: false
+prometheus:
+  enabled: false
+envoy:
+  enabled: false
+gatewayAPI:
+  enabled: false
+ingressController:
+  enabled: false
+l2announcements:
+  enabled: false

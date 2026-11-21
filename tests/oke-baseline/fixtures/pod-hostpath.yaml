@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata: {name: t-hostpath, namespace: auth}
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: c
+      image: registry.k8s.io/pause@sha256:0000000000000000000000000000000000000000000000000000000000000001
+  volumes:
+    - name: host
+      hostPath: {path: /etc}
