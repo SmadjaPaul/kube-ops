@@ -4,9 +4,12 @@
 #   BASE (PLT-398): previous tip of main of a push; the files of BASE..SHA are analysed, not only the tip.
 #   Without BASE, unknown or all-zero BASE: the first-parent diff of SHA alone.
 # Mapping (keep aligned with k8s/bootstrap/argocd-root/applications-applicationset.yaml: one Argo
-# Application `apps-<domain>` per generator directory):
-#   k8s/applications/<domain>/<app>/**   app=<app>, argo=apps-<domain>, namespace from the kustomization
-#   k8s/applications/business/invoice-ninja/**   app=invoice-ninja, argo=apps-invoice-ninja
+# Application `apps-<domain>` per generator directory, and apps-applicationset.yaml: one Application
+# `app-<name>` per `argocd-app.yaml` descriptor, PLT-394):
+#   k8s/applications/<domain>/<app>/**   app=<app>, namespace from the kustomization, and
+#       argo=app-<app>      if k8s/applications/<domain>/<app>/argocd-app.yaml exists (migrated app)
+#       argo=apps-<domain>  otherwise
+#   k8s/applications/business/invoice-ninja/**   app=invoice-ninja, argo=apps-invoice-ninja (or app-invoice-ninja once migrated)
 # Everything else (domain-level files, platform domain, infrastructure, optional, policy, scripts, tests,
 # workflows, justfile...) counts as OTHER, except documentation which is ignored.
 # Output: AFFECTED_APP name=.. namespace=.. argo=.. stateful=yes|no (per app), AFFECTED_OTHER count=N sample=..,
@@ -39,6 +42,8 @@ while IFS= read -r f; do
   fi
   [[ -z ${seen[$app]:-} ]] || continue
   seen[$app]=1
+  # Migrated app (PLT-394): its own Application `app-<name>` replaces the domain Application.
+  [[ ! -f $dir/argocd-app.yaml ]] || argo=app-$app
   apps+=("$app|$argo|$dir|$dom")
 done < <(if [[ -n $base ]] && git rev-parse --verify "$base^{commit}" >/dev/null 2>&1; then git diff --name-only "$base" "$sha"
          else git show --first-parent --name-only --format= "$sha"; fi)

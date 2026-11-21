@@ -172,7 +172,7 @@ do_backups() {
 do_app() {
   # The Argo Application is named apps-<app> or infra-<app> (like lib/argo-app.sh),
   # not <app>: an exact match on the namespace name finds nothing and reads as "absent".
-  q "Argo app $app (name, apps-name or infra-name)" "argocd_app_info{name=~\"(apps-|infra-)?$app\"}"
+  q "Argo app $app (name, apps-name or infra-name)" "argocd_app_info{name=~\"(app-|apps-|infra-)?$app\"}"
   q "pods not ready in $app" "sum by (cluster, namespace, pod) (kube_pod_status_ready{condition=\"true\",namespace=\"$app\"}) == 0"
   q "waiting reasons in $app" "count by (cluster, namespace, reason) (kube_pod_container_status_waiting_reason{namespace=\"$app\"})"
   q "restarts 1h in $app" "topk(5, increase(kube_pod_container_status_restarts_total{namespace=\"$app\"}[1h]) > 0)"

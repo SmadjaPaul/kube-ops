@@ -9,10 +9,12 @@ r="$tmp/repo"; mkdir -p "$r/scripts/lib" "$tmp/bin"
 cp "$repo_root"/scripts/post-merge-*.sh "$r/scripts/"; cp "$repo_root/scripts/lib/post-merge-decision.sh" "$r/scripts/lib/"
 cd "$r"
 git init -q -b main; git config user.email t@t; git config user.name t
-mkdir -p k8s/applications/media/prowlarr k8s/applications/media/bookorbit k8s/applications/tools/it-tools k8s/applications/platform/x k8s/infrastructure/net
+mkdir -p k8s/applications/media/prowlarr k8s/applications/media/bookorbit k8s/applications/tools/it-tools k8s/applications/tools/migrated k8s/applications/platform/x k8s/infrastructure/net
 printf 'namespace: media\nresources: [app.yaml]\n' >k8s/applications/media/prowlarr/kustomization.yaml; echo 'kind: Deployment' >k8s/applications/media/prowlarr/app.yaml
 printf 'namespace: media\n' >k8s/applications/media/bookorbit/kustomization.yaml; echo 'kind: PersistentVolumeClaim' >k8s/applications/media/bookorbit/pvc.yaml
 printf 'resources: []\n' >k8s/applications/tools/it-tools/kustomization.yaml; echo 'kind: Deployment' >k8s/applications/tools/it-tools/d.yaml
+printf 'namespace: migrated\n' >k8s/applications/tools/migrated/kustomization.yaml; echo 'kind: Deployment' >k8s/applications/tools/migrated/d.yaml
+printf 'name: migrated\nnamespace: migrated\n' >k8s/applications/tools/migrated/argocd-app.yaml   # per-app Application (PLT-394)
 echo x >k8s/applications/platform/x/a.yaml; echo x >k8s/infrastructure/net/a.yaml
 git add -A; git commit -qm "chore: base"
 commit() { git add -A; git commit -qm "$1"; git rev-parse HEAD; } # prints sha
@@ -49,11 +51,13 @@ expect() { [[ $out == *"$1"* ]] || { echo "FAIL: output lacks '$1'"; echo "$out"
 refute() { [[ $out != *"$1"* ]] || { echo "FAIL: output has '$1'"; echo "$out"; exit 1; }; }
 
 # --- mapping
-echo y >>k8s/applications/media/prowlarr/app.yaml; echo y >>k8s/applications/tools/it-tools/d.yaml; echo doc >README.md
+echo y >>k8s/applications/media/prowlarr/app.yaml; echo y >>k8s/applications/tools/it-tools/d.yaml; echo y >>k8s/applications/tools/migrated/d.yaml; echo doc >README.md
 s1=$(commit "feat(media): two apps")
 out=$(bash scripts/post-merge-affected.sh "$s1")
 expect "AFFECTED_APP name=prowlarr namespace=media argo=apps-media stateful=no"
 expect "AFFECTED_APP name=it-tools namespace=it-tools argo=apps-tools stateful=no"
+expect "AFFECTED_APP name=migrated namespace=migrated argo=app-migrated stateful=no"   # descriptor: Application app-<name>
+refute "argo=apps-migrated"
 expect "AFFECTED_CLASS=apps-only"            # README.md is documentation: ignored
 echo y >>k8s/applications/media/bookorbit/pvc.yaml; s2=$(commit "feat(bookorbit): bump")
 out=$(bash scripts/post-merge-affected.sh "$s2"); expect "name=bookorbit namespace=media argo=apps-media stateful=yes"

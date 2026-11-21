@@ -28,7 +28,7 @@
 agentgateway	socle applicatif, PVC 1Gi reconstructible	apps-platform
 factory-platform	reconstructible	apps-platform
 gpt-researcher	reconstructible	apps-ai
-it-tools	reconstructible, sans état	apps-tools
+it-tools	reconstructible, sans état	app-it-tools
 mastra-factory	reconstructible	apps-platform
 mastra-sandbox	reconstructible (sandboxes Factory)	apps-platform
 media	reconstructible	apps-media

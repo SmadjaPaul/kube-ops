@@ -1,6 +1,6 @@
 # Descripteur `argocd-app.yaml` : une Application Argo CD par app (PLT-394)
 
-Statut : ApplicationSet `apps` et AppProject `apps` en place (etape 4), **aucune app migree**. Les domaines migrent un par un (etape 5 et suivantes) ; jusque-la l'ApplicationSet `applications` genere une Application par domaine (`apps-<domaine>`).
+Statut : ApplicationSet `apps` et AppProject `apps` en place (etape 4). Domaine pilote `tools` migre (etape 5) : Application `app-it-tools` remplace `apps-tools`. Les autres domaines migrent un par un (etape 6 et suivantes) ; jusque-la l'ApplicationSet `applications` genere une Application par domaine (`apps-<domaine>`).
 
 ## Contrat
 
@@ -29,4 +29,8 @@ Ajouter une app = creer son dossier et son `argocd-app.yaml` : aucun fichier par
 - le domaine migre est retire du generateur de l'ApplicationSet `applications` dans la meme PR (aucune app generee deux fois) ;
 - le projet `apps` refuse chaque namespace d'infrastructure.
 
-`scripts/post-merge-affected.sh` et le skill `deploy-a-service` ne sont pas encore adaptes (etapes suivantes).
+## Post-merge et migration d'un domaine
+
+`scripts/post-merge-affected.sh` nomme l'Application Argo attendue d'une app : `app-<name>` si `k8s/applications/<domaine>/<app>/argocd-app.yaml` existe, sinon `apps-<domaine>`. `post-merge-verify.sh` et `verify-revision.sh` reprennent ce nom tel quel ; `scripts/lib/argo-app.sh` et `scripts/observe.sh` resolvent aussi `app-<name>`. Le skill `deploy-a-service` n'est pas encore adapte (etapes suivantes).
+
+Migration d'un domaine, dans **un seul commit** : descripteurs de toutes les apps, retrait du domaine du generateur de `applications`, `scripts/affected-tests.conf` (une entree par app migree a la place du domaine), `scope.tsv` (colonne racine Argo). L'ancienne Application `apps-<domaine>` disparait sans cascade (`preserveResourcesOnDeletion`, pas de finalizer) ; `app-<name>` reprend les ressources : Argo CD identifie les objets par le tracking annotation (`argocd.argoproj.io/tracking-id`, `<application>:<group>/<kind>:<ns>/<name>`) et la reecrit au premier sync de la nouvelle Application, sans suppression ni recreation (ServerSideApply et `ApplyOutOfSyncOnly` : l'ecriture suit le premier sync).
