@@ -16,7 +16,6 @@ spec:
         directories:
           - path: k8s/applications/media
           - path: k8s/applications/ai
-          - path: k8s/applications/business/invoice-ninja
           - path: k8s/applications/catalog
           - path: k8s/applications/platform
   # Retrait sans cascade : la suppression d'une Application générée par cet ApplicationSet
