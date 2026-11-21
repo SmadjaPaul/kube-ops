@@ -16,6 +16,10 @@
 # any Doppler store) is refused by Kyverno preview-namespace-guard and stays
 # Degraded: a preview never reads a production secret (D-2026-11-20-04).
 #
+# Guardrails (quota, limits, CiliumNetworkPolicy) are NOT a source of this
+# Application any more (PLT-395): the AppProject `previews` admits no cilium.io
+# object. They come from main through ApplicationSet previews-guardrails.
+#
 # Exposure: hostname <app>-<n>-preview.smadja.dev (one DNS level under the
 # wildcard Cloudflare Universal SSL covers). The parent is Gateway/internal
 # (LAN only, nothing public). Switching to `external` is allowed only after the
@@ -41,6 +45,11 @@ spec:
                 repo: kube-ops
                 labels:
                   - preview
+                # PLT-395: authenticate the PR generator (unauthenticated: 60 req/h).
+                # Paul's gesture, then a PR adding here either
+                #   tokenRef: {secretName: <secret in argocd>, key: token}
+                # or appSecretName (read-only GitHub App). Procedure:
+                # docs/runbooks/preview-environments.md. Never put a value in Git.
               filters:
                 - targetBranchMatch: '^main$'
               requeueAfterSeconds: 120
@@ -127,13 +136,6 @@ spec:
                   - op: add
                     path: /spec/jobTemplate/spec/template/spec/priorityClassName
                     value: preview-low
-        # Guardrails come from main, never from the PR head: a PR cannot loosen
-        # its own quota or network policy.
-        - repoURL: https://github.com/SmadjaPaul/kube-ops.git
-          targetRevision: main
-          path: k8s/previews/guardrails
-          kustomize:
-            namespace: 'pr-{{ .number }}-{{ .path.basename }}'
       destination:
         server: https://kubernetes.default.svc
         namespace: 'pr-{{ .number }}-{{ .path.basename }}'

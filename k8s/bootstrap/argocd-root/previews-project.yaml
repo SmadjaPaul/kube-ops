@@ -15,10 +15,27 @@ spec:
       server: https://kubernetes.default.svc
   # No clusterResourceWhitelist: a preview cannot create any cluster-scoped
   # object. The namespace itself comes from the CreateNamespace sync option.
+  # Explicit allow-list (PLT-395): nothing else is admitted, so a PR cannot add a
+  # CiliumNetworkPolicy (additive, would open Internet/LAN/pg-shared), a Role or
+  # RoleBinding, a Kyverno or networking.k8s.io object, a GRPCRoute or any other
+  # Route. The platform guardrails (quota, limits, CiliumNetworkPolicy) come from
+  # main through the separate AppProject previews-guardrails.
   namespaceResourceWhitelist:
-    - group: '*'
-      kind: '*'
-  # Never in a preview: cross-namespace grants, non-HTTP routes, backups.
+    - {group: apps, kind: Deployment}
+    - {group: apps, kind: StatefulSet}
+    - {group: batch, kind: Job}
+    - {group: batch, kind: CronJob}
+    - {group: '', kind: Service}
+    - {group: '', kind: ConfigMap}
+    - {group: '', kind: Secret}
+    - {group: '', kind: PersistentVolumeClaim}
+    - {group: '', kind: ServiceAccount}
+    - {group: policy, kind: PodDisruptionBudget}
+    - {group: gateway.networking.k8s.io, kind: HTTPRoute}
+    - {group: external-secrets.io, kind: ExternalSecret}
+    - {group: generators.external-secrets.io, kind: Password}
+  # Defence in depth, redundant with the allow-list above. Never in a preview:
+  # cross-namespace grants, non-HTTP routes, backups.
   namespaceResourceBlacklist:
     - group: gateway.networking.k8s.io
       kind: ReferenceGrant
@@ -28,6 +45,8 @@ spec:
       kind: UDPRoute
     - group: gateway.networking.k8s.io
       kind: TLSRoute
+    - group: gateway.networking.k8s.io
+      kind: GRPCRoute
     - group: velero.io
       kind: '*'
     - group: postgresql.cnpg.io
@@ -44,5 +63,30 @@ spec:
       kind: SecretStore
     - group: external-secrets.io
       kind: PushSecret
+  orphanedResources:
+    warn: false
+---
+# Platform guardrails of a preview (ResourceQuota, LimitRange, CiliumNetworkPolicy),
+# read from main only. Separate project because an AppProject allow-list is not
+# per source: the workload project `previews` must not admit cilium.io objects.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: previews-guardrails
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: previews
+    app.kubernetes.io/managed-by: argocd
+spec:
+  description: Guardrails of per-PR preview namespaces (PLT-395), from main, namespaces pr-* only
+  sourceRepos:
+    - https://github.com/SmadjaPaul/kube-ops.git
+  destinations:
+    - namespace: 'pr-*'
+      server: https://kubernetes.default.svc
+  namespaceResourceWhitelist:
+    - {group: '', kind: ResourceQuota}
+    - {group: '', kind: LimitRange}
+    - {group: cilium.io, kind: CiliumNetworkPolicy}
   orphanedResources:
     warn: false

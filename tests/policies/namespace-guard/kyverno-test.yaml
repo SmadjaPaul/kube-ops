@@ -128,3 +128,8 @@ results:
   resources:
   - service-clusterip
   result: pass
+values:
+  namespaceSelector:
+  - labels:
+      smadja.dev/preview: 'true'
+    name: pr-7-demo
