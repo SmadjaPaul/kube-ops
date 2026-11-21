@@ -106,9 +106,11 @@ route, or blanket external egress.
   `aiometadata.streetle.dev`, `tmdb.elfhosted.com` (TMDB metadata) and
   `1fe84bc728af-stremio-anime-catalogs.baby-beamup.club` (Kitsu anime
   catalogs), and, for the anime/ID/scene datasets whose startup sync failed in
-  the logs, `raw.githubusercontent.com`, `services.sonarr.tv` and
-  `releases.moe` (with `ANIME_DB_LEVEL_OF_DETAIL=required`; RemuxDB is disabled
-  and its FQDN removed). `stremthru.13377001.xyz` also serves the StremThru Torz preset, so
+  the logs, `raw.githubusercontent.com` and `services.sonarr.tv` (with
+  `ANIME_DB_LEVEL_OF_DETAIL=required`; RemuxDB is disabled and its FQDN
+  removed). `releases.moe` (SeaDex) is deliberately not admitted: it returns
+  SERVFAIL on public resolvers (2026-11-21), so its dataset task keeps failing
+  and retries every 6 h without effect. `stremthru.13377001.xyz` also serves the StremThru Torz preset, so
   that preset needs no further FQDN. Additional
   user-selected addons/indexers/debrid services require separately reviewed
   FQDN admission.
@@ -199,8 +201,7 @@ Cilium/Hubble positive and negative flows after GitOps reconciliation.
   `comet.feels.legal`,
   `meteorfortheweebs.midnightignite.me`, `stremthru.13377001.xyz`,
   `opensubtitles.stremio.homes`, `aiometadata.streetle.dev`,
-  `tmdb.elfhosted.com`, `raw.githubusercontent.com`, `services.sonarr.tv`,
-  `releases.moe` and
+  `tmdb.elfhosted.com`, `raw.githubusercontent.com`, `services.sonarr.tv` and
   `1fe84bc728af-stremio-anime-catalogs.baby-beamup.club`. These are
   control-plane dependencies only;
   no CDN/media egress is granted to the Pod.
