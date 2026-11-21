@@ -8,7 +8,6 @@ spec:
   approval: required
   currentModes:
     kyverno: Audit
-    gatekeeper: dryrun
   cases:
     - id: compliant-restricted-pod
       expectedFinding: none
