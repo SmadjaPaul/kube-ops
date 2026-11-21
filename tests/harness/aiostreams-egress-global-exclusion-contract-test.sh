@@ -15,10 +15,12 @@ check() {
 check '.spec.endpointSelector.matchExpressions | length' "$global" 1
 check '.spec.endpointSelector.matchExpressions[0].key' "$global" 'app.kubernetes.io/name'
 check '.spec.endpointSelector.matchExpressions[0].operator' "$global" NotIn
-check '.spec.endpointSelector.matchExpressions[0].values | length' "$global" 3
+check '.spec.endpointSelector.matchExpressions[0].values | length' "$global" 5
 check '.spec.endpointSelector.matchExpressions[0].values[0]' "$global" aiostreams
-check '.spec.endpointSelector.matchExpressions[0].values[1]' "$global" rdt-client
-check '.spec.endpointSelector.matchExpressions[0].values[2]' "$global" polyfin
+check '.spec.endpointSelector.matchExpressions[0].values[1]' "$global" bookorbit
+check '.spec.endpointSelector.matchExpressions[0].values[2]' "$global" qbittorrent-mam
+check '.spec.endpointSelector.matchExpressions[0].values[3]' "$global" rdt-client
+check '.spec.endpointSelector.matchExpressions[0].values[4]' "$global" polyfin
 check '.spec.template.metadata.labels."app.kubernetes.io/name"' "$deployment" aiostreams
 check '.spec.endpointSelector.matchLabels."app.kubernetes.io/name"' "$specific" aiostreams
 check '.spec.egress | length' "$specific" 5

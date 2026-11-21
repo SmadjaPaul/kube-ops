@@ -7,7 +7,6 @@ kind: Kustomization
 # fichiers sont figes) : l'app, sa route polyfin-media, l'ExternalSecret Nebula et les deux patches
 # ci-dessous (Deployment et CiliumNetworkPolicy polyfin, aujourd'hui portes ici) forment un seul rendu.
 # Owner-approved retirement: Arr, Seerr, Jellyfin and Decypharr are absent.
-resources:
 - polyfin
 - ../../optional/polyfin-nebula
 - polyfin-media-route.yaml

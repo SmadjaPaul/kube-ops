@@ -13,3 +13,9 @@ configMapGenerator:
   - name: bookorbit-plugin-gutenberg-fr-candide
     files:
       - index.mjs=plugins/gutenberg-fr-candide.mjs
+  # Audited upstream plugin is installed persistently but no MAM source,
+  # credential, or MAM egress is configured until staff confirms the rules.
+  # Source: orbit-plugins/bookorbit-plugins-extra@138644f62198d1a1dc335b427f3d8d1b894ad954.
+  - name: bookorbit-plugin-myanonamouse
+    files:
+      - index.mjs=plugins/myanonamouse/index.mjs

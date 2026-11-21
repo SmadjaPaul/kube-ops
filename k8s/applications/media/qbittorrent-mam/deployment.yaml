@@ -1,0 +1,155 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent-mam
+  namespace: media
+  labels:
+    app.kubernetes.io/name: qbittorrent-mam
+  annotations:
+    secret.reloader.stakater.com/reload: "qbittorrent-mam-auth"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent-mam
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qbittorrent-mam
+      annotations:
+        backup.velero.io/backup-volumes: config
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 1800
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: bookorbit
+              namespaces:
+                - media
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2501
+        runAsGroup: 2501
+        fsGroup: 2501
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: bootstrap
+          image: python:3.13.11-alpine3.22@sha256:4ac787b083ff5fa9d64c6f68440088545e1b941142aed716cf9378ee348a9f1b
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/bootstrap/bootstrap.py"]
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: bootstrap
+              mountPath: /bootstrap
+              readOnly: true
+            - name: auth
+              mountPath: /run/qbittorrent-auth
+              readOnly: true
+            - name: config
+              mountPath: /config
+            - name: media
+              mountPath: /data
+      containers:
+        - name: qbittorrent
+          image: docker.io/qbittorrentofficial/qbittorrent-nox:5.2.4-1@sha256:f5d34c27db7853bef7262666561d1b6e84fbffde0ffa7e9e24ed21337f006ef1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: QBT_LEGAL_NOTICE
+              value: confirm
+            - name: QBT_TORRENTING_PORT
+              value: "6881"
+            - name: QBT_WEBUI_PORT
+              value: "8080"
+            - name: UMASK
+              value: "002"
+            - name: HOME
+              value: /tmp
+            - name: TZ
+              value: Europe/Paris
+          ports:
+            - name: webui
+              containerPort: 8080
+              protocol: TCP
+            - name: peer-tcp
+              containerPort: 6881
+              protocol: TCP
+            - name: peer-udp
+              containerPort: 6881
+              protocol: UDP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 150m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          startupProbe:
+            tcpSocket:
+              port: webui
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket:
+              port: webui
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: webui
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: bootstrap
+          configMap:
+            name: qbittorrent-mam-bootstrap
+            defaultMode: 0444
+        - name: auth
+          secret:
+            secretName: qbittorrent-mam-auth
+            defaultMode: 0440
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-mam-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-share
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi

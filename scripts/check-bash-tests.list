@@ -25,6 +25,7 @@ tests/harness/longhorn-servicemonitor-contract-test.sh
 tests/harness/longhorn-offsite-pvc-contract-test.sh
 tests/harness/longhorn-tier-restore-runbook-test.sh
 tests/harness/bookorbit-staged-contract-test.sh
+tests/harness/qbittorrent-mam-contract-test.sh
 tests/harness/authentik-human-users-contract-test.sh
 tests/harness/authentik-friends-contract-test.sh
 tests/harness/d-recovery-contract-test.sh
