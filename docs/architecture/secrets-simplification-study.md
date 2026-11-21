@@ -65,7 +65,6 @@ Format : clé Doppler → ExternalSecret (`fichier#nom`), chemins sous `k8s/`.
 - `APP_POLYFIN_SECRET_KEY`, `APP_SURE_SECRET_KEY_BASE`, `APP_OPENCONNECTOR_ENCRYPTION_KEY`.
 
 **(a2) interne, émis par une app**
-- `APP_KUBECHECKS_ARGOCD_API_TOKEN` → `infrastructure/deployment/kubechecks/kubechecks-secret-external.yaml#kubechecks-combined-secret`.
 - `APP_HA_MCP_TOKEN` → `applications/automation/hassio/ha-mcp-externalsecret.yaml#ha-mcp-secrets`.
 - `APP_MATRIX_FACTORY_BOT_ACCESS_TOKEN`, `APP_INVOICE_NINJA_API_TOKEN`, `ARGOCD_MCP_API_TOKEN`.
 
@@ -295,7 +294,7 @@ Hypothèses : base dans `pg-shared-homelab`, client OIDC Authentik, `HTTPRoute`,
 6. Générateur ESO `Github` pour les jetons GHCR (`APP_FACTORY_PLATFORM_GHCR_TOKEN`, `APP_FACTORY_ARC_GHCR_READ_TOKEN`) depuis l'App GitHub existante ; générateur `Grafana` pour le jeton MCP.
 7. Classe (n) : sortir les valeurs non secrètes de Doppler quand une app est modifiée.
 8. Migration opportuniste de la classe (a) : quand une app est modifiée, passer à la génération dans le cluster. Côté OpenTofu, utiliser `removed { lifecycle { destroy = false } }` pour les `random_*` et `doppler_secret`, puis supprimer la clé Doppler après la preuve `RUNTIME`. Ne jamais toucher aux clés (a\*). Commencer par les apps sans utilisateur.
-9. (a2) : un Job PostSync pour le jeton Argo CD de kubechecks, si le besoin revient.
+9. (a2) : un Job PostSync pour les jetons émis par une app, si le besoin revient (kubechecks retiré, PLT-397).
 
 ### Hors trajectoire (à réévaluer sur critère)
 

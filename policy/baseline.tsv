@@ -29,7 +29,6 @@ platform-baseline-emptydir-size-limit	falco/DaemonSet/falco
 platform-baseline-emptydir-size-limit	gpt-researcher/Deployment/ws-rewriter
 platform-baseline-emptydir-size-limit	immich/StatefulSet/immich-redis-master
 platform-baseline-emptydir-size-limit	karakeep/StatefulSet/meilisearch
-platform-baseline-emptydir-size-limit	kubechecks/Deployment/kubechecks
 platform-baseline-emptydir-size-limit	longhorn-system/Deployment/longhorn-ui
 platform-baseline-emptydir-size-limit	metrics-server/Deployment/metrics-server
 platform-baseline-emptydir-size-limit	open-connector/Deployment/open-connector

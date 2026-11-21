@@ -1,5 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-resources:
-- kubechecks
+# PLT-397 phase 1: kubechecks retiré, la racine reste vide pour que Argo élague ses
+# ressources. Phase 2 : retirer le chemin du générateur de l ApplicationSet infrastructure.
+resources: []
