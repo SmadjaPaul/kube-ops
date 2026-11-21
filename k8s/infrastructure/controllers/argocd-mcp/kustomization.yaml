@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - deployment.yaml
-  - networkpolicy.yaml
+  - ciliumnetworkpolicy.yaml
+  - http-route.yaml
   - externalsecret.yaml

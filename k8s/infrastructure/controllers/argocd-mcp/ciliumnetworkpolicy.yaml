@@ -1,0 +1,28 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: argocd-mcp
+  namespace: agent-observers
+  labels:
+    policy-type: application
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-mcp
+  description: "Ingress to argocd-mcp: Gateway external/internal (Envoy, PLT-401) and omnigent-sandboxes. Port-forward does not cross this policy."
+  ingress:
+    - fromEntities:
+        - host
+        - remote-node
+        - ingress
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: omnigent-sandboxes
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
