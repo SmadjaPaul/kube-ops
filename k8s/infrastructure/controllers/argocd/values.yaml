@@ -27,9 +27,11 @@ configs:
       hs = {status = "Progressing", message = "Waiting for the child Application to be Synced and Healthy"}
       -- A self-managed Application (root tracks itself) must not wait for its
       -- own health, or its sync deadlocks until the controller timeout.
-      if obj.metadata ~= nil and obj.metadata.annotations ~= nil and obj.metadata.name ~= nil then
-        local tid = obj.metadata.annotations["argocd.argoproj.io/tracking-id"]
-        if tid ~= nil and string.sub(tid, 1, string.len(obj.metadata.name) + 1) == obj.metadata.name .. ":" then
+      -- Argo's Lua VM has no string library: exact match, concatenation only.
+      if obj.metadata ~= nil and obj.metadata.annotations ~= nil and obj.metadata.name ~= nil and obj.metadata.namespace ~= nil then
+        local name = obj.metadata.name
+        local self_tid = name .. ":argoproj.io/Application:" .. obj.metadata.namespace .. "/" .. name
+        if obj.metadata.annotations["argocd.argoproj.io/tracking-id"] == self_tid then
           hs.status = "Healthy"
           hs.message = "Self-managed Application"
           return hs

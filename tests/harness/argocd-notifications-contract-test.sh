@@ -32,6 +32,8 @@ if python3 -I -c 'import lupa' 2>/dev/null; then
 import os, sys
 from lupa import LuaRuntime
 rt = LuaRuntime(unpack_returned_tuples=True)
+# Argo CD health Lua runs without the string/os/io/math libraries: mirror it.
+rt.execute("string = nil; os = nil; io = nil; math = nil")
 fn = rt.eval("function(obj)\n" + os.environ["LUA_SRC"] + "\nend")
 def run(obj): 
     r = fn(rt.table_from(obj)); return r["status"]
@@ -39,7 +41,7 @@ H = lambda h, s: {"status": {"health": {"status": h}, "sync": {"status": s}}}
 cases = [({}, "Progressing"), (H("Healthy", "Synced"), "Healthy"), (H("Healthy", "OutOfSync"), "Progressing"),
          (H("Progressing", "Synced"), "Progressing"), (H("Degraded", "Synced"), "Degraded"), (H("Degraded", "OutOfSync"), "Degraded")]
 def T(name, tid, h, s):
-    o = H(h, s); o["metadata"] = {"name": name, "annotations": {"argocd.argoproj.io/tracking-id": tid}}; return o
+    o = H(h, s); o["metadata"] = {"name": name, "namespace": "argocd", "annotations": {"argocd.argoproj.io/tracking-id": tid}}; return o
 cases += [(T("root", "root:argoproj.io/Application:argocd/root", "Healthy", "OutOfSync"), "Healthy"),
           (T("root", "root:argoproj.io/Application:argocd/root", "Progressing", "OutOfSync"), "Healthy"),
           (T("apps-ai", "root:argoproj.io/Application:argocd/apps-ai", "Healthy", "OutOfSync"), "Progressing")]
