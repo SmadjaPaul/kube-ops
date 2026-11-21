@@ -1,0 +1,4 @@
+name: paperless
+namespace: paperless
+postMerge: notify
+preview: false

@@ -1,0 +1,4 @@
+name: mealie
+namespace: mealie
+postMerge: notify
+preview: false
