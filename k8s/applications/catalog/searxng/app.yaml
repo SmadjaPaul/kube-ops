@@ -17,7 +17,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: searxng
-          image: searxng/searxng:2026.9.30-revert-drill-5-missing
+          image: searxng/searxng:2026.9.30-a9d990033
           envFrom:
             - secretRef: { name: searxng-runtime }
           ports:
