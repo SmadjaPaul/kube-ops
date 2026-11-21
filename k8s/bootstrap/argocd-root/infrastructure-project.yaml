@@ -70,6 +70,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: kube-system
       server: https://kubernetes.default.svc
+    # PLT-393: namespace declared by k8s/infrastructure/security/namespaces.yaml.
+    - namespace: kubearmor
+      server: https://kubernetes.default.svc
     - namespace: kubechecks
       server: https://kubernetes.default.svc
     - namespace: kyverno

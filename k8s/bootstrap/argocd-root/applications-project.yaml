@@ -62,6 +62,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: karakeep
       server: https://kubernetes.default.svc
+    # PLT-393: dormant La Suite candidate (k8s/optional/lasuite, outside every ApplicationSet).
+    - namespace: lasuite
+      server: https://kubernetes.default.svc
     - namespace: mastra-factory
       server: https://kubernetes.default.svc
     - namespace: mastra-sandbox
