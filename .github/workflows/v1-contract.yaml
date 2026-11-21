@@ -110,6 +110,11 @@ jobs:
       - name: Validate Argo AppProject namespace contract (rendered and nested Application namespaces)
         run: bash tests/harness/argo-project-namespaces-contract-test.sh
 
+      - name: Validate argocd-app.yaml descriptors (schema, extraPaths, render equivalence, single generator)
+        run: |
+          bash scripts/check-argo-app-descriptors.sh
+          bash tests/harness/argo-app-descriptors-contract-test.sh
+
       - name: Validate ARC GitOps contract
         run: bash tests/harness/arc-gitops-contract-test.sh
 

@@ -7,6 +7,8 @@ resources:
   - infrastructure-applicationset.yaml
   - applications-project.yaml
   - applications-applicationset.yaml
+  - apps-project.yaml
+  - apps-applicationset.yaml
   - previews-project.yaml
   - previews-applicationset.yaml
   - previews-guardrails-applicationset.yaml
