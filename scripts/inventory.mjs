@@ -61,7 +61,21 @@ function visit(path) {
 }
 const appRoots = roots('k8s/bootstrap/argocd-root/applications-applicationset.yaml');
 const infraRoots = roots('k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml');
-for (const [type, paths] of [['applications', appRoots], ['infrastructure', infraRoots]]) {
+// ApplicationSet `apps` (PLT-394): git files generator on k8s/applications/*/*/argocd-app.yaml,
+// one Application per app whose source is the descriptor's directory.
+const appDescriptorRoots = [];
+if (existsSync(safe('k8s/applications'))) {
+  for (const domain of readdirSync(safe('k8s/applications'), { withFileTypes: true })) {
+    if (!domain.isDirectory()) continue;
+    for (const app of readdirSync(safe(join('k8s/applications', domain.name)), { withFileTypes: true })) {
+      if (app.isDirectory() && existsSync(safe(join('k8s/applications', domain.name, app.name, 'argocd-app.yaml')))) {
+        appDescriptorRoots.push(`k8s/applications/${domain.name}/${app.name}`);
+      }
+    }
+  }
+}
+appDescriptorRoots.sort();
+for (const [type, paths] of [['applications', appRoots], ['infrastructure', infraRoots], ['apps', appDescriptorRoots]]) {
   for (const path of paths) {
     if (!existsSync(safe(path))) { missingRoots.push({ type, path }); continue; }
     visit(path);
@@ -90,6 +104,7 @@ console.log(JSON.stringify({
   ],
   applicationRoots: appRoots,
   infrastructureRoots: infraRoots,
+  appDescriptorRoots,
   missingRoots,
   activeKustomizationDirs: used.sort(),
   dormantApplicationDirs: dormant,
