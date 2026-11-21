@@ -56,8 +56,8 @@ fi
 echo "RENDER $dir"
 kustomize build --enable-helm "$dir" >"$tmp/all.yaml"
 # Les Application / AppProject ont besoin de leurs CRD : on les applique apres l'attente.
-yq eval --no-doc 'select(.kind != "Application" and .kind != "AppProject")' "$tmp/all.yaml" >"$tmp/early.yaml"
-yq eval --no-doc 'select(.kind == "Application" or .kind == "AppProject")' "$tmp/all.yaml" >"$tmp/late.yaml"
+yq eval 'select(.kind != "Application" and .kind != "AppProject")' "$tmp/all.yaml" >"$tmp/early.yaml"
+yq eval 'select(.kind == "Application" or .kind == "AppProject")' "$tmp/all.yaml" >"$tmp/late.yaml"
 [[ -s $tmp/early.yaml && -s $tmp/late.yaml ]] || { echo "ERROR: rendered bootstrap is empty or incomplete" >&2; exit 1; }
 
 if ((dry_run)); then

@@ -73,4 +73,8 @@ if run --kubeconfig "$tmp/absent"; then fail "missing kubeconfig file must be re
 if run --kubeconfig "$kc" --bogus; then fail "unknown flag must be refused"; fi
 if grep -qF "$(cat "$kc")" "$tmp/out"; then fail "kubeconfig content must never be printed"; fi
 
+# Le découpage early/late garde les séparateurs de documents : avec --no-doc, yq colle les
+# objets et kubectl apply reçoit un objet fusionné (NetworkPolicy argocd-server + rules d'un RBAC).
+if grep -nE "yq eval --no-doc 'select\(" "$script"; then fail "split must keep YAML document separators (no --no-doc)"; fi
+
 echo "OK: oke-bootstrap contract"
