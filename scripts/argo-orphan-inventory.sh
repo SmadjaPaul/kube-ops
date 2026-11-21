@@ -4,10 +4,40 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage: scripts/argo-orphan-inventory.sh [--output PATH] [--compare BASELINE]
+       scripts/argo-orphan-inventory.sh --list-applications
 
 Collect a read-only Argo orphan inventory. Only object metadata is emitted;
 Secret data is never included.
+
+--list-applications prints, from Git only (no cluster access), the Applications
+the inventory queries as "name<TAB>project<TAB>source":
+  app-<name>        one per k8s/applications/<domain>/<app>/argocd-app.yaml (ApplicationSet apps)
+  apps-<domain>     one per remaining generator directory of ApplicationSet applications
+  infra-controllers representative of ApplicationSet infrastructure
+  root              app-of-apps; the objects it renders are tracked, never orphans
 EOF
+}
+
+# Applications expected from Git (PLT-394). Descriptors are the source of truth for app-<name>;
+# the domain Applications shrink as domains migrate, so they are read from the generator.
+expected_applications() {
+  local repo=${ARGO_ORPHAN_REPO_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}
+  local root_dir=$repo/k8s/bootstrap/argocd-root descriptor path
+  command -v yq >/dev/null || { echo "ERROR: yq required" >&2; return 2; }
+  while IFS= read -r descriptor; do
+    [[ -n "$descriptor" ]] || continue
+    printf 'app-%s\t%s\tapps\n' \
+      "$(yq -r '.name' "$descriptor")" "$(yq -r '.project // "apps"' "$descriptor")"
+  done < <(compgen -G "$repo/k8s/applications/*/*/argocd-app.yaml" || true)
+  if [[ -f "$root_dir/applications-applicationset.yaml" ]]; then
+    while IFS= read -r path; do
+      [[ -n "$path" ]] || continue
+      printf 'apps-%s\tapplications\tapplications\n' "$(basename "$path")"
+    done < <(yq -r '.spec.generators[].git.directories[]? | select(.exclude != true) | .path' \
+      "$root_dir/applications-applicationset.yaml")
+  fi
+  printf 'infra-controllers\tinfrastructure\tinfrastructure\n'
+  printf 'root\tbootstrap\troot\n'
 }
 
 output=-
@@ -16,6 +46,7 @@ while (($# > 0)); do
   case "$1" in
     --output) (($# >= 2)) || { usage >&2; exit 2; }; output=$2; shift 2 ;;
     --compare) (($# >= 2)) || { usage >&2; exit 2; }; compare=$2; shift 2 ;;
+    --list-applications) expected_applications | LC_ALL=C sort -u; exit 0 ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
   esac
@@ -61,9 +92,22 @@ collect_orphans() {
       }'
 }
 
-collect_orphans apps-catalog applications >"$tmp/apps.tsv"
-collect_orphans infra-controllers infrastructure >"$tmp/infra.tsv"
-sort -u -k1,4 "$tmp/apps.tsv" "$tmp/infra.tsv" >"$tmp/orphans.tsv"
+expected_applications | LC_ALL=C sort -u >"$tmp/expected.tsv"
+cut -f1 "$tmp/expected.tsv" | LC_ALL=C sort -u >"$tmp/expected.txt"
+jq -r '.items[].metadata.name' "$tmp/applications.json" | LC_ALL=C sort -u >"$tmp/live.txt"
+: >"$tmp/orphans.raw"
+: >"$tmp/queried.txt"
+while IFS=$'\t' read -r application project _source; do
+  # An expected Application absent from the cluster is reported below, never silently skipped.
+  grep -qxF -- "$application" "$tmp/live.txt" || continue
+  printf '%s\n' "$application" >>"$tmp/queried.txt"
+  collect_orphans "$application" "$project" >>"$tmp/orphans.raw"
+done <"$tmp/expected.tsv"
+sort -u -k1,4 "$tmp/orphans.raw" >"$tmp/orphans.tsv"
+queried_json="$(jq -R . <"$tmp/queried.txt" | jq -sc .)"
+# Live Applications Git does not explain (descriptor removed, stale domain Application).
+unexpected_json="$(LC_ALL=C comm -13 "$tmp/expected.txt" "$tmp/live.txt" | { grep -E '^(app|apps)-' || true; } | jq -R . | jq -sc .)"
+missing_json="$(LC_ALL=C comm -23 "$tmp/expected.txt" "$tmp/live.txt" | jq -R . | jq -sc .)"
 
 warning_json="$(jq -c '
   [.items[] |
@@ -143,6 +187,7 @@ done <"$tmp/orphans.tsv"
 
 jq -s --arg generatedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --argjson warnings "$warning_json" --argjson warningCount "$warning_count" \
+  --argjson queried "$queried_json" --argjson unexpected "$unexpected_json" --argjson missing "$missing_json" \
   --argjson now "$now_epoch" '
   def counts($field):
     ([.[]|.[$field]]|sort|group_by(.)|map({key:.[0],value:length})|from_entries);
@@ -153,7 +198,8 @@ jq -s --arg generatedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   . as $items |
   {schemaVersion:"kube-ops/argo-orphan-inventory/v1", generatedAt:$generatedAt,
    observationEpoch:$now,
-   source:{applications:["apps-catalog","infra-controllers"],projectWarnings:$warnings,
+   source:{applications:$queried,expectedApplicationsNotLive:$missing,
+           liveApplicationsNotInGit:$unexpected,projectWarnings:$warnings,
            projectWarningApplicationCount:$warningCount,secretValuesIncluded:false,
            mutationPerformed:false},
    summary:{uniqueObjects:($items|length),unresolvedObjects:([.[]|select(.lookupStatus!="found")]|length),classification:counts("classification"),
