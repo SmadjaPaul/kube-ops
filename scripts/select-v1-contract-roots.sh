@@ -67,6 +67,12 @@ while IFS= read -r path; do
       # the actual Argo boundary.
       roots[k8s/applications/media]=1
       ;;
+    k8s/applications/media/aiostreams/*|k8s/applications/media/bookorbit/*|\
+    k8s/applications/media/immich/*|k8s/applications/media/media-shared/*)
+      # Apps du domaine media eclate (PLT-394) : racines propres ; la racine media
+      # n'est plus que Polyfin (apps-media).
+      roots[$(cut -d/ -f1-4 <<<"$path")]=1
+      ;;
     k8s/applications/games/romm/*)
       # RomM is rendered by the games root (the only active games component);
       # games/romm alone is not an active V1 root (PLT-228).

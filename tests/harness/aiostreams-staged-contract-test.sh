@@ -3,7 +3,8 @@ set -euo pipefail
 trap 'echo "AIOSTREAMS_STAGE=FAIL: assertion failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 root=k8s/applications/media
 pkg="$root/aiostreams"
-grep -Fxq -- '- aiostreams' "$root/kustomization.yaml"
+# PLT-394 : l'app est declaree par son descripteur (Application app-aiostreams), plus par la kustomization du domaine.
+[[ "$(yq -r '.name' "$pkg/argocd-app.yaml")" == aiostreams ]]
 grep -Fq "APP_AIOSTREAMS_SECRET_KEY" "$pkg/external-secret.yaml"
 grep -Fq "APP_AIOSTREAMS_OPERATOR_AUTH" "$pkg/external-secret.yaml"
 grep -Fq "ghcr.io/viren070/aiostreams:v2.38.1" "$pkg/deployment.yaml"

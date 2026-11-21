@@ -13,6 +13,10 @@
 #   c. un domaine migre est COMPLET (chaque sous-dossier avec kustomization.yaml a son descripteur)
 #      et l'union des rendus `kustomize build --enable-helm` des apps == rendu du domaine, objets
 #      compares par (kind, namespace, name) et contenu normalise (cles triees) ;
+#      exception, domaine PARTIEL (le generateur de `applications` vise encore le domaine lui-meme,
+#      cas de `media` tant que Polyfin n'est pas migre) : sa kustomization ne rend que les
+#      sous-dossiers sans descripteur, et aucun objet ne doit etre rendu a la fois par le domaine
+#      et par une app (double suivi) ;
 #   d. aucune app n'est generee a la fois par `apps` et par l'ApplicationSet `applications` ;
 #      `preview: true` (opt-in aux previews PLT-394/395) : l'app ne rend que des kinds admis par la liste
 #      blanche de l'AppProject `previews` (hors Namespace, ScaledObject, InterceptorRoute, retires par
@@ -269,11 +273,20 @@ while IFS= read -r domain; do
   [[ -n $domain ]] || continue
   drel="k8s/applications/$domain"
 
+  # domaine partiel : le generateur de `applications` vise encore le domaine lui-meme
+  partial=false
+  while IFS= read -r g; do
+    [[ $g == "$drel" ]] && partial=true
+  done <"$gen_paths"
+
   # d. plus generee par `applications`
   while IFS= read -r g; do
     [[ -n $g ]] || continue
     while IFS=$'\t' read -r cl f; do
       dir="$(dirname "$f")"; rel="${dir#"$repo"/}"
+      # domaine partiel (media/Polyfin) : le generateur du domaine lui-meme est
+      # admis pour les apps homelab ; une app OKE y reste refusee (double deploiement)
+      [[ $partial == true && $g == "$drel" && $cl == homelab ]] && continue
       [[ $rel == "$drel"/* ]] || continue
       if [[ $rel == "$g" || $rel == "$g"/* ]]; then
         if [[ $cl == homelab ]]; then
@@ -290,9 +303,10 @@ while IFS= read -r domain; do
   [[ -f $apps_dir/$domain/kustomization.yaml ]] || { fail "$drel has no kustomization.yaml: cannot prove render equivalence"; continue; }
 
   # c. complet : chaque sous-dossier avec kustomization.yaml a son descripteur
+  # (domaine partiel : un sous-dossier sans descripteur reste rendu par le domaine, voir plus bas)
   for sub in "$apps_dir/$domain"/*/; do
     [[ -f ${sub}kustomization.yaml ]] || continue
-    [[ -f ${sub}argocd-app.yaml || -f ${sub}argocd-app.$oke_cluster.yaml ]] || fail "$drel is partially migrated: ${sub#"$repo"/} has no argocd-app.yaml (a domain migrates whole, otherwise the domain Application prunes the apps it no longer generates)"
+    [[ -f ${sub}argocd-app.yaml || -f ${sub}argocd-app.$oke_cluster.yaml || $partial == true ]] || fail "$drel is partially migrated: ${sub#"$repo"/} has no argocd-app.yaml (a domain migrates whole, otherwise the domain Application prunes the apps it no longer generates)"
   done
 
   # c. equivalence de rendu : domaine == union des apps
@@ -317,6 +331,22 @@ while IFS= read -r domain; do
   done
   LC_ALL=C sort -o "$tmp/union.objects" "$tmp/union.objects"
   cut -f1 "$tmp/domain.objects" >"$tmp/domain.keys"
+  if [[ $partial == true ]]; then
+    # le domaine ne rend que ce qui n'est pas migre : aucun objet en commun avec une app
+    while IFS= read -r key; do
+      if grep -qxF "$key" "$tmp/union.keys"; then fail "$drel: object $key is rendered by the domain (apps-${domain}) and by an app (double tracking: remove it from the domain kustomization)"; fi
+    done <"$tmp/domain.keys"
+    # un sous-dossier sans descripteur doit rester rendu par le domaine, sinon il serait elague
+    for sub in "$apps_dir/$domain"/*/; do
+      [[ -f ${sub}kustomization.yaml && ! -f ${sub}argocd-app.yaml && ! -f ${sub}argocd-app.$oke_cluster.yaml ]] || continue
+      render "${sub#"$repo"/}" >"$tmp/sub.rendered" 2>/dev/null || { fail "kustomize build failed for ${sub#"$repo"/}"; continue; }
+      objects <"$tmp/sub.rendered" | cut -f1 >"$tmp/sub.keys"
+      while IFS= read -r key; do
+        grep -qxF "$key" "$tmp/domain.keys" || fail "$drel: object $key of ${sub#"$repo"/} (no descriptor) is no longer rendered by the domain: apps-${domain} would prune it"
+      done <"$tmp/sub.keys"
+    done
+    continue
+  fi
   while IFS= read -r key; do
     grep -qxF "$key" "$tmp/union.keys" || fail "$drel: object $key is rendered by the domain but by no app (domain-level file or transformation lost: it would be pruned)"
   done <"$tmp/domain.keys"
