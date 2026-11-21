@@ -32,7 +32,7 @@ it-tools	reconstructible, sans état	app-it-tools
 mastra-factory	reconstructible	apps-platform
 mastra-sandbox	reconstructible (sandboxes Factory)	apps-platform
 media	reconstructible	apps-media
-mqtt	reconstructible	apps-automation
+mqtt	reconstructible	app-mqtt
 ntfy	reconstructible	apps-catalog
 open-connector	reconstructible	apps-platform
 opencode	reconstructible	apps-ai

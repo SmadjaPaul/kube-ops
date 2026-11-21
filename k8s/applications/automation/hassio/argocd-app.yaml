@@ -1,0 +1,4 @@
+name: hassio
+namespace: home-assistant
+postMerge: notify
+preview: false
