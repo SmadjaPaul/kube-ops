@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: preview-demo-whoami
+  namespace: preview-demo-whoami
+spec:
+  parentRefs:
+    - name: internal
+      namespace: gateway
+  hostnames:
+    - preview-demo-whoami.smadja.dev
+  rules:
+    - backendRefs:
+        - name: preview-demo-whoami
+          port: 8080
