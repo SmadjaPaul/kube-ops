@@ -13,7 +13,7 @@
 # Prefer `just status-app`, `just diagnose-app`, `just runtime-inventory` for
 # Argo evidence; use this wrapper for anything they do not cover.
 #
-# --cluster oracle-a1 (PLT-257) reads OKE through NetBird (API 10.0.2.3:6443) with
+# --cluster oracle-a1 (PLT-257) reads OKE through NetBird or the bastion (private API of the VCN, server taken from the Doppler kubeconfig, no fixed IP) with
 # the read-only ServiceAccount argocd/agent-operator, from Doppler
 # KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 (+ _SHA256). Never the operator
 # copy nor an OCI exec kubeconfig; the effective identity is checked before any
