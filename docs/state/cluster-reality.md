@@ -32,7 +32,7 @@
 | hindsight-personal | personal-hindsight | OUI 1/1 | 0.011/0.081 | 1553/1647 | aucune | irremplaçable (à confirmer) (PVC 2/15Gi, CNPG 1) | **GARDER** : mémoire d'agent, utilité à confirmer (D-05) |
 | home-assistant | apps-automation | OUI 1/1 | 0.000/0.002 | 417/536 | hassio.smadja.dev [public] OIDC | irremplaçable (à confirmer) (PVC 1/5Gi) | **GARDER** : config domotique ; cible N100 (D-11, proposée) |
 | immich | apps-media | OUI 3/3 | 0.025/0.031 | 1096/1201 | immich.smadja.dev [public] OIDC | irremplaçable (PVC 4/136Gi, CNPG 1) | **GARDER** : photos/vidéos originales (D-05) |
-| invoice-ninja | apps-invoice-ninja | OUI 3/3 | 0.032/0.044 | 1052/1132 | gestion.lechaplais.com [public] OIDC | irremplaçable (PVC 4/17Gi) | **GARDER** : factures (D-05) |
+| invoice-ninja | apps-invoice-ninja | OUI 3/3 | 0.032/0.044 | 1052/1132 | facture.smadja.dev [public] OIDC | irremplaçable (PVC 4/17Gi) | **GARDER** : factures (D-05) |
 | it-tools | apps-tools | NON scaled 0 | —/— | —/— | ittools.smadja.dev [public] auth non détectée | reconstructible | **GARDER** : sans état, scale-to-zero KEDA voulu (#405), coût nul |
 | karakeep | apps-ai | OUI 3/3 | 0.013/0.017 | 483/570 | karakeep.smadja.dev [public] OIDC | irremplaçable (à confirmer) (PVC 2/10Gi) | **GARDER** : marque-pages ; à confirmer |
 | mastra-factory | apps-platform | OUI 1/1 | 0.009/0.046 | 416/469 | factory.smadja.dev [LAN] OIDC | reconstructible (PVC 2/25Gi, CNPG 1) | **GARDER** : Factory MVP (D-09) |

@@ -4,7 +4,7 @@ metadata:
   name: invoice-ninja-env
   namespace: invoice-ninja
 data:
-  APP_URL: https://gestion.lechaplais.com
+  APP_URL: https://facture.smadja.dev
   APP_ENV: production
   APP_DEBUG: "false"
   REQUIRE_HTTPS: "true"
