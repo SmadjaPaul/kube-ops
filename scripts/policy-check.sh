@@ -99,7 +99,13 @@ if [[ $requested == all ]]; then
   for ((j = 0; j < i; j++)); do
     yq eval-all 'select(.kind == "CiliumNetworkPolicy") | .metadata.namespace' "${files[j]}"
   done | grep -vE '^(---|null)$|^$' | sort -u >"$work/ns-cnp.txt"
-  comm -23 "$work/ns-workloads.txt" "$work/ns-cnp.txt" | sed 's/.*/repo-contract-cnp-per-namespace\t&/' >>"$work/current.tsv"
+  # OKE (PLT-407) : pas de Cilium sur oracle-a1 (le CRD CiliumNetworkPolicy n'y existe pas, Argo ne pourrait pas
+  # l'appliquer) ; les namespaces des apps a descripteur argocd-app.oracle-a1.yaml sont exemptes de la regle.
+  # A retirer avec le chaining Cilium d'OKE (PLT-384, k8s/clusters/oracle-a1/README.md).
+  for f in k8s/applications/*/*/argocd-app.oracle-a1.yaml; do
+    [[ -f $f ]] && yq eval '.namespace' "$f"
+  done | sort -u >"$work/ns-oke.txt"
+  comm -23 "$work/ns-workloads.txt" <(sort -u "$work/ns-cnp.txt" "$work/ns-oke.txt") | sed 's/.*/repo-contract-cnp-per-namespace\t&/' >>"$work/current.tsv"
   sort -u -o "$work/current.tsv" "$work/current.tsv"
 else
   echo "POLICY_CNP=SKIPPED (contrôle CiliumNetworkPolicy par namespace : rendu complet seulement)"

@@ -16,6 +16,9 @@ fresh() { # depot de travail minimal : racine Argo + domaine tools
   mkdir -p "$tmp/w/k8s/clusters/oracle-a1"
   cp -R "$repo_root/k8s/clusters/oracle-a1/argocd-root" "$tmp/w/k8s/clusters/oracle-a1/argocd-root"
   cp -R "$repo_root/k8s/applications/tools" "$tmp/w/k8s/applications/tools"
+  # le domaine reel porte aussi l'app pilote OKE (whoami) : les cas ci-dessous partent de it-tools seul
+  rm -rf "$tmp/w/k8s/applications/tools/whoami"
+  printf 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\n\nresources:\n- it-tools\n' >"$tmp/w/k8s/applications/tools/kustomization.yaml"
   # le domaine tools migre : il quitte l'ApplicationSet applications (regle d)
   yq eval -i 'del(.spec.generators[].git.directories[] | select(.path == "k8s/applications/tools"))' \
     "$tmp/w/k8s/bootstrap/argocd-root/applications-applicationset.yaml"

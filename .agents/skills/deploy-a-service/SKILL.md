@@ -22,6 +22,7 @@ One Argo Application per app (`app-<name>`, PLT-394). Argo finds it from its des
    preview: true          # false if no preview env
    ```
    Optional: `project` (default `apps`), `extraPaths: [k8s/...]` for sources outside the folder.
+   OKE instead: file `argocd-app.oracle-a1.yaml` with `name`, `namespace`, `cluster: oracle-a1` (and `postMerge: notify`, never `preview`); same folder layout, no HTTPRoute, no CiliumNetworkPolicy (no Cilium there), image with a `linux/arm64` manifest pinned by digest. Durable data (PVC, CNPG `Cluster`, StatefulSet with volumeClaimTemplates) is refused unless `disposableData: "<why it is disposable>"`. Copy `k8s/applications/tools/whoami`. Run `git add` on the new folder before `just check` (some tests read tracked files only).
 3. In the same folder: `kustomization.yaml` (`resources:` list), `namespace.yaml`, `deployment.yaml`, `service.yaml`, `http-route.yaml`, plus Q3-Q6 files. Copy `k8s/applications/tools/it-tools`.
 4. Append `- <app>` to `k8s/applications/<domain>/kustomization.yaml` (the domain render must equal the union of its apps; the check fails otherwise).
 5. Append `k8s/applications/<domain>/<app>` to `AFFECTED_APPLICATION_ROOTS` in `scripts/affected-tests.conf`.
@@ -38,7 +39,7 @@ Run `just inventory` and search the name. Found: extend or fix it, stop here. Re
 Access is **always by group, never per user**. Model: `docs/operations/authentik-access-model.md`.
 
 ## Q2 — Where does it run?
-- Night use or access from outside the LAN -> **OKE** (`k8s/clusters/oracle-a1`). Stateless, or a `pg-shared` database only once restore is proven outside Oracle (`docs/operations/pg-shared-oke-backup-drill.md`). Place it with `argocd-app.oracle-a1.yaml` (`cluster: oracle-a1`, `postMerge: notify`) instead of `argocd-app.yaml`: one cluster per app, and its domain must already use descriptors. Then `just verify-delivery oracle-a1 NAME`. The image must have a `linux/arm64` manifest.
+- Night use or access from outside the LAN -> **OKE** (`k8s/clusters/oracle-a1`). Stateless, or a `pg-shared` database only once restore is proven outside Oracle (`docs/operations/pg-shared-oke-backup-drill.md`). Place it with `argocd-app.oracle-a1.yaml` (`cluster: oracle-a1`, `postMerge: notify`) instead of `argocd-app.yaml`: one cluster per app, and its domain must already use descriptors. Then `just verify-delivery oracle-a1 NAME` (the post-merge workflow notifies, never reverts, an OKE app; its runner cannot read OKE yet: the proof is yours). No `ServiceMonitor` CRD on OKE: declare `exceptions.observability` in `app-test.yaml` when the app has no `/metrics`. The image must have a `linux/arm64` manifest.
 - Heavy or LAN-bound -> **homelab**, run by day.
 
 ## Q3 — State
