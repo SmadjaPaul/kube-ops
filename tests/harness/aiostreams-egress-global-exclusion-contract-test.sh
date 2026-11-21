@@ -41,7 +41,7 @@ check '.spec.egress[4].toFQDNs[4].matchName' "$specific" remuxdb.1632022.xyz
 check '.spec.egress[4].toFQDNs[5].matchName' "$specific" comet.feels.legal
 check '.spec.egress[4].toFQDNs[6].matchName' "$specific" meteorfortheweebs.midnightignite.me
 check '.spec.egress[4].toFQDNs[7].matchName' "$specific" stremthru.13377001.xyz
-check '.spec.egress[4].toFQDNs[8].matchName' "$specific" opensubtitles-v3.strem.io
+check '.spec.egress[4].toFQDNs[8].matchName' "$specific" opensubtitles.stremio.homes
 check '.spec.egress[4].toFQDNs[9].matchName' "$specific" aiometadata.streetle.dev
 check '.spec.egress[4].toFQDNs[10].matchName' "$specific" tmdb.elfhosted.com
 check '.spec.egress[4].toFQDNs[11].matchName' "$specific" 1fe84bc728af-stremio-anime-catalogs.baby-beamup.club

@@ -80,7 +80,7 @@ grep -Fq 'matchName: remuxdb.1632022.xyz' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: comet.feels.legal' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: meteorfortheweebs.midnightignite.me' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: stremthru.13377001.xyz' "$pkg/networkpolicy.yaml"
-grep -Fq 'matchName: opensubtitles-v3.strem.io' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: opensubtitles.stremio.homes' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: tmdb.elfhosted.com' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: 1fe84bc728af-stremio-anime-catalogs.baby-beamup.club' "$pkg/networkpolicy.yaml"
 grep -Fq 'https://aiostreams.smadja.dev/api/v1/auth/oidc/callback' \

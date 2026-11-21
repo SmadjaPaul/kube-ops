@@ -96,8 +96,13 @@ route, or blanket external egress.
   current matrix covers `api.torbox.app`, `search-api.torbox.app`,
   `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`, `remuxdb.1632022.xyz`,
   `comet.feels.legal`, `meteorfortheweebs.midnightignite.me`,
-  `stremthru.13377001.xyz`, `opensubtitles.stremio.homes` and the selected
-  public AIOMetadata instance at `aiometadata.streetle.dev`; additional
+  `stremthru.13377001.xyz`, `opensubtitles.stremio.homes` (OpenSubtitles V3+,
+  the only subtitle source that restricts languages: the family allows
+  fr/en/es), the selected public AIOMetadata instance at
+  `aiometadata.streetle.dev`, `tmdb.elfhosted.com` (TMDB metadata) and
+  `1fe84bc728af-stremio-anime-catalogs.baby-beamup.club` (Kitsu anime
+  catalogs). `stremthru.13377001.xyz` also serves the StremThru Torz preset, so
+  that preset needs no further FQDN. Additional
   user-selected addons/indexers/debrid services require separately reviewed
   FQDN admission.
 - `FORCE_PROXY_ENABLED=false`, `DEFAULT_PROXY_ENABLED=false`, no proxy URL or
@@ -186,7 +191,9 @@ Cilium/Hubble positive and negative flows after GitOps reconciliation.
   `search-api.torbox.app`, `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`,
   `remuxdb.1632022.xyz`, `comet.feels.legal`,
   `meteorfortheweebs.midnightignite.me`, `stremthru.13377001.xyz`,
-  `opensubtitles.stremio.homes` and `aiometadata.streetle.dev`. These are
+  `opensubtitles.stremio.homes`, `aiometadata.streetle.dev`,
+  `tmdb.elfhosted.com` and
+  `1fe84bc728af-stremio-anime-catalogs.baby-beamup.club`. These are
   control-plane dependencies only;
   no CDN/media egress is granted to the Pod.
 - Upstream v2.37.0 has these baseline outbound dependencies when its default
