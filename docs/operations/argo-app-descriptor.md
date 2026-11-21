@@ -50,7 +50,7 @@ Bootstrap et baseline d'OKE : `k8s/clusters/oracle-a1/README.md`.
 
 Les ApplicationSets `previews` et `previews-guardrails` (`k8s/bootstrap/argocd-root/`) croisent le generateur de PR (label `preview`, base `main`) avec un git files generator sur `k8s/applications/*/<app>/argocd-app.yaml`, ou `<app>` est le label `preview:<app>` de la PR (meme regex qu'avant), lu au SHA de tete de la PR. Un `selector` sur le generateur (`preview: "true"`) ne garde que les apps dont le descripteur declare `preview: true` ; champ absent ou `false` : aucune Application de preview, meme avec le label. Nom (`preview-pr<n>-<app>`), namespace (`pr-<n>-<app>`), patches et parent `Gateway/internal` ne dependent pas du descripteur : ni `namespace` ni `project` du descripteur ne sont utilises par les previews.
 
-`preview: true` n'est valide que si l'app ne rend que des kinds admis par l'AppProject `previews` (hors `Namespace`, `ScaledObject`, `InterceptorRoute`, retires par l'ApplicationSet). Les secrets restent regis par Kyverno (aucun store de prod). Les apps sans descripteur (domaine non migre, aujourd'hui `media`) n'ont plus de preview tant que leur domaine n'est pas migre.
+`preview: true` n'est valide que si l'app ne rend que des kinds admis par l'AppProject `previews` (hors `Namespace`, `ScaledObject`, `InterceptorRoute`, retires par l'ApplicationSet). Les secrets restent regis par Kyverno (aucun store de prod). Les apps sans descripteur (domaine non migre, aujourd'hui `media/polyfin`) n'ont plus de preview tant que leur domaine n'est pas migre.
 
 ## Controles CI
 
@@ -87,3 +87,11 @@ Le domaine `platform` est eclate en 10 apps (`agent-operator-access`, `agentgate
 - `k8s/applications/platform` est retire du generateur de l'ApplicationSet `applications`, qui garde `k8s/applications/media` (il n'est donc pas vide). `apps-platform` disparait sans cascade.
 
 Preuve d'equivalence faite a la migration : rendu de l'ancien domaine (180 objets, apres pose de `Prune=false`) == union des rendus des 10 apps (177 objets) + 3 objets du root, objet par objet sur contenu normalise, aucun objet rendu par deux apps. `Prune=false` a ete pose avant la migration (commit precedent) sur les objets Argo et les objets a etat.
+
+## Cas du domaine `media` (migration partielle : Polyfin reste sous `apps-media`)
+
+`media` est eclate en `aiostreams`, `bookorbit`, `immich` et `media-shared` (Namespace `media`, PVC `media-share`, Job `media-layout-v1`, tous apps `postMerge: notify`). Polyfin, dont les fichiers sont figes pendant ses montees de version et l'admission CVE, **reste rendu par `apps-media`** : `k8s/applications/media/kustomization.yaml` ne rend plus que `polyfin`, la route `polyfin-media`, `k8s/optional/polyfin-nebula` et les deux patches (Deployment, CiliumNetworkPolicy `polyfin-pilot`) qui ne visent que Polyfin. L'ApplicationSet `applications` garde donc `k8s/applications/media`.
+
+- Controle : un domaine dont le generateur `applications` vise encore le dossier du domaine est « partiel » ; l'exigence de completude et d'equivalence de rendu est remplacee par : aucun objet rendu a la fois par le domaine et par une app, et tout sous-dossier sans descripteur reste rendu par le domaine (sinon `apps-media` l'elaguerait).
+- Contrairement a un domaine qui disparait en bloc (`apps-<domaine>` retire sans cascade), `apps-media` continue de pruner : tout objet qui change d'Application doit porter `Prune=false` **vivant** avant l'eclatement (annotation posee par patch kustomize transitoire sur `aiostreams`, `bookorbit`, `immich`, retire par le commit d'eclatement). Deux PR : proteger, synchroniser, verifier l'annotation sur les objets vivants, puis eclater.
+- Migrer Polyfin plus tard : descripteur `polyfin`, route et patches deplaces dans `polyfin/kustomization.yaml`, `k8s/applications/media` retire du generateur de `applications` (domaine de nouveau complet).

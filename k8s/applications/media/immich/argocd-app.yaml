@@ -1,0 +1,4 @@
+name: immich
+namespace: immich
+postMerge: notify
+preview: false

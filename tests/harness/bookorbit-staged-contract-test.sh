@@ -13,7 +13,8 @@ assert_contains() {
   fi
 }
 
-assert_contains '- bookorbit' "$root/kustomization.yaml"
+# PLT-394 : l'app est declaree par son descripteur (Application app-bookorbit).
+assert_contains 'name: bookorbit' "$root/bookorbit/argocd-app.yaml"
 assert_contains 'ghcr.io/bookorbit/bookorbit:3.9.0@sha256:79cd9c66c990a82944514e3e82d5be5987f21eda96cb37a378ed1484043716fc' "$pkg/app.yaml"
 assert_contains 'value: /data/book-dock' "$pkg/app.yaml"
 assert_contains 'value: /data/media/books' "$pkg/app.yaml"
