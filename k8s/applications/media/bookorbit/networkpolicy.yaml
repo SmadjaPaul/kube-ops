@@ -59,6 +59,9 @@ spec:
         - matchName: archive.org
         - matchPattern: "*.archive.org"
         - matchPattern: "*.us.archive.org"
+        # Project Gutenberg plugin (OPDS search and EPUB files).
+        - matchName: www.gutenberg.org
+        - matchName: gutenberg.org
       toPorts:
         - ports:
             - port: "443"
