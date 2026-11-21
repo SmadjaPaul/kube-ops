@@ -3,7 +3,10 @@
   "kind": "AppProject",
   "metadata": {
     "name": "hermes-tenants",
-    "namespace": "argocd"
+    "namespace": "argocd",
+    "annotations": {
+      "argocd.argoproj.io/sync-options": "Prune=false"
+    }
   },
   "spec": {
     "description": "Isolated personal Hermes instances from exact pinned upstream chart",

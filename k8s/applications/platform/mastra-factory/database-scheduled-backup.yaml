@@ -1,6 +1,8 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: mastra-factory-postgresql-weekly
   namespace: mastra-factory
 spec:

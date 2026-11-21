@@ -16,6 +16,7 @@ metadata:
   name: matrix-mas-clean-cnpg-r2-credentials
   namespace: matrix
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false
     argocd.argoproj.io/sync-wave: "-12"
 spec:
   refreshInterval: 1h
@@ -42,6 +43,7 @@ metadata:
   name: matrix-mas-clean-r2-store
   namespace: matrix
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false
     argocd.argoproj.io/sync-wave: "-11"
 spec:
   retentionPolicy: "14d"
