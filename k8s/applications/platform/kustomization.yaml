@@ -1,6 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# PLT-394 : une Application Argo par app (un descripteur par dossier) ; cette kustomization n'est
+# plus suivie par Argo, elle reste l'agregat du domaine (controle d'equivalence de rendu,
+# scripts/check-argo-app-descriptors.sh). L'AppProject hermes-tenants, l'ApplicationSet
+# hermes-personal-tenants et l'Application personal-sparkyfitness sont geres par le root
+# (k8s/bootstrap/argocd-root), hors de ce rendu.
 resources:
   - factory-platform
   - open-connector
@@ -8,12 +13,8 @@ resources:
   - mastra-factory
   - mastra-sandbox
   - matrix
-  # PLT-315: Fleet (device posture), LAN only via Gateway/internal. ADR identity-layer.
-  - ../../optional/fleet
+  - fleet
   - rustical-pilot
   # PLT-237: write RoleBindings of the agent-operator identity (scope.tsv).
   - agent-operator-access
-  - ../../optional/sparkyfitness
-  # Hermes foundation is intentionally active with an empty tenant registry.
-  # Tenant admission remains a separate, identity- and secret-gated change.
-  - ../../optional/hermes-personal
+  - sparkyfitness

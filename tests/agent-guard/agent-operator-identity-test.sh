@@ -45,7 +45,8 @@ ok "namespaces admis = destinations Argo existantes"
 check "destination agent-operator dans le projet infrastructure" \
   grep -qx '    - namespace: agent-operator' k8s/bootstrap/argocd-root/infrastructure-project.yaml
 check "racine infra-security importe agent-operator" grep -qx '  - agent-operator' k8s/infrastructure/security/kustomization.yaml
-check "racine apps-platform importe agent-operator-access" grep -qx '  - agent-operator-access' k8s/applications/platform/kustomization.yaml
+check "app agent-operator-access (descripteur) et agregat du domaine platform" grep -qx '  - agent-operator-access' k8s/applications/platform/kustomization.yaml
+check "descripteur argocd-app.yaml de agent-operator-access" test -f k8s/applications/platform/agent-operator-access/argocd-app.yaml
 
 # 4. RBAC : jamais de Secret, d'escalade, d'exec, de PVC/PV en écriture
 rules=$(yq -o=json -I=0 'select(.kind == "ClusterRole" or .kind == "Role") | {"n": .metadata.name, "r": .rules}' "$RBAC" | jq -c '.n as $n | .r[] | . + {role: $n}')

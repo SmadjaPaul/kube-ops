@@ -1,0 +1,4 @@
+name: open-connector
+namespace: open-connector
+postMerge: notify
+preview: false

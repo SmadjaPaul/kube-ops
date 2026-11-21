@@ -1,6 +1,6 @@
 # Hermes Personal Agents — PLT-158 (staged, zero tenants)
 
-**Active only as an empty foundation**: platform root imports the Hermès
+**Active only as an empty foundation**: the root (k8s/bootstrap/argocd-root, PLT-394) imports the Hermès
 AppProject and ApplicationSet, but the registry has zero tenants, so no user
 agent, HTTPRoute, credential, or PVC is deployed.
 

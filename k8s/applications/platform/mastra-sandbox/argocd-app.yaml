@@ -1,0 +1,4 @@
+name: mastra-sandbox
+namespace: mastra-sandbox
+postMerge: revert
+preview: false

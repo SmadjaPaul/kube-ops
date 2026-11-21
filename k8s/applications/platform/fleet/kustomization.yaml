@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# PLT-314 package, active via PLT-315 (LAN only). PLT-394 : app propre (anciennement rendue par
+# apps-platform) ; les manifestes restent dans k8s/optional/fleet (extraPaths).
+resources:
+  - ../../../optional/fleet

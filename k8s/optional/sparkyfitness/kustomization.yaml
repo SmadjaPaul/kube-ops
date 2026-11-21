@@ -12,4 +12,3 @@ resources:
   - backup-r2-initial.yaml
   - external-secret.yaml
   - networkpolicy.yaml
-  - argo-application.yaml
