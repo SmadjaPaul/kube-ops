@@ -527,7 +527,10 @@ if [[ $PHASE != static ]]; then
              | "\($pn)/\(.name) \(.restartCount) restarts" ] | .[0:3] | join(",")) as $rs
         | "\($n)|\($nr)|\($rs)"' "$work/pods.json")"
       n="${sh%%|*}"; rest="${sh#*|}"; nr="${rest%%|*}"; rs="${rest#*|}"
-      if [[ $n == 0 ]]; then
+      if [[ $n == 0 && $(jq '(.wls | length) + (.cnpg | length)' "$work/scope.json") == 0 ]]; then
+        # dossier sans workload (RBAC, template, ressources seules) : rien a auto-reparer
+        rr selfheal SKIP "l'app ne declare aucun workload ni Cluster CNPG"
+      elif [[ $n == 0 ]]; then
         if kget scaledobjects.keda.sh -n "$NS" 2>/dev/null | jq -e --slurpfile sc "$work/scope.json" '[.items[] | select((.spec.minReplicaCount // 1) == 0 and (.spec.scaleTargetRef.name | IN($sc[0].wls[].name)))] | length > 0' >/dev/null 2>&1; then
           rr selfheal SKIP "scale a zero (KEDA): aucun pod a evaluer"
         else rr_fail selfheal "aucun pod de l app dans $NS"; fi
