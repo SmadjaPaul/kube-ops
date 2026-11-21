@@ -1,0 +1,6 @@
+name: personal-hindsight
+namespace: hindsight-personal
+postMerge: notify
+preview: false
+extraPaths:
+  - k8s/optional/personal-ai-2026/hindsight

@@ -27,7 +27,7 @@
 # namespace	classe (cluster-reality 2026-11-11)	racine Argo
 agentgateway	socle applicatif, PVC 1Gi reconstructible	apps-platform
 factory-platform	reconstructible	apps-platform
-gpt-researcher	reconstructible	apps-ai
+gpt-researcher	reconstructible	app-gpt-researcher
 it-tools	reconstructible, sans état	app-it-tools
 mastra-factory	reconstructible	apps-platform
 mastra-sandbox	reconstructible (sandboxes Factory)	apps-platform
@@ -35,7 +35,7 @@ media	reconstructible	apps-media
 mqtt	reconstructible	app-mqtt
 ntfy	reconstructible	app-ntfy
 open-connector	reconstructible	apps-platform
-opencode	reconstructible	apps-ai
+opencode	reconstructible	app-opencode
 pinepods	reconstructible	app-pinepods
 searxng	reconstructible, sans état	app-searxng
 stirling-pdf	reconstructible	app-stirling-pdf
