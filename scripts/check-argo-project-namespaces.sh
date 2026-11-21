@@ -34,7 +34,7 @@ errors=0
 baseline="$repo/scripts/argo-project-namespaces.baseline.tsv"
 baseline_keys="$tmp/baseline.keys"
 : >"$tmp/baseline.seen"
-if [[ -f $baseline ]]; then grep -vE '^(#|$)' "$baseline" | cut -f1,2 >"$baseline_keys"; else : >"$baseline_keys"; fi
+if [[ -f $baseline ]]; then { grep -vE '^(#|$)' "$baseline" || true; } | cut -f1,2 >"$baseline_keys"; else : >"$baseline_keys"; fi
 
 # --- AppProjects : <projet> -> destinations (une par ligne) --------------------------------
 mkdir -p "$tmp/proj"
