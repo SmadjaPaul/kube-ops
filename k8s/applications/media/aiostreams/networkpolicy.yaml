@@ -80,7 +80,6 @@ spec:
         - matchName: search-api.torbox.app
         - matchName: v3-cinemeta.strem.io
         - matchName: v3.sg.media-imdb.com
-        - matchName: remuxdb.1632022.xyz
         - matchName: comet.feels.legal
         - matchName: meteorfortheweebs.midnightignite.me
         - matchName: stremthru.13377001.xyz
@@ -88,6 +87,10 @@ spec:
         - matchName: aiometadata.streetle.dev
         - matchName: tmdb.elfhosted.com
         - matchName: 1fe84bc728af-stremio-anime-catalogs.baby-beamup.club
+        # Anime/ID/scene datasets observed failing at startup (control plane only).
+        - matchName: raw.githubusercontent.com
+        - matchName: services.sonarr.tv
+        - matchName: releases.moe
       toPorts:
         - ports:
             - port: "443"

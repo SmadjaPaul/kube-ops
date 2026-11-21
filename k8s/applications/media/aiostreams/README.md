@@ -98,14 +98,17 @@ route, or blanket external egress.
   the reviewed metadata/addon/TorBox control-plane FQDN matrix over TCP/443.
   It has no `world:443` rule and does not authorize media/CDN bytes. The
   current matrix covers `api.torbox.app`, `search-api.torbox.app`,
-  `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`, `remuxdb.1632022.xyz`,
+  `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`,
   `comet.feels.legal`, `meteorfortheweebs.midnightignite.me`,
   `stremthru.13377001.xyz`, `opensubtitles.stremio.homes` (OpenSubtitles V3+,
   the only subtitle source that restricts languages: the family allows
   fr/en/es), the selected public AIOMetadata instance at
   `aiometadata.streetle.dev`, `tmdb.elfhosted.com` (TMDB metadata) and
   `1fe84bc728af-stremio-anime-catalogs.baby-beamup.club` (Kitsu anime
-  catalogs). `stremthru.13377001.xyz` also serves the StremThru Torz preset, so
+  catalogs), and, for the anime/ID/scene datasets whose startup sync failed in
+  the logs, `raw.githubusercontent.com`, `services.sonarr.tv` and
+  `releases.moe` (with `ANIME_DB_LEVEL_OF_DETAIL=required`; RemuxDB is disabled
+  and its FQDN removed). `stremthru.13377001.xyz` also serves the StremThru Torz preset, so
   that preset needs no further FQDN. Additional
   user-selected addons/indexers/debrid services require separately reviewed
   FQDN admission.
@@ -193,10 +196,11 @@ Cilium/Hubble positive and negative flows after GitOps reconciliation.
 - Active egress allows CoreDNS, narrowly scoped Authentik issuer access and
   the reviewed control-plane hosts over HTTPS: `api.torbox.app`,
   `search-api.torbox.app`, `v3-cinemeta.strem.io`, `v3.sg.media-imdb.com`,
-  `remuxdb.1632022.xyz`, `comet.feels.legal`,
+  `comet.feels.legal`,
   `meteorfortheweebs.midnightignite.me`, `stremthru.13377001.xyz`,
   `opensubtitles.stremio.homes`, `aiometadata.streetle.dev`,
-  `tmdb.elfhosted.com` and
+  `tmdb.elfhosted.com`, `raw.githubusercontent.com`, `services.sonarr.tv`,
+  `releases.moe` and
   `1fe84bc728af-stremio-anime-catalogs.baby-beamup.club`. These are
   control-plane dependencies only;
   no CDN/media egress is granted to the Pod.

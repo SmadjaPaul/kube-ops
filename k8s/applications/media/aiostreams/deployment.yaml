@@ -80,10 +80,17 @@ spec:
               value: "false"
             - name: DISK_CACHE_DIR
               value: /tmp/aiostreams-cache
-            # Anime datasets are optional; disabling their bootstrap sync
-            # preserves the strict no-Internet egress contract.
+            # Anime id mappings: "none" made isAnime true for Kitsu ids only and
+            # failed three dataset tasks at every start. "required" loads only
+            # the mappings; their hosts are admitted in the network policy.
             - name: ANIME_DB_LEVEL_OF_DETAIL
-              value: none
+              value: required
+            # Observed: 86 addon manifest fetches timed out at the 3000 ms default.
+            - name: MANIFEST_TIMEOUT
+              value: "8000"
+            # RemuxDB lookups timed out 11 times in 5 h and are optional enrichment.
+            - name: REMUXDB_ENABLED
+              value: "false"
           ports:
             - name: http
               containerPort: 3000
