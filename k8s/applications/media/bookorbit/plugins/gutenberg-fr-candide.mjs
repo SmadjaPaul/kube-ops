@@ -10,7 +10,7 @@ const MIRROR = 'https://gutenberg.pglaf.org';
 const BOOK_ID = '59859';
 const RDF_URL = `${MIRROR}/cache/epub/${BOOK_ID}/pg${BOOK_ID}.rdf`;
 const EPUB_URL = `${MIRROR}/cache/epub/${BOOK_ID}/pg${BOOK_ID}.epub`;
-const BOOK_TITLE = 'Candide';
+const BOOK_TITLE = "Candide, ou l'optimisme";
 const AUTHOR = 'Voltaire';
 
 function normalize(value) {
@@ -64,7 +64,9 @@ export default {
 
     return [{
       guid: BOOK_ID,
-      title: 'Candide — Voltaire (French EPUB, Project Gutenberg #59859)',
+      // Keep the release title close to the request title so BookOrbit's own match
+      // scorer can recognize this curated result without lowering its safety threshold.
+      title: "Candide ou l'optimisme",
       bookTitle: BOOK_TITLE,
       author: AUTHOR,
       language: 'fr',
