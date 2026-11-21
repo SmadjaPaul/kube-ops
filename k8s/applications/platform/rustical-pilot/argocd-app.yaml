@@ -1,0 +1,6 @@
+name: rustical-pilot
+namespace: rustical-pilot
+postMerge: notify
+preview: false
+extraPaths:
+  - k8s/optional/rustical

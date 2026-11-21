@@ -1,0 +1,4 @@
+name: agent-operator-access
+namespace: agentgateway
+postMerge: revert
+preview: false

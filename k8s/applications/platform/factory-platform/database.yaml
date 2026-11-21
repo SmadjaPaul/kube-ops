@@ -23,7 +23,7 @@ metadata:
     # Never let Argo prune this Cluster: CNPG would delete its PVCs with it.
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
     # PLT-213: the fenced instance is expected to be unhealthy; do not let it
-    # drive the apps-platform health.
+    # drive the app-factory-platform health.
     argocd.argoproj.io/ignore-healthcheck: "true"
 spec:
   instances: 1

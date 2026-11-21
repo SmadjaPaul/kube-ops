@@ -1,0 +1,7 @@
+# Contrat de test (PLT-392). Les manifestes vivent dans k8s/optional/fleet (extraPaths, migration
+# PLT-394) : le controle renovate ne lit que le dossier de l'app et ne voit donc pas les images
+# mysql et valkey ; la supervision n'a jamais ete declaree (aucun ServiceMonitor/PodMonitor/Probe).
+# Constats conserves a la migration, a traiter hors de son perimetre.
+exceptions:
+  renovate: "images mysql et valkey declarees dans k8s/optional/fleet, hors du dossier de l'app (hors perimetre de la migration PLT-394)"
+  observability: "supervision jamais declaree (aucun ServiceMonitor/PodMonitor/Probe, hors perimetre de la migration PLT-394)"

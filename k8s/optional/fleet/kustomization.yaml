@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# PLT-314 package, activated by PLT-315 (LAN only) through apps-platform
-# (k8s/applications/platform/kustomization.yaml). Doppler keys named in
+# PLT-314 package, activated by PLT-315 (LAN only) through app-fleet
+# (k8s/applications/platform/fleet). Doppler keys named in
 # external-secret.yaml exist.
 # Not rendered on purpose:
 # - Authentik SAML blueprint: active since PLT-316 (k8s/infrastructure/auth/authentik/extra/blueprints/apps-fleet.yaml).

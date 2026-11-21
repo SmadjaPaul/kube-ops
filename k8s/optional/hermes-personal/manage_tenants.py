@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 REGISTRY = ROOT / "tenants.json"
 TEMPLATE = ROOT / "applicationset.template.json"
-GENERATED = ROOT / "applicationset.yaml"
+GENERATED = ROOT.parents[1] / "bootstrap" / "argocd-root" / "hermes-personal-tenants-applicationset.yaml"
 ID = re.compile(r"^t-[a-z0-9]{4,18}$")
 MAX_TENANTS = 30
 
@@ -67,7 +67,7 @@ def main():
     output = rendered(rows)
     if args.cmd == "validate":
         if not GENERATED.exists() or GENERATED.read_text() != output:
-            parser.error("applicationset.yaml is stale; regenerate via enroll")
+            parser.error("hermes-personal-tenants-applicationset.yaml is stale; regenerate via enroll")
         print("Tenant registry and generated ApplicationSet are consistent")
     else:
         GENERATED.write_text(output)

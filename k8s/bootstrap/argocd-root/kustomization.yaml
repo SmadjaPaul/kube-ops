@@ -16,3 +16,7 @@ resources:
   - personal-ai-pilot-project.yaml
   - personal-hindsight-application.yaml
   - personal-librechat-application.yaml
+  # PLT-394 : objets Argo du domaine platform (rendus jusqu'ici par l'Application apps-platform), geres par le root.
+  - hermes-tenants-project.yaml
+  - hermes-personal-tenants-applicationset.yaml
+  - personal-sparkyfitness-application.yaml

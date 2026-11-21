@@ -1,4 +1,4 @@
-# Active SandboxTemplate via apps-platform: new SandboxClaims use these settings.
+# Active SandboxTemplate via app-mastra-sandbox: new SandboxClaims use these settings.
 # WarmPool remains at zero; this change does not start an extra workload.
 apiVersion: v1
 kind: Namespace

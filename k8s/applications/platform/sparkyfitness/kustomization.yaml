@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# PLT-394 : manifestes de l'etat de SparkyFitness (Namespace wellness, base CNPG, sauvegardes R2,
+# ExternalSecrets, reseau). Ils restent dans k8s/optional/sparkyfitness (extraPaths). L'Application
+# Argo personal-sparkyfitness (chart Helm externe, source hors kube-ops, projet applications) est
+# geree par le root (k8s/bootstrap/argocd-root), pas par cette app.
+resources:
+  - ../../../optional/sparkyfitness

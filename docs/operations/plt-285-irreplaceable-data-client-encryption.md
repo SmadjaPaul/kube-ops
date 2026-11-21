@@ -79,7 +79,7 @@ classement s'applique dès le premier usage réel.
 | Application | Donnée | Objet Git | Remarque |
 | --- | --- | --- | --- |
 | Vikunja | tâches | CNPG `vikunja-postgresql`, PVC `vikunja-files` | PLT-170 : priorité retirée ; coût faible |
-| SparkyFitness | santé et sport | CNPG `wellness/sparkyfitness-db` | racine `k8s/optional/sparkyfitness` importée par `platform` |
+| SparkyFitness | santé et sport | CNPG `wellness/sparkyfitness-db` | app `sparkyfitness` (`k8s/applications/platform/sparkyfitness`, source `k8s/optional/sparkyfitness`) |
 | Invoice Ninja | factures | PVC `invoice-ninja-storage`, dump MySQL `invoice-ninja-mysql-logical-backup` | |
 | Sure | finances | CNPG `sure-postgresql`, PVC `sure-storage` | |
 | Rustical | calendriers et contacts | PVC du pilote `rustical-pilot` | pilote sur données synthétiques |
