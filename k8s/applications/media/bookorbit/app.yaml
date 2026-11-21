@@ -128,6 +128,11 @@ spec:
                 secretKeyRef:
                   name: bookorbit-runtime
                   key: BOOK_REQUEST_ENCRYPTION_KEY
+            - name: AI_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-runtime
+                  key: AI_ENCRYPTION_KEY
           ports:
             - name: http
               containerPort: 3000

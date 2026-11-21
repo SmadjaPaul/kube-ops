@@ -19,6 +19,7 @@ assert_contains 'value: /data/book-dock' "$pkg/app.yaml"
 assert_contains 'value: /data/media/books' "$pkg/app.yaml"
 assert_contains 'APP_BOOKORBIT_BOOK_REQUEST_ENCRYPTION_KEY' "$pkg/external-secret.yaml"
 assert_contains 'APP_BOOKORBIT_JWT_SECRET' "$pkg/external-secret.yaml"
+assert_contains 'APP_BOOKORBIT_AI_ENCRYPTION_KEY' "$pkg/external-secret.yaml"
 # Velero must back up only the BookOrbit data volume, not the shared 2-TiB media.
 if ! grep -Eq '^[[:space:]]*backup\.velero\.io/backup-volumes:[[:space:]]*"?data"?[[:space:]]*(#.*)?$' "$pkg/app.yaml"; then
   echo "BOOKORBIT_BACKUP_SCOPE=FAIL: backup-volumes must be exactly 'data'" >&2
