@@ -116,6 +116,20 @@ spec:
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
+  # PLT-399: une application ne crée ni accès inter-namespace ni store de
+  # secrets. ReferenceGrant vit dans infrastructure (authentik, keda), jamais
+  # dans k8s/applications. SecretStore/PushSecret : seul le ClusterSecretStore
+  # doppler-cluster (infrastructure) est utilisé. Vérifié par kustomize build
+  # --enable-helm de chaque racine de l'ApplicationSet applications : aucun de
+  # ces kinds n'est rendu. Role/RoleBinding restent admis (24 objets rendus,
+  # scopés au namespace de l'application).
+  namespaceResourceBlacklist:
+    - group: gateway.networking.k8s.io
+      kind: ReferenceGrant
+    - group: external-secrets.io
+      kind: SecretStore
+    - group: external-secrets.io
+      kind: PushSecret
   orphanedResources:
     warn: true
     # These are deterministic children of active operators. Keep the
