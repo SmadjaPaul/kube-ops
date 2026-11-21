@@ -9,6 +9,7 @@ metadata:
   name: factory-platform-pg2
   namespace: factory-platform
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false
     # PLT-369 opt-in read by scripts/backup-coverage-static.py and
     # scripts/backup-static-contract.sh: the Velero FS backup of the instance PVCs
     # (defaultVolumesToFsBackup, namespace schedule) is accepted as a crash-consistent

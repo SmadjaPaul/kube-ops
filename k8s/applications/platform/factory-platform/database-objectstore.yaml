@@ -1,6 +1,8 @@
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: factory-platform-hetzner-store
   namespace: factory-platform
 spec:
