@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Files of a merge commit -> applications touched (PLT-390 lot 3). Git only, no cluster.
-# Usage: bash scripts/post-merge-affected.sh [SHA]   (default HEAD; run from a checkout of the repository)
+# Usage: bash scripts/post-merge-affected.sh [SHA [BASE]]   (default HEAD; run from a checkout of the repository)
+#   BASE (PLT-398): previous tip of main of a push; the files of BASE..SHA are analysed, not only the tip.
+#   Without BASE, unknown or all-zero BASE: the first-parent diff of SHA alone.
 # Mapping (keep aligned with k8s/bootstrap/argocd-root/applications-applicationset.yaml: one Argo
 # Application `apps-<domain>` per generator directory):
 #   k8s/applications/<domain>/<app>/**   app=<app>, argo=apps-<domain>, namespace from the kustomization
@@ -11,7 +13,7 @@
 #         AFFECTED_CLASS=apps-only|mixed|none.
 set -euo pipefail
 
-sha=${1:-HEAD}
+sha=${1:-HEAD}; base=${2:-}
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 git rev-parse --verify "$sha^{commit}" >/dev/null 2>&1 || { echo "ERROR: unknown commit $sha" >&2; exit 2; }
@@ -38,7 +40,8 @@ while IFS= read -r f; do
   [[ -z ${seen[$app]:-} ]] || continue
   seen[$app]=1
   apps+=("$app|$argo|$dir|$dom")
-done < <(git show --first-parent --name-only --format= "$sha")
+done < <(if [[ -n $base ]] && git rev-parse --verify "$base^{commit}" >/dev/null 2>&1; then git diff --name-only "$base" "$sha"
+         else git show --first-parent --name-only --format= "$sha"; fi)
 
 ns_of() { # kustomization `namespace:` (top level) of DIR, else of its domain dir, else APP
   local dir=$1 dom=$2 app=$3 v="" k

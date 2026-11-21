@@ -262,6 +262,12 @@ rt_setup; jq '.data.result[0].value[1] = "0"' "$FAKE_DIR/up.json" | sponge_to "$
 expect "cible up==0" observability FAIL 1
 rt_setup; jq '.items[0].status.conditions[0].status = "False"' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"; run_rt good; expect "pod non Ready" selfheal FAIL 1
 grep -q '^DEPLOY_HEALTH=FAIL$' "$tmp/out" || fail "pod non Ready: DEPLOY_HEALTH=FAIL absent"
+# PLT-398 : pod Evicted/Failed ou en cours de suppression (ancienne revision) ne comptent pas dans DEPLOY_HEALTH
+rt_setup; jq --arg a "$A" '.items += [{metadata:{name:($a+"-abc-old"),labels:{app:$a},ownerReferences:[{kind:"ReplicaSet",name:($a+"-abc")}]},status:{phase:"Failed",reason:"Evicted",conditions:[{type:"Ready",status:"False"}],containerStatuses:[{name:$a,restartCount:0}]}}]' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"
+run_rt good; expect "pod Evicted ignore" selfheal PASS 0
+grep -q '^DEPLOY_HEALTH=PASS$' "$tmp/out" || fail "pod Evicted: DEPLOY_HEALTH doit rester PASS ($(grep '^CHECK selfheal' "$tmp/out"))"
+rt_setup; jq --arg a "$A" '.items += [{metadata:{name:($a+"-abc-term"),deletionTimestamp:"2026-01-01T00:00:00Z",labels:{app:$a},ownerReferences:[{kind:"ReplicaSet",name:($a+"-abc")}]},status:{phase:"Running",conditions:[{type:"Ready",status:"False"}],containerStatuses:[{name:$a,restartCount:0}]}}]' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"
+run_rt good; expect "pod Terminating ignore" selfheal PASS 0
 rt_setup unrestricted; run_rt good; expect "PSA non restricted" network FAIL 1
 rt_setup; rm "$FAKE_DIR/ns.json"; run_rt good; expect "namespace absent" selfheal FAIL 1
 grep -q '^DEPLOY_HEALTH=UNKNOWN$' "$tmp/out" || fail "aucun pod: DEPLOY_HEALTH doit etre UNKNOWN (pas de revert)"

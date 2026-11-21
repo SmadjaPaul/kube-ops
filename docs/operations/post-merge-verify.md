@@ -24,11 +24,19 @@ Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the pro
 | `DEPLOY_HEALTH=FAIL`, newer commit touches the same app | ESCALATE, no revert |
 | `DEPLOY_HEALTH=FAIL`, a revert of this commit already exists | ESCALATE (one revert, then escalation) |
 | `FAIL` on a commit that is itself a revert | ESCALATE (never a revert of a revert) |
-| `DEPLOY_HEALTH=FAIL`, otherwise | REVERT, plus `verify-migration` when the app has a PVC or a CNPG Cluster |
+| `DEPLOY_HEALTH=FAIL`, an affected app has a PVC or a CNPG Cluster | ESCALATE `stateful_app_no_auto_revert` (`verify-migration`): the revert does not undo a migration, Paul decides (PLT-398) |
+| `DEPLOY_HEALTH=FAIL`, otherwise | REVERT |
 
-`DEPLOY_HEALTH=PASS|FAIL|UNKNOWN` is printed by `app-test` (runtime) from the `selfheal` check: `FAIL` only for pods not Ready or recent restarts (after exceptions and ratchet); `UNKNOWN` for no pod, scale to zero, BLOCKED. The runtime ratchet freezes only static debt, so the other checks cannot gate a revert. With several apps, one `FAIL` is enough.
+`DEPLOY_HEALTH=PASS|FAIL|UNKNOWN` is printed by `app-test` (runtime) from the `selfheal` check: `FAIL` only for pods not Ready or recent restarts (pods `Failed`/Evicted and pods being deleted are ignored) (after exceptions and ratchet); `UNKNOWN` for no pod, scale to zero, BLOCKED. The runtime ratchet freezes only static debt, so the other checks cannot gate a revert. With several apps, one `FAIL` is enough.
 
 The revert restores manifests only. It does not restore data or undo a migration: the PR body and the ntfy message say so.
+
+## Reliability rules (PLT-398)
+
+- `verify-revision.sh` runs `git fetch origin` when the Application revision or the commit is missing from the clone (main moves on during the wait). All waits share one global deadline (`--timeout`, passed as `--deadline`); one wait per Argo Application, shared by the apps of a domain.
+- The loop guards read through a read-only `GITHUB_TOKEN` (`pull-requests: read`). A failing `gh` is `GUARD_UNKNOWN` and fails safe (treated as already reverted / a revert: ESCALATE). The revert commit itself carries the trailer `Post-merge-revert-of: <sha>`.
+- Files of every commit of the push (`github.event.before..sha`) count, not only the tip (`post-merge-affected.sh SHA BASE`).
+- Job `alert`: ntfy `urgent` when `verify`, `revert` or `announce` failed or was cancelled.
 
 ## Identities and RBAC
 
@@ -62,4 +70,4 @@ Nothing else: no Doppler token, no kubeconfig, no ntfy URL in GitHub. The reposi
 
 ## Evidence
 
-Contract tests: `tests/harness/verify-revision-test.sh`, `post-merge-decision-test.sh`, `post-merge-verify-test.sh`, `tests/agent-guard/kubectl-ro-in-cluster-test.sh`. `just post-merge-verify --dry-run SHA` shows the decision and the revert plan without creating a PR or sending ntfy.
+Contract tests: `tests/harness/verify-revision-test.sh`, `post-merge-decision-test.sh`, `post-merge-verify-test.sh`, `post-merge-revert-test.sh`, `tests/agent-guard/kubectl-ro-in-cluster-test.sh`. `just post-merge-verify --dry-run SHA` shows the decision and the revert plan without creating a PR or sending ntfy.

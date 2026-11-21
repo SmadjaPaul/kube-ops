@@ -405,9 +405,9 @@ if [[ $PHASE != static ]]; then
                             or any($wl[]; . as $l | ([($t.labelSelector // empty)] + ($t.orLabelSelectors // [])) | any(selmatch($l))))
                    | select((($t.includedNamespaces // []) | length) == 0 or (($t.includedNamespaces // []) | any(. == "*" or . == ($d | map(select(islong)) | .[0].metadata.namespace // $ns))))
                    | .metadata.name ]}' "$DOCS" >"$work/scope.json"
-    # pods de l'app : proprietaire = workload de l'app (ou Cluster CNPG de l'app) et selector satisfait
+    # pods de l'app (ni Succeeded, ni Failed/Evicted, ni en suppression: PLT-398) : proprietaire = workload de l'app (ou Cluster CNPG de l'app) et selector satisfait
     scope_pods() { # scope_pods FILE -> {"items":[pods de l app non Succeeded]}
-      jq --slurpfile sc "$work/scope.json" '{items: [ .items[] | select(.status.phase != "Succeeded") | . as $p
+      jq --slurpfile sc "$work/scope.json" '{items: [ .items[] | select(.status.phase != "Succeeded" and .status.phase != "Failed" and (.metadata.deletionTimestamp | not)) | . as $p
         | select( any($sc[0].wls[]; . as $w
                       | ($p.metadata.ownerReferences // [] | any(.name == $w.name or (.name | startswith($w.name + "-"))))
                       and ($w.sel | to_entries | all($p.metadata.labels[.key] == .value)))
