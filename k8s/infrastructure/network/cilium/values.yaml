@@ -51,6 +51,14 @@ operator:
 
 rollOutCiliumPods: true
 
+# PLT-293: the agent logs "Timed out waiting for datapath updates of FQDN IP
+# information" (186 in 3 h on 2026-11-20/21, default 100ms). The DNS answer
+# reached the pod before the resolved IP was in the toFQDNs policy map, so the
+# first connection from the ARC runner to api.migadu.com hung (TLS handshake
+# timeout, POST without response). Give the datapath more time to catch up.
+dnsProxy:
+  proxyResponseMaxDelay: 1s
+
 prometheus:
   enabled: true
   serviceMonitor:
