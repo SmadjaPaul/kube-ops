@@ -90,7 +90,6 @@ spec:
         # Anime/ID/scene datasets observed failing at startup (control plane only).
         - matchName: raw.githubusercontent.com
         - matchName: services.sonarr.tv
-        - matchName: releases.moe
       toPorts:
         - ports:
             - port: "443"

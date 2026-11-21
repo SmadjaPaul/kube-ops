@@ -32,7 +32,7 @@ check '.spec.egress[3].toEndpoints[0].matchLabels."app.kubernetes.io/component"'
 check '.spec.egress[3].toPorts[0].ports[0].port' "$specific" 9000
 # Strict native-video control-plane FQDN admission. Order and exact set
 # intentionally contractual: no media CDN, wildcard FQDN or blanket world egress.
-check '.spec.egress[4].toFQDNs | length' "$specific" 14
+check '.spec.egress[4].toFQDNs | length' "$specific" 13
 check '.spec.egress[4].toFQDNs[0].matchName' "$specific" api.torbox.app
 check '.spec.egress[4].toFQDNs[1].matchName' "$specific" search-api.torbox.app
 check '.spec.egress[4].toFQDNs[2].matchName' "$specific" v3-cinemeta.strem.io
@@ -46,7 +46,6 @@ check '.spec.egress[4].toFQDNs[9].matchName' "$specific" tmdb.elfhosted.com
 check '.spec.egress[4].toFQDNs[10].matchName' "$specific" 1fe84bc728af-stremio-anime-catalogs.baby-beamup.club
 check '.spec.egress[4].toFQDNs[11].matchName' "$specific" raw.githubusercontent.com
 check '.spec.egress[4].toFQDNs[12].matchName' "$specific" services.sonarr.tv
-check '.spec.egress[4].toFQDNs[13].matchName' "$specific" releases.moe
 check '.spec.egress[4].toPorts[0].ports | length' "$specific" 1
 check '.spec.egress[4].toPorts[0].ports[0].port' "$specific" 443
 check '.spec.egress[4].toPorts[0].ports[0].protocol' "$specific" TCP
