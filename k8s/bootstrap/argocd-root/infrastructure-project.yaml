@@ -26,8 +26,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: argocd
       server: https://kubernetes.default.svc
-    - namespace: argo-rollouts
-      server: https://kubernetes.default.svc
     - namespace: auth
       server: https://kubernetes.default.svc
     - namespace: cert-manager
@@ -52,8 +50,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: falco
       server: https://kubernetes.default.svc
-    - namespace: gatekeeper-system
-      server: https://kubernetes.default.svc
     - namespace: gateway
       server: https://kubernetes.default.svc
     - namespace: gpt-researcher
@@ -72,8 +68,6 @@ spec:
       server: https://kubernetes.default.svc
     # PLT-393: namespace declared by k8s/infrastructure/security/namespaces.yaml.
     - namespace: kubearmor
-      server: https://kubernetes.default.svc
-    - namespace: kubechecks
       server: https://kubernetes.default.svc
     - namespace: kyverno
       server: https://kubernetes.default.svc

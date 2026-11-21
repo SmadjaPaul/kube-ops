@@ -115,7 +115,6 @@ roots=(
   k8s/infrastructure/network
   k8s/infrastructure/storage
   k8s/infrastructure/monitoring
-  k8s/infrastructure/deployment
   k8s/infrastructure/database
   k8s/infrastructure/auth
   k8s/infrastructure/security
