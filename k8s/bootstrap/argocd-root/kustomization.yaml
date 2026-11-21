@@ -12,3 +12,7 @@ resources:
   - previews-project.yaml
   - previews-applicationset.yaml
   - previews-guardrails-applicationset.yaml
+  # PLT-394 : objets Argo du pilote IA (anciennement rendus par apps-ai), geres par le root.
+  - personal-ai-pilot-project.yaml
+  - personal-hindsight-application.yaml
+  - personal-librechat-application.yaml

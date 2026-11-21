@@ -1,13 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-resources:
-- ../../optional/personal-ai-2026/hindsight
+# PLT-394 : une Application Argo par app (un descripteur par dossier) ; cette kustomization n'est
+# plus suivie par Argo, elle reste l'agregat du domaine (controle d'equivalence de rendu,
+# scripts/check-argo-app-descriptors.sh). L'Application personal-hindsight, l'Application
+# personal-librechat et l'AppProject personal-ai-pilot sont geres par le root
+# (k8s/bootstrap/argocd-root), hors de ce rendu.
+#
 # PLT-94 lot 5 (MANDAT 21, D-2026-11-16-07) : le cluster de restauration
 # hindsight-db-restore (namespace hindsight-restore-20261110) consommait
 # Hetzner et restait en erreur. Perte de restauration acceptee (Paul, 16/11) :
-# retrait du render -> Argo (apps-ai) prune le namespace et son contenu.
-- ../../optional/personal-ai-2026/librechat
+# retrait du render.
+resources:
+- personal-hindsight
+- personal-librechat
 - karakeep
 - opencode
 - gpt-researcher

@@ -1,0 +1,4 @@
+name: opencode
+namespace: opencode
+postMerge: notify
+preview: false
