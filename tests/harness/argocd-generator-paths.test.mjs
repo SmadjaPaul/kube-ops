@@ -70,7 +70,7 @@ test('OKE infrastructure: ESO precedes netbird-router and the project admits the
   assert.ok(eso >= 0 && nb > eso, 'external-secrets must be listed before netbird-router');
 
   const project = readFileSync(join(ROOT, root, 'infrastructure-project.yaml'), 'utf8');
-  for (const kind of ['CustomResourceDefinition', 'ValidatingWebhookConfiguration', 'ClusterRole', 'ClusterRoleBinding']) {
+  for (const kind of ['CustomResourceDefinition', 'ValidatingWebhookConfiguration', 'ClusterRole', 'ClusterRoleBinding', 'ClusterSecretStore']) {
     assert.match(project, new RegExp(`kind: ${kind}\\b`), `infrastructure project must whitelist ${kind}`);
   }
   const apps = readFileSync(join(ROOT, root, 'apps-project.yaml'), 'utf8');
