@@ -9,7 +9,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-100"
 spec:
-  project: default
+  project: bootstrap
   source:
     repoURL: https://github.com/SmadjaPaul/kube-ops.git
     targetRevision: main
@@ -22,7 +22,6 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
       - ServerSideApply=true
       - ApplyOutOfSyncOnly=true
       - PruneLast=true
