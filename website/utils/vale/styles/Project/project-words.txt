@@ -90,7 +90,6 @@ Kibana
 KCL
 Keep-alive
 Kube
-Kubechecks
 Kubernetes-specific
 L2
 LTS

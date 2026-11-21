@@ -20,7 +20,7 @@ Tunnel) are down.
 `HTTPRoute.spec.hostnames` for routes with a `parentRef` to
 `gateway/internal` in the `gateway` namespace. Only the `internal` gateway is
 considered (`--gateway-name=internal`), so routes that only have `external`
-as a parent (`kubechecks`) are excluded.
+as a parent are excluded.
 
 The desired IP target is the `Gateway/internal` `LoadBalancer` address. The
 records will not resolve correctly until Cilium `l2announcements.enabled=true`
@@ -37,8 +37,7 @@ for management applications such as Invoice Ninja at
 | Currently observed attached routes | 30 (out of 32) |
 | ---------------------------------- | -------------- |
 
-The route without an `internal` parentRef (`kubechecks`) intentionally
-produces no LAN record.
+A route without an `internal` parentRef intentionally produces no LAN record.
 
 The TXT registry ownership records are created under the
 `externaldns-internal-` prefix so that future public ExternalDNS instances do
