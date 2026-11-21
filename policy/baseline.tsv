@@ -193,7 +193,6 @@ platform-baseline-require-resources	trivy-system/Deployment/trivy-operator
 platform-baseline-require-resources	velero/DaemonSet/node-agent
 platform-baseline-require-resources	velero/Deployment/velero
 platform-baseline-require-resources	velero/Job/velero-upgrade-crds
-repo-contract-cnp-per-namespace	agent-observers
 repo-contract-cnp-per-namespace	agent-sandbox-system
 repo-contract-cnp-per-namespace	cert-manager
 repo-contract-cnp-per-namespace	cloudflared
@@ -208,7 +207,6 @@ repo-contract-cnp-per-namespace	sure
 repo-contract-cnp-per-namespace	trivy-system
 repo-contract-cnp-per-namespace	velero
 repo-contract-cnp-per-namespace	vertical-pod-autoscaler
-repo-contract-no-networkpolicy	agent-observers/NetworkPolicy/argocd-mcp
 repo-contract-no-networkpolicy	agent-observers/NetworkPolicy/grafana-mcp-ingress
 repo-contract-no-networkpolicy	argocd/NetworkPolicy/argocd-application-controller
 repo-contract-no-networkpolicy	argocd/NetworkPolicy/argocd-dex-server
