@@ -1,6 +1,8 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: hindsight-db-weekly
   namespace: hindsight-personal
 spec:
