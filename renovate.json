@@ -85,6 +85,16 @@
       "prPriority": -10
     },
     {
+      "description": "PLT-399 pin container images in Kubernetes manifests by digest (deterministic revert)",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchFileNames": [
+        "k8s/**"
+      ],
+      "pinDigests": true
+    },
+    {
       "groupName": "Media containers",
       "matchDatasources": [
         "docker"
