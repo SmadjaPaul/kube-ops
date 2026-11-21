@@ -24,6 +24,8 @@ repo="$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd)"
 root_dir="$repo/k8s/bootstrap/argocd-root"
 [[ -d $root_dir ]] || { echo "ERROR: $root_dir not found" >&2; exit 2; }
 
+# shellcheck source=lib/argo-project-dest.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/argo-project-dest.sh"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 errors=0
@@ -46,18 +48,10 @@ while IFS= read -r f; do
   done < <(yq eval-all --no-doc 'select(.kind == "AppProject") | .metadata.name' "$f")
 done < <(grep -rlE '^kind: AppProject' "$repo/k8s" --include='*.yaml' 2>/dev/null | grep -v "^$repo/k8s/clusters/" | sort)
 
-# 0 si le namespace $2 est autorise par le projet $1
+# 0 si le namespace $2 est autorise par le projet $1 (semantique : scripts/lib/argo-project-dest.sh)
 allowed() {
-  local project="$1" ns="$2" pat
-  [[ $project == default ]] && return 0
-  [[ -f $tmp/proj/$project ]] || return 1
-  while IFS= read -r pat; do
-    # shellcheck disable=SC2053
-    [[ -z $pat && -z $ns ]] && return 0
-    # shellcheck disable=SC2053
-    [[ -n $pat && $ns == $pat ]] && return 0
-  done <"$tmp/proj/$project"
-  return 1
+  [[ $1 == default ]] && return 0
+  argo_ns_allowed "$tmp/proj/$1" "$2"
 }
 
 # Verifie une liste "namespace<TAB>origine" ($1) pour le projet $2

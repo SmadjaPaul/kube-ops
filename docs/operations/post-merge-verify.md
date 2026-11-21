@@ -2,6 +2,8 @@
 
 Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the production to be reconciled at that commit, run `just app-test APP NAMESPACE --phase runtime --cluster homelab`, and, when the deployment itself is broken, open a `git revert` PR in auto-merge and notify through ntfy. Rules of revert come from PLT-141.
 
+Cible PLT-394 : une Application par app (`app-<name>`) declaree par `argocd-app.yaml`, voir [argo-app-descriptor.md](argo-app-descriptor.md). La chaine ci-dessous decrit l'etat actuel (une Application par domaine).
+
 ## Chain
 
 1. `scripts/post-merge-affected.sh SHA`: files of the commit to apps. `k8s/applications/<domain>/<app>/**` gives app `<app>`, Argo Application `apps-<domain>` (one Application per domain directory), namespace from the kustomization. Documentation is ignored. Everything else (domain-level files, `platform`, infrastructure, optional, policy, scripts, tests, workflows) is OTHER.
