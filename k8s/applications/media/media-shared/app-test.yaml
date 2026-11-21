@@ -1,0 +1,9 @@
+# Contrat de test (PLT-392). media-shared ne porte que le Namespace media, le PVC partagé
+# media-share et le Job ponctuel media-layout-v1 (création d'arborescence, déjà terminé).
+# Le template d'un Job est immuable : changer son image ou ses limites ferait échouer la
+# synchro sur le Job existant. Constats hérités de apps-media, conservés à la migration PLT-394 ;
+# à traiter par un Job media-layout-v2 si l'arborescence doit évoluer.
+exceptions:
+  renovate: "Job ponctuel media-layout-v1 (busybox:1.36.1 sans digest) terminé ; template de Job immuable, correction dans un futur media-layout-v2"
+  selfheal: "Job ponctuel media-layout-v1 sans limite CPU (requests 5m, limite mémoire 64Mi) ; template de Job immuable, correction dans un futur media-layout-v2"
+  observability: "aucune charge de travail continue (Namespace, PVC et Job ponctuel) : rien à superviser"
