@@ -1,0 +1,4 @@
+name: aiostreams
+namespace: media
+postMerge: notify
+preview: false

@@ -57,7 +57,7 @@ global egress deny across all other rules.
 
 ## Runtime acceptance after merge
 
-1. Argo `apps-media` observed/synced/healthy on the **exact merge SHA**.
+1. Argo `app-polyfin` observed/synced/healthy on the **exact merge SHA**.
    Policy `Valid=True`, Cilium endpoint selector only Polyfin.
 2. Without credentials or signed URLs in output, test the previously
    failing Brave track. Compare fresh Nebula hostname and observed IP

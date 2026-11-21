@@ -278,7 +278,7 @@ pilot.
 4. Confirm `kustomize build k8s/applications/media/polyfin` and repository
    `just check`. Add `- polyfin` to the parent Kustomization in a separate
    reviewed activation PR. No manual kubectl apply or imperative resources.
-5. Verify Argo `apps-media` Synced/Healthy, `/healthz`, `/readyz`,
+5. Verify Argo `app-polyfin` Synced/Healthy, `/healthz`, `/readyz`,
    Endpoints and internal TLS. Set the upstream **Known proxies** option
    using actual Gateway identity, and public address only when validated.
 6. Load `/admin/`. Polyfin prints a **one-time setup code** in its own logs;

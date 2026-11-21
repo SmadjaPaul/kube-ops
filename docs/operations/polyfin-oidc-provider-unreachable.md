@@ -83,7 +83,7 @@ to the actual Gateway backend **endpoint and port**, not just to the VIP
 or `toEntities: [ingress]`. This is a strong root-cause hypothesis,
 but not a claim of confirmed runtime fix.
 
-The active `k8s/applications/media/kustomization.yaml` now appends exactly
+The active `k8s/applications/media/polyfin/kustomization.yaml` now appends exactly
 one egress rule to `CiliumNetworkPolicy/polyfin-pilot`:
 `toEndpoints: auth namespace + app.kubernetes.io/name=authentik`,
 `toPorts: TCP/9000`. The existing Authentik ingress CNP already

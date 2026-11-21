@@ -1,0 +1,4 @@
+name: polyfin
+namespace: media
+postMerge: notify
+preview: false

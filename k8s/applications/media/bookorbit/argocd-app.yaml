@@ -1,0 +1,4 @@
+name: bookorbit
+namespace: media
+postMerge: notify
+preview: false

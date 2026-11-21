@@ -14,7 +14,6 @@ spec:
         repoURL: https://github.com/SmadjaPaul/kube-ops.git
         revision: main
         directories:
-          - path: k8s/applications/media
           - path: k8s/applications/ai
           - path: k8s/applications/platform
   # Retrait sans cascade : la suppression d'une Application générée par cet ApplicationSet
