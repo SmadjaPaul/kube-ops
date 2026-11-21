@@ -5,7 +5,7 @@ Authority: [AGENTS.md](../../AGENTS.md). Keep upstream Kubernetes/Helm/Kustomize
 ## Start with evidence
 
 1. Run `just inventory`: Git-only Argo ApplicationSet roots and local Kustomize imports, **not** pod/runtime status. Inactive directories must never count toward node CPU requests.
-2. Read `k8s/bootstrap/argocd-root/{applications,infrastructure}-applicationset.yaml`; Argo creates independent Applications per listed directory. The top-level `k8s/applications/kustomization.yaml` is not this list.
+2. An app is declared by `k8s/applications/<domain>/<app>/argocd-app.yaml`: ApplicationSet `apps` creates Application `app-<name>` from it (contract: `docs/operations/argo-app-descriptor.md`). Never edit an ApplicationSet to add an app. Infrastructure roots stay listed in `k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml`; the `media` domain is still one Application `apps-media`.
 3. Follow the golden path `.agents/skills/deploy-a-service/SKILL.md` (decision tree Q0-Q7), then copy the smallest *active* reference:
    - Stateless LAN service: `k8s/applications/tools/it-tools` (omit its KEDA-specific pieces unless justified).
    - Regular user app with OIDC and a PVC: `k8s/applications/catalog/mealie`.
@@ -22,10 +22,10 @@ Authority: [AGENTS.md](../../AGENTS.md). Keep upstream Kubernetes/Helm/Kustomize
 
 ## Tests and delivery
 
-1. Edit the *actual* parent root and render it: `kustomize build --enable-helm <root>`. Run `just check` and `just inventory`; verify the service is included in `activeKustomizationDirs`.
+1. Add the app: `k8s/applications/<domain>/<app>/` with `argocd-app.yaml` + `kustomization.yaml`, `- <app>` in `k8s/applications/<domain>/kustomization.yaml`, the folder in `AFFECTED_APPLICATION_ROOTS` (`scripts/affected-tests.conf`); exact steps in `.agents/skills/deploy-a-service/SKILL.md` (section Files). Run `bash scripts/check-argo-app-descriptors.sh`, `kustomize build --enable-helm k8s/applications/<domain>/<app>`, `just check` and `just inventory`; verify the app is in `appDescriptorRoots` and `activeKustomizationDirs`.
 2. PR: identify the Argo Application owner, namespace, resources/limits, DNS/TLS exposure, ingress/egress, state/backup, rollout/rollback and agent test-result evidence.
 3. Independent review and CI before merge. After merge prove **separately** STATIC, RECONCILED (Argo), RUNTIME (Pods/Services/routes) and USER if applicable. Follow `.agents/skills/cluster-investigation/` and `just status-app <app>`.
-4. Retirement: remove imports before deleting old manifests, classify retained state separately, check Argo prune ownership and existing PVC/PV and backup inventory. Never infer permission to erase data.
+4. Retirement: delete the app folder, its line in the domain `kustomization.yaml` and in `scripts/affected-tests.conf`. Removing `argocd-app.yaml` never deletes the live resources (`preserveResourcesOnDeletion`); `scripts/argo-orphan-inventory.sh` (read-only) lists what stays. Before that, remove imports before deleting old manifests, classify retained state separately, check Argo prune ownership and existing PVC/PV and backup inventory. Never infer permission to erase data.
 
 ## Existing exception (2026-10-21)
 

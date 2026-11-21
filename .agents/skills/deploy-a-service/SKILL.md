@@ -9,6 +9,23 @@ Authority: `AGENTS.md`, `k8s/CLAUDE.md`, decisions in `homelab-infra/docs/decisi
 
 **Who may do this.** Paul's AI merges after a green CI. A relative's AI (friend or family member) opens a PR and **never merges**. Authentik accounts and groups and Cloudflare Access remain Paul's; propose them in the PR, do not create them. Internal secrets need no manual gesture: they are generated in the cluster (Q4, Q6); Doppler values exist only for the external and root classes (T6 to T9) and are Paul's.
 
+## Files — create the app (no ApplicationSet edit)
+One Argo Application per app (`app-<name>`, PLT-394). Argo finds it from its descriptor; never edit `k8s/bootstrap/argocd-root/*-applicationset.yaml`. Contract: `docs/operations/argo-app-descriptor.md`.
+1. `mkdir k8s/applications/<domain>/<app>`. Domains: `ai automation business catalog games tools web platform` (`media` is still one Application per domain: ask in the PR before adding there).
+2. `k8s/applications/<domain>/<app>/argocd-app.yaml` (never listed in a kustomization):
+   ```yaml
+   name: <app>            # = folder name, DNS-1123
+   namespace: <ns>        # must be rendered by the app (namespace.yaml)
+   postMerge: revert      # `notify` for stateful apps
+   preview: true          # false if no preview env
+   ```
+   Optional: `project` (default `apps`), `extraPaths: [k8s/...]` for sources outside the folder.
+3. In the same folder: `kustomization.yaml` (`resources:` list), `namespace.yaml`, `deployment.yaml`, `service.yaml`, `http-route.yaml`, plus Q3-Q6 files. Copy `k8s/applications/tools/it-tools`.
+4. Append `- <app>` to `k8s/applications/<domain>/kustomization.yaml` (the domain render must equal the union of its apps; the check fails otherwise).
+5. Append `k8s/applications/<domain>/<app>` to `AFFECTED_APPLICATION_ROOTS` in `scripts/affected-tests.conf`.
+6. Only if agents need `kubectl-rw` in the namespace: propose it in `k8s/infrastructure/security/agent-operator/scope.tsv` (Paul approves).
+7. Run: `bash scripts/check-argo-app-descriptors.sh`, `kustomize build --enable-helm k8s/applications/<domain>/<app>`, `just app-test <app> <ns> --phase static`, `just check`. Then Q7 (PR, preview, merge). After merge: Application `app-<app>` appears alone; check `just status-app <app>`.
+
 ## Q0 — Does it already exist?
 Run `just inventory` and search the name. Found: extend or fix it, stop here. Retired or dormant manifest: ask in the PR, never revive silently.
 
