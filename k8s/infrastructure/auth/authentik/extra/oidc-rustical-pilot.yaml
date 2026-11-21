@@ -2,12 +2,13 @@
 # generated inside the cluster (T3, disposable). Authentik reads it through `envFrom`
 # (values.yaml, optional: true) for the blueprint `apps-rustical.yaml` (`!Env`, unchanged);
 # the app copy `rustical-oidc` (namespace rustical-pilot) is read through the store k8s-auth.
-# Rotate: rename both ExternalSecrets `oidc-rustical-pilot` -> `oidc-rustical-pilot-r2` (keep
-# target.name), docs/operations/secrets-generated-runbook.md. Never add a key to this source (F1).
+# Rotation D2 done by renaming the source and its generator to `oidc-rustical-pilot--r2` (double
+# dash, keeps target.name `oidc-rustical-pilot`), docs/operations/secrets-generated-runbook.md.
+# Next rotation: `--r3`. Never add a key to this source (F1).
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: Password
 metadata:
-  name: oidc-rustical-pilot
+  name: oidc-rustical-pilot--r2
   namespace: auth
 spec:
   length: 48
@@ -18,7 +19,7 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: oidc-rustical-pilot
+  name: oidc-rustical-pilot--r2
   namespace: auth
   annotations:
     kube-ops.io/secret-class: T3
@@ -36,4 +37,4 @@ spec:
         generatorRef:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: Password
-          name: oidc-rustical-pilot
+          name: oidc-rustical-pilot--r2
