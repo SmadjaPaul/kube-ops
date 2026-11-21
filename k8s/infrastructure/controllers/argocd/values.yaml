@@ -20,6 +20,21 @@ configs:
         hs.message = "Namespace is terminating"
       end
       return hs
+    # PLT-396: Argo CD 3.x no longer assesses child Application health by
+    # default; without it an App of Apps stays Healthy while a child is broken
+    # and sync waves are decorative. Same Lua as oracle-a1.
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {status = "Progressing", message = "Waiting for the child Application to be Synced and Healthy"}
+      if obj.status ~= nil and obj.status.health ~= nil and obj.status.sync ~= nil then
+        if obj.status.health.status == "Healthy" and obj.status.sync.status == "Synced" then
+          hs.status = "Healthy"
+          hs.message = obj.status.health.message or ""
+        elseif obj.status.health.status == "Degraded" then
+          hs.status = "Degraded"
+          hs.message = obj.status.health.message or ""
+        end
+      end
+      return hs
     resource.customizations.health.argoproj.io_AppProject: |
       hs = {status = "Healthy", message = "Declarative Argo policy resource"}
       if obj.metadata ~= nil and obj.metadata.deletionTimestamp ~= nil then
@@ -216,4 +231,65 @@ applicationSet:
       memory: 256Mi
 
 notifications:
-  enabled: false
+  enabled: true
+  # PLT-396: the ntfy publish URL (secret topic) is never in Git. The
+  # ExternalSecret argocd-notifications-secret (externalsecret-notifications.yaml)
+  # provides key ntfy-url from the existing Doppler key ALERTMANAGER_NTFY_URL.
+  secret:
+    create: false
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+  context:
+    argocdUrl: https://argocd.smadja.dev
+  notifiers:
+    service.webhook.ntfy: |
+      url: $ntfy-url
+      headers:
+        - name: Content-Type
+          value: text/plain
+        - name: Title
+          value: Argo CD
+        - name: Priority
+          value: high
+        - name: Tags
+          value: warning
+  templates:
+    template.app-sync-failed: |
+      webhook:
+        ntfy:
+          method: POST
+          body: |
+            Sync en echec : {{.app.metadata.name}} (projet {{.app.spec.project}})
+            Phase : {{.app.status.operationState.phase}}
+            {{.app.status.operationState.message}}
+            {{.context.argocdUrl}}/applications/{{.app.metadata.name}}
+    template.app-health-degraded: |
+      webhook:
+        ntfy:
+          method: POST
+          body: |
+            Application Degraded : {{.app.metadata.name}} (projet {{.app.spec.project}})
+            Sync : {{.app.status.sync.status}}
+            {{.context.argocdUrl}}/applications/{{.app.metadata.name}}
+  triggers:
+    # The previews project (per-PR environments) is excluded: it is noisy by
+    # design. oncePer keeps one message per revision.
+    trigger.on-sync-failed: |
+      - when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed'] and app.spec.project != 'previews'
+        oncePer: app.status.operationState.syncResult.revision
+        send: [app-sync-failed]
+    trigger.on-health-degraded: |
+      - when: app.status.health.status == 'Degraded' and app.spec.project != 'previews'
+        oncePer: app.status.sync.revision
+        send: [app-health-degraded]
+  subscriptions:
+    - recipients:
+        - webhook:ntfy
+      triggers:
+        - on-sync-failed
+        - on-health-degraded

@@ -65,11 +65,11 @@ spec:
           prune: true
           selfHeal: true
         retry:
-          limit: 1
+          limit: 5
           backoff:
             duration: 10s
             factor: 2
-            maxDuration: 3m
+            maxDuration: 5m
         syncOptions:
           - CreateNamespace=true
           - ApplyOutOfSyncOnly=true
