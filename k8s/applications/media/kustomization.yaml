@@ -5,7 +5,6 @@ resources:
 # Owner-approved retirement: Arr, Seerr, Jellyfin and Decypharr are absent.
 # Preserve shared media-share, Polyfin and AIOStreams for BookOrbit and video.
 - namespace.yaml
-- project.yaml
 - media-share-pvc.yaml
 - media-layout-job.yaml
 - bookorbit

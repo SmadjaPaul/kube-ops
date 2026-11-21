@@ -229,9 +229,9 @@ checks and review. ESO, Argo, OIDC, MongoDB restart/reconciliation, A/B
 isolation and restore are post-merge runtime/user gates.
 The active AI root admits the Hindsight-owned `personal-ai-pilot` AppProject
 from `k8s/optional/personal-ai-2026/hindsight/project.yaml`; PR #1181 extends
-that single project and imports the LibreChat subtree together. It must not
-introduce the dormant duplicate
-AppProject from `k8s/optional/personal-ai-2026/project.yaml`.
+that single project and imports the LibreChat subtree together. The former
+dormant duplicate AppProject `k8s/optional/personal-ai-2026/project.yaml` was
+removed (PLT-397); do not recreate it.
 
 The active Velero schedules now include a daily `librechat` namespace schedule
 at `05:50 UTC`, with filesystem volume backup enabled and a 14-day retention.
