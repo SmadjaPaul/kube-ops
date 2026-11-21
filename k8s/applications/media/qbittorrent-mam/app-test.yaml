@@ -1,0 +1,4 @@
+# qBittorrent does not expose Prometheus metrics in the pinned image. The internal WebUI
+# is covered by Kubernetes probes; torrent state will be checked during runtime qualification.
+exceptions:
+  observability: "image qBittorrent sans endpoint de métriques scrapeable ; probes TCP WebUI sur 8080 et qualification runtime des états torrent"
