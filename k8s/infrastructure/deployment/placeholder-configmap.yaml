@@ -1,0 +1,10 @@
+# PLT-397: keeps infra-deployment non-empty while Argo prunes kubechecks (see kustomization.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-deployment-placeholder
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+data:
+  purpose: "PLT-397 placeholder: lets Argo prune the removed kubechecks resources"
