@@ -9,7 +9,6 @@
 #   k8s/applications/<domain>/<app>/**   app=<app>, namespace from the kustomization, and
 #       argo=app-<app>      if k8s/applications/<domain>/<app>/argocd-app.yaml exists (migrated app)
 #       argo=apps-<domain>  otherwise
-#   k8s/applications/business/invoice-ninja/**   app=invoice-ninja, argo=apps-invoice-ninja (or app-invoice-ninja once migrated)
 # Everything else (domain-level files, platform domain, infrastructure, optional, policy, scripts, tests,
 # workflows, justfile...) counts as OTHER, except documentation which is ignored.
 # Output: AFFECTED_APP name=.. namespace=.. argo=.. stateful=yes|no (per app), AFFECTED_OTHER count=N sample=..,
@@ -20,7 +19,7 @@ sha=${1:-HEAD}; base=${2:-}
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 git rev-parse --verify "$sha^{commit}" >/dev/null 2>&1 || { echo "ERROR: unknown commit $sha" >&2; exit 2; }
-domains=(media tools ai web automation games catalog)   # `platform` is infrastructure-grade: OTHER
+domains=(media tools ai web automation games business catalog)   # `platform` is infrastructure-grade: OTHER
 
 declare -A seen=()
 apps=(); other=0; sample=""
@@ -30,9 +29,7 @@ while IFS= read -r f; do
     docs/*|website/*|images/*|*.md|CHANGELOG*|LICENSE) continue ;;
   esac
   dom=""; app=""; argo=""; dir=""
-  if [[ $f == k8s/applications/business/invoice-ninja/* ]]; then
-    dom=business; app=invoice-ninja; argo=apps-invoice-ninja; dir=k8s/applications/business/invoice-ninja
-  elif [[ $f =~ ^k8s/applications/([a-z0-9-]+)/([a-z0-9][-a-z0-9]*)/ ]]; then
+  if [[ $f =~ ^k8s/applications/([a-z0-9-]+)/([a-z0-9][-a-z0-9]*)/ ]]; then
     d=${BASH_REMATCH[1]}
     for x in "${domains[@]}"; do [[ $x == "$d" ]] && dom=$d; done
     if [[ -n $dom ]]; then app=${BASH_REMATCH[2]}; argo=apps-$dom; dir=k8s/applications/$dom/$app; fi
