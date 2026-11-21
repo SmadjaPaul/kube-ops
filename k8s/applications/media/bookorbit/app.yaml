@@ -173,6 +173,9 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /appdata
+            - name: gutenberg-plugin
+              mountPath: /appdata/plugins/indexers/gutenberg-fr-candide
+              readOnly: true
             - name: media
               mountPath: /data
             - name: tmp
@@ -181,6 +184,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: bookorbit-data
+        - name: gutenberg-plugin
+          configMap:
+            name: bookorbit-plugin-gutenberg-fr-candide
         - name: media
           persistentVolumeClaim:
             claimName: media-share
