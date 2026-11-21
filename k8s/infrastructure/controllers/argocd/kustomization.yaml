@@ -9,6 +9,7 @@ resources:
   - role.yaml
   - externalsecret.yaml
   - externalsecret-notifications.yaml
+  - argocd-redis-network-policy.yaml
 
 helmCharts:
 - name: argo-cd
