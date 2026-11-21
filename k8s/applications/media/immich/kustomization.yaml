@@ -10,3 +10,15 @@ resources:
 - restic-backup
 generatorOptions:
   disableNameSuffixHash: true
+
+# PLT-394 (protection avant eclatement du domaine media) : ces objets quitteront le suivi de
+# l'Application apps-media, qui subsiste pour Polyfin. Sans Prune=false vivant, son prochain sync
+# les elaguerait avant que app-immich ne les reprenne. Annotation transitoire, retiree par le
+# commit d'eclatement une fois l'app propre en charge. Les objets deja annotes ne changent pas.
+patches:
+  - target:
+      annotationSelector: "!argocd.argoproj.io/sync-options"
+    patch: |-
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1sync-options
+        value: Prune=false
