@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/part-of: apps
     app.kubernetes.io/managed-by: argocd
   annotations:
+    # Le projet existe avant que les ApplicationSets generent leurs Applications.
+    argocd.argoproj.io/sync-wave: "-1"
     argocd.argoproj.io/sync-options: Prune=false
 spec:
   description: Applications utilisateur d'OKE, une Application par app (descripteur argocd-app.oracle-a1.yaml)
