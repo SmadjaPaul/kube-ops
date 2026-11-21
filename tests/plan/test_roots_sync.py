@@ -49,6 +49,8 @@ class RootsSync(unittest.TestCase):
         self.assertIn("k8s/applications/media", argo_paths())
         self.assertIn("k8s/infrastructure/controllers", argo_paths())
         self.assertIn("k8s/clusters/oracle-a1/guardrails", argo_paths())
+        self.assertIn("k8s/clusters/oracle-a1/external-secrets", argo_paths())
+        self.assertIn("k8s/clusters/oracle-a1/netbird-router", argo_paths())
 
 
 if __name__ == "__main__":

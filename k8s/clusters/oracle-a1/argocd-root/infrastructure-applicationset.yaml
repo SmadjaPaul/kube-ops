@@ -23,6 +23,12 @@ spec:
           # Lecture seule des agents (SA argocd/agent-operator, RBAC view sans Secret) :
           # requis par scripts/agent-operator-oke-token.sh --provision.
           - path: k8s/clusters/oracle-a1/agent-operator
+          # External Secrets + ClusterSecretStore doppler-cluster seul (PLT-406). Le Secret
+          # doppler-access-token n'est pas en Git : geste unique de Paul (README).
+          - path: k8s/clusters/oracle-a1/external-secrets
+          # Pair NetBird `oke-oracle-a1-router` (groupe OKE Routers) : chemin admin vers l'API privee.
+          # Apres external-secrets (secret NB_SETUP_KEY via doppler-cluster ; l'Application retente).
+          - path: k8s/clusters/oracle-a1/netbird-router
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:

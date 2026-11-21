@@ -1,10 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# PLT-256: NetBird routing peer for the admin path to the OKE API. Out of the
-# Argo root until the setup key exists (see README of this cluster).
-# Deployed in the `cloudflared` namespace (already admitted by the AppProject,
-# so no operator re-bootstrap of bootstrap/project.yaml is needed).
-namespace: cloudflared
+# PLT-256 / PLT-406: NetBird routing peer for the admin and agent path to the private OKE API.
+# Reconcilie par l'ApplicationSet `infrastructure` d'OKE. Depend d'External Secrets (CRD
+# ExternalSecret, ClusterSecretStore doppler-cluster, jeton doppler-access-token pose par Paul) :
+# tant que ESO n'est pas pret, l'Application retente (retry 5 fois, jusqu'a 5 min d'intervalle).
+# Namespace dedie `netbird` (PSA privileged, namespace.yaml), exclu du projet `apps`.
+namespace: netbird
 resources:
+  - namespace.yaml
   - external-secret.yaml
   - deployment.yaml
