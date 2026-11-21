@@ -56,9 +56,19 @@ spec:
           - git:
               repoURL: https://github.com/SmadjaPaul/kube-ops.git
               revision: '{{ .head_sha }}'
-              directories:
+              # PLT-394: the descriptor of the app (argocd-app.yaml, read at the PR head)
+              # replaces the former `directories` discovery. .path.path / .path.basename
+              # are the app directory, exactly as before.
+              files:
                 - path: >-
-                    k8s/applications/*/{{- $a := "" -}}{{- range .labels -}}{{- if hasPrefix "preview:" . -}}{{- $a = trimPrefix "preview:" . -}}{{- end -}}{{- end -}}{{- if regexMatch "^[a-z0-9][a-z0-9-]{0,37}$" $a -}}{{ $a }}{{- else -}}__none__{{- end -}}
+                    k8s/applications/*/{{- $a := "" -}}{{- range .labels -}}{{- if hasPrefix "preview:" . -}}{{- $a = trimPrefix "preview:" . -}}{{- end -}}{{- end -}}{{- if regexMatch "^[a-z0-9][a-z0-9-]{0,37}$" $a -}}{{ $a }}{{- else -}}__none__{{- end -}}/argocd-app.yaml
+      # Opt-in (PLT-394): only an app whose descriptor says `preview: true` (flattened to
+      # "true" by the post-selector) gets a preview; field absent or false = no Application.
+      # Selector on the matrix itself: params are merged and the PR generator wins on any
+      # key clash (a descriptor cannot override number, head_sha or labels).
+      selector:
+        matchLabels:
+          preview: 'true'
   template:
     metadata:
       name: 'preview-pr{{ .number }}-{{ .path.basename }}'

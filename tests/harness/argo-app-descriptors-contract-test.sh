@@ -58,6 +58,19 @@ fresh; descriptor; sed -i.bak 's/^postMerge: revert/postMerge: maybe/' "$tmp/w/k
 expect_fail "postMerge must be" "postMerge value"
 fresh; descriptor; sed -i.bak 's/^preview: true/preview: "yes"/' "$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml"
 expect_fail "preview must be true or false" "preview type"
+# preview: true : l'app ne doit rendre que des kinds admis par l'AppProject previews
+fresh; descriptor
+cat >"$tmp/w/k8s/applications/tools/it-tools/np.yaml" <<'YAML'
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: extra
+  namespace: it-tools
+spec:
+  endpointSelector: {}
+YAML
+printf -- '- np.yaml\n' >>"$tmp/w/k8s/applications/tools/it-tools/kustomization.yaml"
+expect_fail "which AppProject previews does not admit" "preview true with a kind the previews project refuses"
 fresh; descriptor; sed -i.bak 's/^namespace: it-tools/namespace: elsewhere/' "$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml"
 expect_fail "is not among the namespaces rendered" "namespace absent from render"
 fresh; descriptor; echo 'project: nope' >>"$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml"

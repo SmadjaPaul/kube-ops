@@ -11,6 +11,9 @@
 #      et l'union des rendus `kustomize build --enable-helm` des apps == rendu du domaine, objets
 #      compares par (kind, namespace, name) et contenu normalise (cles triees) ;
 #   d. aucune app n'est generee a la fois par `apps` et par l'ApplicationSet `applications` ;
+#      `preview: true` (opt-in aux previews PLT-394/395) : l'app ne rend que des kinds admis par la liste
+#      blanche de l'AppProject `previews` (hors Namespace, ScaledObject, InterceptorRoute, retires par
+#      l'ApplicationSet previews) ;
 #   e. le projet `apps` refuse (`!ns`) chaque namespace d'infrastructure du projet infrastructure
 #      qui n'est pas un namespace d'application.
 #
@@ -181,6 +184,22 @@ while IFS= read -r f; do
         done <"$tmp/app.ns"
       fi
       objects <"$tmp/app.rendered" >"$tmp/app.objects.$app"
+      if [[ "$(yq eval '.preview // false' "$f")" == true ]]; then
+        if [[ ! -f $tmp/preview.whitelist ]]; then
+          for pf in "$root_dir"/*.yaml; do
+            yq eval --no-doc 'select(.kind == "AppProject" and .metadata.name == "previews") | .spec.namespaceResourceWhitelist[] | .group + "/" + .kind' "$pf"
+          done >"$tmp/preview.whitelist"
+        fi
+        if [[ ! -s $tmp/preview.whitelist ]]; then
+          fail "$d: preview is true but AppProject previews has no namespaceResourceWhitelist in k8s/bootstrap/argocd-root"
+        else
+          while IFS= read -r gk; do
+            [[ -n $gk ]] || continue
+            case "$gk" in */Namespace | keda.sh/ScaledObject | http.keda.sh/InterceptorRoute) continue ;; esac
+            grep -qxF "$gk" "$tmp/preview.whitelist" || fail "$d: preview is true but $rel renders $gk, which AppProject previews does not admit (set preview: false or remove the object)"
+          done < <(yq eval --no-doc 'select(.kind != null and .kind != "List") | ((.apiVersion | select(contains("/")) | sub("/.*", "")) // "") + "/" + .kind' "$tmp/app.rendered" | LC_ALL=C sort -u)
+        fi
+      fi
     else
       fail "$d: kustomize build failed for $rel: $(head -3 "$tmp/render.err" | tr '\n' ' ')"
     fi

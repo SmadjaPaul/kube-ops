@@ -4,8 +4,8 @@ Un namespace jetable `pr-<n>-<app>` par PR, sur le cluster de prod, déployé de
 
 ## Utiliser
 
-1. La PR ajoute ou modifie `k8s/applications/<catégorie>/<app>/`.
-2. Poser deux labels sur la PR : `preview` et `preview:<app>` (`<app>` = nom du dossier, `^[a-z0-9][a-z0-9-]{0,37}$`). Une app par PR.
+1. La PR ajoute ou modifie `k8s/applications/<catégorie>/<app>/`. L'app doit avoir un descripteur `argocd-app.yaml` avec `preview: true` (opt-in, voir `docs/operations/argo-app-descriptor.md`) ; sans lui, les labels ne génèrent rien. Aujourd'hui : `it-tools` seulement ; une app d'un domaine non migré (`media`) n'a pas de descripteur donc pas de preview.
+2. Poser deux labels sur la PR : `preview` et `preview:<app>` (`<app>` = nom du dossier, `^[a-z0-9][a-z0-9-]{0,37}$`) ; les ApplicationSets découvrent l'app par son descripteur (matrix PR × git files, `selector` `preview: "true"`). Une app par PR.
 3. L'ApplicationSet `previews` (poll de 120 s) crée l'Application `preview-pr<n>-<app>` (projet `previews`) et l'ApplicationSet `previews-guardrails` l'Application `preview-guardrails-pr<n>-<app>` (projet `previews-guardrails`, source `main`).
 4. `just app-test <app> pr-<n>-<app> --phase runtime` (lot 1).
 5. Fermer la PR ou retirer le label : l'Application est supprimée avec ses ressources (finalizer). Le CronJob `preview-sweeper` supprime ensuite les namespaces orphelins de plus de 24 h.
@@ -26,7 +26,7 @@ Garde-fous (PLT-395, défense en profondeur) :
 - Politique Kyverno `preview-namespace-guard` : `Deny`, `failurePolicy: Fail`, limitée par `namespaceSelector` aux namespaces `smadja.dev/preview=true` (label posé par l'ApplicationSet, une PR ne peut pas le changer). Une panne de Kyverno bloque les admissions des previews seulement, jamais le reste du cluster.
 - ClusterSecretStores `doppler-cluster`, `k8s-auth`, `k8s-databases` : `spec.conditions` excluant les namespaces `smadja.dev/preview=true` (même si Kyverno est indisponible, ESO ne sert aucun secret de prod à une preview).
 - `Gateway/external` : `allowedRoutes.namespaces.from: Selector`, namespaces `smadja.dev/preview` `NotIn` `true`. Une route de preview ne peut s'y attacher ni par le patch ni par un manifeste de la PR. `Gateway/internal` reste ouverte (parent imposé par le patch).
-- Test statique : `tests/harness/preview-isolation-contract-test.sh` (dans `just check`) ; Kyverno : `tests/policies/namespace-guard` (cas `fail` : ExternalSecret avec store, Database, SecretStore, LoadBalancer).
+- Tests statiques : `tests/harness/preview-isolation-contract-test.sh` et `tests/harness/previews-appset-descriptors-test.sh` (découverte par descripteur ; dans `just check`) ; Kyverno : `tests/policies/namespace-guard` (cas `fail` : ExternalSecret avec store, Database, SecretStore, LoadBalancer).
 
 ## Limites connues
 
