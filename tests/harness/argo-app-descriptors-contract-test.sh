@@ -194,4 +194,78 @@ expect_fail "is no longer rendered by the domain" "partial domain: non-migrated 
 partial; echo '- it-tools' >>"$tmp/w/k8s/applications/tools/kustomization.yaml"
 expect_fail "double tracking" "partial domain: migrated app still rendered by the domain"
 
+# --- PLT-407 : pas de donnees durables sur OKE, sauf `disposableData` justifie
+d="$tmp/w/k8s/applications/tools/it-tools"
+add_res() { # <fichier> : ajoute un manifeste a la kustomization de it-tools (lue du stdin)
+  cat >"$d/$1"; printf -- '- %s\n' "$1" >>"$d/kustomization.yaml"
+}
+pvc() { add_res pvc.yaml <<'YAML'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+  namespace: it-tools
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: oci-bv
+  resources:
+    requests:
+      storage: 1Gi
+YAML
+}
+fresh; oke_descriptor; pvc
+expect_fail "renders durable data on oracle-a1 (PersistentVolumeClaim/data)" "OKE app with a PVC"
+fresh; oke_descriptor; pvc; echo 'disposableData: "cache SQLite recreable au demarrage, aucune donnee utilisateur"' >>"$oke_file"
+run || { cat "$tmp/out" >&2; fail "OKE app with a PVC and a justified disposableData must pass"; }
+fresh; oke_descriptor; pvc; echo 'disposableData: ""' >>"$oke_file"
+expect_fail "disposableData must be a non-empty string" "OKE disposableData empty"
+fresh; oke_descriptor; pvc; echo 'disposableData: true' >>"$oke_file"
+expect_fail "disposableData must be a non-empty string" "OKE disposableData not a string"
+fresh; oke_descriptor; echo 'disposableData: "sans objet durable"' >>"$oke_file"
+expect_fail "disposableData is declared but" "OKE stale exception without durable object"
+fresh; oke_descriptor; add_res sts.yaml <<'YAML'
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: it-tools
+spec:
+  serviceName: db
+  selector: {matchLabels: {a: b}}
+  template: {metadata: {labels: {a: b}}, spec: {containers: [{name: c, image: x}]}}
+  volumeClaimTemplates:
+  - metadata: {name: data}
+    spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: 1Gi}}}
+YAML
+expect_fail "StatefulSet/db" "OKE StatefulSet with volumeClaimTemplates"
+fresh; oke_descriptor; add_res pg.yaml <<'YAML'
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg
+  namespace: it-tools
+spec:
+  instances: 1
+  storage: {size: 1Gi}
+YAML
+expect_fail "Cluster/pg" "OKE CNPG Cluster"
+# un StatefulSet sans volumeClaimTemplates n'est pas une donnee durable
+fresh; oke_descriptor; add_res sts.yaml <<'YAML'
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stateless
+  namespace: it-tools
+spec:
+  serviceName: s
+  selector: {matchLabels: {a: b}}
+  template: {metadata: {labels: {a: b}}, spec: {containers: [{name: c, image: x}]}}
+YAML
+run || { cat "$tmp/out" >&2; fail "StatefulSet without volumeClaimTemplates must pass on OKE"; }
+# homelab inchange : le champ n'existe pas la-bas et un PVC y est normal
+fresh; descriptor; pvc
+run || { cat "$tmp/out" >&2; fail "homelab app with a PVC must still pass"; }
+fresh; descriptor; echo 'disposableData: "x"' >>"$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml"
+expect_fail "unknown field 'disposableData'" "disposableData is OKE-only"
+
 echo "OK: argocd-app.yaml descriptor contract"
