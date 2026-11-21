@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Controle des descripteurs `argocd-app.yaml` (PLT-394, ApplicationSet `apps`).
-# Contrat : docs/operations/argo-app-descriptor.md.
+# Controle des descripteurs `argocd-app.yaml` (homelab) et `argocd-app.oracle-a1.yaml` (OKE)
+# (PLT-394, PLT-405, ApplicationSet `apps` de chaque cluster). Contrat : docs/operations/argo-app-descriptor.md.
 #
-#   a. schema de chaque k8s/applications/<domaine>/<app>/argocd-app.yaml : champs connus et types,
-#      `name` DNS-1123 unique et egal au dossier, `project` defini dans k8s/bootstrap/argocd-root,
+#   a. schema de chaque k8s/applications/<domaine>/<app>/argocd-app[.<cluster>].yaml : champs connus et types,
+#      `name` DNS-1123 unique et egal au dossier, `project` defini dans la racine Argo du cluster
+#      (homelab : k8s/bootstrap/argocd-root ; oracle-a1 : k8s/clusters/oracle-a1/argocd-root),
 #      `namespace` present dans le rendu de l'app, tous les namespaces rendus admis par le projet ;
 #      descripteur jamais liste dans une kustomization ni hors k8s/applications/*/* ;
+#      descripteur OKE : `cluster: oracle-a1` obligatoire, `postMerge: notify`, pas de `preview` ;
+#      une app n'a qu'un cluster : jamais les deux fichiers dans le meme dossier ;
 #   b. chaque `extraPaths` existe (chemin depuis la racine du depot, sans `..` ni joker) ;
 #   c. un domaine migre est COMPLET (chaque sous-dossier avec kustomization.yaml a son descripteur)
 #      et l'union des rendus `kustomize build --enable-helm` des apps == rendu du domaine, objets
@@ -15,7 +18,10 @@
 #      blanche de l'AppProject `previews` (hors Namespace, ScaledObject, InterceptorRoute, retires par
 #      l'ApplicationSet previews) ;
 #   e. le projet `apps` refuse (`!ns`) chaque namespace d'infrastructure du projet infrastructure
-#      qui n'est pas un namespace d'application.
+#      qui n'est pas un namespace d'application ; sur OKE, il refuse au moins argocd et kube-*.
+#   Les controles c et d s'appliquent aux domaines et au generateur `applications` du homelab ; un
+#   descripteur OKE compte comme app migree d'un domaine mais ne peut pas rester dans un domaine
+#   encore genere par `applications` (le homelab le deploierait aussi).
 #
 # Usage : bash scripts/check-argo-app-descriptors.sh [racine-du-depot]   (defaut : depot courant)
 # Lecture seule : aucun secret, aucun acces cluster.
@@ -39,6 +45,9 @@ fail() { echo "FAIL: $*" >&2; errors=$((errors + 1)); }
 
 dns1123='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
 allowed_keys='name namespace project postMerge preview extraPaths'
+oke_cluster='oracle-a1'
+oke_root_dir="$repo/k8s/clusters/$oke_cluster/argocd-root"
+oke_allowed_keys="$allowed_keys cluster"
 
 render() { # <dir relatif> -> YAML rendu sur stdout
   local rel="$1"
@@ -67,13 +76,18 @@ namespaces() {
 }
 
 # --- AppProjects du root : <projet> -> destinations ---------------------------------------------
-mkdir -p "$tmp/proj"
-for f in "$root_dir"/*.yaml; do
-  while IFS= read -r name; do
-    [[ -n $name ]] || continue
-    yq eval --no-doc "select(.kind == \"AppProject\" and .metadata.name == \"$name\") | .spec.destinations[] | .namespace // \"\"" "$f" >"$tmp/proj/$name"
-  done < <(yq eval --no-doc 'select(.kind == "AppProject") | .metadata.name' "$f")
-done
+load_projects() { # <dossier racine Argo> <dossier de sortie>
+  mkdir -p "$2"
+  local f name
+  for f in "$1"/*.yaml; do
+    while IFS= read -r name; do
+      [[ -n $name ]] || continue
+      yq eval --no-doc "select(.kind == \"AppProject\" and .metadata.name == \"$name\") | .spec.destinations[] | .namespace // \"\"" "$f" >"$2/$name"
+    done < <(yq eval --no-doc 'select(.kind == "AppProject") | .metadata.name' "$f")
+  done
+}
+load_projects "$root_dir" "$tmp/proj"
+[[ -d $oke_root_dir ]] && load_projects "$oke_root_dir" "$tmp/proj-$oke_cluster"
 
 # --- e. le projet `apps` refuse les namespaces d'infrastructure ---------------------------------
 apps_appset="$root_dir/apps-applicationset.yaml"
@@ -99,37 +113,74 @@ if [[ -f $apps_appset || -f $tmp/proj/apps ]]; then
   fi
 fi
 
+# --- e. (OKE) le projet `apps` d'OKE refuse les namespaces systeme et argocd -------------------
+if [[ -d $oke_root_dir ]]; then
+  if [[ ! -f $tmp/proj-$oke_cluster/apps ]]; then
+    fail "AppProject apps is not defined in k8s/clusters/$oke_cluster/argocd-root"
+  else
+    grep -qxF '*' "$tmp/proj-$oke_cluster/apps" || fail "AppProject apps ($oke_cluster) must allow namespace '*' (negations apply on top of it)"
+    for ns in argocd kube-system kube-public kube-node-lease; do
+      argo_ns_allowed "$tmp/proj-$oke_cluster/apps" "$ns" && fail "AppProject apps ($oke_cluster) must deny namespace '$ns'"
+    done
+  fi
+fi
+
 # --- descripteurs -------------------------------------------------------------------------------
+# lignes "<cluster><TAB><chemin>" : homelab = argocd-app.yaml, oracle-a1 = argocd-app.oracle-a1.yaml
 : >"$tmp/descriptors"
 while IFS= read -r f; do
-  [[ -n $f ]] && printf '%s\n' "$f" >>"$tmp/descriptors"
+  [[ -n $f ]] && printf 'homelab\t%s\n' "$f" >>"$tmp/descriptors"
 done < <(find "$apps_dir" -mindepth 3 -maxdepth 3 -name argocd-app.yaml 2>/dev/null | LC_ALL=C sort)
+while IFS= read -r f; do
+  [[ -n $f ]] && printf '%s\t%s\n' "$oke_cluster" "$f" >>"$tmp/descriptors"
+done < <(find "$apps_dir" -mindepth 3 -maxdepth 3 -name "argocd-app.$oke_cluster.yaml" 2>/dev/null | LC_ALL=C sort)
+cut -f2 "$tmp/descriptors" >"$tmp/descriptor-paths"
 
 # hors k8s/applications/<domaine>/<app>/ : jamais lu par le generateur, donc piege silencieux
 while IFS= read -r f; do
   rel="${f#"$repo"/}"
-  grep -qxF "$f" "$tmp/descriptors" || fail "$rel: argocd-app.yaml must be exactly k8s/applications/<domaine>/<app>/argocd-app.yaml"
-done < <(find "$repo/k8s" -name argocd-app.yaml 2>/dev/null | LC_ALL=C sort)
+  grep -qxF "$f" "$tmp/descriptor-paths" || fail "$rel: descriptor must be exactly k8s/applications/<domaine>/<app>/argocd-app.yaml (homelab) or argocd-app.$oke_cluster.yaml (OKE)"
+done < <(find "$repo/k8s" \( -name argocd-app.yaml -o -name 'argocd-app.*.yaml' \) 2>/dev/null | LC_ALL=C sort)
+# un seul cluster par app : les deux fichiers dans un meme dossier sont refuses
+while IFS= read -r f; do
+  [[ -f $(dirname "$f")/argocd-app.yaml ]] && fail "${f#"$repo"/}: the app also has argocd-app.yaml: an app runs on one cluster at a time (remove one of the two descriptors)"
+done < <(grep "^$oke_cluster	" "$tmp/descriptors" | cut -f2)
 # jamais dans une kustomization (ce n'est pas un manifeste Kubernetes)
 while IFS= read -r k; do
-  fail "${k#"$repo"/}: argocd-app.yaml must not be listed in a kustomization"
-done < <(grep -rlE 'argocd-app\.yaml' "$repo/k8s" --include='kustomization.yaml' --include='kustomization.yml' 2>/dev/null || true)
+  fail "${k#"$repo"/}: argocd-app descriptor must not be listed in a kustomization"
+done < <(grep -rlE 'argocd-app\.([a-z0-9-]+\.)?yaml' "$repo/k8s" --include='kustomization.yaml' --include='kustomization.yml' 2>/dev/null || true)
 
 : >"$tmp/names"
 : >"$tmp/domains"
-while IFS= read -r f; do
+while IFS=$'\t' read -r cluster f; do
   [[ -n $f ]] || continue
   dir="$(dirname "$f")"; rel="${dir#"$repo"/}"; app="$(basename "$dir")"; domain="$(basename "$(dirname "$dir")")"
   echo "$domain" >>"$tmp/domains"
-  d="$rel/argocd-app.yaml"
+  d="$rel/$(basename "$f")"
+  if [[ $cluster == homelab ]]; then
+    proj_dir="$tmp/proj"; keys="$allowed_keys"; proot="k8s/bootstrap/argocd-root"
+  else
+    proj_dir="$tmp/proj-$cluster"; keys="$oke_allowed_keys"; proot="k8s/clusters/$cluster/argocd-root"
+  fi
 
   if ! yq eval '.' "$f" >/dev/null 2>&1; then fail "$d: invalid YAML"; continue; fi
   [[ "$(yq eval 'tag' "$f")" == '!!map' ]] || { fail "$d: must be a YAML mapping"; continue; }
 
   # a. champs connus
   while IFS= read -r key; do
-    grep -qwF -- "$key" <<<"$allowed_keys" || fail "$d: unknown field '$key' (allowed: $allowed_keys)"
+    grep -qwF -- "$key" <<<"$keys" || fail "$d: unknown field '$key' (allowed: $keys)"
   done < <(yq eval 'keys | .[]' "$f")
+
+  # a. OKE : cluster obligatoire (= suffixe du fichier), notify seulement, pas de preview (homelab)
+  if [[ $cluster != homelab ]]; then
+    [[ "$(yq eval '.cluster // ""' "$f")" == "$cluster" ]] || fail "$d: cluster must be '$cluster' (the suffix of the descriptor file name)"
+    if [[ "$(yq eval 'has("postMerge")' "$f")" == true && "$(yq eval '.postMerge' "$f")" != notify ]]; then
+      fail "$d: postMerge must be 'notify' on $cluster (no automatic post-merge revert there yet)"
+    fi
+    if [[ "$(yq eval '.preview // false' "$f")" == true ]]; then
+      fail "$d: preview is homelab-only: remove it from the $cluster descriptor"
+    fi
+  fi
 
   name="$(yq eval '.name // ""' "$f")"
   [[ "$(yq eval '.name | tag' "$f")" == '!!str' ]] || fail "$d: name must be a string"
@@ -146,7 +197,7 @@ while IFS= read -r f; do
   if [[ "$(yq eval 'has("project")' "$f")" == true ]]; then
     [[ "$(yq eval '.project | tag' "$f")" == '!!str' ]] || fail "$d: project must be a string"
   fi
-  if [[ ! -f $tmp/proj/$project || $project == default ]]; then fail "$d: project '$project' is not an AppProject of k8s/bootstrap/argocd-root (or is 'default')"; fi
+  if [[ ! -f $proj_dir/$project || $project == default ]]; then fail "$d: project '$project' is not an AppProject of $proot (or is 'default')"; fi
 
   if [[ "$(yq eval 'has("postMerge")' "$f")" == true ]]; then
     pm="$(yq eval '.postMerge' "$f")"
@@ -177,10 +228,10 @@ while IFS= read -r f; do
     if render "$rel" >"$tmp/app.rendered" 2>"$tmp/render.err"; then
       namespaces <"$tmp/app.rendered" >"$tmp/app.ns"
       grep -qxF "$ns" "$tmp/app.ns" || fail "$d: namespace '$ns' is not among the namespaces rendered by $rel ($(paste -sd, "$tmp/app.ns"))"
-      if [[ -f $tmp/proj/$project ]]; then
+      if [[ -f $proj_dir/$project ]]; then
         while IFS= read -r rns; do
           [[ -n $rns ]] || continue
-          argo_ns_allowed "$tmp/proj/$project" "$rns" || fail "$d: rendered namespace '$rns' is not a destination of AppProject '$project'"
+          argo_ns_allowed "$proj_dir/$project" "$rns" || fail "$d: rendered namespace '$rns' is not a destination of AppProject '$project'"
         done <"$tmp/app.ns"
       fi
       objects <"$tmp/app.rendered" >"$tmp/app.objects.$app"
@@ -221,13 +272,17 @@ while IFS= read -r domain; do
   # d. plus generee par `applications`
   while IFS= read -r g; do
     [[ -n $g ]] || continue
-    while IFS= read -r f; do
-      dir="${f%/argocd-app.yaml}"; rel="${dir#"$repo"/}"
+    while IFS=$'\t' read -r cl f; do
+      dir="$(dirname "$f")"; rel="${dir#"$repo"/}"
       [[ $rel == "$drel"/* ]] || continue
       if [[ $rel == "$g" || $rel == "$g"/* ]]; then
-        fail "$rel is generated by both ApplicationSet apps and ApplicationSet applications (generator path '$g'): remove '$g' from applications-applicationset.yaml in the same PR"
+        if [[ $cl == homelab ]]; then
+          fail "$rel is generated by both ApplicationSet apps and ApplicationSet applications (generator path '$g'): remove '$g' from applications-applicationset.yaml in the same PR"
+        else
+          fail "$rel has an $cl descriptor but the homelab ApplicationSet applications still generates it (generator path '$g'): the homelab would deploy it too; migrate the domain to descriptors first"
+        fi
       elif [[ $g == "$rel"/* ]]; then
-        fail "$rel is generated by apps while ApplicationSet applications still generates '$g' (descendant)"
+        fail "$rel is generated by apps ($cl) while ApplicationSet applications still generates '$g' (descendant)"
       fi
     done <"$tmp/descriptors"
   done <"$gen_paths"
@@ -237,7 +292,7 @@ while IFS= read -r domain; do
   # c. complet : chaque sous-dossier avec kustomization.yaml a son descripteur
   for sub in "$apps_dir/$domain"/*/; do
     [[ -f ${sub}kustomization.yaml ]] || continue
-    [[ -f ${sub}argocd-app.yaml ]] || fail "$drel is partially migrated: ${sub#"$repo"/} has no argocd-app.yaml (a domain migrates whole, otherwise the domain Application prunes the apps it no longer generates)"
+    [[ -f ${sub}argocd-app.yaml || -f ${sub}argocd-app.$oke_cluster.yaml ]] || fail "$drel is partially migrated: ${sub#"$repo"/} has no argocd-app.yaml (a domain migrates whole, otherwise the domain Application prunes the apps it no longer generates)"
   done
 
   # c. equivalence de rendu : domaine == union des apps
@@ -248,7 +303,7 @@ while IFS= read -r domain; do
   objects <"$tmp/domain.rendered" >"$tmp/domain.objects"
   : >"$tmp/union.objects"
   : >"$tmp/union.keys"
-  for f in "$apps_dir/$domain"/*/argocd-app.yaml; do
+  for f in "$apps_dir/$domain"/*/argocd-app.yaml "$apps_dir/$domain"/*/"argocd-app.$oke_cluster.yaml"; do
     [[ -f $f ]] || continue
     app="$(basename "$(dirname "$f")")"
     [[ -f $tmp/app.objects.$app ]] || continue
@@ -279,4 +334,5 @@ if ((errors > 0)); then
   exit 1
 fi
 n="$(grep -c . "$tmp/descriptors" || true)"
-echo "OK: argocd-app.yaml contract ($n descriptor(s); AppProject apps denies infrastructure namespaces)"
+n_oke="$(grep -c "^$oke_cluster	" "$tmp/descriptors" || true)"
+echo "OK: argocd-app.yaml contract ($n descriptor(s), $n_oke on $oke_cluster; AppProject apps denies infrastructure namespaces)"

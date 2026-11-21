@@ -13,6 +13,8 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 fresh() { # depot de travail minimal : racine Argo + domaine tools
   rm -rf "$tmp/w" && mkdir -p "$tmp/w/k8s/applications" "$tmp/w/k8s/bootstrap"
   cp -R "$repo_root/k8s/bootstrap/argocd-root" "$tmp/w/k8s/bootstrap/argocd-root"
+  mkdir -p "$tmp/w/k8s/clusters/oracle-a1"
+  cp -R "$repo_root/k8s/clusters/oracle-a1/argocd-root" "$tmp/w/k8s/clusters/oracle-a1/argocd-root"
   cp -R "$repo_root/k8s/applications/tools" "$tmp/w/k8s/applications/tools"
   # le domaine tools migre : il quitte l'ApplicationSet applications (regle d)
   yq eval -i 'del(.spec.generators[].git.directories[] | select(.path == "k8s/applications/tools"))' \
@@ -34,6 +36,17 @@ expect_fail() { # <motif> <message>
   if run; then cat "$tmp/out" >&2; fail "$2: must be rejected"; fi
   grep -qF -- "$1" "$tmp/out" || { cat "$tmp/out" >&2; fail "$2: expected message '$1'"; }
 }
+
+oke_descriptor() { # descripteur OKE de it-tools ; remplace le descripteur homelab
+  rm -f "$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml"
+  cat >"$tmp/w/k8s/applications/tools/it-tools/argocd-app.oracle-a1.yaml" <<'YAML'
+name: it-tools
+namespace: it-tools
+cluster: oracle-a1
+postMerge: notify
+YAML
+}
+oke_file="$tmp/w/k8s/applications/tools/it-tools/argocd-app.oracle-a1.yaml"
 
 # 0. depot reel : aucun descripteur, le controle passe
 bash "$check" "$repo_root" >"$tmp/out" 2>&1 || { cat "$tmp/out" >&2; fail "real repository must pass"; }
@@ -115,5 +128,50 @@ expect_fail "Namespace||orphan-ns is rendered by the domain but by no app" "doma
 fresh; descriptor
 printf 'labels:\n  - pairs:\n      team: tools\n    includeSelectors: false\n' >>"$tmp/w/k8s/applications/tools/kustomization.yaml"
 expect_fail "differs between the domain render and the app render" "domain-level transformation"
+
+# 9. OKE : descripteur argocd-app.oracle-a1.yaml (meme domaine migre, l'app n'a qu'un cluster)
+fresh; oke_descriptor
+run || { cat "$tmp/out" >&2; fail "valid oracle-a1 descriptor must pass"; }
+grep -q '1 on oracle-a1' "$tmp/out" || fail "oracle-a1 descriptor not counted"
+fresh; oke_descriptor; printf 'name: it-tools\nnamespace: it-tools\ncluster: oracle-a1\n' >"$oke_file"
+run || { cat "$tmp/out" >&2; fail "minimal oracle-a1 descriptor must pass"; }
+fresh; oke_descriptor; sed -i.bak '/^cluster:/d' "$oke_file"
+expect_fail "cluster must be 'oracle-a1'" "missing cluster"
+fresh; oke_descriptor; sed -i.bak 's/^cluster: oracle-a1/cluster: homelab/' "$oke_file"
+expect_fail "cluster must be 'oracle-a1'" "cluster differs from the file suffix"
+fresh; oke_descriptor; sed -i.bak 's/^postMerge: notify/postMerge: revert/' "$oke_file"
+expect_fail "postMerge must be 'notify' on oracle-a1" "revert on oracle-a1"
+fresh; oke_descriptor; echo 'preview: true' >>"$oke_file"
+expect_fail "preview is homelab-only" "preview on oracle-a1"
+fresh; oke_descriptor; echo 'surprise: 1' >>"$oke_file"
+expect_fail "unknown field 'surprise'" "unknown field on oracle-a1"
+# un champ `cluster` n'existe pas dans le descripteur homelab
+fresh; descriptor; echo 'cluster: oracle-a1' >>"$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml"
+expect_fail "unknown field 'cluster'" "cluster on a homelab descriptor"
+# jamais les deux fichiers : une app, un cluster
+fresh; descriptor; cp "$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml" "$tmp/x.yaml"; oke_descriptor; cp "$tmp/x.yaml" "$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml"
+expect_fail "an app runs on one cluster at a time" "both descriptors"
+# projet inconnu de la racine OKE, namespace refuse par le projet OKE
+fresh; oke_descriptor; echo 'project: previews' >>"$oke_file"
+expect_fail "project 'previews' is not an AppProject of k8s/clusters/oracle-a1/argocd-root" "homelab-only project on oracle-a1"
+fresh; oke_descriptor; sed -i.bak 's/^namespace: it-tools/namespace: elsewhere/' "$oke_file"
+expect_fail "is not among the namespaces rendered" "oracle-a1 namespace absent from render"
+fresh; oke_descriptor; sed -i.bak 's/name: it-tools/name: monitoring/' "$tmp/w/k8s/applications/tools/it-tools/namespace.yaml"; sed -i.bak 's/^namespace: it-tools/namespace: monitoring/' "$oke_file"
+grep -rl 'namespace: it-tools' "$tmp/w/k8s/applications/tools/it-tools" | xargs sed -i.bak 's/namespace: it-tools/namespace: monitoring/'
+expect_fail "rendered namespace 'monitoring' is not a destination of AppProject 'apps'" "oracle-a1 infrastructure namespace"
+# projet apps d'OKE : doit refuser argocd
+fresh; oke_descriptor; yq eval -i 'del(.spec.destinations[] | select(.namespace == "!argocd"))' "$tmp/w/k8s/clusters/oracle-a1/argocd-root/apps-project.yaml"
+expect_fail "AppProject apps (oracle-a1) must deny namespace 'argocd'" "oracle-a1 apps project allowing argocd"
+# descripteur OKE mal place ou suffixe inconnu
+fresh; oke_descriptor; cp "$oke_file" "$tmp/w/k8s/applications/tools/argocd-app.oracle-a1.yaml"
+expect_fail "descriptor must be exactly k8s/applications/<domaine>/<app>/argocd-app.yaml" "misplaced oracle-a1 descriptor"
+fresh; descriptor; cp "$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml" "$tmp/w/k8s/applications/tools/it-tools/argocd-app.oracle.yaml"
+expect_fail "argocd-app.oracle.yaml: descriptor must be exactly" "unknown cluster suffix"
+fresh; oke_descriptor; echo '- it-tools/argocd-app.oracle-a1.yaml' >>"$tmp/w/k8s/applications/tools/kustomization.yaml"
+expect_fail "must not be listed in a kustomization" "oracle-a1 descriptor in kustomization"
+# domaine encore genere par `applications` (homelab) : l'app OKE y serait aussi deployee au homelab
+fresh; oke_descriptor
+yq eval -i '.spec.generators[0].git.directories += [{"path": "k8s/applications/tools"}]' "$tmp/w/k8s/bootstrap/argocd-root/applications-applicationset.yaml"
+expect_fail "the homelab would deploy it too" "oracle-a1 app in a domain still generated by applications"
 
 echo "OK: argocd-app.yaml descriptor contract"

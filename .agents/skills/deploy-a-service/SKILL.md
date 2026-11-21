@@ -36,7 +36,7 @@ Run `just inventory` and search the name. Found: extend or fix it, stop here. Re
 Access is **always by group, never per user**. Model: `docs/operations/authentik-access-model.md`.
 
 ## Q2 — Where does it run?
-- Night use or access from outside the LAN -> **OKE** (`k8s/clusters/oracle-a1`). Stateless, or a `pg-shared` database only once restore is proven outside Oracle (`docs/operations/pg-shared-oke-backup-drill.md`). Deliver with `bash scripts/scaffold-oke-app.sh BASE NAME NAMESPACE`, then `just verify-delivery oracle-a1 NAME`.
+- Night use or access from outside the LAN -> **OKE** (`k8s/clusters/oracle-a1`). Stateless, or a `pg-shared` database only once restore is proven outside Oracle (`docs/operations/pg-shared-oke-backup-drill.md`). Place it with `argocd-app.oracle-a1.yaml` (`cluster: oracle-a1`, `postMerge: notify`) instead of `argocd-app.yaml`: one cluster per app, and its domain must already use descriptors. Then `just verify-delivery oracle-a1 NAME`. The image must have a `linux/arm64` manifest.
 - Heavy or LAN-bound -> **homelab**, run by day.
 
 ## Q3 — State

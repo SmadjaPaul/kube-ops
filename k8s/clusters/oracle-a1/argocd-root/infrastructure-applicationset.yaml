@@ -1,0 +1,57 @@
+# Baseline d'OKE (PLT-405) : une Application `infra-<dossier>` par dossier liste ci-dessous.
+# Liste explicite (comme le homelab) : les anciens overlays de k8s/clusters/oracle-a1/ (hindsight,
+# cnpg-*, media...) restent dormants et ne sont reconcilies par rien.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  namespace: argocd
+  name: infrastructure
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '-10'
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
+        revision: main
+        directories:
+          # VAP qui refuse `Service type: LoadBalancer` (PLT-260, Always Free).
+          - path: k8s/clusters/oracle-a1/guardrails
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: 'infra-{{ path.basename }}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/component: 'static-infrastructure'
+        app.kubernetes.io/part-of: infrastructure
+        kube-ops.dev/cluster: oracle-a1
+    spec:
+      project: infrastructure
+      source:
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
+        targetRevision: main
+        path: '{{ path }}'
+        kustomize: {}
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 5m
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true
+          - PruneLast=true
