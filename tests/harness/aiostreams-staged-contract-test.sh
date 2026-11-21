@@ -78,7 +78,10 @@ grep -Fq 'matchName: v3-cinemeta.strem.io' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: v3.sg.media-imdb.com' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: raw.githubusercontent.com' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: services.sonarr.tv' "$pkg/networkpolicy.yaml"
-! grep -Fq 'matchName: releases.moe' "$pkg/networkpolicy.yaml"
+if grep -Fq 'matchName: releases.moe' "$pkg/networkpolicy.yaml"; then
+  echo 'releases.moe ne doit plus etre dans la NetworkPolicy (ne resout pas)' >&2
+  exit 1
+fi
 grep -Fq 'matchName: comet.feels.legal' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: meteorfortheweebs.midnightignite.me' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: stremthru.13377001.xyz' "$pkg/networkpolicy.yaml"
