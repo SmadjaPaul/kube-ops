@@ -43,6 +43,10 @@ spec:
       kind: ClusterRole
     - group: rbac.authorization.k8s.io
       kind: ClusterRoleBinding
+    # Store Doppler d'External Secrets (cluster-scoped ; le rendu porte un namespace
+    # hérité de la kustomization, ignoré par l'API).
+    - group: external-secrets.io
+      kind: ClusterSecretStore
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
