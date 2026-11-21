@@ -1,0 +1,5 @@
+# Contrat de test (just app-test searxng searxng) : route sur la gateway external, protegee en amont
+# par Cloudflare Access (pas d'auth dans l'application elle-meme).
+auth: none
+exceptions:
+  auth: "Cloudflare Access family-search (homelab-infra)"
