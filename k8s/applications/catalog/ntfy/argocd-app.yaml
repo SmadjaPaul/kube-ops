@@ -1,0 +1,4 @@
+name: ntfy
+namespace: ntfy
+postMerge: notify
+preview: false

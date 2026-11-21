@@ -1,0 +1,4 @@
+name: vikunja
+namespace: vikunja
+postMerge: notify
+preview: false

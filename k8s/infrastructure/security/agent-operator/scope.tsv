@@ -33,9 +33,9 @@ mastra-factory	reconstructible	apps-platform
 mastra-sandbox	reconstructible (sandboxes Factory)	apps-platform
 media	reconstructible	apps-media
 mqtt	reconstructible	app-mqtt
-ntfy	reconstructible	apps-catalog
+ntfy	reconstructible	app-ntfy
 open-connector	reconstructible	apps-platform
 opencode	reconstructible	apps-ai
 pinepods	reconstructible	app-pinepods
-searxng	reconstructible, sans état	apps-catalog
-stirling-pdf	reconstructible	apps-catalog
+searxng	reconstructible, sans état	app-searxng
+stirling-pdf	reconstructible	app-stirling-pdf
