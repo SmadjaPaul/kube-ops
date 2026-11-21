@@ -42,4 +42,10 @@ base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_CLASS=mixed; case_ "deploy FAIL + mixed
 base; PM_APP_TEST=PASS PM_DEPLOY=FAIL; case_ "deploy FAIL wins over app-test PASS (frozen selfheal debt, drill #1691)" REVERT deploy_unhealthy
 base; PM_APP_TEST=BLOCKED PM_DEPLOY=FAIL; case_ "deploy FAIL wins over app-test BLOCKED" REVERT deploy_unhealthy
 base; PM_APP_TEST=PASS PM_DEPLOY=FAIL PM_IS_REVERT=yes; case_ "deploy FAIL on a revert: never revert a revert" ESCALATE revert_of_revert
+# OKE (PLT-407): never a revert, whatever the deployment health; the proven-revision PASS stays NONE
+base; PM_OKE=yes PM_APP_TEST=FAIL PM_DEPLOY=FAIL; case_ "OKE broken deployment: notify, no revert" NOTIFY oke_notify_only
+base; PM_OKE=yes PM_APP_TEST=PASS PM_DEPLOY=FAIL; case_ "OKE deploy FAIL wins over PASS: still notify" NOTIFY oke_notify_only
+base; PM_OKE=yes PM_APP_TEST=PASS PM_DEPLOY=PASS; case_ "OKE healthy: nothing" NONE app_test_pass
+base; PM_OKE=yes PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_CLASS=mixed; case_ "OKE mixed: notify, not escalate" NOTIFY oke_notify_only
+base; PM_OKE=no PM_APP_TEST=FAIL PM_DEPLOY=FAIL; case_ "homelab unchanged: revert" REVERT deploy_unhealthy
 echo "post-merge decision test: PASS ($n cases)"

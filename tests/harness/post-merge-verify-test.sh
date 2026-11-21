@@ -9,13 +9,14 @@ r="$tmp/repo"; mkdir -p "$r/scripts/lib" "$tmp/bin"
 cp "$repo_root"/scripts/post-merge-*.sh "$r/scripts/"; cp "$repo_root/scripts/lib/post-merge-decision.sh" "$r/scripts/lib/"
 cd "$r"
 git init -q -b main; git config user.email t@t; git config user.name t
-mkdir -p k8s/applications/media/prowlarr k8s/applications/media/bookorbit k8s/applications/tools/it-tools k8s/applications/tools/migrated k8s/applications/business/ledger k8s/applications/platform/x k8s/infrastructure/net
+mkdir -p k8s/applications/media/prowlarr k8s/applications/media/bookorbit k8s/applications/tools/it-tools k8s/applications/tools/migrated k8s/applications/business/ledger k8s/applications/platform/x k8s/infrastructure/net k8s/applications/tools/okeapp
 printf 'namespace: media\nresources: [app.yaml]\n' >k8s/applications/media/prowlarr/kustomization.yaml; echo 'kind: Deployment' >k8s/applications/media/prowlarr/app.yaml
 printf 'namespace: media\n' >k8s/applications/media/bookorbit/kustomization.yaml; echo 'kind: PersistentVolumeClaim' >k8s/applications/media/bookorbit/pvc.yaml
 printf 'resources: []\n' >k8s/applications/tools/it-tools/kustomization.yaml; echo 'kind: Deployment' >k8s/applications/tools/it-tools/d.yaml
 printf 'namespace: migrated\n' >k8s/applications/tools/migrated/kustomization.yaml; echo 'kind: Deployment' >k8s/applications/tools/migrated/d.yaml
 printf 'name: migrated\nnamespace: migrated\n' >k8s/applications/tools/migrated/argocd-app.yaml   # per-app Application (PLT-394)
 printf 'name: ledger\nnamespace: ledger\n' >k8s/applications/business/ledger/argocd-app.yaml; echo 'kind: Deployment' >k8s/applications/business/ledger/d.yaml
+printf 'name: okeapp\nnamespace: okeapp\ncluster: oracle-a1\n' >k8s/applications/tools/okeapp/argocd-app.oracle-a1.yaml; printf 'namespace: okeapp\n' >k8s/applications/tools/okeapp/kustomization.yaml; echo 'kind: Deployment' >k8s/applications/tools/okeapp/d.yaml   # OKE descriptor (PLT-407)
 echo x >k8s/applications/platform/x/a.yaml; echo x >k8s/infrastructure/net/a.yaml
 git add -A; git commit -qm "chore: base"
 commit() { git add -A; git commit -qm "$1"; git rev-parse HEAD; } # prints sha
@@ -25,7 +26,7 @@ cat >"$tmp/bin/just" <<'SH'
 #!/usr/bin/env bash
 case "$1" in
   --summary) [[ ${FX_NORECIPE:-} == 1 ]] && echo "check" || echo "check app-test" ;;
-  app-test) echo "CHECK probe app=$2 ns=$3 result=x"; [[ -z ${FX_CHECKS:-} ]] || printf '%b\n' "$FX_CHECKS"
+  app-test) echo "$*" >>"${FX_JUST_LOG:-/dev/null}"; echo "CHECK probe app=$2 ns=$3 result=x"; [[ -z ${FX_CHECKS:-} ]] || printf '%b\n' "$FX_CHECKS"
     [[ -z ${FX_DEPLOY:-} ]] || echo "DEPLOY_HEALTH=$FX_DEPLOY"; echo "APP_TEST=${FX_APPTEST:-PASS}"; [[ ${FX_APPTEST:-PASS} == PASS ]] ;;
 esac
 SH
@@ -59,6 +60,8 @@ expect "AFFECTED_APP name=prowlarr namespace=media argo=apps-media stateful=no"
 expect "AFFECTED_APP name=it-tools namespace=it-tools argo=apps-tools stateful=no"
 expect "AFFECTED_APP name=migrated namespace=migrated argo=app-migrated stateful=no"   # descriptor: Application app-<name>
 refute "argo=apps-migrated"
+expect "name=prowlarr namespace=media argo=apps-media stateful=no cluster=homelab"   # homelab unchanged
+expect "name=migrated namespace=migrated argo=app-migrated stateful=no cluster=homelab"
 echo y >>k8s/applications/business/ledger/d.yaml; s1b=$(commit "feat(business): ledger")
 out=$(bash scripts/post-merge-affected.sh "$s1b"); expect "AFFECTED_APP name=ledger namespace=ledger argo=app-ledger stateful=no"   # domain business, no special case
 expect "AFFECTED_CLASS=apps-only"            # README.md is documentation: ignored
@@ -126,4 +129,20 @@ run 2 --bogus
 for tool in gh kubectl jq yq kustomize helm; do
   grep -q "^need $tool " "$repo_root/scripts/ci-install-tools.sh" || { echo "FAIL: ci-install-tools.sh does not install $tool"; exit 1; }
 done
+
+# --- OKE (PLT-407): argocd-app.oracle-a1.yaml -> app-<name>, cluster=oracle-a1, checked on oracle-a1, never reverted
+echo o1 >>k8s/applications/tools/okeapp/d.yaml; oke=$(commit "feat(tools): okeapp")
+out=$(bash scripts/post-merge-affected.sh "$oke"); expect "AFFECTED_APP name=okeapp namespace=okeapp argo=app-okeapp stateful=no cluster=oracle-a1"; refute "apps-tools"
+rm -f "$tmp/vrev.log" "$tmp/just.log"
+FX_VREV_LOG="$tmp/vrev.log" FX_JUST_LOG="$tmp/just.log" FX_APPTEST=PASS run 0 --dry-run "$oke"; expect "DECISION=NONE"; expect "CHECK revision cluster=oracle-a1 app=okeapp argo=app-okeapp"
+grep -q -- 'app-okeapp .* --cluster oracle-a1' "$tmp/vrev.log" || { echo "FAIL: verify-revision not called with --cluster oracle-a1"; cat "$tmp/vrev.log"; exit 1; }
+grep -q -- 'app-test okeapp okeapp --phase runtime --cluster oracle-a1' "$tmp/just.log" || { echo "FAIL: app-test not called with --cluster oracle-a1"; cat "$tmp/just.log"; exit 1; }
+# a broken OKE deployment is a NOTIFY, never a revert PR (no auto-revert there)
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$oke"; expect "DECISION=NOTIFY"; expect "oke_notify_only_no_revert"; expect "oke=yes"; refute "DRY_RUN git switch"; refute "DECISION=REVERT"
+FX_REV=timeout FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$oke"; expect "revision_not_proven"
+# homelab still reverts in the same harness (behaviour unchanged)
+echo h1 >>k8s/applications/business/ledger/d.yaml; g=$(commit "fix(business): ledger again")
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$g"; expect "DECISION=REVERT"; expect "oke=no"
+rm -f "$tmp/just.log"; FX_JUST_LOG="$tmp/just.log" FX_APPTEST=PASS run 0 --dry-run "$g"
+grep -q -- '--cluster homelab' "$tmp/just.log" || { echo "FAIL: homelab app-test lost --cluster homelab"; exit 1; }
 echo "post-merge verify test: PASS"

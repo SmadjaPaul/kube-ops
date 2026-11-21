@@ -7,11 +7,13 @@
 # Application `apps-<domain>` per generator directory, and apps-applicationset.yaml: one Application
 # `app-<name>` per `argocd-app.yaml` descriptor, PLT-394):
 #   k8s/applications/<domain>/<app>/**   app=<app>, namespace from the kustomization, and
-#       argo=app-<app>      if k8s/applications/<domain>/<app>/argocd-app.yaml exists (migrated app)
+#       argo=app-<app>      if k8s/applications/<domain>/<app>/argocd-app.yaml exists (migrated app, homelab)
+#       argo=app-<app>      if argocd-app.oracle-a1.yaml exists (OKE, PLT-407): cluster=oracle-a1, verified on that
+#                           cluster, never auto-reverted (the check refuses both descriptors in one folder)
 #       argo=apps-<domain>  otherwise
 # Everything else (domain-level files, platform domain, infrastructure, optional, policy, scripts, tests,
 # workflows, justfile...) counts as OTHER, except documentation which is ignored.
-# Output: AFFECTED_APP name=.. namespace=.. argo=.. stateful=yes|no (per app), AFFECTED_OTHER count=N sample=..,
+# Output: AFFECTED_APP name=.. namespace=.. argo=.. stateful=yes|no cluster=homelab|oracle-a1 (per app), AFFECTED_OTHER count=N sample=..,
 #         AFFECTED_CLASS=apps-only|mixed|none.
 set -euo pipefail
 
@@ -40,8 +42,10 @@ while IFS= read -r f; do
   [[ -z ${seen[$app]:-} ]] || continue
   seen[$app]=1
   # Migrated app (PLT-394): its own Application `app-<name>` replaces the domain Application.
+  cl=homelab
   [[ ! -f $dir/argocd-app.yaml ]] || argo=app-$app
-  apps+=("$app|$argo|$dir|$dom")
+  if [[ -f $dir/argocd-app.oracle-a1.yaml ]]; then argo=app-$app; cl=oracle-a1; fi   # OKE (PLT-407)
+  apps+=("$app|$argo|$dir|$dom|$cl")
 done < <(if [[ -n $base ]] && git rev-parse --verify "$base^{commit}" >/dev/null 2>&1; then git diff --name-only "$base" "$sha"
          else git show --first-parent --name-only --format= "$sha"; fi)
 
@@ -57,11 +61,11 @@ ns_of() { # kustomization `namespace:` (top level) of DIR, else of its domain di
 
 for entry in "${apps[@]:-}"; do
   [[ -n $entry ]] || continue
-  IFS='|' read -r app argo dir dom <<<"$entry"
+  IFS='|' read -r app argo dir dom cl <<<"$entry"
   stateful=no
   # Stateful: PVC, volumeClaimTemplates or a CNPG Cluster in the app tree (the revert does not restore data).
   if [[ -d $dir ]] && grep -rEqs '^kind:[[:space:]]*PersistentVolumeClaim|volumeClaimTemplates|persistentVolumeClaim:|^kind:[[:space:]]*Cluster$' "$dir"; then stateful=yes; fi
-  echo "AFFECTED_APP name=$app namespace=$(ns_of "$dir" "$dom" "$app") argo=$argo stateful=$stateful"
+  echo "AFFECTED_APP name=$app namespace=$(ns_of "$dir" "$dom" "$app") argo=$argo stateful=$stateful cluster=$cl"
 done
 echo "AFFECTED_OTHER count=$other sample=${sample:-none}"
 if (( ${#apps[@]} == 0 )); then echo "AFFECTED_CLASS=none"

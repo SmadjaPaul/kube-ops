@@ -8,6 +8,7 @@
 #   PM_REVERT_ATTEMPTED=yes|no             a revert PR/branch for this commit already exists
 #   PM_NEWER_COMMIT=yes|no                 a more recent commit touches the same app
 #   PM_STATEFUL=yes|no                     an affected app has a PVC or a CNPG Cluster
+#   PM_OKE=yes|no                          an affected app runs on OKE (argocd-app.oracle-a1.yaml, PLT-407): never reverted
 #   pm_decide   -> sets PM_DECISION (NONE|NOTIFY|REVERT|ESCALATE), PM_REASON, PM_PRIORITY, PM_EXTRA
 # Only PM_DEPLOY=FAIL justifies a revert: golden-path debt (oidc, network, backup...) is NOTIFY. Unset = UNKNOWN.
 # NONE: nothing to do. NOTIFY: tell Paul, no revert. REVERT: open one auto-merge revert PR + notify.
@@ -30,6 +31,10 @@ pm_decide() {
     FAIL) ;;
     *) PM_DECISION=NOTIFY; PM_REASON=app_test_${PM_APP_TEST:-unknown}_no_revert; PM_PRIORITY=high; return ;;
   esac
+  # OKE (PLT-407, `postMerge: notify`): no automatic revert there, whatever the deployment health.
+  if [[ ${PM_OKE:-no} == yes ]]; then
+    PM_DECISION=NOTIFY; PM_REASON=oke_notify_only_no_revert; PM_PRIORITY=high; return
+  fi
   # app-test FAIL but the deployment itself is not proven broken: golden-path debt, tell Paul, never revert.
   if [[ ${PM_DEPLOY:-UNKNOWN} != FAIL ]]; then
     PM_DECISION=NOTIFY; PM_REASON=golden_path_fail_no_revert; PM_PRIORITY=high; return
