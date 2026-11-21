@@ -1,0 +1,84 @@
+# PLT-395: platform guardrails of every preview (ResourceQuota, LimitRange,
+# CiliumNetworkPolicy default-deny + minimal allow), one Application per preview,
+# always from main. Same generator as ApplicationSet previews (same PR, same app
+# label), separate AppProject previews-guardrails: the workload project `previews`
+# admits no cilium.io object, so a PR cannot add a permissive network policy.
+# The workload Application (previews) deletes first on PR close; the namespace
+# is removed by the sweeper once no Application owns it.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  namespace: argocd
+  name: previews-guardrails
+  labels:
+    app.kubernetes.io/part-of: previews
+    app.kubernetes.io/managed-by: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - pullRequest:
+              github:
+                owner: SmadjaPaul
+                repo: kube-ops
+                labels:
+                  - preview
+                # PLT-395: authenticate the PR generator (unauthenticated: 60 req/h).
+                # Paul's gesture, then a PR adding here either
+                #   tokenRef: {secretName: <secret in argocd>, key: token}
+                # or appSecretName (read-only GitHub App). Procedure:
+                # docs/runbooks/preview-environments.md. Never put a value in Git.
+              filters:
+                - targetBranchMatch: '^main$'
+              requeueAfterSeconds: 120
+          - git:
+              repoURL: https://github.com/SmadjaPaul/kube-ops.git
+              revision: '{{ .head_sha }}'
+              directories:
+                - path: >-
+                    k8s/applications/*/{{- $a := "" -}}{{- range .labels -}}{{- if hasPrefix "preview:" . -}}{{- $a = trimPrefix "preview:" . -}}{{- end -}}{{- end -}}{{- if regexMatch "^[a-z0-9][a-z0-9-]{0,37}$" $a -}}{{ $a }}{{- else -}}__none__{{- end -}}
+  template:
+    metadata:
+      name: 'preview-guardrails-pr{{ .number }}-{{ .path.basename }}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/part-of: previews
+        smadja.dev/preview-namespace: 'pr-{{ .number }}-{{ .path.basename }}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: previews-guardrails
+      source:
+        # Always main, never the PR head: a PR cannot loosen its own quota or
+        # network policy.
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
+        targetRevision: main
+        path: k8s/previews/guardrails
+        kustomize:
+          namespace: 'pr-{{ .number }}-{{ .path.basename }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'pr-{{ .number }}-{{ .path.basename }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        managedNamespaceMetadata:
+          labels:
+            pod-security.kubernetes.io/enforce: restricted
+            smadja.dev/preview: 'true'
+            smadja.dev/preview-pr: '{{ .number }}'
+          annotations:
+            smadja.dev/preview-app: '{{ .path.basename }}'
+            smadja.dev/preview-sha: '{{ .head_sha }}'
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

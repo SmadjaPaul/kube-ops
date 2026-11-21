@@ -425,6 +425,10 @@ def render(rule, cases, policy_file, prefix):
         results.append({"policy": pol, "isValidatingPolicy": True, "kind": o["kind"], "resources": [cid], "result": expected})
     test = {"apiVersion": "cli.kyverno.io/v1alpha1", "kind": "Test", "metadata": {"name": pol},
             "policies": [policy_file], "resources": ["resources.yaml"], "results": results}
+    if prefix == "preview":
+        # The policy is bounded by a namespaceSelector (PLT-395): without these labels the CLI
+        # excludes every resource and a `fail` case passes vacuously.
+        test["values"] = {"namespaceSelector": [{"name": "pr-7-demo", "labels": {"smadja.dev/preview": "true"}}]}
     hdr = "# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.\n"
     return {
         "resources.yaml": hdr + yaml.safe_dump_all(res, sort_keys=True, allow_unicode=True),

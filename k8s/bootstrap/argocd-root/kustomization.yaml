@@ -8,3 +8,4 @@ resources:
   - applications-applicationset.yaml
   - previews-project.yaml
   - previews-applicationset.yaml
+  - previews-guardrails-applicationset.yaml

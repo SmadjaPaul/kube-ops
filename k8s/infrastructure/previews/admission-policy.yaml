@@ -16,8 +16,14 @@ metadata:
     description: "Preview namespaces: generated secrets only (form C), no store, no shared database, low priority, no LoadBalancer/NodePort (PLT-390)."
 spec:
   validationActions: [Deny]
-  failurePolicy: Ignore
+  # PLT-395: fail closed. Bounded to preview namespaces by the namespaceSelector
+  # (label set by the ApplicationSet through managedNamespaceMetadata, which a PR
+  # cannot change), so a Kyverno outage blocks only pr-* admissions, never the cluster.
+  failurePolicy: Fail
   matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - {key: smadja.dev/preview, operator: In, values: ["true"]}
     resourceRules:
       - apiGroups: [""]
         apiVersions: ["v1"]

@@ -13,6 +13,11 @@ metadata:
     smadja.dev/provider: kubernetes
     kube-ops.io/secret-store-scope: "namespace auth, read-only, get on named Secrets only (RBAC next to the sources)"
 spec:
+  # PLT-395: never served to a preview namespace (smadja.dev/preview=true).
+  conditions:
+    - namespaceSelector:
+        matchExpressions:
+          - {key: smadja.dev/preview, operator: NotIn, values: ["true"]}
   provider:
     kubernetes:
       remoteNamespace: auth
@@ -43,6 +48,11 @@ metadata:
     smadja.dev/provider: kubernetes
     kube-ops.io/secret-store-scope: "namespace databases, read-only, get on named Secrets only (RBAC next to the sources)"
 spec:
+  # PLT-395: never served to a preview namespace (smadja.dev/preview=true).
+  conditions:
+    - namespaceSelector:
+        matchExpressions:
+          - {key: smadja.dev/preview, operator: NotIn, values: ["true"]}
   provider:
     kubernetes:
       remoteNamespace: databases
