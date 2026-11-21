@@ -20,6 +20,9 @@ spec:
         directories:
           # VAP qui refuse `Service type: LoadBalancer` (PLT-260, Always Free).
           - path: k8s/clusters/oracle-a1/guardrails
+          # Lecture seule des agents (SA argocd/agent-operator, RBAC view sans Secret) :
+          # requis par scripts/agent-operator-oke-token.sh --provision.
+          - path: k8s/clusters/oracle-a1/agent-operator
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:

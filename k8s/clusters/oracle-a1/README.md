@@ -13,7 +13,7 @@ one arm64 A1 node (2 OCPU, 12 GB), CNI `OCI_VCN_IP_NATIVE`, pods `10.248.0.0/16`
 | `bootstrap/` | Operator bootstrap, never synced: Argo CD (chart 10.3.3, v3.5.1, ApplicationSet controller on, no dex, no notifications), project `bootstrap`, Application `root`. |
 | `argocd-root/` | What `root` reconciles: projects `infrastructure` and `apps`, ApplicationSet `infrastructure` (explicit folder list, Applications `infra-<folder>`), ApplicationSet `apps` (reads `k8s/applications/*/*/argocd-app.oracle-a1.yaml`, Applications `app-<name>`). |
 | `guardrails/` | Baseline: ValidatingAdmissionPolicy denying `Service type: LoadBalancer` (PLT-260, Always Free). Only baseline component for now. |
-| other folders | Legacy overlays (Flannel era: `hindsight`, `cnpg-*`, `media`, `observability`, `netbird-router`, `cloudflared`, `agent-operator`, `external-secrets`, `cert-manager`). Reconciled by nothing; stale. Revive one only by adding it to the `infrastructure` ApplicationSet list (and its namespaces to the `apps` project negations) after review, never silently. |
+| other folders | Legacy overlays (Flannel era: `hindsight`, `cnpg-*`, `media`, `observability`, `netbird-router`, `cloudflared`, `external-secrets`, `cert-manager`). Reconciled by nothing; stale. Revive one only by adding it to the `infrastructure` ApplicationSet list (and its namespaces to the `apps` project negations) after review, never silently. |
 
 ## Bootstrap (once, by Paul or an agent holding an admin kubeconfig)
 

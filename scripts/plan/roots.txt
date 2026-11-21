@@ -29,7 +29,7 @@ k8s/optional/github-actions-arc-homelab-infra
 k8s/optional/github-actions-arc-website
 k8s/optional/github-actions-arc-kube-ops
 k8s/optional/github-actions-arc-homelab-iac-pilot
-# Oracle-a1 : guardrails est reconcilie par l'ApplicationSet infrastructure d'OKE ; les autres
+# Oracle-a1 : agent-operator et guardrails sont reconcilies par l'ApplicationSet infrastructure d'OKE ; les autres
 # dossiers sont des overlays dormants (aucune racine ne les reconcilie, PLT-405), rendus pour memoire.
 k8s/clusters/oracle-a1/agent-operator
 k8s/clusters/oracle-a1/cert-manager
