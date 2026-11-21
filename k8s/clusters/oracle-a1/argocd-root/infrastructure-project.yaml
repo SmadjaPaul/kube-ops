@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infrastructure
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/managed-by: argocd
+spec:
+  description: Infrastructure d'OKE (oracle-a1), reconciliee depuis kube-ops
+  sourceRepos:
+    - https://github.com/SmadjaPaul/kube-ops.git
+  destinations:
+    # Les manifestes rendus portent leur namespace explicite : destination vide.
+    - namespace: ''
+      server: https://kubernetes.default.svc
+  # Liste fermee : ajouter un kind cluster-scoped d'infrastructure passe par une PR sur ce fichier.
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: admissionregistration.k8s.io
+      kind: ValidatingAdmissionPolicy
+    - group: admissionregistration.k8s.io
+      kind: ValidatingAdmissionPolicyBinding
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

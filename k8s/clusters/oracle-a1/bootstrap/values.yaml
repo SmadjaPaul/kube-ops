@@ -1,4 +1,4 @@
-# Cluster-local Argo CD (D-2026-11-11-17): pull mode, no ingress, no SSO.
+# Argo CD propre a OKE (D-2026-11-21-01, un Argo CD par cluster): pull mode, no ingress, no SSO.
 # Break-glass access is the local admin account over port-forward/NetBird.
 configs:
   cm:
@@ -6,20 +6,6 @@ configs:
     application.resourceTrackingMethod: annotation
     admin.enabled: true
     kustomize.buildOptions: '--enable-helm'
-    # Argo CD 3.x no longer assesses child Application health by default;
-    # without it the root would not wait for sync-wave 0 (ESO, CNPG CRDs).
-    resource.customizations.health.argoproj.io_Application: |
-      hs = {status = "Progressing", message = "Waiting for the child Application to be Synced and Healthy"}
-      if obj.status ~= nil and obj.status.health ~= nil and obj.status.sync ~= nil then
-        if obj.status.health.status == "Healthy" and obj.status.sync.status == "Synced" then
-          hs.status = "Healthy"
-          hs.message = obj.status.health.message or ""
-        elseif obj.status.health.status == "Degraded" then
-          hs.status = "Degraded"
-          hs.message = obj.status.health.message or ""
-        end
-      end
-      return hs
   params:
     server.insecure: true
     controller.diff.server.side: true
@@ -44,8 +30,13 @@ dex:
   enabled: false
 notifications:
   enabled: false
+# PLT-405 : un ApplicationSet `apps` (git files generator) cree les Applications d'OKE.
 applicationSet:
-  enabled: false
+  enabled: true
+  replicas: 1
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 256Mi}
 
 controller:
   replicas: 1

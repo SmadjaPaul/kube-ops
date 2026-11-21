@@ -19,6 +19,33 @@ Exemple : `name: it-tools`, `namespace: it-tools`, puis optionnellement `postMer
 
 Ajouter une app = creer son dossier et son `argocd-app.yaml` : aucun fichier partage n'est modifie. `project: apps` admet tout namespace sauf ceux d'infrastructure (destinations `!ns`, doc Argo CD « Projects »).
 
+## Placer une app sur OKE (PLT-405, D-2026-11-21-01)
+
+Chaque cluster a son Argo CD et son ApplicationSet `apps` sur le meme depot. Le fichier du descripteur choisit le cluster :
+
+| Fichier | Cluster | ApplicationSet |
+|---|---|---|
+| `argocd-app.yaml` | homelab | `k8s/bootstrap/argocd-root/apps-applicationset.yaml` |
+| `argocd-app.oracle-a1.yaml` | OKE | `k8s/clusters/oracle-a1/argocd-root/apps-applicationset.yaml` |
+
+Le descripteur OKE a les memes champs, plus `cluster: oracle-a1` (obligatoire, egal au suffixe du fichier). Differences : `postMerge` ne vaut que `notify` (defaut ; pas de revert automatique sur OKE), `preview` est refuse (previews homelab seulement), `project` designe un AppProject de `k8s/clusters/oracle-a1/argocd-root` (defaut `apps`, qui admet tout namespace sauf `argocd`, `kube-*` et l'infrastructure d'OKE). L'Application s'appelle `app-<name>` dans l'Argo CD d'OKE, avec le label `kube-ops.dev/cluster: oracle-a1`.
+
+```yaml
+# k8s/applications/<domaine>/<app>/argocd-app.oracle-a1.yaml
+name: it-tools
+namespace: it-tools
+cluster: oracle-a1
+```
+
+Regles controlees par `scripts/check-argo-app-descriptors.sh` :
+
+- une app n'a qu'un cluster a la fois : les deux fichiers dans un meme dossier sont refuses. Basculer = supprimer l'un et ajouter l'autre dans la meme PR (le retrait du descripteur homelab ne supprime pas les ressources : `preserveResourcesOnDeletion`) ;
+- le dossier de l'app est le meme pour les deux clusters : il doit donc etre valide sur OKE (arm64, pas de LoadBalancer, pas de `Gateway/external` du homelab) ;
+- le domaine de l'app doit deja utiliser des descripteurs (retire de l'ApplicationSet `applications`), sinon le homelab la deploierait aussi ;
+- un suffixe inconnu (`argocd-app.<autre>.yaml`) est refuse.
+
+Bootstrap et baseline d'OKE : `k8s/clusters/oracle-a1/README.md`.
+
 ## Champ `preview` (previews par PR, PLT-394/395)
 
 Les ApplicationSets `previews` et `previews-guardrails` (`k8s/bootstrap/argocd-root/`) croisent le generateur de PR (label `preview`, base `main`) avec un git files generator sur `k8s/applications/*/<app>/argocd-app.yaml`, ou `<app>` est le label `preview:<app>` de la PR (meme regex qu'avant), lu au SHA de tete de la PR. Un `selector` sur le generateur (`preview: "true"`) ne garde que les apps dont le descripteur declare `preview: true` ; champ absent ou `false` : aucune Application de preview, meme avec le label. Nom (`preview-pr<n>-<app>`), namespace (`pr-<n>-<app>`), patches et parent `Gateway/internal` ne dependent pas du descripteur : ni `namespace` ni `project` du descripteur ne sont utilises par les previews.
@@ -27,7 +54,7 @@ Les ApplicationSets `previews` et `previews-guardrails` (`k8s/bootstrap/argocd-r
 
 ## Controles CI
 
-`scripts/check-argo-app-descriptors.sh` (test : `tests/harness/argo-app-descriptors-contract-test.sh`, branche dans `check:argo-app-descriptors`, `scripts/check-bash-tests.list` et le workflow `v1-contract`) :
+`scripts/check-argo-app-descriptors.sh` (valide aussi les descripteurs OKE ; test : `tests/harness/argo-app-descriptors-contract-test.sh`, branche dans `check:argo-app-descriptors`, `scripts/check-bash-tests.list` et le workflow `v1-contract`) :
 
 - schema, `name` unique et egal au dossier, `namespace` present dans le rendu, namespaces rendus admis par le projet ;
 - `extraPaths` existent ;

@@ -113,9 +113,9 @@ docs-build:
 verify-delivery CLUSTER APP *ARGS:
     bash scripts/verify-delivery.sh "{{CLUSTER}}" "{{APP}}" {{ARGS}}
 
-[doc('Deliver a shared base on oracle-a1: overlay + Application + root entry; BASE_REL is under k8s/applications')]
-scaffold-oke-app BASE_REL NAME NAMESPACE:
-    bash scripts/scaffold-oke-app.sh "{{BASE_REL}}" "{{NAME}}" "{{NAMESPACE}}"
+[doc('Bootstrap the OKE Argo CD once (needs a kubeconfig from Paul); ARGS: --kubeconfig FILE [--context NAME] [--dry-run]')]
+oke-bootstrap *ARGS:
+    bash scripts/oke-bootstrap.sh {{ARGS}}
 
 [doc('Post-merge verification of one merge commit: Argo revision, app-test runtime, revert decision (PLT-390); ARGS: --dry-run, --cluster, SHA')]
 post-merge-verify *ARGS:
