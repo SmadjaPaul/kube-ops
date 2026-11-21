@@ -12,12 +12,18 @@ Un fichier `k8s/applications/<domaine>/<app>/argocd-app.yaml` declare l'app. Il 
 | `namespace` | DNS-1123 | obligatoire, doit etre rendu par l'app | `destination.namespace` |
 | `project` | AppProject du root (hors `default`) | `apps` | projet Argo CD |
 | `postMerge` | `revert` ou `notify` | `revert` | politique du post-merge (`notify` : etat, platform) |
-| `preview` | booleen | `false` | l'app a un environnement de preview |
+| `preview` | booleen | `false` | opt-in aux previews par PR : `true` = les ApplicationSets `previews` et `previews-guardrails` peuvent generer `preview-pr<n>-<app>` (voir ci-dessous) |
 | `extraPaths` | liste de chemins depuis la racine du depot | `[]` | chemins hors dossier de l'app qui declenchent un refresh (ex. `k8s/applications/media/shared`) ; annotation `manifest-generate-paths` = `.` + `/<chemin>` |
 
 Exemple : `name: it-tools`, `namespace: it-tools`, puis optionnellement `postMerge`, `preview`, `extraPaths`.
 
 Ajouter une app = creer son dossier et son `argocd-app.yaml` : aucun fichier partage n'est modifie. `project: apps` admet tout namespace sauf ceux d'infrastructure (destinations `!ns`, doc Argo CD « Projects »).
+
+## Champ `preview` (previews par PR, PLT-394/395)
+
+Les ApplicationSets `previews` et `previews-guardrails` (`k8s/bootstrap/argocd-root/`) croisent le generateur de PR (label `preview`, base `main`) avec un git files generator sur `k8s/applications/*/<app>/argocd-app.yaml`, ou `<app>` est le label `preview:<app>` de la PR (meme regex qu'avant), lu au SHA de tete de la PR. Un `selector` sur le generateur (`preview: "true"`) ne garde que les apps dont le descripteur declare `preview: true` ; champ absent ou `false` : aucune Application de preview, meme avec le label. Nom (`preview-pr<n>-<app>`), namespace (`pr-<n>-<app>`), patches et parent `Gateway/internal` ne dependent pas du descripteur : ni `namespace` ni `project` du descripteur ne sont utilises par les previews.
+
+`preview: true` n'est valide que si l'app ne rend que des kinds admis par l'AppProject `previews` (hors `Namespace`, `ScaledObject`, `InterceptorRoute`, retires par l'ApplicationSet). Les secrets restent regis par Kyverno (aucun store de prod). Les apps sans descripteur (domaine non migre, aujourd'hui `media`) n'ont plus de preview tant que leur domaine n'est pas migre.
 
 ## Controles CI
 
@@ -25,6 +31,7 @@ Ajouter une app = creer son dossier et son `argocd-app.yaml` : aucun fichier par
 
 - schema, `name` unique et egal au dossier, `namespace` present dans le rendu, namespaces rendus admis par le projet ;
 - `extraPaths` existent ;
+- `preview: true` : rendu limite aux kinds de la liste blanche de l'AppProject `previews` ;
 - un domaine ne migre que **complet** (chaque sous-dossier a son descripteur) et l'union des rendus `kustomize build --enable-helm` des apps est identique au rendu du domaine, objet par objet `(kind, namespace, name)` sur contenu normalise : sinon une transformation de domaine (patch, labels, fichier de niveau domaine) serait perdue et l'ancienne Application `apps-<domaine>` elaguerait des objets ;
 - le domaine migre est retire du generateur de l'ApplicationSet `applications` dans la meme PR (aucune app generee deux fois) ;
 - le projet `apps` refuse chaque namespace d'infrastructure.

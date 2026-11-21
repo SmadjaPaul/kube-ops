@@ -52,3 +52,4 @@ tests/harness/argo-app-descriptors-contract-test.sh
 tests/harness/scaffold-app-secrets-test.sh
 tests/harness/argocd-notifications-contract-test.sh
 tests/harness/preview-isolation-contract-test.sh
+tests/harness/previews-appset-descriptors-test.sh
