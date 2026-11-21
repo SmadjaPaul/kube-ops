@@ -22,7 +22,7 @@
 #   arc-systems, arc-runners, agent-sandbox-system, agent-observers,
 #   agent-operator ;
 # - drills, namespaces non observés ou optionnels : authentik-drill,
-#   hindsight-restore-20261110, librechat, hermes-personal, atlantis-*.
+#   hindsight-restore-20261110, librechat, hermes-personal.
 #
 # namespace	classe (cluster-reality 2026-11-11)	racine Argo
 agentgateway	socle applicatif, PVC 1Gi reconstructible	apps-platform
