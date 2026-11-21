@@ -10,6 +10,7 @@ resources:
   - database-source-credentials.yaml
   - database-objectstore.yaml
   - database-pg2-objectstore.yaml
+  - database-r2-recovery.yaml
   - database.yaml
   - database-pg2.yaml
   # PLT-94 lot 7 : ScheduledBackup factory-platform-pg2-weekly retire (backup
