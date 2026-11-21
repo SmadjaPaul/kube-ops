@@ -11,7 +11,6 @@ alert_doc="$repo_root/docs/operations/homeops-observability-alerting.md"
 eso_doc="$repo_root/docs/operations/e4-eso-orphans-acceptance.md"
 prom_values="$repo_root/k8s/infrastructure/monitoring/prometheus-stack/values.yaml"
 kyverno="$repo_root/k8s/infrastructure/security/policies/platform-baseline.yaml"
-gatekeeper="$repo_root/k8s/infrastructure/security/policies/gatekeeper-constraints.yaml"
 
 for file in "$alert_fixture" "$policy_fixture" "$storage_fixture" "$restore_fixture" "$restore_doc" "$alert_doc" "$eso_doc"; do
   test -f "$file" || { echo "ERROR: missing recovery contract file: $file" >&2; exit 1; }
@@ -72,7 +71,6 @@ yq -e '
   .spec.status == "not-executed" and
   .spec.approval == "required" and
   .spec.currentModes.kyverno == "Audit" and
-  .spec.currentModes.gatekeeper == "dryrun" and
   (([.spec.cases[] | select(.expectedFinding == "none")] | length) >= 1) and
   (([.spec.cases[] | select(.expectedFinding == "violation")] | length) >= 3) and
   .spec.tenantIsolation.status == "not-executed"
@@ -83,7 +81,6 @@ yq -e '
   echo 'ERROR: platform-baseline.yaml must hold only Audit-mode ValidatingPolicy' >&2
   exit 1
 }
-yq -e '.spec.enforcementAction == "dryrun"' "$gatekeeper" >/dev/null
 
 yq -e '
   .kind == "RecoveryQualification" and

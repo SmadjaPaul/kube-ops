@@ -4,7 +4,6 @@
 
 Deploy a comprehensive enterprise-grade security stack for your GitOps homelab using the latest stable versions:
 
-- **Gatekeeper v3.21.0** - OPA admission control with NSA/CISA templates
 - **Kyverno v1.16.2** - Policy validation + mutation (with security patches)
 - **Falco v4.4.0** - Runtime security monitoring with eBPF driver
 - **KubeArmor v1.6.6** - Kernel-level security enforcement with LSM/BPF
@@ -47,7 +46,7 @@ kubectl get kubearmorpolicies -A
 
 ## Security Features
 
-### Admission Control (Gatekeeper + Kyverno)
+### Admission Control (Kyverno + ValidatingAdmissionPolicy)
 - **NSA/CISA Compliance**: Built-in hardening policies
 - **Image Validation**: No latest tags, signed images preferred
 - **Resource Limits**: CPU/memory enforcement for all workloads
@@ -94,7 +93,6 @@ KubeArmor:
 
 ### Namespace Strategy
 - **security-system**: Main security tools namespace
-- **gatekeeper-system**: Gatekeeper namespace
 - **kyverno**: Kyverno namespace  
 - **kubearmor**: KubeArmor namespace
 - **Wildcard Protection**: All other namespaces protected by default
@@ -102,7 +100,7 @@ KubeArmor:
 ## Troubleshooting
 
 ### Common Issues
-1. **Policy Conflicts**: Check for overlapping Gatekeeper/Kyverno rules
+1. **Policy Conflicts**: Check for overlapping Kyverno and ValidatingAdmissionPolicy rules (Gatekeeper retired, PLT-397)
 2. **Resource Constraints**: Monitor security tool resource usage
 3. **Network Policies**: Ensure Cilium allows security tool traffic
 4. **Slack Alerts**: Verify webhook URL configuration
@@ -113,7 +111,6 @@ KubeArmor:
 kubectl get pods -n security-system -l app.kubernetes.io/part-of=security
 
 # Check policy status
-kubectl get constrainttemplates -A
 kubectl get clusterpolicies -A  
 kubectl get kubearmorpolicies -A
 
