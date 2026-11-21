@@ -78,7 +78,7 @@ for gateway in \
     exit 1
   }
 done
-grep -q 'gestion.lechaplais.com' k8s/applications/business/invoice-ninja/service-route.yaml
+grep -q 'facture.smadja.dev' k8s/applications/business/invoice-ninja/service-route.yaml
 grep -q 'name: external' k8s/applications/business/invoice-ninja/service-route.yaml
 grep -q 'name: internal' k8s/applications/business/invoice-ninja/service-route.yaml
 
