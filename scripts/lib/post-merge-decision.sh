@@ -11,7 +11,7 @@
 #   pm_decide   -> sets PM_DECISION (NONE|NOTIFY|REVERT|ESCALATE), PM_REASON, PM_PRIORITY, PM_EXTRA
 # Only PM_DEPLOY=FAIL justifies a revert: golden-path debt (oidc, network, backup...) is NOTIFY. Unset = UNKNOWN.
 # NONE: nothing to do. NOTIFY: tell Paul, no revert. REVERT: open one auto-merge revert PR + notify.
-# ESCALATE: tell Paul urgently, never a revert (one revert per commit, never a revert of a revert).
+# ESCALATE: tell Paul urgently, never a revert (one revert per commit, never a revert of a revert, never an auto-revert of a stateful app).
 pm_decide() {
   PM_DECISION=NONE; PM_REASON=ok; PM_PRIORITY=default; PM_EXTRA=""
   if [[ ${PM_CLASS:-none} == none ]]; then PM_REASON=no_app_touched; return; fi
@@ -44,7 +44,10 @@ pm_decide() {
   if [[ ${PM_REVERT_ATTEMPTED:-no} == yes ]]; then
     PM_DECISION=ESCALATE; PM_REASON=already_reverted_once_escalate; PM_PRIORITY=urgent; return
   fi
+  # Stateful app (PVC or CNPG): the revert does not restore data and may break a schema migration (PLT-398).
+  if [[ ${PM_STATEFUL:-no} == yes ]]; then
+    PM_DECISION=ESCALATE; PM_REASON=stateful_app_no_auto_revert; PM_PRIORITY=urgent; PM_EXTRA=verify-migration; return
+  fi
   PM_DECISION=REVERT; PM_REASON=deploy_unhealthy; PM_PRIORITY=urgent
-  [[ ${PM_STATEFUL:-no} == yes ]] && PM_EXTRA=verify-migration
   return 0
 }

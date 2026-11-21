@@ -17,8 +17,11 @@ base() { PM_APP_TEST=PASS PM_REVISION=PROVEN PM_CLASS=apps-only PM_IS_REVERT=no 
 base;                                case_ "PASS: nothing to do" NONE app_test_pass
 base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL; case_ "FAIL + deploy FAIL: revert" REVERT deploy_unhealthy
 [[ $PM_PRIORITY == urgent && -z $PM_EXTRA ]] || { echo "FAIL: revert priority/extra"; exit 1; }
-base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_STATEFUL=yes; case_ "FAIL stateful: revert + verify-migration" REVERT deploy_unhealthy
-[[ $PM_EXTRA == verify-migration ]] || { echo "FAIL: stateful lacks verify-migration"; exit 1; }
+base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_STATEFUL=yes; case_ "FAIL stateful: escalate, never auto-revert (PLT-398)" ESCALATE stateful_app_no_auto_revert
+[[ $PM_EXTRA == verify-migration && $PM_PRIORITY == urgent ]] || { echo "FAIL: stateful lacks verify-migration/urgent"; exit 1; }
+base; PM_APP_TEST=PASS PM_STATEFUL=yes; case_ "PASS stateful: nothing" NONE app_test_pass
+base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_STATEFUL=yes PM_CLASS=mixed; case_ "stateful + mixed: mixed reason first" ESCALATE more_than_apps
+base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_STATEFUL=yes PM_IS_REVERT=yes; case_ "stateful revert: still revert_of_revert" ESCALATE revert_of_revert
 base; PM_APP_TEST=BLOCKED;           case_ "BLOCKED: notify, no revert" NOTIFY app_test_BLOCKED
 base; PM_APP_TEST=NOT_RUN;           case_ "NOT_RUN: notify, no revert" NOTIFY app_test_NOT_RUN
 base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_CLASS=mixed;  case_ "FAIL on infra/mixed commit: escalate" ESCALATE more_than_apps

@@ -13,6 +13,8 @@ name: Post-merge verify
 #             kube-ops-post-merge (read-only RBAC, k8s/optional/github-actions-arc-kube-ops). Decides.
 #   revert    GitHub-hosted, revert bot GitHub App token. Opens the revert PR. Never has cluster access.
 #   announce  same runner. ntfy of the revert PR; the URL is read from one cluster Secret by the ServiceAccount.
+#   alert     same runner. ntfy when verify, revert or announce failed or was cancelled (PLT-398): no silent failure.
+# A stateful app (PVC or CNPG) never gets an auto-merge revert: the decision is ESCALATE (PLT-398).
 
 on:
   push:
@@ -38,6 +40,10 @@ jobs:
     if: ${{ vars.POST_MERGE_VERIFY_ENABLED == 'true' }}
     runs-on: kube-ops-ci-arc
     timeout-minutes: 30
+    # Read-only token for the loop guards (`gh pr list`, `gh api commits/<sha>/pulls`): without it gh fails (PLT-398).
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       decision: ${{ steps.verify.outputs.decision }}
       reason: ${{ steps.verify.outputs.reason }}
@@ -52,7 +58,10 @@ jobs:
         id: verify
         env:
           KUBECTL_RO_IN_CLUSTER: "1"
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           INPUT_SHA: ${{ inputs.sha }}
+          EVENT_BEFORE: ${{ github.event.before }}
         run: |
           set -uo pipefail
           bash scripts/ci-install-tools.sh || { echo "::error::tool install failed: POST_MERGE=BLOCKED"; echo "decision=NOTIFY" >>"$GITHUB_OUTPUT"; echo "reason=tool_install_failed" >>"$GITHUB_OUTPUT"; exit 0; }
@@ -61,7 +70,8 @@ jobs:
             git cat-file -e "${INPUT_SHA}^{commit}" || { echo "::error::unknown sha"; exit 1; }
             bash scripts/post-merge-verify.sh --dry-run "$INPUT_SHA" --timeout 600 || true
           else
-            bash scripts/post-merge-verify.sh "$GITHUB_SHA" --timeout 600 || true
+            # before..after: every commit of the push counts, not only the tip (PLT-398).
+            bash scripts/post-merge-verify.sh "$GITHUB_SHA" --timeout 600 --base "$EVENT_BEFORE" || true
           fi
   revert:
     needs: verify
@@ -122,3 +132,23 @@ jobs:
           [[ $STATEFUL == yes ]] && msg="$msg Stateful app: verify the migration."
           [[ ${PR:-FAILED} == FAILED || ${PR:-} == REFUSED* || ${PR:-} == CONFLICT* ]] && prio=urgent || prio=high
           bash scripts/post-merge-notify.sh "kube-ops post-merge REVERT" "$prio" "$msg"
+  alert:
+    # No silent failure (PLT-398): verify/revert/announce failed or was cancelled (timeout, runner lost) => ntfy.
+    needs: [verify, revert, announce]
+    if: ${{ always() && github.event_name == 'push' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+    runs-on: kube-ops-ci-arc
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: ntfy
+        env:
+          KUBECTL_RO_IN_CLUSTER: "1"
+          SHA: ${{ github.sha }}
+          RESULTS: verify=${{ needs.verify.result }} revert=${{ needs.revert.result }} announce=${{ needs.announce.result }}
+        run: |
+          bash scripts/ci-install-tools.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          bash scripts/post-merge-notify.sh "kube-ops post-merge FAILED" urgent \
+            "Post-merge verification did not complete for ${SHA:0:12} ($RESULTS). No revert was decided: check run ${GITHUB_RUN_ID}."

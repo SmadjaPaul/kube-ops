@@ -3,11 +3,13 @@
 # Reads status.sync.revision / status.operationState of the Application through scripts/kubectl-ro.sh
 # (read-only, agent identity). Complements scripts/verify-delivery.sh, whose Grafana metric has no revision.
 #
-# Usage: bash scripts/verify-revision.sh ARGO_APP SHA [--cluster homelab|oracle-a1] [--timeout SEC<=600] [--interval SEC] [--exact] [--allow-unhealthy]
+# Usage: bash scripts/verify-revision.sh ARGO_APP SHA [--cluster homelab|oracle-a1] [--timeout SEC<=600] [--interval SEC] [--exact] [--allow-unhealthy] [--deadline EPOCH]
 #   ARGO_APP  Argo Application name (e.g. apps-media: one Application per domain directory)
 #   SHA       merge commit, 7-40 hex chars
 #   --exact   the Application revision must equal SHA. Default: SHA or any commit that contains it
-#             (main moved on; needs the commit in the local clone, `git fetch` first).
+#             (main moved on). A revision missing from the local clone is fetched (`git fetch origin`, PLT-398).
+#   --deadline EPOCH  absolute end of the wait (unix seconds), shared by several calls: the wait ends at the
+#             earlier of now+--timeout and EPOCH. At least one check is always made.
 #   --allow-unhealthy  still waits for Healthy until --timeout, but at the deadline a Synced Application whose
 #             last operation Succeeded at the revision is PASS (REVISION=PROVEN, HEALTH=<status> printed). Health is
 #             aggregate over the domain Application, so it must not gate the revision proof; the per-app verdict
@@ -17,12 +19,12 @@
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-usage() { echo "usage: verify-revision.sh ARGO_APP SHA [--cluster homelab|oracle-a1] [--timeout SEC<=600] [--interval SEC] [--exact] [--allow-unhealthy]" >&2; exit 2; }
+usage() { echo "usage: verify-revision.sh ARGO_APP SHA [--cluster homelab|oracle-a1] [--timeout SEC<=600] [--interval SEC] [--exact] [--allow-unhealthy] [--deadline EPOCH]" >&2; exit 2; }
 blocked() { echo "REVISION=NOT_PROVEN"; echo "LAST_ERROR=$1"; echo "VERIFY_REVISION=BLOCKED"; exit 2; }
 
 [[ $# -ge 2 ]] || usage
 app=$1; sha=$2; shift 2
-cluster=homelab; timeout=600; interval=15; exact=0; allow_unhealthy=0
+cluster=homelab; timeout=600; interval=15; exact=0; allow_unhealthy=0; abs_deadline=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --cluster) cluster=${2:?}; shift 2 ;;
@@ -30,6 +32,7 @@ while [[ $# -gt 0 ]]; do
     --interval) interval=${2:?}; shift 2 ;;
     --exact) exact=1; shift ;;
     --allow-unhealthy) allow_unhealthy=1; shift ;;
+    --deadline) abs_deadline=${2:?}; shift 2 ;;
     *) usage ;;
   esac
 done
@@ -37,6 +40,7 @@ case "$cluster" in homelab|oracle-a1) ;; *) usage ;; esac
 [[ $app =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]] || usage
 [[ $sha =~ ^[0-9a-f]{7,40}$ ]] || usage
 [[ $timeout =~ ^[0-9]+$ && $interval =~ ^[0-9]+$ ]] || usage
+[[ -z $abs_deadline || $abs_deadline =~ ^[0-9]+$ ]] || usage
 (( timeout <= 600 )) || { echo "ERROR: --timeout is capped at 600 s" >&2; exit 2; }
 command -v jq >/dev/null || blocked "jq required"
 
@@ -44,20 +48,28 @@ ro() {
   if [[ -n ${KUBECTL_RO_BIN:-} ]]; then "$KUBECTL_RO_BIN" "$@"; else bash "$here/kubectl-ro.sh" "$@"; fi
 }
 
+have_commit() { git -C "$here/.." cat-file -e "$1^{commit}" 2>/dev/null; }
+fetch_round=0
+fetch_missing() { # main moves on during the wait (Renovate bursts): the checkout may lack the commit (PLT-398)
+  git -C "$here/.." rev-parse --git-dir >/dev/null 2>&1 || return 0
+  GIT_TERMINAL_PROMPT=0 git -C "$here/.." fetch --quiet --no-tags origin >/dev/null 2>&1 || true
+}
 contains_sha() { # REV: equals SHA (prefix) or descends from it
   local rev=$1
   [[ -n $rev ]] || return 1
   [[ $rev == "$sha"* || $sha == "$rev"* ]] && return 0
   (( exact == 1 )) && return 1
-  git -C "$here/.." cat-file -e "$sha^{commit}" 2>/dev/null && git -C "$here/.." cat-file -e "$rev^{commit}" 2>/dev/null \
-    && git -C "$here/.." merge-base --is-ancestor "$sha" "$rev" 2>/dev/null
+  if ! have_commit "$sha" || ! have_commit "$rev"; then
+    (( fetch_round == 1 )) || { fetch_missing; fetch_round=1; }
+  fi
+  have_commit "$sha" && have_commit "$rev" && git -C "$here/.." merge-base --is-ancestor "$sha" "$rev" 2>/dev/null
 }
 
 err=$(mktemp "${TMPDIR:-/tmp}/verify-revision.XXXXXX"); trap 'rm -f "$err"' EXIT
 sync=none; health=none; phase=none; rev_seen=none; match=no; reason=none; verdict=FAIL; soft_ok=no
 
 check_once() {
-  verdict=FAIL; reason=none; match=no; soft_ok=no
+  fetch_round=0; verdict=FAIL; reason=none; match=no; soft_ok=no
   local json rc=0
   json=$(ro --cluster "$cluster" get application "$app" -n argocd -o json 2>"$err") || rc=$?
   if (( rc != 0 )); then
@@ -80,6 +92,7 @@ check_once() {
 }
 
 deadline=$(( $(date +%s) + timeout ))
+[[ -z $abs_deadline ]] || (( abs_deadline >= deadline )) || deadline=$abs_deadline
 while :; do
   check_once
   [[ $verdict == PASS ]] && break

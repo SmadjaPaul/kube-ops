@@ -28,6 +28,7 @@ esac
 SH
 cat >"$tmp/bin/gh" <<'SH'
 #!/usr/bin/env bash
+[[ -z ${FX_GH_FAIL:-} ]] || { echo "gh: HTTP 403 (no token)" >&2; exit 1; }
 [[ $1 == pr && $2 == list && -n ${FX_PR_EXISTS:-} ]] && echo 7
 exit 0
 SH
@@ -70,7 +71,7 @@ FX_NORECIPE=1 run 0 --dry-run "$pass_sha"; expect "just_app_test_recipe_absent";
 FX_REV=timeout FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$pass_sha"; expect "revision_not_proven"; refute "DECISION=REVERT"
 FX_PR_EXISTS=1 FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$pass_sha"; expect "DECISION=ESCALATE"; expect "already_reverted"; refute "DRY_RUN git switch"
 FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$s4";        expect "DECISION=ESCALATE"; expect "more_than_apps"     # app + infra: no revert
-FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$s2";        expect "DECISION=REVERT"; expect "stateful=yes"; expect "verify-migration"   # PVC: warning
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$s2";        expect "DECISION=ESCALATE"; expect "stateful=yes"; expect "verify-migration"; expect "stateful_app_no_auto_revert"; refute "DRY_RUN git switch"   # PVC: no auto-revert (PLT-398)
 # Synced at the commit but Degraded: verify-revision (called with --allow-unhealthy) proves the revision, app-test judges.
 FX_VREV_LOG="$tmp/vrev.log" FX_REV=degraded FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$pass_sha"; expect "DECISION=REVERT"; expect "HEALTH=Degraded"; expect "revision=PROVEN"
 grep -q -- '--allow-unhealthy' "$tmp/vrev.log" || { echo "FAIL: verify-revision not called with --allow-unhealthy"; exit 1; }
@@ -95,6 +96,22 @@ expect "DECISION=NOTIFY"; expect "golden_path_fail_no_revert"; refute "DRY_RUN g
 FX_APPTEST=FAIL FX_CHECKS='CHECK oidc FAIL x' run 0 --dry-run "$g"; expect "DECISION=NOTIFY"   # old app-test without DEPLOY_HEALTH: safe
 FX_APPTEST=FAIL FX_DEPLOY=FAIL FX_CHECKS='CHECK oidc FAIL x\nCHECK selfheal FAIL pods non Ready: it-tools-abc' run 1 --dry-run "$g"
 expect "DECISION=REVERT"; expect "deploy=FAIL"; expect "DRY_RUN git switch"
+# PLT-398: guards must not be blind. gh failing (no token, API down) is not "no revert attempted": fail safe.
+FX_GH_FAIL=1 FX_DEPLOY=FAIL FX_APPTEST=FAIL run 1 --dry-run "$g"; expect "DECISION=ESCALATE"; refute "DRY_RUN git switch"; expect "GUARD_UNKNOWN"
+FX_GH_FAIL=1 FX_APPTEST=PASS run 0 --dry-run "$g"; expect "DECISION=NONE"
+# One wait per Argo Application: two apps of the same domain call verify-revision once; global deadline passed down.
+echo m1 >>k8s/applications/media/prowlarr/app.yaml; echo m2 >>k8s/applications/media/bookorbit/pvc.yaml; two=$(commit "feat(media): two media apps")
+rm -f "$tmp/vrev.log"; FX_VREV_LOG="$tmp/vrev.log" FX_APPTEST=PASS run 0 --dry-run "$two"; expect "CHECK app-test app=prowlarr"; expect "CHECK app-test app=bookorbit"
+[[ $(grep -c '^apps-media ' "$tmp/vrev.log") == 1 ]] || { echo "FAIL: apps-media waited more than once:"; cat "$tmp/vrev.log"; exit 1; }
+grep -q -- '--deadline [0-9]' "$tmp/vrev.log" || { echo "FAIL: no global --deadline passed"; cat "$tmp/vrev.log"; exit 1; }
+FX_REV=timeout FX_APPTEST=PASS run 0 --dry-run "$two"; expect "app=bookorbit argo=apps-media REVISION=NOT_PROVEN"   # cached verdict applies to both apps
+# Multi-commit push: tip touches docs only, the first commit touches an app. --base (github.event.before) sees both.
+echo n >>k8s/applications/tools/it-tools/d.yaml; first=$(commit "feat(tools): first of push")
+echo d >>README.md; tip=$(commit "docs: tip of push")
+FX_APPTEST=PASS run 0 --dry-run "$tip"; expect "AFFECTED_CLASS=none"; expect "no_app_touched"
+FX_APPTEST=PASS run 0 --dry-run "$tip" --base "$(git rev-parse "$first^")"; expect "AFFECTED_APP name=it-tools"; expect "DECISION=NONE"
+FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$tip" --base 0000000000000000000000000000000000000000; expect "AFFECTED_CLASS=none"   # first push / unknown base: tip only
+out=$(bash scripts/post-merge-affected.sh "$tip" "$(git rev-parse "$first^")"); expect "AFFECTED_APP name=it-tools"
 # Secrets never printed; usage errors.
 run 2 --bogus
 echo "post-merge verify test: PASS"
