@@ -308,5 +308,18 @@ jq '.data.result[0].value[1] = "0"' "$FAKE_DIR/up.json" | sponge_to "$FAKE_DIR/u
 run_rt good; expect "regression non gelee (observability)" observability FAIL 1
 rm -f "$root/policy/app-test-baseline.tsv"
 
+# dossier sans workload (RBAC seul, PLT-392) : selfheal SKIP, pas FAIL "aucun pod"
+mk_app bare
+cat >"$(app bare)/rbac.yaml" <<K
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: bare, namespace: bare }
+rules: []
+K
+printf 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources: [namespace.yaml, rbac.yaml]\n' >"$(app bare)/kustomization.yaml"
+A=bare; rt_setup; run_rt bare
+grep -q '^CHECK selfheal SKIP l.app ne declare aucun workload' "$tmp/out" || fail "app sans workload: selfheal doit etre SKIP ($(grep '^CHECK selfheal' "$tmp/out"))"
+A=good
+
 if ((fails > 0)); then echo "APP_TEST_CONTRACT=FAIL failures=$fails"; exit 1; fi
 echo "APP_TEST_CONTRACT=PASS"

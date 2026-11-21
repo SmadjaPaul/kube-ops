@@ -1,0 +1,4 @@
+# Contrat de test (PLT-392) : OIDC natif, la racine / sert la page de login ou le SPA (200).
+# La sonde runtime vise un endpoint protege, qui repond 401 sans cookie.
+auth: oidc
+auth_probe: /api/v1/tasks
