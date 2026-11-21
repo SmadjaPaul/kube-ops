@@ -38,8 +38,9 @@ eq '.spec.template.spec.containers[0].resources.requests.memory' "$root/deployme
 eq '.spec.template.spec.containers[0].resources.limits.memory' "$root/deployment.yaml" 2Gi
 eq '.spec.endpointSelector.matchLabels."app.kubernetes.io/name"' "$root/networkpolicy.yaml" polyfin
 eq '.spec.egress | length' "$root/networkpolicy.yaml" 4
-eq '.spec.endpointSelector.matchExpressions[0].values | length' "$global" 3
-eq '.spec.endpointSelector.matchExpressions[0].values[2]' "$global" polyfin
+eq '.spec.endpointSelector.matchExpressions[0].values | length' "$global" 5
+eq '.spec.endpointSelector.matchExpressions[0].values[2]' "$global" qbittorrent-mam
+eq '.spec.endpointSelector.matchExpressions[0].values[4]' "$global" polyfin
 eq '.spec.data[0].remoteRef.key' "$root/external-secret.yaml" APP_POLYFIN_SECRET_KEY
 eq '.spec.bootstrap.initdb.database' "$root/cluster.yaml" polyfin
 eq '.spec.storage.storageClass' "$root/cluster.yaml" longhorn-fast
