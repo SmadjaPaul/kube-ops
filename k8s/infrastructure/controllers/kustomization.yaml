@@ -14,4 +14,3 @@ resources:
 - vpa
 - velero
 - agent-sandbox
-- argo-rollouts
