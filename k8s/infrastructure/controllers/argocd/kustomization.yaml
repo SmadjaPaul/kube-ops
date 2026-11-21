@@ -8,6 +8,7 @@ resources:
   - rolebinding.yaml
   - role.yaml
   - externalsecret.yaml
+  - externalsecret-notifications.yaml
 
 helmCharts:
 - name: argo-cd
@@ -16,3 +17,19 @@ helmCharts:
   repo: https://argoproj.github.io/argo-helm
   valuesFile: values.yaml
   version: 10.3.3
+
+patches:
+  # PLT-396: the chart's standard NetworkPolicy for the notifications controller
+  # violates repo-contract-no-networkpolicy (CiliumNetworkPolicy only); the
+  # existing Argo ones are baselined, a new one is not allowed.
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: NetworkPolicy
+      name: argocd-notifications-controller
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        name: argocd-notifications-controller
