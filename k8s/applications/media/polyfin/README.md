@@ -37,8 +37,9 @@ are gone (`CVE-2026-111943`, `CVE-2026-78667`, `CVE-2026-78669`,
 `CVE-2026-97031` and the zlib `CVE-2026-76844`), and the policy entries were
 removed. One CVE is new and unreviewed: **`CVE-2026-124709`** (HIGH,
 `libssl3t64` and `openssl-provider-legacy` 3.5.7-1~deb13u2, no fix), so
-`scripts/polyfin-admission-check.sh` fails against the real scan until an
-operator accepts or rejects it. The `linux/arm64` image (the A1 cluster
+`scripts/polyfin-admission-check.sh` failed against the real scan until the
+operator accepted it as a temporary T2 residual (same private perimeter and
+the same 2026-12-05 expiry); the check now passes on the real scan. The `linux/arm64` image (the A1 cluster
 architecture) reports a subset of the same CVE ids.
 
 Behaviour changes to decide or perform at the operator console (none of them
