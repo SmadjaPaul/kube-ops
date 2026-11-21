@@ -6,7 +6,8 @@ metadata:
   labels:
     policy-type: media-audit
 spec:
-  # Exclude AIOStreams, Polyfin and dormant RDT-Client from the broad legacy policy.
+  # Exclude AIOStreams, Polyfin, BookOrbit, dedicated qBittorrent, and dormant
+  # RDT-Client from the broad legacy policy.
   # Cilium allow policies are additive: a narrower workload-specific policy
   # cannot undo broad world:443/563 grants from this policy.
   # Keep RDT excluded before its eventual admission (currently staged only).
@@ -16,6 +17,8 @@ spec:
         operator: NotIn
         values:
           - aiostreams
+          - bookorbit
+          - qbittorrent-mam
           - rdt-client
           - polyfin
   description: "Allow media applications access"

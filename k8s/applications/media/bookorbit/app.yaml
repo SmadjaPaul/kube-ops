@@ -176,6 +176,9 @@ spec:
             - name: gutenberg-plugin
               mountPath: /appdata/plugins/indexers/gutenberg-fr-candide
               readOnly: true
+            - name: mam-plugin
+              mountPath: /appdata/plugins/indexers/myanonamouse
+              readOnly: true
             - name: media
               mountPath: /data
             - name: tmp
@@ -187,6 +190,9 @@ spec:
         - name: gutenberg-plugin
           configMap:
             name: bookorbit-plugin-gutenberg-fr-candide
+        - name: mam-plugin
+          configMap:
+            name: bookorbit-plugin-myanonamouse
         - name: media
           persistentVolumeClaim:
             claimName: media-share

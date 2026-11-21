@@ -80,6 +80,16 @@ spec:
         - ports:
             - port: "5432"
               protocol: TCP
+    # Dedicated qBittorrent WebUI/API for public qualification only. MAM
+    # source egress remains denied until separately approved.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: qbittorrent-mam
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

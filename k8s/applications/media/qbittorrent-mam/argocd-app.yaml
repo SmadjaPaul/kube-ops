@@ -1,0 +1,4 @@
+name: qbittorrent-mam
+namespace: media
+postMerge: notify
+preview: false

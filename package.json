@@ -15,7 +15,7 @@
     "check:alerting-stage": "node --test tests/harness/alertmanager-ntfy-staged-test.mjs",
     "check:argocd-roots": "node --test tests/harness/argocd-generator-paths.test.mjs",
     "check:inventory-graph": "node --test tests/harness/inventory-graph.test.mjs",
-    "check:bookorbit-plugin": "node --test tests/harness/bookorbit-gutenberg-fr-candide.test.mjs",
+    "check:bookorbit-plugin": "node --test tests/harness/bookorbit-gutenberg-fr-candide.test.mjs && node tests/fixtures/bookorbit-mam-plugin/verify.mjs && python3 -I tests/harness/qbittorrent-bootstrap-test.py",
     "check:policy": "bash scripts/policy-check.sh",
     "check:policy-tests": "bash scripts/policy-check.sh --tests",
     "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh"
