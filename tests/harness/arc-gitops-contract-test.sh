@@ -186,6 +186,7 @@ done
 pilot_network_policy='select(.kind == "CiliumNetworkPolicy" and .metadata.name == "arc-runners-homelab-iac-pilot-egress")'
 assert_yq "$pilot_network_policy | [.spec.egress[]?.toEndpoints[]? | select(.matchLabels.\"k8s:app.kubernetes.io/name\" == \"aiostreams\") | .matchLabels.\"k8s:io.kubernetes.pod.namespace\"] | join(\",\")" 'media'
 assert_yq "$pilot_network_policy | [.spec.egress[] | select(.toEndpoints[0].matchLabels.\"k8s:app.kubernetes.io/name\" == \"aiostreams\") | .toPorts[]?.ports[]? | (.port + \"/\" + .protocol)] | join(\",\")" '3000/TCP'
+assert_yq "$pilot_network_policy | [.spec.egress[]?.toFQDNs[]?.matchName | select(. == \"pypi.org\" or . == \"files.pythonhosted.org\")] | join(\",\")" 'pypi.org,files.pythonhosted.org'
 
 assert_yq_file() {
   local expression=$1 file=$2 expected=$3 actual
