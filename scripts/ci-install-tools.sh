@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs the pinned tools the post-merge job needs on the stock ARC runner image (PLT-390 lot 3):
-# kubectl, jq, yq, just, kustomize, helm, into ~/.local/bin. Each download is checked against a pinned sha256 (linux/amd64).
+# kubectl, jq, yq, just, kustomize, helm, gh, into ~/.local/bin. Each download is checked against a pinned sha256 (linux/amd64).
 # Hosts: dl.k8s.io, get.helm.sh, github.com release assets (allowed by the egress policy of the kube-ops scale set).
 # Usage: bash scripts/ci-install-tools.sh   (then PATH="$HOME/.local/bin:$PATH")
 set -euo pipefail
@@ -29,5 +29,11 @@ need kustomize || {
 need helm || {
   fetch https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz 86584a54def73570558f66f5111cc53dfed56689637ae32c1201205d494f54fb "$tmp/helm.tgz"
   tar -xzf "$tmp/helm.tgz" -C "$tmp" linux-amd64/helm && install -m 0755 "$tmp/linux-amd64/helm" "$bin/helm"
+}
+# The loop guards of post-merge-verify.sh call gh (revert_attempted, is_revert). Without it they are
+# GUARD_UNKNOWN and fail safe to ESCALATE: no automatic revert any more (seen in the PLT-398 dry-run drill).
+need gh || {
+  fetch https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_linux_amd64.tar.gz 4c806978ffce1cec70853302a56d70ac6da4f19bae7adca4e1a8ab00633dd91d "$tmp/gh.tgz"
+  tar -xzf "$tmp/gh.tgz" -C "$tmp" gh_2.103.3_linux_amd64/bin/gh && install -m 0755 "$tmp/gh_2.103.3_linux_amd64/bin/gh" "$bin/gh"
 }
 echo "CI_TOOLS=READY bin=$bin"

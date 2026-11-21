@@ -114,4 +114,9 @@ FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$tip" --base 0000000000000000000
 out=$(bash scripts/post-merge-affected.sh "$tip" "$(git rev-parse "$first^")"); expect "AFFECTED_APP name=it-tools"
 # Secrets never printed; usage errors.
 run 2 --bogus
+# Every CLI the CI job calls must be installed by ci-install-tools.sh: a missing gh made the loop guards
+# GUARD_UNKNOWN on the runner, hence ESCALATE instead of REVERT (PLT-398 dry-run drill, 21/11).
+for tool in gh kubectl jq yq kustomize helm; do
+  grep -q "^need $tool " "$repo_root/scripts/ci-install-tools.sh" || { echo "FAIL: ci-install-tools.sh does not install $tool"; exit 1; }
+done
 echo "post-merge verify test: PASS"
