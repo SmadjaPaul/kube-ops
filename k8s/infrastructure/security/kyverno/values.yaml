@@ -6,17 +6,50 @@
 # admission controller keeps the 2 s default: its leader runs the webhook
 # controller that updates webhook rules from policies, and a 60 s delay after
 # a restart could leave a new policy outside the rules (CodeRabbit, #1282).
+# PLT-400: the single admission replica restarted 49 times in 47 h: probes
+# (5 s timeout, liveness failureThreshold 2) timed out while the process was
+# starved on the shared single node (no CPU throttling, no OOM: no CPU limit,
+# peak memory ~140 Mi vs 384 Mi limit), and every restart opened a window where
+# the fail-policy webhook refused admissions (Velero PodVolumeBackups, PLT-392).
+# 3 replicas keep the webhook served during a restart or rollout (the chart then
+# creates the PodDisruptionBudget on its own, minAvailable 1). Only the leader
+# renews the Lease, so extra replicas add no etcd writes (PLT-214 unaffected).
+# The cluster has one node: anti-affinity is only "preferred", HA covers pod
+# restarts, not a node loss.
 admissionController:
-  replicas: 1
+  replicas: 3
   # PLT-280: chart 3.x reads the admission container's resources under
   # admissionController.container.resources; a top-level resources key is
   # ignored and the chart default (100m) applied. Requests only: the chart's
   # limits (memory 384Mi, no CPU limit) stay as they run today.
+  # PLT-400: CPU request 50m -> 100m (observed peak ~85m) for a fair share
+  # under node CPU contention.
   container:
     resources:
       requests:
-        cpu: 50m
+        cpu: 100m
         memory: 128Mi
+  # PLT-400: tolerate a slow answer under load instead of killing the pod.
+  livenessProbe:
+    httpGet:
+      path: /health/liveness
+      port: 9443
+      scheme: HTTPS
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 4
+    successThreshold: 1
+  readinessProbe:
+    httpGet:
+      path: /health/readiness
+      port: 9443
+      scheme: HTTPS
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 6
+    successThreshold: 1
   tolerations:
     - key: node.kubernetes.io/disk-pressure
       operator: Exists
