@@ -64,7 +64,6 @@ pinepods	renovate	FAIL
 pinepods	selfheal	FAIL
 polyfin	backup	FAIL
 polyfin	observability	FAIL
-prowlarr	observability	FAIL
 romm	network	FAIL
 romm	observability	FAIL
 romm	renovate	FAIL

@@ -8,7 +8,6 @@ resources:
 - media-share-pvc.yaml
 - media-layout-job.yaml
 - bookorbit
-- prowlarr
 - immich
 - aiostreams
 - polyfin
