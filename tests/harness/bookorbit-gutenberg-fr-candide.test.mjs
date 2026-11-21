@@ -26,6 +26,8 @@ test('only returns the curated French Candide EPUB from the official mirror', as
 
   assert.equal(result.length, 1);
   assert.equal(result[0].guid, '59859');
+  assert.equal(result[0].title, "Candide ou l'optimisme");
+  assert.equal(result[0].bookTitle, "Candide, ou l'optimisme");
   assert.equal(result[0].language, 'fr');
   assert.equal(result[0].format, 'epub');
   assert.equal(result[0].sizeBytes, 123126);
