@@ -8,3 +8,8 @@ resources:
   - app.yaml
   - networkpolicy.yaml
   - backup-pre-reset-20261115.yaml
+
+configMapGenerator:
+  - name: bookorbit-plugin-gutenberg-fr-candide
+    files:
+      - index.mjs=plugins/gutenberg-fr-candide.mjs
