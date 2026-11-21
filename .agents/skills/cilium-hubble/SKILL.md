@@ -11,3 +11,7 @@ description: Check whether Cilium network policy drops traffic for a namespace o
 4. Per-flow proof: `bash .agents/skills/cilium-hubble/scripts/hubble-check.sh <ns>...` (Hubble relay port-forward through `scripts/lib/kube-preflight.sh`; needs the `hubble` CLI and an identity allowed to port-forward). `kubectl-ro.sh` does not admit a port-forward. Without it, report the flow verdict as `NOT_PROVEN` and name the missing capability.
 
 A zero drop rate does not prove that a namespace's traffic flows: it needs evidence that covers the investigated pair, such as a successful request from the source workload to the destination in application logs. Without it, report `NOT_PROVEN`.
+
+## Egress d'un pod qui échoue (ETIMEDOUT, fetch failed)
+
+Commencer par le résumé pré-agrégé, une seule commande, une trentaine de lignes : `bash scripts/egress-why.sh <namespace> <container> [--since 30m] [--end RFC3339]`. Lecture et interprétation : `docs/runbooks/egress-why.md`.
