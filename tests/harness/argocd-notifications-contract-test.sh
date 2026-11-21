@@ -24,6 +24,9 @@ limit=$(yq -r 'select(.kind=="ApplicationSet").spec.template.spec.syncPolicy.ret
 
 lua=$(yq -r '.configs.cm["resource.customizations.health.argoproj.io_Application"]' "$v")
 [[ -n $lua && $lua != null ]] || fail "Application health Lua missing"
+# A self-managed Application (root tracks itself) must not wait for its own
+# health: it deadlocked the root sync on 21/11 (PLT-396).
+grep -q 'tracking-id' <<<"$lua" || fail "Application health Lua must short-circuit self-managed Applications (tracking-id)"
 if python3 -I -c 'import lupa' 2>/dev/null; then
   LUA_SRC=$lua python3 -I - <<'PY'
 import os, sys
@@ -35,6 +38,11 @@ def run(obj):
 H = lambda h, s: {"status": {"health": {"status": h}, "sync": {"status": s}}}
 cases = [({}, "Progressing"), (H("Healthy", "Synced"), "Healthy"), (H("Healthy", "OutOfSync"), "Progressing"),
          (H("Progressing", "Synced"), "Progressing"), (H("Degraded", "Synced"), "Degraded"), (H("Degraded", "OutOfSync"), "Degraded")]
+def T(name, tid, h, s):
+    o = H(h, s); o["metadata"] = {"name": name, "annotations": {"argocd.argoproj.io/tracking-id": tid}}; return o
+cases += [(T("root", "root:argoproj.io/Application:argocd/root", "Healthy", "OutOfSync"), "Healthy"),
+          (T("root", "root:argoproj.io/Application:argocd/root", "Progressing", "OutOfSync"), "Healthy"),
+          (T("apps-ai", "root:argoproj.io/Application:argocd/apps-ai", "Healthy", "OutOfSync"), "Progressing")]
 def conv(o):
     return rt.table_from({k: conv(v) if isinstance(v, dict) else v for k, v in o.items()})
 for obj, want in cases:
