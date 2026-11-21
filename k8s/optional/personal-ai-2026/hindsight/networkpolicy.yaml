@@ -1,6 +1,8 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: hindsight-personal
   namespace: hindsight-personal
 spec:
