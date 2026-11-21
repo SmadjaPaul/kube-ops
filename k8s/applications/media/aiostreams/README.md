@@ -1,4 +1,4 @@
-# AIOStreams v2.37.0 — native video app (PRIVATE ROUTE)
+# AIOStreams v2.38.1 — native video app (PRIVATE ROUTE)
 
 The Media root already deploys AIOStreams with an internal-only
 `Gateway/internal` route. There is no public Gateway parent, Cloudflare
@@ -22,8 +22,12 @@ route, or blanket external egress.
 
 ## Upstream-verified startup contract
 
-- Verified version: stable `v2.37.0`, published 2026-10-23.
-- Official image: `ghcr.io/viren070/aiostreams:v2.37.0` (must pin digest
+- Verified version: stable `v2.38.1`, published 2026-11-14 (from `v2.37.0`).
+  Statically checked only: the 2.37.0 to 2.38.1 diff of the environment
+  variables shows none removed that this Deployment sets; runtime
+  requalification (health, family manifest, TorBox stream resolution) is
+  pending.
+- Official image: `ghcr.io/viren070/aiostreams:v2.38.1` (must pin digest
   after registry inspection; unpinned tag is a merge blocker).
 - Official Docker volume: `/app/data`. SQLite default:
   `sqlite://./data/db.sqlite`; 1 replica with RWO data PVC.
@@ -80,9 +84,9 @@ route, or blanket external egress.
 ## Audit evidence and admission blockers
 
 - The admission pins the multi-architecture image index to
-  `sha256:bcfd8580695a50c8f464578a0e25af065f3bd17eac35ed82a733a18342ca9718`;
+  `sha256:1b90bc2fda70f365dff2ce98fc311a24708cca9841efe09aefe309cd4da1fb2c`;
   its Linux/amd64 child manifest is
-  `sha256:c1dd8ef7d5db9dbddbf829545e18e9ab6e5eef09ebb705924c9db89729d47dfd`.
+  `sha256:560fd7dfe8106cbf6fc22c9c28daf313bc500f58224920d859a36dbf47a76f69`.
   The exact image config declares UID 0, so the pod-level UID/GID 2501,
   `runAsNonRoot`, dropped capabilities and read-only root filesystem are
   mandatory runtime controls. They must be rechecked when the digest changes.
@@ -164,7 +168,7 @@ qualify the separate sign-in, PIN, isolation and TV Quick Connect.
 
 The family configuration uses native per-profile PIN hashes. `JELLYFIN_PIN_SIGN_IN`
 is explicitly disabled, so a PIN cannot authenticate publicly without the
-shared configuration password. AIOStreams v2.37.0 does not expose a native
+shared configuration password. AIOStreams v2.37.0 (not rechecked on v2.38.1) does not expose a native
 self-service PIN-change endpoint; profile PIN changes remain configuration
 edits and must not be added as a custom API.
 
