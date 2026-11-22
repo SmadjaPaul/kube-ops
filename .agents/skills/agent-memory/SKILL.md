@@ -25,7 +25,7 @@ A write that belongs to layer 3 is refused: write a ticket or a decision instead
 
 | Bank | Who | Agent access |
 |---|---|---|
-| `agents-homelab` | engineering agents (Claude Code, Codex) | read and write, via MCP, this skill's rules |
+| `agents-homelab` | engineering agents (Claude Code) | read and write, via MCP, this skill's rules |
 | personal banks | their owner | none |
 
 Complete list of banks: not yet read from the homelab instance (no admin read done for
@@ -105,6 +105,3 @@ Claude Code (`.mcp.json` or `claude mcp add`):
               "CF-Access-Client-Secret": "${CF_ACCESS_CLIENT_SECRET}"}}}}
 ```
 
-Codex (`~/.codex/config.toml`): `[mcp_servers.hindsight]` with the same `url`,
-`bearer_token_env_var = "HINDSIGHT_API_KEY"` and `env_http_headers` for the two
-`CF-Access-*` headers. Check the syntax against the installed Codex version.
