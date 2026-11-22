@@ -17,6 +17,7 @@ tests/harness/arc-gitops-contract-test.sh
 tests/harness/invoice-backup-test.sh
 tests/harness/restic-backup-contract-test.sh
 tests/harness/aiostreams-staged-contract-test.sh
+tests/harness/fleet-public-route-contract-test.sh
 tests/harness/aiostreams-sqlite-restore-test.sh
 tests/harness/aiostreams-oidc-dormant-contract-test.sh
 tests/harness/aiostreams-egress-global-exclusion-contract-test.sh
