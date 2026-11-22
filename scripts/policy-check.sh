@@ -103,7 +103,7 @@ if [[ $requested == all ]]; then
   # l'appliquer) ; les namespaces des apps a descripteur argocd-app.oracle-a1.yaml sont exemptes de la regle.
   # A retirer avec le chaining Cilium d'OKE (PLT-384, k8s/clusters/oracle-a1/README.md).
   for f in k8s/applications/*/*/argocd-app.oracle-a1.yaml; do
-    [[ -f $f ]] && yq eval '.namespace' "$f"
+    if [[ -f $f ]]; then yq eval '.namespace' "$f"; fi # `[[ ]] &&` en derniere commande faisait echouer set -e sans descripteur OKE
   done | sort -u >"$work/ns-oke.txt"
   comm -23 "$work/ns-workloads.txt" <(sort -u "$work/ns-cnp.txt" "$work/ns-oke.txt") | sed 's/.*/repo-contract-cnp-per-namespace\t&/' >>"$work/current.tsv"
   sort -u -o "$work/current.tsv" "$work/current.tsv"
