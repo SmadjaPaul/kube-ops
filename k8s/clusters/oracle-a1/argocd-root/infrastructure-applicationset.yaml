@@ -45,11 +45,13 @@ spec:
           - path: k8s/clusters/oracle-a1/arc-runner
           # pg-shared (PLT-408) : operateur CNPG, plugin barman-cloud (TLS gRPC par un Issuer
           # auto-signe, d'ou cert-manager). Le plugin et ses Certificate attendent les CRD de
-          # cert-manager : l'Application retente. Le Cluster pg-shared (cnpg-cluster) arrive dans
-          # une PR suivante, une fois ces trois Applications Healthy.
+          # cert-manager : l'Application retente. Puis le Cluster pg-shared (cnpg-cluster) : seule
+          # exception a la regle "pas de donnees sur OKE" (README), pour le drill de restauration hors
+          # Oracle ; aucune base applicative avant un drill PROVEN.
           - path: k8s/clusters/oracle-a1/cert-manager
           - path: k8s/clusters/oracle-a1/cnpg-operator
           - path: k8s/clusters/oracle-a1/cnpg-barman-plugin
+          - path: k8s/clusters/oracle-a1/cnpg-cluster
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
