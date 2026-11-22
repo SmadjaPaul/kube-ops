@@ -258,6 +258,9 @@ while IFS=$'\t' read -r cluster f; do
         fi
       fi
       if [[ "$(yq eval '.preview // false' "$f")" == true ]]; then
+        # la route de preview vise <app>-preview-service (ApplicationSet previews, PLT-394)
+        [[ "$(yq eval --no-doc "select(.kind == \"Service\" and .metadata.name == \"$(basename "$rel")-preview-service\") | .metadata.name" "$tmp/app.rendered")" == "$(basename "$rel")-preview-service" ]] \
+          || fail "$d: preview is true but $rel renders no Service $(basename "$rel")-preview-service (the preview HTTPRoute backend)"
         if [[ ! -f $tmp/preview.whitelist ]]; then
           for pf in "$root_dir"/*.yaml; do
             yq eval --no-doc 'select(.kind == "AppProject" and .metadata.name == "previews") | .spec.namespaceResourceWhitelist[] | .group + "/" + .kind' "$pf"

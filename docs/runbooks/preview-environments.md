@@ -30,7 +30,7 @@ Garde-fous (PLT-395, défense en profondeur) :
 
 ## Limites connues
 
-- Une app derrière KEDA (HTTPRoute vers `keda-add-ons-http-interceptor-proxy`) n'est pas joignable par le hostname de preview ; le test runtime passe par le Service du namespace.
+- Une app derrière KEDA (HTTPRoute vers `keda-add-ons-http-interceptor-proxy`, autre namespace) : `Gateway/internal` refuse la référence (`ResolvedRefs=False`, `RefNotPermitted`) et l'Application passerait Degraded. Le patch de l'ApplicationSet réécrit donc `rules[0].backendRefs` vers le Service `<app>-preview-service` (port 8080) du namespace de la preview : une app `preview: true` doit livrer ce Service (`it-tools` l'a). Un hostname de preview atteint l'app directement, sans le démarrage à froid KEDA (ScaledObject retiré).
 - Une app dont le dossier contient un objet hors liste blanche (CiliumNetworkPolicy propre, Role, ServiceMonitor, GRPCRoute, etc.) est refusée par Argo (Application en erreur de sync) : retirer l'objet de la preview n'est pas automatique, la preview n'est pas possible pour cette app.
 - Les apps avec base de données partagée (`pg-shared`) ne sont pas supportées : la preview n'a pas de CNPG éphémère dans cette version.
 - Secrets (D-2026-11-20-04) : une preview ne lit jamais un secret de prod. Le seul ExternalSecret admis est la forme C du contrat (générateur `Password`, `refreshPolicy: CreatedOnce`, sans `secretStoreRef` ni `data`), dans le namespace de la preview. Une app dont l'ExternalSecret lit un store (`doppler-cluster`, `k8s-auth`, `k8s-databases` ou tout autre) est refusée par Kyverno `preview-namespace-guard` et reste Degraded : la preview n'est pas possible tant que l'app n'a pas de forme C. Un jeton externe réel (API tierce) est hors périmètre : aucun secret par défaut.
