@@ -20,8 +20,8 @@ spec:
         githubConfigSecret: arc-github-app
         minRunners: 0
         # Validation and admitted read-only plans use the same hardened scale set.
-        # Keep two warm slots so a plan cannot serialize behind repository CI.
-        maxRunners: 2
+        # Four slots so plans do not serialize behind repository CI (queue of 2026-11-22).
+        maxRunners: 4
         controllerServiceAccount:
           namespace: arc-systems
           name: arc-gha-rs-controller
