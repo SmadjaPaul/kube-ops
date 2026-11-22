@@ -12,3 +12,5 @@ resources:
   - ../../../optional/pg-shared-oke-drill/oke-database
   # PLT-408 drill, etape 3 (retirer apres le drill) : base backup apres seed A (seed A retire, rows presentes)
   - ../../../optional/pg-shared-oke-drill/oke-backup
+  # PLT-408 drill, etape 4 (retirer apres le drill) : seed B, apres le base backup pg-shared-drill-base (completed 20:07Z)
+  - ../../../optional/pg-shared-oke-drill/oke-seed-b
