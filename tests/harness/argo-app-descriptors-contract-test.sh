@@ -230,4 +230,27 @@ run || { cat "$tmp/out" >&2; fail "homelab app with a PVC must still pass"; }
 fresh; descriptor; echo 'disposableData: "x"' >>"$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml"
 expect_fail "unknown field 'disposableData'" "disposableData is OKE-only"
 
+# --- PLT-405 : PDB compatible noeud unique sur OKE
+pdb() { add_res pdb.yaml <<YAML
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: p
+  namespace: it-tools
+spec:
+  $1
+  selector: {matchLabels: {a: b}}
+YAML
+}
+fresh; oke_descriptor; pdb "minAvailable: 1"
+expect_fail "blocks every eviction on the single-node oracle-a1" "OKE PDB minAvailable 1"
+fresh; oke_descriptor; pdb "maxUnavailable: 0"
+expect_fail "blocks every eviction on the single-node oracle-a1" "OKE PDB maxUnavailable 0"
+fresh; oke_descriptor; pdb 'minAvailable: "100%"'
+expect_fail "blocks every eviction on the single-node oracle-a1" "OKE PDB minAvailable 100%"
+fresh; oke_descriptor; pdb "maxUnavailable: 1"
+run || { cat "$tmp/out" >&2; fail "OKE PDB maxUnavailable 1 must pass"; }
+fresh; descriptor; pdb "minAvailable: 1"
+run || { cat "$tmp/out" >&2; fail "homelab PDB minAvailable 1 must still pass"; }
+
 echo "OK: argocd-app.yaml descriptor contract"

@@ -12,6 +12,7 @@
 #      restauration hors Oracle n'est pas prouvee, PLT-190) : un rendu avec PersistentVolumeClaim, CNPG
 #      `Cluster` ou StatefulSet a volumeClaimTemplates est refuse, sauf `disposableData: "<raison>"` dans le
 #      descripteur (donnee jetable et recreable, raison non vide) ; une exception sans objet durable est refusee ;
+#      descripteur OKE, noeud unique : un PodDisruptionBudget qui interdit toute eviction est refuse (PLT-405) ;
 #      une app n'a qu'un cluster : jamais les deux fichiers dans le meme dossier ;
 #   b. chaque `extraPaths` existe (chemin depuis la racine du depot, sans `..` ni joker) ;
 #   c. un domaine migre est COMPLET (chaque sous-dossier avec kustomization.yaml a son descripteur)
@@ -250,6 +251,15 @@ while IFS=$'\t' read -r cluster f; do
         elif [[ -n $durable ]]; then
           fail "$d: $rel renders durable data on $cluster ($durable): no application data on OKE until a restore off Oracle is proven (PLT-190); keep the app on the homelab, or declare disposableData: \"<why the data is disposable>\" in the descriptor"
         fi
+      fi
+      if [[ $cluster != homelab ]]; then
+        # PLT-405 : OKE n'a qu'un noeud. Un PDB qui interdit toute eviction bloque le drain (mise a jour OKE) :
+        # minAvailable entier >= 1 ou 100%, maxUnavailable 0 ou 0% sont refuses ; maxUnavailable >= 1 ou minAvailable 0 passent.
+        pdb="$(yq eval --no-doc '
+          select(.kind == "PodDisruptionBudget")
+          | .metadata.name + " " + (.spec.minAvailable // "none" | tostring) + " " + (.spec.maxUnavailable // "none" | tostring)' "$tmp/app.rendered" \
+          | awk '($2 != "none" && $2 != "0" && $2 != "0%") || $3 == "0" || $3 == "0%" { print $1 }' | paste -sd, -)"
+        [[ -z $pdb ]] || fail "$d: $rel renders PodDisruptionBudget $pdb that blocks every eviction on the single-node $cluster (use maxUnavailable: 1, or drop the PDB)"
       fi
       if [[ "$(yq eval '.preview // false' "$f")" == true ]]; then
         # la route de preview vise <app>-preview-service (ApplicationSet previews, PLT-394)
