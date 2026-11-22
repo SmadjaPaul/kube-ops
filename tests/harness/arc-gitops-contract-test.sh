@@ -154,7 +154,7 @@ assert_yq "$homelab_runner_values | .template.spec.securityContext.fsGroup" '100
 assert_yq "$homelab_runner_values | .template.spec.containers | length" '1'
 assert_yq "$homelab_runner_values | .template.spec.containers[0].name" 'runner'
 assert_yq "$homelab_runner_values | .template.spec.containers[0].image" \
-  'ghcr.io/smadjapaul/homelab-infra-ci-runner:latest-c8d2926@sha256:9f82220afa489f9d0dd76214abc561471826f6a1848dae056868d5211afbd9c5'
+  'ghcr.io/smadjapaul/arc-ci-runner:tools1-576e0cb@sha256:087f055d11e3c2a0afd3606fa9b3a45b54a80401c201cd8df0cb261023557709'
 assert_yq "$homelab_runner_values | .template.spec.containers[0].securityContext.allowPrivilegeEscalation" 'false'
 assert_yq "$homelab_runner_values | .template.spec.containers[0].securityContext.seccompProfile.type" 'RuntimeDefault'
 
@@ -289,7 +289,7 @@ assert_yq_website "$website_values | .template.spec.securityContext.runAsUser" '
 assert_yq_website "$website_values | .template.spec | (has(\"serviceAccountName\") or has(\"hostNetwork\") or has(\"imagePullSecrets\"))" 'false'
 assert_yq_website "$website_values | .template.spec.containers | length" '1'
 assert_yq_website "$website_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
-assert_yq_website "$website_values | .template.spec.containers[0].image | test(\"^ghcr.io/smadjapaul/website-ci-runner:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$\")" 'true'
+assert_yq_website "$website_values | .template.spec.containers[0].image | test(\"^ghcr.io/smadjapaul/arc-ci-runner:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$\")" 'true'
 assert_yq_website "$website_values | .template.spec.containers[0].securityContext.allowPrivilegeEscalation" 'false'
 assert_yq_website "$website_values | (.template.spec.containers[0].securityContext.capabilities.drop | join(\",\"))" 'ALL'
 assert_yq_website "$website_values | .template.spec.containers[0].securityContext.seccompProfile.type" 'RuntimeDefault'

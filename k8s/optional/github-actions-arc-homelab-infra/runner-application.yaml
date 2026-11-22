@@ -57,7 +57,7 @@ spec:
                 emptyDir: {medium: Memory, sizeLimit: 2Gi}
             containers:
               - name: runner
-                image: ghcr.io/smadjapaul/homelab-infra-ci-runner:latest-c8d2926@sha256:9f82220afa489f9d0dd76214abc561471826f6a1848dae056868d5211afbd9c5
+                image: ghcr.io/smadjapaul/arc-ci-runner:tools1-576e0cb@sha256:087f055d11e3c2a0afd3606fa9b3a45b54a80401c201cd8df0cb261023557709
                 command: ["/home/runner/run.sh"]
                 volumeMounts:
                   - {name: work, mountPath: /home/runner/_work}

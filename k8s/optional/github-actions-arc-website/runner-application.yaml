@@ -33,7 +33,7 @@ spec:
               fsGroupChangePolicy: OnRootMismatch
             containers:
               - name: runner
-                image: ghcr.io/smadjapaul/website-ci-runner:node24.22.2-pnpm10.17.1-pw1.58.2-577b37f@sha256:7ed06d4191ad02340bebe400b068f0fc9b8e3023f37a6ddd6daeae688e223c00
+                image: ghcr.io/smadjapaul/arc-ci-runner:tools1-576e0cb@sha256:087f055d11e3c2a0afd3606fa9b3a45b54a80401c201cd8df0cb261023557709
                 command: ["/home/runner/run.sh"]
                 resources:
                   requests: {cpu: 250m, memory: 1Gi, ephemeral-storage: 512Mi}
