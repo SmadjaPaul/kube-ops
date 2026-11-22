@@ -52,37 +52,21 @@ This page explains how GitHub Actions, Renovate, and Dependabot keep this homela
 - **Why use Renovate?**
   - **Broad coverage:** Handles many ecosystem updates in one tool.
   - **Automatic PRs:** Creates update pull requests with minimal manual work.
+  - **Groupes par famille de risque :** npm, GitHub Actions, images sans état, charts Helm et providers OpenTofu en lots ; composants critiques (Cilium, CNPG, Authentik, ESO, Argo CD, Longhorn, Velero, kube-prometheus) en PR individuelles ; Factory/Mastra gelé.
+  - **Dependency Dashboard :** issue du dépôt, case à cocher pour lancer un run.
 
 ---
 
-## Dependabot (`.github/dependabot.yml`)
+## Dependabot (alertes de sécurité)
 
-- **File:** `.github/dependabot.yml`
-- **Purpose:** Automatically monitor and update dependencies across multiple ecosystems.
-- **Why use Dependabot?**
-  - **Security:** Get timely security fixes by staying up-to-date.
-  - **Stability/Features:** Use latest, stable software.
-  - **Convenience:** No more manual update checks.
-- **Monitored package ecosystems:**
-  - `npm` (Node.js packages)
-  - `terraform` (Terraform modules/providers)
-  - `docker` (Docker images and Kubernetes manifests in `/k8s/`)
-  - `github-actions` (Actions used in workflows)
-  - `helm` (Helm charts and dependencies)
-- **Configuration highlights:**
-  - `version: 2` (schema version)
-  - `enable-beta-ecosystems: true` (required for some features like Helm updates)
-  - **Daily update checks** for all ecosystems
-  - **Private registries:** Example settings for registries like GHCR, GCP Artifact Registry, AWS ECR are included (commented out).
-    - Uncomment and add secrets if using private images/charts.
-    - **Why:** Lets Dependabot update private dependencies, not just public ones.
+- Le fichier `.github/dependabot.yml` a été supprimé : Renovate couvre seul les mises à jour de version (npm, Terraform, Docker, GitHub Actions, Helm).
+- Dependabot ne reste actif que pour les alertes de sécurité, via les réglages du dépôt.
 
 ---
-
 
 ## Summary
 
-By combining GitHub Actions (automated CI), Renovate (dependency updates), and Dependabot (security checks), this repo stays:
+By combining GitHub Actions (automated CI), Renovate (dependency updates), and Dependabot security alerts, this repo stays:
 
 - High quality
 - Secure
