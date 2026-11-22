@@ -1,0 +1,120 @@
+name: ARC CI runner drift
+
+# Les versions d'outils de l'image arc-ci-runner suivent celles des depots
+# (.node-version, .nvmrc, mise.toml, .tool-versions, .terraform-version,
+# package.json engines). Chaque jour et a chaque changement du dossier de
+# l'image, ce workflow lit ces fichiers sur main de chaque depot, compare a
+# images/arc-ci-runner/mise.toml et ouvre une PR qui AJOUTE les versions
+# manquantes (et retire celles que plus aucun depot n'utilise, seulement quand
+# tous les depots ont pu etre lus). Les depots prives exigent le secret
+# ARC_DRIFT_TOKEN (lecture du contenu) ; sans lui, seuls les depots publics sont
+# lus et rien n'est retire. Fail-open : une derive ralentit la CI (telechargement
+# par setup-node/mise), elle ne la casse pas.
+on:
+  schedule:
+    - cron: '41 5 * * *'
+  push:
+    branches: [main]
+    paths:
+      - images/arc-ci-runner/**
+      - .github/workflows/arc-ci-runner-drift.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: arc-ci-runner-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    # ubuntu-latest et non kube-ops-ci-arc : `mise lock` interroge nodejs.org et
+    # l'API GitHub, hors de l'egress du scale set kube-ops, qui monte en outre un jeton.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.ARC_DRIFT_TOKEN || github.token }}
+      HAVE_TOKEN: ${{ secrets.ARC_DRIFT_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: true
+      - name: Read version files of every repository
+        id: read
+        shell: bash
+        run: |
+          set -euo pipefail
+          all=1
+          mkdir -p "$RUNNER_TEMP/repos"
+          dirs=()
+          for repo in kube-ops homelab-infra website agent-harness ha-config; do
+            d="$RUNNER_TEMP/repos/$repo"; mkdir -p "$d"
+            ok=0
+            for f in .node-version .nvmrc .terraform-version .tool-versions mise.toml package.json; do
+              if gh api "repos/SmadjaPaul/$repo/contents/$f" -H 'Accept: application/vnd.github.raw' > "$d/$f" 2>/dev/null; then
+                ok=1
+              else
+                rm -f "$d/$f"
+              fi
+            done
+            # Aucun fichier lu : depot illisible (prive sans jeton) ou sans fichiers de version.
+            if [ "$ok" = 0 ]; then
+              all=0
+              echo "::notice::$repo : aucun fichier de version lu (secret ARC_DRIFT_TOKEN absent ?)"
+            fi
+            dirs+=(--repo-dir "$d")
+          done
+          printf '%q ' "${dirs[@]}" > "$RUNNER_TEMP/dirs.txt"
+          echo "all=$all" >> "$GITHUB_OUTPUT"
+      - name: Apply drift to images/arc-ci-runner/mise.toml
+        id: apply
+        env:
+          ALL_READ: ${{ steps.read.outputs.all }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          prune=()
+          [ "$ALL_READ" = 1 ] && prune=(--prune)
+          eval "dirs=($(cat "$RUNNER_TEMP/dirs.txt"))"
+          miss="$(python3 -I images/arc-ci-runner/drift.py --apply "${prune[@]}" --image-toml images/arc-ci-runner/mise.toml "${dirs[@]}")"
+          echo "missing=$miss" >> "$GITHUB_OUTPUT"
+          if git diff --quiet -- images/arc-ci-runner/mise.toml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Aucune derive : l'image couvre les versions des depots." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            printf 'Derive : %s\n' "$miss" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        if: steps.apply.outputs.changed == 'true'
+        with:
+          version: 2026.11.7
+          install: false
+          cache: false
+      - name: Regenerate mise.lock and open the pull request
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          MISSING: ${{ steps.apply.outputs.missing }}
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd images/arc-ci-runner
+          mise trust .
+          mise lock --platform linux-x64,linux-arm64
+          cd ../..
+          branch=claude/arc-ci-runner-drift
+          git config user.name 'arc-ci-runner-drift'
+          git config user.email 'arc-ci-runner-drift@users.noreply.github.com'
+          git checkout -B "$branch"
+          git add images/arc-ci-runner/mise.toml images/arc-ci-runner/mise.lock
+          git commit -m "ci(arc): l'image runner suit les versions d'outils des dépôts"
+          git push --force origin "$branch"
+          body="Dérive détectée entre les fichiers de version des dépôts et l'image arc-ci-runner : ${MISSING}. Ajoute les versions manquantes (les versions encore utilisées sont conservées). Après merge, le workflow de publication reconstruit l'image ; épingler ensuite le nouveau digest dans les runner-application.yaml."
+          if gh pr view "$branch" --json state --jq '.state' 2>/dev/null | grep -q OPEN; then
+            gh pr edit "$branch" --body "$body"
+          else
+            gh pr create --head "$branch" --title "ci(arc): l'image runner suit les versions d'outils des dépôts" --body "$body"
+          fi
