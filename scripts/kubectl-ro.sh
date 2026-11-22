@@ -74,6 +74,9 @@ esac
 [ "$#" -ge 1 ] || refuse "verbe manquant (get|describe|logs|top|events|api-resources|version|auth whoami)"
 
 verb=$1
+case "$verb" in
+  -*) refuse "'$verb' placé avant le verbe : le verbe vient en premier (ex. 'get pods -n ns', pas '-n ns get pods'). Seul '--cluster <nom>' peut précéder le verbe." ;;
+esac
 whoami_mode=0
 if [ "$verb" = auth ]; then
   [ "$#" = 2 ] && [ "$2" = whoami ] || refuse "auth : seule la forme exacte 'auth whoami' est admise"

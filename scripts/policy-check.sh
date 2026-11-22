@@ -31,7 +31,19 @@ need() { command -v "$1" >/dev/null 2>&1 || { echo "POLICY_CHECK=BLOCKED missing
 need kyverno
 
 if [[ $mode == tests ]]; then
-  python3 -I tests/policies/gen-tests.py --check
+  # gen-tests.py a besoin de PyYAML. Sans lui (python système nu, poste d'agent), un venv épinglé est
+  # créé une fois (POLICY_VENV, défaut ${TMPDIR:-/tmp}/kube-ops-policy-venv) au lieu d'un ModuleNotFoundError.
+  py=python3
+  if ! python3 -I -c 'import yaml' >/dev/null 2>&1; then
+    venv="${POLICY_VENV:-${TMPDIR:-/tmp}/kube-ops-policy-venv}"
+    if [[ ! -x $venv/bin/python ]]; then
+      echo "POLICY_TESTS: PyYAML absent, création du venv $venv (pyyaml==6.0.2)" >&2
+      python3 -m venv "$venv" && "$venv/bin/pip" install --quiet --no-cache-dir 'pyyaml==6.0.2' \
+        || { echo "POLICY_TESTS=BLOCKED impossible de créer le venv PyYAML (pip install pyyaml==6.0.2)" >&2; exit 2; }
+    fi
+    py="$venv/bin/python"
+  fi
+  "$py" -I tests/policies/gen-tests.py --check
   log="$(mktemp "${TMPDIR:-/tmp}/policy-tests.XXXXXX")"
   trap 'rm -f "$log"' EXIT
   kyverno test tests/policies --remove-color >"$log" 2>&1 || true
