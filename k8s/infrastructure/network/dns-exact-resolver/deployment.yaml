@@ -21,6 +21,10 @@ spec:
       app.kubernetes.io/name: dns-exact-resolver
   template:
     metadata:
+      annotations:
+        # One-shot rollout so the pod picks up the 35-name Corefile (the running
+        # process predates the `reload` plugin). Bump only to force a restart.
+        dns-exact-resolver/corefile-rev: "2"
       labels:
         app.kubernetes.io/name: dns-exact-resolver
         app.kubernetes.io/part-of: infrastructure
