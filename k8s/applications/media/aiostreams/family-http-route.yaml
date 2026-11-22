@@ -3,6 +3,9 @@ kind: HTTPRoute
 metadata:
   name: aiostreams-family
   namespace: media
+  annotations:
+    # PLT-392 : la route passe sous Polyfin (apps-media) ; ne pas la couper pendant le transfert.
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   parentRefs:
     - name: external
