@@ -14,6 +14,16 @@ Mot de passe : homelab-infra D-2026-11-15-10 et
   les préalables ci-dessous (clés R2 d'écriture présentes par nom).
 - Contrat testé : `bash tests/harness/restic-backup-contract-test.sh`
   (inclus dans `just check`).
+- Test négatif avec le vrai binaire restic : `bash tests/harness/restic-negative-real-test.sh`
+  (dépôt local jetable ; un `pg_dump` en échec ne laisse aucun snapshot, un
+  `pg_dump` réussi en laisse un ; ignoré si restic est absent).
+- Drill de restauration : `scripts/restic-drill.sh <app> [échantillon]`
+  restaure le dernier snapshot `<app>-postgres` (`pg_restore --list`) et un
+  échantillon du snapshot `<app>-files` vérifié contre `SHA256SUMS`, dans un
+  répertoire jetable. Variables à exporter par l'appelant : `RESTIC_REPOSITORY`
+  (`s3:<endpoint>/homelab-backup-restic/<app>`), `RESTIC_PASSWORD` (Doppler
+  `cluster/prd` `RESTIC_BACKUP_PASSWORD`), clé R2 lecture seule
+  (`infrastructure/prd` `R2_RESTIC_READER_*`). Sortie : comptes seulement.
 
 ## Conception
 
