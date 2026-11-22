@@ -19,10 +19,10 @@ classified as `passed`, `failed`, `skipped`, `unavailable`, or
 `expectedCi` values. `not-executed` is not a pass and must not be inferred from
 the absence of a hook artifact.
 
-The `transmission` object is a stable, append-only projection for the separate
-`factory-platform` consumer: `agent.test.result` plus the schema version,
-idempotency key, and a credential-free payload. This repository defines the
-shape only; it does not send telemetry or change the factory-platform runtime.
+The `transmission` object is a stable, append-only projection kept for the
+`factory-platform` consumer. Factory / Mastra is FROZEN (D-2026-11-22-01): this
+repository only keeps the shape, adds no new consumer work and sends no
+telemetry.
 
 ## Layers
 
@@ -195,4 +195,6 @@ User-generated data must never use this exemption.
 
 ## Multi-agent model
 
-Shared operational knowledge lives in `.agents/skills/*` and `AGENTS.md`. A prompt is not a security boundary; enforcement comes from GitHub App permissions (branch and PR write), Kubernetes RBAC (read-only `agent-operator` plus the bounded writes of AGENTS.md Safety), network policy and the CI gates. Agents merge their own PRs under the AGENTS.md merge rule (green CI, real rollback); irreversible changes keep a `MANDAT`.
+The central harness (skills, agents with an explicit model, hooks, MCP, friction loop, parallel lanes) lives in the private repository `SmadjaPaul/agent-harness`, distributed as the plugins `homelab-ops` and `harness-core`. `.claude/settings.json` declares that marketplace (`extraKnownMarketplaces` + `enabledPlugins`) so every session, cloud and ARC included, offers the plugin; install by hand with `/plugin marketplace add SmadjaPaul/agent-harness`.
+
+Repository-specific knowledge stays in `.agents/skills/*` and `AGENTS.md`; the `secret-output-guard` hook stays in `.claude/settings.json`. A prompt is not a security boundary; enforcement comes from GitHub App permissions (branch and PR write), Kubernetes RBAC (read-only `agent-operator` plus the bounded writes of AGENTS.md Safety), network policy and the CI gates. Agents merge their own PRs under the AGENTS.md merge rule (green CI, real rollback); irreversible changes keep a `MANDAT`.
