@@ -4,4 +4,3 @@ postMerge: notify
 preview: false
 extraPaths:
   - k8s/optional/personal-ai-2026/hindsight
-  - k8s/optional/hindsight-oke-drill
