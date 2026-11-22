@@ -1,0 +1,50 @@
+# Default deny egress for every pod of the namespace. Allowed: DNS, GitHub (job protocol,
+# checkout, Actions cache, uv-managed Python from python-build-standalone releases) and
+# PyPI (Home Assistant and the requirements of the configured integrations for check_config).
+# The LAN (10.0.0.0/8) and the Kubernetes API are not allowed.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-ha-config-egress
+  namespace: arc-runners-ha-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "ha-config ARC runners: DNS, GitHub, PyPI and wheels.home-assistant.io only"
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchName: github.com
+        - matchName: api.github.com
+        - matchName: codeload.github.com
+        - matchName: objects.githubusercontent.com
+        - matchName: objects-origin.githubusercontent.com
+        - matchName: github-releases.githubusercontent.com
+        - matchName: github-registry-files.githubusercontent.com
+        - matchName: release-assets.githubusercontent.com
+        - matchName: raw.githubusercontent.com
+        - matchPattern: "*.actions.githubusercontent.com"
+        - matchPattern: "*.blob.core.windows.net"
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
+        - matchName: wheels.home-assistant.io
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
