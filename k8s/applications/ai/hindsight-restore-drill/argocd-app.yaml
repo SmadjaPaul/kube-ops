@@ -1,4 +1,0 @@
-name: hindsight-restore-drill
-namespace: hindsight-restore-drill
-postMerge: notify
-preview: false

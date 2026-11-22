@@ -8,5 +8,3 @@ resources:
   - database-r2-initial-backup.yaml
   - scheduledbackup.yaml
   - networkpolicy.yaml
-  # PLT-301 drill : empreinte en lecture seule de hindsight-db (import temporaire, retire apres lecture des logs)
-  - ../../hindsight-oke-drill/source
