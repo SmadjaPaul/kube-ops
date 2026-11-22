@@ -38,7 +38,7 @@ jobs:
       GH_TOKEN: ${{ secrets.ARC_DRIFT_TOKEN || github.token }}
       HAVE_TOKEN: ${{ secrets.ARC_DRIFT_TOKEN != '' }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: true
       - name: Read version files of every repository
@@ -92,10 +92,10 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
             printf 'Derive : %s\n' "$miss" >> "$GITHUB_STEP_SUMMARY"
           fi
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         if: steps.apply.outputs.changed == 'true'
         with:
-          version: 2026.11.7
+          version: 2026.11.10
           install: false
           cache: false
       - name: Regenerate mise.lock and open the pull request

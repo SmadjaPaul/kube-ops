@@ -23,7 +23,7 @@ jobs:
       # Dans les deux cas le code execute vient d'une revision de base de confiance ; le contenu de
       # la PR / du commit de la file n'est jamais importe ni execute, seulement lu via git diff.
       - name: Check out the base revision only
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           fetch-depth: 0
