@@ -43,7 +43,7 @@ RUN set -eux; \
     base="https://github.com/jdx/mise/releases/download/v${MISE_VERSION}"; \
     curl -fsSLO "$base/mise-v${MISE_VERSION}-linux-x64"; \
     curl -fsSLO "$base/SHASUMS256.txt"; \
-    grep " mise-v${MISE_VERSION}-linux-x64\$" SHASUMS256.txt | sha256sum -c -; \
+    grep " \./mise-v${MISE_VERSION}-linux-x64\$" SHASUMS256.txt | sed "s# \./# #" | sha256sum -c -; \
     install -m 0755 "mise-v${MISE_VERSION}-linux-x64" /usr/local/bin/mise; \
     rm -f "mise-v${MISE_VERSION}-linux-x64" SHASUMS256.txt; \
     # Toolchain verrouillee, installee dans le dossier partage.
