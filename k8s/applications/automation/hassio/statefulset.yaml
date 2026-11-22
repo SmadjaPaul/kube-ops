@@ -18,7 +18,7 @@ spec:
       annotations:
         # ConfigMap montée en subPath : elle n'est relue qu'au démarrage du pod.
         # Incrémenter pour redémarrer HA après un changement de configuration.yaml.
-        smadja.dev/config-rev: "2"
+        smadja.dev/config-rev: "3"
       labels:
         app.kubernetes.io/name: home-assistant
         app.kubernetes.io/instance: home-assistant
@@ -54,6 +54,24 @@ spec:
           value: https://github.com/cavefire/hass-openid/archive/0135a6f8150693ecb99cd5ba42446e0d1e66994d.tar.gz
         - name: OPENID_ARCHIVE_SHA256
           value: bf742ea17a3111ddb7b060835225dcaebb3d9debe73a89b4ddec62ae880ee6f4
+        volumeMounts:
+        - name: data
+          mountPath: /config
+      - name: init-ui-files
+        # PLT-444 : crée sur le PVC les fichiers inclus par configuration.yaml s'ils manquent.
+        # Ne jamais écraser un fichier existant (UI HA et provider OpenTofu y écrivent).
+        image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }
+          limits: { cpu: 100m, memory: 64Mi }
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - >-
+          set -eu;
+          [ -e /config/automations.yaml ] || echo '[]' > /config/automations.yaml;
+          [ -e /config/scenes.yaml ] || echo '[]' > /config/scenes.yaml;
+          [ -e /config/scripts.yaml ] || echo '{}' > /config/scripts.yaml
         volumeMounts:
         - name: data
           mountPath: /config
