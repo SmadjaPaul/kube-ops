@@ -31,8 +31,8 @@ and a `CiliumLoadBalancerIPPool` are configured (Workstream D — separate PR).
 Every hostname declared on a HTTPRoute attached to `Gateway/internal` and
 covered by the configured domain filters ends up as an A record in UniFi
 pointing at the LAN LoadBalancer VIP. Invoice Ninja is served at
-`facture.smadja.dev`; the `lechaplais.com` filter is kept for the
-`gestion.lechaplais.com` listener, which no route uses any more.
+`facture.smadja.dev`. The unused `gestion.lechaplais.com` Gateway listener and its
+certificate were removed (PLT-392).
 
 | Currently observed attached routes | 30 (out of 32) |
 | ---------------------------------- | -------------- |
