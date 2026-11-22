@@ -121,10 +121,6 @@ roots=(
   k8s/applications/platform
   k8s/applications/ai
   k8s/applications/media
-  k8s/applications/media/aiostreams
-  k8s/applications/media/bookorbit
-  k8s/applications/media/immich
-  k8s/applications/media/media-shared
   k8s/applications/automation
   k8s/applications/web
   k8s/applications/tools
