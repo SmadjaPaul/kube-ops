@@ -1,0 +1,4 @@
+auth: none
+exceptions:
+  auth: "Matrix expose clients et federation publiquement par conception ; connexion des utilisateurs deleguee a Authentik via matrix-authentication-service (OIDC amont)"
+  observability: "matrix-stack sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"

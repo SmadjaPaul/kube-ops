@@ -3,3 +3,5 @@
 # La route tv.smadja.dev (aiostreams-family) appartient a Polyfin depuis PLT-392.
 auth: oidc
 auth_probe: /admin/api/users
+exceptions:
+  observability: "polyfin sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"

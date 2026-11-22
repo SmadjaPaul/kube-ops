@@ -30,7 +30,10 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: fix-volume-permissions
-          image: busybox:1.37
+          image: busybox:1.37@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
           command: ["sh", "-c"]
           args:
             - >-
@@ -54,7 +57,18 @@ spec:
             - { name: storage, mountPath: /storage }
       containers:
         - name: stirling-pdf
-          image: stirlingtools/stirling-pdf:3.0.0
+          image: stirlingtools/stirling-pdf:3.0.0@sha256:66b6edb8ee62e307a8b335166e8931a6e65b39c9bf73b5e517fbfe9c613ba221
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            failureThreshold: 3
           env:
             - { name: SECURITY_ENABLELOGIN, value: "false" }
             - { name: PUID, value: "1001" }

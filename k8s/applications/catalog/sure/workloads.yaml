@@ -24,7 +24,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: web
-          image: ghcr.io/we-promise/sure:0.7.5-hotfix.1
+          image: ghcr.io/we-promise/sure:0.7.5-hotfix.1@sha256:3692b3bcf0eae2c7f3154348c6131060bda8127038fc78b0543f15b5166e6074
           imagePullPolicy: IfNotPresent
           env:
             - { name: SELF_HOSTED, value: "true" }
@@ -103,7 +103,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: worker
-          image: ghcr.io/we-promise/sure:0.7.5-hotfix.1
+          image: ghcr.io/we-promise/sure:0.7.5-hotfix.1@sha256:3692b3bcf0eae2c7f3154348c6131060bda8127038fc78b0543f15b5166e6074
           imagePullPolicy: IfNotPresent
           command: ["bash", "-lc"]
           args:

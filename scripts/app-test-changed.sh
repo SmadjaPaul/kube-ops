@@ -49,7 +49,7 @@ blocked=0
 for d in "${apps[@]}"; do
   name="$(basename "$d")"
   ns="$name"
-  bash scripts/app-test.sh "$name" "$ns" --phase static --app-dir "$d" >"$tmp/out.$name" 2>&1
+  bash scripts/app-test.sh "$name" "$ns" --phase static --app-dir "$d" --no-ratchet >"$tmp/out.$name" 2>&1
   # --app-dir : le nom peut ne pas etre unique, le dossier fait foi
   awk -v app="$name" '$1=="CHECK" && ($3=="FAIL"||$3=="BLOCKED") {print app "\t" $2 "\t" $3}' "$tmp/out.$name" >>"$tmp/current.tsv"
 done

@@ -49,6 +49,10 @@ spec:
       containers:
         - name: open-connector
           image: ghcr.io/oomol-lab/open-connector@sha256:d8c5924886bbc65c1c79da574dd590d23d8caba91f724cfdfbdb8615a117c565
+          livenessProbe:
+            tcpSocket: { port: llm }
+            periodSeconds: 20
+            failureThreshold: 3
           ports:
             - name: http
               containerPort: 3000

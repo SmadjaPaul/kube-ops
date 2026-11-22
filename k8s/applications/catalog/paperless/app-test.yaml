@@ -1,0 +1,3 @@
+exceptions:
+  observability: "base CNPG surveillee par le PodMonitor central monitoring/cnpg-instances ; l'app n'expose pas de metrics, couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  rootfs: "l'image ecrit hors des volumes montes (caches/runtime) : readOnlyRootFilesystem non valide sur cluster ; le reste du securityContext est conforme"

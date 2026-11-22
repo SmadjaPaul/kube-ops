@@ -1,0 +1,3 @@
+exceptions:
+  observability: "mosquitto sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  network: "image eclipse-mosquitto demarre en root et l'init container ecrit password.txt dans la config ; durcissement non-root/rootfs non valide sur cluster"

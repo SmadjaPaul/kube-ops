@@ -26,7 +26,10 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       initContainers:
       - name: install-openid
-        image: busybox:1.38
+        image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }
+          limits: { cpu: 100m, memory: 64Mi }
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -54,14 +57,17 @@ spec:
         - name: data
           mountPath: /config
       - name: volume-permissions
-        image: busybox:1.38
+        image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }
+          limits: { cpu: 100m, memory: 64Mi }
         command: ["sh", "-c", "chmod -R 755 /config && chown -R root:root /config"]
         volumeMounts:
         - name: data
           mountPath: /config
       containers:
         - name: home-assistant
-          image: ghcr.io/home-assistant/home-assistant:2026.6.0
+          image: ghcr.io/home-assistant/home-assistant:2026.6.0@sha256:60af7f5d4d13368c86c73611e4a3ce32534eb573bce09f26b98d647291c3df8c
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8123
@@ -75,8 +81,10 @@ spec:
               value: Europe/Stockholm
           resources:
             requests:
+              cpu: 100m
               memory: 1Gi
             limits:
+              cpu: "2"
               memory: 3Gi
           securityContext:
             capabilities:

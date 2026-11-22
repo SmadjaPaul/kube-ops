@@ -29,7 +29,10 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: chown-data
-          image: busybox:1.38
+          image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
           command: ["sh", "-c", "chown -R 1000:1000 /home/node/trilium-data"]
           securityContext:
             runAsUser: 0
@@ -45,7 +48,7 @@ spec:
               mountPath: /home/node/trilium-data
       containers:
         - name: trilium
-          image: ghcr.io/triliumnext/trilium:sha-621f1ff # renovate: docker=ghcr.io/triliumnext/trilium
+          image: ghcr.io/triliumnext/trilium:sha-621f1ff@sha256:53ca455e5e1d922a4064c46727988d46c906f3708d67a483eeb57b42ba6bef67 # renovate: docker=ghcr.io/triliumnext/trilium
           imagePullPolicy: IfNotPresent
           env:
             - name: TRILIUM_DATA_DIR

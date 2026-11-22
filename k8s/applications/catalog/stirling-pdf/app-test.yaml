@@ -1,0 +1,3 @@
+exceptions:
+  observability: "stirling-pdf sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  network: "image stirling-pdf et init fix-volume-permissions tournent en root (chown du volume) et ecrivent hors des volumes montes ; PSA baseline"

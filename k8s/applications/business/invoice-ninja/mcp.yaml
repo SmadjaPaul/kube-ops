@@ -25,7 +25,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: mcp
-          image: ghcr.io/smadjapaul/invoice-ninja-mcp:f822b554c52676a7e75953c65e2578d9c9fa89dc
+          image: ghcr.io/smadjapaul/invoice-ninja-mcp:f822b554c52676a7e75953c65e2578d9c9fa89dc@sha256:8135781e5ebc19772bfab2e50b26ed285d99284d14d085c4797bde5a060aa433
           imagePullPolicy: IfNotPresent
           env:
             - { name: INVOICE_NINJA_URL, value: "http://invoice-ninja" }
