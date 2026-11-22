@@ -27,6 +27,8 @@ concurrency:
 jobs:
   docs-required:
     name: docs-required
+    # Stays GitHub-hosted (PLT-442): remark-lint-no-dead-urls checks arbitrary external URLs, which the
+    # minimal egress of the kube-ops-pr-ci-arc scale set (no open internet) blocks; the job failed there.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
