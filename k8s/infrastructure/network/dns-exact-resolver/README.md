@@ -44,9 +44,13 @@ identical in each block). The contract test checks that. The UniFi list
 (`split_dns_forward.domains` in `homelab-infra`) must be a subset of it.
 `tests/harness/dns-exact-resolver-contract-test.sh` checks the rendered manifests.
 
-The list is static. Adding an internal route means editing this list and the
-UniFi list by hand, which does not satisfy the PLT-149 lifecycle requirement
-(dynamic list derived from the HTTPRoutes). That remains an open item.
+The list is static (35 names), but CI now guards its lifecycle:
+`tests/harness/dns-exact-resolver-routes-test.sh` fails when a deployed
+HTTPRoute attached to `gateway/internal` (k8s/applications, k8s/infrastructure)
+is missing from the list (except `tv.smadja.dev` and the apex), or when a listed
+name is referenced by no manifest. On the `homelab-infra` side,
+`scripts/plt149/test_unifi_forward_subset.py` checks that the UniFi
+`FORWARD_DOMAIN` list is a subset of the local-first names.
 
 ## Activation order (never reverse)
 
