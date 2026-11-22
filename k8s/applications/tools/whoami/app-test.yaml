@@ -1,0 +1,2 @@
+exceptions:
+  observability: "echo HTTP de test sans /metrics ; OKE n'a pas le CRD ServiceMonitor (pas de Prometheus Operator, k8s/clusters/oracle-a1/README.md)"
