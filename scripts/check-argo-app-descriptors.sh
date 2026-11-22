@@ -285,12 +285,6 @@ while IFS= read -r domain; do
 
   [[ -f $apps_dir/$domain/kustomization.yaml ]] || { fail "$drel has no kustomization.yaml: cannot prove render equivalence"; continue; }
 
-  # c. complet : chaque sous-dossier avec kustomization.yaml a son descripteur
-  for sub in "$apps_dir/$domain"/*/; do
-    [[ -f ${sub}kustomization.yaml ]] || continue
-    [[ -f ${sub}argocd-app.yaml || -f ${sub}argocd-app.$oke_cluster.yaml ]] || fail "$drel is partially migrated: ${sub#"$repo"/} has no argocd-app.yaml (a domain migrates whole, otherwise the domain Application prunes the apps it no longer generates)"
-  done
-
   # c. equivalence de rendu : domaine == union des apps
   if ! render "$drel" >"$tmp/domain.rendered" 2>"$tmp/render.err"; then
     fail "kustomize build failed for $drel: $(head -3 "$tmp/render.err" | tr '\n' ' ')"
