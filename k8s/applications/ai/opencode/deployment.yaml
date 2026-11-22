@@ -164,12 +164,14 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         readinessProbe:
-          tcpSocket: { port: 8931 }
+          exec:
+            command: ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8931"]
           initialDelaySeconds: 20
           periodSeconds: 30
           timeoutSeconds: 5
         livenessProbe:
-          tcpSocket: { port: 8931 }
+          exec:
+            command: ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8931"]
           initialDelaySeconds: 120
           periodSeconds: 60
           timeoutSeconds: 5
