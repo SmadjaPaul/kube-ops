@@ -13,7 +13,8 @@ trap 'rm -rf "$out" "$cluster/cilium/charts"' EXIT
 kustomize build --enable-helm "$cluster/cilium" >"$out/cilium.yaml"
 kustomize build "$cluster/baseline" >"$out/baseline.yaml"
 kustomize build "$cluster/argocd-root" >"$out/argocd-root.yaml"
-kubeconform -summary -strict -ignore-missing-schemas "$out/cilium.yaml" "$out/baseline.yaml"
+kustomize build "$cluster/guardrails" >"$out/guardrails.yaml"
+kubeconform -summary -strict -ignore-missing-schemas "$out/cilium.yaml" "$out/baseline.yaml" "$out/guardrails.yaml"
 
 bad=0
 cfg() { yq ea -r "select(.kind == \"ConfigMap\" and .metadata.name == \"cilium-config\") | .data[\"$1\"]" "$out/cilium.yaml"; }
@@ -29,6 +30,11 @@ for n in deny-imds allow-egress-unisolated; do
   if [[ "$(yq ea -r "select(.kind == \"CiliumClusterwideNetworkPolicy\" and .metadata.name == \"$n\") | .metadata.name" "$out/baseline.yaml")" == "$n" ]]; then echo "PASS: CCNP $n rendue"; else echo "FAIL: CCNP $n absente"; bad=1; fi
 done
 if [[ "$(yq ea -r 'select(.metadata.name == "deny-imds") | .spec.egressDeny[0].toCIDRSet[0].cidr' "$out/baseline.yaml")" == 169.254.169.254/32 ]]; then echo "PASS: deny-imds vise 169.254.169.254/32"; else echo "FAIL: deny-imds ne vise pas l'IMDS"; bad=1; fi
+
+for n in deny-loadbalancer-service baseline-pod-hardening; do
+  if [[ "$(yq ea -r "select(.kind == \"ValidatingAdmissionPolicyBinding\" and .metadata.name == \"$n\") | .spec.validationActions[0]" "$out/guardrails.yaml")" == Deny ]]; then echo "PASS: VAP $n en Deny"; else echo "FAIL: VAP $n absente ou pas en Deny"; bad=1; fi
+done
+if [[ "$(yq ea -r 'select(.kind == "ValidatingAdmissionPolicyBinding" and .metadata.name == "baseline-pod-hardening") | .spec.matchResources.namespaceSelector.matchExpressions[0].values | sort | join(",")' "$out/guardrails.yaml")" == kube-system,netbird ]]; then echo "PASS: pod-hardening exempte seulement kube-system et netbird"; else echo "FAIL: exemptions pod-hardening inattendues"; bad=1; fi
 
 for d in cilium baseline; do
   if grep -qx "          - path: k8s/clusters/oracle-a1/$d" "$cluster/argocd-root/infrastructure-applicationset.yaml"; then echo "PASS: $d dans l'ApplicationSet infrastructure"; else echo "FAIL: $d absent de l'ApplicationSet infrastructure"; bad=1; fi
