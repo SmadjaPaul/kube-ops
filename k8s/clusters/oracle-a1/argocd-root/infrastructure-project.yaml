@@ -27,6 +27,16 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: monitoring
       server: https://kubernetes.default.svc
+    # Cilium (PLT-384) : agent et operateur dans kube-system, Roles TLS du chart dans cilium-secrets.
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+    - namespace: cilium-secrets
+      server: https://kubernetes.default.svc
+    # Baseline (PLT-384) : sonde, et politiques/quotas du namespace applicatif whoami.
+    - namespace: baseline-probe
+      server: https://kubernetes.default.svc
+    - namespace: whoami
+      server: https://kubernetes.default.svc
   # Liste fermee : ajouter un kind cluster-scoped d'infrastructure passe par une PR sur ce fichier.
   clusterResourceWhitelist:
     - group: ''
@@ -49,6 +59,9 @@ spec:
     # hérité de la kustomization, ignoré par l'API).
     - group: external-secrets.io
       kind: ClusterSecretStore
+    # Baseline reseau (PLT-384) : CCNP deny-imds et allow-egress-unisolated.
+    - group: cilium.io
+      kind: CiliumClusterwideNetworkPolicy
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'

@@ -22,7 +22,11 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: '!argocd'
       server: '*'
+    - namespace: '!baseline-probe'
+      server: '*'
     - namespace: '!cert-manager'
+      server: '*'
+    - namespace: '!cilium-secrets'
       server: '*'
     - namespace: '!cloudflared'
       server: '*'

@@ -32,6 +32,12 @@ spec:
           # Export Grafana Cloud (alloy + kube-state-metrics, label cluster=oracle-a1) : sans lui,
           # scripts/verify-delivery.sh ne voit aucune app d'OKE. Secret via doppler-cluster (apres external-secrets).
           - path: k8s/clusters/oracle-a1/observability
+          # Cilium en CNI chaining sur le CNI OCI (PLT-384) : application des NetworkPolicy/CNP/CCNP.
+          - path: k8s/clusters/oracle-a1/cilium
+          # Baseline reseau (PLT-384) : CCNP deny-imds + allow-egress-unisolated, default-deny whoami,
+          # quotas, sonde continue. Ses CRD cilium.io viennent de cilium-operator : l'Application retente
+          # (retry ci-dessous) jusqu'a leur enregistrement.
+          - path: k8s/clusters/oracle-a1/baseline
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
