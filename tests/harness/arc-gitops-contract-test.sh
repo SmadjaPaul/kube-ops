@@ -321,6 +321,40 @@ grep -F -- 'path: k8s/optional/github-actions-arc-website' \
   exit 1
 }
 
+# agent-harness scale set: own namespace, repository scope, ephemeral (min 0, max 1), no secret in the runner.
+agent_harness_rendered="$(mktemp)"
+kubectl kustomize "$repo_root/k8s/optional/github-actions-arc-agent-harness" >"$agent_harness_rendered"
+ah_values='select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-ci") | .spec.source.helm.valuesObject'
+assert_yq_ah() {
+  local actual
+  actual="$(yq eval-all "$1" "$agent_harness_rendered")"
+  [[ "$actual" == "$2" ]] || {
+    printf 'ARC_GITOPS_CONTRACT=FAIL agent-harness expression=%s expected=%s actual=%s\n' "$1" "$2" "$actual" >&2
+    rm -f "$agent_harness_rendered"
+    exit 1
+  }
+}
+assert_yq_ah 'select(.kind == "Application") | .spec.source.helm.releaseName' 'agent-harness-ci-arc'
+assert_yq_ah 'select(.kind == "Application") | .spec.destination.namespace' 'arc-runners-agent-harness'
+assert_yq_ah "$ah_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/agent-harness'
+assert_yq_ah "$ah_values | .minRunners" '0'
+assert_yq_ah "$ah_values | .maxRunners" '1'
+assert_yq_ah "$ah_values | .template.spec.automountServiceAccountToken" 'false'
+assert_yq_ah "$ah_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
+assert_yq_ah 'select(.kind == "CiliumNetworkPolicy") | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toEntities[]?] | length' '0'
+rm -f "$agent_harness_rendered"
+for project in "$infrastructure_project" "$applications_project"; do
+  grep -F -- '    - namespace: arc-runners-agent-harness' "$project" >/dev/null || {
+    printf 'ARC_GITOPS_CONTRACT=FAIL agent-harness-namespace-not-in-appproject file=%s\n' "$project" >&2
+    exit 1
+  }
+done
+grep -F -- 'path: k8s/optional/github-actions-arc-agent-harness' \
+  "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" >/dev/null || {
+  printf 'ARC_GITOPS_CONTRACT=FAIL agent-harness-path-not-in-applicationset\n' >&2
+  exit 1
+}
+
 [[ "$(grep -Ec '^[[:space:]]+automated:' "$rendered")" == "5" ]] || {
   printf 'ARC_GITOPS_CONTRACT=FAIL child-applications-not-automated\n' >&2
   exit 1
