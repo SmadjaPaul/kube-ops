@@ -15,7 +15,7 @@ metadata:
     app.kubernetes.io/part-of: github-actions-arc
     policy-type: github-actions-arc
 spec:
-  description: "kube-ops PR CI runners, no Kubernetes token: DNS, GitHub, ghcr.io, registry.npmjs.org, PyPI and the Helm chart repositories only"
+  description: "kube-ops PR CI runners, no Kubernetes token: DNS, GitHub, ghcr.io, registry.npmjs.org, PyPI, Docker Hub (OCI chart) and the Helm chart repositories only"
   endpointSelector: {}
   egress:
     - toEndpoints:
@@ -47,6 +47,10 @@ spec:
         # scripts/policy-check.sh --tests creates a venv with pyyaml==6.0.2 (PyYAML is not in the image).
         - matchName: pypi.org
         - matchName: files.pythonhosted.org
+        # OCI chart bitnamicharts/redis (immich-redis) on Docker Hub, pulled by kustomize --enable-helm.
+        - matchName: registry-1.docker.io
+        - matchName: auth.docker.io
+        - matchName: production.cloudflare.docker.com
         - matchName: ghcr.io
         - matchName: pkg-containers.githubusercontent.com
       toPorts:
