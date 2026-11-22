@@ -6,7 +6,7 @@ description: Dedicated qBittorrent runtime, storage contract, and MAM activation
 
 # BookOrbit torrent client
 
-BookOrbit 3.9.0 uses a dedicated qBittorrent instance for torrent acquisitions. TorBox remains BookOrbit's client for other sources. The qBittorrent workload is reconciled by the existing `apps-media` Argo Application; it has its own Deployment, Service, policy, and configuration PVC in namespace `media`.
+BookOrbit 3.9.0 uses a dedicated qBittorrent instance for torrent acquisitions. TorBox remains BookOrbit's client for other sources. The qBittorrent workload is reconciled by the `app-qbittorrent-mam` Argo Application; it has its own Deployment, Service, policy, and configuration PVC in namespace `media`.
 
 ## Runtime contract
 
