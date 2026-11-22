@@ -59,12 +59,14 @@ RUN set -eux; \
     done; \
     # Node : un dossier par version dans le cache d'outils de GitHub Actions.
     for d in /usr/local/share/mise/installs/node/*; do \
+        # mise cree aussi des alias (24.22 -> 24.22.3) : on les ignore.
+        [ -L "$d" ] && continue; \
         v="$(basename "$d")"; \
         mkdir -p "$AGENT_TOOLSDIRECTORY/node/$v"; \
         ln -s "$d" "$AGENT_TOOLSDIRECTORY/node/$v/x64"; \
         touch "$AGENT_TOOLSDIRECTORY/node/$v/x64.complete"; \
     done; \
-    node24="$(ls -d /usr/local/share/mise/installs/node/24.*)"; \
+    node24="$(find /usr/local/share/mise/installs/node -mindepth 1 -maxdepth 1 -type d -name '24.*')"; \
     ln -sf "$node24/bin/node" /usr/local/bin/node; \
     ln -sf "$node24/bin/npm" /usr/local/bin/npm; \
     ln -sf "$node24/bin/npx" /usr/local/bin/npx; \
