@@ -224,7 +224,7 @@ inventory="$(awk '
 # Lot 0 of docs/architecture/secrets-migration-spec.md: the stores k8s-auth and k8s-databases (secrets
 # generated inside the cluster) are active alongside doppler-cluster; their remoteRef keys are Secret
 # names (oidc-<ns>, pg-<ns>), not Doppler keys, so only doppler-cluster keys are checked below.
-bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $3!="doppler-cluster" && $3!="k8s-auth" && $3!="k8s-databases" {print $3}' | sort -u)"
+bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $3!="doppler-cluster" && $3!="k8s-auth" && $3!="k8s-databases" && $3!="k8s-agentgateway" {print $3}' | sort -u)"
 [[ -z "$bad_stores" ]] || {
   echo "ERROR: active ExternalSecrets reference non-Doppler stores:" >&2
   printf '%s\n' "$bad_stores" >&2

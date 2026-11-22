@@ -10,7 +10,7 @@
 # Tests: tests/policies/eso-k8s-store-guard (gen-tests.py, `kyverno test`).
 #
 # Convention checked: remoteRef.key == P<ns> or starts with P<ns>--, P = oidc- (k8s-auth) or pg-
-# (k8s-databases), <ns> = namespace of the ExternalSecret being admitted.
+# (k8s-databases), llm- (k8s-agentgateway, PLT-453), <ns> = namespace of the ExternalSecret being admitted.
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 metadata:
@@ -33,14 +33,14 @@ spec:
   matchConditions:
     - name: reads-a-k8s-store
       expression: >-
-        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['k8s-auth', 'k8s-databases']
+        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['k8s-auth', 'k8s-databases', 'k8s-agentgateway']
   variables:
     - name: ns
       expression: >-
         has(request.namespace) && size(request.namespace) > 0 ? request.namespace : object.metadata.namespace
     - name: prefix
       expression: >-
-        object.spec.secretStoreRef.name == 'k8s-auth' ? 'oidc-' : 'pg-'
+        object.spec.secretStoreRef.name == 'k8s-auth' ? 'oidc-' : (object.spec.secretStoreRef.name == 'k8s-databases' ? 'pg-' : 'llm-')
     - name: data
       expression: >-
         has(object.spec.data) ? object.spec.data : []
@@ -56,4 +56,4 @@ spec:
       message: "data[].sourceRef est interdit sur k8s-auth et k8s-databases. (eso-k8s-store-guard)"
     - expression: >-
         variables.data.all(d, has(d.remoteRef) && has(d.remoteRef.key) && (d.remoteRef.key == variables.prefix + variables.ns || d.remoteRef.key.startsWith(variables.prefix + variables.ns + '--')))
-      message: "remoteRef.key doit valoir <prefixe><namespace> ou <prefixe><namespace>--<usage> (oidc- pour k8s-auth, pg- pour k8s-databases) : un ExternalSecret ne lit que les Secrets de son namespace. (eso-k8s-store-guard)"
+      message: "remoteRef.key doit valoir <prefixe><namespace> ou <prefixe><namespace>--<usage> (oidc- pour k8s-auth, pg- pour k8s-databases, llm- pour k8s-agentgateway) : un ExternalSecret ne lit que les Secrets de son namespace. (eso-k8s-store-guard)"

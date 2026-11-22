@@ -36,6 +36,24 @@ results:
   kind: ExternalSecret
   policy: repo-contract-eso-k8s-store-own-namespace
   resources:
+  - llm-own-namespace
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - llm-other-namespace
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
+  - oidc-key-on-agentgateway-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: repo-contract-eso-k8s-store-own-namespace
+  resources:
   - oidc-other-namespace
   result: fail
 - isValidatingPolicy: true

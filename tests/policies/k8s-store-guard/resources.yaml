@@ -78,6 +78,60 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  name: llm-own-namespace
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: llm-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-agentgateway
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: llm-other-namespace
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: llm-autre
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-agentgateway
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oidc-key-on-agentgateway-store
+  namespace: app
+spec:
+  data:
+  - remoteRef:
+      key: oidc-app
+      property: P
+    secretKey: K0
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: k8s-agentgateway
+  target:
+    name: x
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
   name: oidc-other-namespace
   namespace: app
 spec:
