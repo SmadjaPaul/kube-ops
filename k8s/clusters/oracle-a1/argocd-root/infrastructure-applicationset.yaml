@@ -52,6 +52,9 @@ spec:
           - path: k8s/clusters/oracle-a1/cnpg-operator
           - path: k8s/clusters/oracle-a1/cnpg-barman-plugin
           - path: k8s/clusters/oracle-a1/cnpg-cluster
+          # Tunnel Cloudflare sortant d'OKE (PLT-407, E1). N'expose RIEN seul : sans regle d'ingress publiee par
+          # OpenTofu (homelab-infra, enable_oracle_a1_whoami, MANDAT de Paul) il repond 404. Apres external-secrets.
+          - path: k8s/clusters/oracle-a1/cloudflared
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
