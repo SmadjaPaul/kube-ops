@@ -28,7 +28,7 @@ def load(name):
 # ---------------------------------------------------------------------------
 INFRA = {
     "agent-observers", "agent-sandbox-system", "agentgateway", "arc-runners", "arc-systems", "argo-rollouts",
-    "argocd", "atlantis-apps", "atlantis-system", "auth", "cert-manager", "cilium-secrets", "cloudflared",
+    "argocd", "auth", "cert-manager", "cilium-secrets", "cloudflared",
     "cnpg-system", "csi-proxmox", "external-dns-private", "external-secrets", "falco", "gatekeeper-system",
     "gateway", "keda", "kube-system", "kubearmor", "kubechecks", "kubelet-serving-cert-approver", "kyverno",
     "longhorn-system", "metrics-server", "monitoring", "node-feature-discovery",
@@ -103,8 +103,6 @@ MAP = {
     "argo-rollouts": ("SOCLE", "ALLÉGER", D06[0]),
     "node-feature-discovery": ("SOCLE", "ALLÉGER", D06[0]),
     # --- retraits décidés / démos
-    "atlantis-system": ("REC", "RETIRER", "Atlantis retiré ; PVC de recovery supprimé (MANDAT 16, kube-ops#1580) ; namespace vide conservé"),
-    "atlantis-apps": ("REC", "RETIRER", "Atlantis retiré ; PVC de recovery gardé jusqu'à validation (suppression = Paul, D-13)"),
     "argo-rollouts-demo": ("REC", "RETIRER", "démo PLT-141 de test, sans donnée"),
 }
 DRILL_RE = re.compile(r"^dr-|restore|recovery")

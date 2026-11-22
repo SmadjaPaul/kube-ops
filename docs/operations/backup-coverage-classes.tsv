@@ -5,7 +5,6 @@
 # backup needed; RETIRED = abandoned or retained-only application; DRILL =
 # restore proof or drill residue.
 agentgateway	agentgateway-state	USEFUL	SQLite gateway state, rebuildable from Git with effort
-atlantis-apps	atlantis-apps-data	RETIRED	Atlantis pilot retired, retention-only path
 auth	authentik-postgresql-restored-1	IRREPLACEABLE	Authentik identity database
 auth	authentik-postgresql-restored-1-wal	IRREPLACEABLE	Authentik identity database WAL
 factory-platform	factory-cubestore-data	REBUILDABLE	Cube Store pre-aggregations
