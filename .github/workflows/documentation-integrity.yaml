@@ -69,7 +69,7 @@ jobs:
         run: echo 'DOCS_REQUIRED=PASS_NO_DOCUMENTATION_CHANGES'
 
       # Node is only needed when a documentation file changed (saves ~5 s on other PRs).
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: steps.classify.outputs.documentation_relevant == 'true'
         with:
           node-version: '26.13.1'
