@@ -6,6 +6,5 @@ resources:
   - database.yaml
   - database-r2.yaml
   - database-r2-initial-backup.yaml
-  - initialbackup.yaml
   - scheduledbackup.yaml
   - networkpolicy.yaml
