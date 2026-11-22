@@ -1,0 +1,56 @@
+name: OKE baseline
+# Baseline reseau d'oracle-a1 (PLT-384) : rendu kustomize de cilium/, baseline/ et argocd-root/,
+# kubeconform, valeurs de chaining attendues, quotas, et acceptance.sh en mode --dry (aucun cluster).
+# L'acceptation reelle (lecture seule sur OKE) se lance a la main : bash tests/oke-baseline/acceptance.sh
+
+on:
+  pull_request:
+    paths:
+      - 'k8s/clusters/oracle-a1/**'
+      - 'tests/oke-baseline/**'
+      - '.github/workflows/oke-baseline.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'k8s/clusters/oracle-a1/**'
+      - 'tests/oke-baseline/**'
+      - '.github/workflows/oke-baseline.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oke-baseline-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  baseline:
+    name: oke-baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install Helm, Kustomize, Kubeconform
+        run: |
+          set -euo pipefail
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kustomize.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tgz -C /tmp
+          sudo install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kubeconform.tgz https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tgz -C /tmp
+          sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
+
+      - name: Acceptance script (syntax, shellcheck, dry run)
+        run: |
+          bash -n tests/oke-baseline/acceptance.sh tests/oke-baseline/run.sh
+          shellcheck tests/oke-baseline/acceptance.sh tests/oke-baseline/run.sh
+          bash tests/oke-baseline/acceptance.sh --dry
+
+      - name: Static render and checks
+        run: bash tests/oke-baseline/run.sh

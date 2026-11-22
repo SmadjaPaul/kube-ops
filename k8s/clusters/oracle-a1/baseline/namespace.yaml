@@ -1,0 +1,11 @@
+# Namespace de la sonde de baseline (probe.yaml). Non isole : la sonde prouve que c'est la CCNP
+# deny-imds, et non une NetworkPolicy du namespace, qui refuse l'IMDS.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: baseline-probe
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

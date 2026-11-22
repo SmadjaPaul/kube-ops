@@ -1,0 +1,25 @@
+# Namespace applicatif whoami (k8s/applications/tools/whoami) : default-deny ingress + egress, puis
+# allow listes. whoami n'a besoin d'aucun egress. Ingress 8080 : la sonde de baseline et cloudflared
+# (exposition future, PLT-407 ; chaque hostname = decision de Paul). Les sondes kubelet viennent du
+# noeud (entite host), toujours admises par Cilium. A remplacer par la politique portee par l'app
+# quand policy-check.sh / app-test.sh ne l'exemptent plus sur OKE.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: default-deny, namespace: whoami}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: allow-ingress-http, namespace: whoami}
+spec:
+  podSelector:
+    matchLabels: {app: whoami}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: baseline-probe}}
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: cloudflared}}
+      ports:
+        - {port: 8080, protocol: TCP}

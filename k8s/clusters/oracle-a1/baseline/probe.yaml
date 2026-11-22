@@ -1,0 +1,66 @@
+# Sonde continue de la baseline (PLT-384) : toutes les 15 min, un pod NON privilegie (PSA restricted,
+# sans token, cree apres Cilium donc endpoint Cilium) verifie que :
+#   - l'IMDS 169.254.169.254 est injoignable sur 80 et 443 (curl rc 28 = timeout ou 7 = refus ; tout
+#     autre code, y compris une erreur HTTP, prouve que l'IMDS repond) ;
+#   - whoami repond (http://whoami.whoami.svc.cluster.local/health, DNS compris).
+# Resultat : derniere ligne BASELINE_PROBE=PASS|FAIL dans les logs du Job, code de sortie 0|1 (Job en
+# echec visible dans kube-state-metrics). Lecture : tests/oke-baseline/acceptance.sh.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: baseline-probe
+  namespace: baseline-probe
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 90
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: baseline-probe
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          hostNetwork: false
+          hostPID: false
+          hostIPC: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: probe
+              # Index multi-arch (linux/arm64 inclus), epingle par digest.
+              image: docker.io/curlimages/curl:8.17.0@sha256:935d9100e9ba842cdb060de42472c7ca90cfe9a7c96e4dacb55e79e560b3ff40 # renovate: docker=curlimages/curl
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  fails=0
+                  for port in 80 443; do
+                    rc=0
+                    curl -sS --connect-timeout 3 --max-time 5 -o /dev/null "http://169.254.169.254:${port}/opc/v2/instance/" 2>/dev/null || rc=$?
+                    if [ "$rc" -eq 28 ] || [ "$rc" -eq 7 ]; then
+                      echo "PASS imds:${port} blocked rc=${rc}"
+                    else
+                      echo "FAIL imds:${port} reachable rc=${rc}"; fails=$((fails + 1))
+                    fi
+                  done
+                  rc=0
+                  curl -fsS --max-time 5 -o /dev/null http://whoami.whoami.svc.cluster.local/health || rc=$?
+                  if [ "$rc" -eq 0 ]; then echo "PASS whoami reachable"; else echo "FAIL whoami rc=${rc}"; fails=$((fails + 1)); fi
+                  if [ "$fails" -eq 0 ]; then echo "BASELINE_PROBE=PASS"; else echo "BASELINE_PROBE=FAIL fails=${fails}"; exit 1; fi
+              resources:
+                requests: {cpu: 10m, memory: 16Mi}
+                limits: {cpu: 100m, memory: 64Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
