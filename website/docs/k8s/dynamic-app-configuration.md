@@ -5,7 +5,7 @@ title: Declarative configuration for dynamic applications
 Some applications manage their own configuration files and are unaware of GitOps workflows. This guide explains how init containers and shared volumes let you enforce a declarative setup anyway.
 
 :::info
-This approach is handy for tools like Home Assistant or Zigbee2MQTT, but it can be applied to any application that writes to its configuration directory at runtime.
+This approach is handy for tools like Home Assistant, but it can be applied to any application that writes to its configuration directory at runtime.
 :::
 
 ## Common use cases
@@ -26,7 +26,6 @@ This method keeps container images generic while still letting you define config
 **Example implementations**
 
 - *Home Assistant* merges a templated configuration with any existing files. The initContainer uses `yq` to combine settings from a ConfigMap with the persistent data volume.
- - *Zigbee2MQTT* seeds its directory on first run. If the files already exist, the initContainer just exits.
 
 ## Important considerations
 

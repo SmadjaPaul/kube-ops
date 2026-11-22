@@ -96,7 +96,6 @@ Where `<tier>` is one of: `gfs`, `daily`, or `weekly`.
 - Sonarr/Radarr - Media management automation
 - Baby Buddy - Baby tracking application
 - MQTT - Message broker data
-- Zigbee2MQTT - IoT device configuration
 - UniFi Controller - Network management
 - Home Assistant - Smart home configuration
 - KaraKeep - Document management (MeiliSearch + web data)

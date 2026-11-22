@@ -99,7 +99,6 @@ Répertoires `k8s/applications`, `k8s/infrastructure`, `k8s/optional`, `k8s/poc`
 - `k8s/applications/ai/pocket-tts`
 - `k8s/applications/ai/vllm-embed`
 - `k8s/applications/automation/matter-server`
-- `k8s/applications/automation/zigbee2mqtt`
 - `k8s/applications/media/arr`
 - `k8s/applications/media/bookorbit`
 - `k8s/applications/media/jellyfin` (retiré par décision)

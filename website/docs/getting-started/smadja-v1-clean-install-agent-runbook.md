@@ -378,7 +378,6 @@ OpenClaw
 Qdrant
 Home Assistant
 MQTT
-Zigbee2MQTT
 Matter Server
 Immich
 selected media/personal apps
