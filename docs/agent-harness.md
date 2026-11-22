@@ -2,6 +2,12 @@
 
 The harness makes repository navigation and runtime evidence deterministic enough that a fresh agent does not need chat history.
 
+## Subagents
+
+Subagents come from the `harness-core` plugin of `SmadjaPaul/agent-harness` (enabled in `.claude/settings.json`), each with an explicit model: `mechanic` (haiku), `investigator`, `implementer`, `reviewer` (sonnet), `architect` (opus). Choice rule: haiku for decision-free steps, sonnet by default, opus for design, delicate security or opaque bugs. Never set `CLAUDE_CODE_SUBAGENT_MODEL`: it overrides the per-task model.
+
+kube-ops conventions the plugin agents must follow: `implementer` runs `just check`, works on its own `claude/` branch, and reports in STE80 form (`Objective`, `Status`, `Changes`, `Evidence`, `Blockers`, `NextAction`); `investigator` stays read-only (`scripts/kubectl-ro.sh`, never Secret values; Git manifests are not proof of what is deployed). Replaces the former `.claude/agents/implementer` and `repo-researcher`.
+
 ## Per-run test result contract
 
 Coding agents must report planned checks as JSON using
