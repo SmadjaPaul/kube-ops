@@ -241,12 +241,12 @@ bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="STORE" {st[$2]=$3} $1=="KEY" 
 
 # Backup resources are part of the full desired-state contract. When CNPG
 # object-store resources are active, they must carry an object-storage endpoint:
-# the Hetzner fsn1 URL, or the Cloudflare R2 endpoint injected from Doppler
-# R2_S3_ENDPOINT as AWS_ENDPOINT_URL_S3 (catalog apps moved to R2); credentials
-# remain externally provisioned through Doppler/ESO.
+# the Cloudflare R2 endpoint injected from Doppler R2_S3_ENDPOINT as
+# AWS_ENDPOINT_URL_S3; credentials remain externally provisioned through
+# Doppler/ESO.
 if grep -q '^kind:[[:space:]]*\(ObjectStore\|ScheduledBackup\)[[:space:]]*$' "$rendered"; then
-  grep -qE 'https://fsn1\.your-objectstorage\.com|AWS_ENDPOINT_URL_S3' "$rendered" || {
-    echo "ERROR: active backup resources are missing an object-storage endpoint (Hetzner fsn1 or R2 AWS_ENDPOINT_URL_S3)" >&2
+  grep -q 'AWS_ENDPOINT_URL_S3' "$rendered" || {
+    echo "ERROR: active backup resources are missing an object-storage endpoint (R2 AWS_ENDPOINT_URL_S3)" >&2
     exit 1
   }
 fi

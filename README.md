@@ -19,7 +19,7 @@ Canonical GitOps repository for the Smadja Kubernetes cluster.
 - cert-manager + External Secrets/Doppler;
 - CloudNativePG;
 - Authentik;
-- Velero/Kopia to Cloudflare R2 (Hetzner read-only); CNPG Barman migrating from Hetzner Object Storage to R2 (PLT-221);
+- Velero/Kopia, CNPG Barman and Longhorn backups on Cloudflare R2 (Hetzner abandoned);
 - in-cluster cloudflared using the remotely-managed wildcard tunnel;
 - Migadu retained for SMTP.
 
