@@ -73,3 +73,7 @@ Nothing else: no Doppler token, no kubeconfig, no ntfy URL in GitHub. The reposi
 ## Evidence
 
 Contract tests: `tests/harness/verify-revision-test.sh`, `post-merge-decision-test.sh`, `post-merge-verify-test.sh`, `post-merge-revert-test.sh`, `tests/agent-guard/kubectl-ro-in-cluster-test.sh`. `just post-merge-verify --dry-run SHA` shows the decision and the revert plan without creating a PR or sending ntfy.
+
+## OKE (PLT-407)
+
+Apps with an `argocd-app.oracle-a1.yaml` are verified by the job `verify-oke`, on the ARC scale set `kube-ops-oke-arc` that runs inside oracle-a1 (`k8s/clusters/oracle-a1/arc-runner`), not by the homelab runner: `post-merge-verify.sh --only-cluster oracle-a1` there, `--only-cluster homelab` on the homelab runner. The OKE runner reads the cluster with its own read-only ServiceAccount (`KUBECTL_RO_IN_CLUSTER_CLUSTER=oracle-a1`), so the homelab holds no access to OKE and OKE none to the homelab. The decision on OKE is NOTIFY at most (ntfy from the Secret `arc-runners-oke/ntfy-publish-url`), never a revert. `app-test` skips the local-Prometheus check on oracle-a1 (Grafana Cloud export, `scripts/verify-delivery.sh`).

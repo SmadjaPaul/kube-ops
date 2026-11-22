@@ -507,7 +507,10 @@ if [[ $PHASE != static ]]; then
     prom='/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query='
     q="$(jq -rn --arg ns "$NS" '"up{namespace=\"\($ns)\"}" | @uri')"
     npods="$(jq '[.items[] | select(.status.phase != "Succeeded")] | length' "$work/pods.json" 2>/dev/null)"; npods=${npods:-0}
-    if kro get --raw "$prom$q" >"$work/up-all.json" 2>"$work/kget.err" && jq -e '.status == "success"' "$work/up-all.json" >/dev/null 2>&1; then
+    # OKE (PLT-407) : pas de Prometheus local (kube-state-metrics + Alloy exportent vers Grafana Cloud) ; la
+    # presence de l'app dans ces series est prouvee par scripts/verify-delivery.sh, pas par une requete locale.
+    if [[ $CLUSTER == oracle-a1 ]]; then rr observability SKIP "oracle-a1 : pas de Prometheus local (export Grafana Cloud, voir verify-delivery.sh)"
+    elif kro get --raw "$prom$q" >"$work/up-all.json" 2>"$work/kget.err" && jq -e '.status == "success"' "$work/up-all.json" >/dev/null 2>&1; then
       # cibles de l'app seulement : pod de l'app, ou service/job portant le nom d'un Service rendu de l'app
       jq --slurpfile sc "$work/scope.json" --slurpfile pd "$work/pods.json" '
         ([ $pd[0].items[].metadata.name ]) as $pods

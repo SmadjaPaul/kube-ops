@@ -1,0 +1,37 @@
+# Scale set ARC d'OKE pour le post-merge d'oracle-a1 (PLT-407) : runs-on: kube-ops-oke-arc.
+# Meme chart que le homelab (kube-ops-ci-arc), epingle ; image runner arm64 (le noeud A1 est aarch64).
+githubConfigUrl: https://github.com/SmadjaPaul/kube-ops
+# Lu seulement par le controleur et l'ecouteur ; jamais monte dans le pod runner.
+githubConfigSecret: arc-github-app
+runnerScaleSetName: kube-ops-oke-arc
+minRunners: 0
+maxRunners: 1
+controllerServiceAccount:
+  namespace: arc-systems
+  name: arc-gha-rs-controller
+template:
+  spec:
+    # Identite propre, lecture seule (rbac.yaml). Seul pod du cluster a monter ce jeton.
+    serviceAccountName: kube-ops-post-merge-oke
+    automountServiceAccountToken: true
+    hostNetwork: false
+    hostPID: false
+    hostIPC: false
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+      runAsGroup: 1001
+      fsGroup: 1001
+      fsGroupChangePolicy: OnRootMismatch
+    containers:
+      - name: runner
+        # Image officielle, multi-arch (index OCI) : le digest est celui de l'index, arm64 inclus.
+        image: ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807
+        command: ["/home/runner/run.sh"]
+        resources:
+          requests: {cpu: 100m, memory: 256Mi, ephemeral-storage: 512Mi}
+          limits: {cpu: "1", memory: 1Gi, ephemeral-storage: 4Gi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {drop: ["ALL"]}
+          seccompProfile: {type: RuntimeDefault}

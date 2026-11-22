@@ -33,7 +33,9 @@
 #   AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision      (homelab)
 #   AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-oke-token.sh --provision  (oracle-a1)
 #
-# In-cluster mode (PLT-390 lot 3): KUBECTL_RO_IN_CLUSTER=1, homelab only, inside a pod. No Doppler and no
+# In-cluster mode (PLT-390 lot 3): KUBECTL_RO_IN_CLUSTER=1, inside a pod, for the cluster that pod runs in only
+# (KUBECTL_RO_IN_CLUSTER_CLUSTER, default homelab; oracle-a1 for the OKE post-merge runner, PLT-407: identity
+# system:serviceaccount:arc-runners-oke:kube-ops-post-merge-oke, RBAC in k8s/clusters/oracle-a1/arc-runner/rbac.yaml). No Doppler and no
 # kubeconfig: kubectl uses the pod's own ServiceAccount token, and the effective identity must be exactly
 # system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge (post-merge runner, RBAC in
 # k8s/optional/github-actions-arc-kube-ops/rbac.yaml). All the filters above still apply.
@@ -256,11 +258,16 @@ session_store() { # session_store USER : copy the freshly verified kubeconfig (a
   export KUBECONFIG="$session_dir/$session_name.kubeconfig"
 }
 
-IN_CLUSTER_USER=${KUBECTL_RO_IN_CLUSTER_USER:-system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge}
+pod_cluster=${KUBECTL_RO_IN_CLUSTER_CLUSTER:-homelab}
+case "$pod_cluster" in
+  oracle-a1) IN_CLUSTER_USER=${KUBECTL_RO_IN_CLUSTER_USER:-system:serviceaccount:arc-runners-oke:kube-ops-post-merge-oke} ;;
+  *) IN_CLUSTER_USER=${KUBECTL_RO_IN_CLUSTER_USER:-system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge} ;;
+esac
 SA_DIR=${KUBECTL_RO_SA_DIR:-/var/run/secrets/kubernetes.io/serviceaccount}
 in_cluster=0
 if [ "${KUBECTL_RO_IN_CLUSTER:-}" = 1 ]; then
-  [ "$cluster" = homelab ] || refuse "KUBECTL_RO_IN_CLUSTER=1 : homelab uniquement"
+  case "$pod_cluster" in homelab|oracle-a1) ;; *) refuse "KUBECTL_RO_IN_CLUSTER_CLUSTER '$pod_cluster' inconnu (homelab|oracle-a1)" ;; esac
+  [ "$cluster" = "$pod_cluster" ] || refuse "KUBECTL_RO_IN_CLUSTER=1 : ce pod ne lit que $pod_cluster (demande : $cluster)"
   [ -r "$SA_DIR/token" ] || refuse "KUBECTL_RO_IN_CLUSTER=1 hors pod (jeton ServiceAccount absent) : pas de repli sur Doppler"
   in_cluster=1
 fi

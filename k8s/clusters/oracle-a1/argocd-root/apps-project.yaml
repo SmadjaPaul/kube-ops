@@ -20,6 +20,10 @@ spec:
   destinations:
     - namespace: '*'
       server: https://kubernetes.default.svc
+    - namespace: '!arc-runners-oke'
+      server: '*'
+    - namespace: '!arc-systems'
+      server: '*'
     - namespace: '!argocd'
       server: '*'
     - namespace: '!baseline-probe'

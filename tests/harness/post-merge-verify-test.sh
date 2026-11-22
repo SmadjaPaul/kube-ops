@@ -137,6 +137,11 @@ rm -f "$tmp/vrev.log" "$tmp/just.log"
 FX_VREV_LOG="$tmp/vrev.log" FX_JUST_LOG="$tmp/just.log" FX_APPTEST=PASS run 0 --dry-run "$oke"; expect "DECISION=NONE"; expect "CHECK revision cluster=oracle-a1 app=okeapp argo=app-okeapp"
 grep -q -- 'app-okeapp .* --cluster oracle-a1' "$tmp/vrev.log" || { echo "FAIL: verify-revision not called with --cluster oracle-a1"; cat "$tmp/vrev.log"; exit 1; }
 grep -q -- 'app-test okeapp okeapp --phase runtime --cluster oracle-a1' "$tmp/just.log" || { echo "FAIL: app-test not called with --cluster oracle-a1"; cat "$tmp/just.log"; exit 1; }
+# --only-cluster (PLT-407): each cluster's runner verifies its own apps only
+FX_VREV_LOG="$tmp/vrev2.log" FX_APPTEST=PASS run 0 --dry-run --only-cluster oracle-a1 "$oke"; expect "ONLY_CLUSTER=oracle-a1 apps=1"; expect "CHECK revision cluster=oracle-a1"
+FX_VREV_LOG="$tmp/vrev3.log" FX_APPTEST=FAIL FX_DEPLOY=FAIL run 0 --dry-run --only-cluster homelab "$oke"; expect "ONLY_CLUSTER=homelab apps=0"; expect "DECISION=NONE"; expect "no_app_touched"; refute "CHECK revision"
+[[ ! -s "$tmp/vrev3.log" ]] || { echo "FAIL: homelab runner called verify-revision for an OKE app"; cat "$tmp/vrev3.log"; exit 1; }
+run 2 --only-cluster mars "$oke"; expect "--only-cluster"
 # a broken OKE deployment is a NOTIFY, never a revert PR (no auto-revert there)
 FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$oke"; expect "DECISION=NOTIFY"; expect "oke_notify_only_no_revert"; expect "oke=yes"; refute "DRY_RUN git switch"; refute "DECISION=REVERT"
 FX_REV=timeout FX_DEPLOY=FAIL FX_APPTEST=FAIL run 0 --dry-run "$oke"; expect "revision_not_proven"
