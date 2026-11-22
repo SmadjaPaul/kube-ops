@@ -82,7 +82,7 @@ fi
 
 # Authentik V1 stays on the current stable series and uses upstream-native
 # authentication flows rather than carrying a parallel passwordless graph.
-grep -q 'version: 2026.8.3' k8s/infrastructure/auth/authentik/kustomization.yaml
+grep -q 'version: 2026.8.6' k8s/infrastructure/auth/authentik/kustomization.yaml
 grep -q 'type: ClusterIP' k8s/infrastructure/auth/authentik/values.yaml
 grep -q 'base_url: "https://auth.smadja.dev"' k8s/infrastructure/auth/authentik/values.yaml
 grep -q 'disable_startup_analytics: true' k8s/infrastructure/auth/authentik/values.yaml
