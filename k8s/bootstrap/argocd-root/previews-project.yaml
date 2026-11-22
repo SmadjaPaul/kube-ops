@@ -13,8 +13,12 @@ spec:
   destinations:
     - namespace: 'pr-*'
       server: https://kubernetes.default.svc
-  # No clusterResourceWhitelist: a preview cannot create any cluster-scoped
-  # object. The namespace itself comes from the CreateNamespace sync option.
+  # The only cluster-scoped kind admitted is Namespace (PLT-394 drill): Argo checks the
+  # CreateNamespace sync option against the project and refused it ("resource :Namespace
+  # is not permitted"), so no preview ever started. A PR cannot ship its own Namespace
+  # (the ApplicationSet patch deletes it) and the destination stays pr-*.
+  clusterResourceWhitelist:
+    - {group: '', kind: Namespace}
   # Explicit allow-list (PLT-395): nothing else is admitted, so a PR cannot add a
   # CiliumNetworkPolicy (additive, would open Internet/LAN/pg-shared), a Role or
   # RoleBinding, a Kyverno or networking.k8s.io object, a GRPCRoute or any other
@@ -84,6 +88,8 @@ spec:
   destinations:
     - namespace: 'pr-*'
       server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - {group: '', kind: Namespace}
   namespaceResourceWhitelist:
     - {group: '', kind: ResourceQuota}
     - {group: '', kind: LimitRange}

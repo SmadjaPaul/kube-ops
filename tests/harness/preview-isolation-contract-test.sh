@@ -21,7 +21,9 @@ done
 for k in apps/Deployment apps/StatefulSet batch/Job batch/CronJob /Service /ConfigMap /Secret /PersistentVolumeClaim /ServiceAccount policy/PodDisruptionBudget gateway.networking.k8s.io/HTTPRoute external-secrets.io/ExternalSecret generators.external-secrets.io/Password; do
   [[ " $allowed" == *" $k "* ]] || bad "previews: whitelist lacks $k"
 done
-[[ "$(pyq previews '[.spec.clusterResourceWhitelist // []] | .[0] | length')" == 0 ]] || bad "previews: cluster resources admitted"
+for pj in previews previews-guardrails; do
+  [[ "$(pyq $pj '[.spec.clusterResourceWhitelist[]? | .group + "/" + .kind] | join(",")')" == "/Namespace" ]] || bad "$pj: cluster resources must be exactly Namespace (CreateNamespace)"
+done
 [[ "$(pyq previews-guardrails '.spec.namespaceResourceWhitelist | length')" == 3 ]] || bad "previews-guardrails: expected exactly 3 kinds"
 
 # 2. guardrails: separate Application from main, absent from the PR Application
