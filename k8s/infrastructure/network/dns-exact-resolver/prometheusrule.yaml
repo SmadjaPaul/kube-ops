@@ -1,0 +1,44 @@
+# PLT-149 lot 1.4: alerts on the exact-name resolver (CoreDNS metrics, plugin prometheus).
+# Single replica on one node: a restart briefly drops `up`, hence the `for` durations.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: dns-exact-resolver
+  namespace: dns-exact-resolver
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/component: dns-exact-resolver
+spec:
+  groups:
+    - name: dns-exact-resolver.rules
+      rules:
+        - alert: DnsExactResolverDown
+          expr: |-
+            up{namespace="dns-exact-resolver",service="dns-exact-resolver-metrics"} == 0
+            or absent(up{namespace="dns-exact-resolver",service="dns-exact-resolver-metrics"})
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "dns-exact-resolver n'est plus scrapé ou est indisponible"
+            description: "Le résolveur split-DNS (10.0.20.194) ne répond plus au scrape depuis 5 min : les noms exacts internes ne sont plus servis avec NODATA AAAA/HTTPS/SVCB."
+        - alert: DnsExactResolverServfail
+          expr: |-
+            sum(rate(coredns_dns_responses_total{namespace="dns-exact-resolver",rcode="SERVFAIL"}[10m]))
+              / sum(rate(coredns_dns_responses_total{namespace="dns-exact-resolver"}[10m])) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "dns-exact-resolver renvoie des SERVFAIL (> 5 %)"
+            description: "Plus de 5 % des réponses sont SERVFAIL depuis 10 min (upstream UniFi 10.0.20.1 injoignable, ou regex de template sans correspondance)."
+        - alert: DnsExactResolverHighLatency
+          expr: |-
+            histogram_quantile(0.95, sum by (le) (rate(coredns_dns_request_duration_seconds_bucket{namespace="dns-exact-resolver"}[10m]))) > 0.5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "dns-exact-resolver : latence p95 > 500 ms"
+            description: "La latence p95 des requêtes DNS dépasse 500 ms depuis 10 min (upstream UniFi lent ?)."

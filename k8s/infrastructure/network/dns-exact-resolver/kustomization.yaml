@@ -7,3 +7,6 @@ resources:
   - deployment.yaml
   - service.yaml
   - cilium-network-policy.yaml
+  - metrics-service.yaml
+  - servicemonitor.yaml
+  - prometheusrule.yaml
