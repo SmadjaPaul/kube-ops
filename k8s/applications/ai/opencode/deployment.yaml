@@ -39,6 +39,9 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: "200m", memory: 64Mi }
           volumeMounts:
             - name: shared-tools
               mountPath: /opt/shared-tools
@@ -55,6 +58,9 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: "200m", memory: 128Mi }
           volumeMounts:
             - name: shared-tools
               mountPath: /opt/shared-tools
@@ -101,6 +107,9 @@ spec:
           value: "--max-old-space-size=512"
         - name: PATH
           value: "/opt/shared-tools/bin:/opt/bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        resources:
+          requests: { cpu: 100m, memory: 512Mi }
+          limits: { cpu: "2", memory: 2Gi }
         volumeMounts:
         - name: workspace
           mountPath: /workspace
@@ -154,6 +163,20 @@ spec:
             drop: ["ALL"]
           seccompProfile:
             type: RuntimeDefault
+        readinessProbe:
+          tcpSocket: { port: 8931 }
+          initialDelaySeconds: 20
+          periodSeconds: 30
+          timeoutSeconds: 5
+        livenessProbe:
+          tcpSocket: { port: 8931 }
+          initialDelaySeconds: 120
+          periodSeconds: 60
+          timeoutSeconds: 5
+          failureThreshold: 5
+        resources:
+          requests: { cpu: 50m, memory: 256Mi }
+          limits: { cpu: "2", memory: 3Gi }
         volumeMounts:
           - name: mcp-cache
             mountPath: /home/pwuser/.cache

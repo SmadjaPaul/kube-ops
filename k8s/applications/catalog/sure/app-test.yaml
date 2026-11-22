@@ -1,0 +1,5 @@
+# Contrat de test (PLT-392) : sure n'expose pas de /metrics ; la base CNPG est surveillee par le PodMonitor
+# central monitoring/cnpg-instances (le scrape est autorise par la CiliumNetworkPolicy sure-postgresql, port 9187).
+exceptions:
+  observability: "base CNPG surveillee par le PodMonitor central monitoring/cnpg-instances ; l'app n'expose pas de metrics, couverture generique kube-prometheus-stack"
+  rootfs: "l'image Rails ecrit dans /rails/tmp, /rails/log et caches hors des volumes montes ; readOnlyRootFilesystem non valide sur cluster (le reste du securityContext est conforme : non-root, drop ALL, seccomp)"

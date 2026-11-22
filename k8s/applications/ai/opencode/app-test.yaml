@@ -1,0 +1,4 @@
+# Contrat de test (PLT-392) : acces interne uniquement (Gateway internal).
+exceptions:
+  observability: "opencode-manager n'expose pas de /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady) et sondes liveness/readiness/startup"
+  network: "CiliumNetworkPolicy opencode-web (deny ingress, port 5003 seul) en place ; l'entrypoint upstream exige root (chown des PVC puis runuser) avec CAP CHOWN/SETUID/SETGID, rootfs inscriptible (voir policy-exception.yaml)"

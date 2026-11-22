@@ -10,3 +10,4 @@ resources:
 - service.yaml
 - pvc.yaml
 - http-route.yaml
+- networkpolicy.yaml
