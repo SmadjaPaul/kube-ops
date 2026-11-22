@@ -1,7 +1,0 @@
-# PLT-190 drill: the drill database. Import it first and keep it for the whole
-# drill (databaseReclaimPolicy: delete drops the database when the import goes).
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: databases
-resources:
-  - database.yaml
