@@ -28,6 +28,7 @@ spec:
           - path: k8s/optional/github-actions-arc-ha-config
           - path: k8s/optional/github-actions-arc-agent-harness
           - path: k8s/optional/github-actions-arc-kube-ops
+          - path: k8s/optional/github-actions-arc-kube-ops-pr
           - path: k8s/optional/github-actions-arc-homelab-iac-pilot
   # Retrait sans cascade : la suppression d'une Application générée par cet ApplicationSet
   # ne supprime plus ses ressources (pas de finalizer resources-finalizer à la génération,

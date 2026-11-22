@@ -104,6 +104,9 @@ spec:
     # PLT-390: post-merge verification runner (k8s/optional/github-actions-arc-kube-ops).
     - namespace: arc-runners-kube-ops
       server: https://kubernetes.default.svc
+    # PLT-442: PR CI scale set without Kubernetes token (k8s/optional/github-actions-arc-kube-ops-pr).
+    - namespace: arc-runners-kube-ops-pr
+      server: https://kubernetes.default.svc
     - namespace: paperless
       server: https://kubernetes.default.svc
     - namespace: pinepods

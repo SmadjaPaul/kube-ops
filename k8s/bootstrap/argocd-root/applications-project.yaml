@@ -33,6 +33,9 @@ spec:
     # PLT-390: post-merge verification runner scale set (apps-arc-kube-ops-ci).
     - namespace: arc-runners-kube-ops
       server: https://kubernetes.default.svc
+    # PLT-442: PR CI scale set without Kubernetes token (apps-arc-kube-ops-pr-ci).
+    - namespace: arc-runners-kube-ops-pr
+      server: https://kubernetes.default.svc
     - namespace: agentgateway
       server: https://kubernetes.default.svc
     - namespace: executor
