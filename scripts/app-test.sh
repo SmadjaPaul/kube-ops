@@ -29,6 +29,9 @@
 # deja gele pour cette app dans policy/app-test-baseline.tsv devient PASS "baselined" (--no-ratchet
 # l'ignore) ; seule une regression echoue.
 #
+# OKE : une app a descripteur argocd-app.oracle-a1.yaml n'a pas a porter de CiliumNetworkPolicy (pas de Cilium sur
+# oracle-a1) ; le check network garde PSA et securityContext. Hors de ce cas, rien ne change.
+#
 # Exceptions : fichier optionnel `app-test.yaml` dans le dossier de l'app (format minimal) :
 #     auth: none | oidc      # none = pas d'auth devant la route externe ; oidc = OIDC natif declare
 #     backup: none           # rien a sauvegarder (sans etat)
@@ -118,6 +121,10 @@ exc_problems="$(jq -r '
   (if .backup == "none" and (((.exceptions // {}).backup // "")|gsub("\\s";"")|length) == 0 then "backup: none sans raison (exceptions.backup)" else empty end)
 ' "$EXC" 2>/dev/null)"
 
+# OKE (PLT-407) : l'app a un descripteur argocd-app.oracle-a1.yaml. Pas de Cilium sur oracle-a1 (README du cluster) :
+# la CiliumNetworkPolicy n'y est pas exigee (le CRD n'existe pas), le reste du check network (PSA, securityContext) l'est.
+OKE=no; [[ -f $APP_DIR/argocd-app.oracle-a1.yaml ]] && OKE=yes
+
 # raison d'une exception generique (exceptions.<id>), vide si absente
 exc_reason() { jq -r --arg k "$1" '((.exceptions // {})[$k] // "") | gsub("^\\s+|\\s+$";"") | .[0:70]' "$EXC"; }
 
@@ -178,7 +185,7 @@ scope_ready=$static_ready
 static_run() {
   local id=$1 note=$2 prog=$3 out line skip="" s n
   [[ $static_ready == yes ]] || return 0
-  if ! out="$(jq -r --arg ns "$NS" --arg generic "$GENERIC_ALERTS" --slurpfile exc "$EXC" --slurpfile ctx "$CTX" "$PRE
+  if ! out="$(jq -r --arg ns "$NS" --arg oke "$OKE" --arg generic "$GENERIC_ALERTS" --slurpfile exc "$EXC" --slurpfile ctx "$CTX" "$PRE
 $prog" "$DOCS" 2>"$work/jq.err")"; then
     res "$id" static BLOCKED "erreur jq: $(head -1 "$work/jq.err" | cut -c1-90)"; return 0
   fi
@@ -331,6 +338,7 @@ static_run network "NetworkPolicy deny par defaut et securityContext PSA restric
   . as $docs
   | ([ wls[] | wns ] | unique) as $nss
   | ($nss[] | . as $n
+     | select($oke != "yes")
      | select(([ ($docs + $ctx[0])[] | select(.kind|IN("CiliumNetworkPolicy","NetworkPolicy")) | select((.metadata.namespace // $ns) == $n)
                  | select((.spec.ingress // .spec.egress // .spec.ingressDeny // .spec.egressDeny // .spec.policyTypes) != null) ] | length) == 0)
      | "namespace \(.) sans CiliumNetworkPolicy/NetworkPolicy"),

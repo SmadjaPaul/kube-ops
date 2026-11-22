@@ -73,7 +73,7 @@ session, which must be a private VCN `10.0.x.y` address), then `kubectl-ro.sh --
 
 - One cluster per app: `argocd-app.oracle-a1.yaml` or `argocd-app.yaml`, never both.
 - No LoadBalancer (VAP and OCI quota zero); expose through Cloudflare Tunnel only, each hostname a decision of Paul.
-- No application data on this cluster until a restore off Oracle is proven (PLT-190, `docs/operations/pg-shared-oke-backup-drill.md`).
+- No application data on this cluster until a restore off Oracle is proven (PLT-190, `docs/operations/pg-shared-oke-backup-drill.md`). Enforced by `scripts/check-argo-app-descriptors.sh` (PVC, CNPG `Cluster`, StatefulSet with volumeClaimTemplates refused); exception: `disposableData: "<reason>"` in the descriptor, for disposable and rebuildable data only.
 - Images must have a `linux/arm64` manifest. Single node: PDBs use `maxUnavailable: 1`.
-- The CNI does not enforce NetworkPolicy and no Cilium is installed here. The audit and PLT-384 describe a Cilium chaining baseline (CCNP `deny-imds`, `allow-egress-unisolated`, kube-ops#1620, not merged): it is not part of this tree, so IMDS is not blocked from pods yet.
+- The CNI does not enforce NetworkPolicy and no Cilium is installed here (so an OKE app carries no CiliumNetworkPolicy: `policy-check.sh` and `app-test.sh` exempt apps with `argocd-app.oracle-a1.yaml`; remove that exemption with the Cilium baseline). The audit and PLT-384 describe a Cilium chaining baseline (CCNP `deny-imds`, `allow-egress-unisolated`, kube-ops#1620, not merged): it is not part of this tree, so IMDS is not blocked from pods yet.
 - Secrets: nothing in Git. External Secrets reads Doppler `cluster/prd` through `doppler-cluster` with a read-only token that only Paul creates (gesture above). An ExternalSecret of a new app must name a key present in that config.

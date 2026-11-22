@@ -28,7 +28,7 @@ Chaque cluster a son Argo CD et son ApplicationSet `apps` sur le meme depot. Le 
 | `argocd-app.yaml` | homelab | `k8s/bootstrap/argocd-root/apps-applicationset.yaml` |
 | `argocd-app.oracle-a1.yaml` | OKE | `k8s/clusters/oracle-a1/argocd-root/apps-applicationset.yaml` |
 
-Le descripteur OKE a les memes champs, plus `cluster: oracle-a1` (obligatoire, egal au suffixe du fichier). Differences : `postMerge` ne vaut que `notify` (defaut ; pas de revert automatique sur OKE), `preview` est refuse (previews homelab seulement), `project` designe un AppProject de `k8s/clusters/oracle-a1/argocd-root` (defaut `apps`, qui admet tout namespace sauf `argocd`, `kube-*` et l'infrastructure d'OKE). L'Application s'appelle `app-<name>` dans l'Argo CD d'OKE, avec le label `kube-ops.dev/cluster: oracle-a1`.
+Le descripteur OKE a les memes champs, plus `cluster: oracle-a1` (obligatoire, egal au suffixe du fichier) et `disposableData` (optionnel, voir ci-dessous). Differences : `postMerge` ne vaut que `notify` (defaut ; pas de revert automatique sur OKE), `preview` est refuse (previews homelab seulement), `project` designe un AppProject de `k8s/clusters/oracle-a1/argocd-root` (defaut `apps`, qui admet tout namespace sauf `argocd`, `kube-*` et l'infrastructure d'OKE). L'Application s'appelle `app-<name>` dans l'Argo CD d'OKE, avec le label `kube-ops.dev/cluster: oracle-a1`.
 
 ```yaml
 # k8s/applications/<domaine>/<app>/argocd-app.oracle-a1.yaml
@@ -39,10 +39,15 @@ cluster: oracle-a1
 
 Regles controlees par `scripts/check-argo-app-descriptors.sh` :
 
+- pas de donnees durables sur OKE (PLT-407) : un rendu avec PVC, `Cluster` CNPG ou StatefulSet a `volumeClaimTemplates` est refuse (rien tant qu'une restauration hors Oracle n'est pas prouvee, PLT-190). Exception : `disposableData: "<pourquoi la donnee est jetable et recreable>"` dans le descripteur OKE (raison non vide ; refusee si le rendu n'a aucun objet durable). Exemple : un SQLite de cache recree au demarrage ;
 - une app n'a qu'un cluster a la fois : les deux fichiers dans un meme dossier sont refuses. Basculer = supprimer l'un et ajouter l'autre dans la meme PR (le retrait du descripteur homelab ne supprime pas les ressources : `preserveResourcesOnDeletion`) ;
 - le dossier de l'app est le meme pour les deux clusters : il doit donc etre valide sur OKE (arm64, pas de LoadBalancer, pas de `Gateway/external` du homelab) ;
 - le domaine de l'app doit deja utiliser des descripteurs (retire de l'ApplicationSet `applications`), sinon le homelab la deploierait aussi ;
 - un suffixe inconnu (`argocd-app.<autre>.yaml`) est refuse.
+
+Pas de Cilium sur OKE : une app OKE ne porte pas de `CiliumNetworkPolicy` (le CRD n'existe pas, Argo ne pourrait pas l'appliquer). `scripts/policy-check.sh` (regle `repo-contract-cnp-per-namespace`) et `scripts/app-test.sh` (check `network`, qui garde PSA et securityContext) exemptent les apps a descripteur `argocd-app.oracle-a1.yaml` ; a retirer avec le chaining Cilium d'OKE (PLT-384). Pas de CRD `ServiceMonitor` non plus : une app sans `/metrics` declare `exceptions.observability` dans `app-test.yaml`. Pilote : `k8s/applications/tools/whoami` (`traefik/whoami` epingle par digest, aucune route).
+
+Verification apres merge (PLT-407) : `post-merge-affected.sh` sort `argo=app-<name> cluster=oracle-a1` ; `post-merge-verify.sh` appelle `verify-revision.sh` et `app-test` avec `--cluster oracle-a1` et ne decide jamais REVERT pour une app OKE (`NOTIFY`, raison `oke_notify_only_no_revert`). Le runner post-merge est dans le homelab (`KUBECTL_RO_IN_CLUSTER`, homelab seulement) : sur OKE la revision sort `NOT_PROVEN` depuis le workflow tant que ce runner n'atteint pas OKE ; la preuve se fait a la main : `just verify-delivery oracle-a1 <app>` (Grafana, accepte `<app>` ou `app-<app>`) ou `kubectl-ro.sh --cluster oracle-a1 get applications.argoproj.io app-<app> -n argocd`.
 
 Bootstrap et baseline d'OKE : `k8s/clusters/oracle-a1/README.md`.
 
@@ -65,7 +70,7 @@ Les ApplicationSets `previews` et `previews-guardrails` (`k8s/bootstrap/argocd-r
 
 ## Post-merge et migration d'un domaine
 
-`scripts/post-merge-affected.sh` nomme l'Application Argo attendue d'une app : `app-<name>` si `k8s/applications/<domaine>/<app>/argocd-app.yaml` existe, sinon `apps-<domaine>`. `post-merge-verify.sh` et `verify-revision.sh` reprennent ce nom tel quel ; `scripts/lib/argo-app.sh` et `scripts/observe.sh` resolvent aussi `app-<name>`. Le skill `deploy-a-service` (section Files) decrit la creation d'une app ; `scripts/argo-orphan-inventory.sh` lit les descripteurs (`--list-applications`) pour connaitre les Applications `app-<name>`.
+`scripts/post-merge-affected.sh` nomme l'Application Argo attendue d'une app : `app-<name>` si `k8s/applications/<domaine>/<app>/argocd-app.yaml` ou `argocd-app.oracle-a1.yaml` existe, sinon `apps-<domaine>`. `post-merge-verify.sh` et `verify-revision.sh` reprennent ce nom tel quel ; `scripts/lib/argo-app.sh` et `scripts/observe.sh` resolvent aussi `app-<name>`. Le skill `deploy-a-service` (section Files) decrit la creation d'une app ; `scripts/argo-orphan-inventory.sh` lit les descripteurs (`--list-applications`) pour connaitre les Applications `app-<name>`.
 
 Migration d'un domaine, dans **un seul commit** : descripteurs de toutes les apps, retrait du domaine du generateur de `applications`, `scripts/affected-tests.conf` (une entree par app migree a la place du domaine), `scope.tsv` (colonne racine Argo). L'ancienne Application `apps-<domaine>` disparait sans cascade (`preserveResourcesOnDeletion`, pas de finalizer) ; `app-<name>` reprend les ressources : Argo CD identifie les objets par le tracking annotation (`argocd.argoproj.io/tracking-id`, `<application>:<group>/<kind>:<ns>/<name>`) et la reecrit au premier sync de la nouvelle Application, sans suppression ni recreation (ServerSideApply et `ApplyOutOfSyncOnly` : l'ecriture suit le premier sync).
 

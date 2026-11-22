@@ -8,6 +8,10 @@
 #      `namespace` present dans le rendu de l'app, tous les namespaces rendus admis par le projet ;
 #      descripteur jamais liste dans une kustomization ni hors k8s/applications/*/* ;
 #      descripteur OKE : `cluster: oracle-a1` obligatoire, `postMerge: notify`, pas de `preview` ;
+#      descripteur OKE, pas de donnees durables (PLT-407, k8s/clusters/oracle-a1/README.md : rien tant qu'une
+#      restauration hors Oracle n'est pas prouvee, PLT-190) : un rendu avec PersistentVolumeClaim, CNPG
+#      `Cluster` ou StatefulSet a volumeClaimTemplates est refuse, sauf `disposableData: "<raison>"` dans le
+#      descripteur (donnee jetable et recreable, raison non vide) ; une exception sans objet durable est refusee ;
 #      une app n'a qu'un cluster : jamais les deux fichiers dans le meme dossier ;
 #   b. chaque `extraPaths` existe (chemin depuis la racine du depot, sans `..` ni joker) ;
 #   c. un domaine migre est COMPLET (chaque sous-dossier avec kustomization.yaml a son descripteur)
@@ -51,7 +55,7 @@ dns1123='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
 allowed_keys='name namespace project postMerge preview extraPaths'
 oke_cluster='oracle-a1'
 oke_root_dir="$repo/k8s/clusters/$oke_cluster/argocd-root"
-oke_allowed_keys="$allowed_keys cluster"
+oke_allowed_keys="$allowed_keys cluster disposableData"
 
 render() { # <dir relatif> -> YAML rendu sur stdout
   local rel="$1"
@@ -239,6 +243,20 @@ while IFS=$'\t' read -r cluster f; do
         done <"$tmp/app.ns"
       fi
       objects <"$tmp/app.rendered" >"$tmp/app.objects.$app"
+      if [[ $cluster != homelab ]]; then
+        # PLT-407 : pas de donnees durables sur OKE sans exception declaree et justifiee
+        durable="$(yq eval --no-doc '
+          select(.kind == "PersistentVolumeClaim" or (.kind == "Cluster" and (.apiVersion | test("^postgresql\\.cnpg\\.io/")))
+                 or (.kind == "StatefulSet" and ((.spec.volumeClaimTemplates // []) | length) > 0))
+          | .kind + "/" + .metadata.name' "$tmp/app.rendered" | paste -sd, -)"
+        if [[ "$(yq eval 'has("disposableData")' "$f")" == true ]]; then
+          dd="$(yq eval '.disposableData | select(tag == "!!str") // ""' "$f")"
+          [[ -n ${dd//[[:space:]]/} ]] || fail "$d: disposableData must be a non-empty string stating why the data is disposable and rebuildable"
+          [[ -n $durable ]] || fail "$d: disposableData is declared but $rel renders no PersistentVolumeClaim, CNPG Cluster or StatefulSet volumeClaimTemplates: remove the exception"
+        elif [[ -n $durable ]]; then
+          fail "$d: $rel renders durable data on $cluster ($durable): no application data on OKE until a restore off Oracle is proven (PLT-190); keep the app on the homelab, or declare disposableData: \"<why the data is disposable>\" in the descriptor"
+        fi
+      fi
       if [[ "$(yq eval '.preview // false' "$f")" == true ]]; then
         if [[ ! -f $tmp/preview.whitelist ]]; then
           for pf in "$root_dir"/*.yaml; do

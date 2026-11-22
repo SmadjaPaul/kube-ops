@@ -166,6 +166,15 @@ expect "rootfs en ecriture" network FAIL 1
 mk_app nomonitor; drop_file nomonitor monitor.yaml; run_static nomonitor
 expect "sans ServiceMonitor" observability FAIL 1
 
+# --- OKE (PLT-407) : pas de Cilium, la CiliumNetworkPolicy n'est pas exigee ; PSA et securityContext le restent
+mk_app oke; drop_file oke netpol.yaml; printf 'name: oke\nnamespace: oke\ncluster: oracle-a1\n' >"$(app oke)/argocd-app.oracle-a1.yaml"; run_static oke
+expect "app OKE sans CiliumNetworkPolicy" network PASS 0
+mk_app okebad; drop_file okebad netpol.yaml; printf 'name: okebad\nnamespace: okebad\ncluster: oracle-a1\n' >"$(app okebad)/argocd-app.oracle-a1.yaml"
+sed -i.bak 's/readOnlyRootFilesystem: true/readOnlyRootFilesystem: false/' "$(app okebad)/app.yaml"; run_static okebad
+expect "app OKE : securityContext toujours exige" network FAIL 1
+mk_app homebis; printf 'name: homebis\nnamespace: homebis\n' >"$(app homebis)/argocd-app.yaml"; drop_file homebis netpol.yaml; run_static homebis
+expect "app homelab (argocd-app.yaml) sans CiliumNetworkPolicy : inchange" network FAIL 1
+
 # --- exceptions ----------------------------------------------------------------------------
 mk_app exc1; printf 'auth: none\n' >"$(app exc1)/app-test.yaml"
 sed -i.bak '/OIDC_AUTH_ENABLED/d' "$(app exc1)/app.yaml"; run_static exc1

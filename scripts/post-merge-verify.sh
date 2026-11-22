@@ -5,6 +5,9 @@
 # This script needs read access to the cluster (kubectl-ro) and decides; the revert PR itself is opened by
 # scripts/post-merge-revert.sh with the bot identity, in another job (the cluster runner never holds that key).
 #
+# Cluster (PLT-407): per app, from post-merge-affected.sh (`cluster=oracle-a1` when the app has
+# argocd-app.oracle-a1.yaml, else --cluster, default homelab). An OKE app is verified on oracle-a1 (revision and
+# app-test) and never auto-reverted: the decision is NOTIFY (PM_OKE=yes, scripts/lib/post-merge-decision.sh).
 # Usage: bash scripts/post-merge-verify.sh [--dry-run] [--cluster homelab] [--timeout SEC<=600] [--base SHA] [SHA]
 #   --base SHA  previous tip of main (github.event.before): the files of every commit in BASE..SHA count, not
 #               only the tip (multi-commit push, PLT-398). Unknown or all-zero BASE: tip only.
@@ -62,12 +65,13 @@ elif prs=$("$GH" pr list --state all --head "$branch" --json number --jq '.[].nu
   [[ -z $prs ]] || PM_REVERT_ATTEMPTED=yes
 else echo "GUARD_UNKNOWN revert_attempted gh_failed=$(tr '\n' ' ' <<<"$prs" | cut -c1-120)"; PM_REVERT_ATTEMPTED=yes; fi
 
-PM_NEWER_COMMIT=no; PM_STATEFUL=no
+PM_NEWER_COMMIT=no; PM_STATEFUL=no; PM_OKE=no
 dirs=()
 for l in "${app_lines[@]:-}"; do
   [[ -n $l ]] || continue
   app=$(sed -n 's/.* name=\([^ ]*\).*/\1/p' <<<"$l")
   [[ $l == *"stateful=yes"* ]] && PM_STATEFUL=yes
+  [[ $l == *"cluster=oracle-a1"* ]] && PM_OKE=yes
   d=$(find k8s/applications -mindepth 2 -maxdepth 3 -type d -name "$app" 2>/dev/null | head -1)
   [[ -n $d ]] && dirs+=("$d")
 done
@@ -82,18 +86,20 @@ declare -A rev_rc=() rev_out=()
 for l in "${app_lines[@]:-}"; do
   [[ -n $l ]] || continue
   app=$(sed -n 's/.* name=\([^ ]*\).*/\1/p' <<<"$l"); ns=$(sed -n 's/.* namespace=\([^ ]*\).*/\1/p' <<<"$l"); argo=$(sed -n 's/.* argo=\([^ ]*\).*/\1/p' <<<"$l")
-  # One wait per Argo Application (apps of a domain share it), within the global deadline.
-  if [[ -z ${rev_rc[$argo]:-} ]]; then
+  acl=$(sed -n 's/.* cluster=\([^ ]*\).*/\1/p' <<<"$l"); acl=${acl:-$cluster}
+  # One wait per (cluster, Argo Application) (apps of a domain share it), within the global deadline.
+  key="$acl/$argo"
+  if [[ -z ${rev_rc[$key]:-} ]]; then
     left=$(( deadline - $(date +%s) )); (( left > 0 )) || left=0
     # shellcheck disable=SC2086
-    rev_out[$argo]=$($VREV "$argo" "$sha" --cluster "$cluster" --timeout "$(( left < timeout ? left : timeout ))" --deadline "$deadline" --allow-unhealthy 2>&1); rev_rc[$argo]=$?
+    rev_out[$key]=$($VREV "$argo" "$sha" --cluster "$acl" --timeout "$(( left < timeout ? left : timeout ))" --deadline "$deadline" --allow-unhealthy 2>&1); rev_rc[$key]=$?
   fi
-  echo "CHECK revision app=$app argo=$argo $(grep -E '^(ARGO|HEALTH|REVISION|LAST_ERROR)=' <<<"${rev_out[$argo]}" | tr '\n' ' ')"
-  if (( rev_rc[$argo] != 0 )); then PM_REVISION=NOT_PROVEN; continue; fi
+  echo "CHECK revision cluster=$acl app=$app argo=$argo $(grep -E '^(ARGO|HEALTH|REVISION|LAST_ERROR)=' <<<"${rev_out[$key]}" | tr '\n' ' ')"
+  if (( rev_rc[$key] != 0 )); then PM_REVISION=NOT_PROVEN; continue; fi
   if ! "$JUST" --summary 2>/dev/null | tr ' ' '\n' | grep -qx 'app-test'; then
     echo "CHECK app-test app=$app APP_TEST=BLOCKED reason=just_app_test_recipe_absent"; any_block=1; continue
   fi
-  t_out=$("$JUST" app-test "$app" "$ns" --phase runtime --cluster "$cluster" 2>&1); t_rc=$?
+  t_out=$("$JUST" app-test "$app" "$ns" --phase runtime --cluster "$acl" 2>&1); t_rc=$?
   t=$(grep -E '^APP_TEST=(PASS|FAIL|BLOCKED)$' <<<"$t_out" | tail -1 | cut -d= -f2)
   [[ -n $t ]] || t=BLOCKED
   dh=$(grep -E '^DEPLOY_HEALTH=(PASS|FAIL|UNKNOWN)$' <<<"$t_out" | tail -1 | cut -d= -f2)
@@ -110,9 +116,9 @@ if (( any_fail )); then PM_APP_TEST=FAIL; elif (( any_block )); then PM_APP_TEST
 if (( deploy_fail )); then PM_DEPLOY=FAIL; elif (( deploy_unknown )); then PM_DEPLOY=UNKNOWN; else PM_DEPLOY=PASS; fi
 (( ${#app_lines[@]} )) || PM_DEPLOY=UNKNOWN
 
-export PM_CLASS PM_IS_REVERT PM_REVERT_ATTEMPTED PM_NEWER_COMMIT PM_STATEFUL PM_REVISION PM_APP_TEST PM_DEPLOY
+export PM_OKE PM_CLASS PM_IS_REVERT PM_REVERT_ATTEMPTED PM_NEWER_COMMIT PM_STATEFUL PM_REVISION PM_APP_TEST PM_DEPLOY
 pm_decide
-echo "FACTS class=$PM_CLASS is_revert=$PM_IS_REVERT revert_attempted=$PM_REVERT_ATTEMPTED newer_commit=$PM_NEWER_COMMIT stateful=$PM_STATEFUL revision=$PM_REVISION app_test=$PM_APP_TEST deploy=$PM_DEPLOY"
+echo "FACTS oke=$PM_OKE class=$PM_CLASS is_revert=$PM_IS_REVERT revert_attempted=$PM_REVERT_ATTEMPTED newer_commit=$PM_NEWER_COMMIT stateful=$PM_STATEFUL revision=$PM_REVISION app_test=$PM_APP_TEST deploy=$PM_DEPLOY"
 echo "DECISION=$PM_DECISION"
 echo "REASON=$PM_REASON"
 [[ -z $PM_EXTRA ]] || echo "EXTRA=$PM_EXTRA"

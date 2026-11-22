@@ -14,6 +14,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in --data-urlencode) q="$2"; shift 2 ;; *) shift ;; esac
 done
 cat >/dev/null || true
+[[ -z ${FX_QLOG:-} ]] || printf '%s\n' "$q" >>"$FX_QLOG"
 case "$q" in
   *"timestamp(argocd_app_info"*)
     if [[ -n ${FX_SEQ:-} ]]; then # scripted sequence: file n mod count, counter in $FX_SEQ/n
@@ -39,7 +40,7 @@ pods_json() { # list of ready values
 run() { # expected_exit, then args; env FX_* set by caller
   local want=$1; shift
   set +e
-  out=$(PATH="$tmp/bin:$PATH" GRAFANA_AGENT_READ_TOKEN=test-token-never-printed-0123456789 FX_APP="$tmp/app.json" FX_PODS="$tmp/pods.json" FX_ANY="$tmp/any.json" FX_SEQ="${FX_SEQ:-}" \
+  out=$(PATH="$tmp/bin:$PATH" GRAFANA_AGENT_READ_TOKEN=test-token-never-printed-0123456789 FX_APP="$tmp/app.json" FX_PODS="$tmp/pods.json" FX_ANY="$tmp/any.json" FX_SEQ="${FX_SEQ:-}" FX_QLOG="${FX_QLOG:-}" \
     bash "$repo_root/scripts/verify-delivery.sh" "$@" 2>&1)
   got=$?
   set -e
@@ -52,6 +53,9 @@ echo '{"status":"success","data":{"result":[{"metric":{},"value":[1,"40"]}]}}' >
 app_json Synced Healthy 20 media >"$tmp/app.json"; pods_json 1 1 1 >"$tmp/pods.json"
 run 0 oracle-a1 media;  expect "VERIFY=PASS"; expect "ARGO=Synced/Healthy"; expect "PODS=3/3"; expect "REVISION=NOT_PROVEN"
 run 0 homelab media;    expect "CLUSTER=homelab"
+# PLT-407: the per-app Application `app-<name>` (OKE and homelab descriptors) is found from the short name
+FX_QLOG="$tmp/q.log" run 0 oracle-a1 whoami;  expect "VERIFY=PASS"
+grep -q 'cluster="oracle-a1",name=~"(whoami|app-whoami|apps-whoami|infra-whoami)"' "$tmp/q.log" || { echo "FAIL: selector lacks app-<name>"; cat "$tmp/q.log"; exit 1; }
 
 pods_json 1 0 >"$tmp/pods.json"
 run 1 oracle-a1 media;  expect "VERIFY=FAIL"; expect "pods not Ready: p2"
