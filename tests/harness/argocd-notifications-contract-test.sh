@@ -27,6 +27,11 @@ lua=$(yq -r '.configs.cm["resource.customizations.health.argoproj.io_Application
 # A self-managed Application (root tracks itself) must not wait for its own
 # health: it deadlocked the root sync on 21/11 (PLT-396).
 grep -q 'tracking-id' <<<"$lua" || fail "Application health Lua must short-circuit self-managed Applications (tracking-id)"
+for k in velero.io_Backup policies.kyverno.io_ValidatingPolicy; do
+  [[ $(yq -r ".configs.cm[\"resource.customizations.health.$k\"]" "$v") != null ]] || fail "health Lua missing for $k (PLT-417)"
+done
+yq -r '.configs.cm["resource.customizations.health.velero.io_Backup"]' "$v" | grep -q PartiallyFailed || fail "Backup health Lua must handle PartiallyFailed"
+yq -r '.configs.cm["resource.customizations.health.policies.kyverno.io_ValidatingPolicy"]' "$v" | grep -q WebhookConfigured || fail "ValidatingPolicy health Lua must key on WebhookConfigured"
 if python3 -I -c 'import lupa' 2>/dev/null; then
   LUA_SRC=$lua python3 -I - <<'PY'
 import os, sys
