@@ -53,8 +53,8 @@ yq -e '.spec.rules[0].filters == null' "$family" >/dev/null
 grep -Fq -- 'name: polyfin' "$root/polyfin/service.yaml"
 grep -Fq -- 'port: 80' "$root/polyfin/service.yaml"
 # Keep the previous Polyfin media alias and AIOStreams internal control route.
-[[ "$(yq -r '.spec.hostnames | join(",")' "$root/polyfin-media-route.yaml")" == "media.smadja.dev" ]]
-[[ "$(yq -r '.spec.parentRefs[].name' "$root/polyfin-media-route.yaml")" == "internal" ]]
+[[ "$(yq -r '.spec.hostnames | join(",")' "$root/polyfin/polyfin-media-route.yaml")" == "media.smadja.dev" ]]
+[[ "$(yq -r '.spec.parentRefs[].name' "$root/polyfin/polyfin-media-route.yaml")" == "internal" ]]
 [[ "$(yq -r '.spec.hostnames | join(",")' "$pkg/http-route.yaml")" == "aiostreams.smadja.dev" ]]
 # Strict dual callbacks, without an OIDC client secret in Git.
 auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-polyfin.yaml

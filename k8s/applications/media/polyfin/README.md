@@ -242,7 +242,7 @@ same issue arises repeatedly across workloads.
 ## Intended topology
 
 - `tv.smadja.dev` is served by `tv-http-route.yaml` (Polyfin, backend `polyfin:80`);
-  `media.smadja.dev` by the parent `polyfin-media-route.yaml`.
+  `media.smadja.dev` by `polyfin-media-route.yaml`.
 - App: one Pod (nonroot UID 65532, readonly rootfs), `/data` on Longhorn.
 - Database: separate single-instance CNPG `polyfin-db`, with app credentials
   auto-generated in Secret `polyfin-db-app` (field `uri`).
