@@ -18,3 +18,4 @@ resources:
   # PLT-237: write RoleBindings of the agent-operator identity (scope.tsv).
   - agent-operator-access
   - sparkyfitness
+  - pg-shared-restore-drill
