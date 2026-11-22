@@ -13,7 +13,7 @@ Boundary: homelab-infra owns the Proxmox/Talos substrate, UniFi/LAN DNS, Cloudfl
 ## Platform state (D-2026-11-22-01)
 
 - Two clusters, one Argo CD each, same repository: `homelab` (Talos/Proxmox) and `oracle-a1` (OKE, recreated 21/11, same GitOps model, Cilium kept for NetworkPolicy and IMDS blocking). One Argo Application per app (argocd-app.yaml contract).
-- Abandoned platforms and tools (list: homelab-infra `docs/decisions-active.md`): delete their leftovers you meet in your scope. Frozen, no new work, no deletion of data or references: Factory / Mastra (`factory-platform`, Optio, agentgateway for Optio).
+- Abandoned platforms and tools (list: [homelab-infra decisions-active](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions-active.md)): delete their leftovers you meet in your scope. Frozen, no new work, no deletion of data or references: Factory / Mastra (`factory-platform`, Optio, agentgateway for Optio).
 - The homelab has no CPU/RAM/thermal constraint. Renovate updates are applied now. Platform budget < 20 EUR/month.
 
 ## Read order
