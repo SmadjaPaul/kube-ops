@@ -99,6 +99,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: arc-runners-agent-harness
       server: https://kubernetes.default.svc
+    - namespace: arc-runners-ha-config
+      server: https://kubernetes.default.svc
     # PLT-390: post-merge verification runner (k8s/optional/github-actions-arc-kube-ops).
     - namespace: arc-runners-kube-ops
       server: https://kubernetes.default.svc

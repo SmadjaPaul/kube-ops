@@ -41,6 +41,8 @@ spec:
       server: '*'
     - namespace: '!arc-runners-agent-harness'
       server: '*'
+    - namespace: '!arc-runners-ha-config'
+      server: '*'
     - namespace: '!arc-systems'
       server: '*'
     - namespace: '!auth'
