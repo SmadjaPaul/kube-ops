@@ -170,7 +170,7 @@ No Prometheus scrape, alert, rule, PVC or application data is deleted by
 either rollback path.
 
 Before merging, verify the four preserved UIDs and the replacement rendering in
-Grafana. After merge, verify `infra-monitoring` is `Synced/Healthy`, the
+Grafana. After merge, verify `infra-monitoring-prometheus-stack` is `Synced/Healthy`, the
 Grafana rollout is complete, the sidecar reports `NAMESPACE=monitoring` and
 `METHOD=SLEEP`, the provisioning directory has no root-level retired files,
 and the authenticated Grafana API exposes exactly 11 curated views in seven

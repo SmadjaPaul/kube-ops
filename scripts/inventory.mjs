@@ -59,7 +59,18 @@ function visit(path) {
     visit(/^(https?:\/\/|git::)/.test(resource) ? resource : rel(resolve(abs, resource)));
   }
 }
-const infraRoots = roots('k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml');
+// PLT-394 I1-I3: infrastructure = ApplicationSet infrastructure directories + the source path of
+// each Application rendered by the App of Apps infra-root (k8s/bootstrap/infra-root).
+function infraRootPaths() {
+  const dir = 'k8s/bootstrap/infra-root';
+  if (!existsSync(safe(dir))) return [];
+  return readdirSync(safe(dir)).filter(f => /\.ya?ml$/.test(f)).flatMap(f => {
+    const src = readFileSync(safe(join(dir, f)), 'utf8');
+    if (!/^kind:\s*Application\s*$/m.test(src)) return [];
+    return [...src.matchAll(/^\s+path:\s*(k8s\/[^\s#]+)\s*$/gm)].map(x => x[1]);
+  });
+}
+const infraRoots = [...roots('k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml'), ...infraRootPaths()];
 // ApplicationSet `apps` (PLT-394): git files generator on k8s/applications/*/*/argocd-app.yaml,
 // one Application per app whose source is the descriptor's directory.
 const appDescriptorRoots = [];

@@ -5,6 +5,8 @@ resources:
   - root-application.yaml
   - infrastructure-project.yaml
   - infrastructure-applicationset.yaml
+  # PLT-394 I1-I3 : App of Apps infra ordonnee par waves (remplace l'ApplicationSet infrastructure dossier par dossier).
+  - infra-root-application.yaml
   - applications-project.yaml
   - apps-project.yaml
   - apps-applicationset.yaml

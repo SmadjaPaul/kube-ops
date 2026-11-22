@@ -9,6 +9,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: '-10'
 spec:
+  # PLT-394 I1-I3 : les dossiers migres vers infra-root (k8s/bootstrap/infra-root) sortent de cette
+  # liste dans le meme commit que l'arrivee de leurs Applications (monitoring : I1).
   generators:
     - git:
         repoURL: https://github.com/SmadjaPaul/kube-ops.git
@@ -17,7 +19,6 @@ spec:
           - path: k8s/infrastructure/controllers
           - path: k8s/infrastructure/network
           - path: k8s/infrastructure/storage
-          - path: k8s/infrastructure/monitoring
           - path: k8s/infrastructure/auth
           - path: k8s/infrastructure/database
           - path: k8s/infrastructure/security
