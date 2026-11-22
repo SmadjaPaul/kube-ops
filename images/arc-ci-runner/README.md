@@ -34,6 +34,8 @@ Publication : workflow `Build and Push Docker Images` (push sur main touchant
 
 - Source de vérité : les fichiers de version des dépôts (`.node-version`, `mise.toml`, `.tool-versions`...) ; l'image en porte une copie dans `mise.toml`.
 - Le manifeste `/etc/arc-ci-runner/tools.json` (sortie de `mise ls --installed --json`) liste les versions embarquées ; le label OCI `io.github.smadjapaul.arc-ci-runner.manifest` indique son chemin.
-- Un workflow de dérive (quotidien et au push sur ce dossier) compare ces fichiers à `mise.toml` et ouvre une PR qui ajoute la version manquante, sans retirer celles encore utilisées.
+- Le workflow `arc-ci-runner-drift` (quotidien et au push sur ce dossier, script `drift.py`) compare ces fichiers à `mise.toml` et ouvre une PR qui ajoute la version manquante, sans retirer celles encore utilisées.
 - Fail-open : un outil absent de l'image est téléchargé par setup-node ou mise ; la CI ralentit mais ne casse pas.
 - Les jobs signalent « outil téléchargé, absent de l'image » dans `$GITHUB_STEP_SUMMARY`.
+- Dans un job : `curl -fsSL https://raw.githubusercontent.com/SmadjaPaul/kube-ops/main/images/arc-ci-runner/drift.py | python3 - --local .` écrit la dérive dans `$GITHUB_STEP_SUMMARY` (ne casse jamais le job).
+- Les dépôts privés exigent le secret `ARC_DRIFT_TOKEN` (lecture de contenu) ; sans lui seuls les dépôts publics sont lus et rien n'est retiré. Les PR ouvertes avec `GITHUB_TOKEN` ne lancent pas la CI : fermer/rouvrir ou utiliser ce jeton.

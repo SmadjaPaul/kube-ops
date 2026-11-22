@@ -62,6 +62,20 @@
   ],
   "packageRules": [
     {
+      "description": "Image runner ARC : Node, tofu et les autres outils de images/arc-ci-runner/mise.toml dans un seul lot (meme calendrier que les depots), le workflow arc-ci-runner-drift rattrape le reste",
+      "matchManagers": [
+        "mise",
+        "npm"
+      ],
+      "matchFileNames": [
+        "images/arc-ci-runner/**"
+      ],
+      "groupName": "outils de l'image runner ARC",
+      "schedule": [
+        "before 6am on monday"
+      ]
+    },
+    {
       "description": "PLT-399 pin container images in Kubernetes manifests by digest (deterministic revert)",
       "matchDatasources": [
         "docker"
