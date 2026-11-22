@@ -28,7 +28,7 @@ spec:
       containers:
         - name: whoami
           # Multi-arch index (linux/arm64 included), pinned by digest; Renovate keeps tag and digest in step.
-          image: docker.io/traefik/whoami:v1.11.0@sha256:200689790a0a0ea48ca45992e0450bc26ccab5307375b41c84dfc4f2475937ab # renovate: docker=traefik/whoami
+          image: docker.io/traefik/whoami:v1.12.0@sha256:c4717a8d1f0134a7444e24f881160e033991f23027c6c5a9a3f8fd22e70d1d44 # renovate: docker=traefik/whoami
           imagePullPolicy: IfNotPresent
           env:
             - name: WHOAMI_PORT_NUMBER
