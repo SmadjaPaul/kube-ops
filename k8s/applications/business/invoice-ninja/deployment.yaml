@@ -17,7 +17,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: wait-dependencies
-          image: busybox:1.37.0@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+          image: busybox:1.38.0@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
           resources:
             requests: { cpu: 10m, memory: 16Mi }
             limits: { cpu: 100m, memory: 64Mi }
@@ -37,7 +37,7 @@ spec:
             seccompProfile: { type: RuntimeDefault }
       containers:
         - name: app
-          image: invoiceninja/invoiceninja-debian:5.13.43@sha256:c052414958dce9bb186f3da83c8066c84d419092e7a55025b5a7c201eff75387
+          image: invoiceninja/invoiceninja-debian:5.13.54@sha256:e2c8a5192abf842edaaff4a65f56ade343f37fa8a934b755c84ea62c8282e8e9
           envFrom:
             - configMapRef: { name: invoice-ninja-env }
             - secretRef: { name: invoice-ninja-runtime }
@@ -62,7 +62,7 @@ spec:
             - { name: public, mountPath: /var/www/html/public }
             - { name: storage, mountPath: /var/www/html/storage }
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.29.4-alpine@sha256:a6c4f61f456b85b8fdf7ec7ab28cc3e299440e6fb4a9dea520e5fd8fd440025e
+          image: nginxinc/nginx-unprivileged:1.31.7-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
           ports: [{ name: http, containerPort: 8080 }]
           securityContext:
             runAsNonRoot: true

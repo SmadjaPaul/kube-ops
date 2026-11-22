@@ -50,7 +50,7 @@ spec:
         # Schema migrations before every start (same as the official chart
         # autoApplySQLMigrations). Idempotent.
         - name: prepare-db
-          image: fleetdm/fleet:v4.94.1@sha256:2e82f79e0af9ae1ece931d4dedb23a0f56eda187609806b1613661b37765118c
+          image: fleetdm/fleet:v4.95.0@sha256:14fe5700b07b448131f87d27480e37005e0943f4a9af8fa3cab2b2fe4988459d
           imagePullPolicy: IfNotPresent
           command: [fleet, prepare, db, --no-prompt]
           env: &fleet-env
@@ -102,7 +102,7 @@ spec:
               mountPath: /tmp
       containers:
         - name: fleet
-          image: fleetdm/fleet:v4.94.1@sha256:2e82f79e0af9ae1ece931d4dedb23a0f56eda187609806b1613661b37765118c
+          image: fleetdm/fleet:v4.95.0@sha256:14fe5700b07b448131f87d27480e37005e0943f4a9af8fa3cab2b2fe4988459d
           imagePullPolicy: IfNotPresent
           command: [fleet, serve]
           env: *fleet-env

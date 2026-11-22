@@ -10,7 +10,7 @@ fullnameOverride: immich-redis
 image:
   registry: registry-1.docker.io
   repository: bitnami/redis
-  tag: latest
+  tag: latest@sha256:59078af5aec997137eb95f34fed376487b471e05c9a244c2812a13598c434950
   digest: sha256:59078af5aec997137eb95f34fed376487b471e05c9a244c2812a13598c434950
 
 master:
