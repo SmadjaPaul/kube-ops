@@ -46,6 +46,8 @@ rules:
       - barmancloud.cnpg.io
       - external-secrets.io
       - cert-manager.io
+      # Cilium (PLT-384) : politiques (CNP, CCNP), endpoints, identites ; acceptance.sh les lit.
+      - cilium.io
     resources: ["*"]
     verbs: [get, list, watch]
 ---
