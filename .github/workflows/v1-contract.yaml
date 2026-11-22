@@ -43,6 +43,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Node 26 is registered in the image toolcache (no download); the image's default npm is not usable.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26.13.1'
+
       # helm, kustomize, yq, kubeconform and kyverno are in the arc-ci-runner image (no sudo there).
       - name: Show preinstalled tool versions
         run: |
