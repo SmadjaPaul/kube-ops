@@ -32,7 +32,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: bootstrap-admin
-          image: binwiederhier/ntfy:v2.28.0@sha256:6ef4b819f722fccdc036af611c4774cfdc2de821ab74fdd48bbf4c9d6f8973da
+          image: binwiederhier/ntfy:v2.38.1@sha256:038da2be5e668fee6d36a62884eea48975e1b71c29a56964e5298c1b9165a573
           resources:
             requests: { cpu: 10m, memory: 16Mi }
             limits: { cpu: 100m, memory: 128Mi }
@@ -67,7 +67,7 @@ spec:
             - { name: tmp, mountPath: /tmp }
       containers:
         - name: ntfy
-          image: binwiederhier/ntfy:v2.28.0@sha256:6ef4b819f722fccdc036af611c4774cfdc2de821ab74fdd48bbf4c9d6f8973da
+          image: binwiederhier/ntfy:v2.38.1@sha256:038da2be5e668fee6d36a62884eea48975e1b71c29a56964e5298c1b9165a573
           args: ["serve"]
           env:
             - { name: NTFY_LISTEN_HTTP, value: ":8080" }
