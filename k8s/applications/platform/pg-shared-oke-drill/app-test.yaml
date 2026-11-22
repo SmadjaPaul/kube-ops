@@ -1,0 +1,6 @@
+# Contrat de test (PLT-408). Drill temporaire : restauration hors Oracle (homelab) de l'archive R2
+# du pg-shared OKE, retire par PR apres comparaison des empreintes et mesure du RTO.
+exceptions:
+  backup: "copie jetable restauree depuis l'archive R2 de pg-shared OKE (la source est sauvegardee), supprimee apres mesure (PLT-408)"
+  observability: "drill temporaire de restauration, retire apres mesure (PLT-408)"
+backup: none

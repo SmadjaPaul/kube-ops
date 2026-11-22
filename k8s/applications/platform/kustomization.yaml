@@ -19,3 +19,4 @@ resources:
   - agent-operator-access
   - sparkyfitness
   - pg-shared-restore-drill
+  - pg-shared-oke-drill
