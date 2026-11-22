@@ -58,4 +58,4 @@ spec:
               echo "DRILL_RESTORE_LIST_ENTRIES=$(pg_restore --list /tmp/app.dump | grep -vc '^;')"
               echo "DRILL_STATUS=PASS"
       volumes:
-        - {name: tmp, emptyDir: {}}
+        - {name: tmp, emptyDir: {sizeLimit: 2Gi}}
