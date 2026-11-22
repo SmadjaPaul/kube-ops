@@ -1,0 +1,5 @@
+# Contrat de test (PLT-392) : OIDC natif (Authentik, blueprint apps-polyfin) ; la racine / redirige
+# vers /web/ (200 public). La sonde runtime vise l'API admin, qui repond 401 sans cookie.
+# La route tv.smadja.dev (aiostreams-family) appartient a Polyfin depuis PLT-392.
+auth: oidc
+auth_probe: /admin/api/users
