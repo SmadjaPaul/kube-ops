@@ -19,14 +19,13 @@
 # copy nor an OCI exec kubeconfig; the effective identity is checked before any
 # command. Only valid as the first argument (after the verb it stays refused).
 #
-# Identity on homelab (PLT-312 M5). Default `auto`: the limited ServiceAccount
-# agent-operator/agent-operator (RBAC view + cluster read, no Secret data), from
-# Doppler KUBERNETES_AGENT_OPERATOR_KUBECONFIG (+ _SHA256), when that copy is
-# present, intact and accepted by the API; otherwise a warning on stderr and a
-# fallback to the operator copy (flow of the other agents unchanged).
-# KUBECTL_RO_IDENTITY=agent refuses the fallback (exit 2); =operator keeps the
-# legacy operator copy (rollback). The client-side filtering below stays as a
-# second layer: the API-side RBAC of the ServiceAccount is the first.
+# Identity on homelab (PLT-312 M5, PLT-420). Default `agent` (KUBECTL_RO_IDENTITY unset = agent): the limited
+# ServiceAccount agent-operator/agent-operator (RBAC view + cluster read, no Secret data), from
+# Doppler KUBERNETES_AGENT_OPERATOR_KUBECONFIG (+ _SHA256). When that copy is missing, expired or
+# not accepted by the API there is NO fallback to the operator copy: exit 2 with the reason and the
+# renewal command. KUBECTL_RO_IDENTITY=operator is the explicit, visible rollback (legacy operator
+# copy). The former `auto` mode (silent fallback) no longer exists. The client-side filtering below
+# stays as a second layer: the API-side RBAC of the ServiceAccount is the first.
 # `auth whoami` (exact form) prints the effective identity and its source; no
 # other `auth` form is admitted (can-i, reconcile...).
 # The ServiceAccount token is short-lived (24 h, issued by Paul): renew with
@@ -65,10 +64,11 @@ if [ "${1:-}" = --cluster ]; then
 fi
 
 # --- identity selector (homelab only; oracle-a1 is always the read-only ServiceAccount)
-identity_mode=${KUBECTL_RO_IDENTITY:-auto}
+identity_mode=${KUBECTL_RO_IDENTITY:-agent}
 case "$identity_mode" in
-  auto|agent|operator) ;;
-  *) refuse "KUBECTL_RO_IDENTITY='$identity_mode' inconnu (auto|agent|operator)" ;;
+  agent|operator) ;;
+  auto) refuse "KUBECTL_RO_IDENTITY=auto n'existe plus (PLT-420 : plus de repli silencieux vers l'opérateur) ; défaut agent, operator = retour arrière explicite" ;;
+  *) refuse "KUBECTL_RO_IDENTITY='$identity_mode' inconnu (agent|operator)" ;;
 esac
 
 [ "$#" -ge 1 ] || refuse "verbe manquant (get|describe|logs|top|events|api-resources|version|auth whoami)"
@@ -317,13 +317,9 @@ else
     fi
   fi
   if [ "$agent_ok" = 0 ]; then
-    if [ "$identity_mode" = agent ]; then
-      grep -E '^(KUBE_ACCESS|REASON|NEXT_ACTION)=' "$status_file" >&2
-      echo "kubectl-ro: identité agent-operator indisponible et KUBECTL_RO_IDENTITY=agent : pas de repli opérateur (Paul : AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision)" >&2
-      exit 2
-    fi
-    echo "kubectl-ro: AVERTISSEMENT identité agent-operator indisponible ($(grep -m1 '^REASON=' "$status_file")) : repli sur la copie opérateur (KUBECTL_RO_IDENTITY=agent pour l'interdire)" >&2
-    acquire "" || blocked_exit
+    grep -E '^(KUBE_ACCESS|REASON|NEXT_ACTION)=' "$status_file" >&2
+    echo "kubectl-ro: identité agent-operator indisponible : pas de repli opérateur (Paul : AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision ; renouvellement automatique : docs/operations/agent-operator-token-renewal.md)" >&2
+    exit 2
   fi
 fi
 if [ -z "$session_user" ] && [ -n "$session_dir" ]; then
