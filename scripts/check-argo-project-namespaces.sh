@@ -4,7 +4,7 @@
 # Cause des echecs "namespace X is not permitted in project Y" / InvalidSpecError constates apres merge
 # (infra-previews/dns-exact-resolver, arc-runners-kube-ops) : la CI etait verte, la synchro Argo non.
 #
-#   1. ApplicationSets (infrastructure, applications) : chaque namespace des manifestes rendus
+#   1. ApplicationSet infrastructure : chaque namespace des manifestes rendus
 #      (kind Namespace = metadata.name, autres objets = metadata.namespace) des chemins du generateur git
 #      doit correspondre a une destination de template.spec.project.
 #   2. Applications imbriquees (kind: Application sous k8s/, hors bootstrap et clusters/) :
@@ -90,7 +90,8 @@ render() {
 }
 
 # --- 1. ApplicationSets -----------------------------------------------------------------------
-for appset in "$root_dir/infrastructure-applicationset.yaml" "$root_dir/applications-applicationset.yaml"; do
+appsets=("$root_dir/infrastructure-applicationset.yaml")
+for appset in "${appsets[@]}"; do
   [[ -f $appset ]] || continue
   base="$(basename "$appset" .yaml)"
   project="$(yq eval '.spec.template.spec.project' "$appset")"

@@ -1,8 +1,7 @@
 # PLT-394 : une Application Argo CD par application (au lieu d'une par domaine).
 # Contrat du descripteur `argocd-app.yaml` : docs/operations/argo-app-descriptor.md.
 # Ne genere rien tant qu'aucun k8s/applications/<domaine>/<app>/argocd-app.yaml n'existe ;
-# un domaine ne migre qu'entier et quitte alors le generateur de l'ApplicationSet `applications`
-# dans la meme PR (scripts/check-argo-app-descriptors.sh).
+# l'ancien ApplicationSet `applications` (une Application par domaine) est supprime.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:

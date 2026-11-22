@@ -322,8 +322,7 @@ def read_kust(d):
 
 
 roots = {"k8s/bootstrap"}
-for f in ("k8s/bootstrap/argocd-root/applications-applicationset.yaml",
-          "k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml"):
+for f in ("k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml",):
     for doc in yaml.safe_load_all(open(os.path.join(ROOT, f))):
         for g in (doc or {}).get("spec", {}).get("generators", []):
             for d in g.get("git", {}).get("directories", []):

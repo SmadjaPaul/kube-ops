@@ -55,7 +55,7 @@ copies Barman déjà présentes sur R2. Ordre imposé :
 
 ## Inventaire (STATIC, depuis les racines Argo actives)
 
-Racines lues : `k8s/bootstrap/argocd-root/applications-applicationset.yaml` et
+Racines lues : les descripteurs `argocd-app.yaml` de `k8s/applications/*/*` (ApplicationSet `apps`) et
 les `kustomization.yaml` de `k8s/applications/*`. Un manifest hors de ces
 racines (exemple : `k8s/applications/media/bookorbit`) n'est pas compté comme
 déployé.

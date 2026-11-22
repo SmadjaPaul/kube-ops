@@ -23,7 +23,6 @@ fi
 control_files=(
   scripts/bootstrap-cluster.sh
   k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml
-  k8s/bootstrap/argocd-root/applications-applicationset.yaml
 )
 
 if grep -En 'theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.' "${control_files[@]}"; then
@@ -31,7 +30,7 @@ if grep -En 'theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.' "${control_files[
   exit 1
 fi
 
-for appset in k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml k8s/bootstrap/argocd-root/applications-applicationset.yaml; do
+for appset in k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml; do
   grep -qF "$canonical_repo" "$appset" || {
     echo "ERROR: $appset does not reference the canonical repository" >&2
     exit 1

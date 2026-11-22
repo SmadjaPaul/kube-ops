@@ -59,7 +59,6 @@ function visit(path) {
     visit(/^(https?:\/\/|git::)/.test(resource) ? resource : rel(resolve(abs, resource)));
   }
 }
-const appRoots = roots('k8s/bootstrap/argocd-root/applications-applicationset.yaml');
 const infraRoots = roots('k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml');
 // ApplicationSet `apps` (PLT-394): git files generator on k8s/applications/*/*/argocd-app.yaml,
 // one Application per app whose source is the descriptor's directory.
@@ -75,7 +74,7 @@ if (existsSync(safe('k8s/applications'))) {
   }
 }
 appDescriptorRoots.sort();
-for (const [type, paths] of [['applications', appRoots], ['infrastructure', infraRoots], ['apps', appDescriptorRoots]]) {
+for (const [type, paths] of [['infrastructure', infraRoots], ['apps', appDescriptorRoots]]) {
   for (const path of paths) {
     if (!existsSync(safe(path))) { missingRoots.push({ type, path }); continue; }
     visit(path);
@@ -102,7 +101,6 @@ console.log(JSON.stringify({
     'Helm charts and Kustomize generators are not expanded',
     'Hostnames are read only from directly included local Gateway API route YAML',
   ],
-  applicationRoots: appRoots,
   infrastructureRoots: infraRoots,
   appDescriptorRoots,
   missingRoots,

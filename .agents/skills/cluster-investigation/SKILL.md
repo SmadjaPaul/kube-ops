@@ -46,7 +46,7 @@ Git revision -> ApplicationSet -> Application sync/health/conditions
 Two independent Argo CD instances, one workflow (`docs/operations/two-argo-one-workflow.md`). The agent never opens an Argo CD interface.
 
 1. Branch `claude/plt-<n>-<slug>`. Change the shared base `k8s/applications/<group>/<app>`.
-2. Homelab: the base folder must be listed in `directories` of the ApplicationSet `applications` (`k8s/bootstrap/argocd-root/applications-applicationset.yaml`) or carry an `argocd-app.yaml` descriptor. The Application is `apps-<basename>` or `app-<name>`. An unlisted path generates no Application.
+2. Homelab: the app folder must carry an `argocd-app.yaml` descriptor (ApplicationSet `apps`). The Application is `app-<name>`. A folder without descriptor generates no Application.
 3. OKE: put `argocd-app.oracle-a1.yaml` (instead of `argocd-app.yaml`) next to the app's `kustomization.yaml`; the OKE Argo CD generates `app-<name>` (`docs/operations/argo-app-descriptor.md`). One cluster per app. No data (PVC, CNPG) on OKE before PLT-190.
 4. `just check`, then PR and merge (CI green, CodeRabbit handled). Argo reconciles by itself; never sync by hand.
 5. Verify: `just verify-delivery <homelab|oracle-a1> <app> --since <merge epoch> --timeout 1200`. Cloud session: no cluster access needed (Grafana Cloud, `GRAFANA_AGENT_READ_TOKEN`).
