@@ -10,6 +10,15 @@ default_config:
 
 # http: retiré (HA >= 2026.8 l'a importé dans .storage ; réglage via Paramètres > Système > Réseau)
 
+# Socle PLT-444 (décision E de PLT-441) : ces trois fichiers vivent sur le PVC, appartiennent à HA
+# (éditeur UI et provider OpenTofu `toelke/homeassistant`) et ne sont JAMAIS écrasés par Git.
+# L'initContainer init-ui-files les crée vides s'ils manquent. Voir README.md.
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# auth_header : déclaré mais non installé en custom_components (constat PLT-416), donc sans effet ;
+# conservé tel quel pour ne pas élargir ce changement.
 auth_header:
   username_header: X-ak-hass-user
   debug: true
