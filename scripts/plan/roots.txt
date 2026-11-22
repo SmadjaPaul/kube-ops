@@ -27,6 +27,7 @@ k8s/infrastructure/previews
 k8s/optional/github-actions-arc
 k8s/optional/github-actions-arc-homelab-infra
 k8s/optional/github-actions-arc-website
+k8s/optional/github-actions-arc-agent-harness
 k8s/optional/github-actions-arc-kube-ops
 k8s/optional/github-actions-arc-homelab-iac-pilot
 # Oracle-a1 : agent-operator, external-secrets, guardrails et netbird-router sont reconcilies par l'ApplicationSet infrastructure d'OKE ; les autres

@@ -108,7 +108,7 @@ if [[ -f $apps_appset || -f $tmp/proj/apps ]]; then
     if [[ -f $tmp/proj/infrastructure && -f $tmp/proj/applications ]]; then
       # a refuser = namespaces du projet infrastructure absents du projet applications, plus ceux que
       # applications admettait par erreur alors qu'ils sont a l'infrastructure.
-      always_infra='argocd arc-runners arc-runners-website arc-runners-kube-ops'
+      always_infra='argocd arc-runners arc-runners-website arc-runners-kube-ops arc-runners-agent-harness'
       while IFS= read -r ns; do
         [[ -n $ns && $ns != *'*'* && $ns != '!'* ]] || continue
         grep -qxF "$ns" "$tmp/proj/applications" && ! grep -qwF -- "$ns" <<<"$always_infra" && continue
