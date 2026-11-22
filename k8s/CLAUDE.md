@@ -49,3 +49,11 @@ Repository rules, Safety and decisions: root `AGENTS.md`. These rules apply to m
 
 - MQTT stays internal (Cilium TCP route). Zigbee2MQTT reaches the coordinator VM over the network only.
 - `HA_SEED_ON_STARTUP: true` overwrites Home Assistant seed files; `false` preserves Home Assistant-managed files.
+
+## Runbooks utiles
+
+- Previews (ApplicationSets dans `k8s/bootstrap/argocd-root/`, guardrails dans `k8s/previews/`) : `docs/runbooks/preview-environments.md`.
+- Politiques en Deny et retour arrière [Audit] : `docs/runbooks/kyverno-deny-policies.md`.
+- SharedResourceWarning, transfert de propriété entre Applications : `docs/runbooks/argo-shared-resource-transfer.md`.
+- Pièges d'outillage (kubectl-ro, policy-check, merge) : `docs/runbooks/agent-tooling-notes.md`.
+
