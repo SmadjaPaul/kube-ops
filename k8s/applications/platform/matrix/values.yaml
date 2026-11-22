@@ -20,6 +20,8 @@ elementWeb:
   resources:
     requests:
       cpu: 25m
+    limits:
+      cpu: 200m
   ingress:
     host: chat.smadja.dev
     tlsSecret: cert-smadja
@@ -35,12 +37,16 @@ haproxy:
   resources:
     requests:
       cpu: 50m
+    limits:
+      cpu: 200m
 
 synapse:
   # PLT-280: request seule (p95 4,8m, max 21,7m) ; limite mémoire du chart conservée.
   resources:
     requests:
       cpu: 50m
+    limits:
+      cpu: "2"
   ingress:
     host: matrix.smadja.dev
     tlsSecret: cert-smadja
@@ -62,6 +68,8 @@ matrixAuthenticationService:
   resources:
     requests:
       cpu: 25m
+    limits:
+      cpu: 500m
   ingress:
     host: account.smadja.dev
     tlsSecret: cert-smadja
@@ -88,6 +96,21 @@ matrixAuthenticationService:
               unicode_normalization: true
             - version: 2
               algorithm: argon2id
+
+# PLT-392 : limits.cpu aussi sur les Jobs du chart (app-test selfheal).
+deploymentMarkers:
+  resources:
+    requests:
+      cpu: 50m
+    limits:
+      cpu: 200m
+
+initSecrets:
+  resources:
+    requests:
+      cpu: 50m
+    limits:
+      cpu: 200m
 
 wellKnownDelegation:
   enabled: true
