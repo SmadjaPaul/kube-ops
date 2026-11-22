@@ -35,26 +35,46 @@ jobs:
   validate:
     # Stable, unique check-run name for eventual GitHub branch protection.
     name: v1-contract
-    # Scale set without Kubernetes token (PLT-442); rollback: ubuntu-latest.
-    runs-on: kube-ops-pr-ci-arc
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      # Node 26 is registered in the image toolcache (no download); the image's default npm is not usable.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '26.13.1'
-
-      # helm, kustomize, yq, kubeconform and kyverno are in the arc-ci-runner image (no sudo there).
-      - name: Show preinstalled tool versions
+      - name: Install Helm
         run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
           helm version --short
+
+      - name: Install Kustomize
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kustomize.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tgz -C /tmp
+          sudo install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
           kustomize version
+
+      - name: Install yq
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/yq https://github.com/mikefarah/yq/releases/download/v4.54.1/yq_linux_amd64
+          sudo install -m 0755 /tmp/yq /usr/local/bin/yq
           yq --version
+
+      - name: Install Kubeconform
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kubeconform.tgz https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tgz -C /tmp
+          sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
           kubeconform -v
+
+      - name: Install Kyverno CLI (pinned, sha256 from the v1.20.0 release digest)
+        run: |
+          curl --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/kyverno.tgz https://github.com/kyverno/kyverno/releases/download/v1.20.0/kyverno-cli_v1.20.0_linux_x86_64.tar.gz
+          echo "06b8f3ca7b5626473be8fb4d343ad54ab84e317142766f72420e7d44b80942e2  /tmp/kyverno.tgz" | sha256sum -c -
+          mkdir -p /tmp/kyverno-cli && tar -xzf /tmp/kyverno.tgz -C /tmp/kyverno-cli
+          sudo install -m 0755 /tmp/kyverno-cli/kyverno /usr/local/bin/kyverno
           kyverno version
 
       - name: Validate Renovate configuration syntax
