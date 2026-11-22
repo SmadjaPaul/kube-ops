@@ -5,8 +5,3 @@ factory-platform	observability	FAIL
 factory-platform	selfheal	FAIL
 mastra-factory	observability	FAIL
 mastra-sandbox	observability	FAIL
-opencode	network	FAIL
-opencode	observability	FAIL
-opencode	selfheal	FAIL
-sure	network	FAIL
-sure	observability	FAIL

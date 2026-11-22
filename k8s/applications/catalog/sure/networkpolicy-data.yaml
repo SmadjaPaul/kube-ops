@@ -1,0 +1,52 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: sure-redis, namespace: sure }
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: sure-redis }
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: sure
+            app.kubernetes.io/name: sure
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "6379" }
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: sure-postgresql, namespace: sure }
+spec:
+  endpointSelector:
+    matchLabels: { cnpg.io/cluster: sure-postgresql }
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: sure
+            app.kubernetes.io/name: sure
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "5432" }
+    # Operateur CNPG (statut des instances) et replication entre instances.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "8000" }
+            - { protocol: TCP, port: "5432" }
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: sure
+            cnpg.io/cluster: sure-postgresql
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "5432" }
+            - { protocol: TCP, port: "8000" }
+    # Scrape Prometheus de l'exporter CNPG (PodMonitor central monitoring/cnpg-instances).
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "9187" }

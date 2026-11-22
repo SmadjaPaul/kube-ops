@@ -11,3 +11,5 @@ resources:
   - redis.yaml
   - workloads.yaml
   - service-route.yaml
+  - networkpolicy.yaml
+  - networkpolicy-data.yaml
