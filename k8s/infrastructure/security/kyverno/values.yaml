@@ -26,8 +26,6 @@
 # and with 3 replicas the webhook keeps answering meanwhile.
 admissionController:
   replicas: 3
-  extraArgs:
-    leaderElectionRetryPeriod: 5s
   # PLT-280: chart 3.x reads the admission container's resources under
   # admissionController.container.resources; a top-level resources key is
   # ignored and the chart default (100m) applied. Requests only: the chart's
@@ -35,6 +33,10 @@ admissionController:
   # PLT-400: CPU request 50m -> 100m (observed peak ~85m) for a fair share
   # under node CPU contention.
   container:
+    # The chart reads admission flags under container.extraArgs (a top-level
+    # extraArgs key is ignored for this component).
+    extraArgs:
+      leaderElectionRetryPeriod: 5s
     resources:
       requests:
         cpu: 100m
