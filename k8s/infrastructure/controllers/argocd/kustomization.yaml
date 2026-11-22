@@ -15,7 +15,7 @@ helmCharts:
   releaseName: argocd
   repo: https://argoproj.github.io/argo-helm
   valuesFile: values.yaml
-  version: 10.3.3
+  version: 10.18.0
 
 patches:
   # PLT-396: the chart's standard NetworkPolicy for the notifications controller
