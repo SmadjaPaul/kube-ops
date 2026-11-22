@@ -40,3 +40,17 @@ spec:
           for: 5m
           labels:
             severity: critical
+        - alert: VeleroScheduleNeverSucceeded
+          annotations:
+            description: >-
+              Velero schedule {{ $labels.schedule }} has attempted backups in the last
+              24 hours but has never produced a successful one (no
+              velero_backup_last_successful_timestamp series). VeleroBackupNotRunRecently
+              cannot fire in that case because the series does not exist.
+            summary: Velero schedule has never had a successful backup.
+          expr: |-
+            increase(velero_backup_attempt_total{schedule!=""}[24h]) > 0
+            unless on (schedule) velero_backup_last_successful_timestamp
+          for: 30m
+          labels:
+            severity: critical
