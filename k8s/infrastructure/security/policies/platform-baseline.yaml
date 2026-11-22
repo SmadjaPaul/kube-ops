@@ -29,6 +29,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -60,6 +63,9 @@ metadata:
 spec:
   validationActions: [Deny]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -88,6 +94,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -116,6 +125,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -144,6 +156,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -172,6 +187,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -200,6 +218,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -224,6 +245,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -248,6 +272,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -276,6 +303,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -300,6 +330,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -328,6 +361,9 @@ metadata:
 spec:
   validationActions: [Deny]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -355,6 +391,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -379,6 +418,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -403,6 +445,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]

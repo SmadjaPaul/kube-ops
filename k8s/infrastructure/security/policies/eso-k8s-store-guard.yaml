@@ -20,10 +20,14 @@ metadata:
 spec:
   validationActions: [Deny]
   failurePolicy: Ignore
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: ["external-secrets.io"]
-        apiVersions: ["*"]
+        # PLT-400: pinned (was "*"): the reports controller could not resolve the kind
+        # for version "*" and logged an error per scan. All ExternalSecrets are v1.
+        apiVersions: ["v1"]
         operations: [CREATE, UPDATE]
         resources: [externalsecrets]
   matchConditions:
