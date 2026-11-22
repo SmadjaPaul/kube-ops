@@ -36,8 +36,8 @@ spec:
               fsGroupChangePolicy: OnRootMismatch
             containers:
               - name: runner
-                # Official runner, same digest as the rollback image of github-actions-arc/README.md.
-                image: ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c06cd189232baf79fe561fac9caeb76f5e807
+                # Common tooled runner (images/arc-ci-runner); rollback: official runner digest in github-actions-arc/README.md.
+                image: ghcr.io/smadjapaul/arc-ci-runner:tools1-576e0cb@sha256:087f055d11e3c2a0afd3606fa9b3a45b54a80401c201cd8df0cb261023557709
                 command: ["/home/runner/run.sh"]
                 resources:
                   requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}
