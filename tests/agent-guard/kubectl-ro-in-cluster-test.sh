@@ -27,7 +27,7 @@ echo "kubectl KUBECONFIG=${KUBECONFIG:-unset} $*" >>"$WORK_LOG"
 case "$*" in
   *"auth whoami"*) [[ -n ${FAKE_WHOAMI_FAIL:-} ]] && { echo "selfsubjectreviews forbidden" >&2; exit 1; }
                   printf '%s' "${FAKE_WHO:-system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge}" ;;
-  *"get secret alertmanager-ntfy-url"*) printf '%s' "$(printf 'https://ntfy.example/secret-topic-123%s' "${FAKE_NTFY_QUERY:-}" | base64)" ;;
+  *"get secret alertmanager-ntfy-url"*|*"-n arc-runners-oke get secret ntfy-publish-url"*) printf '%s' "$(printf 'https://ntfy.example/secret-topic-123%s' "${FAKE_NTFY_QUERY:-}" | base64)" ;;
   *) echo "KUBECTL_OK $*" ;;
 esac
 SH
@@ -56,6 +56,21 @@ out=$(env PATH="$WORK/bin:$PATH" KUBECTL_RO_IN_CLUSTER=1 KUBECTL_RO_SA_DIR="$WOR
 [[ $rc -ne 0 && $out == *"hors pod"* ]] && ok "outside a pod: refused, no fallback" || ko "no token accepted (rc=$rc)"
 out=$(run bash "$WORK/scripts/kubectl-ro.sh" --cluster oracle-a1 get pods 2>&1); rc=$?
 [[ $rc -ne 0 ]] && ok "oracle-a1 refused in-cluster" || ko "oracle-a1 accepted"
+
+# OKE runner (PLT-407): KUBECTL_RO_IN_CLUSTER_CLUSTER=oracle-a1 reads oracle-a1 only, with its own identity.
+OKE_WHO=system:serviceaccount:arc-runners-oke:kube-ops-post-merge-oke
+out=$(FAKE_WHO=$OKE_WHO run env KUBECTL_RO_IN_CLUSTER_CLUSTER=oracle-a1 bash "$WORK/scripts/kubectl-ro.sh" --cluster oracle-a1 get pods -n whoami 2>&1); rc=$?
+[[ $rc -eq 0 && $out == *"get pods -n whoami"* ]] && ok "OKE pod reads oracle-a1 with its own identity" || ko "OKE in-cluster (rc=$rc): $out"
+out=$(FAKE_WHO=$OKE_WHO run env KUBECTL_RO_IN_CLUSTER_CLUSTER=oracle-a1 bash "$WORK/scripts/kubectl-ro.sh" get pods 2>&1); rc=$?
+[[ $rc -ne 0 && $out == *"ne lit que oracle-a1"* ]] && ok "OKE pod refuses homelab" || ko "OKE pod read homelab (rc=$rc): $out"
+out=$(FAKE_WHO=system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge run env KUBECTL_RO_IN_CLUSTER_CLUSTER=oracle-a1 bash "$WORK/scripts/kubectl-ro.sh" --cluster oracle-a1 get pods 2>&1); rc=$?
+[[ $rc -ne 0 && $out == *"seule $OKE_WHO"* ]] && ok "OKE pod refuses the homelab identity" || ko "OKE pod accepted homelab identity (rc=$rc)"
+out=$(run bash "$WORK/scripts/kubectl-ro.sh" --cluster oracle-a1 get pods 2>&1); rc=$?
+[[ $rc -ne 0 && $out == *"ne lit que homelab"* ]] && ok "homelab pod refuses oracle-a1" || ko "homelab pod read oracle-a1 (rc=$rc)"
+out=$(run env KUBECTL_RO_IN_CLUSTER_CLUSTER=mars bash "$WORK/scripts/kubectl-ro.sh" get pods 2>&1); rc=$?
+[[ $rc -ne 0 && $out == *"inconnu"* ]] && ok "unknown pod cluster refused" || ko "unknown pod cluster (rc=$rc)"
+out=$(run env PM_NTFY_SECRET_NS=arc-runners-oke PM_NTFY_SECRET_NAME=ntfy-publish-url bash "$ROOT/scripts/post-merge-notify.sh" "t" high "m" 2>&1); rc=$?
+[[ $rc -eq 0 && $out == *"NOTIFY=SENT"* ]] && ok "OKE notify reads its own Secret" || ko "OKE notify (rc=$rc): $out"
 
 # ntfy: URL read from the Secret, passed by curl config on stdin, never printed or in arguments.
 : >"$WORK_LOG"

@@ -1,0 +1,54 @@
+# Egress du pod runner d'OKE : default-deny, puis DNS, API Kubernetes (identite lecture seule), GitHub (protocole
+# de job, checkout), dl.k8s.io / get.helm.sh (outils epingles et verifies par sha256), ntfy.sh. Pas d'ingress,
+# pas de LAN, pas d'IMDS (CCNP deny-imds). L'endpoint de sonde publique d'app-test (Cloudflare) n'est pas ouvert :
+# OKE n'expose rien (PLT-407 partie 2) ; ouvrir ici avec la premiere exposition.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-oke-egress
+  namespace: arc-runners-oke
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+spec:
+  description: "post-merge OKE runner: DNS, Kubernetes API, GitHub, dl.k8s.io, get.helm.sh, ntfy.sh only"
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEntities:
+        - kube-apiserver
+    - toFQDNs:
+        - matchName: github.com
+        - matchName: api.github.com
+        - matchName: codeload.github.com
+        - matchName: objects.githubusercontent.com
+        - matchName: objects-origin.githubusercontent.com
+        - matchName: github-releases.githubusercontent.com
+        - matchName: github-registry-files.githubusercontent.com
+        - matchName: release-assets.githubusercontent.com
+        - matchName: raw.githubusercontent.com
+        - matchPattern: "*.actions.githubusercontent.com"
+        - matchPattern: "*.blob.core.windows.net"
+        - matchName: dl.k8s.io
+        - matchName: cdn.dl.k8s.io
+        - matchName: get.helm.sh
+        - matchName: ntfy.sh
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

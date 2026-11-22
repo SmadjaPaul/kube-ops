@@ -37,6 +37,11 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: whoami
       server: https://kubernetes.default.svc
+    # Post-merge d'OKE (PLT-407) : controleur et ecouteur ARC, pod runner.
+    - namespace: arc-systems
+      server: https://kubernetes.default.svc
+    - namespace: arc-runners-oke
+      server: https://kubernetes.default.svc
   # Liste fermee : ajouter un kind cluster-scoped d'infrastructure passe par une PR sur ce fichier.
   clusterResourceWhitelist:
     - group: ''

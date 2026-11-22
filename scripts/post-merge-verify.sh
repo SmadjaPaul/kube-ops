@@ -8,7 +8,9 @@
 # Cluster (PLT-407): per app, from post-merge-affected.sh (`cluster=oracle-a1` when the app has
 # argocd-app.oracle-a1.yaml, else --cluster, default homelab). An OKE app is verified on oracle-a1 (revision and
 # app-test) and never auto-reverted: the decision is NOTIFY (PM_OKE=yes, scripts/lib/post-merge-decision.sh).
-# Usage: bash scripts/post-merge-verify.sh [--dry-run] [--cluster homelab] [--timeout SEC<=600] [--base SHA] [SHA]
+# Usage: bash scripts/post-merge-verify.sh [--dry-run] [--cluster homelab] [--only-cluster homelab|oracle-a1] [--timeout SEC<=600] [--base SHA] [SHA]
+#   --only-cluster C  keep only the apps of cluster C (PLT-407): each cluster's runner verifies its own apps, from
+#               inside that cluster (homelab runner: homelab; OKE runner kube-ops-oke-arc: oracle-a1). No app left => NONE.
 #   --base SHA  previous tip of main (github.event.before): the files of every commit in BASE..SHA count, not
 #               only the tip (multi-commit push, PLT-398). Unknown or all-zero BASE: tip only.
 #   --timeout   global budget for all revision waits (one wait per Argo Application, shared by its apps).
@@ -23,14 +25,15 @@ cd "$here/.." || exit 2
 # shellcheck source=lib/post-merge-decision.sh
 source scripts/lib/post-merge-decision.sh
 
-dry=0; cluster=homelab; timeout=600; sha=""; base=""
+dry=0; cluster=homelab; only=""; timeout=600; sha=""; base=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) dry=1; shift ;;
     --cluster) cluster=${2:?}; shift 2 ;;
+    --only-cluster) only=${2:?}; case "$only" in homelab|oracle-a1) ;; *) echo "ERROR: --only-cluster homelab|oracle-a1" >&2; exit 2 ;; esac; shift 2 ;;
     --timeout) timeout=${2:?}; shift 2 ;;
     --base) base=${2:?}; shift 2 ;;
-    -*) echo "usage: post-merge-verify.sh [--dry-run] [--cluster homelab] [--timeout SEC] [--base SHA] [SHA]" >&2; exit 2 ;;
+    -*) echo "usage: post-merge-verify.sh [--dry-run] [--cluster homelab] [--only-cluster homelab|oracle-a1] [--timeout SEC] [--base SHA] [SHA]" >&2; exit 2 ;;
     *) sha=$1; shift ;;
   esac
 done
@@ -44,6 +47,11 @@ aff=$(bash scripts/post-merge-affected.sh "$sha" ${base:+"$base"}) || { echo "ER
 printf '%s\n' "$aff"
 PM_CLASS=$(sed -n 's/^AFFECTED_CLASS=//p' <<<"$aff")
 mapfile -t app_lines < <(grep '^AFFECTED_APP ' <<<"$aff")
+if [[ -n $only ]]; then
+  kept=(); for l in "${app_lines[@]:-}"; do [[ $l == *" cluster=$only"* ]] && kept+=("$l"); done
+  app_lines=("${kept[@]:-}"); [[ -n ${app_lines[0]:-} ]] || { app_lines=(); PM_CLASS=none; }
+  echo "ONLY_CLUSTER=$only apps=${#app_lines[@]}"
+fi
 
 # --- facts for the guards
 subject=$(git log -1 --format=%s "$sha"); body=$(git log -1 --format=%B "$sha")

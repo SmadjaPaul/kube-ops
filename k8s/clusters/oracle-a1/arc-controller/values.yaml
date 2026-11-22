@@ -1,0 +1,18 @@
+# Controleur ARC 0.15.0 sur OKE (arm64, image ghcr.io/actions/gha-runner-scale-set-controller multi-arch).
+# releaseName `arc` => ServiceAccount `arc-gha-rs-controller`, reference par le scale set (arc-runner/values.yaml).
+replicaCount: 1
+resources:
+  requests: {cpu: 20m, memory: 64Mi}
+  limits: {cpu: 200m, memory: 256Mi}
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities: {drop: ["ALL"]}
+  seccompProfile: {type: RuntimeDefault}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  fsGroupChangePolicy: OnRootMismatch

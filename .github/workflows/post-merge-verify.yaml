@@ -14,6 +14,10 @@ name: Post-merge verify
 #   revert    GitHub-hosted, revert bot GitHub App token. Opens the revert PR. Never has cluster access.
 #   announce  same runner. ntfy of the revert PR; the URL is read from one cluster Secret by the ServiceAccount.
 #   alert     same runner. ntfy when verify, revert or announce failed or was cancelled (PLT-398): no silent failure.
+#   verify-oke (PLT-407) ARC runner ON OKE (scale set kube-ops-oke-arc, arm64, k8s/clusters/oracle-a1/arc-runner),
+#             identity = its own ServiceAccount kube-ops-post-merge-oke (read-only). Verifies the apps that have an
+#             argocd-app.oracle-a1.yaml from inside oracle-a1; NOTIFY only (ntfy), never a revert. The homelab
+#             runner verifies homelab apps only (--only-cluster): no homelab -> OKE access exists.
 # A stateful app (PVC or CNPG) never gets an auto-merge revert: the decision is ESCALATE (PLT-398).
 
 on:
@@ -68,10 +72,44 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           if [[ $GITHUB_EVENT_NAME == workflow_dispatch ]]; then
             git cat-file -e "${INPUT_SHA}^{commit}" || { echo "::error::unknown sha"; exit 1; }
-            bash scripts/post-merge-verify.sh --dry-run "$INPUT_SHA" --timeout 600 || true
+            bash scripts/post-merge-verify.sh --dry-run --only-cluster homelab "$INPUT_SHA" --timeout 600 || true
           else
             # before..after: every commit of the push counts, not only the tip (PLT-398).
-            bash scripts/post-merge-verify.sh "$GITHUB_SHA" --timeout 600 --base "$EVENT_BEFORE" || true
+            bash scripts/post-merge-verify.sh --only-cluster homelab "$GITHUB_SHA" --timeout 600 --base "$EVENT_BEFORE" || true
+          fi
+  verify-oke:
+    if: ${{ vars.POST_MERGE_VERIFY_ENABLED == 'true' }}
+    runs-on: kube-ops-oke-arc
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify the OKE apps from inside oracle-a1
+        env:
+          KUBECTL_RO_IN_CLUSTER: "1"
+          KUBECTL_RO_IN_CLUSTER_CLUSTER: oracle-a1
+          PM_NTFY_SECRET_NS: arc-runners-oke
+          PM_NTFY_SECRET_NAME: ntfy-publish-url
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          INPUT_SHA: ${{ inputs.sha }}
+          EVENT_BEFORE: ${{ github.event.before }}
+        run: |
+          set -uo pipefail
+          bash scripts/ci-install-tools.sh || { echo "::error::tool install failed: POST_MERGE=BLOCKED"; exit 1; }
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "RUNNER_ARCH=$(uname -m)"
+          bash scripts/kubectl-ro.sh --cluster oracle-a1 auth whoami
+          if [[ $GITHUB_EVENT_NAME == workflow_dispatch ]]; then
+            git cat-file -e "${INPUT_SHA}^{commit}" || { echo "::error::unknown sha"; exit 1; }
+            bash scripts/post-merge-verify.sh --dry-run --only-cluster oracle-a1 "$INPUT_SHA" --timeout 600 || true
+          else
+            bash scripts/post-merge-verify.sh --only-cluster oracle-a1 "$GITHUB_SHA" --timeout 600 --base "$EVENT_BEFORE" || true
           fi
   revert:
     needs: verify
@@ -134,7 +172,7 @@ jobs:
           bash scripts/post-merge-notify.sh "kube-ops post-merge REVERT" "$prio" "$msg"
   alert:
     # No silent failure (PLT-398): verify/revert/announce failed or was cancelled (timeout, runner lost) => ntfy.
-    needs: [verify, revert, announce]
+    needs: [verify, verify-oke, revert, announce]
     if: ${{ always() && github.event_name == 'push' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
     runs-on: kube-ops-ci-arc
     timeout-minutes: 5
@@ -146,7 +184,7 @@ jobs:
         env:
           KUBECTL_RO_IN_CLUSTER: "1"
           SHA: ${{ github.sha }}
-          RESULTS: verify=${{ needs.verify.result }} revert=${{ needs.revert.result }} announce=${{ needs.announce.result }}
+          RESULTS: verify=${{ needs.verify.result }} verify-oke=${{ needs.verify-oke.result }} revert=${{ needs.revert.result }} announce=${{ needs.announce.result }}
         run: |
           bash scripts/ci-install-tools.sh
           export PATH="$HOME/.local/bin:$PATH"

@@ -1,0 +1,17 @@
+# Un runner a la fois sur le noeud A1 unique (2 OCPU, 12 Go) ; l'ecouteur vit dans arc-systems.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: arc-runner-oke-bounds
+  namespace: arc-runners-oke
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  hard:
+    pods: "2"
+    requests.cpu: 200m
+    requests.memory: 512Mi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+    requests.ephemeral-storage: 1Gi
+    limits.ephemeral-storage: 8Gi

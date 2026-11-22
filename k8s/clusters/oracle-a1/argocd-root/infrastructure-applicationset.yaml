@@ -38,6 +38,11 @@ spec:
           # quotas, sonde continue. Ses CRD cilium.io viennent de cilium-operator : l'Application retente
           # (retry ci-dessous) jusqu'a leur enregistrement.
           - path: k8s/clusters/oracle-a1/baseline
+          # Post-merge independant du homelab (PLT-407) : controleur ARC (arc-systems), puis scale set
+          # `kube-ops-oke-arc` (arc-runners-oke) qui verifie les apps d'OKE depuis OKE. Apres external-secrets
+          # (secret App GitHub via doppler-cluster) et cilium (egress du runner) ; l'Application retente.
+          - path: k8s/clusters/oracle-a1/arc-controller
+          - path: k8s/clusters/oracle-a1/arc-runner
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:

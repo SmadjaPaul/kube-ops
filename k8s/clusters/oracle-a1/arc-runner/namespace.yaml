@@ -1,0 +1,14 @@
+# Namespace du runner post-merge d'OKE (PLT-407). ISOLE : label egress-isolated=true, donc pas d'allow-all de la
+# CCNP allow-egress-unisolated ; l'egress est regi par egress-policy.yaml (liste fermee).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arc-runners-oke
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    platform.smadja.dev/egress-isolated: "true"
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
