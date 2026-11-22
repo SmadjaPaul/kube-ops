@@ -12,7 +12,7 @@ Boundary: homelab-infra owns the Proxmox/Talos substrate, UniFi/LAN DNS, Cloudfl
 
 ## Platform state (D-2026-11-22-01)
 
-- Two clusters, one Argo CD each, same repository: `homelab` (Talos/Proxmox) and `oracle-a1` (OKE, recreated 21/11, same GitOps model, Cilium kept for NetworkPolicy and IMDS blocking). One Argo Application per app (`argocd-app.yaml` contract).
+- Two clusters, one Argo CD each, same repository: `homelab` (Talos/Proxmox) and `oracle-a1` (OKE, recreated 21/11, same GitOps model, Cilium kept for NetworkPolicy and IMDS blocking). One Argo Application per app (argocd-app.yaml contract).
 - Abandoned, delete leftovers you meet in your scope: Hetzner, Atlantis, OpenChoreo, Backstage, Codex. Frozen, no new work, no deletion of data or references: Factory / Mastra (`factory-platform`, Optio, agentgateway for Optio).
 - The homelab has no CPU/RAM/thermal constraint. Renovate updates are applied now. Platform budget < 20 EUR/month.
 
@@ -69,7 +69,7 @@ Branches: your own claude/ prefix, never another agent's branch.
 
 ## Parallel work
 
-Many agents share this repository. Start from `git fetch origin`, then a worktree off `origin/main` (git worktree add, branch claude/<topic>, base origin/main); never edit the main checkout or its stale local `main`. Rebase on origin/main before every push and before merge. Keep PRs small and inside your own files; a file owned by another lane goes into the handoff. Merge when CI is green and the rollback is real; remove the worktree afterwards. Pick the model for the task (haiku or sonnet for mechanical work, opus only for design or hard debugging), not opus everywhere.
+Many agents share this repository. Start from `git fetch origin`, then a worktree off origin/main (git worktree add, branch claude/<topic>, base origin/main); never edit the main checkout or its stale local `main`. Rebase on origin/main before every push and before merge. Keep PRs small and inside your own files; a file owned by another lane goes into the handoff. Merge when CI is green and the rollback is real; remove the worktree afterwards. Pick the model for the task (haiku or sonnet for mechanical work, opus only for design or hard debugging), not opus everywhere.
 
 Process: D-2026-11-15-06 (homelab-infra docs/decisions.md).
 
