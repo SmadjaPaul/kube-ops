@@ -6,7 +6,5 @@ resources:
 - mqtt
 - hassio
 - music-assistant
-# Deferred: upstream coordinator binding 10.0.10.160 is not a Smadja hardware contract.
-# - zigbee2mqtt
 # Deferred: upstream BLE/LB binding requires local hardware/address allocation.
 # - matter-server

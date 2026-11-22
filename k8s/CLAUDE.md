@@ -47,7 +47,7 @@ Repository rules, Safety and decisions: root `AGENTS.md`. These rules apply to m
 
 ## Home automation
 
-- MQTT stays internal (Cilium TCP route). Zigbee2MQTT reaches the coordinator VM over the network only.
+- MQTT stays internal (Cilium TCP route).
 - `HA_SEED_ON_STARTUP: true` overwrites Home Assistant seed files; `false` preserves Home Assistant-managed files.
 
 ## Runbooks utiles
