@@ -12,7 +12,7 @@ Contrainte (plan OKE, D-2026-11-11-17) : aucune application avec données n'est 
 | `cnpg-cluster/external-secrets.yaml` | `pg-shared-cnpg-r2-writer` : `R2_CNPG_WRITER_*` et `R2_S3_ENDPOINT` (noms seulement, valeurs dans Doppler `cluster/prd`) |
 | `cnpg-cluster/cluster.yaml` | plugin `barman-cloud.cloudnative-pg.io` en `isWALArchiver`, image PostgreSQL 17.7 épinglée par digest d'index multi-arch (même version sur le nœud arm64 d'OKE et sur le homelab amd64) |
 | `cnpg-cluster/scheduledbackup.yaml` | `pg-shared-daily`, 03:50 UTC, `immediate: true` |
-| `k8s/optional/pg-shared-oke-drill/` | Drill : base `backup_drill`, jobs `seed-a`, `seed-b`, `fingerprint` et `oke-backup` (OKE) ; `offsite-restore/` (homelab : restauration + empreinte) |
+| `k8s/optional/pg-shared-oke-drill/` | Drill terminé : `sql/` et `offsite-restore/` (homelab : restauration + empreinte) ; les imports OKE (base `backup_drill`, seeds, base backup, empreinte) sont retirés |
 
 Le préfixe `oracle-a1/` est séparé des archives du homelab : barman-cloud refuse une archive non vide et OKE n'écrit jamais dans un préfixe du homelab. La restauration hors Oracle lit ce préfixe avec l'identité **lecture seule** `R2_CNPG_RESTORE_RO_*` (jeton `r2-cnpg-restore-ro`, Object Read only, limité à `homelab-backup-cnpg`, posé dans `cluster/prd` le 15/11/2026). Aucune clé n'est lue ni affichée par ce plan.
 
