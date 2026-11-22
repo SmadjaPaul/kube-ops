@@ -27,6 +27,7 @@ k8s/infrastructure/previews
 k8s/optional/github-actions-arc
 k8s/optional/github-actions-arc-homelab-infra
 k8s/optional/github-actions-arc-website
+k8s/optional/github-actions-arc-ha-config
 k8s/optional/github-actions-arc-agent-harness
 k8s/optional/github-actions-arc-kube-ops
 k8s/optional/github-actions-arc-homelab-iac-pilot
