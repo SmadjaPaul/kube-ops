@@ -38,6 +38,12 @@ spec:
                 # Common tooled runner (images/arc-ci-runner); rollback: official runner digest in github-actions-arc/README.md.
                 image: ghcr.io/smadjapaul/arc-ci-runner:tools1-576e0cb@sha256:087f055d11e3c2a0afd3606fa9b3a45b54a80401c201cd8df0cb261023557709
                 command: ["/home/runner/run.sh"]
+                # PLT-453: key of the Agentgateway consumer `pr-triage` (ExternalSecret
+                # pr-triage-agentgateway). optional: CI keeps running if the copy is absent.
+                env:
+                  - name: PR_TRIAGE_AGENTGATEWAY_KEY
+                    valueFrom:
+                      secretKeyRef: {name: pr-triage-agentgateway, key: PR_TRIAGE_AGENTGATEWAY_KEY, optional: true}
                 resources:
                   requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}
                   limits: {cpu: "2", memory: 2Gi, ephemeral-storage: 4Gi}

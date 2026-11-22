@@ -40,6 +40,20 @@ patches:
       kind: ClusterSecretStore
       metadata:
         name: k8s-databases
+  - target: {group: external-secrets.io, kind: ClusterSecretStore, name: k8s-agentgateway}
+    patch: |-
+      $patch: delete
+      apiVersion: external-secrets.io/v1
+      kind: ClusterSecretStore
+      metadata:
+        name: k8s-agentgateway
+  - target: {version: v1, kind: ServiceAccount, name: eso-k8s-agentgateway-reader}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: eso-k8s-agentgateway-reader
   - target: {version: v1, kind: ServiceAccount, name: eso-k8s-auth-reader}
     patch: |-
       $patch: delete

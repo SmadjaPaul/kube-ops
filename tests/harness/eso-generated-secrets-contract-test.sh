@@ -38,8 +38,9 @@ import re
 import sys
 
 SENTINEL = "eso-k8s-sentinel-none"
-STORES = {"k8s-auth": ("auth", "oidc-", r"^oidc-[a-z0-9-]+$"), "k8s-databases": ("databases", "pg-", r"^pg-[a-z0-9-]+$")}
-GEN_NS = {"auth", "databases"}
+STORES = {"k8s-auth": ("auth", "oidc-", r"^oidc-[a-z0-9-]+$"), "k8s-databases": ("databases", "pg-", r"^pg-[a-z0-9-]+$"),
+          "k8s-agentgateway": ("agentgateway", "llm-", r"^llm-[a-z0-9-]+$")}
+GEN_NS = {"auth", "databases", "agentgateway"}
 T6 = re.compile(r"ENCRYPT|KEY_BASE|APP_KEY|MASTER_KEY|RESTIC|REPOSITORY_PASSWORD|SECRET_KEY")
 READER_SA = re.compile(r"^eso-k8s-[a-z0-9-]+-reader$")
 
@@ -249,6 +250,9 @@ def copy_es(name, ns, st, key):
 def world():
     return {
         "store-auth": store("k8s-auth", "auth"), "store-db": store("k8s-databases", "databases"),
+        "store-llm": store("k8s-agentgateway", "agentgateway"),
+        "role-llm": role("k8s-agentgateway", "agentgateway", ["llm-app"]), "rb-llm": binding("k8s-agentgateway", "agentgateway"),
+        "src-llm": source("llm-app", "agentgateway", "T4", "APP_AGENTGATEWAY_KEY"), "copy-llm": copy_es("app-llm", "app", "k8s-agentgateway", "llm-app"),
         "role-auth": role("k8s-auth", "auth", ["oidc-app"]), "role-db": role("k8s-databases", "databases", ["pg-app"]),
         "rb-auth": binding("k8s-auth", "auth"), "rb-db": binding("k8s-databases", "databases"),
         "src-auth": source("oidc-app", "auth", "T3", "APP_OIDC_CLIENT_SECRET"),

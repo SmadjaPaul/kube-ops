@@ -8,6 +8,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - github-app-secret.yaml
+  - pr-triage-key.yaml
   - runner-quota.yaml
   - egress-networkpolicy.yaml
   - runner-application.yaml
