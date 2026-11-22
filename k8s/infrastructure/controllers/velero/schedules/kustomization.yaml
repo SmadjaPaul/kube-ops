@@ -5,6 +5,7 @@ resources:
   # One offsite tier only: daily Kopia backups, 14-day TTL.
   # CNPG database volumes are protected independently through Barman/WAL archiving.
   - daily-home-assistant.yaml
+  - daily-music-assistant.yaml
   # Monitoring metrics and Loki logs are explicitly excluded from the durable
   # application-data policy; dashboards and rules are GitOps state.
   - daily-immich.yaml

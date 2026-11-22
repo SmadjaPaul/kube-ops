@@ -22,6 +22,15 @@ spec:
         - ports:
             - port: "8096"
               protocol: TCP
+    # Music Assistant (compte lecture seule) lit la bibliotheque musique via le Service interne.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: music-assistant
+            app.kubernetes.io/name: music-assistant
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
     # The root-scoped Polyfin plan uses the separate ephemeral ARC execution
     # scale set; admit only that runner identity to the read-only API path.
     - fromEndpoints:

@@ -1,0 +1,78 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: music-assistant
+  namespace: music-assistant
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: music-assistant
+  description: "MA: ingress Gateway, HA (hostNetwork = entity host); les Sonos tirent le flux via la Gateway; egress DNS, Polyfin, enceintes Media, metadonnees."
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "8095"
+              protocol: TCP
+    # Home Assistant tourne en hostNetwork sur le noeud : il apparait comme "host".
+    - fromEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8095"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "8095"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    # Source musicale : Polyfin (API Jellyfin) par son Service interne, jamais tv.smadja.dev.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: polyfin
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
+    # Enceintes Sonos / Android TV (VLAN Media) : memes ports que la regle UniFi HA -> Media.
+    - toCIDR:
+        - 10.0.35.0/24
+      toPorts:
+        - ports:
+            - port: "1400"
+              protocol: TCP
+            - port: "1443"
+              protocol: TCP
+            - port: "8008"
+              protocol: TCP
+            - port: "8009"
+              protocol: TCP
+            - port: "8443"
+              protocol: TCP
+    # Metadonnees d'artistes / pochettes (noms exacts, HTTPS seul).
+    - toFQDNs:
+        - matchName: musicbrainz.org
+        - matchName: coverartarchive.org
+        - matchName: fanart.tv
+        - matchName: assets.fanart.tv
+        - matchName: www.theaudiodb.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
