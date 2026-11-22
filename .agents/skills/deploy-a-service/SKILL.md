@@ -5,6 +5,8 @@ description: Golden path to add a service to the cluster. Decision tree Q0-Q7, p
 
 # Deploy a service — golden path
 
+Transverse delivery steps (worktree, serialized merge, Argo proof on both clusters, rollback): skill `gitops-deploy` of plugin `homelab-ops` (SmadjaPaul/agent-harness). This skill stays the app-creation decision tree.
+
 Authority: `AGENTS.md`, `k8s/CLAUDE.md`, decisions in `homelab-infra/docs/decisions-active.md`. Answer Q0 to Q7 in order; each answer is written in the PR description. Detail lives in `docs/operations/service-onboarding.md`.
 
 **Who may do this.** Paul's AI merges after a green CI. A relative's AI (friend or family member) opens a PR and **never merges**. Authentik accounts and groups and Cloudflare Access remain Paul's; propose them in the PR, do not create them. Internal secrets need no manual gesture: they are generated in the cluster (Q4, Q6); Doppler values exist only for the external and root classes (T6 to T9) and are Paul's.
