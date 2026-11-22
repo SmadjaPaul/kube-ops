@@ -249,6 +249,14 @@ alloy:
             // cert-manager
             "certmanager_certificate_ready_status{condition=\"True\"}",
             "certmanager_certificate_expiration_timestamp_seconds",
+            // Control plane (PLT-417). etcd series are empty until the Talos
+            // metrics endpoints are enabled (homelab-infra). Histograms are
+            // kept to the two disk latencies only; apiserver request
+            // histograms stay in the local Prometheus.
+            "{__name__=~\"etcd_disk_(wal_fsync|backend_commit)_duration_seconds_(bucket|sum|count)\",job=\"kube-etcd\"}",
+            "{__name__=~\"etcd_mvcc_db_total_size_(in_bytes|in_use_in_bytes)|etcd_server_(leader_changes_seen_total|proposals_failed_total|slow_apply_total|slow_read_indexes_total|quota_backend_bytes)|etcd_network_peer_round_trip_time_seconds_(sum|count)\",job=\"kube-etcd\"}",
+            "{__name__=~\"leader_election_master_status|workqueue_depth|scheduler_pending_pods|scheduler_schedule_attempts_total\",job=~\"kube-scheduler|kube-controller-manager\"}",
+            "{__name__=~\"apiserver_storage_size_bytes|apiserver_current_inflight_requests|apiserver_request_terminations_total|etcd_request_errors_total\",job=\"apiserver\"}",
             // ARC (empty until listener metrics are scraped)
             "{__name__=~\"gha_(assigned_jobs|running_jobs|registered_runners|busy_runners|idle_runners)\"}",
           ],

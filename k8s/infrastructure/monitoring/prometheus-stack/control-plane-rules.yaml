@@ -1,0 +1,57 @@
+# PLT-417: etcd and control-plane stability on the single Talos node.
+# Series come from the kubeEtcd / kubeScheduler / kubeControllerManager
+# ServiceMonitors (prometheus-stack values.yaml). Until the Talos metrics
+# endpoints are enabled, the etcd series do not exist and the first two rules
+# stay silent. The Grafana Cloud rule `control_plane_unstable` (homelab-infra)
+# covers the same symptom from outside the cluster.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: control-plane-stability
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: control-plane.stability
+      rules:
+        - alert: EtcdWalFsyncSlow
+          expr: >-
+            histogram_quantile(0.99,
+            sum by (le) (rate(etcd_disk_wal_fsync_duration_seconds_bucket{job="kube-etcd"}[5m])))
+            > 0.5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "etcd WAL fsync p99 is {{ $value | humanizeDuration }}"
+            description: >-
+              etcd waits on the system disk (etcd recommends p99 under 10 ms).
+              Expect lease losses and restarts of kube-scheduler and
+              kube-controller-manager. Check disk writers on the Proxmox NVMe
+              and the Kubernetes write load (events, reports, leases).
+        - alert: EtcdDatabaseFragmented
+          expr: >-
+            (etcd_mvcc_db_total_size_in_bytes{job="kube-etcd"}
+            - etcd_mvcc_db_total_size_in_use_in_bytes{job="kube-etcd"})
+            / etcd_mvcc_db_total_size_in_bytes{job="kube-etcd"} > 0.5
+            and etcd_mvcc_db_total_size_in_bytes{job="kube-etcd"} > 5e8
+          for: 1h
+          labels:
+            severity: info
+          annotations:
+            summary: "etcd database is more than 50 % free space inside the file"
+            description: >-
+              A defragmentation (`talosctl etcd defrag`) would shrink the file.
+              It blocks etcd writes while it runs: do it by hand.
+        - alert: ControlPlaneComponentRestarting
+          expr: >-
+            increase(kube_pod_container_status_restarts_total{namespace="kube-system",pod=~"kube-(scheduler|controller-manager)-.*"}[1h]) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.pod }} restarted {{ $value | humanize }} times in 1 h"
+            description: >-
+              The component loses its leader lease (etcd or apiserver too slow
+              to renew within the deadline). See PLT-417.
