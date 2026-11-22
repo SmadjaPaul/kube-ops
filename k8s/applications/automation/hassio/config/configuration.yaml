@@ -8,14 +8,7 @@ default_config:
  #   - /hacsfiles/lovelace-card-mod/card-mod.js
  #   - /hacsfiles/Bubble-Card/bubble-pop-up-fix.js
 
-# HTTP settings for when behind a reverse proxy
-http:
-  ip_ban_enabled: true
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - "10.0.0.0/8"
-    - "172.16.0.0/12"
-    - "192.168.0.0/16"
+# http: retiré (HA >= 2026.8 l'a importé dans .storage ; réglage via Paramètres > Système > Réseau)
 
 auth_header:
   username_header: X-ak-hass-user
@@ -58,7 +51,7 @@ recorder:
 
 ## Logger ##
 logger:
-  default: critical
+  default: warning
   logs:
     homeassistant.core: warning
     homeassistant.components.mqtt: warning
