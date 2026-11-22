@@ -160,10 +160,9 @@
       "enabled": false
     },
     {
-      "description": "Abandonnes : plus de mises a jour pour Atlantis, OpenChoreo, Codex, Hetzner",
+      "description": "Abandonnes : plus de mises a jour pour Atlantis, Codex, Hetzner",
       "matchPackageNames": [
         "/atlantis/",
-        "/openchoreo/",
         "/codex/",
         "/hetzner/"
       ],
