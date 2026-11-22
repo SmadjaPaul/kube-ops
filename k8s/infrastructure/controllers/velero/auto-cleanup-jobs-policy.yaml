@@ -12,6 +12,13 @@ metadata:
       self-delete after completion. Velero's built-in cleanup is unreliable,
       so use Kubernetes native TTL instead.
 spec:
+  # PLT-400: the TTL is cosmetic. The mutating webhook matches every Job of the
+  # cluster; with the default Fail, a Kyverno restart refused Job creation (and
+  # Velero kopia maintenance Jobs, PLT-425). Ignore + 5 s: worst case the Job
+  # keeps no TTL until the next maintenance. Rollback: remove these two keys.
+  failurePolicy: Ignore
+  webhookConfiguration:
+    timeoutSeconds: 5
   rules:
     - name: add-ttl-to-maintenance-jobs
       match:

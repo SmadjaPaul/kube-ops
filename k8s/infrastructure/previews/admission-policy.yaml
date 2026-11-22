@@ -29,12 +29,13 @@ spec:
         apiVersions: ["v1"]
         operations: [CREATE, UPDATE]
         resources: [pods, services]
+      # PLT-400: versions pinned (was "*"): Kyverno could not resolve the kind for "*".
       - apiGroups: ["external-secrets.io"]
-        apiVersions: ["*"]
+        apiVersions: ["v1"]
         operations: [CREATE, UPDATE]
         resources: [externalsecrets, secretstores, clustersecretstores]
       - apiGroups: ["postgresql.cnpg.io"]
-        apiVersions: ["*"]
+        apiVersions: ["v1"]
         operations: [CREATE, UPDATE]
         resources: [databases]
   matchConditions:

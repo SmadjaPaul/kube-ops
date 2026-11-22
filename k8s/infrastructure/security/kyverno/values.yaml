@@ -242,6 +242,9 @@ config:
         operator: NotIn
         values:
           - kube-system
+          # PLT-400: nothing a policy targets lives there; saves webhook calls.
+          - kube-public
+          - kube-node-lease
     # Exclude objects
     # objectSelector:
     #   matchExpressions:
