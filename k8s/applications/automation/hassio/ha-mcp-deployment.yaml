@@ -25,44 +25,24 @@ spec:
         fsGroup: 999
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        - name: install-deps
-          image: ghcr.io/homeassistant-ai/ha-mcp:latest@sha256:4259f24727d2052d80d57f4789f97371ea3c7a4dd3060bbb3c61b5ee33f6678e
-          imagePullPolicy: IfNotPresent
-          command:
-            - sh
-            - -c
-            - |
-              /usr/local/bin/python -m venv /venv
-              /venv/bin/pip install --upgrade pip
-              /venv/bin/pip install fastmcp httpx jq textdistance pydantic python-dotenv truststore websockets
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 999
-            runAsGroup: 999
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
-          volumeMounts:
-            - name: venv
-              mountPath: /venv
-            - name: tmp
-              mountPath: /tmp
       containers:
         - name: ha-mcp
-          image: ghcr.io/homeassistant-ai/ha-mcp:latest@sha256:4259f24727d2052d80d57f4789f97371ea3c7a4dd3060bbb3c61b5ee33f6678e
+          image: ghcr.io/homeassistant-ai/ha-mcp:9.2.0@sha256:9de5bf6c4216142fdffe862900abe72dac8dfe9621dd0b2b050d132372b676ba
           imagePullPolicy: IfNotPresent
           command:
-            - /venv/bin/python
-            - -c
-            - "from ha_mcp.__main__ import main_web; main_web()"
+            - ha-mcp-web
           ports:
             - name: http
               containerPort: 8086
               protocol: TCP
           env:
-            - name: PYTHONPATH
-              value: "/app/src"
+            # PLT-447: ha-mcp is for agent exploration only, never durable writes.
+            # READ_ONLY_MODE hides write tools and blocks write calls (ha-mcp 9.2.0 docs);
+            # the settings UI stays off so the toggle cannot be flipped at runtime.
+            - name: READ_ONLY_MODE
+              value: "true"
+            - name: HA_MCP_DISABLE_SETTINGS_UI
+              value: "true"
             - name: HOMEASSISTANT_URL
               valueFrom:
                 secretKeyRef:
@@ -108,16 +88,14 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 3
           volumeMounts:
-            - name: venv
-              mountPath: /venv
             - name: tmp
               mountPath: /tmp
             - name: cache
               mountPath: /home/mcpuser/.cache
       volumes:
-        - name: venv
-          emptyDir: {}
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 64Mi
         - name: cache
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 64Mi
