@@ -25,6 +25,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: netbird
       server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
   # Liste fermee : ajouter un kind cluster-scoped d'infrastructure passe par une PR sur ce fichier.
   clusterResourceWhitelist:
     - group: ''

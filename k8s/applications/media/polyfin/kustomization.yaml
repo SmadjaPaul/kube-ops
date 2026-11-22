@@ -14,6 +14,7 @@ resources:
   - networkpolicy.yaml
   - ../../../optional/polyfin-nebula
   - polyfin-media-route.yaml
+  - tv-http-route.yaml
 # PLT-394 : Polyfin est une Application Argo dediee (app-polyfin). La route polyfin-media, l'ExternalSecret
 # Nebula et les deux patches ci-dessous (Deployment et CiliumNetworkPolicy polyfin) etaient portes par
 # l'agregat du domaine media ; ils forment un seul rendu avec l'app.

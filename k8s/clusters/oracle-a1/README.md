@@ -16,7 +16,8 @@ one arm64 A1 node (2 OCPU, 12 GB), CNI `OCI_VCN_IP_NATIVE`, pods `10.248.0.0/16`
 | `agent-operator/` | Read-only agent identity (ServiceAccount, RBAC without Secret data). |
 | `external-secrets/` | External Secrets Operator (base `k8s/infrastructure/controllers/external-secrets`) with only the ClusterSecretStore `doppler-cluster`. The overlay removes what OKE cannot run: PrometheusRule and ServiceMonitors (no Prometheus Operator CRD), stores `k8s-auth` and `k8s-databases`. The base is untouched (homelab render identical). |
 | `netbird-router/` | NetBird routing peer `oke-oracle-a1-router` (namespace `netbird`, PSA `privileged`, needs NET_ADMIN/SYS_ADMIN/SYS_RESOURCE) : admin and agent path to the private API (PLT-256). Setup key from ExternalSecret `NETBIRD_SETUP_KEY_OKE` via `doppler-cluster`. Image `netbirdio/netbird:0.83.0` has a `linux/arm64` manifest. |
-| other folders | Legacy overlays (Flannel era: `hindsight`, `cnpg-*`, `media`, `observability`, `cloudflared`, `cert-manager`). Reconciled by nothing; stale. Revive one only by adding it to the `infrastructure` ApplicationSet list (and its namespaces to the `apps` project negations) after review, never silently. |
+| `observability/` | Export to Grafana Cloud (PLT-306): Alloy + kube-state-metrics, label `cluster="oracle-a1"`, no local storage. Secret `alloy-grafana-cloud` from `doppler-cluster`. Revived for `scripts/verify-delivery.sh` (PLT-407). |
+| other folders | Legacy overlays (Flannel era: `hindsight`, `cnpg-*`, `media`, `cloudflared`, `cert-manager`). Reconciled by nothing; stale. Revive one only by adding it to the `infrastructure` ApplicationSet list (and its namespaces to the `apps` project negations) after review, never silently. |
 
 ## Bootstrap (once, by Paul or an agent holding an admin kubeconfig)
 

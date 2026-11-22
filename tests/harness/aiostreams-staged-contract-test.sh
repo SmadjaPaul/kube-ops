@@ -33,8 +33,13 @@ if grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/http-route.yaml")
 fi
 # PLT-135 cutover: keep the same Argo-managed HTTPRoute object/identity.
 # No simultaneous second tv.smadja.dev route: PruneLast is irrelevant.
-family="$pkg/family-http-route.yaml"
-grep -Eq '^[[:space:]]*-[[:space:]]+family-http-route\.yaml[[:space:]]*$' "$pkg/kustomization.yaml"
+family="$root/polyfin/tv-http-route.yaml"
+# PLT-392: tv.smadja.dev belongs to Polyfin (same object, no AIOStreams duplicate).
+if grep -Eq 'family-http-route' "$pkg/kustomization.yaml"; then
+  echo "AIOSTREAMS_STAGE=FAIL: tv.smadja.dev route must live under polyfin" >&2
+  exit 1
+fi
+grep -Eq '^[[:space:]]*-[[:space:]]+tv-http-route\.yaml[[:space:]]*$' "$root/polyfin/kustomization.yaml"
 yq -e '.apiVersion == "gateway.networking.k8s.io/v1" and .kind == "HTTPRoute" and .metadata.name == "aiostreams-family" and .metadata.namespace == "media"' "$family" >/dev/null
 [[ "$(yq -r '.spec.hostnames | join(",")' "$family")" == "tv.smadja.dev" ]]
 [[ "$(yq -r '.spec.parentRefs[].name' "$family" | LC_ALL=C sort | tr '\n' ',')" == "external,internal," ]]
@@ -48,8 +53,8 @@ yq -e '.spec.rules[0].filters == null' "$family" >/dev/null
 grep -Fq -- 'name: polyfin' "$root/polyfin/service.yaml"
 grep -Fq -- 'port: 80' "$root/polyfin/service.yaml"
 # Keep the previous Polyfin media alias and AIOStreams internal control route.
-[[ "$(yq -r '.spec.hostnames | join(",")' "$root/polyfin-media-route.yaml")" == "media.smadja.dev" ]]
-[[ "$(yq -r '.spec.parentRefs[].name' "$root/polyfin-media-route.yaml")" == "internal" ]]
+[[ "$(yq -r '.spec.hostnames | join(",")' "$root/polyfin/polyfin-media-route.yaml")" == "media.smadja.dev" ]]
+[[ "$(yq -r '.spec.parentRefs[].name' "$root/polyfin/polyfin-media-route.yaml")" == "internal" ]]
 [[ "$(yq -r '.spec.hostnames | join(",")' "$pkg/http-route.yaml")" == "aiostreams.smadja.dev" ]]
 # Strict dual callbacks, without an OIDC client secret in Git.
 auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-polyfin.yaml
