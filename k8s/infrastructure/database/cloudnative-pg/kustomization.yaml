@@ -4,13 +4,13 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rules.yaml
-  - https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.11.0/manifest.yaml
+  - https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.16.0/manifest.yaml
 
 helmCharts:
   - name: cloudnative-pg
     valuesFile: helm-values.yaml
     releaseName: cloudnative-pg
     namespace: cnpg-system
-    version: 0.28.2
+    version: 0.29.1
     includeCRDs: true
     repo: https://cloudnative-pg.github.io/charts
