@@ -75,8 +75,8 @@ verify the direct Gateway-to-Authentik peer address and forwarded
 Git/Renovate own Authentik upgrades. The deployment disables Authentik startup
 analytics and the built-in update checker, and keeps error reporting disabled.
 
-Database state is stored in CloudNativePG. Backups are sent to the canonical
-Hetzner Object Storage path and are part of the separate backup/restore
+Database state is stored in CloudNativePG. Backups are sent to the Cloudflare R2
+(`homelab-backup-cnpg`) path and are part of the separate backup/restore
 contract.
 
 ## Authorization
