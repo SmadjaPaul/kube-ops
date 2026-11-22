@@ -72,7 +72,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         if: steps.classify.outputs.documentation_relevant == 'true'
         with:
-          node-version: '22.22.0'
+          node-version: '26.13.1'
 
       - name: Run repository documentation integrity checks
         if: steps.classify.outputs.documentation_relevant == 'true'
