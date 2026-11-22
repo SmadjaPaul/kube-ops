@@ -4,3 +4,4 @@
 # PLT-394, a traiter avec l'activation du pilote.
 exceptions:
   observability: "pilote sans supervision declaree (hors perimetre de la migration PLT-394)"
+  renovate: "Job d'empreinte temporaire (PLT-301) : image postgresql epinglee par digest dans k8s/optional/hindsight-oke-drill/fingerprint, suivie la-bas ; import retire apres lecture"
