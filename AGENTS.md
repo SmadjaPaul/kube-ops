@@ -4,15 +4,21 @@ Git is the Kubernetes desired-state authority and Argo CD reconciles it continuo
 
 ## Authority
 
-Active decisions live only in homelab-infra [docs/decisions.md](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions.md) (D-2026-11-14-01). Read it at session start; it wins over this file, older tickets and docs. Do not copy decisions here.
+Active decisions live only in homelab-infra: read the summary [docs/decisions-active.md](https://github.com/SmadjaPaul/homelab-infra/blob/main/docs/decisions-active.md) at session start and open the journal (decisions.md) only for a cited decision (D-2026-11-14-01). They win over this file, older tickets and docs. Do not copy decisions here.
 
 Then: repository contracts and tests > this file > desired-state code > runtime as observed evidence. Runtime drift never silently becomes desired state.
 
 Boundary: homelab-infra owns the Proxmox/Talos substrate, UniFi/LAN DNS, Cloudflare account/edge, Doppler bootstrap, Migadu, N100 and all OpenTofu. kube-ops owns Kubernetes/Argo desired state after the kubeconfig handoff and contains no Terraform/OpenTofu.
 
+## Platform state (D-2026-11-22-01)
+
+- Two clusters, one Argo CD each, same repository: `homelab` (Talos/Proxmox) and `oracle-a1` (OKE, recreated 21/11, same GitOps model, Cilium kept for NetworkPolicy and IMDS blocking). One Argo Application per app (argocd-app.yaml contract).
+- Abandoned, delete leftovers you meet in your scope: Hetzner, Atlantis, OpenChoreo, Backstage, Codex. Frozen, no new work, no deletion of data or references: Factory / Mastra (`factory-platform`, Optio, agentgateway for Optio).
+- The homelab has no CPU/RAM/thermal constraint. Renovate updates are applied now. Platform budget < 20 EUR/month.
+
 ## Read order
 
-This file → one skill from the table → only the application or infrastructure subtree you change. Run `just inventory` before you crawl the repository. Read `docs/state/cluster-reality.md` only for runtime questions (what runs, real CPU/RAM, exposure, data class); regenerate it with `bash scripts/cluster-reality.sh`. Rules for files under `k8s/` live in `k8s/CLAUDE.md`.
+This file → one skill from the table → only the application or infrastructure subtree you change. Run `just inventory` before you crawl the repository. `docs/state/cluster-reality.md` is a dated snapshot, not current truth: for runtime questions regenerate it with `bash scripts/cluster-reality.sh` or use `just investigate`. Rules for files under `k8s/` live in `k8s/CLAUDE.md`.
 
 | Task | Entry |
 |---|---|
@@ -59,7 +65,11 @@ Absolute bans: `--admin` or any check/protection bypass; a disabled required che
 
 Secret output (enforced by `.claude/hooks/secret-output-guard.py`): use `scripts/doppler-safe.sh` instead of `doppler secrets`; list environment names only (`env | cut -d= -f1`); `kubectl get secret` only with `-o name`, `kubectl describe secret` for keys; no `kubectl -v=6` or higher. Redirecting stdout does not hide stderr.
 
-Branches: your own claude/ or codex/ prefix, never another agent's branch.
+Branches: your own claude/ prefix, never another agent's branch.
+
+## Parallel work
+
+Many agents share this repository. Start from `git fetch origin`, then a worktree off origin/main (git worktree add, branch claude/<topic>, base origin/main); never edit the main checkout or its stale local `main`. Rebase on origin/main before every push and before merge. Keep PRs small and inside your own files; a file owned by another lane goes into the handoff. Merge when CI is green and the rollback is real; remove the worktree afterwards. Pick the model for the task (haiku or sonnet for mechanical work, opus only for design or hard debugging), not opus everywhere.
 
 Process: D-2026-11-15-06 (homelab-infra docs/decisions.md).
 

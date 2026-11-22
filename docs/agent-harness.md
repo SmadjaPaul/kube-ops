@@ -187,23 +187,6 @@ It is currently appropriate for the vLLM model cache and other reproducible
 downloaded datasets.
 User-generated data must never use this exemption.
 
-## Multi-agent capability model
+## Multi-agent model
 
-The repository keeps shared operational knowledge in `.agents/skills/*`.
-Paperclip's former role-file matrix is not a kube-ops contract and was removed
-with the local operator scaffolding. Use the tracked skills and `AGENTS.md`
-authority/evidence rules; do not follow an untracked or missing role file.
-
-A prompt is not a security boundary. The target enforcement layers are:
-
-- GitHub App permissions for branch/PR write access;
-- Kubernetes RBAC: read-only runtime evidence by default, plus the limited-rights write identity of PLT-237 for operation-scoped mutations (AGENTS.md Safety);
-- LiteLLM virtual keys for logical-model/budget access;
-- network policy for reachable services;
-- Paperclip connector/tool policies only after the installed Paperclip version
-  has been qualified to support them.
-
-The Implementation Engineer may write a feature branch and open a pull request,
-but it never self-merges. R1 release can still be autonomous when a separate
-release authority sees independent review, QA and required CI gates pass. R2
-always remains human-only.
+Shared operational knowledge lives in `.agents/skills/*` and `AGENTS.md`. A prompt is not a security boundary; enforcement comes from GitHub App permissions (branch and PR write), Kubernetes RBAC (read-only `agent-operator` plus the bounded writes of AGENTS.md Safety), network policy and the CI gates. Agents merge their own PRs under the AGENTS.md merge rule (green CI, real rollback); irreversible changes keep a `MANDAT`.
