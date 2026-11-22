@@ -372,4 +372,20 @@ if grep -En 'privileged:\s*true|ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER:\s*false|gi
   exit 1
 fi
 
+# PLT-442: the kube-ops PR CI scale set runs PR code, so it never mounts a Kubernetes token.
+kube_ops_pr_root="$repo_root/k8s/optional/github-actions-arc-kube-ops-pr"
+grep -F -- 'automountServiceAccountToken: false' "$kube_ops_pr_root/runner-application.yaml" >/dev/null || {
+  printf 'ARC_GITOPS_CONTRACT=FAIL kube-ops-pr-mounts-token\n' >&2
+  exit 1
+}
+if grep -En 'serviceAccountName:|automountServiceAccountToken:\s*true|kube-apiserver' "$kube_ops_pr_root"/*.yaml; then
+  printf 'ARC_GITOPS_CONTRACT=FAIL kube-ops-pr-token-or-apiserver-access\n' >&2
+  exit 1
+fi
+grep -F -- 'path: k8s/optional/github-actions-arc-kube-ops-pr' \
+  "$repo_root/k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml" >/dev/null || {
+  printf 'ARC_GITOPS_CONTRACT=FAIL kube-ops-pr-path-not-in-applicationset\n' >&2
+  exit 1
+}
+
 printf 'ARC_GITOPS_CONTRACT=PASS\n'
