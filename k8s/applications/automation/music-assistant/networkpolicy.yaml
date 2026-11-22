@@ -15,8 +15,6 @@ spec:
         - ports:
             - port: "8095"
               protocol: TCP
-            - port: "8097"
-              protocol: TCP
     # Home Assistant tourne en hostNetwork sur le noeud : il apparait comme "host".
     - fromEntities:
         - host
@@ -24,6 +22,16 @@ spec:
       toPorts:
         - ports:
             - port: "8095"
+              protocol: TCP
+    # Flux audio : la TCPRoute de la Gateway internal ne passe pas par Envoy, Cilium livre le
+    # trafic au pod avec l'IP source reelle (verifie Hubble 22/11 : "Policy denied", identite world).
+    # Clients admis : enceintes Media (10.0.35.0/24) et reseau Trusted (10.0.10.0/24, tests/admin).
+    - fromCIDR:
+        - 10.0.35.0/24
+        - 10.0.10.0/24
+      toPorts:
+        - ports:
+            - port: "8097"
               protocol: TCP
     - fromEndpoints:
         - matchLabels:
