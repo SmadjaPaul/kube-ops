@@ -129,6 +129,15 @@ spec:
         - ports:
             - port: "8000"
               protocol: TCP
+    # Prometheus scrape of the CNPG exporter (PodMonitor monitoring/cnpg-instances,
+    # PLT-391): without it the target stays up==0 and the DB is unmonitored.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9187"
+              protocol: TCP
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
