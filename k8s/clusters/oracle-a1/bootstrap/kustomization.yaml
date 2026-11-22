@@ -14,7 +14,7 @@ helmCharts:
     namespace: argocd
     releaseName: argocd
     repo: https://argoproj.github.io/argo-helm
-    # Meme chart que le homelab (k8s/infrastructure/controllers/argocd) : Argo CD v3.5.1.
+    # Meme chart que le homelab (k8s/infrastructure/controllers/argocd) : Argo CD v3.6.1.
     version: 10.18.0
     valuesFile: values.yaml
 
