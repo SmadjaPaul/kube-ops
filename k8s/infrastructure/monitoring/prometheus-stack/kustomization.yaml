@@ -12,6 +12,7 @@ resources:
   - grafana-resource-efficiency.yaml
   - nvme-endurance-rules.yaml
   - ups-thermal-rules.yaml
+  - control-plane-rules.yaml
 
 patches:
   - path: kube-apiserver-cardinality-patch.json
