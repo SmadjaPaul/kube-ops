@@ -44,7 +44,7 @@ Access is **always by group, never per user**. Model: `docs/operations/authentik
 
 ## Q3 — State
 - None: preferred.
-- Database: one `Database` in `pg-shared`. **Never a new `Cluster`** (`just check` refuses it; `docs/operations/cnpg-cluster-inventory.md`).
+- Database: one `Database` in `pg-shared`. **Never a new `Cluster`** (`just check` refuses it; `docs/operations/cnpg-cluster-inventory.md`). Every database of `pg-shared-homelab` is also dumped daily (`pg_dump -Fc`, CronJob `pg-shared-homelab-dump`, bucket R2 `homelab-backup-pgdump`, objects `pg-shared-homelab/<db>/<UTC stamp>.dump`, 14 days): nothing to add per application, alerts `PgSharedHomelabDump*`.
 - Files: PVC `longhorn-fast` or `longhorn-bulk`, Velero -> R2; add restic if irreplaceable. Large media is not backed up as a volume.
 - A restore must be proven before the data counts as safe. No PVC is ever removed as incidental cleanup.
 

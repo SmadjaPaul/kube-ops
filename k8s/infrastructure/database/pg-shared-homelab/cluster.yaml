@@ -42,7 +42,18 @@ spec:
   # Roles applicatifs geres par CNPG : un bloc par base (modele : app-database.example.tmpl).
   # Mot de passe de chaque role : Secret `pg-<namespace>` genere par ESO (CreatedOnce, Orphan), jamais une cle Doppler.
   managed:
-    roles: []
+    roles:
+      # PLT-375: daily logical dump (dump-cronjob.yaml). Superuser because pg_dump must
+      # CONNECT to databases closed to PUBLIC and read everything; the credential lives only in
+      # this namespace (Secret pg-pgdump, ESO generated) and is read by the dump CronJob alone.
+      - name: pgdump
+        ensure: present
+        login: true
+        superuser: true
+        createdb: false
+        createrole: false
+        passwordSecret:
+          name: pg-pgdump
   storage:
     storageClass: longhorn-fast
     size: 20Gi

@@ -1,0 +1,34 @@
+# PLT-375: alerts on the logical dump (kube-state-metrics CronJob/Job series).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pg-shared-homelab-dump-alerts
+  namespace: databases
+spec:
+  groups:
+    - name: pg-shared-homelab-dump.rules
+      rules:
+        - alert: PgSharedHomelabDumpFailed
+          annotations:
+            summary: Logical dump of pg-shared-homelab failed.
+            description: >-
+              Job {{ $labels.job_name }} of CronJob pg-shared-homelab-dump has failed.
+              Logs: kubectl -n databases logs job/{{ $labels.job_name }} --all-containers.
+          expr: |-
+            kube_job_status_failed{namespace="databases", job_name=~"pg-shared-homelab-dump-.*"} > 0
+          for: 5m
+          labels:
+            severity: warning
+        - alert: PgSharedHomelabDumpStale
+          annotations:
+            summary: No successful logical dump of pg-shared-homelab for 36 hours.
+            description: >-
+              The last successful run of CronJob pg-shared-homelab-dump is older than 36 h
+              (or has never happened).
+          expr: |-
+            (time() - kube_cronjob_status_last_successful_time{namespace="databases", cronjob="pg-shared-homelab-dump"} > 36 * 3600)
+            or
+            (absent(kube_cronjob_status_last_successful_time{namespace="databases", cronjob="pg-shared-homelab-dump"}) and on() (time() - kube_cronjob_created{namespace="databases", cronjob="pg-shared-homelab-dump"} > 36 * 3600))
+          for: 15m
+          labels:
+            severity: critical

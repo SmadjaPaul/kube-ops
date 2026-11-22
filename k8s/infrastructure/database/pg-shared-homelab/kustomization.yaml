@@ -10,3 +10,6 @@ resources:
   - scheduledbackup.yaml
   - networkpolicy.yaml
   - eso-k8s-reader-rbac.yaml
+  - dump-credentials.yaml
+  - dump-cronjob.yaml
+  - dump-alerts.yaml

@@ -24,3 +24,53 @@ spec:
       toPorts:
         - ports:
             - {protocol: TCP, port: "9187"}
+---
+# PLT-375: the logical dump CronJob reaches the instance on 5432.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: pg-shared-homelab-dump-ingress
+  namespace: databases
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: pg-shared-homelab
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: pg-shared-homelab-dump
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "5432"}
+---
+# PLT-375: the dump pods reach R2 over HTTPS, DNS and the instance only (same shape as the
+# restic policy of paperless).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: pg-shared-homelab-dump
+  namespace: databases
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: pg-shared-homelab-dump
+  egress:
+    - toFQDNs:
+        - matchPattern: "*.eu.r2.cloudflarestorage.com"
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: pg-shared-homelab
+      toPorts:
+        - ports:
+            - {port: "5432", protocol: TCP}
