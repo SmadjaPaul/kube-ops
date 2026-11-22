@@ -71,7 +71,7 @@ spec:
           args:
           - certcontroller
           - --crd-requeue-interval={{ .Values.certController.requeueInterval }}
-          - --service-name={{ include "external-secrets.fullname" . }}-webhook
+          - --service-name={{ include "external-secrets.componentName" (list . "-webhook") }}
           - --service-namespace={{ template "external-secrets.namespace" . }}
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook
           - --secret-namespace={{ template "external-secrets.namespace" . }}
@@ -83,11 +83,20 @@ spec:
           - --crd-names=externalsecrets.external-secrets.io
           - --crd-names=secretstores.external-secrets.io
           {{- end }}
-          {{- if .Values.installCRDs }}
+          {{- if .Values.certController.enablePartialCache }}
           - --enable-partial-cache=true
           {{- end }}
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
+          {{- end }}
+          {{- if (.Values.certController.tls.minVersion | default .Values.tls.minVersion) }}
+          - --tls-min-version={{ .Values.certController.tls.minVersion | default .Values.tls.minVersion }}
+          {{- end }}
+          {{- if (.Values.certController.tls.ciphers | default .Values.tls.ciphers) }}
+          - --tls-ciphers={{ .Values.certController.tls.ciphers | default .Values.tls.ciphers }}
+          {{- end }}
+          {{- if (.Values.certController.tls.curvePreferences | default .Values.tls.curvePreferences) }}
+          - --tls-curve-preferences={{ join "," (.Values.certController.tls.curvePreferences | default .Values.tls.curvePreferences) }}
           {{- end }}
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
@@ -115,11 +124,6 @@ spec:
             - containerPort: {{ .Values.certController.readinessProbe.port }}
               protocol: TCP
               name: ready
-            {{- if and .Values.certController.startupProbe.enabled (not .Values.certController.startupProbe.useReadinessProbePort) }}
-            - containerPort: {{ .Values.certController.startupProbe.port }}
-              protocol: TCP
-              name: startup
-            {{- end }}
           {{- if .Values.certController.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
@@ -145,14 +149,11 @@ spec:
           {{- if .Values.certController.startupProbe.enabled }}
           startupProbe:
             httpGet:
-              {{- if .Values.certController.startupProbe.useReadinessProbePort }}
               port: ready
-              {{- else }}
-              port: startup
-              {{- end }}
               path: /readyz
-            initialDelaySeconds: 20
-            periodSeconds: 5
+            initialDelaySeconds: {{ .Values.certController.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.certController.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.certController.startupProbe.failureThreshold }}
           {{- end }}
           {{- with .Values.certController.extraEnv }}
           env:
@@ -203,5 +204,11 @@ spec:
       {{- end }}
       {{- if .Values.certController.priorityClassName }}
       priorityClassName: {{ .Values.certController.priorityClassName }}
+      {{- end }}
+      {{- if .Values.certController.schedulerName }}
+      schedulerName: {{ .Values.certController.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.certController.runtimeClassName }}
+      runtimeClassName: {{ .Values.certController.runtimeClassName | quote }}
       {{- end }}
 {{- end }}
