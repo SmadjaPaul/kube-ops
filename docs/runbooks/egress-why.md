@@ -36,28 +36,12 @@ sum(increase(cilium_proxy_upstream_reply_seconds_bucket{scope="dataplaneTime",le
 
 Grafana Cloud reçoit les logs cilium-agent mais aucune métrique `hubble_*`/`cilium_*` : les requêtes PromQL ci-dessus ne marchent que sur le Prometheus local.
 
-## 4. Pour une attribution par pod (proposition, non appliquée)
+## 4. Attribution par workload (appliquée, PLT-411)
 
-Valeurs Cilium à évaluer (cardinalité bornée par `labelsContext`, cluster mono-nœud) :
+`k8s/infrastructure/network/cilium/values.yaml` active `dns`, `drop` et `flow` avec `labelsContext=source_namespace,source_workload` (drop ajoute `destinationContext=dns`, jamais `ip` : cardinalité non bornée). Les séries `hubble_drop_total`, `hubble_dns_*` et `hubble_flows_processed_total` portent donc `source_namespace` et `source_workload` ; `egress-why.sh` ajoute trois lignes "of <ns> by workload" (drops par raison et destination FQDN, erreurs DNS, flux DROPPED/ERROR). Elles restent vides tant que les agents n'ont pas redémarré après le sync Argo.
 
-```yaml
-hubble:
-  metrics:
-    enabled:
-      - dns:labelsContext=source_namespace,source_workload
-      - drop:sourceContext=workload-name|reserved-identity;destinationContext=dns|ip;labelsContext=source_namespace,source_workload
-      - flow:labelsContext=source_namespace,source_workload
-      - tcp
-      - port-distribution
-  export:
-    static:
-      enabled: true
-      filePath: /var/run/cilium/hubble/events.log
-      allowList:
-        - verdict: [DROPPED, ERROR]
-      fieldMask: [time, source.namespace, source.pod_name, destination.namespace, destination.pod_name, destination_names, IP.destination, l4, verdict, drop_reason_desc, is_reply]
-    fileMaxSizeMb: 10
-    fileMaxBackups: 3
+```promql
+sum by (source_workload, reason, destination) (increase(hubble_drop_total{source_namespace="media"}[1h]))
 ```
 
-L'export fichier exige qu'Alloy lise `/var/run/cilium/hubble/events.log` sur l'hôte (montage hostPath en lecture seule) et l'envoie dans Loki avec `source="hubble"` ; `egress-why.sh` pourrait alors agréger `destination_names` et `drop_reason_desc` pour le pod demandé.
+Reste proposé, non appliqué : l'export statique des événements DROPPED/ERROR (`hubble.export.static`, `allowList: [{verdict: [DROPPED, ERROR]}]`, `fieldMask` source/destination/destination_names/drop_reason_desc) lu par Alloy vers Loki (`source="hubble"`), pour une attribution par pod et non par workload. Il exige un montage hostPath en lecture seule côté Alloy ; à ouvrir seulement si l'attribution par workload ne suffit pas.

@@ -14,6 +14,7 @@ case "$3" in
   *loki/api/v1/query_range*) echo '{"data":{"result":[{"metric":{},"values":[[1795299780,"5"],[1795299840,"1"]]}]}}' ;;
   *loki/api/v1/query*Name%20lock*) echo '{"data":{"result":[{"metric":{"dnsName":"stremthru.13377001.xyz."},"value":[0,"7"]}]}}' ;;
   *loki/api/v1/query*) echo '{"data":{"result":[{"metric":{},"value":[0,"12"]}]}}' ;;
+  *prometheus*source_workload*) echo '{"data":{"result":[{"metric":{"source_workload":"aiostreams","reason":"POLICY_DENIED","destination":"mise-versions.jdx.dev"},"value":[0,"9.2"]}]}}' ;;
   *prometheus*) echo '{"data":{"result":[{"metric":{"reason":"POLICY_DENIED"},"value":[0,"42.4"]},{"metric":{"reason":"X"},"value":[0,"0"]}]}}' ;;
   *) exit 9 ;;
 esac
@@ -26,6 +27,8 @@ run() { KUBECTL_RO_SCRIPT="$tmp/kubectl-ro.sh" FAKE_LOG="$tmp/ro.log" bash "$rep
 out=$(run media aiostreams --since 30m --end 2026-11-21T22:30:00Z)
 grep -q '7 stremthru.13377001.xyz.' <<<"$out" || { echo "dnsName aggregate missing" >&2; exit 1; }
 grep -q '42 POLICY_DENIED' <<<"$out" || { echo "drop aggregate missing" >&2; exit 1; }
+grep -q '9 aiostreams POLICY_DENIED mise-versions.jdx.dev' <<<"$out" || { echo "per-workload aggregate missing" >&2; exit 1; }
+grep -q 'source_namespace=\"media\"' "$tmp/ro.log" || grep -q 'source_namespace%3D%22media%22' "$tmp/ro.log" || { echo "workload query not scoped to namespace" >&2; exit 1; }
 if grep -q ' 0 X$' <<<"$out"; then echo "zero series must be hidden" >&2; exit 1; fi
 grep -q '2026-11-21T22:23:00Z 5' <<<"$out" || { echo "burst minute missing" >&2; exit 1; }
 # Lecture seule : uniquement des `get --raw` vers le proxy Prometheus/Loki.
