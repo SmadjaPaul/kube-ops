@@ -45,8 +45,7 @@ class RootsSync(unittest.TestCase):
         self.assertEqual(missing, [], f"chemins Argo non rendus par le plan : {missing}")
 
     def test_argo_paths_are_discovered(self):
-        # Garde-fou sur le lecteur lui-meme : au moins les AppSets applications et infrastructure.
-        self.assertIn("k8s/applications/media", argo_paths())
+        # Garde-fou sur le lecteur lui-meme : les AppSets infrastructure (homelab et oracle-a1).
         self.assertIn("k8s/infrastructure/controllers", argo_paths())
         self.assertIn("k8s/clusters/oracle-a1/guardrails", argo_paths())
         self.assertIn("k8s/clusters/oracle-a1/external-secrets", argo_paths())
