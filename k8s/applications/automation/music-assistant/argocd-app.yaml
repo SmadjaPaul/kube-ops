@@ -1,0 +1,4 @@
+name: music-assistant
+namespace: music-assistant
+postMerge: notify
+preview: false
