@@ -212,7 +212,7 @@ Shopping List:
 # - Must support virtualization (VT-x/AMD-V)
 
 # Option 3: Cloud Provider (Temporary)
-# - Hetzner dedicated servers
+# - Dedicated servers at another provider
 # - OVH dedicated servers
 # - DigitalOcean (for testing recovery procedure)
 ```
@@ -884,7 +884,7 @@ If you can only afford partial hardware:
 # Reduce resource allocations
 
 # Option 2: Cloud migration (temporary)
-# Deploy to Hetzner/OVH/DigitalOcean
+# Deploy to another provider (OVH/DigitalOcean)
 # Restore services
 # Migrate back to hardware when available
 

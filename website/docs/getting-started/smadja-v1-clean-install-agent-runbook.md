@@ -43,7 +43,7 @@ Do not reopen these decisions unless runtime evidence proves them impossible:
 - Migadu remains the V1 hosted mail/SMTP provider;
 - GPT Researcher, Pocket-TTS and Whisper remain enabled;
 - vLLM, Frigate, Minecraft and the business stack remain disabled for first green;
-- Hetzner Object Storage is the V1 offsite backup backend; CNPG and Velero are enabled before first-green acceptance;
+- Cloudflare R2 is the V1 offsite backup backend; CNPG and Velero are enabled before first-green acceptance;
 - Kubernetes UniFi Network Application remains disabled because the UGC Fiber owns UniFi Network.
 
 ## Repository boundary
@@ -404,28 +404,29 @@ Velero and CNPG offsite schedules
 
 An optional app that blocks the cluster for an upstream-specific dependency should be disabled and reported, not allowed to delay the stable core.
 
-## V1 backup contract — Hetzner Object Storage
+## V1 backup contract — Cloudflare R2
 
 The canonical offsite backend is:
 
 ```text
-provider: Hetzner Object Storage
-location: fsn1 (Falkenstein)
-endpoint: https://fsn1.your-objectstorage.com
-bucket: smadja-dev-homelab-backups
+provider: Cloudflare R2 (S3 API)
+jurisdiction: eu
+endpoint: Doppler R2_S3_ENDPOINT (never written in Git)
+buckets: homelab-backup-cnpg, homelab-backup-velero, homelab-backup-longhorn
 visibility: private
-object lock: disabled for V1
-versioning: disabled for V1
 ```
 
-Hetzner documents `fsn1.your-objectstorage.com` as the Falkenstein S3 endpoint. Ingress and S3 API requests are not charged; V1 therefore optimizes primarily for retained object volume rather than upload frequency.
+R2 does not charge egress; V1 therefore optimizes for retained object volume and for the monthly platform budget.
 
 Doppler `cluster/prd` must contain:
 
 ```text
-HETZNER_S3_ACCESS_KEY_ID
-HETZNER_S3_SECRET_ACCESS_KEY
-HETZNER_S3_VELERO_REPOSITORY_PASSWORD
+R2_S3_ENDPOINT
+R2_CNPG_WRITER_ACCESS_KEY_ID
+R2_CNPG_WRITER_SECRET_ACCESS_KEY
+R2_VELERO_WRITER_ACCESS_KEY_ID
+R2_VELERO_WRITER_SECRET_ACCESS_KEY
+HETZNER_S3_VELERO_REPOSITORY_PASSWORD   (Kopia repository password; legacy name kept on purpose, see velero-backup.md)
 ```
 
 No credential value may be printed.
@@ -439,13 +440,14 @@ WAL compression: gzip
 maxParallel: 2
 base backup: weekly, staggered on Sunday
 recovery window: 14d
-prefix: cnpg/<cluster>
+bucket: homelab-backup-cnpg
+prefix: <namespace>/<cluster>
 ```
 
 Velero contract:
 
 ```text
-backend: same Hetzner bucket
+backend: Cloudflare R2, bucket homelab-backup-velero
 prefix: velero/
 uploader: Kopia
 parallelFilesUpload: 2
@@ -475,10 +477,10 @@ Do not use a broad catch-all route that bypasses authentication.
 Backup is part of V1 desired state, but durability is not proven until restore is tested.
 
 1. verify every CNPG ObjectStore is reachable and WAL archiving progresses;
-2. verify each weekly ScheduledBackup can complete against Hetzner;
+2. verify each weekly ScheduledBackup can complete against R2;
 3. verify Velero's default BackupStorageLocation is Available;
 4. execute one small Velero backup/restore smoke test;
-5. restore one disposable CNPG database from Hetzner and verify PITR mechanics;
+5. restore one disposable CNPG database from R2 and verify PITR mechanics;
 6. record retained size and reassess the 14-day policy after real usage is observed.
 
 Do not resurrect upstream TrueNAS/MinIO/B2 assumptions.
@@ -510,7 +512,7 @@ EXTERNALSECRETS_NOT_READY=
 DOPPLER_REQUIRED_KEYS=
 DOPPLER_MISSING_EXTERNAL_KEYS=
 ACTIVE_LEGACY_STORAGE_REFERENCES=0
-HETZNER_BACKUP_LOCATION=
+R2_BACKUP_LOCATION=
 CNPG_WAL_ARCHIVE=
 VELERO_STORAGE_LOCATION=
 RESTORE_SMOKE=

@@ -61,7 +61,7 @@ upstream change or a separately tested admission control is required.
 - Barman (PLT-147): the Cluster archives WAL and takes a weekly base
   backup through the `barman-cloud.cloudnative-pg.io` plugin into
   `s3://smadja-dev-homelab-backups/cnpg/sparkyfitness`, with the shared
-  `HETZNER_S3_*` keys like the other CNPG clusters (polyfin model).
+  `R2_CNPG_WRITER_*` keys like the other CNPG clusters (polyfin model).
   The dedicated `APP_SPARKYFITNESS_CNPG_S3_*` keys never existed in
   Doppler `cluster/prd`; a scoped key remains a hardening follow-up, not a
   precondition for having a backup. Full CNPG restore and uploads PVC
@@ -93,7 +93,7 @@ PLT-92 window.
    `k8s/optional/personal-ai-2026/hindsight-restore/`: namespace
    `sparkyfitness-restore-<date>` labelled
    `backup.smadja.dev/restore-drill: "true"`, ExternalSecret
-   `HETZNER_S3_*`, ObjectStore pointing at the same `destinationPath`
+   `R2_CNPG_WRITER_*`, ObjectStore pointing at the same `destinationPath`
    **without** a WAL archiver Cluster or ScheduledBackup.
 2. `Cluster sparkyfitness-db-restore`: `bootstrap.recovery.source:
    sparkyfitness-source`, `externalClusters[0].plugin` =

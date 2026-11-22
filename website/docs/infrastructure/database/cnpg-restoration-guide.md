@@ -6,17 +6,18 @@ description: Step-by-step guide for restoring CloudNativePG clusters from backup
 
 # CloudNativePG Database Restoration from Backup
 
-:::danger Superseded — V1 restores from Hetzner Object Storage
+:::danger Superseded — V1 restores from Cloudflare R2
 This document describes restore procedures against the MinIO + Backblaze B2 architecture that is **not** the V1 design. Do not run `aws --endpoint-url https://truenas.peekoff.com:9000` or any B2-based restore flow on the V1 platform.
 
 The V1 backup contract (see `../../../AGENTS.md`):
 
 ```text
-CNPG (Barman Cloud plugin) -> Hetzner Object Storage / cnpg/*
-Velero (Kopia)              -> Hetzner Object Storage / velero/*
+CNPG (Barman Cloud plugin) -> Cloudflare R2 / homelab-backup-cnpg   (jurisdiction eu)
+Velero (Kopia)              -> Cloudflare R2 / homelab-backup-velero (prefix velero/)
+Longhorn backup target      -> Cloudflare R2 / homelab-backup-longhorn
 ```
 
-Canonical endpoint: `https://fsn1.your-objectstorage.com`. Canonical bucket: `smadja-dev-homelab-backups`.
+The S3 endpoint comes from Doppler (`R2_S3_ENDPOINT`) and is never written in Git. Writer credentials are per bucket (`R2_CNPG_WRITER_*`, `R2_VELERO_WRITER_*`).
 
 For the V1 restore procedure, see [`./postgres-backup.md`](./postgres-backup.md), [`../controllers/velero-backup.md`](../controllers/velero-backup.md) and the rendered `k8s/infrastructure/database/` roots.
 

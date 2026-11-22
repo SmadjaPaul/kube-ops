@@ -41,10 +41,9 @@ backup storage location: r2 (default)
 access mode: ReadWrite
 ```
 
-The Hetzner Object Storage `default` location was retired by PLT-94 lot 6; its
-Backup objects are orphaned cluster metadata without bucket objects. Hetzner-era
-copies are kept in the R2 bucket under `archive/hetzner-legacy/`, outside the
-`velero/` prefix, and are not touched by Velero.
+The former offsite store is abandoned (PLT-94 lot 6). Pre-migration copies are
+kept in the R2 bucket under `archive/hetzner-legacy/`, outside the `velero/`
+prefix, and are not touched by Velero.
 
 The runtime credentials are delivered by Doppler through `ClusterSecretStore/doppler-cluster`:
 
@@ -110,4 +109,4 @@ If retained size is higher than expected, first exclude reproducible/cache/downl
 
 - Velero File System Backup / Kopia documentation
 - Velero AWS plugin for S3-compatible providers
-- Hetzner Object Storage S3 documentation
+- Cloudflare R2 S3 API documentation

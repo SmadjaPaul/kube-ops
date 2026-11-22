@@ -21,7 +21,7 @@ Pinned first-pilot components:
 - OpenClaw **2026.11.2** official GHCR image, direct upstream-style K8s Deployment,
   no Operator/Enterprise, single writer and port-forward only.
 - Hindsight **1.2.1** official OCI Helm chart + dedicated CNPG 17.7 standard
-  (pgvector) with Barman/Hetzner and no HTTPRoute. Chart's control plane disabled.
+  (pgvector) with Barman on R2 (originally Hetzner) and no HTTPRoute. Chart's control plane disabled.
   The originally qualified 1.2.0 runtime is retained as historical evidence;
   1.2.1 is the corrective release for the MiniMax-compatible reflect schema.
 - LibreChat **0.8.8**, official chart **3.0.0**, bundled authenticated MongoDB,

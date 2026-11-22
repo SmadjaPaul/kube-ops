@@ -1,24 +1,25 @@
 ---
 sidebar_position: 1
 title: PostgreSQL Backups
-description: Dual backup strategy using CloudNativePG, Barman Cloud, MinIO, and Backblaze B2
+description: CloudNativePG backups with Barman Cloud on Cloudflare R2 (historical MinIO and B2 design below)
 ---
 
 # CloudNativePG Backup Strategy
 
-:::danger Superseded — V1 uses Hetzner Object Storage
+:::danger Superseded — V1 uses Cloudflare R2
 This document describes a historical dual MinIO + Backblaze B2 backup architecture that is **not** the V1 design. Do not create MinIO ObjectStores, B2 buckets, Bitwarden secret-store bindings, or schedules targeting either.
 
 The V1 backup contract (see `../../../AGENTS.md`) is:
 
 ```text
-CNPG (Barman Cloud plugin) -> Hetzner Object Storage / cnpg/*
-Velero (Kopia)              -> Hetzner Object Storage / velero/*
+CNPG (Barman Cloud plugin) -> Cloudflare R2 / homelab-backup-cnpg   (jurisdiction eu)
+Velero (Kopia)              -> Cloudflare R2 / homelab-backup-velero (prefix velero/)
+Longhorn backup target      -> Cloudflare R2 / homelab-backup-longhorn
 ```
 
-Canonical endpoint: `https://fsn1.your-objectstorage.com`. Canonical bucket: `smadja-dev-homelab-backups`.
+The S3 endpoint comes from Doppler (`R2_S3_ENDPOINT`) and is never written in Git. Writer credentials are per bucket (`R2_CNPG_WRITER_*`, `R2_VELERO_WRITER_*`).
 
-Structural enforcement: `scripts/check-v1-active-contract.sh` fails on `truenas`, `BACKBLAZE_`, `MINIO_` and `minio.` in the rendered desired state and requires the Hetzner fsn1 endpoint whenever `ObjectStore` or `ScheduledBackup` resources are active.
+Structural enforcement: `scripts/check-v1-active-contract.sh` fails on `truenas`, `BACKBLAZE_`, `MINIO_` and `minio.` in the rendered desired state and requires R2-backed credentials whenever `ObjectStore` or `ScheduledBackup` resources are active. Each application ships a `database-r2.yaml` (ExternalSecret, `ObjectStore`, `ScheduledBackup`) as the reference pattern.
 
 For the live V1 architecture, see [`../infrastructure/controllers/velero-backup.md`](../controllers/velero-backup.md) and the rendered `k8s/infrastructure/database/` roots.
 

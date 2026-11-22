@@ -5,21 +5,11 @@ Backblaze B2 is **not** part of the Smadja V1 backup architecture.
 The V1 decision is:
 
 ```text
-CNPG  -> Hetzner Object Storage / cnpg/*
-Velero -> Hetzner Object Storage / velero/*
+CNPG   -> Cloudflare R2 / homelab-backup-cnpg
+Velero -> Cloudflare R2 / homelab-backup-velero
 ```
 
-Canonical endpoint:
-
-```text
-https://fsn1.your-objectstorage.com
-```
-
-Canonical bucket:
-
-```text
-smadja-dev-homelab-backups
-```
+The S3 endpoint comes from Doppler (`R2_S3_ENDPOINT`) and is never written in Git.
 
 This file is retained only to avoid stale links from repository history. Do not create Backblaze buckets, B2 application keys, Bitwarden secrets, or B2 schedules for V1.
 

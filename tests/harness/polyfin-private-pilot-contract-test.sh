@@ -47,7 +47,7 @@ eq '.spec.storage.storageClass' "$root/cluster.yaml" longhorn-fast
 eq '.spec.plugins | length' "$root/cluster.yaml" 1
 eq '.spec.plugins[0].name' "$root/cluster.yaml" barman-cloud.cloudnative-pg.io
 eq '.spec.plugins[0].isWALArchiver' "$root/cluster.yaml" true
-# PLT-227: WAL archive on Cloudflare R2 (Hetzner store kept as rollback).
+# PLT-227: WAL archive on Cloudflare R2 (the former Hetzner store is removed).
 eq '.spec.plugins[0].parameters.barmanObjectName' "$root/cluster.yaml" polyfin-r2-store
 eq '.spec.egress[1].toEndpoints[0].matchLabels."cnpg.io/cluster"' "$root/networkpolicy.yaml" polyfin-db
 eq '.spec.egress[2].toCIDRSet[0].cidr' "$root/networkpolicy.yaml" 10.0.20.192/32
