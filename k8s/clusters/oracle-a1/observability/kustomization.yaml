@@ -18,7 +18,7 @@ helmCharts:
     valuesFile: kube-state-metrics-values.yaml
   - name: alloy
     repo: https://grafana.github.io/helm-charts
-    version: 1.13.0
+    version: 1.16.0
     releaseName: alloy
     namespace: monitoring
     valuesFile: alloy-values.yaml
