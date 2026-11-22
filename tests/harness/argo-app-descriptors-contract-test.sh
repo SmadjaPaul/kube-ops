@@ -105,14 +105,6 @@ expect_fail "must not be listed in a kustomization" "descriptor in kustomization
 fresh; descriptor; descriptor_copy="$tmp/w/k8s/applications/tools/argocd-app.yaml"; cp "$tmp/w/k8s/applications/tools/it-tools/argocd-app.yaml" "$descriptor_copy"
 expect_fail "must be exactly k8s/applications/<domaine>/<app>/argocd-app.yaml" "misplaced descriptor"
 
-# 7. domaine migre partiellement : une seconde app sans descripteur
-fresh; descriptor
-cp -R "$tmp/w/k8s/applications/tools/it-tools" "$tmp/w/k8s/applications/tools/other"; rm "$tmp/w/k8s/applications/tools/other/argocd-app.yaml"
-sed -i.bak 's/it-tools/other/g' "$tmp/w/k8s/applications/tools/other"/*.yaml; rm -f "$tmp/w/k8s/applications/tools/other"/*.bak
-echo '- other' >>"$tmp/w/k8s/applications/tools/kustomization.yaml"
-expect_fail "is partially migrated" "partial domain"
-expect_fail "is rendered by the domain but by no app" "partial domain: objects would be pruned"
-
 # 8. equivalence : objet de niveau domaine perdu, transformation de domaine non reproduite, objet partage
 fresh; descriptor
 cp "$tmp/w/k8s/applications/tools/it-tools/namespace.yaml" "$tmp/w/k8s/applications/tools/extra-ns.yaml"

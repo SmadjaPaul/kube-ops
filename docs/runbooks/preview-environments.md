@@ -2,6 +2,17 @@
 
 Un namespace jetable `pr-<n>-<app>` par PR, sur le cluster de prod, déployé depuis le SHA de tête de la PR. Rien n'est public : une preview n'est joignable que par `Gateway/internal` (LAN).
 
+## Où vivent les fichiers
+
+| Objet | Chemin |
+| --- | --- |
+| ApplicationSets `previews` et `previews-guardrails`, AppProjects `previews` et `previews-guardrails` | `k8s/bootstrap/argocd-root/` (pas dans `k8s/previews/`) |
+| Guardrails d'un namespace de preview (ResourceQuota, LimitRange, CiliumNetworkPolicy), lus sur `main` | `k8s/previews/guardrails/` |
+| Politique `preview-namespace-guard`, PriorityClass, namespace, sweeper | `k8s/infrastructure/previews/` |
+| Descripteur `preview: true` d'une app | `k8s/applications/<catégorie>/<app>/argocd-app.yaml` |
+
+Un changement d'ApplicationSet ne se cherche donc jamais sous `k8s/previews/`.
+
 ## Utiliser
 
 1. La PR ajoute ou modifie `k8s/applications/<catégorie>/<app>/`. L'app doit avoir un descripteur `argocd-app.yaml` avec `preview: true` (opt-in, voir `docs/operations/argo-app-descriptor.md`) ; sans lui, les labels ne génèrent rien. Aujourd'hui : `it-tools` seulement ; une app d'un domaine non migré (`media`) n'a pas de descripteur donc pas de preview.

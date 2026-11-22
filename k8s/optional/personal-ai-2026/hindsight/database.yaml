@@ -25,15 +25,11 @@ spec:
       # PLT-301 : RPO <= 5 min exige pour la memoire des agents (critere du ticket) : archive_timeout 5min
       # pour hindsight-db seulement (base de ~Mo, segments forces quasi vides, rechargement sans redemarrage).
       archive_timeout: "5min"
-  # PLT-249: a Cluster has a single WAL archiver; the archive moved from
-  # hindsight-hetzner-store to hindsight-r2-store (database-r2.yaml).
-  # Rollback of the archive destination only (healthy database, R2 archiving
-  # failing): point barmanObjectName back to hindsight-hetzner-store (and the
-  # ScheduledBackup in scheduledbackup.yaml with it) and take a new base backup
-  # there; do NOT restore, nothing is lost. Hetzner base
-  # 20261113T204129 (backupID, never "latest") is reserved for database recovery
-  # (homelab-infra docs/operations/r2-migration.md); writes made after the cutover
-  # only have their WAL on R2, so such a recovery needs the R2 WAL too.
+  # PLT-249: a Cluster has a single WAL archiver; the archive moved to
+  # hindsight-r2-store (database-r2.yaml). PLT-388: the Hetzner store is gone
+  # from kube-ops, so there is no Hetzner rollback any more; recovery points
+  # live on R2. The Hetzner bucket objects (base 20261113T204129, DATA-ONLY,
+  # PLT-280) are kept untouched until Paul decides; they are not wired here.
   plugins:
     - name: barman-cloud.cloudnative-pg.io
       isWALArchiver: true
