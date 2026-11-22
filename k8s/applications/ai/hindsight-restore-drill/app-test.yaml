@@ -1,0 +1,6 @@
+# Contrat de test (PLT-392). Drill temporaire PLT-301 (restauration de hindsight-db depuis R2 dans un
+# namespace isole) : retire par PR apres mesure, aucune supervision a declarer.
+exceptions:
+  backup: "copie jetable restauree depuis la sauvegarde R2 de hindsight-db (la source est deja sauvegardee), supprimee apres mesure (PLT-301)"
+  observability: "drill temporaire de restauration, retire apres mesure (PLT-301)"
+backup: none

@@ -18,11 +18,13 @@ spec:
         - CREATE EXTENSION IF NOT EXISTS vector
   postgresql:
     parameters:
-      # PLT-344 lot 0 : WAL réduit (golden path stockage). archive_timeout 5min -> 15min : 96 segments forcés/jour au lieu de 288 (RPO R2 15 min).
+      # PLT-344 lot 0 : WAL réduit (golden path stockage), sauf archive_timeout (voir ci-dessous).
       checkpoint_timeout: "15min"
       max_wal_size: "2GB"
       wal_compression: "lz4"
-      archive_timeout: "15min"
+      # PLT-301 : RPO <= 5 min exige pour la memoire des agents (critere du ticket) : archive_timeout 5min
+      # pour hindsight-db seulement (base de ~Mo, segments forces quasi vides, rechargement sans redemarrage).
+      archive_timeout: "5min"
   # PLT-249: a Cluster has a single WAL archiver; the archive moved from
   # hindsight-hetzner-store to hindsight-r2-store (database-r2.yaml).
   # Rollback of the archive destination only (healthy database, R2 archiving

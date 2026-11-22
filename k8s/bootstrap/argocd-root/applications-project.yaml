@@ -52,6 +52,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: hindsight-restore-20261110
       server: https://kubernetes.default.svc
+    # PLT-301: drill de restauration de hindsight-db depuis R2 (namespace isole). Retrait avec le drill.
+    - namespace: hindsight-restore-drill
+      server: https://kubernetes.default.svc
     - namespace: immich
       server: https://kubernetes.default.svc
     - namespace: invoice-ninja
