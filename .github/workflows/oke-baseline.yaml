@@ -54,3 +54,9 @@ jobs:
 
       - name: Static render and checks
         run: bash tests/oke-baseline/run.sh
+
+      - name: Static proof of the pod-hardening VAP (CEL evaluated, PLT-405)
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/cel && /tmp/cel/bin/pip install --quiet cel-python==0.5.0 pyyaml==6.0.4
+          /tmp/cel/bin/python3 tests/oke-baseline/vap-pod-hardening-test.py

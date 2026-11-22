@@ -96,5 +96,24 @@ from the ApplicationSet list is therefore NOT enough. In order:
 - No LoadBalancer (VAP and OCI quota zero); expose through Cloudflare Tunnel only, each hostname a decision of Paul.
 - No application data on this cluster until a restore off Oracle is proven (PLT-190, `docs/operations/pg-shared-oke-backup-drill.md`). Enforced by `scripts/check-argo-app-descriptors.sh` (PVC, CNPG `Cluster`, StatefulSet with volumeClaimTemplates refused); exception: `disposableData: "<reason>"` in the descriptor, for disposable and rebuildable data only. Single infrastructure exception (PLT-408): `cnpg-cluster/` (`pg-shared`), reconciled by the `infrastructure` ApplicationSet, because the off-Oracle restore drill needs a live, archiving cluster on OKE to prove anything; it holds only the drill database until the drill is PROVEN, and its archive goes off Oracle (R2) from the first WAL.
 - Images must have a `linux/arm64` manifest. Single node: PDBs use `maxUnavailable: 1`.
-- Policies are enforced by Cilium (chaining, `cilium/`), and every pod is denied the OCI IMDS (`baseline/`). Limits: a hostNetwork pod (kube-system only) shares the node stack and is not covered; a pod started before the Cilium agent is not a Cilium endpoint until it restarts (`acceptance.sh` lists them as WARN). A new namespace that must not get the default allow-all egress carries `platform.smadja.dev/egress-isolated=true` and its own default-deny. `policy-check.sh` and `app-test.sh` still exempt OKE apps from carrying a CiliumNetworkPolicy; removing that exemption is the next step.
+- Policies are enforced by Cilium (chaining, `cilium/`), and every pod is denied the OCI IMDS (`baseline/`). Limits: a hostNetwork pod (kube-system only) shares the node stack and is not covered; a pod started before the Cilium agent is not a Cilium endpoint until it restarts (`acceptance.sh` lists them as WARN). A new namespace that must not get the default allow-all egress carries `platform.smadja.dev/egress-isolated=true` and its own default-deny. `policy-check.sh` and `app-test.sh` no longer exempt OKE apps: an OKE app carries its own CiliumNetworkPolicy or NetworkPolicy (PLT-405).
 - Secrets: nothing in Git. External Secrets reads Doppler `oke/prd` (references to `cluster/prd`) through `doppler-cluster` with a read-only token that only Paul creates (gesture above). An ExternalSecret of a new app must name a key present in that config.
+
+## Proving the privileged-pod denial (PLT-405)
+
+The agent identity is read-only on OKE (no `create`, and `kubectl-ro.sh` refuses every dry-run), so the real
+admission refusal cannot be shown by an agent.
+
+- Static proof (CI, `oke-baseline` workflow): `tests/oke-baseline/vap-pod-hardening-test.py` evaluates the committed CEL
+  expressions of `guardrails/pod-hardening.yaml` on privileged, hostNetwork, hostPID, hostIPC, hostPath, ephemeral-container
+  and Deployment objects (denied) and on healthy ones (admitted), and checks the binding (Deny, exemptions exactly
+  `kube-system` and `netbird`).
+- Real proof, a gesture for Paul with a write identity (server-side dry-run, nothing is created):
+
+  ```sh
+  kubectl --context <oke-admin> create namespace vap-probe --dry-run=server -o name   # sanity: write identity works
+  kubectl --context <oke-admin> -n default run vap-probe --image=busybox --privileged=true --dry-run=server -o name
+  ```
+
+  Expected: `Error from server (Forbidden): ... ValidatingAdmissionPolicy 'baseline-pod-hardening' ... privileged containers are denied on oracle-a1`.
+  The same command with `-n kube-system` must be admitted (exemption).
