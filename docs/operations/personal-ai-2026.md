@@ -112,11 +112,11 @@ ExternalSecrets were not Ready. The exact ESO event observed at
 `secret "hindsight-db-bootstrap" not found`.
 
 This is a delivery blocker, not a Hindsight application success: the
-Terraform declaration was merged in homelab-infra #294, but Atlantis denied
-its pre-workflow admission because
+Terraform declaration was merged in homelab-infra #294, but the former IaC
+executor (Atlantis, since retired for ARC) denied its pre-workflow admission because
 `terraform/doppler/generated-app-secrets.tf` is outside the server allowlist.
-No secret value was read or injected manually. The owner-controlled Atlantis
-allowlist/procedure must be repaired before the CNPG, API, backup, restore and
+No secret value was read or injected manually. The owner-controlled admission
+allowlist/procedure had to be repaired before the CNPG, API, backup, restore and
 user checks can run.
 
 The Hindsight child Application uses automated self-heal with pruning disabled.

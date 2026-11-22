@@ -109,7 +109,7 @@ class RemovedObjects(PlanCase):
 
     def test_removed_pvc_with_delete_only_blocks(self):
         # Equivalent de e63fc72e : Delete=false ne protege pas du retrait Git.
-        res = self.run_plan([pvc("atlantis-pilot-data", sync="Delete=false")], [])
+        res = self.run_plan([pvc("retired-pilot-data", sync="Delete=false")], [])
         self.assertEqual(res["status"], "BLOCK")
         self.assertTrue(any(c["destructive"] for c in res["changes"]))
 
