@@ -82,8 +82,6 @@ platform-baseline-no-privilege-escalation	trilium/Deployment/trilium
 platform-baseline-no-privilege-escalation	velero/DaemonSet/node-agent
 platform-baseline-no-privilege-escalation	velero/Deployment/velero
 platform-baseline-no-privilege-escalation	velero/Job/velero-upgrade-crds
-platform-baseline-no-privileged	csi-proxmox/DaemonSet/proxmox-csi-plugin-node
-platform-baseline-no-privileged	longhorn-system/DaemonSet/longhorn-manager
 platform-baseline-non-root-containers	agent-sandbox-system/Deployment/agent-sandbox-controller
 platform-baseline-non-root-containers	csi-proxmox/DaemonSet/proxmox-csi-plugin-node
 platform-baseline-non-root-containers	falco/DaemonSet/falco
