@@ -14,3 +14,5 @@ resources:
   - ../../../optional/pg-shared-oke-drill/oke-backup
   # PLT-408 drill, etape 4 (retirer apres le drill) : seed B, apres le base backup pg-shared-drill-base (completed 20:07Z)
   - ../../../optional/pg-shared-oke-drill/oke-seed-b
+  # PLT-408 drill, etape 6 (retirer apres le drill) : empreinte OKE (seed B fini 20:12:59Z)
+  - ../../../optional/pg-shared-oke-drill/oke-fingerprint
