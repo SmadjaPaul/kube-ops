@@ -187,7 +187,7 @@ Public route and Polyfin admission remain OFF.
 - This draft's CI does not run the security gate or prove runtime. Keep Argo
   Polyfin admission OFF until the candidate image passes the approved policy.
 - `polyfin-db` now declares `spec.plugins` with `isWALArchiver: true`, bound to
-  `polyfin-hetzner-store`. Verify that the Barman CNPG-I operator exists in the
+  `polyfin-r2-store` (Cloudflare R2). Verify that the Barman CNPG-I operator exists in the
   cluster and inspect WAL archival status, a successful backup AND a restore
   before reporting backup operational.
 - The configured AIOStreams HTTPS manifest uses split DNS / internal Gateway
@@ -316,8 +316,8 @@ pilot.
    Do not enable until pinned. Verify CVEs and upstream release changes.
 2. Provision Doppler `APP_POLYFIN_SECRET_KEY` through the normal secure
    workflow, confirm ESO Ready. Do not store values in Git or shell logs.
-3. Verify CNPG storage, bootstrap Secret field `uri`, backups to Hetzner
-   and test a restore. Check CIDR/pod labels, supported PostgreSQL version
+3. Verify CNPG storage, bootstrap Secret field `uri`, backups to R2
+   (`polyfin-r2-store`) and test a restore. Check CIDR/pod labels, supported PostgreSQL version
    and pinned image policy before admitting the root.
 4. Confirm `kustomize build k8s/applications/media/polyfin` and repository
    `just check`. Add `- polyfin` to the parent Kustomization in a separate
@@ -353,6 +353,49 @@ For IPTV prefer a valid licensed source with an XMLTV guide for the pilot.
 Keep **recording OFF** until its traffic and disk retention are separately
 qualified. Restrict Live TV by user, but *do not mistake account permissions
 for network-local-only enforcement*. Playlist URLs and logins are secrets.
+
+## Backup CNPG and pre-bump guard (PLT-394 / PLT-46)
+
+State: `polyfin-db` archives WAL and takes weekly base backups to Cloudflare R2
+(`polyfin-r2-store`, `backup-r2.yaml`; `ScheduledBackup polyfin-postgresql-weekly`,
+Sunday 06:30 UTC). Read-only check on 2026-11-22: Backup
+`polyfin-postgresql-weekly-20261115063000` and `polyfin-r2-initial-20261115`
+both `completed`, Cluster `ContinuousArchiving=True`, `LastBackupSucceeded=True`.
+
+Before ANY Polyfin version bump (image tag/digest in `deployment.yaml`, Renovate
+included), in this order:
+
+1. Record the current pin for rollback:
+   `git show origin/main:k8s/applications/media/polyfin/deployment.yaml | grep 'image: ghcr.io/moodiness/polyfin'`
+   (keep the full `tag@sha256:digest`).
+2. Check the last backup is `completed` and archiving is healthy:
+   `kubectl -n media get backup.postgresql.cnpg.io | grep polyfin` and
+   `kubectl -n media get cluster.postgresql.cnpg.io polyfin-db -o jsonpath='{range .status.conditions[*]}{.type}={.status} {end}'`
+   (`ContinuousArchiving=True`, `LastBackupSucceeded=True`).
+3. Take a named on-demand Backup (applied once by a reviewed PR or by a
+   maintainer, never kept in the Kustomization), named after the bump:
+   ```yaml
+   apiVersion: postgresql.cnpg.io/v1
+   kind: Backup
+   metadata:
+     name: polyfin-pre-bump-<YYYYMMDD>-<version>
+     namespace: media
+   spec:
+     cluster: {name: polyfin-db}
+     method: plugin
+     pluginConfiguration:
+       name: barman-cloud.cloudnative-pg.io
+       parameters: {barmanObjectName: polyfin-r2-store}
+   ```
+4. Verify: `kubectl -n media get backup.postgresql.cnpg.io polyfin-pre-bump-... -w`
+   until `PHASE=completed` with empty ERROR. Do NOT merge the bump before that.
+5. Merge the bump, check Argo `app-polyfin` Synced/Healthy, `/healthz`, `/readyz`.
+
+Rollback: revert the bump PR (restores the previous `tag@sha256:digest`
+pin; Argo redeploys it). If the new version migrated the schema and the old image
+refuses it, restore the pre-bump Backup into a NEW Cluster
+(`bootstrap.recovery` with `source`/`backup: polyfin-pre-bump-...`), never over
+`polyfin-db` in place, and never delete the PVC or the Cluster (`Prune=false`).
 
 ## Acceptance matrix / rollback
 
