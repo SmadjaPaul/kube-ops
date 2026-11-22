@@ -29,8 +29,8 @@
 # deja gele pour cette app dans policy/app-test-baseline.tsv devient PASS "baselined" (--no-ratchet
 # l'ignore) ; seule une regression echoue.
 #
-# OKE : une app a descripteur argocd-app.oracle-a1.yaml n'a pas a porter de CiliumNetworkPolicy (pas de Cilium sur
-# oracle-a1) ; le check network garde PSA et securityContext. Hors de ce cas, rien ne change.
+# OKE : Cilium y est en chaining (PLT-384) ; une app a descripteur argocd-app.oracle-a1.yaml porte sa
+# CiliumNetworkPolicy/NetworkPolicy comme une app homelab (plus d'exemption).
 #
 # Exceptions : fichier optionnel `app-test.yaml` dans le dossier de l'app (format minimal) :
 #     auth: none | oidc      # none = pas d'auth devant la route externe ; oidc = OIDC natif declare
@@ -121,8 +121,7 @@ exc_problems="$(jq -r '
   (if .backup == "none" and (((.exceptions // {}).backup // "")|gsub("\\s";"")|length) == 0 then "backup: none sans raison (exceptions.backup)" else empty end)
 ' "$EXC" 2>/dev/null)"
 
-# OKE (PLT-407) : l'app a un descripteur argocd-app.oracle-a1.yaml. Pas de Cilium sur oracle-a1 (README du cluster) :
-# la CiliumNetworkPolicy n'y est pas exigee (le CRD n'existe pas), le reste du check network (PSA, securityContext) l'est.
+# OKE (PLT-407) : l'app a un descripteur argocd-app.oracle-a1.yaml (pas de Prometheus Operator local, cf. observability).
 OKE=no; [[ -f $APP_DIR/argocd-app.oracle-a1.yaml ]] && OKE=yes
 
 # raison d'une exception generique (exceptions.<id>), vide si absente
@@ -338,7 +337,6 @@ static_run network "NetworkPolicy deny par defaut et securityContext PSA restric
   . as $docs
   | ([ wls[] | wns ] | unique) as $nss
   | ($nss[] | . as $n
-     | select($oke != "yes")
      | select(([ ($docs + $ctx[0])[] | select(.kind|IN("CiliumNetworkPolicy","NetworkPolicy")) | select((.metadata.namespace // $ns) == $n)
                  | select((.spec.ingress // .spec.egress // .spec.ingressDeny // .spec.egressDeny // .spec.policyTypes) != null) ] | length) == 0)
      | "namespace \(.) sans CiliumNetworkPolicy/NetworkPolicy"),
