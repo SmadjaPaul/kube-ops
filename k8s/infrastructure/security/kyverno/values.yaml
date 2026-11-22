@@ -16,8 +16,18 @@
 # renews the Lease, so extra replicas add no etcd writes (PLT-214 unaffected).
 # The cluster has one node: anti-affinity is only "preferred", HA covers pod
 # restarts, not a node loss.
+# PLT-400 root cause (logs --previous, 22/11): the restarts are not liveness
+# kills (no Unhealthy/Killing event, exit code 0). The leader's Lease renewal
+# fails with "etcdserver: request timed out" (single node, slow etcd fsync); with
+# the 2 s retry period the renew deadline is only 10 s, so the leader loses the
+# lease, the process shuts down gracefully (exit 0) and restarts. A 5 s retry
+# period gives Lease 30 s / renew deadline 25 s: an etcd stall is ridden out.
+# A new policy waits at most 30 s for the webhook rules if the leader dies,
+# and with 3 replicas the webhook keeps answering meanwhile.
 admissionController:
   replicas: 3
+  extraArgs:
+    leaderElectionRetryPeriod: 5s
   # PLT-280: chart 3.x reads the admission container's resources under
   # admissionController.container.resources; a top-level resources key is
   # ignored and the chart default (100m) applied. Requests only: the chart's
