@@ -24,6 +24,8 @@ ARG IMAGE_VERSION=tools1
 ARG MISE_VERSION=2026.11.7 # renovate: datasource=github-releases depName=jdx/mise
 ARG PLAYWRIGHT_VERSION=1.58.2
 
+LABEL io.github.smadjapaul.arc-ci-runner.manifest="/etc/arc-ci-runner/tools.json"
+
 USER root
 
 ENV AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache \
@@ -74,6 +76,9 @@ RUN set -eux; \
     # Chromium et ses bibliotheques systeme, version de Playwright du depot website.
     npm install --prefix /opt/playwright-cli --no-audit --no-fund "playwright@${PLAYWRIGHT_VERSION}"; \
     /opt/playwright-cli/node_modules/.bin/playwright install chromium --with-deps; \
+    # Manifeste des versions embarquees (lu par le workflow de derive et les CI).
+    mkdir -p /etc/arc-ci-runner; \
+    mise ls --installed --json > /etc/arc-ci-runner/tools.json; \
     chown -R 1001:1001 "$AGENT_TOOLSDIRECTORY" "$PLAYWRIGHT_BROWSERS_PATH"; \
     rm -rf /var/lib/apt/lists/* /root/.npm /root/.cache /tmp/*
 
@@ -87,6 +92,7 @@ RUN set -eux; \
     MISE_OFFLINE=1 MISE_TRUSTED_CONFIG_PATHS=/opt/ci-build mise install --locked; \
     shellcheck --version | grep -q 0.11.0; \
     node --version | grep -q '^v24\.22\.3$'; \
+    test -s /etc/arc-ci-runner/tools.json; \
     test -x "$AGENT_TOOLSDIRECTORY/node/22.23.5/x64/bin/node"; \
     pnpm --version | grep -qx 10.17.1; \
     tofu version | head -1; \

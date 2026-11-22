@@ -29,3 +29,11 @@ Publication : workflow `Build and Push Docker Images` (push sur main touchant
 `images/`), vers `ghcr.io/smadjapaul/arc-ci-runner`. Bascule d'un scale set :
 `image: ghcr.io/smadjapaul/arc-ci-runner:<tag>@sha256:<digest publié>` dans son
 `runner-application.yaml`.
+
+## Suivi automatique des versions
+
+- Source de vérité : les fichiers de version des dépôts (`.node-version`, `mise.toml`, `.tool-versions`...) ; l'image en porte une copie dans `mise.toml`.
+- Le manifeste `/etc/arc-ci-runner/tools.json` (sortie de `mise ls --installed --json`) liste les versions embarquées ; le label OCI `io.github.smadjapaul.arc-ci-runner.manifest` indique son chemin.
+- Un workflow de dérive (quotidien et au push sur ce dossier) compare ces fichiers à `mise.toml` et ouvre une PR qui ajoute la version manquante, sans retirer celles encore utilisées.
+- Fail-open : un outil absent de l'image est téléchargé par setup-node ou mise ; la CI ralentit mais ne casse pas.
+- Les jobs signalent « outil téléchargé, absent de l'image » dans `$GITHUB_STEP_SUMMARY`.
