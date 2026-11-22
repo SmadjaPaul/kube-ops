@@ -21,7 +21,7 @@ EOF
 # the ApplicationSet applications (apps-<domain>) is gone (PLT-394).
 expected_applications() {
   local repo=${ARGO_ORPHAN_REPO_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}
-  local root_dir=$repo/k8s/bootstrap/argocd-root descriptor path
+  local descriptor
   command -v yq >/dev/null || { echo "ERROR: yq required" >&2; return 2; }
   while IFS= read -r descriptor; do
     [[ -n "$descriptor" ]] || continue

@@ -90,7 +90,8 @@ render() {
 }
 
 # --- 1. ApplicationSets -----------------------------------------------------------------------
-for appset in "$root_dir"/infrastructure-applicationset.yaml; do
+appsets=("$root_dir/infrastructure-applicationset.yaml")
+for appset in "${appsets[@]}"; do
   [[ -f $appset ]] || continue
   base="$(basename "$appset" .yaml)"
   project="$(yq eval '.spec.template.spec.project' "$appset")"
