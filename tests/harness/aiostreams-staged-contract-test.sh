@@ -35,7 +35,10 @@ fi
 # No simultaneous second tv.smadja.dev route: PruneLast is irrelevant.
 family="$root/polyfin/tv-http-route.yaml"
 # PLT-392: tv.smadja.dev belongs to Polyfin (same object, no AIOStreams duplicate).
-! grep -Eq 'family-http-route' "$pkg/kustomization.yaml"
+if grep -Eq 'family-http-route' "$pkg/kustomization.yaml"; then
+  echo "AIOSTREAMS_STAGE=FAIL: tv.smadja.dev route must live under polyfin" >&2
+  exit 1
+fi
 grep -Eq '^[[:space:]]*-[[:space:]]+tv-http-route\.yaml[[:space:]]*$' "$root/polyfin/kustomization.yaml"
 yq -e '.apiVersion == "gateway.networking.k8s.io/v1" and .kind == "HTTPRoute" and .metadata.name == "aiostreams-family" and .metadata.namespace == "media"' "$family" >/dev/null
 [[ "$(yq -r '.spec.hostnames | join(",")' "$family")" == "tv.smadja.dev" ]]
