@@ -67,3 +67,4 @@ spec:
           - PruneLast=true
           - ServerSideApply=true
           - RespectIgnoreDifferences=true
+          - FailOnSharedResource=true
