@@ -266,12 +266,12 @@ for p in "$PROM/query?query=sum%28rate%28node_cpu_seconds_total%7Bmode%21%3D%22i
          "$LOKI/query_range?query=%7Bnamespace%3D%22monitoring%22%7D&limit=50" "$LOKI/labels" "$LOKI/label/namespace/values" \
          "$LOKI/series?match%5B%5D=%7Bjob%3D%22x%22%7D" "$SVC/loki:3100/proxy/loki/api/v1/query?query=count_over_time%28%7Ba%3D%22b%22%7D%5B1h%5D%29"; do
   rm -f "$WORK/raw-args"
-  PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" get --raw "$p" >/dev/null 2>&1; rc=$?
+  KUBECTL_RO_IDENTITY=operator PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" get --raw "$p" >/dev/null 2>&1; rc=$?
   [ "$rc" = 0 ] && [ "$(cat "$WORK/raw-args" 2>/dev/null)" = "--request-timeout=30s get --raw $p" ] &&
     ok "kubectl-ro --raw autorise : ${p:0:90}" || ko "kubectl-ro --raw refuse à tort : ${p:0:90} ($rc)"
 done
 rm -f "$WORK/raw-args"
-PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" get "--raw=$PROM/labels" >/dev/null 2>&1; rc=$?
+KUBECTL_RO_IDENTITY=operator PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" get "--raw=$PROM/labels" >/dev/null 2>&1; rc=$?
 [ "$rc" = 0 ] && [ "$(cat "$WORK/raw-args" 2>/dev/null)" = "--request-timeout=30s get --raw=$PROM/labels" ] &&
   ok "kubectl-ro --raw=<chemin> autorise" || ko "kubectl-ro --raw=<chemin> refuse à tort ($rc)"
 [ "$(cat "$WORK/kuberc" 2>/dev/null)" = off ] && ok "kubectl-ro : KUBERC=off (préférences kuberc ignorées)" || ko "kubectl-ro : KUBERC non désactivé"
@@ -279,7 +279,7 @@ for args in "get pods -A -o wide" "get pods -nmonitoring -owide" "get secret -on
             "logs -n x pod -c c --tail=5 -p" "get secrets -A" "top pods -A --sort-by=cpu"; do
   rm -f "$WORK/raw-args"
   # shellcheck disable=SC2086 # word splitting wanted
-  PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" $args >/dev/null 2>&1; rc=$?
+  KUBECTL_RO_IDENTITY=operator PATH="$WORK/robin:$PATH" bash "$WORK/ro/scripts/kubectl-ro.sh" $args >/dev/null 2>&1; rc=$?
   [ "$rc" = 0 ] && [ -f "$WORK/raw-args" ] && ok "kubectl-ro autorise : $args" || ko "kubectl-ro refuse à tort : $args ($rc)"
 done
 
@@ -322,11 +322,14 @@ ro_run get pods; rc=$?
 [ "$rc" = 0 ] && [ "$(cat "$FAKE_LOG")" = KUBERNETES_AGENT_OPERATOR_KUBECONFIG ] && [ -f "$WORK/real-args" ] && [ ! -s "$WORK/ro-err" ] \
   && ok "kubectl-ro homelab : identité agent par défaut, sans avertissement" || ko "kubectl-ro défaut agent ($rc: $(cat "$FAKE_LOG"))"
 FAKE_AGENT_OK=0 ro_run get pods; rc=$?
-[ "$rc" = 0 ] && [ "$(tr '\n' ' ' <"$FAKE_LOG")" = "KUBERNETES_AGENT_OPERATOR_KUBECONFIG OPERATOR " ] && grep -q 'AVERTISSEMENT.*api_unreachable' "$WORK/ro-err" && [ -f "$WORK/real-args" ] \
-  && ok "kubectl-ro auto : copie agent indisponible, repli opérateur avec avertissement" || ko "kubectl-ro repli auto ($rc)"
+[ "$rc" = 2 ] && [ ! -f "$WORK/real-args" ] && [ "$(cat "$FAKE_LOG")" = KUBERNETES_AGENT_OPERATOR_KUBECONFIG ] && grep -q 'pas de repli opérateur' "$WORK/ro-err" \
+  && ok "kubectl-ro défaut : copie agent indisponible, exit 2, aucun repli opérateur ni commande (PLT-420)" || ko "kubectl-ro défaut sans repli ($rc)"
 FAKE_WHO=kubernetes-admin ro_run get pods; rc=$?
-[ "$rc" = 0 ] && [ "$(tr '\n' ' ' <"$FAKE_LOG")" = "KUBERNETES_AGENT_OPERATOR_KUBECONFIG OPERATOR " ] && grep -q AVERTISSEMENT "$WORK/ro-err" \
-  && ok "kubectl-ro auto : identité inattendue, repli opérateur avec avertissement" || ko "kubectl-ro identité inattendue ($rc)"
+[ "$rc" = 2 ] && [ ! -f "$WORK/real-args" ] && [ "$(cat "$FAKE_LOG")" = KUBERNETES_AGENT_OPERATOR_KUBECONFIG ] \
+  && ok "kubectl-ro défaut : identité inattendue refusée sans repli" || ko "kubectl-ro défaut identité inattendue ($rc)"
+KUBECTL_RO_IDENTITY=auto ro_run get pods; rc=$?
+[ "$rc" = 64 ] && [ ! -f "$WORK/real-args" ] && grep -q "n'existe plus" "$WORK/ro-err" \
+  && ok "kubectl-ro : KUBECTL_RO_IDENTITY=auto supprimé (refusé, exit 64)" || ko "kubectl-ro auto ($rc)"
 KUBECTL_RO_IDENTITY=agent FAKE_AGENT_OK=0 ro_run get pods; rc=$?
 [ "$rc" = 2 ] && [ ! -f "$WORK/real-args" ] && [ "$(cat "$FAKE_LOG")" = KUBERNETES_AGENT_OPERATOR_KUBECONFIG ] \
   && ok "kubectl-ro agent : pas de repli opérateur (exit 2, aucune commande)" || ko "kubectl-ro agent strict ($rc)"

@@ -15,6 +15,8 @@ node --test tests/harness/agent-test-result-contract.test.mjs
 bash tests/agent-guard/secret-output-guard-test.sh
 # PLT-367 / F1: agent instructions never recommend the operator-identity access recipes; includes a negative case.
 bash tests/agent-guard/agent-kube-access-doc-test.sh
+# PLT-420: automatic renewal of the 24 h agent token (stubbed provisioning, lock, failure code).
+bash tests/agent-guard/agent-operator-token-renew-test.sh
 
 # PLT-210: bare `! cmd` assertions never trip `set -e`.
 bash scripts/check-harness-negations.sh
