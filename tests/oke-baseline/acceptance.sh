@@ -50,17 +50,17 @@ selftest() {
 check_argo() {
   local app st
   for app in infra-cilium infra-baseline; do
-    st="$(k -n argocd get application "$app" -o jsonpath='{.status.sync.status}/{.status.health.status}' 2>/dev/null)"
+    st="$(k get -n argocd application "$app" -o jsonpath='{.status.sync.status}/{.status.health.status}' 2>/dev/null)"
     if [[ "$st" == "Synced/Healthy" ]]; then pass "Argo $app Synced/Healthy"; else fail "Argo $app (lu: ${st:-absente})"; fi
   done
 }
 
 check_cilium() {
   local want ready avail
-  want="$(k -n kube-system get ds cilium -o jsonpath='{.status.desiredNumberScheduled}' 2>/dev/null)"
-  ready="$(k -n kube-system get ds cilium -o jsonpath='{.status.numberReady}' 2>/dev/null)"
+  want="$(k get -n kube-system ds cilium -o jsonpath='{.status.desiredNumberScheduled}' 2>/dev/null)"
+  ready="$(k get -n kube-system ds cilium -o jsonpath='{.status.numberReady}' 2>/dev/null)"
   if [[ -n "$want" && "$want" -gt 0 && "$want" == "$ready" ]]; then pass "cilium agents Ready ($ready/$want)"; else fail "cilium agents Ready (ready=${ready:-?} desired=${want:-?})"; fi
-  avail="$(k -n kube-system get deploy cilium-operator -o jsonpath='{.status.availableReplicas}' 2>/dev/null)"
+  avail="$(k get -n kube-system deploy cilium-operator -o jsonpath='{.status.availableReplicas}' 2>/dev/null)"
   if [[ -n "$avail" && "$avail" -ge 1 ]]; then pass "cilium-operator disponible ($avail)"; else fail "cilium-operator disponible"; fi
 }
 
@@ -69,24 +69,24 @@ check_policies() {
   for p in deny-imds allow-egress-unisolated; do
     if k get ciliumclusterwidenetworkpolicy "$p" -o name >/dev/null 2>&1; then pass "CCNP $p presente"; else fail "CCNP $p presente"; fi
   done
-  if k -n whoami get networkpolicy default-deny -o name >/dev/null 2>&1; then pass "NetworkPolicy default-deny (whoami)"; else fail "NetworkPolicy default-deny (whoami)"; fi
+  if k get -n whoami networkpolicy default-deny -o name >/dev/null 2>&1; then pass "NetworkPolicy default-deny (whoami)"; else fail "NetworkPolicy default-deny (whoami)"; fi
 }
 
 check_quotas() {
   local ns rcpu rmem lmem pods got
   while IFS=$'\t' read -r ns rcpu rmem lmem pods; do
     [[ -z "$ns" || "$ns" == \#* ]] && continue
-    got="$(k -n "$ns" get resourcequota compute -o jsonpath='{.spec.hard.requests\.cpu}{"/"}{.spec.hard.requests\.memory}{"/"}{.spec.hard.limits\.memory}{"/"}{.spec.hard.pods}' 2>/dev/null)"
+    got="$(k get -n "$ns" resourcequota compute -o jsonpath='{.spec.hard.requests\.cpu}{"/"}{.spec.hard.requests\.memory}{"/"}{.spec.hard.limits\.memory}{"/"}{.spec.hard.pods}' 2>/dev/null)"
     if [[ "$got" == "$rcpu/$rmem/$lmem/$pods" ]]; then pass "quota $ns ($got)"; else fail "quota $ns (attendu $rcpu/$rmem/$lmem/$pods ; lu ${got:-absent})"; fi
   done <"$here/expected-quotas.tsv"
 }
 
 check_probe() {
   local pod phase out
-  pod="$(k -n baseline-probe get pods -l app.kubernetes.io/name=baseline-probe --sort-by=.metadata.creationTimestamp -o name 2>/dev/null | tail -n 1)"
+  pod="$(k get -n baseline-probe pods -l app.kubernetes.io/name=baseline-probe --sort-by=.metadata.creationTimestamp -o name 2>/dev/null | tail -n 1)"
   if [[ -z "$pod" ]]; then fail "sonde : aucun pod baseline-probe (CronJob */15 : attendre le prochain passage)"; return; fi
-  phase="$(k -n baseline-probe get "$pod" -o jsonpath='{.status.phase}' 2>/dev/null)"
-  out="$(k -n baseline-probe logs "$pod" --tail=20 2>/dev/null)"
+  phase="$(k get -n baseline-probe "$pod" -o jsonpath='{.status.phase}' 2>/dev/null)"
+  out="$(k logs -n baseline-probe "$pod" --tail=20 2>/dev/null)"
   printf '%s\n' "$out" | sed 's/^/  probe| /'
   if [[ "$phase" == Succeeded ]] && grep -qx 'BASELINE_PROBE=PASS' <<<"$out"; then
     pass "sonde $pod : IMDS 80/443 refuse, whoami joignable"
@@ -97,7 +97,8 @@ check_probe() {
 
 check_endpoints() {
   local pods ceps missing=""
-  pods="$(k get pods -A --field-selector=status.phase=Running -o jsonpath='{range .items[?(@.spec.hostNetwork!=true)]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}' 2>/dev/null | grep -v '^kube-system/')"
+  pods="$(k get pods -A --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name} {.spec.hostNetwork}{"\n"}{end}' 2>/dev/null | awk '$2 != "true" {print $1}' | grep -v '^kube-system/')"
+  if [[ -z "$pods" ]]; then fail "endpoints : liste des pods illisible"; return; fi
   ceps="$(k get ciliumendpoints -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}' 2>/dev/null)"
   while read -r p; do
     [[ -z "$p" ]] && continue
