@@ -3,6 +3,10 @@ kind: PersistentVolumeClaim
 metadata:
   name: polyfin-data
   namespace: media
+  labels:
+    # Sauvegarde Longhorn hors site quotidienne (PLT-392), meme modele que sure/matrix.
+    recurring-job.longhorn.io/source: enabled
+    recurring-job.longhorn.io/persistent-offsite-backup: enabled
   annotations:
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:

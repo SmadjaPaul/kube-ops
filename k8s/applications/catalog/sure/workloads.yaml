@@ -143,6 +143,22 @@ spec:
           resources:
             requests: { cpu: 25m, memory: 256Mi }
             limits: { cpu: "1", memory: 1Gi }
+          # PLT-392 : sondes exec (le worker Sidekiq n'ecoute aucun port). Le motif [s]idekiq ne
+          # matche pas la ligne de commande de la sonde elle-meme.
+          startupProbe:
+            exec: &sidekiq-probe
+              command: ["bash", "-c", "for p in /proc/[0-9]*; do tr '\\0' ' ' <\"$p/cmdline\" 2>/dev/null | grep -q '[s]idekiq' && exit 0; done; exit 1"]
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec: *sidekiq-probe
+            periodSeconds: 30
+            timeoutSeconds: 5
+          livenessProbe:
+            exec: *sidekiq-probe
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
           volumeMounts:
             - { name: storage, mountPath: /rails/storage }
             - { name: tmp, mountPath: /tmp }

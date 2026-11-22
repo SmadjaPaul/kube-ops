@@ -5,6 +5,14 @@ auth:
 
 fullnameOverride: immich-redis
 
+# Image epinglee par digest (PLT-392) : seul le tag latest est publie gratuitement (versions
+# Bitnami archivees). Renovate suit le digest du tag.
+image:
+  registry: registry-1.docker.io
+  repository: bitnami/redis
+  tag: latest
+  digest: sha256:59078af5aec997137eb95f34fed376487b471e05c9a244c2812a13598c434950
+
 master:
   persistence:
     enabled: true
