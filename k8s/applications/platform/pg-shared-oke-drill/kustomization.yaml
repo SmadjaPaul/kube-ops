@@ -3,6 +3,11 @@ kind: Kustomization
 # PLT-408 : import temporaire du drill offsite-restore (retire a l'etape 9).
 resources:
   - ../../../optional/pg-shared-oke-drill/offsite-restore
+  - verify-job.yaml
+configMapGenerator:
+  - name: pg-shared-drill-expected
+    files: [oke-fingerprint.expected]
+    options: {disableNameSuffixHash: true}
 # Garde stateful : le retrait de l'import ne supprime pas le namespace ni le
 # Cluster tout seul ; la suppression du residu de drill est une operation explicite.
 patches:

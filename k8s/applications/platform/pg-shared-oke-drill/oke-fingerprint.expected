@@ -1,0 +1,12 @@
+server_version=17.7 (Debian 17.7-3.pgdg13+1)
+extension=plpgsql:1.0
+database=app:app
+database=backup_drill:polyfin
+database=polyfin:polyfin
+roles_md5=5b59bd1f56bc8ab25659ad1cac48d4b9
+rows_a=10000
+rows_b=500
+max_id=10500
+marker_md5=85d882308e0bef17e98dda0382ba5e62
+last_written_at=2026-11-22T20:12:59.243717Z
+marker_owner=polyfin
