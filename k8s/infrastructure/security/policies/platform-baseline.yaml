@@ -7,8 +7,13 @@
 # (CI figee sur la meme version). Meme source pour le cluster (Audit) et pour `just check`
 # (scripts/policy-check.sh : `kyverno apply` sur le rendu, avec cliquet sur policy/baseline.tsv).
 #
-# Mode Audit uniquement : comme la politique legacy, aucune admission n'est refusee. Le gate
-# statique est ce qui bloque (violation nouvelle = echec). Les politiques ciblent Pod ; Kyverno
+# Mode Audit, sauf les INTERDITS ABSOLUS (PLT-390 lot 5) en Deny : no-privileged et no-loadbalancer
+# (la 3e, route publique sans auth, est indecidable a l'admission : auth OIDC native dans l'app ; elle
+# est bloquee en CI par app-test `oidc`). Retour arriere : repasser validationActions en [Audit]
+# (une PR d'une ligne par politique). Exceptions explicites : csi-proxmox et longhorn-system (DaemonSets
+# CSI/stockage privilegies par conception), Services LoadBalancer cilium-gateway-* (ns gateway,
+# crees par Cilium) et dns-exact-resolver (PLT-149). failurePolicy Ignore : Kyverno indisponible ne
+# bloque pas le cluster. Pour le reste, le gate statique est ce qui bloque (violation nouvelle = echec). Les politiques ciblent Pod ; Kyverno
 # genere les regles pour Deployment, StatefulSet, DaemonSet, Job et CronJob (autogen).
 # Namespaces systeme exclus : meme liste que l'ancienne politique (+ kyverno).
 # Exceptions : policies.kyverno.io/v1 PolicyException (voir opencode et hassio). Rappel : le chart
@@ -53,7 +58,7 @@ metadata:
   annotations:
     description: "Aucun conteneur privilegie (NSA/CISA 4.1)."
 spec:
-  validationActions: [Audit]
+  validationActions: [Deny]
   failurePolicy: Ignore
   matchConstraints:
     resourceRules:
@@ -64,7 +69,7 @@ spec:
   matchConditions:
     - name: not-system-namespace
       expression: >-
-        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system', 'csi-proxmox', 'longhorn-system'])
   variables:
     - name: c
       expression: >-
@@ -313,6 +318,33 @@ spec:
     - expression: >-
         variables.c.all(c, c.image.contains('@') || (c.image.matches('^([^/]+/)*[^/:@]+:[^/:@]+$') && !c.image.matches('^.*:(latest|main)$')))
       message: "Chaque image doit etre epinglee (tag explicite autre que latest/main, ou digest). (no-latest-tag)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: platform-baseline-no-loadbalancer
+  annotations:
+    description: "Pas de Service LoadBalancer hors exceptions explicites (interdit absolu, PLT-390)."
+spec:
+  validationActions: [Deny]
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [services]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+    - name: not-explicit-exception
+      expression: >-
+        !((object.metadata.namespace == 'gateway' && object.metadata.name.startsWith('cilium-gateway-')) || (object.metadata.namespace == 'dns-exact-resolver' && object.metadata.name == 'dns-exact-resolver'))
+  validations:
+    - expression: >-
+        !has(object.spec.type) || object.spec.type != 'LoadBalancer'
+      message: "Un Service ne doit pas etre de type LoadBalancer (exposition via Gateway). (no-loadbalancer)"
 ---
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy

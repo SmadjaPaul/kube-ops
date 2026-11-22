@@ -75,10 +75,11 @@ yq -e '
   (([.spec.cases[] | select(.expectedFinding == "violation")] | length) >= 3) and
   .spec.tenantIsolation.status == "not-executed"
 ' "$policy_fixture" >/dev/null
-# Socle Kyverno : ValidatingPolicy, toutes en Audit (aucune admission refusee tant que la qualification runtime n'est pas faite).
-[ "$(yq 'select(.kind == "ValidatingPolicy") | select((.spec.validationActions | join(",")) != "Audit") | .metadata.name' "$kyverno" | grep -c .)" -eq 0 ] &&
+# Socle Kyverno : ValidatingPolicy en Audit, sauf les interdits absolus en Deny (PLT-390 lot 5) : liste fermee.
+[ "$(yq 'select(.kind == "ValidatingPolicy") | select((.spec.validationActions | join(",")) != "Audit") | select(.metadata.name != "platform-baseline-no-privileged" and .metadata.name != "platform-baseline-no-loadbalancer") | .metadata.name' "$kyverno" | grep -c '^platform-baseline-')" -eq 0 ] &&
+  [ "$(yq 'select(.kind == "ValidatingPolicy") | select((.spec.validationActions | join(",")) == "Deny") | .metadata.name' "$kyverno" | grep -c '^platform-baseline-')" -eq 2 ] &&
   [ "$(yq 'select(.kind == "ValidatingPolicy") | .metadata.name' "$kyverno" | grep -c .)" -ge 1 ] || {
-  echo 'ERROR: platform-baseline.yaml must hold only Audit-mode ValidatingPolicy' >&2
+  echo 'ERROR: platform-baseline.yaml: Audit partout, Deny seulement pour no-privileged et no-loadbalancer' >&2
   exit 1
 }
 

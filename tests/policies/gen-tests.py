@@ -105,6 +105,12 @@ def svc(t=None):
     return s
 
 
+def svc_in(t, ns, name):
+    s = svc(t)
+    s["metadata"] = {"name": name, "namespace": ns}
+    return s
+
+
 def pvc(sc=None):
     o = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": "x", "namespace": "app"},
          "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": "1Gi"}}}}
@@ -207,6 +213,8 @@ RULES = {
         ("init-privileged", F, pod_case(setc("privileged", True), init=True)),
         ("deployment-privileged", F, pod_case(setc("privileged", True), wrap="deployment")),
         ("system-namespace-privileged", S, pod_case(setc("privileged", True), ns="monitoring")),
+        ("exception-longhorn-system", S, pod_case(setc("privileged", True), ns="longhorn-system")),
+        ("exception-csi-proxmox", S, pod_case(setc("privileged", True), ns="csi-proxmox")),
     ],
     "no-privilege-escalation": [
         ("clean", P, pod_case()),
@@ -281,6 +289,15 @@ RULES = {
         ("explicit-cluster-ip", P, svc("ClusterIP")),
         ("load-balancer", P, svc("LoadBalancer")),
         ("node-port", F, svc("NodePort")),
+    ],
+    "no-loadbalancer": [
+        ("cluster-ip", P, svc()),
+        ("node-port", P, svc("NodePort")),
+        ("load-balancer", F, svc("LoadBalancer")),
+        ("load-balancer-other-gateway-name", F, svc_in("LoadBalancer", "gateway", "my-lb")),
+        ("cilium-gateway-external", S, svc_in("LoadBalancer", "gateway", "cilium-gateway-external")),
+        ("dns-exact-resolver", S, svc_in("LoadBalancer", "dns-exact-resolver", "dns-exact-resolver")),
+        ("system-namespace", S, svc_in("LoadBalancer", "kube-system", "x")),
     ],
     "storage-class-allowed": [
         ("longhorn-fast", P, pvc("longhorn-fast")),
