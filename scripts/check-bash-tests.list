@@ -55,3 +55,4 @@ tests/harness/argocd-notifications-contract-test.sh
 tests/harness/preview-isolation-contract-test.sh
 tests/harness/previews-appset-descriptors-test.sh
 tests/harness/egress-why-test.sh
+tests/harness/restic-negative-real-test.sh
