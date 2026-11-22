@@ -4,7 +4,6 @@ agent-operator-access	observability	FAIL
 agentgateway	observability	FAIL
 agentgateway	selfheal	FAIL
 aiostreams	observability	FAIL
-bookorbit	observability	FAIL
 factory-platform	backup	FAIL
 factory-platform	observability	FAIL
 factory-platform	selfheal	FAIL
