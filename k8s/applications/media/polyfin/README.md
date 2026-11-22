@@ -3,8 +3,9 @@
 Status: **OFFICIAL 0.85.0 PRIVATE PILOT / ROUTE DISABLED** (upgraded from
 0.61.1; runtime requalification pending). The parent media
 Kustomization keeps the workload and its data resources staged, but its Gateway
-HTTPRoute is intentionally disabled. `tv.smadja.dev` remains reserved for the
-native AIOStreams family player; this migration does not delete Polyfin data.
+`media.smadja.dev` route is rendered by the parent Kustomization. The
+`tv.smadja.dev` route (`tv-http-route.yaml`, object `aiostreams-family`) is
+owned by Polyfin since PLT-392; this migration does not delete Polyfin data.
 There is no external HTTPRoute or Cloudflare Tunnel.
 
 The existing `polyfin-data` PVC is intentionally 20Gi. Polyfin stores
@@ -240,9 +241,8 @@ same issue arises repeatedly across workloads.
 
 ## Intended topology
 
-- No active HTTPRoute exposes Polyfin. `tv.smadja.dev` is owned by the native
-  AIOStreams route; the Polyfin workload remains unreachable through the
-  Gateway until a separate reviewed hostname and admission decision exists.
+- `tv.smadja.dev` is served by `tv-http-route.yaml` (Polyfin, backend `polyfin:80`);
+  `media.smadja.dev` by the parent `polyfin-media-route.yaml`.
 - App: one Pod (nonroot UID 65532, readonly rootfs), `/data` on Longhorn.
 - Database: separate single-instance CNPG `polyfin-db`, with app credentials
   auto-generated in Secret `polyfin-db-app` (field `uri`).
@@ -429,11 +429,9 @@ was pinned in an `optional/polyfin-v059` overlay, since removed. It is
 superseded by the official 0.61.1 image and its new digest-specific T2
 admission. The old downstream evidence remains historical and is not reused.
 
-`media.smadja.dev` is the future private Polyfin hostname. The staged
-`http-route.yaml` remains excluded; `tv.smadja.dev` belongs to
-AIOStreams. The new route must not be attached without a separate security,
-DNS/TLS and user-journey review. Enabling `Gateway/external` is outside
-this migration.
+`media.smadja.dev` is the future private Polyfin hostname. The former
+staged `http-route.yaml` duplicate was removed (PLT-392); `tv.smadja.dev` is
+the single `tv-http-route.yaml`.
 
 Promotion prerequisites: sign/verify the exact image and provenance,
 Trivy scan linux/amd64 including unfixed findings, review any CVEs without

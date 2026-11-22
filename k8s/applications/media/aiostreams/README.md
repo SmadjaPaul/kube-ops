@@ -123,8 +123,8 @@ route, or blanket external egress.
   AIOStreams, Gateway or Cloudflare media bytes, including HLS/range,
   subtitles, thumbnails and fallback paths.
 - The admitted `HTTPRoute` attaches only to `gateway/internal`. Private
-  ExternalDNS therefore derives `aiostreams.smadja.dev` and `tv.smadja.dev`
-  for the UniFi LAN/VPN DNS path and points both names at the internal Gateway
+  ExternalDNS therefore derives `aiostreams.smadja.dev` (and `tv.smadja.dev`,
+  whose route is now owned by Polyfin) for the UniFi LAN/VPN DNS path and points both names at the internal Gateway
   VIP. The native AIOStreams profile alias `tv` is served by the same
   AIOStreams instance; it does not change the configuration UUID or password.
   It is not watched by the
