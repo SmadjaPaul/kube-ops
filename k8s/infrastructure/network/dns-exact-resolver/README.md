@@ -77,8 +77,11 @@ are not touched.
   that window. Declared accepted limitation for PLT-149.
 - Single node and single replica: a restart gives a short LAN DNS gap for the
   listed names.
-- No ServiceMonitor is declared. Metrics are exposed on the pod (9153) for
-  Prometheus through the NetworkPolicy.
+- Metrics (9153) are scraped through `dns-exact-resolver-metrics` + a ServiceMonitor
+  (NetworkPolicy allows the monitoring namespace). Alerts in `prometheusrule.yaml`:
+  `DnsExactResolverDown`, `DnsExactResolverServfail` (> 5 %), `DnsExactResolverHighLatency`
+  (p95 > 500 ms). Query logging stays at `class error` (no per-query sampling:
+  one replica, and the PromQL counters give the rcode split).
 
 ## Preuve runtime (PLT-149)
 
