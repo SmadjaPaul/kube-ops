@@ -47,6 +47,45 @@ configs:
         end
       end
       return hs
+    # PLT-417: Argo CD 3.6 ships a built-in health check that maps a Velero Backup
+    # in PartiallyFailed/Failed to Degraded. Backups are history records kept for
+    # weeks, so one old failure kept infra-controllers Degraded and paged ntfy.
+    # A finished Backup is therefore Healthy here; a real failure is alerted from
+    # Velero metrics (VeleroBackupFailure, VeleroBackupPartialFailure,
+    # VeleroBackupNotRunRecently in velero/prometheusrule.yaml). No Backup is deleted.
+    resource.customizations.health.velero.io_Backup: |
+      hs = {status = "Progressing", message = "Backup in progress"}
+      if obj.status == nil or obj.status.phase == nil then
+        hs.message = "Waiting for the Velero controller"
+        return hs
+      end
+      local phase = obj.status.phase
+      if phase == "Completed" then
+        return {status = "Healthy", message = "Backup completed"}
+      end
+      if phase == "PartiallyFailed" or phase == "Failed" or phase == "FailedValidation" then
+        return {status = "Healthy", message = "Backup finished as " .. phase .. " (alerted by VeleroBackup* rules, not by Argo)"}
+      end
+      return hs
+    # PLT-417: the built-in ValidatingPolicy check (Argo CD 3.6) is Degraded as soon
+    # as conditionStatus.ready is not true, which also covers background-scan
+    # resolution errors (apiVersions "*" on external-secrets.io and cnpg kinds) while
+    # the admission webhook is configured and enforcing. What matters for a Deny
+    # policy is the WebhookConfigured condition: Healthy when True, Degraded when
+    # False, Progressing while Kyverno has not reported.
+    resource.customizations.health.policies.kyverno.io_ValidatingPolicy: |
+      hs = {status = "Progressing", message = "Waiting for ValidatingPolicy status"}
+      if obj.status ~= nil and obj.status.conditionStatus ~= nil and obj.status.conditionStatus.conditions ~= nil then
+        for _, condition in ipairs(obj.status.conditionStatus.conditions) do
+          if condition.type == "WebhookConfigured" then
+            if condition.status == "True" then
+              return {status = "Healthy", message = condition.message or "Webhook configured"}
+            end
+            return {status = "Degraded", message = "WebhookConfigured: " .. (condition.message or "webhook not configured")}
+          end
+        end
+      end
+      return hs
     resource.customizations.health.argoproj.io_AppProject: |
       hs = {status = "Healthy", message = "Declarative Argo policy resource"}
       if obj.metadata ~= nil and obj.metadata.deletionTimestamp ~= nil then
