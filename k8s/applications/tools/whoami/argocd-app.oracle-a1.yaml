@@ -1,4 +1,0 @@
-name: whoami
-namespace: whoami
-cluster: oracle-a1
-postMerge: notify
