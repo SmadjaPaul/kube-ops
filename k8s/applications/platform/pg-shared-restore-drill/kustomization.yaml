@@ -1,10 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: pg-shared-restore-drill
+# Drill termine (PLT-375) : ne reste que le namespace vide, les objets sont elagues par Argo.
 resources:
   - namespace.yaml
-  - externalsecrets.yaml
-  - objectstore.yaml
-  - cluster.yaml
-  - networkpolicy.yaml
-  - verify-job.yaml
