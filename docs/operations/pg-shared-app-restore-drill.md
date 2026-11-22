@@ -1,9 +1,11 @@
 # Drill de restauration par application depuis pg-shared (homelab)
 
-Statut : **NOT_TESTED.** Ce runbook et `scripts/pg-shared-app-restore-proof.sh` sont
-préparés. Le cluster `pg-shared` homelab n'existe pas encore : aucune restauration n'a
-été lancée, aucun RPO ni RTO n'est mesuré. Tant que la section « Preuves » est vide, rien
-ici ne prouve un RPO ≤ 5 min ni un RTO ≤ 30 min.
+Statut : **RTO MESURÉ le 22/11/2026 (PLT-375), RPO non mesuré.** Le drill a tourné par GitOps
+(voie « Drill GitOps » ci-dessous), sur `pg-shared-homelab` : RTO du cluster 284 s. Le jeu de
+données restauré est quasi vide (aucune application n'est encore migrée) : ce RTO est un
+plancher, pas une garantie pour des bases de plusieurs Go. Le RPO ≤ 5 min reste non prouvé.
+Le script `scripts/pg-shared-app-restore-proof.sh` (voie impérative, blocants B1 à B6) reste
+non exécuté.
 
 Contexte : un `Cluster` CloudNativePG et ses sauvegardes Barman couvrent tout le cluster.
 Une seule application se restaure donc soit par PITR dans un cluster temporaire puis
@@ -120,7 +122,47 @@ Procédure :
 
 Critère `PASS` (spec §3.4) : cluster temporaire restauré depuis R2, rôle géré avec un Secret neuf, connexion réussie, aucune valeur lue. `FAIL` : la connexion est refusée (mot de passe non réappliqué après restauration) ; dans ce cas T1 n'est plus « jetable » et le lot 1 doit être rouvert avant toute donnée réelle. Preuves : `docs/operations/secrets-migration-evidence.md`, section lot 1.
 
+## Drill GitOps (voie retenue, PLT-375)
+
+Les blocants B1 à B6 portent sur la voie impérative. Un agent n'a que la lecture cluster : le
+drill passe donc par Argo, comme le drill Hindsight (PLT-301). Dossier
+`k8s/applications/platform/pg-shared-restore-drill` (kube-ops#1820) : namespace isolé
+(`pg-shared-restore-drill`, deny-all sauf DNS, R2 et opérateur CNPG), ExternalSecret en lecture
+seule (`R2_CNPG_RESTORE_RO_*`, jamais le jeton écrivain), `ObjectStore` sur
+`s3://homelab-backup-cnpg/homelab/pg-shared`, `Cluster` `bootstrap.recovery` (`serverName:
+pg-shared-homelab`, base `app`, sans archiveur WAL, donc aucune écriture dans R2), Job
+`pg-shared-restore-verify` (attend la base, inventaire, `pg_dump -Fc` de la base cible, relecture
+`pg_restore --list`). Aucune écriture sur la base vivante : B1, B2, B4 sans objet. Aucun PVC
+supprimé par un agent (B6) : le retrait du drill par PR laisse Argo supprimer l'application ;
+les PVC résiduels éventuels sont listés en lecture seule.
+
+Mesure du RTO, en lecture seule : `Cluster.metadata.creationTimestamp` jusqu'à la condition `Ready`
+(`kubectl-ro.sh get cluster -n pg-shared-restore-drill pg-shared-restore -o json`).
+
 ## Preuves
 
-Vide. À remplir uniquement après exécution réelle, avec les lignes `STATUS=`, `RTO_S=`,
-`RPO_S=`, `NONIMPACT=`, `CLEANUP=` et l'identifiant `--id` utilisé.
+Drill du 22/11/2026, `STATUS=PASS` sur le chemin PITR (dernier WAL archivé) puis dump ciblé.
+
+| Indicateur | Valeur | Source |
+| --- | --- | --- |
+| Cluster créé (Argo) | 02:35:08 UTC | `creationTimestamp` |
+| Cluster `Ready` | 02:39:52 UTC | condition `Ready` |
+| **RTO (cluster)** | **284 s (4 min 44 s)**, seuil 1800 s : PASS | différence |
+| Pod primaire restauré (job `full-recovery` puis démarrage) | 02:39:39 UTC | pod |
+| Version restaurée | PostgreSQL 18.4 | Job verify |
+| Taille des bases | `app` 8,0 Mo, `postgres` 8,0 Mo | Job verify |
+| Dump de la base cible | 1 s, 1080 octets, 0 entrée : aucune table utilisateur | Job verify |
+| `DRILL_STATUS` | `PASS` | logs du Job |
+
+Limites (honnêtes) :
+
+- La base restaurée ne contient aucune table applicative : `pg-shared-homelab` n'héberge encore
+  aucune application. Le RTO mesure essentiellement le démarrage (Argo, ESO, tirage de la sauvegarde
+  de base, rejeu de quelques WAL). Il croîtra avec le volume : à refaire avec chaque base migrée,
+  avant retrait de l'ancien cluster (cf. `pg-shared-migration-plan.md`).
+- Les 284 s incluent le temps de synchronisation Argo et de création de l'ExternalSecret.
+- Le RPO n'est pas mesuré (`pg_last_xact_replay_timestamp` vide, aucune écriture témoin). Il
+  dépend de `archive_timeout: 5min`, à prouver avec la table de marques du mode impératif.
+- D1b (rôle géré avec Secret neuf après restauration) n'est pas exécuté ici.
+
+Nettoyage : retrait du dossier par PR (voir PLT-375).
