@@ -96,7 +96,7 @@ RUN set -eux; \
     node --version | grep -q '^v24\.22\.3$'; \
     test -s /etc/arc-ci-runner/tools.json; \
     test -x "$AGENT_TOOLSDIRECTORY/node/22.23.5/x64/bin/node"; \
-    pnpm --version | grep -qx 10.17.1; \
+    pnpm --version | grep -qx "$(sed -n 's/^"npm:pnpm" = "\(.*\)"/\1/p' /opt/ci-build/mise.toml)"; \
     tofu version | head -1; \
     zizmor --version; helm version --short; kustomize version; kubeconform -v; kyverno version; \
     gh --version | head -1; yq --version; jq --version; gitleaks version; tflint --version; \
