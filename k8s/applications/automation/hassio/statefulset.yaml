@@ -15,6 +15,10 @@ spec:
       app.kubernetes.io/instance: home-assistant
   template:
     metadata:
+      annotations:
+        # ConfigMap montée en subPath : elle n'est relue qu'au démarrage du pod.
+        # Incrémenter pour redémarrer HA après un changement de configuration.yaml.
+        smadja.dev/config-rev: "2"
       labels:
         app.kubernetes.io/name: home-assistant
         app.kubernetes.io/instance: home-assistant
