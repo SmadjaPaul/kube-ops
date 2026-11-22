@@ -28,7 +28,12 @@ entries:
   - id: lechaplais
     model: authentik_core.group
     identifiers: {name: lechaplais}
-    attrs: {name: lechaplais, is_superuser: false}
+    # Maureen (runtime account `maureen`, owner of Studio Lechaplais) is the
+    # member. paul reaches the app through the `authentik-admins` binding.
+    attrs:
+      name: lechaplais
+      is_superuser: false
+      users: [!Find [authentik_core.user, [username, "maureen"]]]
   - id: dev
     model: authentik_core.group
     identifiers: {name: dev}
