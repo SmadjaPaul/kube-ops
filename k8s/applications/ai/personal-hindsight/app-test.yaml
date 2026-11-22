@@ -2,5 +2,7 @@
 # (aucun ServiceMonitor/PodMonitor/Probe dans k8s/optional/personal-ai-2026/hindsight) ; les workloads
 # viennent du chart Helm de l'Application enfant personal-hindsight. Constat conserve a la migration
 # PLT-394, a traiter avec l'activation du pilote.
+auth: none
 exceptions:
+  auth: "route MCP /mcp/agents-homelab/ derriere Cloudflare Access (service token hindsight-homelab-agents) et Bearer API Hindsight (ApiKeyTenantExtension), PLT-301 / D-2026-11-20-02"
   observability: "pilote sans supervision declaree (hors perimetre de la migration PLT-394)"

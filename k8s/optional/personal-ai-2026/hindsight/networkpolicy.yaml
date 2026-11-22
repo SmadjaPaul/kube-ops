@@ -19,7 +19,8 @@ spec:
             app.kubernetes.io/name: cloudnative-pg
       toPorts:
         - ports: [{port: "8000", protocol: TCP}]
-    - fromEntities: [host, remote-node]
+    # PLT-301 : la Gateway Cilium (entite ingress) joint l'API pour la HTTPRoute MCP.
+    - fromEntities: [host, remote-node, ingress]
       toPorts:
         - ports: [{port: "8888", protocol: TCP}]
   egress:
