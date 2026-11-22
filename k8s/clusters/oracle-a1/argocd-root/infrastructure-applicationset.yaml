@@ -1,6 +1,6 @@
 # Baseline d'OKE (PLT-405) : une Application `infra-<dossier>` par dossier liste ci-dessous.
 # Liste explicite (comme le homelab) : les anciens overlays de k8s/clusters/oracle-a1/ (hindsight,
-# cnpg-*, media...) restent dormants et ne sont reconcilies par rien.
+# media, cloudflared...) restent dormants et ne sont reconcilies par rien.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -43,6 +43,13 @@ spec:
           # (secret App GitHub via doppler-cluster) et cilium (egress du runner) ; l'Application retente.
           - path: k8s/clusters/oracle-a1/arc-controller
           - path: k8s/clusters/oracle-a1/arc-runner
+          # pg-shared (PLT-408) : operateur CNPG, plugin barman-cloud (TLS gRPC par un Issuer
+          # auto-signe, d'ou cert-manager). Le plugin et ses Certificate attendent les CRD de
+          # cert-manager : l'Application retente. Le Cluster pg-shared (cnpg-cluster) arrive dans
+          # une PR suivante, une fois ces trois Applications Healthy.
+          - path: k8s/clusters/oracle-a1/cert-manager
+          - path: k8s/clusters/oracle-a1/cnpg-operator
+          - path: k8s/clusters/oracle-a1/cnpg-barman-plugin
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:

@@ -42,6 +42,14 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: arc-runners-oke
       server: https://kubernetes.default.svc
+    # pg-shared (PLT-408) : cert-manager (pour le plugin barman-cloud), operateur et plugin CNPG,
+    # Cluster pg-shared.
+    - namespace: cert-manager
+      server: https://kubernetes.default.svc
+    - namespace: cnpg-system
+      server: https://kubernetes.default.svc
+    - namespace: databases
+      server: https://kubernetes.default.svc
   # Liste fermee : ajouter un kind cluster-scoped d'infrastructure passe par une PR sur ce fichier.
   clusterResourceWhitelist:
     - group: ''
@@ -56,6 +64,9 @@ spec:
       kind: CustomResourceDefinition
     - group: admissionregistration.k8s.io
       kind: ValidatingWebhookConfiguration
+    # cert-manager et l'operateur CNPG (PLT-408) : webhooks de mutation.
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
     - group: rbac.authorization.k8s.io
       kind: ClusterRole
     - group: rbac.authorization.k8s.io
