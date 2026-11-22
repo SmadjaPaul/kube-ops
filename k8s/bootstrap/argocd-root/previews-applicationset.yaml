@@ -122,6 +122,16 @@ spec:
                     value:
                       - name: internal
                         namespace: gateway
+                  # PLT-394 drill: a backendRef to another namespace (KEDA interceptor proxy)
+                  # is refused by Gateway/internal (ResolvedRefs=False, RefNotPermitted: no
+                  # ReferenceGrant in a preview) and turns the Application Degraded. The preview
+                  # route points at the in-namespace Service <app>-preview-service instead
+                  # (an app with preview: true must ship it, see argo-app-descriptor.md).
+                  - op: add
+                    path: /spec/rules/0/backendRefs
+                    value:
+                      - name: '{{ .path.basename }}-preview-service'
+                        port: 8080
               - target:
                   kind: Deployment
                 patch: |-

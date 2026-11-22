@@ -55,7 +55,7 @@ Bootstrap et baseline d'OKE : `k8s/clusters/oracle-a1/README.md`.
 
 Les ApplicationSets `previews` et `previews-guardrails` (`k8s/bootstrap/argocd-root/`) croisent le generateur de PR (label `preview`, base `main`) avec un git files generator sur `k8s/applications/*/<app>/argocd-app.yaml`, ou `<app>` est le label `preview:<app>` de la PR (meme regex qu'avant), lu au SHA de tete de la PR. Un `selector` sur le generateur (`preview: "true"`) ne garde que les apps dont le descripteur declare `preview: true` ; champ absent ou `false` : aucune Application de preview, meme avec le label. Nom (`preview-pr<n>-<app>`), namespace (`pr-<n>-<app>`), patches et parent `Gateway/internal` ne dependent pas du descripteur : ni `namespace` ni `project` du descripteur ne sont utilises par les previews.
 
-`preview: true` n'est valide que si l'app ne rend que des kinds admis par l'AppProject `previews` (hors `Namespace`, `ScaledObject`, `InterceptorRoute`, retires par l'ApplicationSet). Les secrets restent regis par Kyverno (aucun store de prod). Les apps sans descripteur (domaine non migre, aujourd'hui `media/polyfin`) n'ont plus de preview tant que leur domaine n'est pas migre.
+`preview: true` exige un Service `<app>-preview-service` (port 8080) dans le rendu : la route de preview y est redirigée (la référence vers l'interceptor KEDA d'un autre namespace est refusée). `preview: true` n'est valide que si l'app ne rend que des kinds admis par l'AppProject `previews` (hors `Namespace`, `ScaledObject`, `InterceptorRoute`, retires par l'ApplicationSet). Les secrets restent regis par Kyverno (aucun store de prod). Les apps sans descripteur (domaine non migre, aujourd'hui `media/polyfin`) n'ont plus de preview tant que leur domaine n'est pas migre.
 
 ## Controles CI
 
