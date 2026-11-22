@@ -20,8 +20,8 @@ spec:
         githubConfigSecret: arc-github-app
         minRunners: 0
         # Validation and admitted read-only plans use the same hardened scale set.
-        # Four slots so plans do not serialize behind repository CI (queue of 2026-11-22).
-        maxRunners: 4
+        # Two slots: 4 slots on 2026-11-22 tripled etcd request timeouts on the single-node control plane (kube-scheduler lease losses), so the limit was reverted to 2.
+        maxRunners: 2
         controllerServiceAccount:
           namespace: arc-systems
           name: arc-gha-rs-controller
