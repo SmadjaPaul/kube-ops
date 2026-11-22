@@ -321,7 +321,7 @@ grep -F -- 'path: k8s/optional/github-actions-arc-website' \
   exit 1
 }
 
-# agent-harness scale set: own namespace, repository scope, ephemeral (min 0, max 1), no secret in the runner.
+# agent-harness scale set: own namespace, repository scope, ephemeral (min 0, max 1), no secret in the runner except the pr-triage key (PLT-453).
 agent_harness_rendered="$(mktemp)"
 kubectl kustomize "$repo_root/k8s/optional/github-actions-arc-agent-harness" >"$agent_harness_rendered"
 ah_values='select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-ci") | .spec.source.helm.valuesObject'
@@ -340,7 +340,11 @@ assert_yq_ah "$ah_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/agen
 assert_yq_ah "$ah_values | .minRunners" '0'
 assert_yq_ah "$ah_values | .maxRunners" '1'
 assert_yq_ah "$ah_values | .template.spec.automountServiceAccountToken" 'false'
-assert_yq_ah "$ah_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
+# PLT-453: the only secret in the runner is the pr-triage Agentgateway key (one optional secretKeyRef
+# env var from the generated copy pr-triage-agentgateway); no envFrom, no volume mount.
+assert_yq_ah "$ah_values | .template.spec.containers[0] | (has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
+assert_yq_ah "$ah_values | .template.spec.containers[0].env | length" '1'
+assert_yq_ah "$ah_values | .template.spec.containers[0].env[0] | [.name, .valueFrom.secretKeyRef.name, .valueFrom.secretKeyRef.optional, has(\"value\")] | join(\",\")" 'PR_TRIAGE_AGENTGATEWAY_KEY,pr-triage-agentgateway,true,false'
 assert_yq_ah 'select(.kind == "CiliumNetworkPolicy") | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toEntities[]?] | length' '0'
 rm -f "$agent_harness_rendered"
 for project in "$infrastructure_project" "$applications_project"; do
