@@ -160,12 +160,28 @@ crds:
   install: true
 
 # Features
+# PLT-417: etcd write load on the single node (etcd write latency spikes to
+# 0.5-2 s, scheduler/controller-manager lose their lease). Measured 22/11:
+# ~16 etcd writes/s, of which ~4.6/s Events (14k Event objects, ~7k of them
+# Kyverno PolicyViolation on audit policies) and ~6/s ephemeralreports and
+# policyreports. Violations stay visible in the PolicyReports.
+# The previous `features.logging.omitEvents` key does not exist in chart 3.8
+# (the running args were still the chart default): the right key is
+# `features.omitEvents`.
+# Rollback: remove PolicyViolation from the list, set admissionReports back to
+# true and backgroundScanInterval to 1h.
 features:
-  logging:
-    omitEvents:
-      eventTypes:
-        - PolicyApplied
-        - PolicySkipped
+  omitEvents:
+    eventTypes:
+      - PolicyApplied
+      - PolicySkipped
+      - PolicyViolation
+  # No per-admission EphemeralReport: policy results come from the background
+  # scan (every 6 h instead of 1 h).
+  admissionReports:
+    enabled: false
+  backgroundScan:
+    backgroundScanInterval: 6h
 
 # Configuration
 config:
