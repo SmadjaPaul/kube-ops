@@ -56,8 +56,14 @@ rollOutCiliumPods: true
 # reached the pod before the resolved IP was in the toFQDNs policy map, so the
 # first connection from the ARC runner to api.migadu.com hung (TLS handshake
 # timeout, POST without response). Give the datapath more time to catch up.
+# 2026-11-22: 1s still timed out 827 times in 12 h (name-lock waits dominated
+# by CI-runner names: mise-versions.jdx.dev, files.pythonhosted.org, pypi.org,
+# registry.opentofu.org), which made aiostreams fetches fail (ETIMEDOUT, a
+# config PUT returned 400). 3s trades a slower first DNS answer for no refused
+# first SYN. See docs/runbooks/egress-why.md; revert to 1s if DNS latency
+# alerts fire.
 dnsProxy:
-  proxyResponseMaxDelay: 1s
+  proxyResponseMaxDelay: 3s
 
 prometheus:
   enabled: true
