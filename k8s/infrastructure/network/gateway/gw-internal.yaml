@@ -28,3 +28,16 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    # Flux audio de Music Assistant (serveur de flux HTTP, IP litterale obligatoire cote MA :
+    # publish_ip = VIP de cette Gateway, bind_port = 8097). Limite au namespace music-assistant.
+    - protocol: TCP
+      port: 8097
+      name: tcp-music-assistant-stream
+      allowedRoutes:
+        kinds:
+          - kind: TCPRoute
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: music-assistant

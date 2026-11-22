@@ -13,3 +13,7 @@ spec:
       port: 8095
       targetPort: http
       protocol: TCP
+    - name: stream
+      port: 8097
+      targetPort: stream
+      protocol: TCP

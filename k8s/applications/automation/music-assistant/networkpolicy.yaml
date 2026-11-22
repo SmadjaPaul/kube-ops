@@ -15,6 +15,8 @@ spec:
         - ports:
             - port: "8095"
               protocol: TCP
+            - port: "8097"
+              protocol: TCP
     # Home Assistant tourne en hostNetwork sur le noeud : il apparait comme "host".
     - fromEntities:
         - host

@@ -1,0 +1,14 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: TCPRoute
+metadata:
+  name: music-assistant-stream
+  namespace: music-assistant
+spec:
+  parentRefs:
+    - name: internal
+      namespace: gateway
+      sectionName: tcp-music-assistant-stream
+  rules:
+    - backendRefs:
+        - name: music-assistant
+          port: 8097

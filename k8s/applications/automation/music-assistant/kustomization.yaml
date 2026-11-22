@@ -7,4 +7,5 @@ resources:
   - deployment.yaml
   - service.yaml
   - http-route.yaml
+  - tcp-route.yaml
   - networkpolicy.yaml
