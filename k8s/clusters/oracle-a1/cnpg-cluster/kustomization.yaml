@@ -10,3 +10,5 @@ resources:
   - databases.yaml
   # PLT-190 drill (retirer apres le drill) : base backup_drill
   - ../../../optional/pg-shared-oke-drill/oke-database
+  # PLT-408 drill, etape 2 (retirer apres le drill) : seed A
+  - ../../../optional/pg-shared-oke-drill/oke-seed-a
