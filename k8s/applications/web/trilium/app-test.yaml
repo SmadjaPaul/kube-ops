@@ -1,0 +1,5 @@
+auth: none
+exceptions:
+  auth: "login applicatif natif (comptes locaux), pas d'authentification en amont ; route externe pour clients et API (302 vers /login)"
+  observability: "trilium sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  network: "image trilium demarre en root et ecrit hors des volumes montes ; init chown-data tourne en root ; durcissement non-root/rootfs non valide sur cluster"

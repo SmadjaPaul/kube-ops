@@ -18,7 +18,10 @@ spec:
     spec:
       initContainers:
         - name: create-mqtt-password
-          image: eclipse-mosquitto:2.0
+          image: eclipse-mosquitto:2.0@sha256:6a332cc7a8dbe011cbc076180cbb76b37c6f0f55809682ea08e7980ef0112ad9
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
           command: ["/bin/sh", "-c"]
           args:
           - |
@@ -36,7 +39,7 @@ spec:
               mountPath: /mosquitto/config
       containers:
         - name: mosquitto
-          image: eclipse-mosquitto:2.0
+          image: eclipse-mosquitto:2.0@sha256:6a332cc7a8dbe011cbc076180cbb76b37c6f0f55809682ea08e7980ef0112ad9
           resources:
             requests:
               cpu: '25m'

@@ -45,7 +45,7 @@ spec:
             seccompProfile: { type: RuntimeDefault }
           initContainers:
             - name: restic-binary
-              image: restic/restic:0.19.1
+              image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
               command: ["cp", "/usr/bin/restic", "/restic-bin/restic"]
               securityContext:
                 allowPrivilegeEscalation: false
@@ -59,7 +59,7 @@ spec:
           containers:
             - name: maintenance
               # pg_restore of the same major version as the dump.
-              image: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+              image: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie@sha256:0f29b435fb501ee534cd0c555d122a6b8e90de477de8e8381c82c5e10d9a9de4
               command: ["/bin/bash", "/scripts/maintenance.sh"]
               env:
                 - { name: APP, value: paperless }

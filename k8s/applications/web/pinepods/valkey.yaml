@@ -47,7 +47,18 @@ spec:
           type: RuntimeDefault
       containers:
         - name: valkey
-          image: valkey/valkey:9-alpine
+          image: valkey/valkey:9-alpine@sha256:c8e2d17498838af5d91e12eb7c11220b3434a7b7131a333e3af52ad5e0b80882
+          startupProbe:
+            tcpSocket: { port: redis }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket: { port: redis }
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: redis }
+            periodSeconds: 20
+            failureThreshold: 3
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 6379

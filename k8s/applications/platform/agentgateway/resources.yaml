@@ -159,6 +159,10 @@ spec:
       containers:
         - name: agentgateway
           image: cr.agentgateway.dev/agentgateway@sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
+          livenessProbe:
+            tcpSocket: { port: llm }
+            periodSeconds: 20
+            failureThreshold: 3
           args: ["-f", "/config/config.yaml"]
           workingDir: /data
           envFrom:

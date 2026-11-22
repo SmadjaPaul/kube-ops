@@ -2,3 +2,6 @@
 # La sonde runtime vise un endpoint protege, qui repond 401 sans cookie.
 auth: oidc
 auth_probe: /api/users
+exceptions:
+  observability: "base CNPG surveillee par le PodMonitor central monitoring/cnpg-instances ; l'app n'expose pas de metrics, couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  network: "image romm demarre en root (nginx et gunicorn) et ecrit hors des volumes montes ; durcissement non-root/rootfs non valide sur cluster"

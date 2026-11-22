@@ -1,0 +1,2 @@
+exceptions:
+  observability: "agentgateway sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
