@@ -3,9 +3,8 @@
 # Usage: bash scripts/post-merge-affected.sh [SHA [BASE]]   (default HEAD; run from a checkout of the repository)
 #   BASE (PLT-398): previous tip of main of a push; the files of BASE..SHA are analysed, not only the tip.
 #   Without BASE, unknown or all-zero BASE: the first-parent diff of SHA alone.
-# Mapping (keep aligned with k8s/bootstrap/argocd-root/applications-applicationset.yaml: one Argo
-# Application `apps-<domain>` per generator directory, and apps-applicationset.yaml: one Application
-# `app-<name>` per `argocd-app.yaml` descriptor, PLT-394):
+# Mapping (keep aligned with k8s/bootstrap/argocd-root/apps-applicationset.yaml: one Application
+# `app-<name>` per `argocd-app.yaml` descriptor, PLT-394; the ApplicationSet `applications` is gone):
 #   k8s/applications/<domain>/<app>/**   app=<app>, namespace from the kustomization, and
 #       argo=app-<app>      if k8s/applications/<domain>/<app>/argocd-app.yaml exists (migrated app, homelab)
 #       argo=app-<app>      if argocd-app.oracle-a1.yaml exists (OKE, PLT-407): cluster=oracle-a1, verified on that

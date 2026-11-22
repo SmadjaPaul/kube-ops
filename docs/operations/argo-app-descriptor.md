@@ -1,6 +1,6 @@
 # Descripteur `argocd-app.yaml` : une Application Argo CD par app (PLT-394)
 
-Statut : ApplicationSet `apps` et AppProject `apps` en place (etape 4). Domaine pilote `tools` migre (etape 5) : Application `app-it-tools` remplace `apps-tools`. Les autres domaines migrent un par un (etape 6 et suivantes) ; jusque-la l'ApplicationSet `applications` genere une Application par domaine (`apps-<domaine>`).
+Statut : ApplicationSet `apps` et AppProject `apps` en place (etape 4). Domaine pilote `tools` migre (etape 5) : Application `app-it-tools` remplace `apps-tools`. Tous les domaines ont migre ; l'ApplicationSet `applications` (`apps-<domaine>`) a ete supprime (PLT-394). Le projet `applications` subsiste : il porte les runners ARC (`apps-arc-*`, `k8s/optional/github-actions-arc-*`, decision documentee) et `personal-sparkyfitness`.
 
 ## Contrat
 
@@ -42,7 +42,6 @@ Regles controlees par `scripts/check-argo-app-descriptors.sh` :
 - pas de donnees durables sur OKE (PLT-407) : un rendu avec PVC, `Cluster` CNPG ou StatefulSet a `volumeClaimTemplates` est refuse (rien tant qu'une restauration hors Oracle n'est pas prouvee, PLT-190). Exception : `disposableData: "<pourquoi la donnee est jetable et recreable>"` dans le descripteur OKE (raison non vide ; refusee si le rendu n'a aucun objet durable). Exemple : un SQLite de cache recree au demarrage ;
 - une app n'a qu'un cluster a la fois : les deux fichiers dans un meme dossier sont refuses. Basculer = supprimer l'un et ajouter l'autre dans la meme PR (le retrait du descripteur homelab ne supprime pas les ressources : `preserveResourcesOnDeletion`) ;
 - le dossier de l'app est le meme pour les deux clusters : il doit donc etre valide sur OKE (arm64, pas de LoadBalancer, pas de `Gateway/external` du homelab) ;
-- le domaine de l'app doit deja utiliser des descripteurs (retire de l'ApplicationSet `applications`), sinon le homelab la deploierait aussi ;
 - un suffixe inconnu (`argocd-app.<autre>.yaml`) est refuse.
 
 Pas de Cilium sur OKE : une app OKE ne porte pas de `CiliumNetworkPolicy` (le CRD n'existe pas, Argo ne pourrait pas l'appliquer). `scripts/policy-check.sh` (regle `repo-contract-cnp-per-namespace`) et `scripts/app-test.sh` (check `network`, qui garde PSA et securityContext) exemptent les apps a descripteur `argocd-app.oracle-a1.yaml` ; a retirer avec le chaining Cilium d'OKE (PLT-384). Pas de CRD `ServiceMonitor` non plus : une app sans `/metrics` declare `exceptions.observability` dans `app-test.yaml`. Pilote : `k8s/applications/tools/whoami` (`traefik/whoami` epingle par digest, aucune route).
@@ -65,7 +64,6 @@ Les ApplicationSets `previews` et `previews-guardrails` (`k8s/bootstrap/argocd-r
 - `extraPaths` existent ;
 - `preview: true` : rendu limite aux kinds de la liste blanche de l'AppProject `previews` ;
 - un domaine ne migre que **complet** (chaque sous-dossier a son descripteur) et l'union des rendus `kustomize build --enable-helm` des apps est identique au rendu du domaine, objet par objet `(kind, namespace, name)` sur contenu normalise : sinon une transformation de domaine (patch, labels, fichier de niveau domaine) serait perdue et l'ancienne Application `apps-<domaine>` elaguerait des objets ;
-- le domaine migre est retire du generateur de l'ApplicationSet `applications` dans la meme PR (aucune app generee deux fois) ;
 - le projet `apps` refuse chaque namespace d'infrastructure.
 
 ## Post-merge et migration d'un domaine
@@ -99,5 +97,5 @@ Preuve d'equivalence faite a la migration : rendu de l'ancien domaine (180 objet
 
 - Polyfin : la route `polyfin-media`, l'ExternalSecret Nebula (`k8s/optional/polyfin-nebula`) et les deux patches (Deployment et CiliumNetworkPolicy `polyfin-pilot`) vivent maintenant dans `polyfin/kustomization.yaml`, rendu strictement identique (15 objets).
 - `k8s/applications/media/kustomization.yaml` n'est plus suivi par Argo : agregat des six apps pour le controle d'equivalence. `apps-media` disparait sans cascade (`preserveResourcesOnDeletion`).
-- L'ApplicationSet `applications` ne genere plus rien (entree `exclude` seule) : sa suppression est a faire (lane PLT-394).
+- L'ApplicationSet `applications` a ete supprime (PLT-394) : `preserveResourcesOnDeletion: true` et aucune Application generee, donc aucune cascade (UID des Deployments, StatefulSets, PVC et Clusters CNPG inchanges, relevee avant/apres). Le controle de partie « domaine partiel » du script `check-argo-app-descriptors.sh` a disparu avec lui.
 - Le PVC orphelin `prowlarr-config` (Prowlarr retire) garde `Prune=false,Delete=false` et reste en place, sans propriétaire dans le rendu.

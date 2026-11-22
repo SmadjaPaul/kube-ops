@@ -9,7 +9,6 @@ import { join, resolve, sep } from 'node:path';
 // NOT validate ownership, live deletions or prune impact.
 const ROOT = resolve('.');
 const applicationSets = [
-  'k8s/bootstrap/argocd-root/applications-applicationset.yaml',
   'k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml',
   'k8s/clusters/oracle-a1/argocd-root/infrastructure-applicationset.yaml',
 ];

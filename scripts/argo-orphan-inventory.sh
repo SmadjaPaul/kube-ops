@@ -12,14 +12,13 @@ Secret data is never included.
 --list-applications prints, from Git only (no cluster access), the Applications
 the inventory queries as "name<TAB>project<TAB>source":
   app-<name>        one per k8s/applications/<domain>/<app>/argocd-app.yaml (ApplicationSet apps)
-  apps-<domain>     one per remaining generator directory of ApplicationSet applications
   infra-controllers representative of ApplicationSet infrastructure
   root              app-of-apps; the objects it renders are tracked, never orphans
 EOF
 }
 
 # Applications expected from Git (PLT-394). Descriptors are the source of truth for app-<name>;
-# the domain Applications shrink as domains migrate, so they are read from the generator.
+# the ApplicationSet applications (apps-<domain>) is gone (PLT-394).
 expected_applications() {
   local repo=${ARGO_ORPHAN_REPO_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}
   local root_dir=$repo/k8s/bootstrap/argocd-root descriptor path
@@ -29,13 +28,6 @@ expected_applications() {
     printf 'app-%s\t%s\tapps\n' \
       "$(yq -r '.name' "$descriptor")" "$(yq -r '.project // "apps"' "$descriptor")"
   done < <(compgen -G "$repo/k8s/applications/*/*/argocd-app.yaml" || true)
-  if [[ -f "$root_dir/applications-applicationset.yaml" ]]; then
-    while IFS= read -r path; do
-      [[ -n "$path" ]] || continue
-      printf 'apps-%s\tapplications\tapplications\n' "$(basename "$path")"
-    done < <(yq -r '.spec.generators[].git.directories[]? | select(.exclude != true) | .path' \
-      "$root_dir/applications-applicationset.yaml")
-  fi
   printf 'infra-controllers\tinfrastructure\tinfrastructure\n'
   printf 'root\tbootstrap\troot\n'
 }

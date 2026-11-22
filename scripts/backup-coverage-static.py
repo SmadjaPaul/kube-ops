@@ -23,7 +23,6 @@ import yaml
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 APPSETS = [
-    'k8s/bootstrap/argocd-root/applications-applicationset.yaml',
     'k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml',
 ]
 CLASSES_FILE = 'docs/operations/backup-coverage-classes.tsv'

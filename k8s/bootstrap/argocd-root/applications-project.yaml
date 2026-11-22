@@ -125,7 +125,7 @@ spec:
   # secrets. ReferenceGrant vit dans infrastructure (authentik, keda), jamais
   # dans k8s/applications. SecretStore/PushSecret : seul le ClusterSecretStore
   # doppler-cluster (infrastructure) est utilisé. Vérifié par kustomize build
-  # --enable-helm de chaque racine de l'ApplicationSet applications : aucun de
+  # --enable-helm de chaque racine k8s/applications (releve historique) : aucun de
   # ces kinds n'est rendu. Role/RoleBinding restent admis (24 objets rendus,
   # scopés au namespace de l'application).
   namespaceResourceBlacklist:

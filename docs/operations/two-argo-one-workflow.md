@@ -27,7 +27,7 @@ Revisit only with a measured benefit written in a ticket (for example: more than
 ## Convention (no migration)
 
 - Shared base: `k8s/applications/<group>/<app>`. It is cluster-neutral where possible.
-- Homelab: the base directory is the application: `argocd-app.yaml` (ApplicationSet `apps`, `app-<name>`) or, for a domain not yet migrated, the ApplicationSet `applications` (`apps-<domain>`).
+- Homelab: the base directory is the application: `argocd-app.yaml` (ApplicationSet `apps`, `app-<name>`). The former ApplicationSet `applications` (`apps-<domain>`) is removed.
 - OKE (PLT-405, D-2026-11-21-01): same folder, descriptor `argocd-app.oracle-a1.yaml` read by the ApplicationSet `apps` of the OKE Argo CD (`k8s/clusters/oracle-a1/argocd-root`). An app runs on one cluster at a time: `scripts/check-argo-app-descriptors.sh` refuses both files in one folder.
 - Choice of cluster = choice of descriptor file. Bootstrap of the OKE Argo CD: `k8s/clusters/oracle-a1/README.md`.
 - Data stays off OKE until PLT-190.
