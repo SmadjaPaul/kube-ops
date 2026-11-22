@@ -46,13 +46,13 @@ Nothing is committed that needs the cluster: merge to `main` first, the Argo CD 
 `netbird-router` (and any later ExternalSecret) gets no secret until the Secret
 `doppler-access-token` exists in `external-secrets`. It is not in Git. Once the namespace exists
 (created by the Application), create it from a read-only Doppler token of the config that
-`doppler-cluster` serves. The store sets no project: the token decides, and that is `cluster/prd`
-(the same config as every other ExternalSecret of this repository). Run it where `kubectl` reaches
+`doppler-cluster` serves. The store sets no project: the token decides, and that is `oke/prd`
+(PLT-258: the dedicated config `oke/prd`, only the keys OKE consumes as references to `cluster/prd`, created by `scripts/doppler-oke-config.sh` in homelab-infra; the previous token `oracle-a1-eso-20261115` read all of `cluster/prd` and is revoked once `doppler-cluster` is Ready on the new one). Run it where `kubectl` reaches
 the API (NetBird or Bastion) and `doppler` is logged in as Paul; the value goes through a pipe,
 never to the terminal or a file; the Secret key must be exactly `token`:
 
 ```
-doppler configs tokens create oke-oracle-a1-eso --project cluster --config prd --access read --plain \
+doppler configs tokens create oracle-a1-eso-oke --project oke --config prd --access read --plain \
   | tr -d '\n' \
   | kubectl --kubeconfig <admin-kubeconfig> -n external-secrets create secret generic doppler-access-token \
       --from-file=token=/dev/stdin
@@ -95,4 +95,4 @@ from the ApplicationSet list is therefore NOT enough. In order:
 - No application data on this cluster until a restore off Oracle is proven (PLT-190, `docs/operations/pg-shared-oke-backup-drill.md`). Enforced by `scripts/check-argo-app-descriptors.sh` (PVC, CNPG `Cluster`, StatefulSet with volumeClaimTemplates refused); exception: `disposableData: "<reason>"` in the descriptor, for disposable and rebuildable data only.
 - Images must have a `linux/arm64` manifest. Single node: PDBs use `maxUnavailable: 1`.
 - Policies are enforced by Cilium (chaining, `cilium/`), and every pod is denied the OCI IMDS (`baseline/`). Limits: a hostNetwork pod (kube-system only) shares the node stack and is not covered; a pod started before the Cilium agent is not a Cilium endpoint until it restarts (`acceptance.sh` lists them as WARN). A new namespace that must not get the default allow-all egress carries `platform.smadja.dev/egress-isolated=true` and its own default-deny. `policy-check.sh` and `app-test.sh` still exempt OKE apps from carrying a CiliumNetworkPolicy; removing that exemption is the next step.
-- Secrets: nothing in Git. External Secrets reads Doppler `cluster/prd` through `doppler-cluster` with a read-only token that only Paul creates (gesture above). An ExternalSecret of a new app must name a key present in that config.
+- Secrets: nothing in Git. External Secrets reads Doppler `oke/prd` (references to `cluster/prd`) through `doppler-cluster` with a read-only token that only Paul creates (gesture above). An ExternalSecret of a new app must name a key present in that config.
