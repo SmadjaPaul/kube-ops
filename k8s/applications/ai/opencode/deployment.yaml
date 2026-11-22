@@ -16,6 +16,11 @@ spec:
     metadata:
       labels:
         app: opencode-web
+      annotations:
+        # Velero (defaultVolumesToFsBackup) : ne pas sauvegarder les emptyDir volatils.
+        # Le 22/11 02:02 UTC un rollout a supprimé le pod en cours de backup : ENOENT sur
+        # shared-tools et mcp-tmp, Backup PartiallyFailed. Les PVC workspace et data restent sauvegardés.
+        backup.velero.io/backup-volumes-excludes: shared-tools,mcp-cache,mcp-npm,mcp-config,mcp-tmp
     spec:
       securityContext:
         runAsNonRoot: false
