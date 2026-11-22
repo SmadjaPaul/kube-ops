@@ -40,6 +40,7 @@ cluster: oracle-a1
 Regles controlees par `scripts/check-argo-app-descriptors.sh` :
 
 - pas de donnees durables sur OKE (PLT-407) : un rendu avec PVC, `Cluster` CNPG ou StatefulSet a `volumeClaimTemplates` est refuse (rien tant qu'une restauration hors Oracle n'est pas prouvee, PLT-190). Exception : `disposableData: "<pourquoi la donnee est jetable et recreable>"` dans le descripteur OKE (raison non vide ; refusee si le rendu n'a aucun objet durable). Exemple : un SQLite de cache recree au demarrage ;
+- sur OKE (noeud unique), un `PodDisruptionBudget` qui interdit toute eviction (`minAvailable` >= 1 ou 100 %, `maxUnavailable` 0) est refuse : il bloquerait le drain d'une mise a jour du noeud ; utiliser `maxUnavailable: 1` ou pas de PDB (PLT-405) ;
 - une app n'a qu'un cluster a la fois : les deux fichiers dans un meme dossier sont refuses. Basculer = supprimer l'un et ajouter l'autre dans la meme PR (le retrait du descripteur homelab ne supprime pas les ressources : `preserveResourcesOnDeletion`) ;
 - le dossier de l'app est le meme pour les deux clusters : il doit donc etre valide sur OKE (arm64, pas de LoadBalancer, pas de `Gateway/external` du homelab) ;
 - un suffixe inconnu (`argocd-app.<autre>.yaml`) est refuse.
