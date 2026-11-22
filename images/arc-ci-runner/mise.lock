@@ -350,7 +350,7 @@ checksum = "sha256:061ec3e3062115705b56b51fa9cc330ab50d34b6969387d4e4b1a50c6809a
 url = "https://nodejs.org/dist/v24.22.3/node-v24.22.3-linux-x64.tar.gz"
 
 [[tools."npm:pnpm"]]
-version = "10.17.1"
+version = "10.34.9"
 backend = "npm:pnpm"
 
 [[tools.opentofu]]
