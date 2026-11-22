@@ -5,6 +5,8 @@ description: Investigate the live clusters (homelab, oracle-a1) read-only - Argo
 
 # Cluster investigation
 
+Transverse entry (any repo, plugin `homelab-ops` of SmadjaPaul/agent-harness): skills `cluster-investigate` and `access-preflight` carry the access recipe and the Argo -> pods -> events -> logs tree; this skill stays the kube-ops detail.
+
 One entry for every runtime question. Evidence is RUNTIME for the observed signal only: it proves neither Git reconciliation nor a user path. Repair proven defects in Git.
 
 ## Start here
