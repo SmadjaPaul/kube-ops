@@ -6,8 +6,8 @@
 # Fleet Desktop / My device, macOS MDM with manual enrollment. Not exposed:
 # automatic enrollment (ABM, /api/mdm/apple/enroll, /mdm/sso), ACME (no
 # hardware attestation), Windows, iOS, Android, SCEP proxy.
-# Edge: wildcard *.smadja.dev tunnel -> Gateway/external; per-IP rate limit on
-# these paths in homelab-infra terraform/cloudflare/fleet-agents-rate-limit.tf.
+# Edge: wildcard *.smadja.dev tunnel -> Gateway/external. No dedicated edge
+# rate limit (PLT-317 choice b): agents authenticate with node key / enroll secret.
 # Contract: tests/harness/fleet-public-route-contract-test.sh.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
