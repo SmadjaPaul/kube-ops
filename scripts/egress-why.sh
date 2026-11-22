@@ -10,8 +10,10 @@
 # Sources : Prometheus et Loki du cluster homelab via `kubectl-ro.sh get --raw`
 # (aucun port-forward, aucun jeton Grafana). Sortie : une ligne par signal, au
 # plus EGRESS_WHY_MAX lignes (défaut 8) par question, puis un verdict heuristique.
-# Limites connues : les métriques hubble_* n'ont pas de label de pod (drops et
-# DNS sont globaux au nœud) ; seuls les logs cilium-agent "Name lock" portent un
+# Attribution : depuis PLT-411 les métriques hubble_{drop,dns,flows} portent
+# source_namespace/source_workload (values Cilium) ; les lignes "by workload"
+# ne sont donc renseignées qu'après le rollout de cette config. Les lignes
+# "node-wide" restent globales au nœud. Limites : seuls les logs cilium-agent "Name lock" portent un
 # dnsName. Une preuve par flux exige `hubble observe` (skill cilium-hubble).
 # Sortie : 0 ok, 2 usage/outil absent, 1 au moins une requête en échec.
 set -euo pipefail
@@ -113,6 +115,9 @@ loki "cilium fqdn datapath timeouts" "sum(count_over_time($cil |= \"Timed out wa
 loki "cilium dns name-lock waits by dnsName" "sum by (dnsName) (count_over_time($cil |= \"Name lock acquisition\" | logfmt [$rng]))"
 prom "hubble drops by reason (node-wide)" "sum by (reason, protocol) (increase(hubble_drop_total[$rng]))"
 prom "cilium egress drops (node-wide)" "sum by (reason) (increase(cilium_drop_count_total{direction=\"EGRESS\"}[$rng]))"
+prom "hubble drops of $ns by workload and reason" "sum by (source_workload, reason, destination) (increase(hubble_drop_total{source_namespace=\"$ns\"}[$rng]))"
+prom "hubble dns errors of $ns by workload" "sum by (source_workload, rcode) (increase(hubble_dns_responses_total{source_namespace=\"$ns\",rcode!=\"No Error\",rcode!=\"Non-Existent Domain\"}[$rng]))"
+prom "hubble dropped flows of $ns by workload" "sum by (source_workload, verdict) (increase(hubble_flows_processed_total{source_namespace=\"$ns\",verdict=~\"DROPPED|ERROR\"}[$rng]))"
 prom "dns errors by rcode (node-wide)" "sum by (rcode) (increase(hubble_dns_responses_total{rcode!=\"No Error\",rcode!=\"Non-Existent Domain\"}[$rng]))"
 prom "fqdn proxy answers waiting >1s for datapath" "sum(increase(cilium_proxy_upstream_reply_seconds_bucket{scope=\"dataplaneTime\",le=\"+Inf\"}[$rng])) - sum(increase(cilium_proxy_upstream_reply_seconds_bucket{scope=\"dataplaneTime\",le=\"1.0\"}[$rng]))"
 prom "hubble lost events" "sum by (source) (increase(hubble_lost_events_total[$rng]))"

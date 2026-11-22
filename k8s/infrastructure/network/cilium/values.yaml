@@ -106,10 +106,12 @@ hubble:
   metrics:
     enableOpenMetrics: true
     enabled:
-      - dns
-      - drop
+      # Attribution par workload (PLT-411) : labelsContext borne la cardinalité
+      # (namespace x workload, quelques dizaines de séries par métrique).
+      - dns:labelsContext=source_namespace,source_workload
+      - drop:destinationContext=dns;labelsContext=source_namespace,source_workload
       - tcp
-      - flow
+      - flow:labelsContext=source_namespace,source_workload
       - port-distribution
     serviceMonitor:
       enabled: true
