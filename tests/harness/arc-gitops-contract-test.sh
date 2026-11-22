@@ -145,7 +145,7 @@ homelab_runner_values='select(.kind == "Application" and .metadata.name == "apps
 assert_yq "$homelab_runner_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/homelab-infra'
 assert_yq "$homelab_runner_values | .githubConfigSecret" 'arc-github-app'
 assert_yq "$homelab_runner_values | .minRunners" '0'
-assert_yq "$homelab_runner_values | .maxRunners" '2'
+assert_yq "$homelab_runner_values | .maxRunners" '4'
 assert_yq "$homelab_runner_values | .template.spec.automountServiceAccountToken" 'false'
 assert_yq "$homelab_runner_values | .template.spec.securityContext.runAsNonRoot" 'true'
 assert_yq "$homelab_runner_values | .template.spec.securityContext.runAsUser" '1001'
