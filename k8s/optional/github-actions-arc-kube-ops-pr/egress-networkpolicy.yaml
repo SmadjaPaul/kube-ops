@@ -69,6 +69,8 @@ spec:
         - matchName: kubernetes.github.io
         - matchName: kyverno.github.io
         - matchName: prometheus-community.github.io
+        # charts.bitnami.com redirects to repo.broadcom.com (immich-redis).
+        - matchName: repo.broadcom.com
         - matchName: stakater.github.io
         - matchName: vmware-tanzu.github.io
       toPorts:
