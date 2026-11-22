@@ -22,6 +22,17 @@ resources:
 # authorized by Polyfin's existing egress policy (10.0.20.192/32:443).
 # Active media overlay only; historical Polyfin pilot gate remains unchanged.
 patches:
+  # PLT-394 (protection avant migration de Polyfin vers app-polyfin) : ces objets quitteront le suivi
+  # de apps-media. Sans Prune=false vivant, un dernier sync de apps-media pourrait les elaguer avant
+  # que app-polyfin ne les reprenne. Annotation transitoire, retiree par le commit de migration.
+  # Les objets deja annotes (PVC, Cluster CNPG) ne changent pas. Declare en premier : kustomize
+  # applique les patches dans l'ordre, les deux suivants visent des objets deja annotes ou non.
+  - target:
+      annotationSelector: "!argocd.argoproj.io/sync-options"
+    patch: |-
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1sync-options
+        value: Prune=false
   - target:
       group: apps
       version: v1
