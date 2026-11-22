@@ -14,5 +14,16 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "agent-harness": {
+      "source": {
+        "source": "github",
+        "repo": "SmadjaPaul/agent-harness"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "harness-core@agent-harness": true
   }
 }
