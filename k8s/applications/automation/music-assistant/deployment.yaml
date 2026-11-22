@@ -40,6 +40,9 @@ spec:
             - name: http
               containerPort: 8095
               protocol: TCP
+            - name: stream
+              containerPort: 8097
+              protocol: TCP
           startupProbe:
             tcpSocket:
               port: http
