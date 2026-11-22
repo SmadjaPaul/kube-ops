@@ -2,7 +2,6 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":rebaseStalePrs",
     ":enablePreCommit",
     "docker:enableMajor",
     "mergeConfidence:all-badges"
@@ -12,8 +11,8 @@
   },
   "automerge": false,
   "timezone": "Europe/Paris",
-  "prConcurrentLimit": 40,
-  "prHourlyLimit": 20,
+  "prConcurrentLimit": 8,
+  "prHourlyLimit": 2,
   "rangeStrategy": "pin",
   "internalChecksFilter": "strict",
   "labels": [
@@ -61,6 +60,71 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "CI load: non-critical docker patch/minor grouped in one weekend batch (sensitive components excluded, handled by PLT-172 rules)",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackageNames": [
+        "!/cilium/",
+        "!/talos/",
+        "!/longhorn/",
+        "!/authentik/",
+        "!/cloudnative-pg/",
+        "!/cnpg/",
+        "!/barman/",
+        "!/velero/",
+        "!/argo-cd/",
+        "!/argoproj/",
+        "!/cert-manager/",
+        "!/external-secrets/",
+        "!/cloudflare/",
+        "!/proxmox/",
+        "!/moodiness\\/polyfin/"
+      ],
+      "groupName": "docker non-critical minor and patch",
+      "schedule": [
+        "* 0-7 * * 0,6"
+      ]
+    },
+    {
+      "description": "CI load: helm/kustomize non-critical patch/minor grouped in one weekend batch",
+      "matchManagers": [
+        "helm-values",
+        "helm-requirements",
+        "helmv3",
+        "kustomize"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackageNames": [
+        "!/cilium/",
+        "!/talos/",
+        "!/longhorn/",
+        "!/authentik/",
+        "!/cloudnative-pg/",
+        "!/cnpg/",
+        "!/barman/",
+        "!/velero/",
+        "!/argo-cd/",
+        "!/argoproj/",
+        "!/cert-manager/",
+        "!/external-secrets/",
+        "!/cloudflare/",
+        "!/proxmox/",
+        "!/moodiness\\/polyfin/"
+      ],
+      "groupName": "helm non-critical minor and patch",
+      "schedule": [
+        "* 0-7 * * 0,6"
+      ]
+    },
     {
       "description": "Image runner ARC : Node, tofu et les autres outils de images/arc-ci-runner/mise.toml dans un seul lot (meme calendrier que les depots), le workflow arc-ci-runner-drift rattrape le reste",
       "matchManagers": [
@@ -319,5 +383,6 @@
       "security"
     ],
     "minimumReleaseAge": null
-  }
+  },
+  "rebaseWhen": "conflicted"
 }
