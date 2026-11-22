@@ -51,6 +51,12 @@ jobs:
           dirs=()
           for repo in kube-ops homelab-infra website agent-harness ha-config; do
             d="$RUNNER_TEMP/repos/$repo"; mkdir -p "$d"
+            # Depot illisible (prive sans jeton) : on ne retirera aucune version.
+            if ! gh api "repos/SmadjaPaul/$repo" --silent 2>/dev/null; then
+              all=0
+              echo "::warning::$repo : depot illisible (secret ARC_DRIFT_TOKEN absent ou sans acces a ce depot)"
+              continue
+            fi
             ok=0
             for f in .node-version .nvmrc .terraform-version .tool-versions mise.toml package.json; do
               if gh api "repos/SmadjaPaul/$repo/contents/$f" -H 'Accept: application/vnd.github.raw' > "$d/$f" 2>/dev/null; then
@@ -59,10 +65,9 @@ jobs:
                 rm -f "$d/$f"
               fi
             done
-            # Aucun fichier lu : depot illisible (prive sans jeton) ou sans fichiers de version.
+            # Depot lisible mais sans fichier de version a la racine : rien a comparer.
             if [ "$ok" = 0 ]; then
-              all=0
-              echo "::notice::$repo : aucun fichier de version lu (secret ARC_DRIFT_TOKEN absent ?)"
+              echo "::notice::$repo : aucun fichier de version a la racine"
             fi
             dirs+=(--repo-dir "$d")
           done
