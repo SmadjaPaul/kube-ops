@@ -35,6 +35,16 @@ operator:
       cpu: 300m
       memory: 384Mi
 
+# PLT-417: no bare `job` workloads. Velero creates one repo-maintenance Job per
+# repository per hour (27 repositories, a new Job name each time, then deleted
+# by keepLatestMaintenanceJobs). Each one was a new workload: a Standalone scan
+# job (DB + Java DB download, image unpack), one every ~10 min (concurrency 1),
+# i.e. a 1-4 GB write burst on the Talos system disk (etcd's disk) per scan.
+# The velero image is still scanned through the Velero Deployment (ReplicaSet);
+# CronJob-owned workloads stay covered through `cronjob`. Rollback: add `job`
+# back (or revert the PR).
+targetWorkloads: "pod,replicaset,replicationcontroller,statefulset,daemonset,cronjob"
+
 # Scan application workloads while leaving control-plane/system namespaces to
 # their native security and observability surfaces.
 targetNamespaces: ""
