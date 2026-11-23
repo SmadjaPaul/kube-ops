@@ -1,0 +1,19 @@
+# PLT-394 I1-I3 : infra-root, App of Apps de l'infrastructure homelab (modele d'oracle-a1).
+# Une Application par composant, ordonnee par sync-wave ; la sante Lua argoproj.io_Application
+# (argocd-cm, k8s/infrastructure/controllers/argocd/values.yaml) fait attendre chaque vague que
+# les Applications de la precedente soient Synced et Healthy.
+#   -30 CRD seules   -20 coeur (operateurs, Namespaces)   -10 stockage   0 CR   10 reste
+# Un dossier a un seul proprietaire : ceux listes ici sont retires de l'ApplicationSet
+# infrastructure (tests/harness/argocd-generator-paths.test.mjs).
+# Plan des tranches restantes : PLT-394 (argocd, cilium, security et storage en dernier).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # monitoring (I1)
+  - infra-monitoring-prometheus-stack.yaml
+  - infra-monitoring-scrape-targets.yaml
+  - infra-monitoring-hubble.yaml
+  - infra-monitoring-blackbox.yaml
+  - infra-monitoring-loki.yaml
+  - infra-monitoring-alloy.yaml
+  - infra-monitoring-tempo.yaml

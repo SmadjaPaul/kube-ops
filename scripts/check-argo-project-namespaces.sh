@@ -7,6 +7,8 @@
 #   1. ApplicationSet infrastructure : chaque namespace des manifestes rendus
 #      (kind Namespace = metadata.name, autres objets = metadata.namespace) des chemins du generateur git
 #      doit correspondre a une destination de template.spec.project.
+#   1b. App of Apps infra-root (PLT-394) : meme controle pour le chemin source de chaque Application
+#      de k8s/bootstrap/infra-root, contre son spec.project.
 #   2. Applications imbriquees (kind: Application sous k8s/, hors bootstrap et clusters/) :
 #      spec.destination.namespace doit correspondre a une destination du spec.project reference.
 #
@@ -118,6 +120,28 @@ for appset in "${appsets[@]}"; do
   done < <(yq eval '.spec.generators[].git.directories[] | select(.exclude != true) | .path' "$appset")
   check_list "$tmp/$base.ns" "$project" "$base"
 done
+
+# --- 1b. App of Apps infra-root (PLT-394) ---------------------------------------------------
+infra_root_dir="$repo/k8s/bootstrap/infra-root"
+if [[ -d $infra_root_dir ]]; then
+  while IFS=$'\t' read -r name project src; do
+    [[ -n $name ]] || continue
+    dir="$repo/$src"
+    : >"$tmp/infra-root.$name.ns"
+    if ! render "$dir" >"$tmp/rendered.yaml" 2>"$tmp/render.err"; then
+      echo "FAIL: kustomize build failed for $src (Application $name, infra-root)" >&2
+      sed 's/^/  /' "$tmp/render.err" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    yq eval --no-doc '
+      select(.kind != null and .kind != "List") |
+      (select(.kind == "Namespace") | .metadata.name + "\t" + "Namespace " + .metadata.name),
+      (select(.kind != "Namespace" and .metadata.namespace != null) | .metadata.namespace + "\t" + .kind + "/" + .metadata.name)
+    ' "$tmp/rendered.yaml" | sed "s|\$| in $src (Application $name, infra-root)|" >>"$tmp/infra-root.$name.ns"
+    check_list "$tmp/infra-root.$name.ns" "$project" "Application $name"
+  done < <(yq eval-all --no-doc 'select(.kind == "Application") | .metadata.name + "\t" + (.spec.project // "default") + "\t" + .spec.source.path' "$infra_root_dir"/*.yaml)
+fi
 
 # --- 2. Applications imbriquees ---------------------------------------------------------------
 : >"$tmp/nested.tsv"
