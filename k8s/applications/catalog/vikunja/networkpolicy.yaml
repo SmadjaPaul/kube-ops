@@ -28,3 +28,23 @@ spec:
       toPorts:
         - ports:
             - { protocol: TCP, port: "8000" }
+---
+# PLT-470: CNPG metrics exporter (:9187) scraped by Prometheus in monitoring.
+# The vikunja-postgresql ingress policy only opened 5432/8000, so the target was up == 0.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vikunja-postgresql-metrics
+  namespace: vikunja
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: vikunja-postgresql
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9187"
+              protocol: TCP
