@@ -71,6 +71,15 @@ credentials. The same root creates the setup key bound to the NetBird group `OKE
 `auto_groups`), which is how the pod joins that group; the key must be unused and unexpired when the
 pod first starts (enrolment state then lives in `/var/lib/netbird-router` on the node).
 
+Admin session (Paul, NetBird connected): there is no admin kubeconfig in Doppler. `scripts/oke-admin.sh`
+generates one on the fly from the OCI API key in Doppler (`infrastructure/prd OCI_CLI_*`) on the private
+endpoint, into a temp dir deleted on exit:
+
+```bash
+bash scripts/oke-admin.sh kubectl -n argocd get applications.argoproj.io,applicationsets.argoproj.io
+bash scripts/oke-admin.sh bash scripts/agent-operator-oke-token.sh --provision
+```
+
 Then, by Paul: Argo CD admin access is a local account (port-forward only, no ingress); the agent
 identity is `scripts/agent-operator-oke-token.sh --provision` (server and CA are taken from the admin
 session, which must be a private VCN `10.0.x.y` address), then `kubectl-ro.sh --cluster oracle-a1 ...`.
