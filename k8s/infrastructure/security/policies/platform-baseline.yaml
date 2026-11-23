@@ -67,6 +67,14 @@ spec:
   webhookConfiguration:
     timeoutSeconds: 5
   matchConstraints:
+    # PLT-467: l'autogen reecrit le matchCondition namespace pour les controleurs sur
+    # spec.template.metadata.namespace (jamais renseigne) : DaemonSet csi-proxmox et longhorn-system
+    # etaient refuses a l'admission/dry-run Argo. Un namespaceSelector s'applique a tous les kinds.
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [csi-proxmox, longhorn-system]
     resourceRules:
       - apiGroups: [""]
         apiVersions: ["v1"]
