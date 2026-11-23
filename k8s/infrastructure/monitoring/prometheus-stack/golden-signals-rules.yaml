@@ -1,0 +1,214 @@
+# Revue observabilité 2026-11-23 (« Observabilité utile »).
+#
+# 1. Recording rules « golden signals » : quelques séries agrégées, lisibles
+#    et bon marché, que l'allowlist Alloy exporte vers Grafana Cloud
+#    (alloy/values.yaml). Elles comblent les trous de couverture côté cloud :
+#    CPU, iowait, mémoire, disque et réseau de l'hôte Proxmox et du nœud
+#    Talos, écritures disque par pod et par PVC (attribution PLT-417).
+#    Budget mesuré le 2026-11-23 : environ 150 à 250 séries au total.
+# 2. Alertes critiques manquantes. Seule la sévérité `critical` atteint le
+#    téléphone (Alertmanager : route ntfy-critical ; warning et info vont au
+#    receiver `null`). Chaque seuil a été comparé aux 3 derniers jours :
+#    aucune ne se déclenche sur l'état sain mesuré.
+#
+# Retour arrière : retirer ce fichier de kustomization.yaml (aucune donnée
+# n'est supprimée, les séries brutes restent dans Prometheus).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: golden-signals
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: golden-signals.host
+      interval: 60s
+      rules:
+        # Hôte Proxmox (job proxmox-host) et nœud Talos (job node-exporter).
+        # Les règles du chart ne couvrent que job="node-exporter".
+        - record: host:cpu_utilisation:ratio5m
+          expr: >-
+            1 - avg by (job, instance) (
+              rate(node_cpu_seconds_total{job=~"node-exporter|proxmox-host",mode="idle"}[5m]))
+        - record: host:cpu_iowait:ratio5m
+          expr: >-
+            avg by (job, instance) (
+              rate(node_cpu_seconds_total{job=~"node-exporter|proxmox-host",mode="iowait"}[5m]))
+        - record: host:memory_utilisation:ratio
+          expr: >-
+            1 - (
+              node_memory_MemAvailable_bytes{job=~"node-exporter|proxmox-host"}
+              / node_memory_MemTotal_bytes{job=~"node-exporter|proxmox-host"})
+        - record: host:load1_per_cpu:ratio
+          expr: >-
+            node_load1{job=~"node-exporter|proxmox-host"}
+            / on (job, instance) count by (job, instance) (
+              node_cpu_seconds_total{job=~"node-exporter|proxmox-host",mode="idle"})
+        # Disques physiques seulement : NVMe et sdX de l'hôte, disque système
+        # du nœud Talos (les sdX suivants du nœud sont les volumes Longhorn).
+        - record: host_device:disk_io_utilisation:ratio5m
+          expr: >-
+            rate(node_disk_io_time_seconds_total{job="proxmox-host",device=~"nvme[0-9]+n[0-9]+|sd[a-z]"}[5m])
+            or rate(node_disk_io_time_seconds_total{job="node-exporter",device=~"sda|vda|nvme0n1"}[5m])
+        - record: host_device:disk_written_bytes:rate5m
+          expr: >-
+            rate(node_disk_written_bytes_total{job="proxmox-host",device=~"nvme[0-9]+n[0-9]+|sd[a-z]"}[5m])
+            or rate(node_disk_written_bytes_total{job="node-exporter",device=~"sda|vda|nvme0n1"}[5m])
+        - record: host_device:disk_write_latency_seconds:mean5m
+          expr: >-
+            (
+              rate(node_disk_write_time_seconds_total{job="proxmox-host",device=~"nvme[0-9]+n[0-9]+|sd[a-z]"}[5m])
+              / (rate(node_disk_writes_completed_total{job="proxmox-host",device=~"nvme[0-9]+n[0-9]+|sd[a-z]"}[5m]) > 0)
+            )
+            or
+            (
+              rate(node_disk_write_time_seconds_total{job="node-exporter",device=~"sda|vda|nvme0n1"}[5m])
+              / (rate(node_disk_writes_completed_total{job="node-exporter",device=~"sda|vda|nvme0n1"}[5m]) > 0)
+            )
+        - record: host_device:disk_read_latency_seconds:mean5m
+          expr: >-
+            (
+              rate(node_disk_read_time_seconds_total{job="proxmox-host",device=~"nvme[0-9]+n[0-9]+|sd[a-z]"}[5m])
+              / (rate(node_disk_reads_completed_total{job="proxmox-host",device=~"nvme[0-9]+n[0-9]+|sd[a-z]"}[5m]) > 0)
+            )
+            or
+            (
+              rate(node_disk_read_time_seconds_total{job="node-exporter",device=~"sda|vda|nvme0n1"}[5m])
+              / (rate(node_disk_reads_completed_total{job="node-exporter",device=~"sda|vda|nvme0n1"}[5m]) > 0)
+            )
+        - record: host_device:network_receive_bytes:rate5m
+          expr: >-
+            rate(node_network_receive_bytes_total{job=~"node-exporter|proxmox-host",device=~"bond[0-9]+|vmbr[0-9]+|eth[0-9]+|en.+|nic[0-9]+"}[5m])
+        - record: host_device:network_transmit_bytes:rate5m
+          expr: >-
+            rate(node_network_transmit_bytes_total{job=~"node-exporter|proxmox-host",device=~"bond[0-9]+|vmbr[0-9]+|eth[0-9]+|en.+|nic[0-9]+"}[5m])
+
+    - name: golden-signals.workloads
+      interval: 60s
+      rules:
+        # Écritures de la couche conteneur (rootfs, emptyDir) par pod. Seuls
+        # les pods qui écrivent produisent une série (31 le 2026-11-23).
+        - record: namespace_pod:container_fs_writes_bytes:rate5m
+          expr: >-
+            sum by (namespace, pod) (
+              rate(container_fs_writes_bytes_total{job="kubelet",container!=""}[5m])) > 0
+        # Écritures sur les volumes Longhorn par PVC (jauge en octets/s).
+        - record: namespace_pvc:longhorn_volume_write_bytes:rate
+          expr: >-
+            sum by (pvc_namespace, pvc) (longhorn_volume_write_throughput) > 0
+        - record: namespace:container_cpu_usage_cores:rate5m
+          expr: >-
+            sum by (namespace) (
+              rate(container_cpu_usage_seconds_total{job="kubelet",container!=""}[5m]))
+        - record: namespace:container_memory_working_set_bytes:sum
+          expr: >-
+            sum by (namespace) (
+              container_memory_working_set_bytes{job="kubelet",container!=""})
+        # Séries « problème seulement » : vides tant que tout va bien.
+        # 4 = Error, 5 = Unknown (3 = Completed pour les 533 sauvegardes saines).
+        - record: longhorn:backup_not_completed:state
+          expr: longhorn_backup_state >= 4
+        - record: externalsecret:not_ready:status
+          expr: >-
+            max by (exported_namespace, name) (
+              externalsecret_status_condition{condition="Ready",status="False"}) == 1
+
+    - name: golden-signals.critical-gaps
+      rules:
+        # Cas qbittorrent-mam-auth et pg-shared-homelab-pgdump-r2-credentials :
+        # l'alerte warning ExternalSecretNotReady existait mais n'atteignait
+        # personne (receiver null).
+        - alert: ExternalSecretSyncFailingLong
+          expr: >-
+            max by (exported_namespace, name) (
+              externalsecret_status_condition{condition="Ready",status="False"}) == 1
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            summary: "ExternalSecret {{ $labels.exported_namespace }}/{{ $labels.name }} en erreur depuis plus d'une heure"
+            description: >-
+              Le Secret n'est plus synchronisé depuis Doppler : la clé est
+              absente ou renommée, ou le store est en panne. L'application
+              qui le monte ne redémarrera pas proprement. Vérifier
+              `kubectl -n {{ $labels.exported_namespace }} describe externalsecret {{ $labels.name }}`.
+        # Cas zigbee2mqtt : un Schedule dont aucune sauvegarde n'a réussi
+        # depuis le démarrage de Velero, alors qu'il a été tenté. La règle
+        # Grafana Cloud backup_failed_or_stale ne voit pas un Schedule qui n'a
+        # jamais réussi (pas de série last_successful_timestamp).
+        - alert: VeleroScheduleNoSuccess
+          expr: >-
+            (sum by (schedule) (velero_backup_attempt_total{schedule!=""}) > 0)
+            unless on (schedule)
+            (sum by (schedule) (velero_backup_success_total{schedule!=""}) > 0)
+          for: 6h
+          labels:
+            severity: critical
+          annotations:
+            summary: "Velero : le Schedule {{ $labels.schedule }} n'a aucune sauvegarde réussie"
+            description: >-
+              Des sauvegardes ont été tentées depuis le démarrage de Velero
+              mais aucune n'a réussi depuis 6 heures. Vérifier
+              `velero backup get -l velero.io/schedule-name={{ $labels.schedule }}`.
+        # Runners GitHub ARC : sans listener, aucun job CI ne démarre et les
+        # merges autonomes sont bloqués. Le listener et le contrôleur sont
+        # observés par kube-state-metrics (les métriques gha_* du listener ne
+        # sont pas encore scrapées).
+        - alert: ArcRunnerListenerDown
+          expr: >-
+            max by (pod) (
+              kube_pod_status_ready{namespace="arc-systems",pod=~".+-listener",condition="true"}) == 0
+            or
+            absent(kube_pod_status_ready{namespace="arc-systems",pod=~"arc-gha-rs-controller-.+",condition="true"} == 1)
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "ARC : listener ou contrôleur des runners GitHub hors service ({{ $labels.pod }})"
+            description: >-
+              Les jobs GitHub Actions des dépôts servis par ce scale set
+              restent en file. Vérifier `kubectl -n arc-systems get pods` et
+              les logs du contrôleur.
+        # Tunnel Cloudflare : aucun pod cloudflared Ready = tous les services
+        # publics injoignables. Limite : si ntfy passe lui-même par le tunnel,
+        # la notification n'arrive qu'au retour ; la sonde externe est un
+        # chantier Grafana Cloud (ticket « fraîcheur »).
+        - alert: CloudflareTunnelDown
+          expr: >-
+            absent(kube_pod_status_ready{namespace="cloudflared",condition="true"} == 1)
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Tunnel Cloudflare : aucun pod cloudflared Ready"
+            description: >-
+              Les routes publiques (*.smadja.dev) ne répondent plus. Vérifier
+              `kubectl -n cloudflared get pods` et l'état du tunnel côté
+              Cloudflare.
+        # PLT-417 : stalls disque. Seuils au-dessus du pire mesuré sur 3 jours
+        # (iowait max 16 %, latence d'écriture moyenne 5 min max 167 ms sur le
+        # disque système du nœud) : seule une dégradation nette alerte.
+        - alert: HostDiskWriteLatencyHigh
+          expr: host_device:disk_write_latency_seconds:mean5m > 0.25
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Latence d'écriture {{ $labels.job }}/{{ $labels.device }} à {{ $value | humanizeDuration }}"
+            description: >-
+              Le disque met plus de 250 ms par écriture en moyenne depuis 15
+              minutes : etcd, Longhorn et les bases vont décrocher. Voir
+              PLT-417 et le tableau de bord hôte.
+        - alert: HostIowaitHigh
+          expr: host:cpu_iowait:ratio5m > 0.3
+          for: 30m
+          labels:
+            severity: critical
+          annotations:
+            summary: "iowait {{ $labels.job }} à {{ $value | humanizePercentage }}"
+            description: >-
+              Plus de 30 % du temps CPU attend le disque depuis 30 minutes.
+              Identifier l'écrivain avec
+              namespace_pod:container_fs_writes_bytes:rate5m et
+              namespace_pvc:longhorn_volume_write_bytes:rate.

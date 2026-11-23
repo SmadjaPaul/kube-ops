@@ -107,3 +107,10 @@ metrics:
       release: kube-prometheus-stack
     interval: 30s
     scrapeTimeout: 10s
+    # Revue 2026-11-23: Longhorn's internal REST client latency (~1.7k
+    # series) has no rule, alert or dashboard. Volume, replica, node and
+    # backup state metrics stay scraped.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "longhorn_rest_client_.*"

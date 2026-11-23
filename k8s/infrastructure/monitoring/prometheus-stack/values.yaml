@@ -21,11 +21,23 @@ kubeScheduler:
     https: true
     insecureSkipVerify: true
     interval: 30s
+    # Revue 2026-11-23: no rule, alert or dashboard reads these families
+    # (~1.4k series). Scheduler latency SLIs and pending pods stay scraped.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "scheduler_plugin_execution_duration_seconds_bucket|workqueue_(work|queue)_duration_seconds_bucket|kubernetes_feature_enabled"
 kubeControllerManager:
   serviceMonitor:
     https: true
     insecureSkipVerify: true
     interval: 30s
+    # Revue 2026-11-23: no rule, alert or dashboard reads these families
+    # (~2.1k series). workqueue_depth and leader election stay scraped.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "informer_processing_latency_seconds_bucket|workqueue_(work|queue)_duration_seconds_bucket|kubernetes_feature_enabled"
 
 # Talos disables kube-proxy; Cilium implements kubeProxyReplacement=true.
 # Do not create dead kube-proxy targets or alert KubeProxyDown for a component
@@ -260,6 +272,13 @@ prometheus:
             labels:
               origin: proxmox
               host: tatouine
+        # Revue 2026-11-23: node_systemd_unit_state exports 5 states per unit
+        # (985 series). Only state="failed" is read (NodeSystemdServiceFailed
+        # pattern); the other states are dropped (~790 series).
+        metric_relabel_configs:
+          - source_labels: [__name__, state]
+            regex: "node_systemd_unit_state;(activating|active|deactivating|inactive)"
+            action: drop
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname

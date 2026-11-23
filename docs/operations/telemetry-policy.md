@@ -51,6 +51,17 @@ disk writes in total. It is not the source of the NVMe bursts: the gains here ar
 | node-exporter | default | Cilium `lxc*` interfaces excluded (per-pod traffic comes from cAdvisor) |
 | Grafana | 60s | histograms and feature toggles dropped |
 
+Revue 2026-11-23 (« Observabilité utile ») : further drops with no reader
+(scheduler plugin and controller-manager informer histograms, workqueue
+buckets, `kubernetes_feature_enabled`, Longhorn `longhorn_rest_client_*`,
+Trivy config-audit/RBAC counters and controller-runtime histograms, Proxmox
+`node_systemd_unit_state` except `state="failed"`): about 10k of 122k local
+series. Golden-signal recording rules and critical alerts live in
+`prometheus-stack/golden-signals-rules.yaml`; the Grafana Cloud export swaps
+`longhorn_backup_state` (533 healthy series) for the problem-only
+`longhorn:backup_not_completed:state` (Longhorn backup state stays complete in
+the local Prometheus).
+
 A new ServiceMonitor names its consumer (alert, dashboard or recording rule) in
 the PR; otherwise `metricRelabelings` keeps only what is read.
 
@@ -93,11 +104,8 @@ name, plus a request/correlation id where a request spans services.
   Factory does not need traces. No data is deleted by this proposal.
 - openclaw-operator is in CrashLoopBackOff (268 restarts in 32 h): root cause
   belongs to its own ticket; it feeds the Alloy log-stream loop above.
-- Remaining no-reader families: Longhorn `longhorn_rest_client_*` and
-  workqueue buckets, Trivy configaudit/RBAC/exposed-secret series (about 3k),
-  Loki and Prometheus self-histograms (about 5k), `node_systemd_unit_state` of
-  the Proxmox host (990). Kept for now because planned alerts (Phase 4) may
-  read Longhorn state and Trivy results.
+- Remaining no-reader families: Loki and Prometheus self-histograms (about
+  5k), kubelet `kubernetes_feature_enabled`, apiserver workqueue buckets.
 - GitHub runner logs (33 MB/6h, 382k lines): JSON dumps are split over many
   lines and cannot be filtered safely in Alloy; fix at the runner.
 - CoreDNS NXDOMAIN bursts from search-path expansion (ndots:5) of one

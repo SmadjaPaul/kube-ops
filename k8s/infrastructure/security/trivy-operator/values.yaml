@@ -49,6 +49,15 @@ serviceMonitor:
   namespace: monitoring
   labels:
     release: kube-prometheus-stack
+  # Revue 2026-11-23: config-audit and RBAC-assessment counters (~3k series)
+  # and controller-runtime/workqueue histograms (~1.6k) have no rule, alert or
+  # dashboard; the findings stay in the ConfigAuditReport and RbacAssessmentReport
+  # CRDs. Vulnerability and exposed-secret metrics stay scraped.
+  endpointAdditionalProperties:
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "trivy_resource_configaudits|trivy_(cluster)?role_(cluster)?rbacassessments|controller_runtime_reconcile_time_seconds_bucket|workqueue_(work|queue)_duration_seconds_bucket"
 
 trivy:
   mode: Standalone
