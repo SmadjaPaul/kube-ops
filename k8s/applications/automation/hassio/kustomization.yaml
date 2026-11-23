@@ -6,6 +6,9 @@ configMapGenerator:
   - name: ha-core-config
     files:
       - config/configuration.yaml
+  - name: ha-mcp-token-rotate-script
+    files:
+      - ha-mcp-token-rotate.py
 
 resources:
   - namespace.yaml
@@ -19,6 +22,7 @@ resources:
   - ha-mcp-deployment.yaml
   - ha-mcp-service.yaml
   - ha-mcp-network-policy.yaml
+  - ha-mcp-token-rotate.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

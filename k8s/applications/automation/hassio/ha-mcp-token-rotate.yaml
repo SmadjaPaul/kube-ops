@@ -1,0 +1,191 @@
+# PRD-80: weekly rotation of the long-lived HA token used by ha-mcp (Secret ha-mcp-token,
+# user agent-maison). The script refuses to write unless the user is agent-maison and not
+# admin; it patches the existing Secret only (no create) and keeps the current and the
+# previous token. Reloader restarts ha-mcp on Secret change (annotation on its Deployment).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ha-mcp-token-rotate
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-mcp-token-rotate
+    app.kubernetes.io/instance: ha-mcp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ha-mcp-token-rotate
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-mcp-token-rotate
+    app.kubernetes.io/instance: ha-mcp
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["ha-mcp-token"]
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ha-mcp-token-rotate
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-mcp-token-rotate
+    app.kubernetes.io/instance: ha-mcp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ha-mcp-token-rotate
+subjects:
+  - kind: ServiceAccount
+    name: ha-mcp-token-rotate
+    namespace: home-assistant
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ha-mcp-token-rotate
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-mcp-token-rotate
+    app.kubernetes.io/instance: ha-mcp
+spec:
+  # Sunday 04:00 Paris. Tokens live 30 days; two are always valid, so one missed week is harmless.
+  schedule: "0 4 * * 0"
+  timeZone: Europe/Paris
+  startingDeadlineSeconds: 86400
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 1209600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ha-mcp-token-rotate
+            app.kubernetes.io/instance: ha-mcp
+        spec:
+          restartPolicy: Never
+          serviceAccountName: ha-mcp-token-rotate
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: rotate
+              image: python:3.14.5-alpine3.22@sha256:1a5f0303fd8941565b5bbda3fac2345148a9fd8245d575c2971ccefcd77c78f6
+              command: ["python3", "-I", "/scripts/ha-mcp-token-rotate.py"]
+              env:
+                - name: HA_URL
+                  value: "http://10.0.20.60:8123"
+                - name: EXPECTED_USER
+                  value: agent-maison
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+          volumes:
+            - name: scripts
+              configMap:
+                name: ha-mcp-token-rotate-script
+                defaultMode: 0444
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ha-mcp-token-rotate-egress
+  namespace: home-assistant
+  labels:
+    policy-type: application
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ha-mcp-token-rotate
+  description: "Rotation job: Kubernetes API, DNS, and Home Assistant (hostNetwork, 10.0.20.60:8123)"
+  egress:
+    - toEntities:
+        - kube-apiserver
+    - toEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8123"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ha-mcp-token-rotate-alerts
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-mcp-token-rotate
+    app.kubernetes.io/instance: ha-mcp
+spec:
+  groups:
+    - name: ha-mcp-token-rotate.rules
+      rules:
+        - alert: HaMcpTokenRotateFailed
+          annotations:
+            summary: Rotation of the ha-mcp Home Assistant token failed.
+            description: >-
+              Job {{ $labels.job_name }} of CronJob ha-mcp-token-rotate has failed.
+              Logs: kubectl -n home-assistant logs job/{{ $labels.job_name }}.
+          expr: |-
+            kube_job_status_failed{namespace="home-assistant", job_name=~"ha-mcp-token-rotate-.*"} > 0
+          for: 5m
+          labels:
+            severity: warning
+        - alert: HaMcpTokenRotateStale
+          annotations:
+            summary: No successful ha-mcp token rotation for 15 days.
+            description: >-
+              The last successful run of CronJob ha-mcp-token-rotate is older than 15 days
+              (or has never happened). The current token expires 30 days after its creation.
+          expr: |-
+            (
+              time() - kube_cronjob_status_last_successful_time{
+                namespace="home-assistant", cronjob="ha-mcp-token-rotate"} > 15 * 86400
+            )
+            or
+            (
+              absent(kube_cronjob_status_last_successful_time{
+                namespace="home-assistant", cronjob="ha-mcp-token-rotate"})
+              and on()
+              (time() - kube_cronjob_created{
+                namespace="home-assistant", cronjob="ha-mcp-token-rotate"} > 15 * 86400)
+            )
+          for: 1h
+          labels:
+            severity: warning
