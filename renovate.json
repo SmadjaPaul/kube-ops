@@ -140,6 +140,19 @@
       ]
     },
     {
+      "description": "Image runner ARC : pnpm suit packageManager de website (source de verite par depot), pas Renovate ; arc-ci-runner-drift ajoute la version d'un depot qui change (PLT-484)",
+      "matchManagers": [
+        "mise"
+      ],
+      "matchFileNames": [
+        "images/arc-ci-runner/**"
+      ],
+      "matchPackageNames": [
+        "pnpm"
+      ],
+      "enabled": false
+    },
+    {
       "description": "PLT-399 pin container images in Kubernetes manifests by digest (deterministic revert)",
       "matchDatasources": [
         "docker"

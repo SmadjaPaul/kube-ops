@@ -15,6 +15,12 @@
 #   - Node dans /opt/hostedtoolcache : actions/setup-node le trouve sans
 #     telechargement (versions 22, 24, 26).
 #   - Chromium de Playwright (website) et le CLI claude (agent-harness).
+#   - drift.py dans /usr/local/share/arc-ci-runner (derive lue par les jobs, sans
+#     telechargement).
+# Multi-arch (linux/amd64 et linux/arm64) : TARGETARCH choisit le binaire mise et
+# le dossier d'arch du cache d'outils (x64 ou arm64, comme os.arch() de
+# setup-node). mise.lock porte linux-x64 et linux-arm64 pour chaque outil binaire.
+# Build natif par arch (runner ubuntu-24.04-arm), voir image-build.yaml.
 # Rien de prive, aucun secret dans l'image.
 # Playwright : version alignee sur website (scripts/visual/playwright-version.txt),
 # a mettre a jour avec ce depot, donc volontairement sans commentaire Renovate.
@@ -23,6 +29,9 @@ FROM ghcr.io/actions/actions-runner:2.338.0@sha256:4ffadc0002b2581327e06101fc8c0
 ARG IMAGE_VERSION=tools1
 ARG MISE_VERSION=2026.11.7 # renovate: datasource=github-releases depName=jdx/mise
 ARG PLAYWRIGHT_VERSION=1.58.2
+# Fourni par BuildKit (amd64 ou arm64) ; vide avec le builder classique, d'ou le
+# repli sur dpkg --print-architecture.
+ARG TARGETARCH
 
 LABEL io.github.smadjapaul.arc-ci-runner.manifest="/etc/arc-ci-runner/tools.json"
 
@@ -35,19 +44,29 @@ ENV AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache \
     MISE_YES=1
 
 COPY mise.toml mise.lock package.json package-lock.json /opt/ci-build/
+COPY drift.py /usr/local/share/arc-ci-runner/drift.py
 
 RUN set -eux; \
+    # Arch cible : nom de l'asset mise et dossier du cache d'outils (x64 / arm64).
+    arch="${TARGETARCH:-$(dpkg --print-architecture)}"; \
+    case "$arch" in \
+        amd64) tool_arch=x64 ;; \
+        arm64) tool_arch=arm64 ;; \
+        *) echo "arch non supportee : $arch" >&2; exit 1 ;; \
+    esac; \
     apt-get update; \
     apt-get install -y --no-install-recommends ca-certificates curl unzip xz-utils libatomic1 \
         python3 python3-pip python3-venv; \
     # mise : binaire de la release, somme de controle de la meme release.
     cd /tmp; \
     base="https://github.com/jdx/mise/releases/download/v${MISE_VERSION}"; \
-    curl -fsSLO "$base/mise-v${MISE_VERSION}-linux-x64"; \
+    asset="mise-v${MISE_VERSION}-linux-${tool_arch}"; \
+    curl -fsSLO "$base/$asset"; \
     curl -fsSLO "$base/SHASUMS256.txt"; \
-    grep " \./mise-v${MISE_VERSION}-linux-x64\$" SHASUMS256.txt | sed "s# \./# #" | sha256sum -c -; \
-    install -m 0755 "mise-v${MISE_VERSION}-linux-x64" /usr/local/bin/mise; \
-    rm -f "mise-v${MISE_VERSION}-linux-x64" SHASUMS256.txt; \
+    grep " \./${asset}\$" SHASUMS256.txt | sed "s# \./# #" | sha256sum -c -; \
+    install -m 0755 "$asset" /usr/local/bin/mise; \
+    rm -f "$asset" SHASUMS256.txt; \
+    chmod 0644 /usr/local/share/arc-ci-runner/drift.py; \
     # Toolchain verrouillee, installee dans le dossier partage.
     cd /opt/ci-build; \
     export MISE_DATA_DIR=/usr/local/share/mise MISE_TRUSTED_CONFIG_PATHS=/opt/ci-build; \
@@ -57,14 +76,15 @@ RUN set -eux; \
              actionlint conftest markdownlint-cli2 rg; do \
         ln -sf "$(mise which "$t")" "/usr/local/bin/$t"; \
     done; \
-    # Node : un dossier par version dans le cache d'outils de GitHub Actions.
+    # Node : un dossier par version dans le cache d'outils de GitHub Actions,
+    # sous l'arch que setup-node cherche (os.arch() : x64 ou arm64).
     for d in /usr/local/share/mise/installs/node/*; do \
         # mise cree aussi des alias (24.22 -> 24.22.3) : on les ignore.
         [ -L "$d" ] && continue; \
         v="$(basename "$d")"; \
         mkdir -p "$AGENT_TOOLSDIRECTORY/node/$v"; \
-        ln -s "$d" "$AGENT_TOOLSDIRECTORY/node/$v/x64"; \
-        touch "$AGENT_TOOLSDIRECTORY/node/$v/x64.complete"; \
+        ln -s "$d" "$AGENT_TOOLSDIRECTORY/node/$v/$tool_arch"; \
+        touch "$AGENT_TOOLSDIRECTORY/node/$v/$tool_arch.complete"; \
     done; \
     node24="$(find /usr/local/share/mise/installs/node -mindepth 1 -maxdepth 1 -type d -name '24.*')"; \
     ln -sf "$node24/bin/node" /usr/local/bin/node; \
@@ -95,7 +115,9 @@ RUN set -eux; \
     shellcheck --version | grep -q 0.11.0; \
     node --version | grep -q '^v24\.22\.3$'; \
     test -s /etc/arc-ci-runner/tools.json; \
-    test -x "$AGENT_TOOLSDIRECTORY/node/22.23.5/x64/bin/node"; \
+    # Le cache d'outils est sous l'arch que setup-node calcule (process.arch).
+    test -x "$AGENT_TOOLSDIRECTORY/node/22.23.5/$(node -p process.arch)/bin/node"; \
+    python3 /usr/local/share/arc-ci-runner/drift.py --local /opt/ci-build; \
     pnpm --version | grep -qx "$(sed -n 's/^"npm:pnpm" = "\(.*\)"/\1/p' /opt/ci-build/mise.toml)"; \
     tofu version | head -1; \
     zizmor --version; helm version --short; kustomize version; kubeconform -v; kyverno version; \
