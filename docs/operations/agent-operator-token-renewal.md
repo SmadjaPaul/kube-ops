@@ -7,7 +7,7 @@ Décision D-2026-11-22-02 (matrice `agent-access-matrix.json` de homelab-infra, 
 - `scripts/kubectl-ro.sh` : `KUBECTL_RO_IDENTITY` vaut `agent` par défaut. Copie agent absente, expirée ou refusée par l'API :
   exit 2, raison sur stderr, aucune commande lancée, aucun repli sur la copie opérateur. Le mode `auto` n'existe plus (refusé, exit 64).
   `KUBECTL_RO_IDENTITY=operator` reste le retour arrière explicite. OKE (`--cluster oracle-a1`) et le mode in-cluster sont inchangés.
-- Tests : `tests/agent-guard/secret-output-guard-test.sh` (défaut agent, pas de repli, `auto` refusé, `operator` explicite),
+- Tests : `tests/agent-guard/secret-helpers-test.sh` (défaut agent, pas de repli, `auto` refusé, `operator` explicite),
   `tests/agent-guard/agent-operator-token-renew-test.sh`.
 - homelab-infra `AGENTS.md` : `just kubectl` et `just kube-access-check` sont déjà réservés à Paul (aucun changement requis).
 

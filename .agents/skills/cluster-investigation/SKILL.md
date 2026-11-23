@@ -43,15 +43,12 @@ Git revision -> ApplicationSet -> Application sync/health/conditions
 
 ## Deliver on either cluster (homelab or oracle-a1)
 
-Two independent Argo CD instances, one workflow (`docs/operations/two-argo-one-workflow.md`). The agent never opens an Argo CD interface.
+The delivery steps (worktree, branch, `just check`, PR, merge, `just verify-delivery`, rollback) are the plugin skill `homelab-ops:gitops-deploy`; follow it. Two independent Argo CD instances, one workflow (`docs/operations/two-argo-one-workflow.md`); the agent never opens an Argo CD interface. kube-ops specifics for reading the result:
 
-1. Branch `claude/plt-<n>-<slug>`. Change the shared base `k8s/applications/<group>/<app>`.
-2. Homelab: the app folder must carry an `argocd-app.yaml` descriptor (ApplicationSet `apps`). The Application is `app-<name>`. A folder without descriptor generates no Application.
-3. OKE: put `argocd-app.oracle-a1.yaml` (instead of `argocd-app.yaml`) next to the app's `kustomization.yaml`; the OKE Argo CD generates `app-<name>` (`docs/operations/argo-app-descriptor.md`). One cluster per app. No data (PVC, CNPG) on OKE before PLT-190.
-4. `just check`, then PR and merge (CI green, CodeRabbit handled). Argo reconciles by itself; never sync by hand.
-5. Verify: `just verify-delivery <homelab|oracle-a1> <app> --since <merge epoch> --timeout 1200`. Cloud session: no cluster access needed (Grafana Cloud, `GRAFANA_AGENT_READ_TOKEN`).
-6. `VERIFY=PASS` is RUNTIME for Argo sync/health and pods Ready only (see `EVIDENCE_SCOPE`: no route, DNS, TLS); `REVISION=NOT_PROVEN`. FAIL: read `LAST_ERROR`, then `queries.md`; with cluster access `just investigate <app>`.
-7. Absent series = FAIL, not health. First check the Application name and that it exists in Git (a typo gives the same result). Only then suspect a collection gap and fix the Alloy allowlist (homelab `monitoring/alloy/values.yaml`, OKE `clusters/oracle-a1/observability/alloy-values.yaml`) and check the series budget (< 8,000).
+- Descriptors: homelab needs `argocd-app.yaml` in the app folder (ApplicationSet `apps`, Application `app-<name>`; a folder without descriptor generates no Application). OKE uses `argocd-app.oracle-a1.yaml` next to the app's `kustomization.yaml` (`docs/operations/argo-app-descriptor.md`). No data (PVC, CNPG) on OKE before PLT-190.
+- `just verify-delivery` needs no cluster access in a cloud session (Grafana Cloud, `GRAFANA_AGENT_READ_TOKEN`).
+- `VERIFY=PASS` is RUNTIME for Argo sync/health and pods Ready only (see `EVIDENCE_SCOPE`: no route, DNS, TLS); `REVISION=NOT_PROVEN`. FAIL: read `LAST_ERROR`, then `queries.md`; with cluster access `just investigate <app>`.
+- Absent series = FAIL, not health. First check the Application name and that it exists in Git (a typo gives the same result). Only then suspect a collection gap and fix the Alloy allowlist (homelab `monitoring/alloy/values.yaml`, OKE `clusters/oracle-a1/observability/alloy-values.yaml`) and check the series budget (< 8,000).
 
 ## Current platform (for interpreting results)
 
