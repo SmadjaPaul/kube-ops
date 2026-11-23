@@ -140,7 +140,9 @@ if [[ -d $infra_root_dir ]]; then
       (select(.kind != "Namespace" and .metadata.namespace != null) | .metadata.namespace + "\t" + .kind + "/" + .metadata.name)
     ' "$tmp/rendered.yaml" | sed "s|\$| in $src (Application $name, infra-root)|" >>"$tmp/infra-root.$name.ns"
     check_list "$tmp/infra-root.$name.ns" "$project" "Application $name"
-  done < <(yq eval-all --no-doc 'select(.kind == "Application") | .metadata.name + "\t" + (.spec.project // "default") + "\t" + .spec.source.path' "$infra_root_dir"/*.yaml)
+  # yq eval (per document), not eval-all: eval-all crosses the documents and turned 7 Applications
+  # into 7^5 = 16807 lines, one render each (V1 contract stuck for 30 min after #1863).
+  done < <(yq eval --no-doc 'select(.kind == "Application") | .metadata.name + "\t" + (.spec.project // "default") + "\t" + .spec.source.path' "$infra_root_dir"/*.yaml)
 fi
 
 # --- 2. Applications imbriquees ---------------------------------------------------------------
