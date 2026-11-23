@@ -28,6 +28,11 @@ kubeScheduler:
       - action: drop
         sourceLabels: [__name__]
         regex: "scheduler_plugin_execution_duration_seconds_bucket|workqueue_(work|queue)_duration_seconds_bucket|kubernetes_feature_enabled"
+      # Revue séries 2026-11-23 (lot 2): REST client and informer internals,
+      # per-plugin scheduler histograms; no rule, alert or dashboard reads them.
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "rest_client_(rate_limiter_duration|request_duration|request_size|response_size)_.*|informer_(processing_latency_seconds_.*|queued_items)|workqueue_(adds_total|longest_running_processor_seconds|unfinished_work_seconds|retries_total|queue_duration_seconds_.*|work_duration_seconds_.*)|scheduler_(event_handling_duration_seconds_bucket|framework_extension_point_duration_seconds_bucket|plugin_evaluation_total|plugin_execution_duration_seconds_.*|get_node_hint_duration_seconds_bucket|store_schedule_results_duration_seconds_bucket)|authentication_(duration_seconds|token_cache_request_duration_seconds)_.*|authorization_duration_seconds_.*|apiserver_storage_data_key_generation_duration_seconds_bucket|job_controller_job_sync_duration_seconds_.*|go_(gc_heap_.*|sched_.*|gc_pauses_seconds_bucket)"
 kubeControllerManager:
   serviceMonitor:
     https: true
@@ -39,6 +44,10 @@ kubeControllerManager:
       - action: drop
         sourceLabels: [__name__]
         regex: "informer_processing_latency_seconds_bucket|workqueue_(work|queue)_duration_seconds_bucket|kubernetes_feature_enabled"
+      # Revue séries 2026-11-23 (lot 2): see kubeScheduler.
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "rest_client_(rate_limiter_duration|request_duration|request_size|response_size)_.*|informer_(processing_latency_seconds_.*|queued_items)|workqueue_(adds_total|longest_running_processor_seconds|unfinished_work_seconds|retries_total|queue_duration_seconds_.*|work_duration_seconds_.*)|scheduler_(event_handling_duration_seconds_bucket|framework_extension_point_duration_seconds_bucket|plugin_evaluation_total|plugin_execution_duration_seconds_.*|get_node_hint_duration_seconds_bucket|store_schedule_results_duration_seconds_bucket)|authentication_(duration_seconds|token_cache_request_duration_seconds)_.*|authorization_duration_seconds_.*|apiserver_storage_data_key_generation_duration_seconds_bucket|job_controller_job_sync_duration_seconds_.*|go_(gc_heap_.*|sched_.*|gc_pauses_seconds_bucket)"
 
 # Talos disables kube-proxy; Cilium implements kubeProxyReplacement=true.
 # Do not create dead kube-proxy targets or alert KubeProxyDown for a component
@@ -69,6 +78,16 @@ defaultRules:
     kubeApiserverAvailability: false
     kubeApiserverBurnrate: true
     kubeApiserverSlos: false
+    # Revue séries 2026-11-23: recording rules with no reader in any rule,
+    # alert or dashboard (~1.9k series). Raw cAdvisor/apiserver metrics stay.
+    # The histogram_quantile rules need every `le`; the burn-rate rules only
+    # read le=1|5|30, so the other buckets are dropped at scrape.
+    kubeApiserverHistogram: false
+    k8sContainerCpuUsageSecondsTotal: false
+    k8sContainerMemoryCache: false
+    k8sContainerMemoryRss: false
+    k8sContainerMemorySwap: false
+    k8sContainerMemoryWorkingSetBytes: false
 
 # Edge/single-node budget: apiserver exposes ~68k series and accounts for
 # ~2,274 accepted samples/s at the observed 30s scrape cadence (Phase 2).
@@ -94,7 +113,7 @@ grafana:
     metricRelabelings:
       - action: drop
         sourceLabels: [__name__]
-        regex: "grafana_.*_bucket|grafana_feature_toggles_info"
+        regex: "grafana_.*_bucket|grafana_feature_toggles_info|grafana_(access_.*|index_server_.*|apiserver_.*|live_.*|http_.*|storage_server_.*)"
   # The chart's full default catalogue is not the operational interface. The
   # curated ConfigMaps in grafana-catalog.yaml retain the useful signals while
   # keeping upstream metrics, rules and alerting untouched.
@@ -201,6 +220,11 @@ kube-state-metrics:
     - kube_replicaset_status_ready_replicas
     - kube_replicaset_status_replicas
     - kube_replicaset_status_terminating_replicas
+    # Revue séries 2026-11-23 (lot 2): ~9.5k series with no reader (kube_secret_*
+    # also exposes Secret metadata). Alerts keep kube_pod_status_*,
+    # kube_pod_container_status_{ready,restarts_total,waiting_reason,
+    # last_terminated_reason}, kube_job_status_*, kube_deployment_status_*.
+    - "kube_(secret_.*|configmap_(info|created|metadata_resource_version)|endpointslice_(ports|info|created|endpoints)|service_(info|created|spec_type)|pod_(ips|start_time|status_initialized_time|status_ready_time|status_container_ready_time|completion_time|container_state_started|init_container_(info|status_.*|state_started|resource_.*)|spec_volumes_persistentvolumeclaims_readonly|status_disruption_reason)|pod_container_status_(running|terminated|waiting)|namespace_(created|status_phase)|deployment_(created|owner|spec_paused|status_replicas|status_replicas_ready|status_terminating_replicas|spec_strategy_.*)|persistentvolume_(claim_ref|capacity_bytes|created|volume_mode|access_mode)|persistentvolumeclaim_created|volumeattachment_.*|validatingwebhookconfiguration_webhook_clientconfig_service|lease_(owner|renew_time)|poddisruptionbudget_(created|status_pod_disruptions_allowed|status_observed_generation)|job_(complete|info|created|spec_parallelism|spec_completions|status_ready))"
 
 kubeStateMetrics:
   resources:
@@ -217,6 +241,12 @@ kubelet:
     # 30s preserves the existing metric families and 5m rule/dashboard
     # windows while halving cAdvisor's scrape frequency.
     cAdvisorInterval: 30s
+    # Revue séries 2026-11-23: unread kubelet /metrics histograms (~2k series).
+    # Replaces the chart default (csi/storage bucket trimming), now subsumed.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "kubelet_(runtime_operations_duration_seconds_.*|http_requests_duration_seconds_.*|image_pull_duration_seconds_.*|cgroup_manager_duration_seconds_.*|pod_start_.*duration_seconds_bucket|volume_metric_collection_duration_seconds_.*|pleg_pod_relist_duration_seconds_bucket|pleg_relist_interval_seconds_bucket|evented_pleg_.*|pod_status_sync_duration_seconds_bucket|pod_worker_start_duration_seconds_bucket|run_podsandbox_duration_seconds_bucket|topology_manager_.*|certificate_manager_server_rotation_seconds_bucket|containers_per_pod_count_bucket)|storage_operation_duration_seconds_.*|volume_operation_total_seconds_.*|csi_operations_seconds_.*|dra_operations_duration_seconds_.*|authentication_token_cache_request_duration_seconds_.*|apiserver_delegated_auth[nz]_request_duration_seconds_.*|apiserver_storage_data_key_generation_duration_seconds_.*|rest_client_(rate_limiter_duration|request_duration|request_size|response_size|exec_plugin_certificate_rotation_age)_.*|workqueue_(queue|work)_duration_seconds_(bucket)|kubernetes_feature_enabled|go_(gc_heap_.*|sched_.*|gc_pauses_seconds_bucket)"
     # PLT-212 lot 1: kubelet probe latency histograms (~3.5k series) have no
     # consumer. prober_probe_total (probe failures) stays scraped. The cAdvisor
     # drops live in kubelet-cardinality-patch.json (chart defaults preserved).
@@ -235,6 +265,12 @@ prometheusOperator:
       memory: 256Mi
 
 prometheus:
+  serviceMonitor:
+    # Revue séries 2026-11-23: Prometheus self-metrics nobody reads (~1.1k).
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "prometheus_target_sync_length_.*|net_conntrack_dialer_.*|prometheus_http_(request_duration_seconds_bucket|response_size_bytes_bucket)"
   prometheusSpec:
     replicas: 1
     # Persistence sizing evidence (2026-10-21): Prometheus ingests about
@@ -294,6 +330,11 @@ prometheus:
           - source_labels: [__name__, state]
             regex: "node_systemd_unit_state;(activating|active|deactivating|inactive)"
             action: drop
+          # Revue séries 2026-11-23: same unread disk families as in-cluster
+          # node-exporter (~400 series). ZFS dataset counters stay (PLT-417).
+          - source_labels: [__name__]
+            regex: "node_(nfs_requests_total|disk_(discard_time_seconds_total|discarded_sectors_total|discards_completed_total|discards_merged_total|flush_requests_time_seconds_total|flush_requests_total|io_now|reads_merged_total|writes_merged_total|filesystem_info))"
+            action: drop
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname
@@ -313,6 +354,13 @@ prometheus:
     minAvailable: 1
 
 alertmanager:
+  serviceMonitor:
+    # Revue séries 2026-11-23: notification latency histograms and Go runtime
+    # buckets (~360 series); notifications_total/failed_total stay.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "alertmanager_(notification_latency_seconds_.*|http_request_duration_seconds_bucket|http_response_size_bytes_bucket|nflog_query_duration_seconds_bucket|silences_query_duration_seconds_bucket)|go_(gc_heap_.*|sched_.*|gc_pauses_seconds_bucket)"
   # PLT-263: dead-man switch and critical notifications. The two receiver URLs
   # are secrets (Healthchecks ping UUID, ntfy topic): they live only in Doppler
   # cluster/prd, written by OpenTofu (homelab-infra terraform/grafana-cloud),
@@ -379,7 +427,23 @@ alertmanager:
       enabled: false
       minAvailable: 1
 
+coreDns:
+  serviceMonitor:
+    # Revue séries 2026-11-23: proxy/size/programming histograms unread (~180).
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "coredns_(proxy_request_duration_seconds_.*|kubernetes_dns_programming_duration_seconds_.*|dns_request_size_bytes_.*|dns_response_size_bytes_.*|health_request_duration_seconds_bucket)"
+
 prometheus-node-exporter:
+  prometheus:
+    monitor:
+      # Revue séries 2026-11-23: discard/flush/merged/io_now/NFS families have
+      # no reader (~500 series here). Reads/writes/io_time stay.
+      metricRelabelings:
+        - action: drop
+          sourceLabels: [__name__]
+          regex: "node_(nfs_requests_total|disk_(discard_time_seconds_total|discarded_sectors_total|discards_completed_total|discards_merged_total|flush_requests_time_seconds_total|flush_requests_total|io_now|reads_merged_total|writes_merged_total|filesystem_info))"
   # PLT-212 lot 1: ~150 Cilium lxc* host-side veths x ~30 node_network_*
   # families (~4k series) duplicate per-pod cAdvisor network metrics. Physical
   # (eth0), cilium_* and lo interfaces stay exported; the chart's *_excluding_
