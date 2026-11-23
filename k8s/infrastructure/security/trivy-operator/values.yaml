@@ -22,6 +22,12 @@ operator:
   # disk because each Standalone job re-downloads the DBs). Weekly rescan; a new
   # workload revision is still scanned immediately. No alert reads report age.
   scannerReportTTL: 168h
+  # Revue écritures 2026-11-23: in Standalone mode every scan Job re-downloads
+  # the vulnerability DB (1-2 GB written to the Talos system disk per scan, ~110
+  # scans in the weekly TTL wave). The built-in server keeps one DB copy on a
+  # PVC, refreshed by the server itself; scan Jobs only send image layers' metadata.
+  # Rollback: set false (and trivy.mode Standalone).
+  builtInTrivyServer: true
   metricsFindingsEnabled: true
   metricsVulnIdEnabled: false
   metricsExposedSecretInfo: false
@@ -70,7 +76,27 @@ serviceMonitor:
         regex: "trivy_resource_configaudits|trivy_(cluster)?role_(cluster)?rbacassessments|controller_runtime_reconcile_time_seconds_bucket|workqueue_(work|queue)_duration_seconds_bucket"
 
 trivy:
-  mode: Standalone
+  # Overridden to ClientServer by operator.builtInTrivyServer.
+  mode: ClientServer
+  # DB cache (~1 GB, refreshed every ~12 h) on the NVMe-backed class, not on
+  # the HDD pool (keeps `tank` idle at night).
+  storageClassName: longhorn-fast
+  storageSize: 5Gi
+  server:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    # platform-baseline (Kyverno): drop ALL, no privilege escalation.
+    securityContext:
+      privileged: false
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
   slow: true
   severity: "HIGH,CRITICAL"
   ignoreUnfixed: false
