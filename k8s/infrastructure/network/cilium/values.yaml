@@ -40,6 +40,10 @@ operator:
     enabled: true
     serviceMonitor:
       enabled: true
+      # Revue séries 2026-11-23: chart default is 10s. Cilium operator, agent and
+      # Hubble export ~6k series; 30s keeps the [1m] rates of the Hubble
+      # dashboards valid and cuts ~400 samples/s.
+      interval: 30s
       labels:
         release: kube-prometheus-stack
   resources:
@@ -69,6 +73,7 @@ prometheus:
   enabled: true
   serviceMonitor:
     enabled: true
+    interval: 30s
     trustCRDsExist: true
     labels:
       release: kube-prometheus-stack
@@ -115,6 +120,7 @@ hubble:
       - port-distribution
     serviceMonitor:
       enabled: true
+      interval: 30s
       labels:
         release: kube-prometheus-stack
     dashboards:
