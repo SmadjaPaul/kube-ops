@@ -32,7 +32,8 @@ spec:
               valueFrom: { secretKeyRef: { name: invoice-ninja-mysql, key: MYSQL_PASSWORD } }
             - name: MYSQL_ROOT_PASSWORD
               valueFrom: { secretKeyRef: { name: invoice-ninja-mysql, key: MYSQL_ROOT_PASSWORD } }
-          args: [--innodb-buffer-pool-size=256M]
+          # RAM : performance_schema coute ~150-250 Mo residents sans consommateur (revue RAM 23/11).
+          args: [--innodb-buffer-pool-size=256M, --performance-schema=OFF]
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
