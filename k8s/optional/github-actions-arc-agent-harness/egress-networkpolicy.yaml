@@ -1,6 +1,6 @@
 # Default deny egress for every pod of the namespace. Allowed: DNS, GitHub (job protocol, checkout,
-# Actions cache, setup-node manifest and tarballs, gitleaks release download) and registry.npmjs.org
-# (npm install -g @anthropic-ai/claude-code), plus (PLT-453) the Agentgateway Service on 4000/TCP
+# Actions cache, setup-node manifest and tarballs, gitleaks release download), registry.npmjs.org
+# (npm install -g @anthropic-ai/claude-code), pypi.org and files.pythonhosted.org (ruff of validate), plus (PLT-453) the Agentgateway Service on 4000/TCP
 # (pr-triage workflow). The LAN and the Kubernetes API are not allowed.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -13,7 +13,7 @@ metadata:
     app.kubernetes.io/part-of: github-actions-arc
     policy-type: github-actions-arc
 spec:
-  description: "agent-harness ARC runners: DNS, GitHub, registry.npmjs.org and the Agentgateway (4000/TCP)"
+  description: "agent-harness ARC runners: DNS, GitHub, registry.npmjs.org, PyPI and the Agentgateway (4000/TCP)"
   endpointSelector: {}
   egress:
     - toEndpoints:
@@ -50,6 +50,9 @@ spec:
         - matchPattern: "*.actions.githubusercontent.com"
         - matchPattern: "*.blob.core.windows.net"
         - matchName: registry.npmjs.org
+        # validate installs ruff (pip/uv) from PyPI.
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
       toPorts:
         - ports:
             - port: "443"
