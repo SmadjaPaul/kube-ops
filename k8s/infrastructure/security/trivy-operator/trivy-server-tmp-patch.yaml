@@ -1,0 +1,14 @@
+# platform-baseline-emptydir-size-limit: the chart hardcodes `tmp-data` as an
+# unbounded emptyDir (scan cache scratch). Bound it on the node disk.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: trivy-server
+  namespace: trivy-system
+spec:
+  template:
+    spec:
+      volumes:
+        - name: tmp-data
+          emptyDir:
+            sizeLimit: 2Gi

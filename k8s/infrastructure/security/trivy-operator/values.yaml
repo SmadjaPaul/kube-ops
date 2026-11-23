@@ -90,6 +90,13 @@ trivy:
       limits:
         cpu: 500m
         memory: 1Gi
+    # platform-baseline (Kyverno): drop ALL, no privilege escalation.
+    securityContext:
+      privileged: false
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
   slow: true
   severity: "HIGH,CRITICAL"
   ignoreUnfixed: false

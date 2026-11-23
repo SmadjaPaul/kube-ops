@@ -13,3 +13,6 @@ helmCharts:
     namespace: trivy-system
     valuesFile: values.yaml
     includeCRDs: true
+
+patches:
+  - path: trivy-server-tmp-patch.yaml
