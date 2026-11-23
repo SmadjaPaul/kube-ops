@@ -9,6 +9,11 @@ updater:
 recommender:
   enabled: true
   replicas: 1
+  # PLT-417: the default 1m loop writes one VerticalPodAutoscalerCheckpoint and
+  # one VPA status per object every minute (~4.6k + 3.1k etcd writes per 6h,
+  # measured 23/11). Recommendation-only, so a 10m loop only slows the refresh.
+  extraArgs:
+    - --recommender-interval=10m
   podDisruptionBudget:
     enabled: false
   resources:
