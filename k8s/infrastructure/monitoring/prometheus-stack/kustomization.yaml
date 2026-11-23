@@ -11,6 +11,7 @@ resources:
   - grafana-catalog.yaml
   - grafana-resource-efficiency.yaml
   - nvme-endurance-rules.yaml
+  - proxmox-updates-rules.yaml
   - ups-thermal-rules.yaml
   - control-plane-rules.yaml
   - golden-signals-rules.yaml

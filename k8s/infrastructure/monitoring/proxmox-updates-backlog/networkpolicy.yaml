@@ -1,0 +1,40 @@
+# Default-deny egress for the backlog job: in-cluster Prometheus and the
+# Linear API only (plus DNS with the proxy rule toFQDNs needs).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: proxmox-updates-backlog-egress
+  namespace: monitoring
+spec:
+  description: "proxmox-updates-backlog: Prometheus and api.linear.app only"
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: proxmox-updates-backlog
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchName: api.linear.app
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
