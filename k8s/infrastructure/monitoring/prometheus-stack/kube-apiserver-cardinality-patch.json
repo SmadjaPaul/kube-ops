@@ -26,11 +26,10 @@
     "path": "/spec/endpoints/0/metricRelabelings/-",
     "value": {
       "action": "drop",
-      "regex": "apiserver_request_duration_seconds_bucket;(0\\.005|0\\.025|0\\.4|0\\.6|0\\.8|1\\.25|1\\.5|3|4|6|8|15|20|45|60)",
       "sourceLabels": [
-        "__name__",
-        "le"
-      ]
+        "__name__"
+      ],
+      "regex": "^(apiserver_request_duration_seconds_bucket|etcd_request_duration_seconds_bucket)$"
     }
   },
   {
@@ -38,11 +37,11 @@
     "path": "/spec/endpoints/0/metricRelabelings/-",
     "value": {
       "action": "drop",
-      "regex": "apiserver_request_duration_seconds_bucket;(0\\.005|0\\.025|0\\.4|0\\.6|0\\.8|1\\.25|1\\.5|3|4|6|8|15|20|45|60)",
       "sourceLabels": [
         "__name__",
         "le"
-      ]
+      ],
+      "regex": "apiserver_request_sli_duration_seconds_bucket;(0\\.05|10(\\.0)?|60(\\.0)?)"
     }
   }
 ]

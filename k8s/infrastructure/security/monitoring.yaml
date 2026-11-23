@@ -36,6 +36,14 @@ spec:
   - port: metrics-port
     path: /metrics
     interval: 30s
+    # The Kyverno alerts read apiserver_admission_webhook_* and pod readiness,
+    # not kyverno_* histograms. Their buckets (~9.6k series, mostly per-policy
+    # validating_policy_execution) and client_queries_total had no reader.
+    # Counters (admission_requests_total, policy results, reconcile) stay.
+    metricRelabelings:
+    - action: drop
+      sourceLabels: [__name__]
+      regex: "kyverno_.*_duration_seconds_bucket|kyverno_client_queries_total"
 ---
 # Kyverno alerts. Admission webhook health is read from the apiserver side
 # (apiserver_admission_webhook_*, verified live) and from pod readiness, so the
