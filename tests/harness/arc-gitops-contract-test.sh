@@ -66,8 +66,8 @@ scratch_contract() {
     exit 1
   }
 }
-# Scale sets already moved to scratch volumes (PLT-417 lot 1: not the ones that run
-# this repository's own CI, so a broken volume cannot block a revert PR).
+# Every scale set uses scratch volumes (PLT-417). Lot 1 moved the ones that do not run
+# this repository's CI; lot 2 the rest, once a real run had passed on lot 1.
 scratch_scale_sets=(
   github-actions-arc/runner-application.yaml
   github-actions-arc/runner-light-application.yaml
@@ -75,6 +75,9 @@ scratch_scale_sets=(
   github-actions-arc-ha-config/runner-application.yaml
   github-actions-arc-agent-harness/runner-application.yaml
   github-actions-arc-homelab-iac-pilot/runner-application.yaml
+  github-actions-arc-homelab-infra/runner-application.yaml
+  github-actions-arc-kube-ops/runner-application.yaml
+  github-actions-arc-kube-ops-pr/runner-application.yaml
 )
 for runner_file in "${scratch_scale_sets[@]}"; do
   scratch_contract "$repo_root/k8s/optional/$runner_file"
