@@ -414,7 +414,7 @@ kind: ValidatingPolicy
 metadata:
   name: platform-baseline-storage-class-allowed
   annotations:
-    description: "PVC sur longhorn-fast, longhorn-bulk ou oci-bv (k8s/CLAUDE.md, Storage)."
+    description: "PVC sur longhorn-fast, longhorn-bulk, longhorn-bulk-scratch ou oci-bv (k8s/CLAUDE.md, Storage)."
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
@@ -433,8 +433,8 @@ spec:
         !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
   validations:
     - expression: >-
-        has(object.spec.storageClassName) && object.spec.storageClassName in ['longhorn-fast', 'longhorn-bulk', 'oci-bv']
-      message: "Un PVC doit declarer storageClassName parmi longhorn-fast, longhorn-bulk, oci-bv. (storage-class-allowed)"
+        has(object.spec.storageClassName) && object.spec.storageClassName in ['longhorn-fast', 'longhorn-bulk', 'longhorn-bulk-scratch', 'oci-bv']
+      message: "Un PVC doit declarer storageClassName parmi longhorn-fast, longhorn-bulk, longhorn-bulk-scratch, oci-bv. (storage-class-allowed)"
 ---
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy

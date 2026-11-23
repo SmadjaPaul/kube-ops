@@ -27,7 +27,7 @@ Repository rules, Safety and decisions: root `AGENTS.md`. These rules apply to m
 
 ## Storage and backup
 
-- Application PVCs use `longhorn-fast` or `longhorn-bulk` (single-replica, Talos UserVolumes); on oracle-a1 use `oci-bv`. Proxmox CSI is compatibility only, never the default class. No NFS.
+- Application PVCs use `longhorn-fast` or `longhorn-bulk` (single-replica, Talos UserVolumes); on oracle-a1 use `oci-bv`. Disposable scratch (CI workspaces, generic ephemeral volumes) uses `longhorn-bulk-scratch` (bulk tier, `Delete`), never `longhorn-bulk` (`Retain` leaks one volume per pod). Proxmox CSI is compatibility only, never the default class. No NFS.
 - Velero/Kopia with `defaultVolumesToFsBackup: true` backs up PVC state to the R2 BackupStorageLocation `r2` (bucket homelab-backup-velero, prefix `velero/`; never move `archive/hetzner-legacy/`). No CSI snapshots for Proxmox CSI. Large media libraries are not backed up as volumes.
 - Recovery order: Velero restore first, PV retain recovery if it fails.
 - Longhorn backup target: R2 bucket homelab-backup-longhorn.

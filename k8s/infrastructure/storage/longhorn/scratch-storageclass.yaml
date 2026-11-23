@@ -1,0 +1,23 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-bulk-scratch
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+# PLT-417: scratch space for generic ephemeral volumes (ARC runner workspaces
+# and /tmp). The Talos system disk (etcd, kubelet, containerd) shares the
+# single Proxmox NVMe with everything else, and CI writes were ~40 % of the
+# node's disk writes. Keep these writes on the bulk (HDD) tier.
+# Unlike longhorn-bulk (Retain), the PV is deleted with its pod-owned PVC;
+# Retain would leak one detached Longhorn volume per CI job. Never use this
+# class for data that must survive its pod.
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  numberOfReplicas: "1"
+  fsType: ext4
+  dataEngine: v1
+  dataLocality: best-effort
+  diskSelector: bulk

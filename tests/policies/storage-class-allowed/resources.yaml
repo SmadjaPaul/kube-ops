@@ -28,6 +28,19 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  name: longhorn-bulk-scratch
+  namespace: app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn-bulk-scratch
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
   name: oci-bv
   namespace: app
 spec:
