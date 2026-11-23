@@ -4,7 +4,7 @@
     "path": "/spec/endpoints/0/metricRelabelings/-",
     "value": {
       "action": "drop",
-      "regex": "^(apiserver_request_duration_seconds|apiserver_request_body_size_bytes|apiserver_watch_list_duration_seconds|apiserver_response_sizes|apiserver_watch_cache_read_wait_seconds|apiserver_watch_events_sizes|etcd_request_duration_seconds)_bucket$",
+      "regex": "^(apiserver_request_body_size_bytes|apiserver_watch_list_duration_seconds|apiserver_response_sizes|apiserver_watch_cache_read_wait_seconds|apiserver_watch_events_sizes)_bucket$",
       "sourceLabels": [
         "__name__"
       ]
@@ -15,7 +15,7 @@
     "path": "/spec/endpoints/0/metricRelabelings/-",
     "value": {
       "action": "drop",
-      "regex": "^(?:apiserver_request_duration_seconds_(sum|count)|apiserver_request_sli_duration_seconds_sum|apiserver_response_sizes_.*|apiserver_request_body_size_bytes_.*|apiserver_longrunning_requests|apiserver_watch_.*|apiserver_cache_.*|apiserver_storage_(list_.*|objects|consistency_checks_total|events_received_total|transformation_.*|data_key_generation_.*|decode_errors_total)|apiserver_resource_(objects|size_estimate_bytes)|apiserver_init_events_total|apiserver_selfrequest_total|apiserver_request_filter_duration_seconds_.*|apiserver_request_timestamp_comparison_time_.*|apiserver_flowcontrol_.*|apiserver_admission_(controller|step|match_condition)_.*|apiextensions_openapi_.*|etcd_bookmark_total|etcd_request(s_total|_duration_seconds_.*)|watch_cache_capacity|kubernetes_feature_enabled|node_authorizer_.*|authorization_duration_seconds_.*|authentication_(duration_seconds|token_cache_request_duration_seconds)_.*|rest_client_(rate_limiter_duration|request_duration|request_size|response_size)_.*|workqueue_(adds_total|longest_running_processor_seconds|unfinished_work_seconds|retries_total|queue_duration_seconds_.*|work_duration_seconds_.*)|go_(gc_heap_.*|sched_.*|gc_pauses_seconds_bucket))$",
+      "regex": "^(?:apiserver_request_duration_seconds_(sum|count)|apiserver_request_sli_duration_seconds_sum|apiserver_response_sizes_.*|apiserver_request_body_size_bytes_.*|apiserver_longrunning_requests|apiserver_watch_.*|apiserver_cache_.*|apiserver_storage_(list_.*|objects|consistency_checks_total|events_received_total|transformation_.*|data_key_generation_.*|decode_errors_total)|apiserver_resource_(objects|size_estimate_bytes)|apiserver_init_events_total|apiserver_selfrequest_total|apiserver_request_filter_duration_seconds_.*|apiserver_request_timestamp_comparison_time_.*|apiserver_admission_(controller|step|match_condition)_.*|apiextensions_openapi_.*|etcd_bookmark_total|watch_cache_capacity|kubernetes_feature_enabled|node_authorizer_.*|authorization_duration_seconds_.*|authentication_(duration_seconds|token_cache_request_duration_seconds)_.*|rest_client_(rate_limiter_duration|request_duration|request_size|response_size)_.*|workqueue_(adds_total|longest_running_processor_seconds|unfinished_work_seconds|retries_total|queue_duration_seconds_.*|work_duration_seconds_.*)|go_(gc_heap_.*|sched_.*|gc_pauses_seconds_bucket))$",
       "sourceLabels": [
         "__name__"
       ]
@@ -26,7 +26,19 @@
     "path": "/spec/endpoints/0/metricRelabelings/-",
     "value": {
       "action": "drop",
-      "regex": "apiserver_request_sli_duration_seconds_bucket;(0\\.05|0\\.1|10(\\.0)?|60(\\.0)?|\\+Inf)",
+      "regex": "apiserver_request_duration_seconds_bucket;(0\\.005|0\\.025|0\\.4|0\\.6|0\\.8|1\\.25|1\\.5|3|4|6|8|15|20|45|60)",
+      "sourceLabels": [
+        "__name__",
+        "le"
+      ]
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/endpoints/0/metricRelabelings/-",
+    "value": {
+      "action": "drop",
+      "regex": "apiserver_request_duration_seconds_bucket;(0\\.005|0\\.025|0\\.4|0\\.6|0\\.8|1\\.25|1\\.5|3|4|6|8|15|20|45|60)",
       "sourceLabels": [
         "__name__",
         "le"

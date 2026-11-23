@@ -75,6 +75,9 @@ kubeProxy:
 # -> set kubeApiserverBurnrate back to false.
 defaultRules:
   rules:
+    # Revue alertes 2026-11-23: info-only, 22 firing samples in 7 days, limits are
+    # deliberately tight on the single node. Throttling stays visible in dashboards.
+    cpuThrottlingHigh: false
     kubeApiserverAvailability: false
     kubeApiserverBurnrate: true
     kubeApiserverSlos: false
@@ -240,13 +243,16 @@ kubelet:
     # cAdvisor is the largest accepted scrape source (~1,396 samples/s).
     # 30s preserves the existing metric families and 5m rule/dashboard
     # windows while halving cAdvisor's scrape frequency.
-    cAdvisorInterval: 30s
+    # PR revue 2026-11-23: 60s. Every rate() on kubelet/cAdvisor families in
+    # the repo uses a window >= 5m (chart rules included), so 60s is safe.
+    interval: 60s
+    cAdvisorInterval: 60s
     # Revue séries 2026-11-23: unread kubelet /metrics histograms (~2k series).
     # Replaces the chart default (csi/storage bucket trimming), now subsumed.
     metricRelabelings:
       - action: drop
         sourceLabels: [__name__]
-        regex: "kubelet_(runtime_operations_duration_seconds_.*|http_requests_duration_seconds_.*|image_pull_duration_seconds_.*|cgroup_manager_duration_seconds_.*|pod_start_.*duration_seconds_bucket|volume_metric_collection_duration_seconds_.*|pleg_pod_relist_duration_seconds_bucket|pleg_relist_interval_seconds_bucket|evented_pleg_.*|pod_status_sync_duration_seconds_bucket|pod_worker_start_duration_seconds_bucket|run_podsandbox_duration_seconds_bucket|topology_manager_.*|certificate_manager_server_rotation_seconds_bucket|containers_per_pod_count_bucket)|storage_operation_duration_seconds_.*|volume_operation_total_seconds_.*|csi_operations_seconds_.*|dra_operations_duration_seconds_.*|authentication_token_cache_request_duration_seconds_.*|apiserver_delegated_auth[nz]_request_duration_seconds_.*|apiserver_storage_data_key_generation_duration_seconds_.*|rest_client_(rate_limiter_duration|request_duration|request_size|response_size|exec_plugin_certificate_rotation_age)_.*|workqueue_(queue|work)_duration_seconds_(bucket)|kubernetes_feature_enabled|go_(gc_heap_.*|sched_.*|gc_pauses_seconds_bucket)"
+        regex: "kubelet_(runtime_operations_duration_seconds_.*|http_requests_duration_seconds_.*|image_pull_duration_seconds_.*|cgroup_manager_duration_seconds_.*|pod_start_.*duration_seconds_bucket|volume_metric_collection_duration_seconds_.*|pleg_pod_relist_duration_seconds_bucket|evented_pleg_.*|pod_status_sync_duration_seconds_bucket|pod_worker_start_duration_seconds_bucket|run_podsandbox_duration_seconds_bucket|topology_manager_.*|certificate_manager_server_rotation_seconds_bucket|containers_per_pod_count_bucket)|storage_operation_duration_seconds_.*|volume_operation_total_seconds_.*|csi_operations_seconds_.*|dra_operations_duration_seconds_.*|authentication_token_cache_request_duration_seconds_.*|apiserver_delegated_auth[nz]_request_duration_seconds_.*|apiserver_storage_data_key_generation_duration_seconds_.*|rest_client_(rate_limiter_duration|request_duration|request_size|response_size|exec_plugin_certificate_rotation_age)_.*|workqueue_(queue|work)_duration_seconds_(bucket)|kubernetes_feature_enabled|go_(gc_heap_.*|sched_.*|gc_pauses_seconds_bucket)"
     # PLT-212 lot 1: kubelet probe latency histograms (~3.5k series) have no
     # consumer. prober_probe_total (probe failures) stays scraped. The cAdvisor
     # drops live in kubelet-cardinality-patch.json (chart defaults preserved).
