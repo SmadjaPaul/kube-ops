@@ -30,7 +30,7 @@ Fichiers prêts : `scripts/agent-operator-token-renew.sh` (verrou, statuts seule
 Installation (Paul, sur le Mac, une seule fois ; non faite) :
 
 ```sh
-REPO=/Users/paul/Desktop/perso/kube-ops
+REPO="${AGENT_REPOS_ROOT:-$HOME/Developer/agent}/kube-ops"   # clone principal : <local_root>/kube-ops (Atlas repos.yaml)
 sed "s#__REPO__#$REPO#" "$REPO/scripts/launchd/dev.smadja.agent-operator-token-renew.plist" > ~/Library/LaunchAgents/dev.smadja.agent-operator-token-renew.plist
 launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/dev.smadja.agent-operator-token-renew.plist
 bash "$REPO/scripts/agent-operator-token-renew.sh"        # premier renouvellement, attendu : RENEW=PASS

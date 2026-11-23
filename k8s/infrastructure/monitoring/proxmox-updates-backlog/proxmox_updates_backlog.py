@@ -103,7 +103,7 @@ Criticité : sécurité en attente ou redémarrage requis → priorité haute. U
 ## Procédure (poste de Paul, jamais la CI)
 
 ```sh
-cd ~/Desktop/perso/homelab-infra && git pull
+cd "${{AGENT_REPOS_ROOT:-$HOME/Developer/agent}}/homelab-infra" && git pull   # clone principal : <local_root>/homelab-infra (Atlas repos.yaml)
 export ANSIBLE_CONFIG=ansible/ansible.cfg
 # 1. Liste exacte des paquets et garde-fous ZFS, sans rien changer
 ansible-playbook ansible/playbooks/proxmox-upgrade.yml --check
