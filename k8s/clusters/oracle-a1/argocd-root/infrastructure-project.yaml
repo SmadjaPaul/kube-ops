@@ -36,6 +36,7 @@ spec:
     - namespace: baseline-probe
       server: https://kubernetes.default.svc
     - namespace: whoami
+      server: https://kubernetes.default.svc
     - namespace: cloudflared
       server: https://kubernetes.default.svc
     # Post-merge d'OKE (PLT-407) : controleur et ecouteur ARC, pod runner.
