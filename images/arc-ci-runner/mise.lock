@@ -366,18 +366,6 @@ checksum = "sha256:e2edda75bfb089654705cf65a13b58933bfd5f57148e8ebda916f58a2474f
 url = "https://nodejs.org/dist/v26.13.1/node-v26.13.1-win-x64.zip"
 
 [[tools.node]]
-version = "22.23.5"
-backend = "core:node"
-
-[tools.node."platforms.linux-arm64"]
-checksum = "sha256:8bd3dc69eee8f3f226315a80d7d1d4faccf217a4c8fae500168ac2e38f3bdba3"
-url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-linux-arm64.tar.gz"
-
-[tools.node."platforms.linux-x64"]
-checksum = "sha256:c54118104acc524633b5abe106bbf44a53126ec8b4e5fa105cb92b5d7de8a1a1"
-url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-linux-x64.tar.gz"
-
-[[tools.node]]
 version = "24.22.3"
 backend = "core:node"
 
@@ -571,16 +559,6 @@ url = "https://cache.ruby-lang.org/pub/ruby/4.0/ruby-4.0.10.tar.gz"
 [[tools.ruby]]
 version = "4.0.10"
 backend = "core:ruby"
-
-[tools.ruby."platforms.linux-arm64"]
-checksum = "sha256:9439219164752a53618cbb09bf32a685770f2cbc230c28784293e38440a8a382"
-url = "https://github.com/jdx/ruby/releases/download/4.0.10-1/ruby-4.0.10.arm64_linux.tar.gz"
-provenance = "github-attestations"
-
-[tools.ruby."platforms.linux-x64"]
-checksum = "sha256:ca54d2d9204f9f9724f7aa1620b30538723da3a9365d9195951b82fa6765fd4e"
-url = "https://github.com/jdx/ruby/releases/download/4.0.10-1/ruby-4.0.10.x86_64_linux.tar.gz"
-provenance = "github-attestations"
 
 [tools.ruby."platforms.windows-x64"]
 checksum = "sha256:0d8f693bb4027378d2c92c285c0bb405f9825623bfbf2caad0d52acabbd4978c"

@@ -28,7 +28,7 @@ terraform-docs = "0.25.1"
 uv = "0.13"
 # Plusieurs Node : 26 pour homelab-infra, 24 pour website (.node-version),
 # 22 pour agent-harness. Enregistres dans /opt/hostedtoolcache pour setup-node.
-node = ["22.23.5", "24.22.3", "26.13.1"]
+node = ["24.22.3", "26.13.1"]
 # pnpm : la version fait foi dans chaque depot (packageManager de website et son
 # propre mise.lock), pas ici. L'image en porte une copie prechauffee, egale a
 # packageManager de website (la CI de website le verifie). Renovate ne la monte
