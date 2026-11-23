@@ -15,5 +15,8 @@ spec:
   endpoints:
     - port: http
       path: /metrics
-      interval: 30s
+      # Revue séries 2026-11-23: the factory is frozen, none of its factory_*
+      # gauges changed in 24 h (`changes(...[24h]) == 0`), and no alert reads
+      # up{job="factory-platform"}. 2m keeps the Factory dashboards fresh.
+      interval: 2m
       scrapeTimeout: 10s

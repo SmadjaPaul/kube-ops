@@ -12,7 +12,8 @@ spec:
   endpoints:
     - port: http
       path: /metrics
-      interval: 30s
+      # Revue séries 2026-11-23: FactoryTempoDown needs `for: 10m`; 60s is plenty.
+      interval: 60s
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
