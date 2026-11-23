@@ -19,6 +19,13 @@ spec:
     - port: metrics
       scheme: http
       interval: 60s
+      # Revue alertes 2026-11-23: drill and restore clusters are temporary and
+      # their targets have been down since creation (TargetDown noise). Dropped
+      # at target level; their data is not monitored.
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_namespace]
+          regex: "hindsight-restore-drill|pg-shared-oke-drill"
+          action: drop
       metricRelabelings:
         - sourceLabels: [__name__]
           regex: cnpg_(collector|pg_stat_archiver|pg_replication)_.*
