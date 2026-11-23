@@ -73,9 +73,6 @@ chunksCache:
 resultsCache:
   enabled: false
 
-minio:
-  enabled: false
-
 backend:
   replicas: 0
 read:
