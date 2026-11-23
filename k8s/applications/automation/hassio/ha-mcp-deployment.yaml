@@ -6,6 +6,9 @@ metadata:
   labels:
     app.kubernetes.io/name: ha-mcp
     app.kubernetes.io/instance: ha-mcp
+  annotations:
+    # PRD-80: Reloader redemarre ha-mcp quand le CronJob ha-mcp-token-rotate patche le Secret.
+    secret.reloader.stakater.com/reload: "ha-mcp-token"
 spec:
   replicas: 1
   strategy:
