@@ -52,6 +52,10 @@ singleBinary:
 gateway:
   enabled: true
   replicas: 1
+  # Loki chart 21 sets a required podAntiAffinity on the gateway by default.
+  # Single node: the surge pod of a rollout can never schedule next to the old
+  # one (FailedScheduling, rollout stuck). `null` removes the chart default ({} would merge).
+  affinity: null
   verboseLogging: false
   resources:
     requests:
