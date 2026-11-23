@@ -15,7 +15,8 @@
 #       missing from Doppler makes the run fail before CMD starts.
 #
 # Closed list of project/config pairs (every subcommand): infrastructure/prd
-# (default), cluster/prd, apps/prd. Any other pair is refused (exit 64): adding
+# (default), cluster/prd, apps/prd, maison-access/prd (D-2026-11-23-05, tokens of
+# the Maison perimeter). Any other pair is refused (exit 64): adding
 # one is a reviewed change to ALLOWED_SCOPES below, not a runtime option.
 #
 # `doppler secrets set|delete` print the whole secrets table (values included)
@@ -27,7 +28,7 @@ HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 DOPPLER=${DOPPLER_SAFE_BIN:-doppler}
 PROJECT=infrastructure
 CONFIG=prd
-ALLOWED_SCOPES="infrastructure/prd cluster/prd apps/prd"
+ALLOWED_SCOPES="infrastructure/prd cluster/prd apps/prd maison-access/prd"
 ONLY_MAX=16
 only=()
 
