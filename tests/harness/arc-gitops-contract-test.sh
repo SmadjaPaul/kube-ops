@@ -52,6 +52,39 @@ for pattern in "${required_patterns[@]}"; do
   }
 done
 
+# PLT-417: every ARC scale set keeps its heavy scratch writes off the Talos system
+# disk (etcd shares it): any `ephemeral` volume must use longhorn-bulk-scratch
+# (bulk tier, reclaimPolicy Delete; longhorn-bulk is Retain and would leak one
+# volume per job), and /tmp plus the runner's heavy dirs must not be the container layer.
+scratch_contract() {
+  local file=$1 name classes tmp_mounted
+  name="$(yq eval '.metadata.name' "$file")"
+  classes="$(yq eval '[.spec.source.helm.valuesObject.template.spec.volumes[] | select(has("ephemeral")) | .ephemeral.volumeClaimTemplate.spec.storageClassName] | unique | join(",")' "$file")"
+  tmp_mounted="$(yq eval '[.spec.source.helm.valuesObject.template.spec.containers[] | select(.name == "runner") | .volumeMounts[] | select(.mountPath == "/tmp") | .name] | join(",")' "$file")"
+  [[ "$classes" == 'longhorn-bulk-scratch' && "$tmp_mounted" == 'tmp' ]] || {
+    printf 'ARC_GITOPS_CONTRACT=FAIL scratch app=%s classes=%s tmp_mounted=%s\n' "$name" "$classes" "$tmp_mounted" >&2
+    exit 1
+  }
+}
+# Scale sets already moved to scratch volumes (PLT-417 lot 1: not the ones that run
+# this repository's own CI, so a broken volume cannot block a revert PR).
+scratch_scale_sets=(
+  github-actions-arc/runner-application.yaml
+  github-actions-arc/runner-light-application.yaml
+  github-actions-arc-website/runner-application.yaml
+  github-actions-arc-ha-config/runner-application.yaml
+  github-actions-arc-agent-harness/runner-application.yaml
+  github-actions-arc-homelab-iac-pilot/runner-application.yaml
+)
+for runner_file in "${scratch_scale_sets[@]}"; do
+  scratch_contract "$repo_root/k8s/optional/$runner_file"
+done
+scratch_class="$repo_root/k8s/infrastructure/storage/longhorn/scratch-storageclass.yaml"
+[[ "$(yq eval '[.reclaimPolicy, .parameters.diskSelector, .volumeBindingMode] | join(",")' "$scratch_class")" == 'Delete,bulk,WaitForFirstConsumer' ]] || {
+  printf 'ARC_GITOPS_CONTRACT=FAIL longhorn-bulk-scratch must be Delete/bulk/WaitForFirstConsumer\n' >&2
+  exit 1
+}
+
 assert_yq() {
   local expression=$1 expected=$2 actual
   actual="$(yq eval-all "$expression" "$rendered")"
@@ -95,7 +128,8 @@ assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .res
 assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .resources.limits.memory" '1Gi'
 assert_yq "$runner_values | .containers[] | select(.name == \"postgres\") | .resources.limits.\"ephemeral-storage\"" '2Gi'
 assert_yq "$runner_values | (.containers | length)" '2'
-assert_yq "$runner_values | ((.volumes // []) | length)" '0'
+# PLT-417: the only volumes are the per-pod scratch volumes (see scratch_contract below).
+assert_yq "$runner_values | [.volumes[].name] | join(\",\")" 'work,tmp'
 
 light_runner_values='select(.kind == "Application" and .metadata.name == "apps-arc-factory-ci-light") | .spec.source.helm.valuesObject'
 assert_yq "$light_runner_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/factory-platform'
@@ -109,13 +143,13 @@ assert_yq "$light_runner_values | .template.spec.securityContext.fsGroup" '1001'
 assert_yq "$light_runner_values | .template.spec.securityContext.runAsGroup" '1001'
 assert_yq "$light_runner_values | .template.spec | has(\"serviceAccountName\")" 'false'
 assert_yq "$light_runner_values | .template.spec | (has(\"hostNetwork\") or has(\"hostPID\") or has(\"hostIPC\"))" 'false'
-assert_yq "$light_runner_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
+assert_yq "$light_runner_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\"))" 'false'
 assert_yq "$light_runner_values | .template.spec.containers[0].resources | [.requests.cpu, .requests.memory, .requests.\"ephemeral-storage\", .limits.cpu, .limits.memory, .limits.\"ephemeral-storage\"] | join(\",\")" \
   '250m,512Mi,512Mi,2,2Gi,4Gi'
 assert_yq "$light_runner_values | (.template.spec.imagePullSecrets | map(.name) | join(\",\"))" 'arc-factory-ghcr-pull'
-# No PostgreSQL (or any other) sidecar and no volume on the light scale set.
+# No PostgreSQL (or any other) sidecar and only the scratch volumes (PLT-417) on the light scale set.
 assert_yq "$light_runner_values | .template.spec.containers | length" '1'
-assert_yq "$light_runner_values | ((.template.spec.volumes // []) | length)" '0'
+assert_yq "$light_runner_values | [.template.spec.volumes[].name] | join(\",\")" 'work,tmp'
 assert_yq "$light_runner_values | .template.spec.containers[0].name" 'runner'
 # The light runner must stay on the exact Factory runner image.
 assert_yq "$light_runner_values | .template.spec.containers[0].image" \
@@ -288,7 +322,8 @@ assert_yq_website "$website_values | .template.spec.securityContext.runAsNonRoot
 assert_yq_website "$website_values | .template.spec.securityContext.runAsUser" '1001'
 assert_yq_website "$website_values | .template.spec | (has(\"serviceAccountName\") or has(\"hostNetwork\") or has(\"imagePullSecrets\"))" 'false'
 assert_yq_website "$website_values | .template.spec.containers | length" '1'
-assert_yq_website "$website_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
+assert_yq_website "$website_values | .template.spec.containers[0] | (has(\"env\") or has(\"envFrom\"))" 'false'
+assert_yq_website "$website_values | [.template.spec.volumes[].name] | join(\",\")" 'work,tmp'
 assert_yq_website "$website_values | .template.spec.containers[0].image | test(\"^ghcr.io/smadjapaul/arc-ci-runner:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$\")" 'true'
 assert_yq_website "$website_values | .template.spec.containers[0].securityContext.allowPrivilegeEscalation" 'false'
 assert_yq_website "$website_values | (.template.spec.containers[0].securityContext.capabilities.drop | join(\",\"))" 'ALL'
@@ -341,8 +376,9 @@ assert_yq_ah "$ah_values | .minRunners" '0'
 assert_yq_ah "$ah_values | .maxRunners" '1'
 assert_yq_ah "$ah_values | .template.spec.automountServiceAccountToken" 'false'
 # PLT-453: the only secret in the runner is the pr-triage Agentgateway key (one optional secretKeyRef
-# env var from the generated copy pr-triage-agentgateway); no envFrom, no volume mount.
-assert_yq_ah "$ah_values | .template.spec.containers[0] | (has(\"envFrom\") or has(\"volumeMounts\"))" 'false'
+# env var from the generated copy pr-triage-agentgateway); no envFrom, only the scratch volume mounts (PLT-417).
+assert_yq_ah "$ah_values | .template.spec.containers[0] | has(\"envFrom\")" 'false'
+assert_yq_ah "$ah_values | [.template.spec.containers[0].volumeMounts[].name] | join(\",\")" 'work,tmp'
 assert_yq_ah "$ah_values | .template.spec.containers[0].env | length" '1'
 assert_yq_ah "$ah_values | .template.spec.containers[0].env[0] | [.name, .valueFrom.secretKeyRef.name, .valueFrom.secretKeyRef.optional, has(\"value\")] | join(\",\")" 'PR_TRIAGE_AGENTGATEWAY_KEY,pr-triage-agentgateway,true,false'
 assert_yq_ah 'select(.kind == "CiliumNetworkPolicy") | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toEntities[]?] | length' '0'
