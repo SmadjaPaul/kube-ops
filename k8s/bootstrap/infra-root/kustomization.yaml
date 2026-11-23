@@ -17,3 +17,4 @@ resources:
   - infra-monitoring-loki.yaml
   - infra-monitoring-alloy.yaml
   - infra-monitoring-tempo.yaml
+  - infra-monitoring-proxmox-updates-backlog.yaml
