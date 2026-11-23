@@ -177,3 +177,23 @@ spec:
         protocol: UDP
       - port: "53"
         protocol: TCP
+---
+# PLT-470: CNPG metrics exporter (:9187) scraped by Prometheus in monitoring.
+# The authentik-postgresql-restored ingress policy only opened 5432/8000, so the target was up == 0.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: authentik-postgresql-restored-metrics
+  namespace: auth
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: authentik-postgresql-restored
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9187"
+              protocol: TCP

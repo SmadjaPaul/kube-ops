@@ -48,3 +48,23 @@ spec:
         - matchPattern: "homelab-backup-cnpg.*.eu.r2.cloudflarestorage.com"
       toPorts:
         - ports: [{port: "443", protocol: TCP}]
+---
+# PLT-470: CNPG metrics exporter (:9187) scraped by Prometheus in monitoring.
+# The hindsight-db ingress policy only opened 5432/8000, so the target was up == 0.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: hindsight-db-metrics
+  namespace: hindsight-personal
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: hindsight-db
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9187"
+              protocol: TCP
