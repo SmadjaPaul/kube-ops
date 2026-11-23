@@ -5,6 +5,8 @@ metadata:
   namespace: auth
   labels:
     app.kubernetes.io/name: authentik
+    # Prometheus selects PodMonitors by this label (podMonitorSelector).
+    release: kube-prometheus-stack
 spec:
   selector:
     matchLabels:
