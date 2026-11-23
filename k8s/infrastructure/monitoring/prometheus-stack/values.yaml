@@ -5,17 +5,18 @@
 # patch (default 127.0.0.1 gave `up == 0`) and they serve self-signed TLS.
 # Until that patch is applied the three targets stay down (KubeSchedulerDown
 # etc. already fire for the two static pods today).
+#
+# etcd is scraped by the static `kube-etcd` job in additionalScrapeConfigs, not
+# by the chart's Service + static Endpoints: Argo CD excludes Endpoints and
+# EndpointSlice (argocd-cm resource.exclusions), so the chart's Endpoints object
+# was never applied and the target list stayed empty for 54 days. enabled stays
+# true so the chart's etcd PrometheusRule keeps rendering.
 kubeEtcd:
   enabled: true
-  endpoints:
-    - 10.0.20.60
   service:
-    enabled: true
-    port: 2381
-    targetPort: 2381
+    enabled: false
   serviceMonitor:
-    scheme: http
-    interval: 30s
+    enabled: false
 kubeScheduler:
   serviceMonitor:
     https: true
@@ -264,6 +265,20 @@ prometheus:
     # Default collectors read kernel counters/hwmon; NVMe health comes from the
     # host textfile collector (nvme_*, read-only smart-log, PLT-216); no smartctl.
     additionalScrapeConfigs:
+      # PLT-417: etcd metrics (plain HTTP, listen-metrics-urls on the node IP).
+      # job_name must stay `kube-etcd`: the Alloy federate allowlist and the
+      # control-plane alerts select job="kube-etcd".
+      - job_name: kube-etcd
+        scrape_interval: 30s
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["10.0.20.60:2381"]
+            labels:
+              node: homeops-01
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: "etcd_.*|process_(resident_memory_bytes|cpu_seconds_total|open_fds)"
+            action: keep
       - job_name: proxmox-host
         scrape_interval: 30s
         metrics_path: /metrics
