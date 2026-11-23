@@ -64,6 +64,7 @@ spec:
             severity: warning
             root_cause_layer: argocd_ownership
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdorphanedresourcespresent
             summary: "Argo CD reports orphaned resources"
             description: "Project {{ $labels.project }} reports {{ $value | printf \"%.0f\" }} de-duplicated orphaned resources. Classify ownership before deleting anything."
         - alert: ArgoCDOrphanedResourcesGrowing
@@ -73,6 +74,7 @@ spec:
             severity: warning
             root_cause_layer: argocd_ownership
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdorphanedresourcesgrowing
             summary: "Argo CD orphaned-resource count is growing"
             description: "Project {{ $labels.project }} has a higher de-duplicated orphan count than 30 minutes ago. Investigate sync, ownership and controller-created children before cleanup."
 ---
@@ -99,6 +101,7 @@ spec:
             severity: warning
             root_cause_layer: argocd_application
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdapplicationdegraded
             summary: "Argo CD application Degraded"
             description: "Application {{ $labels.name }} (project {{ $labels.project }}) has been Degraded for 5 minutes."
         - alert: ArgoCDApplicationOutOfSync
@@ -108,6 +111,7 @@ spec:
             severity: warning
             root_cause_layer: argocd_application
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdapplicationoutofsync
             summary: "Argo CD application OutOfSync"
             description: "Application {{ $labels.name }} (project {{ $labels.project }}) has been OutOfSync for 15 minutes."
         - alert: ArgoCDApplicationSyncFailed
@@ -117,5 +121,6 @@ spec:
             severity: warning
             root_cause_layer: argocd_application
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdapplicationsyncfailed
             summary: "Argo CD sync failed"
             description: "Application {{ $labels.name }} (project {{ $labels.project }}) had a failed sync in the last 15 minutes."

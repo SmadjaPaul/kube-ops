@@ -24,6 +24,7 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#etcdwalfsyncslow
             summary: "etcd WAL fsync p99 is {{ $value | humanizeDuration }}"
             description: >-
               etcd waits on the system disk (etcd recommends p99 under 10 ms).
@@ -40,6 +41,7 @@ spec:
           labels:
             severity: info
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#etcddatabasefragmented
             summary: "etcd database is more than 50 % free space inside the file"
             description: >-
               A defragmentation (`talosctl etcd defrag`) would shrink the file.
@@ -51,6 +53,7 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#controlplanecomponentrestarting
             summary: "{{ $labels.pod }} restarted {{ $value | humanize }} times in 1 h"
             description: >-
               The component loses its leader lease (etcd or apiserver too slow

@@ -156,6 +156,7 @@ prometheusRule:
       labels:
         severity: warning
       annotations:
+        runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#v1userreadysyntheticprobefailed
         summary: "V1 user-ready synthetic probe is failing"
         description: "Blackbox target {{ $labels.instance }} has failed for 10 minutes."
     - alert: AIOStreamsRouteProbeFailed
@@ -166,5 +167,6 @@ prometheusRule:
         service: aiostreams
         root_cause_layer: gateway_or_public_network
       annotations:
+        runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#aiostreamsrouteprobefailed
         summary: "AIOStreams route probe is failing"
         description: "AIOStreams DNS/TLS/HTTP route has failed for 10 minutes; correlate with the internal health and application signals."

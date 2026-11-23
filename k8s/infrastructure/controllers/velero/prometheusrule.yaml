@@ -9,6 +9,7 @@ spec:
       rules:
         - alert: VeleroBackupFailure
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#velerobackupfailure
             description: >-
               Velero backup {{ $labels.schedule }} has failed.
               Check velero backup logs for details.
@@ -20,6 +21,7 @@ spec:
             severity: warning
         - alert: VeleroBackupPartialFailure
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#velerobackuppartialfailure
             description: >-
               Velero backup {{ $labels.schedule }} completed with partial failures,
               which often indicates storage issues.
@@ -31,6 +33,7 @@ spec:
             severity: warning
         - alert: VeleroBackupNotRunRecently
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#velerobackupnotrunrecently
             description: >-
               No successful Velero backup has completed in the last 48 hours.
               This may indicate storage full, scheduler issues, or broken repositories.
@@ -42,6 +45,7 @@ spec:
             severity: critical
         - alert: VeleroScheduleNeverSucceeded
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#veleroscheduleneversucceeded
             description: >-
               Velero schedule {{ $labels.schedule }} has attempted backups in the last
               24 hours but has never produced a successful one (no

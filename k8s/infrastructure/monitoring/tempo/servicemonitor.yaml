@@ -32,6 +32,7 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#factorytempodown
             summary: "Tempo trace backend unavailable"
         - alert: FactoryDBTJobFailed
           expr: kube_job_status_failed{namespace="factory-platform",job_name=~"factory-platform-dbt.*"} > 0
@@ -39,4 +40,5 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#factorydbtjobfailed
             summary: "Factory dbt v2 run failed; serving marts may be stale"
