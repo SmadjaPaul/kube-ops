@@ -371,6 +371,20 @@
       "separateMajorMinor": true
     },
     {
+      "description": "Composant critique Meilisearch (index Karakeep) : bloque en 1.46.x, toute mineure exige une migration manuelle de la base (MEILI_UPGRADE_DB ou reconstruction), voir k8s/applications/ai/karakeep/meilisearch-statefulset.yaml",
+      "groupName": null,
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "getmeili/meilisearch"
+      ],
+      "allowedVersions": "/^v1\\.46\\./",
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
       "description": "Composant critique Kubernetes : PR individuelle, 7 jours, revue",
       "groupName": null,
       "matchPackageNames": [
