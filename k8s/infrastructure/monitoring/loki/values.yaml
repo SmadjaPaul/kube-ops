@@ -56,6 +56,11 @@ gateway:
   # Single node: the surge pod of a rollout can never schedule next to the old
   # one (FailedScheduling, rollout stuck). `null` removes the chart default ({} would merge).
   affinity: null
+  # The running pod of the previous ReplicaSet still carries the chart's
+  # anti-affinity, so a surge pod can never schedule on one node. Recreate
+  # stops the old pod first (a few seconds without gateway).
+  deploymentStrategy:
+    type: Recreate
   verboseLogging: false
   resources:
     requests:
