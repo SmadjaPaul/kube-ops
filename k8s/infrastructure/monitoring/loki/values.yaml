@@ -56,11 +56,10 @@ gateway:
   # Single node: the surge pod of a rollout can never schedule next to the old
   # one (FailedScheduling, rollout stuck). `null` removes the chart default ({} would merge).
   affinity: null
-  # The running pod of the previous ReplicaSet still carries the chart's
-  # anti-affinity, so a surge pod can never schedule on one node. Recreate
-  # stops the old pod first (a few seconds without gateway).
-  deploymentStrategy:
-    type: Recreate
+  # Keep the chart's RollingUpdate. Recreate (#1935) broke Argo's server-side
+  # diff: the live object keeps the defaulted spec.strategy.rollingUpdate,
+  # which is Forbidden with type Recreate (infra-monitoring ComparisonError,
+  # PLT-470). With the anti-affinity gone, a surge pod schedules on one node.
   verboseLogging: false
   resources:
     requests:
