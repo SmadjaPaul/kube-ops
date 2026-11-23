@@ -3,3 +3,5 @@
 auth: none
 exceptions:
   auth: "Cloudflare Access family-search (homelab-infra)"
+  observability: "searxng sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  network: "image searxng demarre en root et ecrit hors des volumes montes (cache, uwsgi) : non-root et rootfs read-only non valides sur cluster"

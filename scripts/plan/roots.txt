@@ -20,7 +20,6 @@ k8s/infrastructure/controllers
 k8s/infrastructure/network
 k8s/infrastructure/storage
 k8s/infrastructure/monitoring
-k8s/infrastructure/deployment
 k8s/infrastructure/auth
 k8s/infrastructure/database
 k8s/infrastructure/security
@@ -28,11 +27,19 @@ k8s/infrastructure/previews
 k8s/optional/github-actions-arc
 k8s/optional/github-actions-arc-homelab-infra
 k8s/optional/github-actions-arc-website
+k8s/optional/github-actions-arc-ha-config
+k8s/optional/github-actions-arc-agent-harness
 k8s/optional/github-actions-arc-kube-ops
+k8s/optional/github-actions-arc-kube-ops-pr
 k8s/optional/github-actions-arc-homelab-iac-pilot
-# Oracle-a1 (Applications enfants de k8s/clusters/oracle-a1/apps ; media hors racine)
+# Oracle-a1 : agent-operator, baseline, cilium, external-secrets, guardrails, netbird-router et observability sont reconcilies par l'ApplicationSet infrastructure d'OKE ; les autres
+# dossiers sont des overlays dormants (aucune racine ne les reconcilie, PLT-405), rendus pour memoire.
 k8s/clusters/oracle-a1/agent-operator
+k8s/clusters/oracle-a1/arc-controller
+k8s/clusters/oracle-a1/arc-runner
+k8s/clusters/oracle-a1/baseline
 k8s/clusters/oracle-a1/cert-manager
+k8s/clusters/oracle-a1/cilium
 k8s/clusters/oracle-a1/cloudflared
 k8s/clusters/oracle-a1/cnpg-barman-plugin
 k8s/clusters/oracle-a1/cnpg-cluster

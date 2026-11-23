@@ -47,5 +47,38 @@ for cronjob in "${cronjobs[@]}"; do
   }
 done
 
+# Applications queried by the inventory come from Git: one app-<name> per descriptor (migrated app),
+# never an apps-<domain> (ApplicationSet `applications` removed, PLT-394), never a hardcoded domain.
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+mkdir -p "$tmp/k8s/bootstrap/argocd-root" "$tmp/k8s/applications/tools/it-tools" "$tmp/k8s/applications/media/jellyfin"
+cat >"$tmp/k8s/applications/tools/it-tools/argocd-app.yaml" <<'YAML'
+name: it-tools
+namespace: it-tools
+YAML
+cat >"$tmp/k8s/applications/media/jellyfin/kustomization.yaml" <<'YAML'
+resources: []
+YAML
+listed="$(ARGO_ORPHAN_REPO_ROOT="$tmp" bash scripts/argo-orphan-inventory.sh --list-applications)"
+for expected in $'app-it-tools\tapps\tapps' $'root\tbootstrap\troot' $'infra-controllers\tinfrastructure\tinfrastructure'; do
+  grep -qxF -- "$expected" <<<"$listed" || {
+    echo "ERROR: inventory does not query expected Application: ${expected%%$'\t'*}" >&2
+    exit 1
+  }
+done
+if grep -q '^apps-' <<<"$listed"; then
+  echo "ERROR: inventory queries an apps-<domain> Application although the ApplicationSet applications is removed" >&2
+  exit 1
+fi
+printf 'project: platform-x\nname: other\nnamespace: other\n' >"$tmp/k8s/applications/tools/it-tools/argocd-app.yaml"
+grep -qxF $'app-other\tplatform-x\tapps' < <(ARGO_ORPHAN_REPO_ROOT="$tmp" bash scripts/argo-orphan-inventory.sh --list-applications) || {
+  echo "ERROR: descriptor project not honored" >&2
+  exit 1
+}
+if grep -q 'collect_orphans apps-' scripts/argo-orphan-inventory.sh; then
+  echo "ERROR: hardcoded domain Application in the orphan inventory" >&2
+  exit 1
+fi
+
 bash -n scripts/argo-orphan-inventory.sh
 echo "ARGO_ORPHAN_STATIC_CONTRACT=PASS"

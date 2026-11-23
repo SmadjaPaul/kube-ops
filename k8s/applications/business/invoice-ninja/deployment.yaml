@@ -17,7 +17,10 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: wait-dependencies
-          image: busybox:1.37.0
+          image: busybox:1.37.0@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh

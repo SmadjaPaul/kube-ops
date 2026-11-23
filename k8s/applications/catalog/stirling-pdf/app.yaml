@@ -30,7 +30,10 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: fix-volume-permissions
-          image: busybox:1.37
+          image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
           command: ["sh", "-c"]
           args:
             - >-
@@ -54,11 +57,24 @@ spec:
             - { name: storage, mountPath: /storage }
       containers:
         - name: stirling-pdf
-          image: stirlingtools/stirling-pdf:3.0.0
+          image: stirlingtools/stirling-pdf:3.4.0@sha256:972ffc10fbd63a9e7178253a49050c7658e0d4e03b2701005c3e12e210d2e068
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            failureThreshold: 3
           env:
             - { name: SECURITY_ENABLELOGIN, value: "false" }
             - { name: PUID, value: "1001" }
             - { name: PGID, value: "1001" }
+            # RAM : JVM inactive ~675 Mo ; GC serie et heap rendu a l'OS (revue RAM 23/11).
+            - { name: JAVA_TOOL_OPTIONS, value: "-XX:+UseSerialGC -XX:MaxRAMPercentage=50 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30 -Xss512k" }
           ports:
             - { name: http, containerPort: 8080 }
           securityContext:

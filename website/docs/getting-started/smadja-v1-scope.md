@@ -48,11 +48,11 @@ V1 uses Doppler, not Bitwarden Secrets Manager.
 - Cilium, Gateway API, Argo CD, cert-manager, External Secrets, Proxmox CSI, CNPG and the useful upstream security/observability baseline;
 - Authentik as central identity;
 - Migadu retained as hosted mail and SMTP transport, including Authentik outbound mail;
-- Home Assistant and MQTT; Zigbee2MQTT and Matter Server remain in-repo but are deferred until Smadja-specific coordinator/BLE/LB bindings are proven;
+- Home Assistant and MQTT; Matter Server remains in-repo but is deferred until Smadja-specific coordinator/BLE/LB bindings are proven;
 - Immich and the selected media/personal applications;
 - OpenWebUI, LiteLLM, OpenCode, OpenClaw, Qdrant, GPT Researcher, Pocket-TTS and Whisper ASR;
 - one replica wherever extra replicas provide no useful availability on the single physical host;
-- Hetzner Object Storage in `fsn1` as the single V1 offsite S3 backend;
+- Cloudflare R2 (jurisdiction eu) as the single V1 offsite S3 backend;
 - continuous CNPG WAL archiving plus weekly base backups with a 14-day recovery window;
 - Velero/Kopia daily filesystem backups for enabled stateful workloads with 14-day TTL.
 
@@ -82,7 +82,7 @@ legacy cluster destroy
   -> CNPG / Authentik
   -> personal applications
   -> AI / media / home automation
-  -> CNPG WAL + Velero backups to Hetzner
+  -> CNPG WAL + Velero backups to Cloudflare R2
   -> Cloudflare public edge
   -> restore proof
 ```

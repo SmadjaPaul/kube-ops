@@ -2,11 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- project.yaml
 # Frigate was retired as an unused hardware-dependent workload (PLT-46).
 - mqtt
 - hassio
-# Deferred: upstream coordinator binding 10.0.10.160 is not a Smadja hardware contract.
-# - zigbee2mqtt
+- music-assistant
 # Deferred: upstream BLE/LB binding requires local hardware/address allocation.
 # - matter-server

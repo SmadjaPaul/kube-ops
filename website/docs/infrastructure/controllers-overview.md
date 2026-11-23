@@ -60,17 +60,6 @@ This document outlines the core infrastructure controllers deployed in the Kuber
 - Default reclaim policy set to `Retain`
 - Storage overprovisioning
 
-### Kubechecks
-
-- **Purpose**: Validate ArgoCD applications via policy checks
-- **Version**: Latest stable (automated by Renovate)
-- **Features**:
-  - Schema validation
-  - GitHub integration
-  - Custom webhook support
-  - Writable `/tmp` mount to support repo clones
-  - Optional OpenAI summaries (disabled)
-
 ### Velero
 
 - **Purpose**: Cluster backup and restore
@@ -111,7 +100,6 @@ High-Availability Profile:
 | cert-manager     | 75m         | 96Mi           | 75m       | 96Mi         |
 | External Secrets | 80m         | 100Mi          | 80m       | 100Mi        |
 | Longhorn Manager | 250m        | 256Mi          | 250m      | 256Mi        |
-| Kubechecks       | 200m        | 256Mi          | 500m      | 512Mi        |
 
 ## High availability
 

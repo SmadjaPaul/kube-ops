@@ -1,0 +1,4 @@
+name: agentgateway
+namespace: agentgateway
+postMerge: notify
+preview: false

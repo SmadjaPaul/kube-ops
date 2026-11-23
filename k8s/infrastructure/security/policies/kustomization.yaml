@@ -3,6 +3,4 @@ kind: Kustomization
 resources:
   - platform-baseline.yaml
   - eso-k8s-store-guard.yaml
-  - templates/k8spspprohibited.yaml
-  - gatekeeper-constraints.yaml
   - falco-custom-rules.yaml

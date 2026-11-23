@@ -4,7 +4,6 @@ for cmd in kustomize yq jq; do command -v "$cmd" >/dev/null || { echo "ERROR: $c
 
 bash tests/harness/velero-storage-tier-test.sh
 bash tests/harness/velero-resource-modifier-test.sh
-bash tests/harness/cnpg-gap-backup-contract-test.sh
 # PLT-202: restore drills read prod Barman prefixes with a writable key; forbid
 # any archiving/backup/retention configuration in them.
 bash scripts/restore-drill-readonly-contract.sh
@@ -24,6 +23,8 @@ roots=(
   k8s/applications/catalog
   k8s/applications/games
   k8s/infrastructure/controllers
+  # PLT-369: factory-platform-pg2 is checked here (its WAL plugin was retired by PLT-94 lot 7).
+  k8s/applications/platform/factory-platform
 )
 # Rendu partage et parallele (scripts/lib/render-cache.sh)
 bash scripts/lib/render-cache.sh prerender "${roots[@]}"
@@ -65,7 +66,9 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
       namespace:(.metadata.namespace//"default"),
       name:.metadata.name,
       wal:any(.spec.plugins[]?; .isWALArchiver==true),
-      drill:(.metadata.labels["backup.smadja.dev/restore-drill"]=="true")
+      drill:(.metadata.labels["backup.smadja.dev/restore-drill"]=="true"),
+      crashVelero:((.metadata.annotations["backup.smadja.dev/velero-crash-consistent"])//""),
+      forensicFenced:((.metadata.annotations["backup.smadja.dev/forensic-fenced"])//"")
     }
   ] as $clusters |
   [$docs[] |
@@ -77,6 +80,11 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
     {namespace:(.metadata.namespace//"default"),name:.metadata.name}
   ] as $stores |
   ((([$pvcs[]|select(.rebuildable!=true and .excluded!=true)]) + ([$stateful[]|select(.rebuildable!=true)])) | map(.namespace) | unique) as $protectedNamespaces |
+  # Namespaces where a Velero Schedule backs up pod volumes (FS backup) to R2.
+  ([$docs[] |
+    select(.apiVersion=="velero.io/v1" and .kind=="Schedule" and .spec.template.defaultVolumesToFsBackup==true and .spec.template.storageLocation=="r2") |
+    .spec.template.includedNamespaces[]?
+  ] | unique) as $veleroFsNamespaces |
   {
     protectedNamespaces:$protectedNamespaces,
     rebuildablePVCs:[$pvcs[]|select(.rebuildable==true)],
@@ -91,6 +99,11 @@ yq eval-all -o=json -I=0 '.' "$rendered" | jq -s '
       $clusters[] as $c |
       select(
         ($c.drill|not) and
+        # Opt-in exceptions, each on one named Cluster; all other clusters are unchanged:
+        # (a) PLT-369: velero-crash-consistent, in a namespace a Velero FS Schedule to R2 covers;
+        # (b) PLT-168/PLT-252: fenced forensic copy kept on purpose (forensic-fenced).
+        ((($c.crashVelero != "") and (($veleroFsNamespaces|index($c.namespace))!=null))|not) and
+        (($c.forensicFenced != "")|not) and
         (($c.wal|not) or
         (any($backups[]?; .namespace==$c.namespace and .cluster==$c.name)|not) or
         (any($stores[]?; .namespace==$c.namespace)|not))

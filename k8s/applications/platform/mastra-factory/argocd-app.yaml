@@ -1,0 +1,4 @@
+name: mastra-factory
+namespace: mastra-factory
+postMerge: notify
+preview: false

@@ -4,5 +4,4 @@ resources:
   - namespace.yaml
   - externalsecret.yaml
   - networkpolicy.yaml
-  - application.yaml
   - httproute.dormant.yaml

@@ -13,13 +13,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   trivy:
     name: Authorized Polyfin pilot image / linux-amd64
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -44,7 +48,7 @@ jobs:
         with:
           scan-type: image
           image-ref: ${{ steps.target.outputs.image }}
-          version: v0.76.1
+          version: v0.76.2
           scanners: vuln
           vuln-type: os,library
           severity: HIGH,CRITICAL

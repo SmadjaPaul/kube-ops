@@ -38,7 +38,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: meilisearch
-          image: getmeili/meilisearch:v1.46.0
+          image: getmeili/meilisearch:v1.46.0@sha256:2ca7c957b853238addd0352e1e78a24423740356045a6f65973b6373f859f066
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

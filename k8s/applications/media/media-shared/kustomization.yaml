@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Objets de niveau domaine partages par les apps du namespace media (Namespace, PVC media-share,
+# Job de layout). PLT-394 : app dediee app-media-shared (la route polyfin-media est rendue par app-polyfin).
+resources:
+- namespace.yaml
+- media-share-pvc.yaml
+- media-layout-job.yaml

@@ -1,0 +1,4 @@
+name: karakeep
+namespace: karakeep
+postMerge: notify
+preview: false

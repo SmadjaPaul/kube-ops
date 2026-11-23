@@ -31,7 +31,7 @@ The separate admission gates remain:
 
 - Confirm actual Doppler key-name presence, values only within
   the authorized runtime environment; never echo them.
-- Prove independent Hetzner S3 credentials and a denied cross-prefix
+- Prove independent R2 S3 credentials and a denied cross-prefix
   write/read (including CNPG Barman permissions).
 - Prove CNPG bootstrap managed role `sparky_admin` and restricted
   `sparky_app` plus two-user RLS denial; qualified migrations.

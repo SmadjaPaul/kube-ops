@@ -1,125 +1,119 @@
-# Oracle cluster (`oracle-a1`)
+# Oracle cluster (`oracle-a1`, OKE)
 
-Cluster-local Argo CD in pull mode on this repository (D-2026-11-11-17). The
-homelab Argo CD has no access to this cluster; nothing here routes to the LAN.
+Own Argo CD on this repository (D-2026-11-21-01, one Argo CD per cluster, same descriptor contract as the
+homelab, `docs/operations/argo-app-descriptor.md`). Pull mode: the homelab holds no credential of this
+cluster and nothing here routes to the LAN. The cluster was recreated empty on 2026-11-21: OKE BASIC,
+one arm64 A1 node (2 OCPU, 12 GB), CNI `OCI_VCN_IP_NATIVE`, pods `10.248.0.0/16`, services
+`10.249.0.0/16`, private API, no LoadBalancer allowed.
+
+## Layout
 
 | Path | Role |
 | --- | --- |
-| `bootstrap/` | One-time operator `kustomize build --enable-helm k8s/clusters/oracle-a1/bootstrap \| kubectl apply --server-side -f -` (re-run once for CRD establishment): Argo CD, AppProject `oracle-a1`, root Application. Not synced by any Argo CD. |
-| `apps/` | Root Application target (the only path it reads): child Applications, ordered by sync-wave. `cnpg-cluster` and `media` are kept out of `apps/kustomization.yaml` until PLT-190 (backup + restore proven off Oracle). |
-| `guardrails/` | Cost guardrail (PLT-260): ValidatingAdmissionPolicy denying every Service `type: LoadBalancer` (Always Free; the OCI LB quota is set to zero in `terraform/oracle-a1`). |
-| `external-secrets/` | Overlay on the shared ESO + `ClusterSecretStore/doppler-cluster` base. |
-| `cnpg-operator/`, `cnpg-cluster/` | CNPG operator and the single shared `pg-shared` cluster (R2 backup, PLT-190). One `Database` + role per application. |
-| `cert-manager/`, `cnpg-barman-plugin/` | CNPG barman-cloud plugin and its TLS prerequisite (PLT-301). No ACME issuer. |
-| `hindsight/` | Agent memory (D-2026-11-14-03, PLT-301): dedicated CNPG cluster empty database (drill, PLT-303), Hindsight API, R2 backup. In the root. |
-| `cloudflared/` | Outbound-only tunnel (token from Doppler). |
-| `agent-operator/` | PLT-257: read-only agent identity (ServiceAccount `argocd/agent-operator`, ClusterRoles get/list/watch, no Secret, no pods/exec). In the root. Token: `scripts/agent-operator-oke-token.sh --provision` (run by Paul in an OKE admin session), then `kubectl-ro.sh --cluster oracle-a1 ...` reads it from Doppler `KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1`. |
-| `netbird-router/` | PLT-256: NetBird routing peer for the admin path to the API (one `/32`, TCP 6443, group Admin). Namespace `cloudflared`. Out of the root until the one-off setup key `NETBIRD_SETUP_KEY_OKE` exists in Doppler `cluster/prd`; not activated by this change. The OCI Bastion stays the break-glass path. |
-| `media/` | Overlay on the shared `applications/media/{polyfin,aiostreams}` bases. |
-| `observability/` | Grafana Cloud export (PLT-306): kube-state-metrics with a metric allowlist and one Alloy, label `cluster=oracle-a1`, write token `GRAFANA_CLOUD_ORACLE_A1_WRITE_TOKEN`. In the root (PLT-309); no egress policy (flannel does not enforce NetworkPolicy). |
+| `bootstrap/` | Operator bootstrap, never synced: Argo CD (chart 10.3.3, v3.5.1, ApplicationSet controller on, no dex, no notifications), project `bootstrap`, Application `root`. |
+| `argocd-root/` | What `root` reconciles: projects `infrastructure` and `apps`, ApplicationSet `infrastructure` (explicit folder list, Applications `infra-<folder>`), ApplicationSet `apps` (reads `k8s/applications/*/*/argocd-app.oracle-a1.yaml`, Applications `app-<name>`). |
+| `guardrails/` | Baseline: ValidatingAdmissionPolicy denying `Service type: LoadBalancer` (PLT-260, Always Free), and `baseline-pod-hardening` (PLT-405, from #1620): no privileged container, hostNetwork, hostPID, hostIPC or hostPath, including ephemeral containers. Exempt namespaces (binding `NotIn`): `kube-system` (Cilium, CSI, kube-proxy) and `netbird` (hostPath `/var/lib/netbird-router`). Another exemption is a reviewed PR on this binding. |
+| `agent-operator/` | Read-only agent identity (ServiceAccount, RBAC without Secret data). |
+| `external-secrets/` | External Secrets Operator (base `k8s/infrastructure/controllers/external-secrets`) with only the ClusterSecretStore `doppler-cluster`. The overlay removes what OKE cannot run: PrometheusRule and ServiceMonitors (no Prometheus Operator CRD), stores `k8s-auth` and `k8s-databases`. The base is untouched (homelab render identical). |
+| `netbird-router/` | NetBird routing peer `oke-oracle-a1-router` (namespace `netbird`, PSA `privileged`, needs NET_ADMIN/SYS_ADMIN/SYS_RESOURCE) : admin and agent path to the private API (PLT-256). Setup key from ExternalSecret `NETBIRD_SETUP_KEY_OKE` via `doppler-cluster`. Image `netbirdio/netbird:0.83.0` has a `linux/arm64` manifest. |
+| `observability/` | Export to Grafana Cloud (PLT-306): Alloy + kube-state-metrics, label `cluster="oracle-a1"`, no local storage. Secret `alloy-grafana-cloud` from `doppler-cluster`. Revived for `scripts/verify-delivery.sh` (PLT-407). |
+| `cilium/` | Cilium 1.20.5 in CNI chaining on the OCI VCN-native CNI (PLT-384, [Cilium OKE guide](https://docs.cilium.io/en/stable/installation/cni-chaining-oracle-oke/)): `cni.chainingTarget=oci`, `cni.exclusive=false`, native routing, no masquerade, kube-proxy kept, IPAM `cluster-pool` on `100.64.0.0/16` (internal to Cilium; pod IPs still come from the VCN). It only enforces policies (NetworkPolicy, CNP, CCNP). Hubble server in the agent only (no relay, UI or TLS). |
+| `baseline/` | Network baseline (PLT-384): CCNP `deny-imds` (169.254.169.254 on 80/443 denied for every pod; 53 stays open, it is the VCN resolver) with its pair `allow-egress-unisolated` (allow-all egress except namespaces labelled `platform.smadja.dev/egress-isolated=true`), default-deny of the app namespace `whoami`, quotas and LimitRanges, and the CronJob `baseline-probe` (every 15 min, an unprivileged pod checks IMDS refused and whoami reachable; last log line `BASELINE_PROBE=PASS`). Check: `bash tests/oke-baseline/acceptance.sh` (read-only). |
+| `arc-controller/`, `arc-runner/` | Post-merge independent of the homelab (PLT-407). Controller `gha-runner-scale-set-controller` 0.15.0 in `arc-systems`; scale set `kube-ops-oke-arc` (0..1 ephemeral arm64 runner, namespace `arc-runners-oke`, label egress-isolated, closed egress list in `egress-policy.yaml`). The runner's identity is ServiceAccount `kube-ops-post-merge-oke` (read-only RBAC, one named Secret `ntfy-publish-url`); the GitHub App credentials and the ntfy URL come from `doppler-cluster`. Job `verify-oke` of `.github/workflows/post-merge-verify.yaml` runs `scripts/post-merge-verify.sh --only-cluster oracle-a1` there (`KUBECTL_RO_IN_CLUSTER_CLUSTER=oracle-a1`): Argo revision, `app-test --phase runtime`, ntfy on NOTIFY, never a revert. The homelab runner verifies homelab apps only. |
+| `cert-manager/`, `cnpg-operator/`, `cnpg-barman-plugin/` | Shared PostgreSQL stack (PLT-408): CloudNativePG operator (chart 0.28.2), barman-cloud plugin v0.11.0 (WAL archive and base backups to R2), cert-manager v1.21.3 only for the plugin's self-signed gRPC TLS (no ACME issuer). Versions track the homelab base; all images publish `linux/arm64`. |
+| `cnpg-cluster/` | `Cluster pg-shared` (namespace `databases`, 1 instance, PostgreSQL 17.7 pinned by multi-arch index digest, PVC `oci-bv` 50Gi = OCI minimum; boot 50 GB + this volume stay within the 200 GB Free Tier). WAL archive and daily base backup (`ScheduledBackup pg-shared-daily`, 03:50 UTC) to R2 `homelab-backup-cnpg/oracle-a1/pg-shared-v2/` (writer identity via `doppler-cluster`). `serverName pg-shared-v2` because the archive of the cluster destroyed on 21/11 still occupies `oracle-a1/pg-shared/`. The off-Oracle restore is PROVEN (PLT-408 drill, 22/11); the drill imports are removed. |
+| other folders | Legacy overlays (Flannel era: `hindsight`, `media`, `cloudflared`). Reconciled by nothing; stale. Revive one only by adding it to the `infrastructure` ApplicationSet list (and its namespaces to the `apps` project negations) after review, never silently. |
 
-## Current state (PLT-328, 2026-11-15)
+## Bootstrap (once, by Paul or an agent holding an admin kubeconfig)
 
-- Root Application `oracle-a1-root` reads `apps/`. It carries six children:
-  `guardrails`, `external-secrets`, `cert-manager`, `cnpg-operator`,
-  `cnpg-barman-plugin`, `observability`. Last read-only survey (2026-11-15):
-  all `Synced/Healthy`, one arm64 node. This file does not assert it again.
-- Retired from the root (PLT-328, decision of Paul): `ntfy` and `gatus`. Their
-  namespaces are gone and AppProject `oracle-a1` no longer admits them. Alerts
-  go through ntfy.sh (homelab Alertmanager receiver). Doppler keys
-  `ORACLE_A1_NTFY_*` are kept. Rollback: Git revert.
-- PLT-190: `cnpg-cluster` (`pg-shared` + R2 backup + drill database) joins the root for the off-Oracle restore drill. No application data goes there before the restore is proven.
-- PLT-303: `hindsight` joins the root for the drill (empty database + test rows, nothing migrated from the homelab).
-- Not in the root: `media`.
-- Access: the Kubernetes API is private. The only path is an OCI Bastion
-  port-forwarding session (`homelab-bastion`) with a temporary kubeconfig.
-  No ARC runner and no homelab route reaches it. The NetBird path (PLT-256,
-  `10.0.2.3:6443`) serves `kubectl-ro.sh --cluster oracle-a1` once the
-  agent token exists (PLT-257).
-- `bootstrap/project.yaml` is applied by the operator, never synced by Argo CD:
-  a change to it takes effect on the cluster at the next operator bootstrap.
+The API is private: open the OCI Bastion (break-glass) or NetBird path first. Then, from this repository:
 
-Prerequisites outside Git (bootstrap steps, none blocks the static manifests):
-- The OKE cluster (homelab-infra#330, Basic, `FLANNEL_OVERLAY`, pods `10.248.0.0/16`,
-  services `10.249.0.0/16` since the PLT-276 replace; no overlap with the homelab
-  pods `10.244.0.0/16` or services `10.96.0.0/12`) and its `oci-bv` StorageClass; volumes are 50 Gi, the
-  OCI block volume minimum (PLT-183).
-- The `doppler-access-token` Secret in `external-secrets` (created by the operator on
-  the Oracle cluster, never committed). Created by the operator on the Oracle cluster once it is reachable; its presence is runtime evidence, not asserted by this file.
-- Doppler `cluster/prd` keys `ORACLE_A1_POSTGRES_PASSWORD` and
-  `ORACLE_A1_CLOUDFLARE_TUNNEL_TOKEN`: both MISSING when checked (names only).
-  Already present: `APP_POLYFIN_SECRET_KEY`, `APP_AIOSTREAMS_SECRET_KEY`,
-  `APP_AIOSTREAMS_OPERATOR_AUTH`, `APP_AIOSTREAMS_OIDC_CLIENT_SECRET` (the inherited
-  AIOStreams base activates its OIDC patch).
-- Secret rotation (no Reloader on Oracle): change the value in Doppler, wait for the
-  ExternalSecret refresh (1h, or annotate it to force), then restart the consumer
-  (`cloudflared`, `polyfin`, `aiostreams`). For `ORACLE_A1_POSTGRES_PASSWORD`, CNPG
-  applies the new role password from `pg-shared-polyfin`; restart `polyfin` afterwards
-  so it reads the new `polyfin-db-app` URI.
+```
+bash scripts/oke-bootstrap.sh --kubeconfig <admin-kubeconfig> --dry-run   # render only, no API call
+bash scripts/oke-bootstrap.sh --kubeconfig <admin-kubeconfig>
+```
 
-Network: the OKE default CNI is flannel, which does not enforce NetworkPolicy, and
-no Cilium is installed on Oracle. Homelab Cilium policies are removed from the
-overlay and no policy is added; the Argo CD chart NetworkPolicies are inert.
+(`just oke-bootstrap --kubeconfig <file>` is the same.) The script renders `bootstrap/`, applies
+namespace, CRDs and Argo CD, waits for the CRDs, applies project `bootstrap` and `root`, waits for the
+workloads and lists the Argo objects. Idempotent (server-side apply), it never reads or prints a Secret.
+Afterwards `root` pulls `argocd-root/` from `main` and `infra-guardrails`, `infra-agent-operator` and
+`infra-external-secrets` must become Synced/Healthy. Order: Argo CD, ESO, the Doppler token Secret
+(gesture below), then `infra-netbird-router` (it retries until the store is Ready; ESO objects use
+sync-wave 0, the store wave 1) and the NetBird peer appears in group `OKE Routers`.
+Nothing is committed that needs the cluster: merge to `main` first, the Argo CD reads `main`.
 
-## Backup: no application with data may be activated on Oracle
+### One-off gesture by Paul: Doppler token for External Secrets
 
-`pg-shared` is now configured (PLT-190) with the barman-cloud plugin: WAL
-archive and daily base backups to `s3://homelab-backup-cnpg/oracle-a1/pg-shared/`
-(R2, writer identity, 14 days retention), same model as `hindsight-db`. It is
-in `apps/kustomization.yaml` since the activation PR of the drill
-(`docs/operations/pg-shared-oke-backup-drill.md`, manifests in
-`k8s/optional/pg-shared-oke-drill`). D-2026-11-11-17 forbids any single copy of
-data on Oracle without a restore tested off Oracle. Until that restore is
-proven (`NOT_TESTED` today), do not enable any application holding data
-(Polyfin, AIOStreams PVCs, databases) here.
-Open: arm64 digests to confirm at runtime.
+`infra-external-secrets` syncs without it, but the store `doppler-cluster` stays not Ready, so
+`netbird-router` (and any later ExternalSecret) gets no secret until the Secret
+`doppler-access-token` exists in `external-secrets`. It is not in Git. Once the namespace exists
+(created by the Application), create it from a read-only Doppler token of the config that
+`doppler-cluster` serves. The store sets no project: the token decides, and that is `oke/prd`
+(PLT-258: the dedicated config `oke/prd`, only the keys OKE consumes as references to `cluster/prd`, created by `scripts/doppler-oke-config.sh` in homelab-infra; the previous token `oracle-a1-eso-20261115` read all of `cluster/prd` and is revoked once `doppler-cluster` is Ready on the new one). Run it where `kubectl` reaches
+the API (NetBird or Bastion) and `doppler` is logged in as Paul; the value goes through a pipe,
+never to the terminal or a file; the Secret key must be exactly `token`:
 
-Block volume plan (quota 200 GB = boot 50 + 3 x 50 Gi `oci-bv`; unit GB/GiB to
-confirm at plan time): V1 `hindsight-db` (namespace `hindsight`), V2 `pg-shared`
-(namespace `databases`), V3 reserve (dedicated Authentik cluster, or the
-AIOStreams SQLite PVC in `media`). The drill uses no extra volume (restore runs
-on the homelab; the OKE side only adds a database inside `pg-shared`).
+```
+doppler configs tokens create oracle-a1-eso-oke --project oke --config prd --access read --plain \
+  | tr -d '\n' \
+  | kubectl --kubeconfig <admin-kubeconfig> -n external-secrets create secret generic doppler-access-token \
+      --from-file=token=/dev/stdin
+```
 
-## Hindsight (PLT-301, D-2026-11-14-03)
+Check without reading the value: `kubectl -n external-secrets get clustersecretstore doppler-cluster`
+shows `Valid` / `Ready`, then `kubectl -n netbird get externalsecret netbird-router-setup-key`.
 
-Hindsight is the agent memory. The homelab instance (`hindsight-personal`) stays
-the only writer until the cutover.
+Prerequisite in homelab-infra (not here): `terraform/netbird` writes `NETBIRD_SETUP_KEY_OKE` to
+Doppler `infrastructure/prd` by default (`doppler_project`), not to `cluster/prd`. The ExternalSecret
+reads `cluster/prd`, so the key must exist there (set `doppler_project = "cluster"` for that
+secret, or copy it); never widen the OKE token to `infrastructure/prd`, which holds operator
+credentials. The same root creates the setup key bound to the NetBird group `OKE Routers` (one-off,
+`auto_groups`), which is how the pod joins that group; the key must be unused and unexpired when the
+pod first starts (enrolment state then lives in `/var/lib/netbird-router` on the node).
 
-- Database: dedicated CNPG `hindsight/hindsight-db`, bootstrapped EMPTY (initdb +
-  `vector`) for the drill (PLT-303): no homelab data is migrated and the homelab
-  archive is not read. Its own WAL archive and daily base backups go to
-  `s3://homelab-backup-cnpg/oracle-a1/hindsight-db/` (writer identity), never
-  into the homelab prefix.
-- Image: PostgreSQL 17.7 standard trixie pinned to the multi-arch index digest;
-  the homelab pin is the amd64-only manifest.
-- Storage: one `oci-bv` volume of 50 Gi, no WAL volume. Block volumes on the
-  tenancy: node boot volume + `pg-shared` (inactive) + Hindsight stay within
-  the 200 GB Always Free quota.
-- LLM: direct provider call with `APP_HINDSIGHT_OKE_LLM_API_KEY` (no route to
-  the homelab Agentgateway). API and MCP require `Authorization: Bearer` with
-  `APP_HINDSIGHT_MCP_API_KEY` (`ApiKeyTenantExtension`, schema `public`).
-- NetworkPolicy is written but inert under flannel.
-- Exposure: none. The public hostname is a maintained protection; the
-  Cloudflare side is prepared in homelab-infra and stays disabled until Paul
-  authorizes it.
+Then, by Paul: Argo CD admin access is a local account (port-forward only, no ingress); the agent
+identity is `scripts/agent-operator-oke-token.sh --provision` (server and CA are taken from the admin
+session, which must be a private VCN `10.0.x.y` address), then `kubectl-ro.sh --cluster oracle-a1 ...`.
 
-Activation order (each step proven before the next):
-1. OKE bootstrapped (PLT-253, PLT-276), cert-manager and barman plugin Healthy.
-2. Drill (PLT-303): `hindsight.yaml` is in `apps/kustomization.yaml`; test rows
-   seeded; first Oracle base backup Completed on R2.
-3. Off-Oracle restore of `oracle-a1/hindsight-db` on the homelab
-   (`k8s/optional/hindsight-oke-drill`), same fingerprint.
-4. Real data migration from the homelab (separate step, PLT-305), then hostname activation (Paul), then agent cutover.
+## Cilium: rollback
 
-Rollback, in this order (the root prunes only the child Application object,
-which has no resources finalizer, so its resources would keep running):
-1. Git: set `api.replicaCount: 0` in `hindsight/values.yaml`; wait for the API
-   Deployment at 0 replicas.
-2. Git: remove `hindsight.yaml` from the root. The Cluster and its PVC stay
-   (`Prune=false,Delete=false`); deleting them is a separate, explicit
-   operation (a copy, never the only one while the homelab is the writer).
-The homelab instance is never modified from this tree.
+The ApplicationSet keeps resources on deletion (`preserveResourcesOnDeletion`), and the chart leaves
+`/etc/cni/net.d/05-cilium.conflist` on the node (`cni.uninstall: false`, fail-closed). Removing `cilium`
+from the ApplicationSet list is therefore NOT enough. In order:
 
-NetworkPolicy enforcement on OKE (PLT-258) is not a prerequisite of the drill:
-the API requires a Bearer key and PostgreSQL requires a password over TLS.
-It is listed as a residual risk of the hostname activation (PLT-304).
+1. Policies only (Cilium kept): revert the `baseline/` change or remove `baseline` from the list, then delete
+   the two CCNPs with an admin kubeconfig (`kubectl delete ccnp deny-imds allow-egress-unisolated`; delete
+   both together, never `allow-egress-unisolated` alone).
+2. Cilium itself: remove `cilium` (and `baseline`) from the list and merge; with an admin kubeconfig delete
+   the rendered objects (`kustomize build --enable-helm k8s/clusters/oracle-a1/cilium | kubectl delete -f -`).
+3. The conflist stays on the node and new pods would then fail in ContainerCreating: replace the node
+   (cycle the node pool from homelab-infra `terraform/oci`, the node is cattle and the cluster holds no data)
+   or remove `/etc/cni/net.d/05-cilium.conflist` on it. Existing pods keep running throughout.
+
+## Rules
+
+- One cluster per app: `argocd-app.oracle-a1.yaml` or `argocd-app.yaml`, never both.
+- No LoadBalancer (VAP and OCI quota zero); expose through Cloudflare Tunnel only, each hostname a decision of Paul.
+- No application data on this cluster until a restore off Oracle is proven (PLT-190, `docs/operations/pg-shared-oke-backup-drill.md`). Enforced by `scripts/check-argo-app-descriptors.sh` (PVC, CNPG `Cluster`, StatefulSet with volumeClaimTemplates refused); exception: `disposableData: "<reason>"` in the descriptor, for disposable and rebuildable data only. Single infrastructure exception (PLT-408): `cnpg-cluster/` (`pg-shared`), reconciled by the `infrastructure` ApplicationSet, because the off-Oracle restore drill needs a live, archiving cluster on OKE to prove anything; it holds only the drill database until the drill is PROVEN, and its archive goes off Oracle (R2) from the first WAL.
+- Images must have a `linux/arm64` manifest. Single node: PDBs use `maxUnavailable: 1`.
+- Policies are enforced by Cilium (chaining, `cilium/`), and every pod is denied the OCI IMDS (`baseline/`). Limits: a hostNetwork pod (kube-system only) shares the node stack and is not covered; a pod started before the Cilium agent is not a Cilium endpoint until it restarts (`acceptance.sh` lists them as WARN). A new namespace that must not get the default allow-all egress carries `platform.smadja.dev/egress-isolated=true` and its own default-deny. `policy-check.sh` and `app-test.sh` no longer exempt OKE apps: an OKE app carries its own CiliumNetworkPolicy or NetworkPolicy (PLT-405).
+- Secrets: nothing in Git. External Secrets reads Doppler `oke/prd` (references to `cluster/prd`) through `doppler-cluster` with a read-only token that only Paul creates (gesture above). An ExternalSecret of a new app must name a key present in that config.
+
+## Proving the privileged-pod denial (PLT-405)
+
+The agent identity is read-only on OKE (no `create`, and `kubectl-ro.sh` refuses every dry-run), so the real
+admission refusal cannot be shown by an agent.
+
+- Static proof (CI, `oke-baseline` workflow): `tests/oke-baseline/vap-pod-hardening-test.py` evaluates the committed CEL
+  expressions of `guardrails/pod-hardening.yaml` on privileged, hostNetwork, hostPID, hostIPC, hostPath, ephemeral-container
+  and Deployment objects (denied) and on healthy ones (admitted), and checks the binding (Deny, exemptions exactly
+  `kube-system` and `netbird`).
+- Real proof, a gesture for Paul with a write identity (server-side dry-run, nothing is created):
+
+  ```sh
+  kubectl --context <oke-admin> create namespace vap-probe --dry-run=server -o name   # sanity: write identity works
+  kubectl --context <oke-admin> -n default run vap-probe --image=busybox --privileged=true --dry-run=server -o name
+  ```
+
+  Expected: `Error from server (Forbidden): ... ValidatingAdmissionPolicy 'baseline-pod-hardening' ... privileged containers are denied on oracle-a1`.
+  The same command with `-n kube-system` must be admitted (exemption).

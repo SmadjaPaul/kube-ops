@@ -1,0 +1,16 @@
+# Cilium en CNI chaining sur le CNI OCI VCN-native d'OKE (PLT-384, reprise de kube-ops#1620).
+# Doc officielle : https://docs.cilium.io/en/stable/installation/cni-chaining-oracle-oke/
+# Le CNI OCI reste proprietaire du reseau des pods ; Cilium s'ajoute en plugin chaine (generic-veth)
+# et n'apporte que l'application des politiques (NetworkPolicy, CNP, CCNP). kube-proxy est conserve.
+# Rollback : README du cluster, section "Cilium : retour arriere".
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: cilium
+    repo: https://helm.cilium.io
+    version: 1.20.5
+    releaseName: cilium
+    namespace: kube-system
+    includeCRDs: true
+    valuesFile: values.yaml

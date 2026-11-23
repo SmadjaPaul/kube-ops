@@ -1,0 +1,4 @@
+auth: oidc
+auth_probe: /api/users/me
+exceptions:
+  rootfs: "l'image ecrit hors des volumes montes (caches/runtime) : readOnlyRootFilesystem non valide sur cluster ; le reste du securityContext est conforme"

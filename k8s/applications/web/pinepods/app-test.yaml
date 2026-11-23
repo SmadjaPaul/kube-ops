@@ -1,0 +1,4 @@
+auth: none
+exceptions:
+  auth: "login applicatif natif (comptes locaux), pas d'authentification en amont ; route externe pour clients et API"
+  network: "PinePods 0.9.0 tourne en root (utilisateur 911 recree a l'init, Horust) et ecrit hors des volumes montes ; durcissement non-root/rootfs non valide sur cluster"

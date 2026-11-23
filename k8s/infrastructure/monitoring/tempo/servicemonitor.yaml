@@ -12,7 +12,8 @@ spec:
   endpoints:
     - port: http
       path: /metrics
-      interval: 30s
+      # Revue séries 2026-11-23: FactoryTempoDown needs `for: 10m`; 60s is plenty.
+      interval: 60s
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -31,6 +32,7 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#factorytempodown
             summary: "Tempo trace backend unavailable"
         - alert: FactoryDBTJobFailed
           expr: kube_job_status_failed{namespace="factory-platform",job_name=~"factory-platform-dbt.*"} > 0
@@ -38,4 +40,5 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#factorydbtjobfailed
             summary: "Factory dbt v2 run failed; serving marts may be stale"

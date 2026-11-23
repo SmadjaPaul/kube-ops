@@ -8,6 +8,14 @@ kind: Cluster
 metadata:
   name: factory-platform-pg2
   namespace: factory-platform
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    # PLT-369 opt-in read by scripts/backup-coverage-static.py and
+    # scripts/backup-static-contract.sh: the Velero FS backup of the instance PVCs
+    # (defaultVolumesToFsBackup, namespace schedule) is accepted as a crash-consistent
+    # backup, the only PVC-level one for this cluster. Not restore-tested: see
+    # docs/operations/factory-platform-pg2-restore.md before relying on it.
+    backup.smadja.dev/velero-crash-consistent: "PLT-369"
 spec:
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7

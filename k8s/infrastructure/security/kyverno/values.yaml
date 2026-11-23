@@ -6,17 +6,62 @@
 # admission controller keeps the 2 s default: its leader runs the webhook
 # controller that updates webhook rules from policies, and a 60 s delay after
 # a restart could leave a new policy outside the rules (CodeRabbit, #1282).
+# PLT-400: the single admission replica restarted 49 times in 47 h: probes
+# (5 s timeout, liveness failureThreshold 2) timed out while the process was
+# starved on the shared single node (no CPU throttling, no OOM: no CPU limit,
+# peak memory ~140 Mi vs 384 Mi limit), and every restart opened a window where
+# the fail-policy webhook refused admissions (Velero PodVolumeBackups, PLT-392).
+# 3 replicas keep the webhook served during a restart or rollout (the chart then
+# creates the PodDisruptionBudget on its own, minAvailable 1). Only the leader
+# renews the Lease, so extra replicas add no etcd writes (PLT-214 unaffected).
+# The cluster has one node: anti-affinity is only "preferred", HA covers pod
+# restarts, not a node loss.
+# PLT-400 root cause (logs --previous, 22/11): the restarts are not liveness
+# kills (no Unhealthy/Killing event, exit code 0). The leader's Lease renewal
+# fails with "etcdserver: request timed out" (single node, slow etcd fsync); with
+# the 2 s retry period the renew deadline is only 10 s, so the leader loses the
+# lease, the process shuts down gracefully (exit 0) and restarts. A 5 s retry
+# period gives Lease 30 s / renew deadline 25 s: an etcd stall is ridden out.
+# A new policy waits at most 30 s for the webhook rules if the leader dies,
+# and with 3 replicas the webhook keeps answering meanwhile.
 admissionController:
-  replicas: 1
+  replicas: 3
   # PLT-280: chart 3.x reads the admission container's resources under
   # admissionController.container.resources; a top-level resources key is
   # ignored and the chart default (100m) applied. Requests only: the chart's
   # limits (memory 384Mi, no CPU limit) stay as they run today.
+  # PLT-400: CPU request 50m -> 100m (observed peak ~85m) for a fair share
+  # under node CPU contention.
   container:
+    # The chart reads admission flags under container.extraArgs (a top-level
+    # extraArgs key is ignored for this component).
+    extraArgs:
+      leaderElectionRetryPeriod: 5s
     resources:
       requests:
-        cpu: 50m
+        cpu: 100m
         memory: 128Mi
+  # PLT-400: tolerate a slow answer under load instead of killing the pod.
+  livenessProbe:
+    httpGet:
+      path: /health/liveness
+      port: 9443
+      scheme: HTTPS
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 4
+    successThreshold: 1
+  readinessProbe:
+    httpGet:
+      path: /health/readiness
+      port: 9443
+      scheme: HTTPS
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 6
+    successThreshold: 1
   tolerations:
     - key: node.kubernetes.io/disk-pressure
       operator: Exists
@@ -115,12 +160,28 @@ crds:
   install: true
 
 # Features
+# PLT-417: etcd write load on the single node (etcd write latency spikes to
+# 0.5-2 s, scheduler/controller-manager lose their lease). Measured 22/11:
+# ~16 etcd writes/s, of which ~4.6/s Events (14k Event objects, ~7k of them
+# Kyverno PolicyViolation on audit policies) and ~6/s ephemeralreports and
+# policyreports. Violations stay visible in the PolicyReports.
+# The previous `features.logging.omitEvents` key does not exist in chart 3.8
+# (the running args were still the chart default): the right key is
+# `features.omitEvents`.
+# Rollback: remove PolicyViolation from the list, set admissionReports back to
+# true and backgroundScanInterval to 1h.
 features:
-  logging:
-    omitEvents:
-      eventTypes:
-        - PolicyApplied
-        - PolicySkipped
+  omitEvents:
+    eventTypes:
+      - PolicyApplied
+      - PolicySkipped
+      - PolicyViolation
+  # No per-admission EphemeralReport: policy results come from the background
+  # scan (every 6 h instead of 1 h).
+  admissionReports:
+    enabled: false
+  backgroundScan:
+    backgroundScanInterval: 6h
 
 # Configuration
 config:
@@ -181,6 +242,9 @@ config:
         operator: NotIn
         values:
           - kube-system
+          # PLT-400: nothing a policy targets lives there; saves webhook calls.
+          - kube-public
+          - kube-node-lease
     # Exclude objects
     # objectSelector:
     #   matchExpressions:

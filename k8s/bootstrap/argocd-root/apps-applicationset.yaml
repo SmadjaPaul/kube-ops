@@ -1,0 +1,69 @@
+# PLT-394 : une Application Argo CD par application (au lieu d'une par domaine).
+# Contrat du descripteur `argocd-app.yaml` : docs/operations/argo-app-descriptor.md.
+# Ne genere rien tant qu'aucun k8s/applications/<domaine>/<app>/argocd-app.yaml n'existe ;
+# l'ancien ApplicationSet `applications` (une Application par domaine) est supprime.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  namespace: argocd
+  name: apps
+  labels:
+    app.kubernetes.io/part-of: apps
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+    # Le root ne supprime jamais cet ApplicationSet (donc aucune Application generee) par prune.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
+        revision: main
+        files:
+          - path: k8s/applications/*/*/argocd-app.yaml
+  # Retrait sans cascade : supprimer un argocd-app.yaml ou l'ApplicationSet ne supprime
+  # pas les ressources de l'application.
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: 'app-{{ .name }}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/component: 'static-applications'
+        app.kubernetes.io/part-of: apps
+        # dig : valeurs par defaut malgre missingkey=error (acces par fonction, pas par champ).
+        kube-ops.dev/post-merge: '{{ dig "postMerge" "revert" . }}'
+      annotations:
+        # Une Application ne se rafraichit que si un chemin listé change : le dossier de l'app
+        # (`.`) et chaque extraPaths (chemin depuis la racine du depot, prefixe `/`).
+        argocd.argoproj.io/manifest-generate-paths: '.{{ range $p := (dig "extraPaths" (list) .) }};/{{ $p }}{{ end }}'
+    spec:
+      project: '{{ dig "project" "apps" . }}'
+      source:
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+        kustomize: {}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .namespace }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - PruneLast=true
+          - ServerSideApply=true
+          - RespectIgnoreDifferences=true
+          - FailOnSharedResource=true

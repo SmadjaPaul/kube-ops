@@ -18,7 +18,6 @@ platform-baseline-drop-all-capabilities	trilium/Deployment/trilium
 platform-baseline-drop-all-capabilities	velero/DaemonSet/node-agent
 platform-baseline-drop-all-capabilities	velero/Deployment/velero
 platform-baseline-drop-all-capabilities	velero/Job/velero-upgrade-crds
-platform-baseline-emptydir-size-limit	argo-rollouts/Deployment/argo-rollouts
 platform-baseline-emptydir-size-limit	argocd/Deployment/argocd-applicationset-controller
 platform-baseline-emptydir-size-limit	argocd/Deployment/argocd-dex-server
 platform-baseline-emptydir-size-limit	argocd/Deployment/argocd-repo-server
@@ -30,7 +29,6 @@ platform-baseline-emptydir-size-limit	falco/DaemonSet/falco
 platform-baseline-emptydir-size-limit	gpt-researcher/Deployment/ws-rewriter
 platform-baseline-emptydir-size-limit	immich/StatefulSet/immich-redis-master
 platform-baseline-emptydir-size-limit	karakeep/StatefulSet/meilisearch
-platform-baseline-emptydir-size-limit	kubechecks/Deployment/kubechecks
 platform-baseline-emptydir-size-limit	longhorn-system/Deployment/longhorn-ui
 platform-baseline-emptydir-size-limit	metrics-server/Deployment/metrics-server
 platform-baseline-emptydir-size-limit	open-connector/Deployment/open-connector
@@ -84,8 +82,6 @@ platform-baseline-no-privilege-escalation	trilium/Deployment/trilium
 platform-baseline-no-privilege-escalation	velero/DaemonSet/node-agent
 platform-baseline-no-privilege-escalation	velero/Deployment/velero
 platform-baseline-no-privilege-escalation	velero/Job/velero-upgrade-crds
-platform-baseline-no-privileged	csi-proxmox/DaemonSet/proxmox-csi-plugin-node
-platform-baseline-no-privileged	longhorn-system/DaemonSet/longhorn-manager
 platform-baseline-non-root-containers	agent-sandbox-system/Deployment/agent-sandbox-controller
 platform-baseline-non-root-containers	csi-proxmox/DaemonSet/proxmox-csi-plugin-node
 platform-baseline-non-root-containers	falco/DaemonSet/falco
@@ -195,9 +191,7 @@ platform-baseline-require-resources	trivy-system/Deployment/trivy-operator
 platform-baseline-require-resources	velero/DaemonSet/node-agent
 platform-baseline-require-resources	velero/Deployment/velero
 platform-baseline-require-resources	velero/Job/velero-upgrade-crds
-repo-contract-cnp-per-namespace	agent-observers
 repo-contract-cnp-per-namespace	agent-sandbox-system
-repo-contract-cnp-per-namespace	argo-rollouts
 repo-contract-cnp-per-namespace	cert-manager
 repo-contract-cnp-per-namespace	cloudflared
 repo-contract-cnp-per-namespace	cnpg-system
@@ -211,7 +205,6 @@ repo-contract-cnp-per-namespace	sure
 repo-contract-cnp-per-namespace	trivy-system
 repo-contract-cnp-per-namespace	velero
 repo-contract-cnp-per-namespace	vertical-pod-autoscaler
-repo-contract-no-networkpolicy	agent-observers/NetworkPolicy/argocd-mcp
 repo-contract-no-networkpolicy	agent-observers/NetworkPolicy/grafana-mcp-ingress
 repo-contract-no-networkpolicy	argocd/NetworkPolicy/argocd-application-controller
 repo-contract-no-networkpolicy	argocd/NetworkPolicy/argocd-dex-server

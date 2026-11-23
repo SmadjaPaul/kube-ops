@@ -1,12 +1,16 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: agentgateway
   labels: {pod-security.kubernetes.io/enforce: restricted}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: agentgateway-state
   namespace: agentgateway
   labels:
@@ -94,6 +98,21 @@ data:
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
+            # PLT-453: PR triage (agent-harness workflow, ARC runner). Generated key, see pr-triage-key.yaml.
+            - key: "$PR_TRIAGE_AGENTGATEWAY_KEY"
+              metadata:
+                name: pr-triage
+                owner: pr-triage
+              allowedModels:
+                - factory/fast
+              budgets:
+                - name: pr-triage-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 300000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
       models:
         - name: factory/fast
           provider:
@@ -143,7 +162,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: personal-ai-hindsight-1-v1
+        checksum/agentgateway-runtime: pr-triage-1-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -155,10 +174,16 @@ spec:
       containers:
         - name: agentgateway
           image: cr.agentgateway.dev/agentgateway@sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
+          livenessProbe:
+            tcpSocket: { port: llm }
+            periodSeconds: 20
+            failureThreshold: 3
           args: ["-f", "/config/config.yaml"]
           workingDir: /data
           envFrom:
             - secretRef: {name: agentgateway-runtime}
+            # PLT-453: generated key of the pr-triage consumer (pr-triage-key.yaml, sync-wave -5).
+            - secretRef: {name: llm-arc-runners-agent-harness}
           ports:
             - {name: llm, containerPort: 4000}
           readinessProbe:
@@ -226,6 +251,12 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: librechat
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    # PLT-453: ARC runner of agent-harness (pr-triage workflow); the key is checked by the gateway.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: arc-runners-agent-harness
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
   egress:

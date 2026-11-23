@@ -34,7 +34,7 @@ echo "VELERO_STORAGE_TIER_CONTRACT=PASS"
 # explicitly excluded, while the schedule set retains application data and
 # database-specific recovery policies.
 for file in \
-  "$repo_root/k8s/applications/media/media-share-pvc.yaml" \
+  "$repo_root/k8s/applications/media/media-shared/media-share-pvc.yaml" \
   "$repo_root/k8s/applications/ai/gpt-researcher/pvc.yaml" \
   "$repo_root/k8s/applications/web/pinepods/pvc.yaml"; do
   grep -F 'labels:' "$file" >/dev/null

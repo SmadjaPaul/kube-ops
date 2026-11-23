@@ -1,0 +1,4 @@
+name: stirling-pdf
+namespace: stirling-pdf
+postMerge: notify
+preview: false

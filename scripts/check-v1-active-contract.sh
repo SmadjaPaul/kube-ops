@@ -23,7 +23,6 @@ fi
 control_files=(
   scripts/bootstrap-cluster.sh
   k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml
-  k8s/bootstrap/argocd-root/applications-applicationset.yaml
 )
 
 if grep -En 'theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.' "${control_files[@]}"; then
@@ -31,7 +30,7 @@ if grep -En 'theepicsaxguy/homelab|peekoff\.com|10\.25\.150\.' "${control_files[
   exit 1
 fi
 
-for appset in k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml k8s/bootstrap/argocd-root/applications-applicationset.yaml; do
+for appset in k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml; do
   grep -qF "$canonical_repo" "$appset" || {
     echo "ERROR: $appset does not reference the canonical repository" >&2
     exit 1
@@ -62,23 +61,13 @@ grep -q 'path: /var/mnt/k8s-fast' k8s/infrastructure/storage/longhorn/node-homeo
 grep -q 'path: /var/mnt/k8s-bulk' k8s/infrastructure/storage/longhorn/node-homeops.yaml
 grep -q 'cloudflared' k8s/infrastructure/network/kustomization.yaml
 
-# Studio Lechaplais back-office uses the shared Cilium Gateways on a second
-# DNS zone. The route hostname, TLS listeners and certificate must move
-# together; otherwise Gateway API will reject the HTTPRoute at runtime.
-grep -q 'gestion.lechaplais.com' k8s/infrastructure/network/gateway/cert-lechaplais-management.yaml
-for gateway in \
-  k8s/infrastructure/network/gateway/gw-external.yaml \
-  k8s/infrastructure/network/gateway/gw-internal.yaml; do
-  grep -q 'hostname: gestion.lechaplais.com' "$gateway" || {
-    echo "ERROR: $gateway is missing the Studio Lechaplais management listener" >&2
-    exit 1
-  }
-  grep -q 'name: cert-lechaplais-management' "$gateway" || {
-    echo "ERROR: $gateway is missing the Studio Lechaplais TLS certificate reference" >&2
-    exit 1
-  }
-done
-grep -q 'gestion.lechaplais.com' k8s/applications/business/invoice-ninja/service-route.yaml
+# Studio Lechaplais management listener and certificate were retired (PLT-392):
+# no route used gestion.lechaplais.com. They must not come back unused.
+if grep -rq 'lechaplais-management' k8s/infrastructure/network/gateway/; then
+  echo "ERROR: unused lechaplais-management listener/certificate reintroduced" >&2
+  exit 1
+fi
+grep -q 'facture.smadja.dev' k8s/applications/business/invoice-ninja/service-route.yaml
 grep -q 'name: external' k8s/applications/business/invoice-ninja/service-route.yaml
 grep -q 'name: internal' k8s/applications/business/invoice-ninja/service-route.yaml
 
@@ -93,7 +82,7 @@ fi
 
 # Authentik V1 stays on the current stable series and uses upstream-native
 # authentication flows rather than carrying a parallel passwordless graph.
-grep -q 'version: 2026.8.3' k8s/infrastructure/auth/authentik/kustomization.yaml
+grep -q 'version: 2026.8.6' k8s/infrastructure/auth/authentik/kustomization.yaml
 grep -q 'type: ClusterIP' k8s/infrastructure/auth/authentik/values.yaml
 grep -q 'base_url: "https://auth.smadja.dev"' k8s/infrastructure/auth/authentik/values.yaml
 grep -q 'disable_startup_analytics: true' k8s/infrastructure/auth/authentik/values.yaml
@@ -115,7 +104,6 @@ roots=(
   k8s/infrastructure/network
   k8s/infrastructure/storage
   k8s/infrastructure/monitoring
-  k8s/infrastructure/deployment
   k8s/infrastructure/database
   k8s/infrastructure/auth
   k8s/infrastructure/security
@@ -236,7 +224,7 @@ inventory="$(awk '
 # Lot 0 of docs/architecture/secrets-migration-spec.md: the stores k8s-auth and k8s-databases (secrets
 # generated inside the cluster) are active alongside doppler-cluster; their remoteRef keys are Secret
 # names (oidc-<ns>, pg-<ns>), not Doppler keys, so only doppler-cluster keys are checked below.
-bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $3!="doppler-cluster" && $3!="k8s-auth" && $3!="k8s-databases" {print $3}' | sort -u)"
+bad_stores="$(printf '%s\n' "$inventory" | awk '$1=="STORE" && $3!="doppler-cluster" && $3!="k8s-auth" && $3!="k8s-databases" && $3!="k8s-agentgateway" {print $3}' | sort -u)"
 [[ -z "$bad_stores" ]] || {
   echo "ERROR: active ExternalSecrets reference non-Doppler stores:" >&2
   printf '%s\n' "$bad_stores" >&2
@@ -252,12 +240,12 @@ bad_keys="$(printf '%s\n' "$inventory" | awk '$1=="STORE" {st[$2]=$3} $1=="KEY" 
 
 # Backup resources are part of the full desired-state contract. When CNPG
 # object-store resources are active, they must carry an object-storage endpoint:
-# the Hetzner fsn1 URL, or the Cloudflare R2 endpoint injected from Doppler
-# R2_S3_ENDPOINT as AWS_ENDPOINT_URL_S3 (catalog apps moved to R2); credentials
-# remain externally provisioned through Doppler/ESO.
+# the Cloudflare R2 endpoint injected from Doppler R2_S3_ENDPOINT as
+# AWS_ENDPOINT_URL_S3; credentials remain externally provisioned through
+# Doppler/ESO.
 if grep -q '^kind:[[:space:]]*\(ObjectStore\|ScheduledBackup\)[[:space:]]*$' "$rendered"; then
-  grep -qE 'https://fsn1\.your-objectstorage\.com|AWS_ENDPOINT_URL_S3' "$rendered" || {
-    echo "ERROR: active backup resources are missing an object-storage endpoint (Hetzner fsn1 or R2 AWS_ENDPOINT_URL_S3)" >&2
+  grep -q 'AWS_ENDPOINT_URL_S3' "$rendered" || {
+    echo "ERROR: active backup resources are missing an object-storage endpoint (R2 AWS_ENDPOINT_URL_S3)" >&2
     exit 1
   }
 fi

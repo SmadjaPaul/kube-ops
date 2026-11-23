@@ -1,0 +1,21 @@
+# ACTIVE (PLT-301, D-2026-11-20-02, MANDAT 25, PLT-304 option B). Cloudflare Access
+# (hindsight-homelab-mcp, homelab-infra terraform/cloudflare/hindsight-homelab.tf) repond en premier
+# sur memory.smadja.dev ; Hindsight exige un Bearer (ApiKeyTenantExtension). Seul le chemin MCP a
+# banque unique est route ; tout autre chemin recoit le 404 de la Gateway.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hindsight-mcp-agents
+  namespace: hindsight-personal
+spec:
+  parentRefs:
+    - name: external
+      namespace: gateway
+  hostnames:
+    - memory.smadja.dev
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /mcp/agents-homelab/}
+      backendRefs:
+        - name: hindsight-api
+          port: 8888

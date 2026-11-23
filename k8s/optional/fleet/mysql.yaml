@@ -80,6 +80,8 @@ spec:
             - --innodb-buffer-pool-size=256M
             - --skip-log-bin
             - --innodb-flush-log-at-trx-commit=2
+            # RAM : performance_schema coute ~150-250 Mo residents sans consommateur (revue RAM 23/11).
+            - --performance-schema=OFF
           ports:
             - name: mysql
               containerPort: 3306

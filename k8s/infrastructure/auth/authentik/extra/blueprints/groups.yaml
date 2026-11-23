@@ -24,6 +24,16 @@ entries:
     model: authentik_core.group
     identifiers: {name: friends}
     attrs: {name: friends, is_superuser: false}
+  # PLT-176: Studio Lechaplais business data (Invoice Ninja). Not a family app.
+  - id: lechaplais
+    model: authentik_core.group
+    identifiers: {name: lechaplais}
+    # Maureen (runtime account `maureen`, owner of Studio Lechaplais) is the
+    # member. paul reaches the app through the `authentik-admins` binding.
+    attrs:
+      name: lechaplais
+      is_superuser: false
+      users: [!Find [authentik_core.user, [username, "maureen"]]]
   - id: dev
     model: authentik_core.group
     identifiers: {name: dev}

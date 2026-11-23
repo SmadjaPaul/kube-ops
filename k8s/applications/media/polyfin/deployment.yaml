@@ -37,7 +37,7 @@ spec:
       containers:
         - name: polyfin
           # Official upstream release; the linux/amd64 digest is bound by the T2 admission record.
-          image: ghcr.io/moodiness/polyfin:0.61.1@sha256:1e55720ea21bca9448ddbdd80a21251622d21448ee2e31974ad18ae2a9f6c975 # renovate: datasource=docker depName=ghcr.io/moodiness/polyfin
+          image: ghcr.io/moodiness/polyfin:0.85.0@sha256:ea4fd8f69ec8a9e893ddb4d41622b660b5387c3d57be54951fc89930db8dde04 # renovate: datasource=docker depName=ghcr.io/moodiness/polyfin
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

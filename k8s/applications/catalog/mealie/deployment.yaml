@@ -25,7 +25,18 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mealie
-          image: ghcr.io/mealie-recipes/mealie:v3.28.0
+          image: ghcr.io/mealie-recipes/mealie:v3.28.0@sha256:8b02290f4d1806f02acac6f25f6d48a3c965612fda1f8e914d5af533276f8688
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            failureThreshold: 3
           envFrom:
             - secretRef:
                 name: mealie-runtime

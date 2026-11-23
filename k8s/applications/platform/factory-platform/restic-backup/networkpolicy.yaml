@@ -1,0 +1,48 @@
+# PLT-369: egress allowed by THIS policy for the restic-backup pods only:
+#   - R2 over HTTPS (443), by FQDN;
+#   - DNS (53) to kube-dns;
+#   - the pg2 primary (5432), selected by the cnpg.io/cluster label.
+# LIMIT (not repaired here): Cilium policies are additive. The cluster-wide
+# policy clusterwide-dns-kubeapi (k8s/infrastructure/network/policies/clusterwide/
+# allow-cluster-essentials.yaml) also selects these pods and allows toCIDR
+# 10.0.0.0/8 on every port, so the restic pods can reach any 10.0.0.0/8
+# endpoint, not only R2 and pg2. Restricting them needs a change to that shared
+# policy (the MAS exclusion pattern in its endpointSelector), which is outside
+# this PR and must be runtime-tested first. Until then this file documents the
+# intent, not an enforced boundary against 10/8.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factory-platform-restic-backup
+  namespace: factory-platform
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: restic-backup
+  description: "restic logical dumps of factory-platform-pg2 to R2 (PLT-369); additive with clusterwide 10/8 allowance, see file header"
+  egress:
+    - toFQDNs:
+        # R2 EU S3 endpoint; the account id label stays out of this repository.
+        - matchPattern: "*.eu.r2.cloudflarestorage.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: factory-platform
+            cnpg.io/cluster: factory-platform-pg2
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP

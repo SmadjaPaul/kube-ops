@@ -3,6 +3,8 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Backup
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: hindsight-db-r2-initial-20261113
   namespace: hindsight-personal
   labels:

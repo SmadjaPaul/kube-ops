@@ -1,0 +1,6 @@
+name: fleet
+namespace: fleet
+postMerge: notify
+preview: false
+extraPaths:
+  - k8s/optional/fleet

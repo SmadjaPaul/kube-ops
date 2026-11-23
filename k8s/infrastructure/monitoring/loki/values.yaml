@@ -111,5 +111,8 @@ monitoring:
     enabled: false
   serviceMonitor:
     enabled: true
+    # Revue séries 2026-11-23: chart default is 15s; Loki self-metrics are read
+    # through 5m rates only.
+    interval: 60s
     labels:
       release: kube-prometheus-stack

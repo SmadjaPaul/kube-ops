@@ -74,7 +74,7 @@ spec:
     # Formes (A) et (B) : copie lue dans un store, ClusterSecretStore, refreshInterval 1h.
     - name: storeForm
       expression: >-
-        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.kind) && object.spec.secretStoreRef.kind == 'ClusterSecretStore' && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['doppler-cluster', 'k8s-auth', 'k8s-databases'] && has(object.spec.refreshInterval) && object.spec.refreshInterval == '1h'
+        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.kind) && object.spec.secretStoreRef.kind == 'ClusterSecretStore' && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['doppler-cluster', 'k8s-auth', 'k8s-databases', 'k8s-agentgateway'] && has(object.spec.refreshInterval) && object.spec.refreshInterval == '1h'
     # Forme (C) : source generee, valeur creee une seule fois, Secret conserve si l'ExternalSecret disparait (secrets-migration-spec F1, F2).
     - name: generatedForm
       expression: >-
@@ -105,11 +105,11 @@ spec:
   matchConditions:
     - name: reads-a-k8s-store
       expression: >-
-        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['k8s-auth', 'k8s-databases']
+        has(object.spec.secretStoreRef) && has(object.spec.secretStoreRef.name) && object.spec.secretStoreRef.name in ['k8s-auth', 'k8s-databases', 'k8s-agentgateway']
   variables:
     - name: prefix
       expression: >-
-        object.spec.secretStoreRef.name == 'k8s-auth' ? 'oidc-' : 'pg-'
+        object.spec.secretStoreRef.name == 'k8s-auth' ? 'oidc-' : (object.spec.secretStoreRef.name == 'k8s-databases' ? 'pg-' : 'llm-')
     - name: data
       expression: >-
         has(object.spec.data) ? object.spec.data : []
@@ -125,7 +125,7 @@ spec:
       message: "data[].sourceRef est interdit sur k8s-auth et k8s-databases. (eso-k8s-store-own-namespace)"
     - expression: >-
         variables.data.all(d, has(d.remoteRef) && has(d.remoteRef.key) && (d.remoteRef.key == variables.prefix + object.metadata.namespace || d.remoteRef.key.startsWith(variables.prefix + object.metadata.namespace + '--')))
-      message: "remoteRef.key doit valoir <prefixe><namespace> ou <prefixe><namespace>--<usage> (oidc- pour k8s-auth, pg- pour k8s-databases). (eso-k8s-store-own-namespace)"
+      message: "remoteRef.key doit valoir <prefixe><namespace> ou <prefixe><namespace>--<usage> (oidc- pour k8s-auth, pg- pour k8s-databases, llm- pour k8s-agentgateway). (eso-k8s-store-own-namespace)"
 ---
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy

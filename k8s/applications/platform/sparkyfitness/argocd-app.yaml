@@ -1,0 +1,6 @@
+name: sparkyfitness
+namespace: wellness
+postMerge: notify
+preview: false
+extraPaths:
+  - k8s/optional/sparkyfitness

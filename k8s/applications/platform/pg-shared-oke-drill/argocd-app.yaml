@@ -1,0 +1,4 @@
+name: pg-shared-oke-drill
+namespace: pg-shared-oke-drill
+postMerge: notify
+preview: false

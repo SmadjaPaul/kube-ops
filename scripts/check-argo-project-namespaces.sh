@@ -4,7 +4,7 @@
 # Cause des echecs "namespace X is not permitted in project Y" / InvalidSpecError constates apres merge
 # (infra-previews/dns-exact-resolver, arc-runners-kube-ops) : la CI etait verte, la synchro Argo non.
 #
-#   1. ApplicationSets (infrastructure, applications) : chaque namespace des manifestes rendus
+#   1. ApplicationSet infrastructure : chaque namespace des manifestes rendus
 #      (kind Namespace = metadata.name, autres objets = metadata.namespace) des chemins du generateur git
 #      doit correspondre a une destination de template.spec.project.
 #   2. Applications imbriquees (kind: Application sous k8s/, hors bootstrap et clusters/) :
@@ -24,6 +24,8 @@ repo="$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd)"
 root_dir="$repo/k8s/bootstrap/argocd-root"
 [[ -d $root_dir ]] || { echo "ERROR: $root_dir not found" >&2; exit 2; }
 
+# shellcheck source=lib/argo-project-dest.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/argo-project-dest.sh"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 errors=0
@@ -34,7 +36,7 @@ errors=0
 baseline="$repo/scripts/argo-project-namespaces.baseline.tsv"
 baseline_keys="$tmp/baseline.keys"
 : >"$tmp/baseline.seen"
-if [[ -f $baseline ]]; then grep -vE '^(#|$)' "$baseline" | cut -f1,2 >"$baseline_keys"; else : >"$baseline_keys"; fi
+if [[ -f $baseline ]]; then { grep -vE '^(#|$)' "$baseline" || true; } | cut -f1,2 >"$baseline_keys"; else : >"$baseline_keys"; fi
 
 # --- AppProjects : <projet> -> destinations (une par ligne) --------------------------------
 mkdir -p "$tmp/proj"
@@ -46,18 +48,10 @@ while IFS= read -r f; do
   done < <(yq eval-all --no-doc 'select(.kind == "AppProject") | .metadata.name' "$f")
 done < <(grep -rlE '^kind: AppProject' "$repo/k8s" --include='*.yaml' 2>/dev/null | grep -v "^$repo/k8s/clusters/" | sort)
 
-# 0 si le namespace $2 est autorise par le projet $1
+# 0 si le namespace $2 est autorise par le projet $1 (semantique : scripts/lib/argo-project-dest.sh)
 allowed() {
-  local project="$1" ns="$2" pat
-  [[ $project == default ]] && return 0
-  [[ -f $tmp/proj/$project ]] || return 1
-  while IFS= read -r pat; do
-    # shellcheck disable=SC2053
-    [[ -z $pat && -z $ns ]] && return 0
-    # shellcheck disable=SC2053
-    [[ -n $pat && $ns == $pat ]] && return 0
-  done <"$tmp/proj/$project"
-  return 1
+  [[ $1 == default ]] && return 0
+  argo_ns_allowed "$tmp/proj/$1" "$2"
 }
 
 # Verifie une liste "namespace<TAB>origine" ($1) pour le projet $2
@@ -96,7 +90,8 @@ render() {
 }
 
 # --- 1. ApplicationSets -----------------------------------------------------------------------
-for appset in "$root_dir/infrastructure-applicationset.yaml" "$root_dir/applications-applicationset.yaml"; do
+appsets=("$root_dir/infrastructure-applicationset.yaml")
+for appset in "${appsets[@]}"; do
   [[ -f $appset ]] || continue
   base="$(basename "$appset" .yaml)"
   project="$(yq eval '.spec.template.spec.project' "$appset")"

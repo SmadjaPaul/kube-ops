@@ -21,7 +21,7 @@ Pinned first-pilot components:
 - OpenClaw **2026.11.2** official GHCR image, direct upstream-style K8s Deployment,
   no Operator/Enterprise, single writer and port-forward only.
 - Hindsight **1.2.1** official OCI Helm chart + dedicated CNPG 17.7 standard
-  (pgvector) with Barman/Hetzner and no HTTPRoute. Chart's control plane disabled.
+  (pgvector) with Barman on R2 (originally Hetzner) and no HTTPRoute. Chart's control plane disabled.
   The originally qualified 1.2.0 runtime is retained as historical evidence;
   1.2.1 is the corrective release for the MiniMax-compatible reflect schema.
 - LibreChat **0.8.8**, official chart **3.0.0**, bundled authenticated MongoDB,
@@ -112,11 +112,11 @@ ExternalSecrets were not Ready. The exact ESO event observed at
 `secret "hindsight-db-bootstrap" not found`.
 
 This is a delivery blocker, not a Hindsight application success: the
-Terraform declaration was merged in homelab-infra #294, but Atlantis denied
-its pre-workflow admission because
+Terraform declaration was merged in homelab-infra #294, but the former IaC
+executor (Atlantis, since retired for ARC) denied its pre-workflow admission because
 `terraform/doppler/generated-app-secrets.tf` is outside the server allowlist.
-No secret value was read or injected manually. The owner-controlled Atlantis
-allowlist/procedure must be repaired before the CNPG, API, backup, restore and
+No secret value was read or injected manually. The owner-controlled admission
+allowlist/procedure had to be repaired before the CNPG, API, backup, restore and
 user checks can run.
 
 The Hindsight child Application uses automated self-heal with pruning disabled.
@@ -229,9 +229,9 @@ checks and review. ESO, Argo, OIDC, MongoDB restart/reconciliation, A/B
 isolation and restore are post-merge runtime/user gates.
 The active AI root admits the Hindsight-owned `personal-ai-pilot` AppProject
 from `k8s/optional/personal-ai-2026/hindsight/project.yaml`; PR #1181 extends
-that single project and imports the LibreChat subtree together. It must not
-introduce the dormant duplicate
-AppProject from `k8s/optional/personal-ai-2026/project.yaml`.
+that single project and imports the LibreChat subtree together. The former
+dormant duplicate AppProject `k8s/optional/personal-ai-2026/project.yaml` was
+removed (PLT-397); do not recreate it.
 
 The active Velero schedules now include a daily `librechat` namespace schedule
 at `05:50 UTC`, with filesystem volume backup enabled and a 14-day retention.

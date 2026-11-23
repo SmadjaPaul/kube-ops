@@ -51,6 +51,8 @@ else
     git revert --abort >/dev/null 2>&1 || true
     echo "REVERT_PR=CONFLICT reason=revert_does_not_apply_cleanly"; exit 1
   fi
+  # The loop guards of post-merge-verify.sh read the commit message on main, not the PR body (PLT-398).
+  git commit --amend -q -m "$(git log -1 --format=%B)" -m "Post-merge-revert-of: $sha"
 fi
 run git push origin "$branch"
 "$GH" label create "$label" --color B60205 --description "Revert automatique post-merge (PLT-390)" >/dev/null 2>&1 || true

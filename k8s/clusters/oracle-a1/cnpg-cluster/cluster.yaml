@@ -1,10 +1,16 @@
 # Single shared PostgreSQL for all future Oracle databases (D-2026-11-11-17):
 # one block volume instead of one per application.
 #
-# PLT-190: WAL archive + daily base backups to R2 (bucket homelab-backup-cnpg,
-# prefix oracle-a1/pg-shared/), writer identity. The cluster stays OUT of the
-# Oracle root until the drill (docs/operations/pg-shared-oke-backup-drill.md)
-# has proven a restore OFF Oracle; no application with data before that.
+# PLT-190/PLT-408: WAL archive + daily base backups to R2 (bucket
+# homelab-backup-cnpg, prefix oracle-a1/pg-shared-v2/), writer identity.
+# Reconciled by the OKE `infrastructure` ApplicationSet since PLT-408: the
+# off-Oracle restore drill (docs/operations/pg-shared-oke-backup-drill.md) runs
+# against this cluster. No application database (Polyfin...) is wired before
+# that drill is PROVEN.
+#
+# serverName pg-shared-v2: OKE was rebuilt on 21/11/2026 and the previous
+# cluster's archive still sits under oracle-a1/pg-shared/ (barman-cloud refuses
+# a non-empty archive). The old prefix is left as is (deletion = Paul's call).
 #
 # Image: same PostgreSQL 17.7 standard trixie multi-arch INDEX digest as the
 # OKE Hindsight cluster, so the off-Oracle restore on the homelab (amd64) runs
@@ -24,7 +30,7 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: pg-shared-oke-r2
-        serverName: pg-shared
+        serverName: pg-shared-v2
   storage:
     storageClass: oci-bv
     size: 50Gi

@@ -1,0 +1,7 @@
+# Contrat de test (PLT-392) : OIDC natif, la racine / sert la page de login ou le SPA (200).
+# La sonde runtime vise un endpoint protege, qui repond 401 sans cookie.
+auth: oidc
+auth_probe: /api/v1/bookmarks
+exceptions:
+  observability: "karakeep sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  network: "l'entrypoint karakeep exige allowPrivilegeEscalation avec CAP CHOWN/DAC_OVERRIDE (chown de /data) ; rootfs deja read-only"

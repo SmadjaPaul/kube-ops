@@ -2,12 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - namespace.yaml
-  - project.yaml
   - externalsecrets.yaml
   - database.yaml
   - database-r2.yaml
   - database-r2-initial-backup.yaml
-  - initialbackup.yaml
   - scheduledbackup.yaml
   - networkpolicy.yaml
-  - application.yaml
+  - http-route-mcp.yaml

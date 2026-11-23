@@ -4,7 +4,6 @@ resources:
   - namespace.yaml
   - database.yaml
   - backup.yaml
-  - backup-gap-remediation-20261019.yaml
   - database-r2.yaml
   - database-r2-initial-backup.yaml
   - runtime.yaml
@@ -12,3 +11,5 @@ resources:
   - redis.yaml
   - workloads.yaml
   - service-route.yaml
+  - networkpolicy.yaml
+  - networkpolicy-data.yaml

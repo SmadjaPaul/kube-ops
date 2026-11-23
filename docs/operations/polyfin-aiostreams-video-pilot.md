@@ -129,4 +129,11 @@ Service URL. Do not force the current resource to take over an existing
 addon, and do not migrate the AIOStreams state into Polyfin.
 A separately tested provider change, release and explicit import by
 Polyfin-local UUID are required before declarative ownership.
-Atlantis stays plan-only; there is no production apply or import in this PR.
+OpenTofu applies run through ARC in homelab-infra CI only; there is no production apply or import in this PR.
+
+## Backup before a Polyfin bump
+
+Before any Polyfin version bump, take and verify a named on-demand CNPG Backup of
+`media/polyfin-db` (R2 store `polyfin-r2-store`), keep the previous
+`tag@sha256:digest` for rollback. Full procedure:
+`k8s/applications/media/polyfin/README.md`, section "Backup CNPG and pre-bump guard".

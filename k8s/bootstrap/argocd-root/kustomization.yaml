@@ -1,10 +1,21 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - bootstrap-project.yaml
   - root-application.yaml
   - infrastructure-project.yaml
   - infrastructure-applicationset.yaml
   - applications-project.yaml
-  - applications-applicationset.yaml
+  - apps-project.yaml
+  - apps-applicationset.yaml
   - previews-project.yaml
   - previews-applicationset.yaml
+  - previews-guardrails-applicationset.yaml
+  # PLT-394 : objets Argo du pilote IA (anciennement rendus par apps-ai), geres par le root.
+  - personal-ai-pilot-project.yaml
+  - personal-hindsight-application.yaml
+  - personal-librechat-application.yaml
+  # PLT-394 : objets Argo du domaine platform (rendus jusqu'ici par l'Application apps-platform), geres par le root.
+  - hermes-tenants-project.yaml
+  - hermes-personal-tenants-applicationset.yaml
+  - personal-sparkyfitness-application.yaml

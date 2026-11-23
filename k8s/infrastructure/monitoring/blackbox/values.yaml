@@ -140,9 +140,13 @@ prometheusRule:
   namespace: monitoring
   # Prometheus ruleSelector only loads PrometheusRules labelled
   # release=kube-prometheus-stack; without it the two alerts below never ran.
-  # Probes are stable since PLT-346. The hassio probe still times out once in
-  # three (PLT-346, Envoy -> hostNetwork backend) but a single 5 min failure
-  # never satisfies `for: 10m`, so it does not page.
+  # Probes are stable since PLT-346, except hassio: probe_success averages ~0.7
+  # (PLT-389). Hubble (22/11): the L7 request to 10.0.20.60:8123 (hostNetwork
+  # home-assistant) is FORWARDED by the Gateway Envoy, never Denied, but no
+  # response comes back for 10 s, while HA answers direct requests in ~12 ms at
+  # the same time. The fault is the Envoy -> hostNetwork hop, not a policy and
+  # not the probe. An isolated 5 min failure never satisfies `for: 10m`, so it
+  # does not page: the failure is real, only the alert is silent.
   additionalLabels:
     release: kube-prometheus-stack
   rules:
@@ -152,6 +156,7 @@ prometheusRule:
       labels:
         severity: warning
       annotations:
+        runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#v1userreadysyntheticprobefailed
         summary: "V1 user-ready synthetic probe is failing"
         description: "Blackbox target {{ $labels.instance }} has failed for 10 minutes."
     - alert: AIOStreamsRouteProbeFailed
@@ -162,5 +167,6 @@ prometheusRule:
         service: aiostreams
         root_cause_layer: gateway_or_public_network
       annotations:
+        runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#aiostreamsrouteprobefailed
         summary: "AIOStreams route probe is failing"
         description: "AIOStreams DNS/TLS/HTTP route has failed for 10 minutes; correlate with the internal health and application signals."

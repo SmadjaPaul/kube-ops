@@ -42,8 +42,8 @@ Matrix; LibreChat uses the private-only hostname `librechat.smadja.dev`.
    inline password.
 5. In the same activation PR, update the single active `personal-ai-pilot`
    AppProject at `k8s/optional/personal-ai-2026/hindsight/project.yaml` to
-   allow the LibreChat chart and namespace. Do not admit the dormant duplicate
-   `k8s/optional/personal-ai-2026/project.yaml`.
+   allow the LibreChat chart and namespace. The former dormant duplicate
+   `k8s/optional/personal-ai-2026/project.yaml` was removed (PLT-397).
 6. Add the dedicated Agentgateway client key and a non-admin model policy in a
    separate reviewed change. The existing `APP_LIBRECHAT_LLM_KEY` dependency
    is the client key for this policy, not a direct provider key. The activation

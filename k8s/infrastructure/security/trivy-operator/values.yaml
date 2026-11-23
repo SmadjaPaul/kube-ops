@@ -22,6 +22,12 @@ operator:
   # disk because each Standalone job re-downloads the DBs). Weekly rescan; a new
   # workload revision is still scanned immediately. No alert reads report age.
   scannerReportTTL: 168h
+  # Revue écritures 2026-11-23: in Standalone mode every scan Job re-downloads
+  # the vulnerability DB (1-2 GB written to the Talos system disk per scan, ~110
+  # scans in the weekly TTL wave). The built-in server keeps one DB copy on a
+  # PVC, refreshed by the server itself; scan Jobs only send image layers' metadata.
+  # Rollback: set false (and trivy.mode Standalone).
+  builtInTrivyServer: true
   metricsFindingsEnabled: true
   metricsVulnIdEnabled: false
   metricsExposedSecretInfo: false
@@ -34,6 +40,16 @@ operator:
     limits:
       cpu: 300m
       memory: 384Mi
+
+# PLT-417: no bare `job` workloads. Velero creates one repo-maintenance Job per
+# repository per hour (27 repositories, a new Job name each time, then deleted
+# by keepLatestMaintenanceJobs). Each one was a new workload: a Standalone scan
+# job (DB + Java DB download, image unpack), one every ~10 min (concurrency 1),
+# i.e. a 1-4 GB write burst on the Talos system disk (etcd's disk) per scan.
+# The velero image is still scanned through the Velero Deployment (ReplicaSet);
+# CronJob-owned workloads stay covered through `cronjob`. Rollback: add `job`
+# back (or revert the PR).
+targetWorkloads: "pod,replicaset,replicationcontroller,statefulset,daemonset,cronjob"
 
 # Scan application workloads while leaving control-plane/system namespaces to
 # their native security and observability surfaces.
@@ -49,9 +65,38 @@ serviceMonitor:
   namespace: monitoring
   labels:
     release: kube-prometheus-stack
+  # Revue 2026-11-23: config-audit and RBAC-assessment counters (~3k series)
+  # and controller-runtime/workqueue histograms (~1.6k) have no rule, alert or
+  # dashboard; the findings stay in the ConfigAuditReport and RbacAssessmentReport
+  # CRDs. Vulnerability and exposed-secret metrics stay scraped.
+  endpointAdditionalProperties:
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "trivy_resource_configaudits|trivy_(cluster)?role_(cluster)?rbacassessments|controller_runtime_reconcile_time_seconds_bucket|workqueue_(work|queue)_duration_seconds_bucket"
 
 trivy:
-  mode: Standalone
+  # Overridden to ClientServer by operator.builtInTrivyServer.
+  mode: ClientServer
+  # DB cache (~1 GB, refreshed every ~12 h) on the NVMe-backed class, not on
+  # the HDD pool (keeps `tank` idle at night).
+  storageClassName: longhorn-fast
+  storageSize: 5Gi
+  server:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    # platform-baseline (Kyverno): drop ALL, no privilege escalation.
+    securityContext:
+      privileged: false
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
   slow: true
   severity: "HIGH,CRITICAL"
   ignoreUnfixed: false

@@ -1,0 +1,4 @@
+name: invoice-ninja
+namespace: invoice-ninja
+postMerge: notify
+preview: false

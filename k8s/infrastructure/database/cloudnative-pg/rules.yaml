@@ -7,39 +7,12 @@ spec:
   groups:
     - name: cnp-default.rules
       rules:
-        - alert: LongRunningTransaction
-          annotations:
-            description:
-              Pod {{ $labels.pod }} is taking more than 5 minutes (300 seconds)
-              for a query.
-            summary: A query is taking longer than 5 minutes.
-          expr: |-
-            cnpg_backends_max_tx_duration_seconds > 300
-          for: 1m
-          labels:
-            severity: warning
-        - alert: BackendsWaiting
-          annotations:
-            description: |
-              Pod {{ $labels.pod }} has been waiting for over 5 minutes.
-            summary: Backends waiting over 5 minutes.
-          expr: |-
-            cnpg_backends_waiting_total > 300
-          for: 1m
-          labels:
-            severity: warning
-        - alert: PGDatabaseXidAge
-          annotations:
-            description:
-              Over 150,000,000 transactions from frozen xid on pod {{
-              $labels.pod  }}
-            summary:
-              Number of transactions from the frozen XID to the current one
-          expr: |-
-            cnpg_pg_database_xid_age > 300000000
-          for: 1m
-          labels:
-            severity: warning
+        # PLT-459 (23/11/2026): removed LongRunningTransaction, BackendsWaiting,
+        # PGDatabaseXidAge and DatabaseDeadlockConflicts. Their metrics
+        # (cnpg_backends_*, cnpg_pg_database_xid_age, cnpg_pg_stat_database_deadlocks)
+        # are not exported by this CNPG version's default queries and no custom
+        # queries exist, so they could never fire. XID wraparound is NOT watched
+        # until a custom query is added (PLT-459 follow-up).
         - alert: PGReplication
           annotations:
             description:
@@ -58,16 +31,6 @@ spec:
               failed.
           expr: |-
             (cnpg_pg_stat_archiver_last_failed_time - cnpg_pg_stat_archiver_last_archived_time) > 1
-          for: 1m
-          labels:
-            severity: warning
-        - alert: DatabaseDeadlockConflicts
-          annotations:
-            description:
-              There are over 10 deadlock conflicts in {{ $labels.pod }}
-            summary: Checks the number of database conflicts
-          expr: |-
-            cnpg_pg_stat_database_deadlocks > 10
           for: 1m
           labels:
             severity: warning

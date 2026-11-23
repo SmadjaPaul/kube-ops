@@ -21,7 +21,7 @@ the Doppler keys `R2_LONGHORN_WRITER_ACCESS_KEY_ID`,
 `R2_LONGHORN_WRITER_SECRET_ACCESS_KEY` and `R2_S3_ENDPOINT` (non secret). No
 credential value is stored in Git.
 
-Rollback configuration: the Hetzner bucket `smadja-dev-homelab-backups` under
+Former configuration (abandoned): the Hetzner bucket `smadja-dev-homelab-backups` under
 the `longhorn/` prefix, with `longhorn-hetzner-credentials` (kept in Git). Its
 objects are left intact; Velero's old `velero/` prefix is also untouched.
 
@@ -39,11 +39,10 @@ Known at the switch (12/11/2026, non exhaustive, from the live listing):
 `bulwark/bulwark-data`, `chatwoot/chatwoot-postgresql-1`, the three
 `dawarich` volumes and `executor/data-executor-0`;
 `atlantis-apps/atlantis-apps-data` is faulted and has no backup at all.
-To reach the Hetzner copies, swap the rollback configuration back in
-(`values.yaml`) and let longhorn-manager resync the target; nothing is deleted.
+The Hetzner store is abandoned and is no longer a supported rollback target.
 To protect such a volume on R2, attach it (scale its workload up, or attach it
 through a bounded Longhorn operation) and let the next recurring job run, then
-check the backup on R2 before any Hetzner cleanup.
+check the backup on R2 before the Hetzner bucket is emptied.
 
 The protection changes do not change a PVC volume size,
 StorageClass, replica count or data path. The Immich Redis PVC only gains

@@ -1,0 +1,26 @@
+# PLT-401: external exposure of the read-only Argo CD MCP.
+# Only `POST /mcp` (the single route of `mcp-for-argocd http --stateless`) is
+# forwarded; /healthz, /sse and every other path get the Gateway 404.
+# Authentication: inbound bearer (MCP_AUTH_TOKEN, enforced by the server) on
+# every request; Cloudflare Access in front is the homelab-infra hardening
+# described in README.md. MCP_READ_ONLY stays "true" in deployment.yaml.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd-mcp
+  namespace: agent-observers
+spec:
+  parentRefs:
+    - name: external
+      namespace: gateway
+  hostnames:
+    - argocd-mcp.smadja.dev
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /mcp
+          method: POST
+      backendRefs:
+        - name: argocd-mcp
+          port: 3000

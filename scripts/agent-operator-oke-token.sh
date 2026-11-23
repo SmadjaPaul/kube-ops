@@ -4,8 +4,9 @@
 # Usage :
 #   --provision  PAR PAUL (session administrateur OKE, ex. kubeconfig OCI en
 #                PRIVATE_ENDPOINT par NetBird) : TokenRequest 24 h (AGENT_TOKEN_DURATION, au plus 24h) pour
-#                argocd/agent-operator, kubeconfig agent (serveur
-#                https://10.0.2.3:6443, CA de la session admin), écriture Doppler
+#                argocd/agent-operator, kubeconfig agent (serveur et CA
+#                repris de la session admin ; le serveur doit être une adresse privée du VCN
+#                10.0.0.0/16, aucune IP en dur), écriture Doppler
 #                infrastructure/prd KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1
 #                puis ..._SHA256, enfin --verify. Aucun jeton affiché ni passé en argument.
 #   --verify     par les agents : relit la copie Doppler par kubectl-ro.sh/preflight
@@ -20,7 +21,6 @@ NS=argocd
 SA=agent-operator
 AGENT_USER=system:serviceaccount:$NS:$SA
 SECRET=KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1
-SERVER=https://10.0.2.3:6443
 # PLT-312 (M5): short-lived token, 24 h maximum (was 720 h). Renewed by Paul with --provision.
 DURATION=${AGENT_TOKEN_DURATION:-24h}
 
@@ -32,6 +32,8 @@ case "$mode" in --provision|--verify) ;; *) die "usage : --provision | --verify"
 export KUBERC=off
 # shellcheck source=lib/kube-can-i.sh
 source "$HERE/lib/kube-can-i.sh"
+# shellcheck source=lib/oke-api-server.sh
+source "$HERE/lib/oke-api-server.sh"
 
 verify_agent() { # KUBECONFIG courant = identité agent
   local who fails=0
@@ -95,16 +97,17 @@ kubectl --request-timeout=30s get clusterrolebinding agent-operator-view agent-o
 kubectl --request-timeout=30s create token "$SA" -n "$NS" --duration="$DURATION" >"$work/token" 2>/dev/null || die "TokenRequest refusé" 4
 [ -s "$work/token" ] || die "jeton vide" 4
 kubectl config view --raw --minify -o json >"$work/admin.json" 2>/dev/null || die "lecture de la session administrateur impossible" 4
-python3 -I - "$work/admin.json" "$work/token" "$work/kubeconfig" "$SERVER" <<'PY' || die "construction du kubeconfig impossible" 4
+python3 -I - "$work/admin.json" "$work/token" "$work/kubeconfig" <<'PY' || die "construction du kubeconfig impossible" 4
 import json, sys
 adm = json.load(open(sys.argv[1]))
 token = open(sys.argv[2]).read().strip()
 cluster = adm["clusters"][0]["cluster"]
+server = cluster.get("server", "")
 if "certificate-authority-data" not in cluster or cluster.get("insecure-skip-tls-verify"):
     sys.exit("CA absente ou TLS non vérifié dans la session administrateur")
 cfg = {
     "apiVersion": "v1", "kind": "Config",
-    "clusters": [{"name": "oracle-a1", "cluster": {"server": sys.argv[4],
+    "clusters": [{"name": "oracle-a1", "cluster": {"server": server,
                   "certificate-authority-data": cluster["certificate-authority-data"]}}],
     "users": [{"name": "agent-operator", "user": {"token": token}}],
     "contexts": [{"name": "agent-operator", "context": {"cluster": "oracle-a1", "user": "agent-operator"}}],
@@ -120,6 +123,9 @@ print(datetime.datetime.fromtimestamp(exp, datetime.timezone.utc).strftime("%Y-%
 PY
 )
 rm -f "$work/token" "$work/admin.json"
+# Le serveur vient de la session admin : adresse privée du VCN OKE exigée, sinon rien n'est distribué.
+server=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["clusters"][0]["cluster"]["server"])' "$work/kubeconfig" 2>/dev/null)
+oke_api_server_valid "$server" || die "serveur de la session admin hors VCN OKE (attendu https://10.0.x.y[:port]) : rien n'est écrit dans Doppler" 4
 KUBECONFIG="$work/kubeconfig" verify_agent || die "le jeton ne respecte pas le périmètre : rien n'est écrit dans Doppler" 5
 # même empreinte que kube-preflight.sh
 # shellcheck source=lib/kube-preflight.sh

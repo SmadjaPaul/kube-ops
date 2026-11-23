@@ -42,21 +42,25 @@ spec:
         - ports:
             - port: "9000"
               protocol: TCP
-    # Prowlarr indexer manager (Torznab API); Service port 80 -> pod 9696.
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: media
-            app.kubernetes.io/name: prowlarr
-      toPorts:
-        - ports:
-            - port: "9696"
-              protocol: TCP
     # TorBox download client (BookOrbit >= 3.8.0): REST API plus the CDN
     # links it returns for finished downloads. Configured in the BookOrbit UI
     # (Settings > System > Requests), not through env vars.
     - toFQDNs:
         - matchName: api.torbox.app
         - matchPattern: "*.tb-cdn.io"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # LibriVox plugin (public-domain audiobooks): catalogue API on librivox.org,
+    # chapter zips served by the Internet Archive.
+    - toFQDNs:
+        - matchName: librivox.org
+        - matchName: archive.org
+        - matchPattern: "*.archive.org"
+        - matchPattern: "*.us.archive.org"
+        # Official Project Gutenberg generated-content mirror (curated EPUB integration).
+        - matchName: gutenberg.pglaf.org
       toPorts:
         - ports:
             - port: "443"
@@ -75,6 +79,16 @@ spec:
       toPorts:
         - ports:
             - port: "5432"
+              protocol: TCP
+    # Dedicated qBittorrent WebUI/API for public qualification only. MAM
+    # source egress remains denied until separately approved.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: media
+            app.kubernetes.io/name: qbittorrent-mam
+      toPorts:
+        - ports:
+            - port: "8080"
               protocol: TCP
 ---
 apiVersion: cilium.io/v2
@@ -114,6 +128,15 @@ spec:
       toPorts:
         - ports:
             - port: "8000"
+              protocol: TCP
+    # Prometheus scrape of the CNPG exporter (PodMonitor monitoring/cnpg-instances,
+    # PLT-391): without it the target stays up==0 and the DB is unmonitored.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9187"
               protocol: TCP
 ---
 apiVersion: cilium.io/v2

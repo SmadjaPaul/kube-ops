@@ -23,7 +23,8 @@
 # Sortie : uniquement des statuts, l'empreinte tronquée et la date d'expiration.
 #
 # Rotation : relancer --provision (Paul) avant l'expiration, au moins une fois par jour.
-# kubectl-ro.sh repli opérateur (KUBECTL_RO_IDENTITY=auto) si le jeton est expiré. Révocation immédiate :
+# kubectl-ro.sh refuse (exit 2, plus de repli opérateur depuis PLT-420) si le jeton est expiré ; renouvellement
+# automatique : scripts/agent-operator-token-renew.sh (docs/operations/agent-operator-token-renewal.md). Révocation immédiate :
 # supprimer le ServiceAccount (rollback PLT-237) invalide tous ses jetons.
 set -uo pipefail
 
@@ -177,7 +178,7 @@ git -C "$ROOT" fetch -q origin main 2>/dev/null || echo "ARGO git fetch impossib
 # Les manifestes à la révision Argo doivent être identiques à ceux de cette
 # copie de travail (même policy, même RBAC, mêmes RoleBindings).
 for pair in infra-security:k8s/infrastructure/security/agent-operator \
-  apps-platform:k8s/applications/platform/agent-operator-access; do
+  app-agent-operator-access:k8s/applications/platform/agent-operator-access; do
   app=${pair%%:*}
   path=${pair#*:}
   st=$(kubectl --request-timeout=15s get application "$app" -n argocd \

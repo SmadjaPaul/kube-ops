@@ -65,7 +65,6 @@ Format : clé Doppler → ExternalSecret (`fichier#nom`), chemins sous `k8s/`.
 - `APP_POLYFIN_SECRET_KEY`, `APP_SURE_SECRET_KEY_BASE`, `APP_OPENCONNECTOR_ENCRYPTION_KEY`.
 
 **(a2) interne, émis par une app**
-- `APP_KUBECHECKS_ARGOCD_API_TOKEN` → `infrastructure/deployment/kubechecks/kubechecks-secret-external.yaml#kubechecks-combined-secret`.
 - `APP_HA_MCP_TOKEN` → `applications/automation/hassio/ha-mcp-externalsecret.yaml#ha-mcp-secrets`.
 - `APP_MATRIX_FACTORY_BOT_ACCESS_TOKEN`, `APP_INVOICE_NINJA_API_TOKEN`, `ARGOCD_MCP_API_TOKEN`.
 
@@ -244,7 +243,7 @@ Crossplane déplacerait cette friction vers des providers moins mûrs que les pr
 - **`scripts/scaffold-oke-app.sh`** : ne touche aucun secret aujourd'hui. Ajouter un `scripts/scaffold-app-secrets.sh APP [--oidc] [--pg-shared] [--external cloudflare-dns|r2-writer]`. Il écrit les manifestes du §3.2 (générateur, ExternalSecret source et réplique), le blueprint, la ligne Authentik et le rôle CNPG. Il ne crée une PR homelab-infra que si `--external` demande un jeton qui n'existe pas encore.
 - **`.agents/skills/deploy-a-service/SKILL.md`** : remplacer « secret `APP_<APP>_OIDC_CLIENT_SECRET` in Doppler » par le patron du §3.2. Retirer « Doppler values … remain Paul's » pour la classe (a).
 - **`pg-shared-homelab/app-database.example.tmpl`** : remplacer l'étape « clé créée par Paul » par un générateur `Password` dans `databases`. C'est **le seul geste manuel explicite** du golden path.
-- **Backstage Scaffolder (PLT-376, PLT-378)** : les deux tickets sont **annulés** (Linear, 2026-11-20). Le patron ne produit que des manifestes en Git ; un futur portail (Backstage ou l'OpenChoreo du POC, D-2026-11-18-01) n'aura qu'à appeler le même script. Le « Crossplane différé » de PLT-376 reste cohérent avec cette étude.
+- **Backstage Scaffolder (PLT-376, PLT-378)** : les deux tickets sont **annulés** (Linear, 2026-11-20). Le patron ne produit que des manifestes en Git ; Backstage et OpenChoreo sont abandonnés (décision de Paul, 21/11/2026, D-2026-11-21-01 de homelab-infra) : le script sert directement les agents et la CI, sans portail. Le « Crossplane différé » de PLT-376 reste cohérent avec cette étude.
 - **Tests et politiques** : une règle Kyverno pour les stores `k8s-*` (§3.2). Un test bash : tout `Password` utilisé par un ExternalSecret doit avoir `refreshPolicy: CreatedOnce`, sinon la valeur tourne à chaque rafraîchissement.
 
 ## 8. Exemple avant / après : app type `notes`
@@ -295,7 +294,7 @@ Hypothèses : base dans `pg-shared-homelab`, client OIDC Authentik, `HTTPRoute`,
 6. Générateur ESO `Github` pour les jetons GHCR (`APP_FACTORY_PLATFORM_GHCR_TOKEN`, `APP_FACTORY_ARC_GHCR_READ_TOKEN`) depuis l'App GitHub existante ; générateur `Grafana` pour le jeton MCP.
 7. Classe (n) : sortir les valeurs non secrètes de Doppler quand une app est modifiée.
 8. Migration opportuniste de la classe (a) : quand une app est modifiée, passer à la génération dans le cluster. Côté OpenTofu, utiliser `removed { lifecycle { destroy = false } }` pour les `random_*` et `doppler_secret`, puis supprimer la clé Doppler après la preuve `RUNTIME`. Ne jamais toucher aux clés (a\*). Commencer par les apps sans utilisateur.
-9. (a2) : un Job PostSync pour le jeton Argo CD de kubechecks, si le besoin revient.
+9. (a2) : un Job PostSync pour les jetons émis par une app, si le besoin revient (kubechecks retiré, PLT-397).
 
 ### Hors trajectoire (à réévaluer sur critère)
 

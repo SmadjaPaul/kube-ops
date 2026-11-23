@@ -16,10 +16,14 @@ metadata:
     # factory-platform-pg2 (PITR 2026-10-29T00:35:32Z) is promoted or this data
     # is deliberately retired.
     cnpg.io/fencedInstances: '["*"]'
+    # Read by scripts/backup-static-contract.sh: the only exemption from the
+    # CNPG R2 backup rule, for this fenced forensic copy (PLT-168/PLT-252). Its
+    # WAL still goes to Hetzner and no R2 base exists. Decision owner: Paul.
+    backup.smadja.dev/forensic-fenced: "PLT-168/PLT-252"
     # Never let Argo prune this Cluster: CNPG would delete its PVCs with it.
     argocd.argoproj.io/sync-options: Prune=false,Delete=false
     # PLT-213: the fenced instance is expected to be unhealthy; do not let it
-    # drive the apps-platform health.
+    # drive the app-factory-platform health.
     argocd.argoproj.io/ignore-healthcheck: "true"
 spec:
   instances: 1

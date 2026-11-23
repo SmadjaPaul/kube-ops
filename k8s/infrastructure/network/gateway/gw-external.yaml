@@ -16,7 +16,10 @@ spec:
             name: cert-smadja
       allowedRoutes:
         namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchExpressions:
+              - {key: smadja.dev/preview, operator: NotIn, values: ["true"]}
     - protocol: HTTPS
       port: 443
       name: https-apex
@@ -27,15 +30,7 @@ spec:
             name: cert-smadja
       allowedRoutes:
         namespaces:
-          from: All
-    - protocol: HTTPS
-      port: 443
-      name: https-lechaplais-management
-      hostname: gestion.lechaplais.com
-      tls:
-        certificateRefs:
-          - kind: Secret
-            name: cert-lechaplais-management
-      allowedRoutes:
-        namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchExpressions:
+              - {key: smadja.dev/preview, operator: NotIn, values: ["true"]}

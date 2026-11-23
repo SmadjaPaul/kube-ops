@@ -105,6 +105,12 @@ def svc(t=None):
     return s
 
 
+def svc_in(t, ns, name):
+    s = svc(t)
+    s["metadata"] = {"name": name, "namespace": ns}
+    return s
+
+
 def pvc(sc=None):
     o = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": "x", "namespace": "app"},
          "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": "1Gi"}}}}
@@ -173,6 +179,9 @@ OWN_NS_CASES = [
     ("oidc-own-namespace-usage", P, es_k8s("k8s-auth", keys=("oidc-app--mas", "oidc-app"))),
     ("pg-own-namespace", P, es_k8s("k8s-databases", keys=("pg-app",))),
     ("pg-own-namespace-usage", P, es_k8s("k8s-databases", keys=("pg-app--ro",))),
+    ("llm-own-namespace", P, es_k8s("k8s-agentgateway", keys=("llm-app",))),
+    ("llm-other-namespace", F, es_k8s("k8s-agentgateway", keys=("llm-autre",))),
+    ("oidc-key-on-agentgateway-store", F, es_k8s("k8s-agentgateway", keys=("oidc-app",))),
     ("oidc-other-namespace", F, es_k8s("k8s-auth", keys=("oidc-autre",))),
     ("oidc-one-key-other-namespace", F, es_k8s("k8s-auth", keys=("oidc-app", "oidc-autre"))),
     ("oidc-prefix-collision", F, es_k8s("k8s-auth", keys=("oidc-app-pilot",))),
@@ -207,6 +216,8 @@ RULES = {
         ("init-privileged", F, pod_case(setc("privileged", True), init=True)),
         ("deployment-privileged", F, pod_case(setc("privileged", True), wrap="deployment")),
         ("system-namespace-privileged", S, pod_case(setc("privileged", True), ns="monitoring")),
+        ("exception-longhorn-system", S, pod_case(setc("privileged", True), ns="longhorn-system")),
+        ("exception-csi-proxmox", S, pod_case(setc("privileged", True), ns="csi-proxmox")),
     ],
     "no-privilege-escalation": [
         ("clean", P, pod_case()),
@@ -282,9 +293,19 @@ RULES = {
         ("load-balancer", P, svc("LoadBalancer")),
         ("node-port", F, svc("NodePort")),
     ],
+    "no-loadbalancer": [
+        ("cluster-ip", P, svc()),
+        ("node-port", P, svc("NodePort")),
+        ("load-balancer", F, svc("LoadBalancer")),
+        ("load-balancer-other-gateway-name", F, svc_in("LoadBalancer", "gateway", "my-lb")),
+        ("cilium-gateway-external", S, svc_in("LoadBalancer", "gateway", "cilium-gateway-external")),
+        ("dns-exact-resolver", S, svc_in("LoadBalancer", "dns-exact-resolver", "dns-exact-resolver")),
+        ("system-namespace", S, svc_in("LoadBalancer", "kube-system", "x")),
+    ],
     "storage-class-allowed": [
         ("longhorn-fast", P, pvc("longhorn-fast")),
         ("longhorn-bulk", P, pvc("longhorn-bulk")),
+        ("longhorn-bulk-scratch", P, pvc("longhorn-bulk-scratch")),
         ("oci-bv", P, pvc("oci-bv")),
         ("nfs-client", F, pvc("nfs-client")),
         ("proxmox-csi", F, pvc("proxmox-csi")),
@@ -425,6 +446,10 @@ def render(rule, cases, policy_file, prefix):
         results.append({"policy": pol, "isValidatingPolicy": True, "kind": o["kind"], "resources": [cid], "result": expected})
     test = {"apiVersion": "cli.kyverno.io/v1alpha1", "kind": "Test", "metadata": {"name": pol},
             "policies": [policy_file], "resources": ["resources.yaml"], "results": results}
+    if prefix == "preview":
+        # The policy is bounded by a namespaceSelector (PLT-395): without these labels the CLI
+        # excludes every resource and a `fail` case passes vacuously.
+        test["values"] = {"namespaceSelector": [{"name": "pr-7-demo", "labels": {"smadja.dev/preview": "true"}}]}
     hdr = "# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.\n"
     return {
         "resources.yaml": hdr + yaml.safe_dump_all(res, sort_keys=True, allow_unicode=True),

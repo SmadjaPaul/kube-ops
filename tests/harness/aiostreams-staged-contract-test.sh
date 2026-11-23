@@ -3,11 +3,12 @@ set -euo pipefail
 trap 'echo "AIOSTREAMS_STAGE=FAIL: assertion failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 root=k8s/applications/media
 pkg="$root/aiostreams"
-grep -Fxq -- '- aiostreams' "$root/kustomization.yaml"
+# PLT-394 : l'app est declaree par son descripteur (Application app-aiostreams), plus par la kustomization du domaine.
+[[ "$(yq -r '.name' "$pkg/argocd-app.yaml")" == aiostreams ]]
 grep -Fq "APP_AIOSTREAMS_SECRET_KEY" "$pkg/external-secret.yaml"
 grep -Fq "APP_AIOSTREAMS_OPERATOR_AUTH" "$pkg/external-secret.yaml"
-grep -Fq "ghcr.io/viren070/aiostreams:v2.37.0" "$pkg/deployment.yaml"
-grep -Fq 'ghcr.io/viren070/aiostreams:v2.37.0@sha256:bcfd8580695a50c8f464578a0e25af065f3bd17eac35ed82a733a18342ca9718' "$pkg/deployment.yaml"
+grep -Fq "ghcr.io/viren070/aiostreams:v2.38.1" "$pkg/deployment.yaml"
+grep -Fq 'ghcr.io/viren070/aiostreams:v2.38.1@sha256:1b90bc2fda70f365dff2ce98fc311a24708cca9841efe09aefe309cd4da1fb2c' "$pkg/deployment.yaml"
 grep -Fq 'value: "false"' "$pkg/deployment.yaml"
 grep -Fq "FORCE_PROXY_ENABLED" "$pkg/deployment.yaml"
 grep -Fq "AIOSTREAMS_AUTH_REQUIRED" "$pkg/deployment.yaml"
@@ -16,7 +17,7 @@ grep -Fq "name: JELLYFIN_PIN_SIGN_IN" "$pkg/deployment.yaml"
 grep -A1 -F "name: JELLYFIN_PIN_SIGN_IN" "$pkg/deployment.yaml" | grep -Fq 'value: "false"'
 grep -Fq "AIOSTREAMS_OIDC_ENABLED" "$pkg/deployment.yaml"
 grep -Fq "name: ANIME_DB_LEVEL_OF_DETAIL" "$pkg/deployment.yaml"
-grep -Fq "value: none" "$pkg/deployment.yaml"
+grep -Fq "value: required" "$pkg/deployment.yaml"
 grep -Fq "mountPath: /app/data" "$pkg/deployment.yaml"
 grep -Fq "runAsNonRoot: true" "$pkg/deployment.yaml"
 grep -Fq "runAsUser: 2501" "$pkg/deployment.yaml"
@@ -32,8 +33,13 @@ if grep -Fxq 'tv.smadja.dev' <(yq -r '.spec.hostnames[]' "$pkg/http-route.yaml")
 fi
 # PLT-135 cutover: keep the same Argo-managed HTTPRoute object/identity.
 # No simultaneous second tv.smadja.dev route: PruneLast is irrelevant.
-family="$pkg/family-http-route.yaml"
-grep -Eq '^[[:space:]]*-[[:space:]]+family-http-route\.yaml[[:space:]]*$' "$pkg/kustomization.yaml"
+family="$root/polyfin/tv-http-route.yaml"
+# PLT-392: tv.smadja.dev belongs to Polyfin (same object, no AIOStreams duplicate).
+if grep -Eq 'family-http-route' "$pkg/kustomization.yaml"; then
+  echo "AIOSTREAMS_STAGE=FAIL: tv.smadja.dev route must live under polyfin" >&2
+  exit 1
+fi
+grep -Eq '^[[:space:]]*-[[:space:]]+tv-http-route\.yaml[[:space:]]*$' "$root/polyfin/kustomization.yaml"
 yq -e '.apiVersion == "gateway.networking.k8s.io/v1" and .kind == "HTTPRoute" and .metadata.name == "aiostreams-family" and .metadata.namespace == "media"' "$family" >/dev/null
 [[ "$(yq -r '.spec.hostnames | join(",")' "$family")" == "tv.smadja.dev" ]]
 [[ "$(yq -r '.spec.parentRefs[].name' "$family" | LC_ALL=C sort | tr '\n' ',')" == "external,internal," ]]
@@ -47,8 +53,8 @@ yq -e '.spec.rules[0].filters == null' "$family" >/dev/null
 grep -Fq -- 'name: polyfin' "$root/polyfin/service.yaml"
 grep -Fq -- 'port: 80' "$root/polyfin/service.yaml"
 # Keep the previous Polyfin media alias and AIOStreams internal control route.
-[[ "$(yq -r '.spec.hostnames | join(",")' "$root/polyfin-media-route.yaml")" == "media.smadja.dev" ]]
-[[ "$(yq -r '.spec.parentRefs[].name' "$root/polyfin-media-route.yaml")" == "internal" ]]
+[[ "$(yq -r '.spec.hostnames | join(",")' "$root/polyfin/polyfin-media-route.yaml")" == "media.smadja.dev" ]]
+[[ "$(yq -r '.spec.parentRefs[].name' "$root/polyfin/polyfin-media-route.yaml")" == "internal" ]]
 [[ "$(yq -r '.spec.hostnames | join(",")' "$pkg/http-route.yaml")" == "aiostreams.smadja.dev" ]]
 # Strict dual callbacks, without an OIDC client secret in Git.
 auth=k8s/infrastructure/auth/authentik/extra/blueprints/apps-polyfin.yaml
@@ -76,11 +82,16 @@ grep -Fq 'matchName: api.torbox.app' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: search-api.torbox.app' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: v3-cinemeta.strem.io' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: v3.sg.media-imdb.com' "$pkg/networkpolicy.yaml"
-grep -Fq 'matchName: remuxdb.1632022.xyz' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: raw.githubusercontent.com' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: services.sonarr.tv' "$pkg/networkpolicy.yaml"
+if grep -Fq 'matchName: releases.moe' "$pkg/networkpolicy.yaml"; then
+  echo 'releases.moe ne doit plus etre dans la NetworkPolicy (ne resout pas)' >&2
+  exit 1
+fi
 grep -Fq 'matchName: comet.feels.legal' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: meteorfortheweebs.midnightignite.me' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: stremthru.13377001.xyz' "$pkg/networkpolicy.yaml"
-grep -Fq 'matchName: opensubtitles-v3.strem.io' "$pkg/networkpolicy.yaml"
+grep -Fq 'matchName: opensubtitles.stremio.homes' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: tmdb.elfhosted.com' "$pkg/networkpolicy.yaml"
 grep -Fq 'matchName: 1fe84bc728af-stremio-anime-catalogs.baby-beamup.club' "$pkg/networkpolicy.yaml"
 grep -Fq 'https://aiostreams.smadja.dev/api/v1/auth/oidc/callback' \

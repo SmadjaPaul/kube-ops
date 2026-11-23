@@ -36,6 +36,24 @@ results:
   kind: ExternalSecret
   policy: eso-k8s-store-guard
   resources:
+  - llm-own-namespace
+  result: pass
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - llm-other-namespace
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
+  - oidc-key-on-agentgateway-store
+  result: fail
+- isValidatingPolicy: true
+  kind: ExternalSecret
+  policy: eso-k8s-store-guard
+  resources:
   - oidc-other-namespace
   result: fail
 - isValidatingPolicy: true

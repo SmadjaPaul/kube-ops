@@ -1,0 +1,23 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  # Nom historique conservé : même objet, seul le propriétaire Argo change
+  # (app-aiostreams -> apps-media), sans coupure de tv.smadja.dev (PLT-392).
+  name: aiostreams-family
+  namespace: media
+spec:
+  parentRefs:
+    - name: external
+      namespace: gateway
+    - name: internal
+      namespace: gateway
+  hostnames:
+    - tv.smadja.dev
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: polyfin
+          port: 80

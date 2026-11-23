@@ -1,0 +1,22 @@
+# PLT-392 : deny ingress par defaut sur les pods de sure, autorisations minimales (Cilium).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: sure-web, namespace: sure }
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: sure, app.kubernetes.io/component: web }
+  ingress:
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "3000" }
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: sure-worker, namespace: sure }
+spec:
+  # Le worker n'ecoute aucun port : tout ingress refuse.
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: sure, app.kubernetes.io/component: worker }
+  ingress:
+    - fromEntities: [host]

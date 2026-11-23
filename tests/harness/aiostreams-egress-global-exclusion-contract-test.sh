@@ -15,10 +15,12 @@ check() {
 check '.spec.endpointSelector.matchExpressions | length' "$global" 1
 check '.spec.endpointSelector.matchExpressions[0].key' "$global" 'app.kubernetes.io/name'
 check '.spec.endpointSelector.matchExpressions[0].operator' "$global" NotIn
-check '.spec.endpointSelector.matchExpressions[0].values | length' "$global" 3
+check '.spec.endpointSelector.matchExpressions[0].values | length' "$global" 5
 check '.spec.endpointSelector.matchExpressions[0].values[0]' "$global" aiostreams
-check '.spec.endpointSelector.matchExpressions[0].values[1]' "$global" rdt-client
-check '.spec.endpointSelector.matchExpressions[0].values[2]' "$global" polyfin
+check '.spec.endpointSelector.matchExpressions[0].values[1]' "$global" bookorbit
+check '.spec.endpointSelector.matchExpressions[0].values[2]' "$global" qbittorrent-mam
+check '.spec.endpointSelector.matchExpressions[0].values[3]' "$global" rdt-client
+check '.spec.endpointSelector.matchExpressions[0].values[4]' "$global" polyfin
 check '.spec.template.metadata.labels."app.kubernetes.io/name"' "$deployment" aiostreams
 check '.spec.endpointSelector.matchLabels."app.kubernetes.io/name"' "$specific" aiostreams
 check '.spec.egress | length' "$specific" 5
@@ -32,19 +34,20 @@ check '.spec.egress[3].toEndpoints[0].matchLabels."app.kubernetes.io/component"'
 check '.spec.egress[3].toPorts[0].ports[0].port' "$specific" 9000
 # Strict native-video control-plane FQDN admission. Order and exact set
 # intentionally contractual: no media CDN, wildcard FQDN or blanket world egress.
-check '.spec.egress[4].toFQDNs | length' "$specific" 12
+check '.spec.egress[4].toFQDNs | length' "$specific" 13
 check '.spec.egress[4].toFQDNs[0].matchName' "$specific" api.torbox.app
 check '.spec.egress[4].toFQDNs[1].matchName' "$specific" search-api.torbox.app
 check '.spec.egress[4].toFQDNs[2].matchName' "$specific" v3-cinemeta.strem.io
 check '.spec.egress[4].toFQDNs[3].matchName' "$specific" v3.sg.media-imdb.com
-check '.spec.egress[4].toFQDNs[4].matchName' "$specific" remuxdb.1632022.xyz
-check '.spec.egress[4].toFQDNs[5].matchName' "$specific" comet.feels.legal
-check '.spec.egress[4].toFQDNs[6].matchName' "$specific" meteorfortheweebs.midnightignite.me
-check '.spec.egress[4].toFQDNs[7].matchName' "$specific" stremthru.13377001.xyz
-check '.spec.egress[4].toFQDNs[8].matchName' "$specific" opensubtitles-v3.strem.io
-check '.spec.egress[4].toFQDNs[9].matchName' "$specific" aiometadata.streetle.dev
-check '.spec.egress[4].toFQDNs[10].matchName' "$specific" tmdb.elfhosted.com
-check '.spec.egress[4].toFQDNs[11].matchName' "$specific" 1fe84bc728af-stremio-anime-catalogs.baby-beamup.club
+check '.spec.egress[4].toFQDNs[4].matchName' "$specific" comet.feels.legal
+check '.spec.egress[4].toFQDNs[5].matchName' "$specific" meteorfortheweebs.midnightignite.me
+check '.spec.egress[4].toFQDNs[6].matchName' "$specific" stremthru.13377001.xyz
+check '.spec.egress[4].toFQDNs[7].matchName' "$specific" opensubtitles.stremio.homes
+check '.spec.egress[4].toFQDNs[8].matchName' "$specific" aiometadata.streetle.dev
+check '.spec.egress[4].toFQDNs[9].matchName' "$specific" tmdb.elfhosted.com
+check '.spec.egress[4].toFQDNs[10].matchName' "$specific" 1fe84bc728af-stremio-anime-catalogs.baby-beamup.club
+check '.spec.egress[4].toFQDNs[11].matchName' "$specific" raw.githubusercontent.com
+check '.spec.egress[4].toFQDNs[12].matchName' "$specific" services.sonarr.tv
 check '.spec.egress[4].toPorts[0].ports | length' "$specific" 1
 check '.spec.egress[4].toPorts[0].ports[0].port' "$specific" 443
 check '.spec.egress[4].toPorts[0].ports[0].protocol' "$specific" TCP

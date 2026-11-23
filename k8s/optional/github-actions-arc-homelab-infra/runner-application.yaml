@@ -20,7 +20,7 @@ spec:
         githubConfigSecret: arc-github-app
         minRunners: 0
         # Validation and admitted read-only plans use the same hardened scale set.
-        # Keep two warm slots so a plan cannot serialize behind repository CI.
+        # Two slots: 4 slots on 2026-11-22 tripled etcd request timeouts on the single-node control plane (kube-scheduler lease losses), so the limit was reverted to 2.
         maxRunners: 2
         controllerServiceAccount:
           namespace: arc-systems
@@ -48,20 +48,30 @@ spec:
             #                   chmod its own directory, and so the runner user
             #                   can create `state` (a kubelet-created parent
             #                   directory is root-owned: PLT-214 first run).
-            # /tmp (OpenTofu providers, per-root data) stays on disk: a full
-            # validation can unpack more than RAM can hold.
+            # /tmp (OpenTofu providers, per-root data) cannot be RAM: a full
+            # validation can unpack more than RAM can hold. PLT-417: it is a
+            # per-pod Longhorn bulk (HDD) volume, deleted with the pod.
             volumes:
               - name: work
                 emptyDir: {medium: Memory, sizeLimit: 1Gi}
               - name: local
                 emptyDir: {medium: Memory, sizeLimit: 2Gi}
+              - name: tmp
+                ephemeral:
+                  volumeClaimTemplate:
+                    spec:
+                      accessModes: [ReadWriteOnce]
+                      storageClassName: longhorn-bulk-scratch
+                      resources:
+                        requests: {storage: 5Gi}
             containers:
               - name: runner
-                image: ghcr.io/smadjapaul/homelab-infra-ci-runner:latest-c8d2926@sha256:9f82220afa489f9d0dd76214abc561471826f6a1848dae056868d5211afbd9c5
+                image: ghcr.io/smadjapaul/arc-ci-runner:tools1-576e0cb@sha256:087f055d11e3c2a0afd3606fa9b3a45b54a80401c201cd8df0cb261023557709
                 command: ["/home/runner/run.sh"]
                 volumeMounts:
                   - {name: work, mountPath: /home/runner/_work}
                   - {name: local, mountPath: /home/runner/.local}
+                  - {name: tmp, mountPath: /tmp}
                 resources:
                   requests: {cpu: 250m, memory: 1Gi, ephemeral-storage: 512Mi}
                   limits: {cpu: "2", memory: 4Gi, ephemeral-storage: 4Gi}

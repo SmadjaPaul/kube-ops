@@ -5,6 +5,8 @@ description: Investigate the live clusters (homelab, oracle-a1) read-only - Argo
 
 # Cluster investigation
 
+Transverse entry (any repo, plugin `homelab-ops` of SmadjaPaul/agent-harness): skills `cluster-investigate` and `access-preflight` carry the access recipe and the Argo -> pods -> events -> logs tree; this skill stays the kube-ops detail.
+
 One entry for every runtime question. Evidence is RUNTIME for the observed signal only: it proves neither Git reconciliation nor a user path. Repair proven defects in Git.
 
 ## Start here
@@ -44,8 +46,8 @@ Git revision -> ApplicationSet -> Application sync/health/conditions
 Two independent Argo CD instances, one workflow (`docs/operations/two-argo-one-workflow.md`). The agent never opens an Argo CD interface.
 
 1. Branch `claude/plt-<n>-<slug>`. Change the shared base `k8s/applications/<group>/<app>`.
-2. Homelab: the base folder must be listed in `directories` of the ApplicationSet `applications` (`k8s/bootstrap/argocd-root/applications-applicationset.yaml`); existing groups already are. The Application is `apps-<basename>`. An unlisted path generates no Application.
-3. OKE: `just scaffold-oke-app <group>/<app> <name> <namespace>` creates `k8s/clusters/oracle-a1/<name>/`, `apps/<name>.yaml` and the root entry. Put OKE-only differences in patches in that folder. The scaffold refuses data (PVC, CNPG) before PLT-190, and a namespace missing from `bootstrap/project.yaml` (bootstrap-only: needs one operator apply, `exec:local` ticket).
+2. Homelab: the app folder must carry an `argocd-app.yaml` descriptor (ApplicationSet `apps`). The Application is `app-<name>`. A folder without descriptor generates no Application.
+3. OKE: put `argocd-app.oracle-a1.yaml` (instead of `argocd-app.yaml`) next to the app's `kustomization.yaml`; the OKE Argo CD generates `app-<name>` (`docs/operations/argo-app-descriptor.md`). One cluster per app. No data (PVC, CNPG) on OKE before PLT-190.
 4. `just check`, then PR and merge (CI green, CodeRabbit handled). Argo reconciles by itself; never sync by hand.
 5. Verify: `just verify-delivery <homelab|oracle-a1> <app> --since <merge epoch> --timeout 1200`. Cloud session: no cluster access needed (Grafana Cloud, `GRAFANA_AGENT_READ_TOKEN`).
 6. `VERIFY=PASS` is RUNTIME for Argo sync/health and pods Ready only (see `EVIDENCE_SCOPE`: no route, DNS, TLS); `REVISION=NOT_PROVEN`. FAIL: read `LAST_ERROR`, then `queries.md`; with cluster access `just investigate <app>`.

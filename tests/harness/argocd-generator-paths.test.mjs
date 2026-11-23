@@ -9,8 +9,8 @@ import { join, resolve, sep } from 'node:path';
 // NOT validate ownership, live deletions or prune impact.
 const ROOT = resolve('.');
 const applicationSets = [
-  'k8s/bootstrap/argocd-root/applications-applicationset.yaml',
   'k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml',
+  'k8s/clusters/oracle-a1/argocd-root/infrastructure-applicationset.yaml',
 ];
 
 // No waiver remains: k8s/applications/restore was removed from the ApplicationSet.
@@ -58,4 +58,20 @@ test('every active Argo directory-generator root exists and has a Kustomization'
 test('the retained Docusaurus site remains present during Paperclip retirement', () => {
   assert.ok(existsSync(join(ROOT, 'website/package.json')), 'Docusaurus website deleted');
   assert.ok(existsSync(join(ROOT, 'netlify.toml')), 'site deployment configuration deleted');
+});
+
+test('OKE infrastructure: ESO precedes netbird-router and the project admits the cluster kinds ESO renders', () => {
+  const root = 'k8s/clusters/oracle-a1/argocd-root';
+  const appset = readFileSync(join(ROOT, root, 'infrastructure-applicationset.yaml'), 'utf8');
+  const paths = generatedPaths(appset);
+  const eso = paths.indexOf('k8s/clusters/oracle-a1/external-secrets');
+  const nb = paths.indexOf('k8s/clusters/oracle-a1/netbird-router');
+  assert.ok(eso >= 0 && nb > eso, 'external-secrets must be listed before netbird-router');
+
+  const project = readFileSync(join(ROOT, root, 'infrastructure-project.yaml'), 'utf8');
+  for (const kind of ['CustomResourceDefinition', 'ValidatingWebhookConfiguration', 'ClusterRole', 'ClusterRoleBinding', 'ClusterSecretStore']) {
+    assert.match(project, new RegExp(`kind: ${kind}\\b`), `infrastructure project must whitelist ${kind}`);
+  }
+  const apps = readFileSync(join(ROOT, root, 'apps-project.yaml'), 'utf8');
+  assert.match(apps, /namespace: '!netbird'/, 'apps project must exclude the netbird namespace');
 });

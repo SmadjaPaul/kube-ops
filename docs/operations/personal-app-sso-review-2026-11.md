@@ -71,7 +71,7 @@ https://github.com/CollaboraOnline/online/blob/main/kubernetes/helm/collabora-on
   `sparky_app` DB roles, user-creation policy limitation in v1.11.0,
   the preprovisioned owner, full chart image verification and mobile sync.
 - **La Suite:** backend Docs/Drive + Yhub databases, durable Valkey streams,
-  separate scoped Hetzner S3 buckets, content/media reverse proxy,
+  separate scoped S3 buckets (R2), content/media reverse proxy,
   Cilium allowlists and restored WOPI sessions. A bare HTTPRoute is not
   evidence that file previews or downloads work.
 - **Collabora:** stable RSA WOPI proof keys from ESO (never chart random

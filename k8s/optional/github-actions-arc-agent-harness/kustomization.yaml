@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# CI of SmadjaPaul/agent-harness (private repository) on a self-hosted ephemeral runner, because
+# GitHub-hosted runners are blocked by the account billing failure. Same pattern as the website
+# scale set (own namespace, own quota, own egress policy). Synced from main by the infrastructure
+# ApplicationSet (k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml). The shared
+# controller in arc-systems (github-actions-arc) watches every namespace.
+resources:
+  - namespace.yaml
+  - github-app-secret.yaml
+  - pr-triage-key.yaml
+  - runner-quota.yaml
+  - egress-networkpolicy.yaml
+  - runner-application.yaml

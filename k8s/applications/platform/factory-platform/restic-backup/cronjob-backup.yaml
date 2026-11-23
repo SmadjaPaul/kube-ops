@@ -1,0 +1,112 @@
+# PLT-369: daily logical dump of factory-platform-pg2 into restic (repository
+# factory-platform/), the same mechanism as paperless-restic-backup (PLT-286).
+# Single step: pg_dump --format=custom straight into restic, no file on disk
+# (`--stdin-from-command`: a failed dump creates no snapshot). The restic
+# binary is copied by the init container. There is no files step: the factory
+# platform has no application volume to back up.
+# The dump runs as factory_source_ro (read-only, see database-pg2.yaml), so a
+# compromised dump container cannot write to pg2.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-platform-restic-backup
+  namespace: factory-platform
+  labels:
+    app.kubernetes.io/name: restic-backup
+    app.kubernetes.io/instance: factory-platform
+spec:
+  schedule: "15 21 * * *"
+  timeZone: Europe/Paris
+  # Same evening-slot rationale as paperless (PLT-286): a missed run starts at the next boot.
+  startingDeadlineSeconds: 64800
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 172800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: restic-backup
+            app.kubernetes.io/instance: factory-platform
+        spec:
+          restartPolicy: Never
+          hostNetwork: false
+          hostPID: false
+          hostIPC: false
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile: { type: RuntimeDefault }
+          initContainers:
+            - name: restic-binary
+              image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
+              command: ["cp", "/usr/bin/restic", "/restic-bin/restic"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 5m, memory: 16Mi }
+                limits: { cpu: 100m, memory: 64Mi }
+              volumeMounts:
+                - { name: restic-bin, mountPath: /restic-bin }
+          containers:
+            - name: postgres-dump
+              # Same major version as the factory-platform-pg2 Cluster image (17.7).
+              image: ghcr.io/cloudnative-pg/postgresql:17.7-system-trixie@sha256:08775f8bdeb112878b8f2ef63578c47959ee332fc9e076d5d6735a710c4500e2
+              command: ["/bin/bash", "/scripts/backup-db.sh"]
+              env:
+                - { name: APP, value: factory-platform }
+                - { name: RESTIC_HOST, value: factory-platform-restic }
+                - { name: RESTIC_BIN, value: /restic-bin/restic }
+                - { name: RESTIC_CACHE_DIR, value: /cache }
+                - { name: AWS_DEFAULT_REGION, value: auto }
+                - { name: HOME, value: /tmp }
+                - { name: TMPDIR, value: /tmp }
+                - name: PGHOST
+                  valueFrom: { secretKeyRef: { name: factory-platform-pg2-app, key: host } }
+                - name: PGPORT
+                  valueFrom: { secretKeyRef: { name: factory-platform-pg2-app, key: port } }
+                - name: PGDATABASE
+                  valueFrom: { secretKeyRef: { name: factory-platform-pg2-app, key: dbname } }
+                # Read-only role (pg_read_all_data, database-pg2.yaml), not the owner
+                # `factory` of -app: the dump cannot write. Same Secret as the
+                # managed role; the value never leaves the cluster.
+                - name: PGUSER
+                  valueFrom: { secretKeyRef: { name: factory-platform-postgresql-source, key: username } }
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: factory-platform-postgresql-source, key: password } }
+              envFrom:
+                - secretRef: { name: restic-backup }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 128Mi }
+                limits: { cpu: "1", memory: 1536Mi }
+              volumeMounts:
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: restic-bin, mountPath: /restic-bin, readOnly: true }
+                - { name: cache, mountPath: /cache }
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - name: scripts
+              configMap:
+                name: restic-backup-scripts
+                defaultMode: 0555
+            - name: restic-bin
+              emptyDir: { medium: Memory, sizeLimit: 64Mi }
+            - name: cache
+              emptyDir: { medium: Memory, sizeLimit: 512Mi }
+            - name: tmp
+              emptyDir: { medium: Memory, sizeLimit: 256Mi }

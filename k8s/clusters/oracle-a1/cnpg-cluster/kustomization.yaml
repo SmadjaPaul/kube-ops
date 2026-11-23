@@ -8,5 +8,4 @@ resources:
   - cluster.yaml
   - scheduledbackup.yaml
   - databases.yaml
-  # PLT-190 drill (retirer apres le drill) : base backup_drill
-  - ../../../optional/pg-shared-oke-drill/oke-database
+  # PLT-408 drill imports (backup_drill, base backup, fingerprint) removed after the proof (22/11).

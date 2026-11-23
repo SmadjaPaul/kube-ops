@@ -2,3 +2,6 @@
 # La sonde runtime vise donc un endpoint protege, qui doit repondre 401 sans cookie.
 auth: oidc
 auth_probe: /api/users/self
+exceptions:
+  observability: "mealie sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  rootfs: "l'image ecrit hors des volumes montes (caches/runtime) : readOnlyRootFilesystem non valide sur cluster ; le reste du securityContext est conforme"

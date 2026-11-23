@@ -29,10 +29,10 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 | paperless, pinepods, matrix-mas | family ; Pinepods Users ; family | stockage | family |
 | mealie, vikunja, rustical, sparkyfitness, sure | family | faible stockage ; Sure crée le compte au premier login | family (Sure : finances, à confirmer) |
 | home-assistant | Home Assistant Users | nul, mais pilote la maison | groupe dédié, foyer seulement |
-| invoice-ninja | family | données de l'activité de Maureen | groupe dédié proposé (`lechaplais`) |
+| invoice-ninja | lechaplais, authentik-admins | données de l'activité de Maureen | groupe dédié `lechaplais` (membre : maureen ; PLT-176) |
 | argocd, kubectl, grafana, aiostreams, talos-* | admin, dev ; Kubectl/Grafana/Talos Users | admin | admin |
 | cloudflare | authentik-admins, admin, authentik Admins, family, friends | nul (fournisseur d'identité de Cloudflare Access pour les services derrière les tunnels) | toutes les classes humaines ; un compte sans groupe lié est refusé (décision de Paul, 2026-11-15) |
-| jellyfin, bazarr, lidarr, prowlarr, radarr, sonarr, sabnzbd, jellyseerr, audiobookshelf, openwebui, litellm, zigbee2mqtt | divers | service retiré ou non déployé | à supprimer d'Authentik |
+| jellyfin, bazarr, lidarr, prowlarr, radarr, sonarr, sabnzbd, jellyseerr, audiobookshelf, openwebui, litellm | divers | service retiré ou non déployé | à supprimer d'Authentik |
 
 ## Comptes de service
 

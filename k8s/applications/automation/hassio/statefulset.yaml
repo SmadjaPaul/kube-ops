@@ -15,6 +15,10 @@ spec:
       app.kubernetes.io/instance: home-assistant
   template:
     metadata:
+      annotations:
+        # ConfigMap montée en subPath : elle n'est relue qu'au démarrage du pod.
+        # Incrémenter pour redémarrer HA après un changement de configuration.yaml.
+        smadja.dev/config-rev: "3"
       labels:
         app.kubernetes.io/name: home-assistant
         app.kubernetes.io/instance: home-assistant
@@ -26,7 +30,10 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       initContainers:
       - name: install-openid
-        image: busybox:1.38
+        image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }
+          limits: { cpu: 100m, memory: 64Mi }
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -37,31 +44,49 @@ spec:
           echo "$OPENID_ARCHIVE_SHA256  $archive" | sha256sum -c -;
           mkdir -p /config/custom_components;
           tar -xzf "$archive" -C /tmp;
-          if [ -d /config/custom_components/openid ]; then
-            test "$(cat /config/custom_components/openid/manifest.json | grep -c '"version": "1.3.0"')" = 1;
-            test -f /config/custom_components/openid/__init__.py;
-          else
-            cp -R /tmp/hass-openid-$OPENID_COMMIT/custom_components/openid /config/custom_components/openid;
-          fi
+          rm -rf /config/custom_components/openid;
+          cp -R /tmp/hass-openid-$OPENID_COMMIT/custom_components/openid /config/custom_components/openid;
+          test -f /config/custom_components/openid/__init__.py
         env:
         - name: OPENID_COMMIT
-          value: ece9ae65d1a06f86ab06100545576550dc0f9e6d
+          value: 0135a6f8150693ecb99cd5ba42446e0d1e66994d
         - name: OPENID_ARCHIVE_URL
-          value: https://github.com/cavefire/hass-openid/archive/ece9ae65d1a06f86ab06100545576550dc0f9e6d.tar.gz
+          value: https://github.com/cavefire/hass-openid/archive/0135a6f8150693ecb99cd5ba42446e0d1e66994d.tar.gz
         - name: OPENID_ARCHIVE_SHA256
-          value: d00cac36e547afe9df6d0fcb60e3cef36dfc18971b6ee2156976f18d9f073b01
+          value: bf742ea17a3111ddb7b060835225dcaebb3d9debe73a89b4ddec62ae880ee6f4
+        volumeMounts:
+        - name: data
+          mountPath: /config
+      - name: init-ui-files
+        # PLT-444 : crée sur le PVC les fichiers inclus par configuration.yaml s'ils manquent.
+        # Ne jamais écraser un fichier existant (UI HA et provider OpenTofu y écrivent).
+        image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }
+          limits: { cpu: 100m, memory: 64Mi }
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - >-
+          set -eu;
+          [ -e /config/automations.yaml ] || echo '[]' > /config/automations.yaml;
+          [ -e /config/scenes.yaml ] || echo '[]' > /config/scenes.yaml;
+          [ -e /config/scripts.yaml ] || echo '{}' > /config/scripts.yaml
         volumeMounts:
         - name: data
           mountPath: /config
       - name: volume-permissions
-        image: busybox:1.38
+        image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }
+          limits: { cpu: 100m, memory: 64Mi }
         command: ["sh", "-c", "chmod -R 755 /config && chown -R root:root /config"]
         volumeMounts:
         - name: data
           mountPath: /config
       containers:
         - name: home-assistant
-          image: ghcr.io/home-assistant/home-assistant:2026.6.0
+          image: ghcr.io/home-assistant/home-assistant:2026.11.2@sha256:493a07e8f6530fc640223f4a0a5248f20a61ca2f718bb1d31efbf08a2c5ea28f
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8123
@@ -75,8 +100,10 @@ spec:
               value: Europe/Stockholm
           resources:
             requests:
+              cpu: 100m
               memory: 1Gi
             limits:
+              cpu: "2"
               memory: 3Gi
           securityContext:
             capabilities:

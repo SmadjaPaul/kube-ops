@@ -23,7 +23,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: mysql
-          image: mysql:8.4.11
+          image: mysql:8.4.11@sha256:0f51e63e537a1f176423fa03ef559aabe6fa4372a53160a44bc7e75da7d15364
           ports: [{ name: mysql, containerPort: 3306 }]
           env:
             - { name: MYSQL_DATABASE, value: ninja }
@@ -32,7 +32,8 @@ spec:
               valueFrom: { secretKeyRef: { name: invoice-ninja-mysql, key: MYSQL_PASSWORD } }
             - name: MYSQL_ROOT_PASSWORD
               valueFrom: { secretKeyRef: { name: invoice-ninja-mysql, key: MYSQL_ROOT_PASSWORD } }
-          args: [--innodb-buffer-pool-size=256M]
+          # RAM : performance_schema coute ~150-250 Mo residents sans consommateur (revue RAM 23/11).
+          args: [--innodb-buffer-pool-size=256M, --performance-schema=OFF]
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

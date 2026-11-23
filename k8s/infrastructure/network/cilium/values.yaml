@@ -40,6 +40,10 @@ operator:
     enabled: true
     serviceMonitor:
       enabled: true
+      # Revue séries 2026-11-23: chart default is 10s. Cilium operator, agent and
+      # Hubble export ~6k series; 30s keeps the [1m] rates of the Hubble
+      # dashboards valid and cuts ~400 samples/s.
+      interval: 30s
       labels:
         release: kube-prometheus-stack
   resources:
@@ -51,10 +55,25 @@ operator:
 
 rollOutCiliumPods: true
 
+# PLT-293: the agent logs "Timed out waiting for datapath updates of FQDN IP
+# information" (186 in 3 h on 2026-11-20/21, default 100ms). The DNS answer
+# reached the pod before the resolved IP was in the toFQDNs policy map, so the
+# first connection from the ARC runner to api.migadu.com hung (TLS handshake
+# timeout, POST without response). Give the datapath more time to catch up.
+# 2026-11-22: 1s still timed out 827 times in 12 h (name-lock waits dominated
+# by CI-runner names: mise-versions.jdx.dev, files.pythonhosted.org, pypi.org,
+# registry.opentofu.org), which made aiostreams fetches fail (ETIMEDOUT, a
+# config PUT returned 400). 3s trades a slower first DNS answer for no refused
+# first SYN. See docs/runbooks/egress-why.md; revert to 1s if DNS latency
+# alerts fire.
+dnsProxy:
+  proxyResponseMaxDelay: 3s
+
 prometheus:
   enabled: true
   serviceMonitor:
     enabled: true
+    interval: 30s
     trustCRDsExist: true
     labels:
       release: kube-prometheus-stack
@@ -92,13 +111,16 @@ hubble:
   metrics:
     enableOpenMetrics: true
     enabled:
-      - dns
-      - drop
+      # Attribution par workload (PLT-411) : labelsContext borne la cardinalité
+      # (namespace x workload, quelques dizaines de séries par métrique).
+      - dns:labelsContext=source_namespace,source_workload
+      - drop:destinationContext=dns;labelsContext=source_namespace,source_workload
       - tcp
-      - flow
+      - flow:labelsContext=source_namespace,source_workload
       - port-distribution
     serviceMonitor:
       enabled: true
+      interval: 30s
       labels:
         release: kube-prometheus-stack
     dashboards:

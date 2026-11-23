@@ -1,0 +1,26 @@
+# PLT-405 : politique portee par l'app (Cilium est en chaining sur OKE, PLT-384, donc la regle
+# repo-contract-cnp-per-namespace et le check network d'app-test s'appliquent aussi aux apps OKE).
+# Meme intention que baseline/whoami.yaml (NetworkPolicy default-deny, gardee en doublon : les politiques
+# s'additionnent) : ingress 8080 depuis la sonde de baseline et cloudflared, aucun egress hors du namespace.
+# Les sondes kubelet viennent de l'entite host, toujours admise.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: whoami
+  namespace: whoami
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: baseline-probe
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cloudflared
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: whoami

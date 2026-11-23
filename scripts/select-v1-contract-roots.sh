@@ -61,10 +61,10 @@ while IFS= read -r path; do
     k8s/infrastructure/network/*)
       roots[k8s/infrastructure/network]=1
       ;;
-    k8s/applications/media/polyfin/*)
-      # Polyfin is an active component of the media root, not an independent
-      # V1 root. Render the owning root so scoped validation stays aligned with
-      # the actual Argo boundary.
+    k8s/applications/media/*)
+      # PLT-394 : le domaine media est eclate en apps (Applications app-<app>) ; sa
+      # kustomization en est l'agregat et reste la racine V1 unique (comme ai et platform :
+      # un rendu par app dupliquerait les objets aupres de kyverno).
       roots[k8s/applications/media]=1
       ;;
     k8s/applications/games/romm/*)

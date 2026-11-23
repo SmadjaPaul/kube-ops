@@ -22,6 +22,15 @@ spec:
         - ports:
             - port: "8096"
               protocol: TCP
+    # Music Assistant (compte lecture seule) lit la bibliotheque musique via le Service interne.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: music-assistant
+            app.kubernetes.io/name: music-assistant
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
     # The root-scoped Polyfin plan uses the separate ephemeral ARC execution
     # scale set; admit only that runner identity to the read-only API path.
     - fromEndpoints:
@@ -140,4 +149,24 @@ spec:
       toPorts:
         - ports:
             - port: "3000"
+              protocol: TCP
+---
+# PLT-470: CNPG metrics exporter (:9187) scraped by Prometheus in monitoring.
+# The polyfin-db ingress policy only opened 5432/8000, so the target was up == 0.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: polyfin-db-metrics
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: polyfin-db
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9187"
               protocol: TCP

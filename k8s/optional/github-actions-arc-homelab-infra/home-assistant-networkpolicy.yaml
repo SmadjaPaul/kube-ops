@@ -1,0 +1,23 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-homelab-infra-home-assistant
+  namespace: arc-runners
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "Allow the homelab-infra CI runner to reach Home Assistant (hostNetwork pod, TCP 8123 only) for terraform/home-assistant plans (PLT-443). toEntities host/remote-node because Cilium does not match node IPs with toCIDR (default policyCIDRMatchMode); same model as ha-mcp-access."
+  endpointSelector:
+    matchLabels:
+      k8s:actions.github.com/scale-set-name: homelab-infra-ci-arc
+  egress:
+    - toEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8123"
+              protocol: TCP

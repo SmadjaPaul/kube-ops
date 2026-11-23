@@ -4,6 +4,7 @@
 # Alertmanager uses). Never printed, never a GitHub secret.
 #   In the post-merge runner pod (KUBECTL_RO_IN_CLUSTER=1): read from the cluster Secret monitoring/alertmanager-ntfy-url
 #   (key url) with the pod ServiceAccount, which may get that ONE Secret (rbac.yaml). No Doppler.
+#   OKE runner (PLT-407): PM_NTFY_SECRET_NS / PM_NTFY_SECRET_NAME point at arc-runners-oke/ntfy-publish-url.
 #   Elsewhere: injected by scripts/doppler-safe.sh (Doppler cluster/prd).
 # Usage: bash scripts/post-merge-notify.sh [--dry-run] TITLE PRIORITY MESSAGE   (PRIORITY: default|high|urgent)
 # Exit 0 sent (or dry-run), 2 BLOCKED (no URL / ntfy refused). A notification failure never hides the decision.
@@ -18,7 +19,7 @@ if [[ -z ${NTFY_PUBLISH_URL:-} && ${KUBECTL_RO_IN_CLUSTER:-} == 1 ]]; then
   # shellcheck source=lib/in-cluster-kubeconfig.sh
   . "$here/lib/in-cluster-kubeconfig.sh"
   kcfg=$(in_cluster_kubeconfig "${KUBECTL_RO_SA_DIR:-/var/run/secrets/kubernetes.io/serviceaccount}") || kcfg=""
-  NTFY_PUBLISH_URL=$(KUBECONFIG=${kcfg:-/nonexistent} kubectl -n monitoring get secret alertmanager-ntfy-url -o jsonpath='{.data.url}' 2>/dev/null | base64 -d 2>/dev/null) || true
+  NTFY_PUBLISH_URL=$(KUBECONFIG=${kcfg:-/nonexistent} kubectl -n "${PM_NTFY_SECRET_NS:-monitoring}" get secret "${PM_NTFY_SECRET_NAME:-alertmanager-ntfy-url}" -o jsonpath='{.data.url}' 2>/dev/null | base64 -d 2>/dev/null) || true
   [[ -z $kcfg ]] || rm -f "$kcfg"
   [[ -n $NTFY_PUBLISH_URL ]] || { echo "NOTIFY=BLOCKED reason=ntfy_secret_unreadable"; exit 2; }
   [[ -z ${GITHUB_ACTIONS:-} ]] || echo "::add-mask::$NTFY_PUBLISH_URL"

@@ -20,6 +20,72 @@ configs:
         hs.message = "Namespace is terminating"
       end
       return hs
+    # PLT-396: Argo CD 3.x no longer assesses child Application health by
+    # default; without it an App of Apps stays Healthy while a child is broken
+    # and sync waves are decorative. Same Lua as oracle-a1.
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {status = "Progressing", message = "Waiting for the child Application to be Synced and Healthy"}
+      -- A self-managed Application (root tracks itself) must not wait for its
+      -- own health, or its sync deadlocks until the controller timeout.
+      -- Argo's Lua VM has no string library: exact match, concatenation only.
+      if obj.metadata ~= nil and obj.metadata.annotations ~= nil and obj.metadata.name ~= nil and obj.metadata.namespace ~= nil then
+        local name = obj.metadata.name
+        local self_tid = name .. ":argoproj.io/Application:" .. obj.metadata.namespace .. "/" .. name
+        if obj.metadata.annotations["argocd.argoproj.io/tracking-id"] == self_tid then
+          hs.status = "Healthy"
+          hs.message = "Self-managed Application"
+          return hs
+        end
+      end
+      if obj.status ~= nil and obj.status.health ~= nil and obj.status.sync ~= nil then
+        if obj.status.health.status == "Healthy" and obj.status.sync.status == "Synced" then
+          hs.status = "Healthy"
+          hs.message = obj.status.health.message or ""
+        elseif obj.status.health.status == "Degraded" then
+          hs.status = "Degraded"
+          hs.message = obj.status.health.message or ""
+        end
+      end
+      return hs
+    # PLT-417: Argo CD 3.6 ships a built-in health check that maps a Velero Backup
+    # in PartiallyFailed/Failed to Degraded. Backups are history records kept for
+    # weeks, so one old failure kept infra-controllers Degraded and paged ntfy.
+    # A finished Backup is therefore Healthy here; a real failure is alerted from
+    # Velero metrics (VeleroBackupFailure, VeleroBackupPartialFailure,
+    # VeleroBackupNotRunRecently in velero/prometheusrule.yaml). No Backup is deleted.
+    resource.customizations.health.velero.io_Backup: |
+      hs = {status = "Progressing", message = "Backup in progress"}
+      if obj.status == nil or obj.status.phase == nil then
+        hs.message = "Waiting for the Velero controller"
+        return hs
+      end
+      local phase = obj.status.phase
+      if phase == "Completed" then
+        return {status = "Healthy", message = "Backup completed"}
+      end
+      if phase == "PartiallyFailed" or phase == "Failed" or phase == "FailedValidation" then
+        return {status = "Healthy", message = "Backup finished as " .. phase .. " (alerted by VeleroBackup* rules, not by Argo)"}
+      end
+      return hs
+    # PLT-417: the built-in ValidatingPolicy check (Argo CD 3.6) is Degraded as soon
+    # as conditionStatus.ready is not true, which also covers background-scan
+    # resolution errors (apiVersions "*" on external-secrets.io and cnpg kinds) while
+    # the admission webhook is configured and enforcing. What matters for a Deny
+    # policy is the WebhookConfigured condition: Healthy when True, Degraded when
+    # False, Progressing while Kyverno has not reported.
+    resource.customizations.health.policies.kyverno.io_ValidatingPolicy: |
+      hs = {status = "Progressing", message = "Waiting for ValidatingPolicy status"}
+      if obj.status ~= nil and obj.status.conditionStatus ~= nil and obj.status.conditionStatus.conditions ~= nil then
+        for _, condition in ipairs(obj.status.conditionStatus.conditions) do
+          if condition.type == "WebhookConfigured" then
+            if condition.status == "True" then
+              return {status = "Healthy", message = condition.message or "Webhook configured"}
+            end
+            return {status = "Degraded", message = "WebhookConfigured: " .. (condition.message or "webhook not configured")}
+          end
+        end
+      end
+      return hs
     resource.customizations.health.argoproj.io_AppProject: |
       hs = {status = "Healthy", message = "Declarative Argo policy resource"}
       if obj.metadata ~= nil and obj.metadata.deletionTimestamp ~= nil then
@@ -216,4 +282,65 @@ applicationSet:
       memory: 256Mi
 
 notifications:
-  enabled: false
+  enabled: true
+  # PLT-396: the ntfy publish URL (secret topic) is never in Git. The
+  # ExternalSecret argocd-notifications-secret (externalsecret-notifications.yaml)
+  # provides key ntfy-url from the existing Doppler key ALERTMANAGER_NTFY_URL.
+  secret:
+    create: false
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+  context:
+    argocdUrl: https://argocd.smadja.dev
+  notifiers:
+    service.webhook.ntfy: |
+      url: $ntfy-url
+      headers:
+        - name: Content-Type
+          value: text/plain
+        - name: Title
+          value: Argo CD
+        - name: Priority
+          value: high
+        - name: Tags
+          value: warning
+  templates:
+    template.app-sync-failed: |
+      webhook:
+        ntfy:
+          method: POST
+          body: |
+            Sync en echec : {{.app.metadata.name}} (projet {{.app.spec.project}})
+            Phase : {{.app.status.operationState.phase}}
+            {{.app.status.operationState.message}}
+            {{.context.argocdUrl}}/applications/{{.app.metadata.name}}
+    template.app-health-degraded: |
+      webhook:
+        ntfy:
+          method: POST
+          body: |
+            Application Degraded : {{.app.metadata.name}} (projet {{.app.spec.project}})
+            Sync : {{.app.status.sync.status}}
+            {{.context.argocdUrl}}/applications/{{.app.metadata.name}}
+  triggers:
+    # The previews project (per-PR environments) is excluded: it is noisy by
+    # design. oncePer keeps one message per revision.
+    trigger.on-sync-failed: |
+      - when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed'] and app.spec.project != 'previews'
+        oncePer: app.status.operationState.syncResult.revision
+        send: [app-sync-failed]
+    trigger.on-health-degraded: |
+      - when: app.status.health.status == 'Degraded' and app.spec.project != 'previews'
+        oncePer: app.status.sync.revision
+        send: [app-health-degraded]
+  subscriptions:
+    - recipients:
+        - webhook:ntfy
+      triggers:
+        - on-sync-failed
+        - on-health-degraded

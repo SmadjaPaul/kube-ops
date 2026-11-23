@@ -1,0 +1,4 @@
+name: sure
+namespace: sure
+postMerge: notify
+preview: false

@@ -17,6 +17,7 @@ tests/harness/arc-gitops-contract-test.sh
 tests/harness/invoice-backup-test.sh
 tests/harness/restic-backup-contract-test.sh
 tests/harness/aiostreams-staged-contract-test.sh
+tests/harness/fleet-public-route-contract-test.sh
 tests/harness/aiostreams-sqlite-restore-test.sh
 tests/harness/aiostreams-oidc-dormant-contract-test.sh
 tests/harness/aiostreams-egress-global-exclusion-contract-test.sh
@@ -25,6 +26,7 @@ tests/harness/longhorn-servicemonitor-contract-test.sh
 tests/harness/longhorn-offsite-pvc-contract-test.sh
 tests/harness/longhorn-tier-restore-runbook-test.sh
 tests/harness/bookorbit-staged-contract-test.sh
+tests/harness/qbittorrent-mam-contract-test.sh
 tests/harness/authentik-human-users-contract-test.sh
 tests/harness/authentik-friends-contract-test.sh
 tests/harness/d-recovery-contract-test.sh
@@ -35,7 +37,6 @@ tests/agent-guard/investigation-read-path-test.sh
 tests/harness/cnpg-cluster-allowlist-test.sh
 tests/harness/db-storage-tier-guard-test.sh
 tests/harness/verify-delivery-test.sh
-tests/harness/scaffold-oke-app-test.sh
 tests/harness/agent-e2e-run-test.sh
 tests/agent-guard/kubectl-ro-session-test.sh
 tests/agent-guard/agent-memory-entry-test.sh
@@ -45,5 +46,14 @@ tests/harness/eso-generated-secrets-contract-test.sh
 tests/harness/verify-revision-test.sh
 tests/harness/post-merge-decision-test.sh
 tests/harness/post-merge-verify-test.sh
+tests/harness/post-merge-revert-test.sh
 tests/agent-guard/kubectl-ro-in-cluster-test.sh
 tests/harness/argo-project-namespaces-contract-test.sh
+tests/harness/argo-app-descriptors-contract-test.sh
+tests/harness/oke-bootstrap-test.sh
+tests/harness/scaffold-app-secrets-test.sh
+tests/harness/argocd-notifications-contract-test.sh
+tests/harness/preview-isolation-contract-test.sh
+tests/harness/previews-appset-descriptors-test.sh
+tests/harness/egress-why-test.sh
+tests/harness/restic-negative-real-test.sh

@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: apps
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    # Le projet existe avant que les ApplicationSets generent leurs Applications.
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  description: Applications utilisateur d'OKE, une Application par app (descripteur argocd-app.oracle-a1.yaml)
+  sourceRepos:
+    - https://github.com/SmadjaPaul/kube-ops.git
+  # Meme motif que le projet `apps` du homelab : `*` moins les namespaces d'infrastructure d'OKE
+  # (negations, doc Argo CD « Projects »). Ajouter une app ne touche pas ce fichier ; un nouveau
+  # namespace d'infrastructure doit etre ajoute ici (scripts/check-argo-app-descriptors.sh).
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+    - namespace: '!arc-runners-oke'
+      server: '*'
+    - namespace: '!arc-systems'
+      server: '*'
+    - namespace: '!argocd'
+      server: '*'
+    - namespace: '!baseline-probe'
+      server: '*'
+    - namespace: '!cert-manager'
+      server: '*'
+    - namespace: '!cilium-secrets'
+      server: '*'
+    - namespace: '!cloudflared'
+      server: '*'
+    - namespace: '!cnpg-system'
+      server: '*'
+    - namespace: '!databases'
+      server: '*'
+    - namespace: '!external-secrets'
+      server: '*'
+    - namespace: '!kube-node-lease'
+      server: '*'
+    - namespace: '!kube-public'
+      server: '*'
+    - namespace: '!kube-system'
+      server: '*'
+    - namespace: '!monitoring'
+      server: '*'
+    - namespace: '!netbird'
+      server: '*'
+  # Pas de ClusterRole ni de ClusterRoleBinding : une application ne peut pas
+  # accorder de privilege cluster-wide par Git.
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceBlacklist:
+    - group: gateway.networking.k8s.io
+      kind: ReferenceGrant
+    - group: external-secrets.io
+      kind: SecretStore
+    - group: external-secrets.io
+      kind: PushSecret
+  orphanedResources:
+    warn: true

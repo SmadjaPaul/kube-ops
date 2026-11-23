@@ -1,0 +1,48 @@
+# Toolchain commune des runners ARC (image arc-ci-runner), preinstallee dans
+# /usr/local/share/mise/installs (dossier partage lu par mise a l'execution).
+# Base : mise.toml de homelab-infra (versions identiques a son mise.lock) + les
+# outils des autres depots. Quand homelab-infra change une version, le job
+# n'installe que l'outil modifie (telechargement) jusqu'au prochain build de
+# l'image. Renovate (gestionnaire mise) met ce fichier a jour.
+[env]
+MISE_AUTO_UPDATE = "false"
+
+[tools]
+just = "1.59.0"
+gh = "2.105.0"
+jq = "1.8.2"
+yq = "4.54.3"
+python = "3.12"
+shellcheck = "0.11.0"
+shfmt = "3.10"
+actionlint = "1.7.12"
+yamllint = "1.35"
+pre-commit = "4.7.0"
+gitleaks = "8.30.1"
+conftest = "0.71.1"
+markdownlint-cli2 = "0.14"
+opentofu = "1.12"
+terraform = "1.17.2"
+tflint = "0.66.0"
+terraform-docs = "0.25.1"
+uv = "0.13"
+# Plusieurs Node : 26 pour homelab-infra, 24 pour website (.node-version),
+# 22 pour agent-harness. Enregistres dans /opt/hostedtoolcache pour setup-node.
+node = ["22.23.5", "24.22.3", "26.13.1"]
+"npm:pnpm" = "10.34.9"
+zizmor = "1.32.0"
+helm = "4.3.2"
+kustomize = "5.8.3"
+kubeconform = "0.8.0"
+kyverno = "1.20.0"
+ripgrep = "14"
+ruby = "4.0.10"
+
+[settings]
+lockfile = true
+
+[settings.ruby]
+compile = false
+precompiled_url = "jdx/ruby"
+ruby_build_repo = "https://github.com/rbenv/ruby-build.git"
+ruby_install = false

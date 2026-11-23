@@ -81,6 +81,17 @@ spec:
     - ports:
       - port: "9000"
         protocol: TCP
+  # PLT-472: Authentik server and worker metrics (authentik_* and django_*) on
+  # :9300, scraped by Prometheus in monitoring through the PodMonitor
+  # authentik-app (k8s/infrastructure/auth/authentik/podmonitor-app.yaml).
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/name: prometheus
+    toPorts:
+    - ports:
+      - port: "9300"
+        protocol: TCP
   egress:
   - toEndpoints:
     - matchLabels:
@@ -177,3 +188,23 @@ spec:
         protocol: UDP
       - port: "53"
         protocol: TCP
+---
+# PLT-470: CNPG metrics exporter (:9187) scraped by Prometheus in monitoring.
+# The authentik-postgresql-restored ingress policy only opened 5432/8000, so the target was up == 0.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: authentik-postgresql-restored-metrics
+  namespace: auth
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: authentik-postgresql-restored
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9187"
+              protocol: TCP

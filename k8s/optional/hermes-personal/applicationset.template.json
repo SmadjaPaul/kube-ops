@@ -4,6 +4,9 @@
   "metadata": {
     "name": "hermes-personal-tenants",
     "namespace": "argocd",
+    "annotations": {
+      "argocd.argoproj.io/sync-options": "Prune=false"
+    },
     "labels": {
       "app.kubernetes.io/part-of": "personal-platform"
     }

@@ -14,5 +14,17 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "agent-harness": {
+      "source": {
+        "source": "github",
+        "repo": "SmadjaPaul/agent-harness"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "homelab-ops@agent-harness": true,
+    "harness-core@agent-harness": true
   }
 }

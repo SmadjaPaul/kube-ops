@@ -56,10 +56,10 @@ defaultSettings:
   # Evidence 2026-11-12: 99 detached volumes = 87 PV Released without PVC,
   # 4 Released whose PVC name now binds another PV, 4 DR-exercise volumes
   # without PV, 4 Bound but unmounted. For executor/data-executor-0,
-  # atlantis-system/atlantis-pilot-data and rustical-pilot/rustical-data the
-  # last completed Longhorn backup is newer than the last pod mount
-  # (lastPodRefAt); Velero file-system backups do not cover them without a pod.
-  # atlantis-apps-data is faulted with no backup either way. A detached volume
+  # and rustical-pilot/rustical-data the last completed Longhorn backup is
+  # newer than the last pod mount (lastPodRefAt); Velero file-system backups do
+  # not cover them without a pod. (The former Atlantis recovery volumes are
+  # retired, see docs/contracts/atlantis-retirement-v1.md.) A detached volume
   # cannot be written, and existing backups are not pruned while no new backup
   # is taken. Residual risk: a volume written and detached again between two
   # 03:17 runs (executor scaled 0/0, future mastra-sandbox workspaces) is not
@@ -107,3 +107,10 @@ metrics:
       release: kube-prometheus-stack
     interval: 30s
     scrapeTimeout: 10s
+    # Revue 2026-11-23: Longhorn's internal REST client latency (~1.7k
+    # series) has no rule, alert or dashboard. Volume, replica, node and
+    # backup state metrics stay scraped.
+    metricRelabelings:
+      - action: drop
+        sourceLabels: [__name__]
+        regex: "longhorn_rest_client_.*"

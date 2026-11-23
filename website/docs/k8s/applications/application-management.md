@@ -139,11 +139,5 @@ proxy requests using the `X-Forwarded-For` header. The main container starts as
 `root` so its init system can run, but Kubernetes sets the volume group to `1000`
 so Home Assistant can drop privileges. The BlueZ sidecar now drops all
 capabilities and runs unprivileged, reducing risk.
-## Zigbee2MQTT Notes
-
-Zigbee2MQTT manages the Zigbee adapter without privileged mode. The
-`zigbee2mqtt` namespace is labeled `pod-security.kubernetes.io/enforce=baseline` so
-it adheres to the cluster's standard policies.
-
 
 Need help? Check the application examples in `/k8s/applications/` for reference implementations.

@@ -1,0 +1,4 @@
+name: searxng
+namespace: searxng
+postMerge: revert
+preview: false

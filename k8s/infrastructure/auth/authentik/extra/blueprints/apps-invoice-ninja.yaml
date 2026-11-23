@@ -17,7 +17,7 @@ entries:
       client_id: invoice-ninja
       client_secret: !Env INVOICE_NINJA_CLIENT_SECRET
       redirect_uris:
-        - {url: https://gestion.lechaplais.com/auth/oidc, matching_mode: strict}
+        - {url: https://facture.smadja.dev/auth/oidc, matching_mode: strict}
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "openid"]]
         - !Find [authentik_providers_oauth2.scopemapping, [scope_name, "profile"]]
@@ -28,11 +28,17 @@ entries:
     attrs:
       name: Invoice Ninja
       group: Business
-      meta_launch_url: https://gestion.lechaplais.com
+      meta_launch_url: https://facture.smadja.dev
       provider: !KeyOf invoice_ninja_provider
       policy_engine_mode: any
+  # PLT-176: business data of Studio Lechaplais, reserved to `lechaplais`.
+  # Under policy_engine_mode=any a leftover binding keeps granting access, so
+  # the old `family` binding is removed explicitly.
   - model: authentik_policies.policybinding
+    state: absent
     identifiers: {target: !KeyOf invoice_ninja_application, group: !Find [authentik_core.group, [name, "family"]]}
+  - model: authentik_policies.policybinding
+    identifiers: {target: !KeyOf invoice_ninja_application, group: !Find [authentik_core.group, [name, "lechaplais"]]}
     attrs: {order: 10}
   - model: authentik_policies.policybinding
     identifiers: {target: !KeyOf invoice_ninja_application, group: !Find [authentik_core.group, [name, "authentik-admins"]]}

@@ -1,0 +1,13 @@
+# PLT-392 : deny ingress par defaut ; seul le port web 5003 est joignable depuis la Gateway/hote.
+# playwright-mcp (8931) et opencode (127.0.0.1) restent en loopback du pod, non concernes.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: { name: opencode-web, namespace: opencode }
+spec:
+  endpointSelector:
+    matchLabels: { app: opencode-web }
+  ingress:
+    - fromEntities: [host, remote-node, ingress]
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "5003" }

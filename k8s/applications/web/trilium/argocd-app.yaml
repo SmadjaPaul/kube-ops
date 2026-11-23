@@ -1,0 +1,4 @@
+name: trilium
+namespace: trilium
+postMerge: notify
+preview: false

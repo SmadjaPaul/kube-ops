@@ -14,12 +14,10 @@ function file(root, path, body) {
 test('inventory reports dormant subtrees and excludes their HTTPRoutes', { skip: !haveYq }, () => {
   const root = mkdtempSync(join(tmpdir(), 'k8s-inventory-'));
   try {
-    file(root, 'k8s/bootstrap/argocd-root/applications-applicationset.yaml',
-      'directories:\n  - path: k8s/applications/catalog\n  - path: k8s/applications/restore\n');
+    file(root, 'k8s/applications/catalog/active/argocd-app.yaml', 'name: active\nnamespace: active\n');
     file(root, 'k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml',
       'directories:\n  - path: k8s/infrastructure/controllers\n');
     file(root, 'k8s/infrastructure/controllers/kustomization.yaml', 'resources: []\n');
-    file(root, 'k8s/applications/catalog/kustomization.yaml', 'resources:\n  - active\n');
     file(root, 'k8s/applications/catalog/active/kustomization.yaml', 'resources:\n  - route.yaml\n');
     file(root, 'k8s/applications/catalog/active/route.yaml',
       'kind: HTTPRoute\nspec:\n  hostnames:\n    - live.smadja.dev\n');
@@ -32,7 +30,7 @@ test('inventory reports dormant subtrees and excludes their HTTPRoutes', { skip:
     assert.deepEqual(parsed.declaredHostnames, ['live.smadja.dev']);
     assert.ok(parsed.dormantApplicationDirs.includes('k8s/applications/catalog/dormant'));
     assert.ok(!parsed.dormantApplicationDirs.includes('k8s/applications/catalog/active'));
-    assert.deepEqual(parsed.missingRoots, [{ type: 'applications', path: 'k8s/applications/restore' }]);
+    assert.deepEqual(parsed.missingRoots, []);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -45,7 +45,8 @@ ok "namespaces admis = destinations Argo existantes"
 check "destination agent-operator dans le projet infrastructure" \
   grep -qx '    - namespace: agent-operator' k8s/bootstrap/argocd-root/infrastructure-project.yaml
 check "racine infra-security importe agent-operator" grep -qx '  - agent-operator' k8s/infrastructure/security/kustomization.yaml
-check "racine apps-platform importe agent-operator-access" grep -qx '  - agent-operator-access' k8s/applications/platform/kustomization.yaml
+check "app agent-operator-access (descripteur) et agregat du domaine platform" grep -qx '  - agent-operator-access' k8s/applications/platform/kustomization.yaml
+check "descripteur argocd-app.yaml de agent-operator-access" test -f k8s/applications/platform/agent-operator-access/argocd-app.yaml
 
 # 4. RBAC : jamais de Secret, d'escalade, d'exec, de PVC/PV en écriture
 rules=$(yq -o=json -I=0 'select(.kind == "ClusterRole" or .kind == "Role") | {"n": .metadata.name, "r": .rules}' "$RBAC" | jq -c '.n as $n | .r[] | . + {role: $n}')
@@ -208,8 +209,28 @@ can_case "casse refusée" "" 'Yes\n'
 can_case "erreur refusée" "" 'error: forbidden\n'
 can_case "premier mot seulement (no puis yes)" no 'no\nyes\n'
 
+# 7b. serveur OKE repris de la session admin : adresse privee du VCN 10.0.0.0/16 seulement, pas d'IP en dur
+# shellcheck source=../../scripts/lib/oke-api-server.sh
+source scripts/lib/oke-api-server.sh
+srv_case() { # srv_case LIBELLE ATTENDU(0|1) URL
+  if oke_api_server_valid "$3"; then got=0; else got=1; fi
+  if [ "$got" = "$2" ]; then ok "serveur OKE : $1"; else ko "serveur OKE : $1 (obtenu $got, attendu $2)"; fi
+}
+srv_case "IP privee du VCN" 0 "https://10.0.2.3:6443"
+srv_case "autre IP du VCN" 0 "https://10.0.2.65:6443"
+srv_case "sans port" 0 "https://10.0.1.7"
+srv_case "http refuse" 1 "http://10.0.2.3:6443"
+srv_case "IP publique refusee" 1 "https://203.0.113.10:6443"
+srv_case "autre reseau prive refuse" 1 "https://10.1.2.3:6443"
+srv_case "LAN 192.168 refuse" 1 "https://192.168.1.10:6443"
+srv_case "octet hors plage refuse" 1 "https://10.0.2.300:6443"
+srv_case "nom DNS refuse" 1 "https://oke.example.com:6443"
+srv_case "chemin refuse" 1 "https://10.0.2.3:6443/evil"
+srv_case "vide refuse" 1 ""
+check "plus d'IP API codee en dur dans les scripts d'acces OKE" bash -c '! grep -nE "10\.0\.2\.[0-9]" scripts/kubectl-ro.sh scripts/agent-operator-oke-token.sh'
+
 # 8. syntaxe
-for s in scripts/kubectl-rw.sh scripts/agent-operator-token.sh scripts/agent-operator-oke-token.sh scripts/lib/kube-can-i.sh scripts/kubectl-ro.sh scripts/lib/kube-preflight.sh; do check "bash -n $s" bash -n "$s"; done
+for s in scripts/kubectl-rw.sh scripts/agent-operator-token.sh scripts/agent-operator-oke-token.sh scripts/lib/oke-api-server.sh scripts/lib/kube-can-i.sh scripts/kubectl-ro.sh scripts/lib/kube-preflight.sh; do check "bash -n $s" bash -n "$s"; done
 if command -v shellcheck >/dev/null 2>&1; then
   check "shellcheck (warning)" shellcheck -S warning -x -P SCRIPTDIR scripts/kubectl-rw.sh scripts/agent-operator-token.sh tests/agent-guard/agent-operator-identity-test.sh
 fi

@@ -75,8 +75,8 @@ verify the direct Gateway-to-Authentik peer address and forwarded
 Git/Renovate own Authentik upgrades. The deployment disables Authentik startup
 analytics and the built-in update checker, and keeps error reporting disabled.
 
-Database state is stored in CloudNativePG. Backups are sent to the canonical
-Hetzner Object Storage path and are part of the separate backup/restore
+Database state is stored in CloudNativePG. Backups are sent to the Cloudflare R2
+(`homelab-backup-cnpg`) path and are part of the separate backup/restore
 contract.
 
 ## Authorization
@@ -103,7 +103,7 @@ Authentik is not considered V1-ready from pod health alone. Acceptance requires:
 2. completion of the post-login redirect with no infinite loading state;
 3. Argo CD OIDC through Dex and Authentik;
 4. OpenWebUI login and usable main UI;
-5. Home Assistant onboarding/login and the expected MQTT/Zigbee2MQTT path;
+5. Home Assistant onboarding/login and the expected MQTT path;
 6. authorization matching the user's groups.
 
 Recovery links are break-glass mechanisms and do not count as a normal human

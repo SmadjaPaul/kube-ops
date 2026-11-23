@@ -30,16 +30,16 @@
 | factory-platform | apps-platform | OUI 3/3 | 0.087/0.902 | 170/417 | aucune | reconstructible (PVC 5/52Gi, CNPG 2) | **GARDER** : Factory MVP (D-09) |
 | gpt-researcher | apps-ai | OUI 3/3 | 0.003/0.006 | 839/956 | research.smadja.dev [public] auth non détectée | reconstructible (PVC 3/25Gi) | **ALLÉGER** : usage non mesurable ; candidat scale 0 si inutilisé |
 | hindsight-personal | personal-hindsight | OUI 1/1 | 0.011/0.081 | 1553/1647 | aucune | irremplaçable (à confirmer) (PVC 2/15Gi, CNPG 1) | **GARDER** : mémoire d'agent, utilité à confirmer (D-05) |
-| home-assistant | apps-automation | OUI 1/1 | 0.000/0.002 | 417/536 | hassio.smadja.dev [public] OIDC | irremplaçable (à confirmer) (PVC 1/5Gi) | **GARDER** : config domotique ; cible N100 (D-11, proposée) |
+| home-assistant | app-hassio | OUI 1/1 | 0.000/0.002 | 417/536 | hassio.smadja.dev [public] OIDC | irremplaçable (à confirmer) (PVC 1/5Gi) | **GARDER** : config domotique ; cible N100 (D-11, proposée) |
 | immich | apps-media | OUI 3/3 | 0.025/0.031 | 1096/1201 | immich.smadja.dev [public] OIDC | irremplaçable (PVC 4/136Gi, CNPG 1) | **GARDER** : photos/vidéos originales (D-05) |
-| invoice-ninja | apps-invoice-ninja | OUI 3/3 | 0.032/0.044 | 1052/1132 | gestion.lechaplais.com [public] OIDC | irremplaçable (PVC 4/17Gi) | **GARDER** : factures (D-05) |
+| invoice-ninja | apps-invoice-ninja | OUI 3/3 | 0.032/0.044 | 1052/1132 | facture.smadja.dev [public] OIDC | irremplaçable (PVC 4/17Gi) | **GARDER** : factures (D-05) |
 | it-tools | apps-tools | NON scaled 0 | —/— | —/— | ittools.smadja.dev [public] auth non détectée | reconstructible | **GARDER** : sans état, scale-to-zero KEDA voulu (#405), coût nul |
 | karakeep | apps-ai | OUI 3/3 | 0.013/0.017 | 483/570 | karakeep.smadja.dev [public] OIDC | irremplaçable (à confirmer) (PVC 2/10Gi) | **GARDER** : marque-pages ; à confirmer |
 | mastra-factory | apps-platform | OUI 1/1 | 0.009/0.046 | 416/469 | factory.smadja.dev [LAN] OIDC | reconstructible (PVC 2/25Gi, CNPG 1) | **GARDER** : Factory MVP (D-09) |
 | matrix | apps-platform | OUI 4/4 | 0.020/0.029 | 441/491 | chat.smadja.dev [public]; account.smadja.dev [public] +2 OIDC | irremplaçable (à confirmer) (PVC 5/90Gi, CNPG 2) | **GARDER** : messagerie famille, à confirmer |
 | mealie | apps-catalog | OUI 1/1 | 0.001/0.001 | 235/273 | mealie.smadja.dev [public] OIDC | irremplaçable (à confirmer) (PVC 1/5Gi) | **GARDER** : recettes, lecture Hermes (D-08) |
 | media | apps-media | OUI 4/4 | 0.030/0.083 | 535/794 | aiostreams.smadja.dev [LAN]; tv.smadja.dev [public] +2 OIDC | reconstructible (PVC 6/2084Gi, CNPG 1) | **DÉPLACER-ORACLE** : AIOStreams + Polyfin candidats Oracle (D-07, hypothèse pilote) |
-| mqtt | apps-automation | OUI 1/1 | 0.000/0.000 | 2/3 | aucune | reconstructible (PVC 1/1Gi) | **GARDER** : bus domotique ; cible N100 (D-11, proposée) |
+| mqtt | app-mqtt | OUI 1/1 | 0.000/0.000 | 2/3 | aucune | reconstructible (PVC 1/1Gi) | **GARDER** : bus domotique ; cible N100 (D-11, proposée) |
 | ntfy | apps-catalog | OUI 1/1 | 0.000/0.003 | 13/17 | ntfy.smadja.dev [public] auth non détectée | reconstructible (PVC 1/1Gi) | **GARDER** : notifications |
 | open-connector | apps-platform | OUI 1/1 | 0.000/0.001 | 79/85 | aucune | reconstructible (PVC 1/2Gi) | **GARDER** : connecteurs agents |
 | opencode | apps-ai | OUI 1/1 | 0.018/0.022 | 565/651 | opencode.smadja.dev [public] auth non détectée | reconstructible (PVC 2/15Gi) | **GARDER** : poste agent (D-13) |
@@ -99,7 +99,6 @@ Répertoires `k8s/applications`, `k8s/infrastructure`, `k8s/optional`, `k8s/poc`
 - `k8s/applications/ai/pocket-tts`
 - `k8s/applications/ai/vllm-embed`
 - `k8s/applications/automation/matter-server`
-- `k8s/applications/automation/zigbee2mqtt`
 - `k8s/applications/media/arr`
 - `k8s/applications/media/bookorbit`
 - `k8s/applications/media/jellyfin` (retiré par décision)

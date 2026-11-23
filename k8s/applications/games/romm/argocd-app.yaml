@@ -1,0 +1,4 @@
+name: romm
+namespace: romm
+postMerge: notify
+preview: false

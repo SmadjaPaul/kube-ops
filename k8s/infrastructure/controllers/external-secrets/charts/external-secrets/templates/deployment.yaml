@@ -76,6 +76,15 @@ spec:
           {{- if .Values.leaderElectionID }}
           - --leader-election-id={{ .Values.leaderElectionID }}
           {{- end }}
+          {{- if .Values.leaderElectionLeaseDuration }}
+          - --leader-election-lease-duration={{ .Values.leaderElectionLeaseDuration }}
+          {{- end }}
+          {{- if .Values.leaderElectionRenewDeadline }}
+          - --leader-election-renew-deadline={{ .Values.leaderElectionRenewDeadline }}
+          {{- end }}
+          {{- if .Values.leaderElectionRetryPeriod }}
+          - --leader-election-retry-period={{ .Values.leaderElectionRetryPeriod }}
+          {{- end }}
           {{- if or .Values.scopedNamespace .Values.scopedRBAC }}
           - --namespace={{ .Values.scopedNamespace | default .Release.Namespace }}
           {{- end }}
@@ -100,6 +109,9 @@ spec:
           {{- if not .Values.processSecretStore }}
           - --enable-secret-store-reconciler=false
           {{- end }}
+          {{- if .Values.storeRequeueInterval }}
+          - --store-requeue-interval={{ .Values.storeRequeueInterval }}
+          {{- end }}
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}
           {{- end }}
@@ -108,6 +120,15 @@ spec:
           {{- end }}
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
+          {{- end }}
+          {{- if .Values.tls.minVersion }}
+          - --tls-min-version={{ .Values.tls.minVersion }}
+          {{- end }}
+          {{- if .Values.tls.ciphers }}
+          - --tls-ciphers={{ .Values.tls.ciphers }}
+          {{- end }}
+          {{- if .Values.tls.curvePreferences }}
+          - --tls-curve-preferences={{ join "," .Values.tls.curvePreferences }}
           {{- end }}
           {{- if .Values.vault.enableTokenCache }}
           - --enable-vault-token-cache=true
@@ -225,6 +246,12 @@ spec:
       {{- end }}
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      {{- if .Values.schedulerName }}
+      schedulerName: {{ .Values.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName | quote }}
       {{- end }}
       {{- if .Values.podSpecExtra }}
       {{- toYaml .Values.podSpecExtra | nindent 6 }}

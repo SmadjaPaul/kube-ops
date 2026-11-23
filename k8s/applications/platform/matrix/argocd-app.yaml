@@ -1,0 +1,4 @@
+name: matrix
+namespace: matrix
+postMerge: notify
+preview: false

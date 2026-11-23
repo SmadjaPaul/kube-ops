@@ -21,7 +21,18 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: vikunja
-          image: vikunja/vikunja:2.7.0
+          image: vikunja/vikunja:2.7.0@sha256:e2204a1c1c6a81e833c2b3a5442be182ca2335b54c2e7e37578cc3fe12a27cfc
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            failureThreshold: 3
           env:
             - { name: VIKUNJA_SERVICE_PUBLICURL, value: "https://tasks.smadja.dev" }
             - { name: VIKUNJA_DATABASE_TYPE, value: "postgres" }

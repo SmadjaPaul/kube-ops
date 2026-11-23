@@ -44,9 +44,13 @@ identical in each block). The contract test checks that. The UniFi list
 (`split_dns_forward.domains` in `homelab-infra`) must be a subset of it.
 `tests/harness/dns-exact-resolver-contract-test.sh` checks the rendered manifests.
 
-The list is static. Adding an internal route means editing this list and the
-UniFi list by hand, which does not satisfy the PLT-149 lifecycle requirement
-(dynamic list derived from the HTTPRoutes). That remains an open item.
+The list is static (35 names), but CI now guards its lifecycle:
+`tests/harness/dns-exact-resolver-routes-test.sh` fails when a deployed
+HTTPRoute attached to `gateway/internal` (k8s/applications, k8s/infrastructure)
+is missing from the list (except `tv.smadja.dev` and the apex), or when a listed
+name is referenced by no manifest. On the `homelab-infra` side,
+`scripts/plt149/test_unifi_forward_subset.py` checks that the UniFi
+`FORWARD_DOMAIN` list is a subset of the local-first names.
 
 ## Activation order (never reverse)
 
@@ -73,8 +77,11 @@ are not touched.
   that window. Declared accepted limitation for PLT-149.
 - Single node and single replica: a restart gives a short LAN DNS gap for the
   listed names.
-- No ServiceMonitor is declared. Metrics are exposed on the pod (9153) for
-  Prometheus through the NetworkPolicy.
+- Metrics (9153) are scraped through `dns-exact-resolver-metrics` + a ServiceMonitor
+  (NetworkPolicy allows the monitoring namespace). Alerts in `prometheusrule.yaml`:
+  `DnsExactResolverDown`, `DnsExactResolverServfail` (> 5 %), `DnsExactResolverHighLatency`
+  (p95 > 500 ms). Query logging stays at `class error` (no per-query sampling:
+  one replica, and the PromQL counters give the rcode split).
 
 ## Preuve runtime (PLT-149)
 
