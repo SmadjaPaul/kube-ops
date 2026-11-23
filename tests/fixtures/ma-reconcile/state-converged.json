@@ -1,0 +1,17 @@
+{
+  "core": {
+    "streams": {"domain": "streams", "values": {"publish_ip": {"value": "10.0.20.192"}, "bind_port": {"value": 8097}}}
+  },
+  "providers": [
+    {"instance_id": "builtin", "domain": "builtin", "enabled": true, "values": {}},
+    {"instance_id": "sonos--a1", "domain": "sonos", "enabled": true, "values": {"ips": {"value": "10.0.35.54, 10.0.35.11,10.0.35.50,10.0.35.53"}}},
+    {"instance_id": "chromecast--b2", "domain": "chromecast", "enabled": true, "values": {"ips": {"value": "10.0.35.241"}}},
+    {"instance_id": "jellyfin--c3", "domain": "jellyfin", "enabled": true, "values": {"url": {"value": "http://polyfin.media.svc.cluster.local:80"}, "username": {"value": "svc-music-assistant"}, "password": {"value": "$ENC$opaque"}}}
+  ],
+  "players": [],
+  "users": [
+    {"user_id": "u1", "username": "paul", "role": "admin"},
+    {"user_id": "u2", "username": "svc-ma-reconcile", "role": "admin"},
+    {"user_id": "u3", "username": "svc-home-assistant", "role": "service"}
+  ]
+}

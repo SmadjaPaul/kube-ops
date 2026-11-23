@@ -1,0 +1,12 @@
+{
+  "core": {
+    "streams": {"domain": "streams", "values": {"publish_ip": {"value": null}, "bind_port": {"value": 8097}}}
+  },
+  "providers": [
+    {"instance_id": "builtin", "domain": "builtin", "enabled": true, "values": {}}
+  ],
+  "players": [],
+  "users": [
+    {"user_id": "u1", "username": "paul", "role": "admin"}
+  ]
+}
