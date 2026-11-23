@@ -38,7 +38,13 @@ spec:
           type: RuntimeDefault
       containers:
         - name: meilisearch
-          image: getmeili/meilisearch:v1.57.0@sha256:91bf09897482c17205c8faeca8daa8d57999fb9de20d862763cdfa92ba4ec790
+          # Pinned to v1.46.x (renovate.json rule "Composant critique Meilisearch"):
+          # a minor bump cannot open the existing index without a migration
+          # (CrashLoopBackOff "database version 1.46.0 incompatible with engine 1.57.0" after #1816).
+          # Upgrade by hand: https://docs.karakeep.com/administration/meilisearch-upgrade
+          # - in place: MEILI_UPGRADE_DB=true for one start (one-way; v1.51+ target), then remove it;
+          # - or rebuild: empty data.ms, then Admin Settings > Background Jobs > Reindex All Bookmarks.
+          image: getmeili/meilisearch:v1.46.0@sha256:2ca7c957b853238addd0352e1e78a24423740356045a6f65973b6373f859f066
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

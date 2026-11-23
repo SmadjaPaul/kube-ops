@@ -38,3 +38,11 @@ test('Factory/Mastra gele', () => {
   const freeze = cfg.packageRules.find((r) => r.matchFileNames?.includes('mastra-factory/**'));
   assert.equal(freeze.enabled, false);
 });
+
+test('Meilisearch reste bloque sur sa mineure (migration manuelle de la base)', () => {
+  const meili = cfg.packageRules.find((r) => r.matchPackageNames?.includes('getmeili/meilisearch'));
+  assert.ok(meili);
+  assert.equal(meili.automerge, false);
+  assert.match('v1.46.0', new RegExp(meili.allowedVersions.slice(1, -1)));
+  assert.doesNotMatch('v1.57.0', new RegExp(meili.allowedVersions.slice(1, -1)));
+});
