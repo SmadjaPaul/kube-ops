@@ -81,6 +81,17 @@ spec:
     - ports:
       - port: "9000"
         protocol: TCP
+  # PLT-472: Authentik server and worker metrics (authentik_* and django_*) on
+  # :9300, scraped by Prometheus in monitoring through the PodMonitor
+  # authentik-app (k8s/infrastructure/auth/authentik/podmonitor-app.yaml).
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/name: prometheus
+    toPorts:
+    - ports:
+      - port: "9300"
+        protocol: TCP
   egress:
   - toEndpoints:
     - matchLabels:
