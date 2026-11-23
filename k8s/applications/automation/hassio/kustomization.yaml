@@ -16,6 +16,9 @@ resources:
   - statefulset.yaml
   - policy-exception.yaml
   - external-secret.yaml
+  - ha-mcp-deployment.yaml
+  - ha-mcp-service.yaml
+  - ha-mcp-network-policy.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
