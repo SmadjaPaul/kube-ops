@@ -21,6 +21,7 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#dnsexactresolverdown
             summary: "dns-exact-resolver n'est plus scrapé ou est indisponible"
             description: "Le résolveur split-DNS (10.0.20.194) ne répond plus au scrape depuis 5 min : les noms exacts internes ne sont plus servis avec NODATA AAAA/HTTPS/SVCB."
         - alert: DnsExactResolverServfail
@@ -31,6 +32,7 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#dnsexactresolverservfail
             summary: "dns-exact-resolver renvoie des SERVFAIL (> 5 %)"
             description: "Plus de 5 % des réponses sont SERVFAIL depuis 10 min (upstream UniFi 10.0.20.1 injoignable, ou regex de template sans correspondance)."
         - alert: DnsExactResolverHighLatency
@@ -40,5 +42,6 @@ spec:
           labels:
             severity: warning
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#dnsexactresolverhighlatency
             summary: "dns-exact-resolver : latence p95 > 500 ms"
             description: "La latence p95 des requêtes DNS dépasse 500 ms depuis 10 min (upstream UniFi lent ?)."

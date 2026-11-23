@@ -127,6 +127,7 @@ spec:
           labels:
             severity: critical
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#externalsecretsyncfailinglong
             summary: "ExternalSecret {{ $labels.exported_namespace }}/{{ $labels.name }} en erreur depuis plus d'une heure"
             description: >-
               Le Secret n'est plus synchronisé depuis Doppler : la clé est
@@ -146,6 +147,7 @@ spec:
           labels:
             severity: critical
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#veleroschedulenosuccess
             summary: "Velero : le Schedule {{ $labels.schedule }} n'a aucune sauvegarde réussie"
             description: >-
               Des sauvegardes ont été tentées depuis le démarrage de Velero
@@ -165,6 +167,7 @@ spec:
           labels:
             severity: critical
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#arcrunnerlistenerdown
             summary: "ARC : listener ou contrôleur des runners GitHub hors service ({{ $labels.pod }})"
             description: >-
               Les jobs GitHub Actions des dépôts servis par ce scale set
@@ -181,6 +184,7 @@ spec:
           labels:
             severity: critical
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#cloudflaretunneldown
             summary: "Tunnel Cloudflare : aucun pod cloudflared Ready"
             description: >-
               Les routes publiques (*.smadja.dev) ne répondent plus. Vérifier
@@ -195,6 +199,7 @@ spec:
           labels:
             severity: critical
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#hostdiskwritelatencyhigh
             summary: "Latence d'écriture {{ $labels.job }}/{{ $labels.device }} à {{ $value | humanizeDuration }}"
             description: >-
               Le disque met plus de 250 ms par écriture en moyenne depuis 15
@@ -206,6 +211,7 @@ spec:
           labels:
             severity: critical
           annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#hostiowaithigh
             summary: "iowait {{ $labels.job }} à {{ $value | humanizePercentage }}"
             description: >-
               Plus de 30 % du temps CPU attend le disque depuis 30 minutes.
