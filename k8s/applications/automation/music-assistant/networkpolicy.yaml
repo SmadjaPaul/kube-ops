@@ -33,6 +33,14 @@ spec:
         - ports:
             - port: "8097"
               protocol: TCP
+    # Reconciliateur (PRD-83) : API MA depuis les CronJobs ma-reconcile du meme namespace.
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: ma-reconcile
+      toPorts:
+        - ports:
+            - port: "8095"
+              protocol: TCP
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: monitoring
