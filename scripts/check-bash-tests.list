@@ -32,7 +32,7 @@ tests/harness/authentik-friends-contract-test.sh
 tests/harness/d-recovery-contract-test.sh
 tests/agent-guard/agent-operator-identity-test.sh
 tests/agent-guard/kubectl-rw-exec-test.sh
-tests/agent-guard/secret-output-guard-test.sh
+tests/agent-guard/secret-helpers-test.sh
 tests/agent-guard/investigation-read-path-test.sh
 tests/harness/cnpg-cluster-allowlist-test.sh
 tests/harness/db-storage-tier-guard-test.sh

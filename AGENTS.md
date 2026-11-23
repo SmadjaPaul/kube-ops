@@ -63,7 +63,7 @@ Kept protections: never the only copy of irreplaceable data (copy to R2 first, v
 
 Absolute bans: `--admin` or any check/protection bypass; a disabled required check; disabled TLS (`--insecure-skip-tls-verify`, `-k`); a secret value shown to the agent, printed or committed, including Kubernetes Secret data (the sanctioned helpers, `scripts/lib/kube-preflight.sh` and `scripts/doppler-safe.sh`, use values without displaying them); `device_bash` and the Mac Linux VM; OpenTofu outside ARC. The Argo MCP stays read-only. If a command is refused, add it to the paul-unblock script of homelab-infra and continue.
 
-Secret output (enforced by `.claude/hooks/secret-output-guard.py`): use `scripts/doppler-safe.sh` instead of `doppler secrets`; list environment names only (`env | cut -d= -f1`); `kubectl get secret` only with `-o name`, `kubectl describe secret` for keys; no `kubectl -v=6` or higher. Redirecting stdout does not hide stderr.
+Secret output (enforced by the `secret-output-guard` PreToolUse hook of the `harness-core` plugin, agent-harness repository): use `scripts/doppler-safe.sh` instead of `doppler secrets`; list environment names only (`env | cut -d= -f1`); `kubectl get secret` only with `-o name`, `kubectl describe secret` for keys; no `kubectl -v=6` or higher. Redirecting stdout does not hide stderr.
 
 Branches: your own claude/ prefix, never another agent's branch.
 

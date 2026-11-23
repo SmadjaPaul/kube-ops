@@ -12,7 +12,7 @@ example='docs/contracts/agent-test-result-v1.example.json'
 node --test tests/harness/agent-test-result-contract.test.mjs
 
 # PLT-312 (M5): doppler-safe (--only, closed project list), kubectl-ro identity, 24 h agent tokens.
-bash tests/agent-guard/secret-output-guard-test.sh
+bash tests/agent-guard/secret-helpers-test.sh
 # PLT-367 / F1: agent instructions never recommend the operator-identity access recipes; includes a negative case.
 bash tests/agent-guard/agent-kube-access-doc-test.sh
 # PLT-420: automatic renewal of the 24 h agent token (stubbed provisioning, lock, failure code).
