@@ -2,6 +2,11 @@
 
 Décision D-2026-11-22-02 (matrice `agent-access-matrix.json` de homelab-infra, écarts F1, F2, F3).
 
+OKE (`oracle-a1`) : le renouvellement automatique du jeton de 24 h se fera dans le cluster (CronJob, puis Doppler
+`agent-access/prd`), selon la décision D-2026-11-23-04 de homelab-infra `docs/decisions.md` (homelab-infra#758). Pas encore
+déployé : d'ici là, `scripts/agent-operator-oke-token.sh --provision` par Paul reste le seul geste ; il reste ensuite le
+recours d'urgence. Cette page couvre le homelab ; ses gestes ne changent pas.
+
 ## PLT-420 (F1, F6) : fait dans ce dépôt
 
 - `scripts/kubectl-ro.sh` : `KUBECTL_RO_IDENTITY` vaut `agent` par défaut. Copie agent absente, expirée ou refusée par l'API :
