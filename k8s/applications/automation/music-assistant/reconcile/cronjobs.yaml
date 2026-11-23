@@ -42,6 +42,11 @@ spec:
               env:
                 - name: PYTHONDONTWRITEBYTECODE
                   value: "1"
+                - name: APP_MA_RECONCILE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ma-reconcile-token
+                      key: token
               envFrom:
                 - secretRef:
                     name: ma-reconcile
@@ -118,6 +123,11 @@ spec:
               env:
                 - name: PYTHONDONTWRITEBYTECODE
                   value: "1"
+                - name: APP_MA_RECONCILE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ma-reconcile-token
+                      key: token
               envFrom:
                 - secretRef:
                     name: ma-reconcile
