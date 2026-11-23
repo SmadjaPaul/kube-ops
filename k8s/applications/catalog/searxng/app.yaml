@@ -69,7 +69,6 @@ spec:
   # `internal` keeps the LAN and NetBird path; in-cluster agents use ClusterIP.
   parentRefs:
     - { name: internal, namespace: gateway }
-    - { name: external, namespace: gateway }
   hostnames: [search.smadja.dev]
   rules:
     - backendRefs:
