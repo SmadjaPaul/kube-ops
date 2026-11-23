@@ -41,6 +41,7 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 - Jeton `intent: api` lu par `!Env` depuis Doppler via ExternalSecret ; jamais dans Git. Rotation : nouvelle valeur dans Doppler, puis resynchronisation.
 - Création : Paul seulement (PR revue + merge). Un agent ne crée pas de compte de service.
 - Applications OIDC : un client confidentiel par application, secret dans Doppler (`APP_<APP>_OIDC_CLIENT_SECRET`), pas de compte utilisateur.
+- Maison (PRD-87) : `agent-maison` (sans jeton Authentik ni rôle) et groupe `maison-musique`, lié à Polyfin ; blueprint `identity-maison.yaml`. Création par PR : décision D-2026-11-23-05 (proposée, homelab-infra#766).
 - Aujourd'hui : `agent-e2e` (tests d'agents) ; outpost proxy (géré par Authentik) ; `e2e-user` / `e2e-user-secondary` sont des comptes `internal` de test avec mot de passe (Doppler), à classer.
 
 ## Break-glass (hors SSO)
