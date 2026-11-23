@@ -19,7 +19,7 @@ kubeconform = "0.8.0"
 kyverno = "1.20.0"      # scripts/policy-check.sh
 kubectl = "1.36.3"      # scripts/ci-install-tools.sh pin; read-only access via scripts/kubectl-ro.sh
 shellcheck = "0.11.0"
-ripgrep = "14.1.1"
+ripgrep = "15.2.0"
 vale = "3.28.1"         # .pre-commit-config.yaml (errata-ai/vale v3.28.1)
 prek = "0.5.11"         # runs .pre-commit-config.yaml
 
