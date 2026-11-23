@@ -305,6 +305,7 @@ RULES = {
     "storage-class-allowed": [
         ("longhorn-fast", P, pvc("longhorn-fast")),
         ("longhorn-bulk", P, pvc("longhorn-bulk")),
+        ("longhorn-bulk-scratch", P, pvc("longhorn-bulk-scratch")),
         ("oci-bv", P, pvc("oci-bv")),
         ("nfs-client", F, pvc("nfs-client")),
         ("proxmox-csi", F, pvc("proxmox-csi")),

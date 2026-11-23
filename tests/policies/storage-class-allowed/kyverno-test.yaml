@@ -24,6 +24,12 @@ results:
   kind: PersistentVolumeClaim
   policy: platform-baseline-storage-class-allowed
   resources:
+  - longhorn-bulk-scratch
+  result: pass
+- isValidatingPolicy: true
+  kind: PersistentVolumeClaim
+  policy: platform-baseline-storage-class-allowed
+  resources:
   - oci-bv
   result: pass
 - isValidatingPolicy: true
