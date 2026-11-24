@@ -61,4 +61,8 @@ tests/harness/egress-why-test.sh
 tests/harness/restic-negative-real-test.sh
 tests/harness/ha-mcp-token-rotate-test.sh
 tests/harness/ma-reconcile-test.sh
+<<<<<<< HEAD
 tests/harness/ha-agent-mcp-smoke-test.sh
+=======
+tests/harness/incident-sentinel-rbac-test.sh
+>>>>>>> 458f9663f (feat(incident-sentinel): scale set, ServiceAccount de lecture, copie de clé et egress de la sentinelle (PLT-455))

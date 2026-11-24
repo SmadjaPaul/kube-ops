@@ -395,7 +395,12 @@ assert_yq_ah "$ah_values | .template.spec.containers[0] | has(\"env\")" 'false'
 assert_yq_ah "$ah_agents_values | .template.spec.containers[0].env | length" '1'
 assert_yq_ah "$ah_agents_values | .template.spec.containers[0].env[0].name" 'PR_TRIAGE_AGENTGATEWAY_KEY'
 assert_yq_ah "$ah_agents_values | .template.spec.containers[0].env[0] | [.name, .valueFrom.secretKeyRef.name, .valueFrom.secretKeyRef.optional, has(\"value\")] | join(\",\")" 'PR_TRIAGE_AGENTGATEWAY_KEY,pr-triage-agentgateway,true,false'
-assert_yq_ah 'select(.kind == "CiliumNetworkPolicy") | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toEntities[]?] | length' '0'
+# PLT-455: only the sentinel policy may reach the Kubernetes API (toEntities kube-apiserver); no CIDR anywhere.
+assert_yq_ah 'select(.kind == "CiliumNetworkPolicy") | [.spec.egress[]?.toCIDR[]?] | length' '0'
+assert_yq_ah 'select(.kind == "CiliumNetworkPolicy" and .metadata.name != "incident-sentinel-egress") | [.spec.egress[]?.toEntities[]?] | length' '0'
+assert_yq_ah 'select(.kind == "CiliumNetworkPolicy" and .metadata.name == "incident-sentinel-egress") | [.spec.egress[]?.toEntities[]?] | join(",")' 'kube-apiserver'
+assert_yq_ah 'select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-sentinel") | .spec.source.helm.valuesObject.template.spec.serviceAccountName' 'incident-sentinel'
+assert_yq_ah 'select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-sentinel") | .spec.source.helm.valuesObject.template.spec.containers[0].env | map(.name) | join(",")' 'INCIDENT_SENTINEL_AGENTGATEWAY_KEY'
 rm -f "$agent_harness_rendered"
 for project in "$infrastructure_project" "$applications_project"; do
   grep -F -- '    - namespace: arc-runners-agent-harness' "$project" >/dev/null || {
