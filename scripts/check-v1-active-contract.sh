@@ -75,6 +75,14 @@ grep -q 'name: internal' k8s/applications/business/invoice-ninja/service-route.y
 # policy is strict. Retired Qdrant/OpenWebUI routes must not be referenced.
 grep -q 'type: ClusterIP' k8s/applications/platform/agentgateway/resources.yaml
 grep -q 'mode: strict' k8s/applications/platform/agentgateway/resources.yaml
+# PLT-453: each AI SDK agent key (pr-triage, incident-sentinel) is restricted to factory/fast with
+# a blocking 300000-token / 24 h budget.
+ag=k8s/applications/platform/agentgateway/resources.yaml
+for k in pr-triage incident-sentinel; do
+  [ "$(awk -v k="$k" '$0 ~ "name: "k"$" {f=1} f && /allowedModels/ {getline; print $2; exit}' "$ag")" = 'factory/fast' ]
+  grep -q "name: $k-daily-tokens" "$ag"
+done
+[ "$(grep -c 'amount: 300000' "$ag")" -ge 2 ]
 if grep -qE '^-[[:space:]]*(litellm|openwebui|qdrant|openclaw(-talos-.*)?)$' k8s/applications/ai/kustomization.yaml; then
   echo 'ERROR: legacy AI workloads must not be rendered by apps-ai' >&2
   exit 1

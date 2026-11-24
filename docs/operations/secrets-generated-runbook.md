@@ -6,7 +6,7 @@ Authority: [AGENTS.md](../../AGENTS.md) and homelab-infra `docs/decisions.md`. P
 
 | Brick | Where | Role |
 | --- | --- | --- |
-| ClusterSecretStore `k8s-auth`, `k8s-databases`, `k8s-agentgateway` (PLT-453: source ns `agentgateway`, prefix `llm-`, first use: key `pr-triage` for the agent-harness ARC runner) | `k8s/infrastructure/controllers/external-secrets/k8s-stores.yaml` | ESO provider `kubernetes`, one source namespace each (`auth`, `databases`), ServiceAccount `eso-k8s-<ns>-reader` |
+| ClusterSecretStore `k8s-auth`, `k8s-databases`, `k8s-agentgateway` (PLT-453: source ns `agentgateway`, prefix `llm-`, keys `pr-triage` for the agent-harness ARC runner and `incident-sentinel` (source `llm-agents`, copy created with PLT-455)) | `k8s/infrastructure/controllers/external-secrets/k8s-stores.yaml` | ESO provider `kubernetes`, one source namespace each (`auth`, `databases`), ServiceAccount `eso-k8s-<ns>-reader` |
 | Role + RoleBinding `eso-k8s-<ns>-reader` | next to the sources: `auth/authentik/extra/eso-k8s-reader-rbac.yaml`, `database/pg-shared-homelab/eso-k8s-reader-rbac.yaml` | `get` on a list of Secret names. The name `eso-k8s-sentinel-none` stays: an empty `resourceNames` would grant every Secret of the namespace |
 | Admission rule `eso-k8s-store-guard` | `k8s/infrastructure/security/policies/eso-k8s-store-guard.yaml` | Deny with `failurePolicy: Ignore`: an ExternalSecret reads only `oidc-<its namespace>` (`k8s-auth`) or `pg-<its namespace>` (`k8s-databases`), plus `--<usage>` suffixes |
 | CI rules | `policy/static/repo-contract.yaml` (`repo-contract-externalsecret-contract`, `repo-contract-eso-k8s-store-own-namespace`), `tests/harness/eso-generated-secrets-contract-test.sh` | Same rule in CI; generator and Role contract |
