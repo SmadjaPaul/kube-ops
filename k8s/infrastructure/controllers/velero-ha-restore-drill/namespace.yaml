@@ -2,7 +2,7 @@
 # le Job ha-restore-drill supprime le pod et le PVC restaurés à chaque passage.
 # Pod Security baseline (refuse hostNetwork, NET_ADMIN, hostPath, privileged),
 # aucun trafic entrant ni sortant, ValidatingAdmissionPolicy
-# ha-restore-test-guard (admission.yaml) en plus.
+# ha-restore-test-pod-guard et ha-restore-test-pvc-guard (admission.yaml) en plus.
 apiVersion: v1
 kind: Namespace
 metadata:

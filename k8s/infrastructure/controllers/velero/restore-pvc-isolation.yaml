@@ -45,8 +45,10 @@ data:
               }
       # PRD-76 : drill de restauration de Home Assistant (CronJob suspendu
       # ha-restore-drill, k8s/infrastructure/controllers/velero-ha-restore-drill).
-      # Le PVC restauré prend la classe longhorn-drill (Delete) : supprimer le
-      # PVC du drill supprime le PV et le volume Longhorn, aucun Released.
+      # Le PVC restauré prend la classe longhorn-drill (Delete). Velero 1.18.2
+      # recopie ensuite sur le PV provisionné la reclaimPolicy Retain du PV de
+      # prod (restore finalizer) : le Job ha-restore-drill la repasse en Delete
+      # avant de supprimer le PVC (policy ha-restore-drill-pv-guard).
       # Ne pas utiliser ce modifier pour une vraie reprise de HA.
       - conditions:
           groupResource: persistentvolumeclaims
@@ -66,7 +68,7 @@ data:
       # seule, sans réseau hôte ni jeton. Velero 1.18 applique ce patch APRÈS
       # ses actions de restauration (restore-wait déjà en tête, avec les
       # capabilities du conteneur HA) ; si un `test` échoue, le pod part non
-      # modifié : la ValidatingAdmissionPolicy ha-restore-test-guard le refuse.
+      # modifié : la ValidatingAdmissionPolicy ha-restore-test-pod-guard le refuse.
       # Contrat : tests/harness/ha-restore-drill-test.sh.
       - conditions:
           groupResource: pods

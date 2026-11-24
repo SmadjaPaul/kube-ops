@@ -5,6 +5,11 @@ Restaure le dernier backup Completed de velero-daily-home-assistant (pod
 home-assistant-0 + PVC) dans home-assistant-restore-test, lit la ligne JSON du
 vérificateur (pod neutralisé par la règle pods de restore-pvc-isolation),
 supprime le pod et le PVC restaurés, puis compare la production avant/après.
+Velero 1.18.2 (restore finalizer, patchDynamicPVWithVolumeInfo) recopie sur le
+PV longhorn-drill la reclaimPolicy Retain du PV de prod : le Job la repasse en
+Delete avant de supprimer le PVC (seul patch admis par ha-restore-drill-pv-guard),
+reprend en début de drill les PV du drill laissés Released, et signale tout PV
+Released en Retain sans attendre la deadline.
 Sortie : une ligne JSON finale `"drill": "ha-restore-drill"`, code 0 si PASS.
 Aucun Secret lu, aucune valeur de jeton affichée.
 """
@@ -26,10 +31,13 @@ SCHEDULE = "velero-daily-home-assistant"
 MODIFIER = "restore-pvc-isolation"
 PROD_PVC = "home-assistant-home-assistant-0"
 PROD_POD = "home-assistant-0"
-GUARDS = ["ha-restore-test-guard", "ha-restore-drill-restore-guard"]
+GUARDS = ["ha-restore-test-pod-guard", "ha-restore-test-pvc-guard",
+          "ha-restore-drill-pv-guard", "ha-restore-drill-restore-guard"]
+DRILL_SC = "longhorn-drill"
 RESOURCES = ["pods", "persistentvolumeclaims", "persistentvolumes"]
 DEADLINE = int(os.environ.get("DRILL_DEADLINE_SECONDS", "1200"))
 POLL = float(os.environ.get("DRILL_POLL_SECONDS", "5"))
+LEFTOVER_SECONDS = int(os.environ.get("DRILL_LEFTOVER_SECONDS", "180"))
 
 
 class DrillError(Exception):
@@ -48,7 +56,8 @@ class Kube:
         req = urllib.request.Request(self.api + path, data=data, method=method)
         req.add_header("Authorization", "Bearer " + self._token)
         if data is not None:
-            req.add_header("Content-Type", "application/json")
+            ctype = "application/merge-patch+json" if method == "PATCH" else "application/json"
+            req.add_header("Content-Type", ctype)
         try:
             with urllib.request.urlopen(req, context=self._ctx, timeout=30) as r:
                 payload = r.read()
@@ -130,8 +139,9 @@ def preflight(k):
     if ns["metadata"].get("labels", {}).get("pod-security.kubernetes.io/enforce") != "baseline":
         raise DrillError(TEST_NS + " sans Pod Security enforce=baseline")
     for g in GUARDS:
-        if k.call("GET", f"/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicies/{g}") is None:
-            raise DrillError("ValidatingAdmissionPolicy absente : " + g)
+        for kind in ("validatingadmissionpolicies", "validatingadmissionpolicybindings"):
+            if k.call("GET", f"/apis/admissionregistration.k8s.io/v1/{kind}/{g}") is None:
+                raise DrillError(kind + " absente : " + g)
     cm = k.call("GET", f"/api/v1/namespaces/{VELERO_NS}/configmaps/{MODIFIER}")
     rules = (cm or {}).get("data", {}).get("resource-modifier.yaml", "")
     for needle in ("groupResource: pods", "longhorn-drill", '"/spec/hostNetwork"'):
@@ -140,6 +150,61 @@ def preflight(k):
     pods, pvcs = test_objects(k)
     if pods or pvcs:
         raise DrillError(TEST_NS + " non vide (drill précédent non nettoyé)")
+
+
+def drill_pvs(k):
+    """PV du drill : classe longhorn-drill, réclamés depuis le namespace de test."""
+    return [pv for pv in k.call("GET", "/api/v1/persistentvolumes")["items"]
+            if pv["spec"].get("storageClassName") == DRILL_SC
+            and (pv["spec"].get("claimRef") or {}).get("namespace") == TEST_NS]
+
+
+def reclaim_delete(k, pv):
+    """Repasse un PV du drill en Delete ; renvoie True si un patch a été envoyé."""
+    if pv["spec"].get("storageClassName") != DRILL_SC or \
+            (pv["spec"].get("claimRef") or {}).get("namespace") != TEST_NS:
+        raise DrillError("PV hors du drill : " + pv["metadata"]["name"])
+    if pv["spec"].get("persistentVolumeReclaimPolicy") == "Delete":
+        return False
+    k.call("PATCH", "/api/v1/persistentvolumes/" + pv["metadata"]["name"],
+           {"spec": {"persistentVolumeReclaimPolicy": "Delete"}})
+    return True
+
+
+def pvs_gone(k, names, patched):
+    """None tant qu'un PV existe ; DrillError immédiate si un PV reste Released en Retain
+    après un patch (ou en Failed) : pas d'attente jusqu'à la deadline."""
+    alive = False
+    for n in names:
+        pv = k.call("GET", f"/api/v1/persistentvolumes/{n}")
+        if pv is None:
+            continue
+        alive = True
+        phase = pv.get("status", {}).get("phase")
+        policy = pv["spec"].get("persistentVolumeReclaimPolicy")
+        if phase == "Failed":
+            raise DrillError(f"PV {n} en Failed (suppression Longhorn refusée ?)")
+        if phase == "Released" and policy != "Delete":
+            if n in patched:
+                raise DrillError(f"PV {n} Released en {policy} malgré le patch Delete")
+            if reclaim_delete(k, pv):
+                patched.append(n)
+    return None if alive else True
+
+
+def reclaim_leftovers(k, result):
+    """PV du drill laissés Released par un passage précédent : Delete puis attente bornée."""
+    left = drill_pvs(k)
+    if not left:
+        return
+    names = [pv["metadata"]["name"] for pv in left]
+    busy = [n for n, pv in zip(names, left) if pv.get("status", {}).get("phase") != "Released"]
+    if busy:
+        raise DrillError("PV du drill non Released avant restauration : " + ",".join(busy))
+    patched = [pv["metadata"]["name"] for pv in left if reclaim_delete(k, pv)]
+    log("PV du drill laissés Released : " + ",".join(names))
+    wait_for(lambda: pvs_gone(k, names, patched), "suppression des PV laissés", time.time() + LEFTOVER_SECONDS)
+    result["leftover_pvs_deleted"] = names
 
 
 def wait_for(fn, what, deadline):
@@ -154,14 +219,24 @@ def wait_for(fn, what, deadline):
 def cleanup(k, deadline, result):
     pods, pvcs = test_objects(k)
     volumes = [p["spec"].get("volumeName") for p in pvcs if p["spec"].get("volumeName")]
+    patched, patch_error = [], None
+    for v in volumes:
+        try:
+            pv = k.call("GET", f"/api/v1/persistentvolumes/{v}")
+            if pv is not None and reclaim_delete(k, pv):
+                patched.append(v)
+        except DrillError as e:  # le pod et le PVC sont supprimés quand même
+            patch_error = patch_error or e
     for p in pods:
         k.call("DELETE", f"/api/v1/namespaces/{TEST_NS}/pods/{p['metadata']['name']}")
     for p in pvcs:
         k.call("DELETE", f"/api/v1/namespaces/{TEST_NS}/persistentvolumeclaims/{p['metadata']['name']}")
     wait_for(lambda: True if test_objects(k) == ([], []) else None, "nettoyage de " + TEST_NS, deadline)
-    wait_for(lambda: True if all(k.call("GET", f"/api/v1/persistentvolumes/{v}") is None for v in volumes) else None,
-             "suppression des PV du drill", deadline)
-    result["cleanup"] = {"pods": len(pods), "pvcs": len(pvcs), "pvs_deleted": volumes}
+    result["cleanup"] = {"pods": len(pods), "pvcs": len(pvcs), "pvs_reclaim_patched": patched}
+    if patch_error:
+        raise patch_error
+    wait_for(lambda: pvs_gone(k, volumes, patched), "suppression des PV du drill", deadline)
+    result["cleanup"]["pvs_deleted"] = volumes
 
 
 def run(k, now=time.time):
@@ -169,6 +244,7 @@ def run(k, now=time.time):
     deadline = t0 + DEADLINE
     result = {"drill": "ha-restore-drill", "status": "FAIL"}
     preflight(k)
+    reclaim_leftovers(k, result)
     before = prod_snapshot(k)
     result["prod_before"] = before
     backups = k.call("GET", f"/apis/velero.io/v1/namespaces/{VELERO_NS}/backups"

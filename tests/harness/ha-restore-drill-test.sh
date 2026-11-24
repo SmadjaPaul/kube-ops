@@ -29,10 +29,12 @@ grep -qxF "velero	ha-restore-drill	PRD-76 : drill de restauration Velero de HA d
   fail "namespace de test : Pod Security baseline attendu"
 [ "$(yq -r 'select(.kind == "CiliumNetworkPolicy") | .spec.egressDeny[0].toEntities[0]' "$DRILL/namespace.yaml")" = all ] ||
   fail "namespace de test : egressDeny all attendu"
-# RBAC : aucun verbe d'écriture hors Restore (create) et nettoyage du namespace de test.
+# RBAC : aucune écriture hors Restore (create), nettoyage du namespace de test et patch des PV
+# (borné par ha-restore-drill-pv-guard).
 writes="$(yq -o=json -I=0 'select(.kind == "Role" or .kind == "ClusterRole") | {"ns": (.metadata.namespace // "cluster"), "r": .rules[]} |
   select(.r.verbs[] | test("^(create|update|patch|delete|deletecollection|\\*)$"))' "$DRILL/rbac.yaml" | jq -c '[.ns, .r.resources, .r.verbs]' | sort -u)"
-expected='["home-assistant-restore-test",["pods","persistentvolumeclaims"],["get","list","delete"]]
+expected='["cluster",["persistentvolumes"],["get","list","patch"]]
+["home-assistant-restore-test",["pods","persistentvolumeclaims"],["get","list","delete"]]
 ["velero",["restores"],["create","get"]]'
 [ "$writes" = "$expected" ] || fail "RBAC du drill : écritures inattendues : $writes"
 grep -q 'resources: \["\*"\]' "$DRILL/admission.yaml" || fail "restore-guard doit couvrir toutes les ressources velero.io"
