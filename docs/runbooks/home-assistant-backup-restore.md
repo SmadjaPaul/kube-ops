@@ -42,11 +42,13 @@ laisser Argo reconcilier. Geste d'incident, décision de Paul ; pas un drill.
 ## Drill non destructif (NON EXÉCUTÉ, accord de Paul requis)
 
 Règle d'isolation : `k8s/infrastructure/controllers/velero/restore-pvc-isolation.yaml`.
-Son modifier retire `volumeName` des PVC et l'annotation Argo `tracking-id`,
-mais ses conditions ne listent que `invoice-ninja` et `longhorn-tier-dr-source`.
-Prérequis : une PR séparée qui ajoute le namespace `home-assistant` à ces
-conditions ; sinon le PVC restauré viserait le PV de production et Argo
-attribuerait les objets à l'Application de production. Ne pas lancer sans cela.
+Son modifier retire `volumeName` des PVC et l'annotation Argo `tracking-id`
+pour les namespaces sources `invoice-ninja`, `longhorn-tier-dr-source` et
+`home-assistant` (ajouté par PRD-76 ; test :
+`tests/harness/invoice-restore-isolation-test.sh`). Sans cette entrée, le PVC
+restauré viserait le PV de production et Argo attribuerait les objets à
+l'Application de production. Vérifier que la ConfigMap appliquée contient
+`home-assistant` avant tout drill.
 
 Variables : `NS=home-assistant-restore-test`, `T0=$(date +%s)`.
 
