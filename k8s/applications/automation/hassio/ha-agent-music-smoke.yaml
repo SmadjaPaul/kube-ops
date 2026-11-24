@@ -1,0 +1,122 @@
+# PRD-79: preuve depuis le cluster que l'utilisateur HA agent-maison (non admin) joue un titre
+# Polyfin sur une enceinte. CronJob SUSPENDU, lancé à la main par agent-operator
+# (`bash scripts/kubectl-rw.sh run-cronjob home-assistant cronjob/ha-agent-music-smoke`).
+# Le jeton vient du Secret natif ha-mcp-token (variable d'environnement, jamais affiché) ;
+# le ServiceAccount n'a aucun RBAC et ne monte pas de jeton Kubernetes.
+# Produit du SON : volume 0.20 (plafond 0.25), pause et volume d'origine remis en fin de run.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ha-agent-music-smoke
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-agent-music-smoke
+    app.kubernetes.io/instance: ha-mcp
+automountServiceAccountToken: false
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ha-agent-music-smoke
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-agent-music-smoke
+    app.kubernetes.io/instance: ha-mcp
+spec:
+  suspend: true
+  schedule: "0 0 1 1 *"
+  timeZone: Europe/Paris
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 180
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ha-agent-music-smoke
+            app.kubernetes.io/instance: ha-mcp
+        spec:
+          restartPolicy: Never
+          serviceAccountName: ha-agent-music-smoke
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: smoke
+              image: python:3.14.5-alpine3.22@sha256:1a5f0303fd8941565b5bbda3fac2345148a9fd8245d575c2971ccefcd77c78f6
+              command: ["python3", "-I", "/scripts/ha-agent-music-smoke.py"]
+              env:
+                - name: HA_URL
+                  value: "http://10.0.20.60:8123"
+                - name: EXPECTED_USER
+                  value: agent-maison
+                # media_player.bureau ou media_player.salon seulement (le script refuse le reste).
+                - name: ENCEINTE
+                  value: media_player.bureau
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+                - name: HA_AGENT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ha-mcp-token
+                      key: token
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+          volumes:
+            - name: scripts
+              configMap:
+                name: ha-agent-music-smoke-script
+                defaultMode: 0444
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ha-agent-music-smoke-egress
+  namespace: home-assistant
+  labels:
+    policy-type: application
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ha-agent-music-smoke
+  description: "Preuve agent-maison: DNS et Home Assistant (hostNetwork, 10.0.20.60:8123) seulement"
+  egress:
+    - toEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8123"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
