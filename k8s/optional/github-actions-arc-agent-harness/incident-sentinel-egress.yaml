@@ -1,0 +1,37 @@
+# PLT-455: extra egress of the sentinel runner pods only (additive to arc-runners-agent-harness-egress,
+# which already allows DNS, GitHub, npm and the Agentgateway): Kubernetes API (read), ntfy, Linear,
+# Grafana Cloud (hosted MCP).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: incident-sentinel-egress
+  namespace: arc-runners-agent-harness
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "incident-sentinel runners: Kubernetes API, ntfy, api.linear.app, Grafana Cloud"
+  endpointSelector:
+    matchLabels:
+      actions.github.com/scale-set-name: agent-harness-sentinel-arc
+  egress:
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ntfy
+            app.kubernetes.io/name: ntfy
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: api.linear.app
+        - matchPattern: "*.grafana.net"
+        - matchName: mcp.grafana.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
