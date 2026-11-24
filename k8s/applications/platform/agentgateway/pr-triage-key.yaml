@@ -58,7 +58,7 @@ rules:
     resourceNames:
       - eso-k8s-sentinel-none   # never remove: an empty list would grant all Secrets
       - llm-arc-runners-agent-harness
-      - llm-agents   # PLT-453: incident-sentinel source (incident-sentinel-key.yaml)
+      - llm-arc-runners-agent-harness--sentinel   # PLT-453: incident-sentinel source (incident-sentinel-key.yaml)
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
