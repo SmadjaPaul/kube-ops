@@ -56,10 +56,10 @@ spec:
                   apiKey: "${OPENAI_API_KEY}"
                   baseURL: http://agentgateway.agentgateway.svc.cluster.local:4000/v1
                   models:
-                    default: [factory/fast]
+                    default: [text/fast]
                     fetch: false
                   titleConvo: true
-                  titleModel: factory/fast
+                  titleModel: text/fast
                   summarize: false
                   modelDisplayLabel: Personal Agentgateway
           imageVolume:
