@@ -61,11 +61,11 @@ spec:
             - name: EMBEDDING
               value: 'openai:factory/embedding'
             - name: FAST_LLM
-              value: 'openai:factory/fast'
+              value: 'openai:text/fast'
             - name: SMART_LLM
-              value: 'openai:factory/research'
+              value: 'openai:text/research'
             - name: STRATEGIC_LLM
-              value: 'openai:factory/research'
+              value: 'openai:text/research'
             # Deep Research Configuration - Controls research depth and breadth
             - name: DEEP_RESEARCH_BREADTH
               value: '4'
