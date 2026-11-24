@@ -2,6 +2,7 @@
 # Read-only ad hoc kubectl through the canonical operator access (AGENTS.md).
 #
 # Usage: bash scripts/kubectl-ro.sh [--cluster homelab|oracle-a1] <get|describe|logs|top|events|api-resources|version> [args...]
+#        bash scripts/kubectl-ro.sh hubble <status|observe [filtres]>   (homelab, PRD-88)
 #   bash scripts/kubectl-ro.sh get applications -n argocd
 #   bash scripts/kubectl-ro.sh --cluster oracle-a1 get nodes   # OKE (PLT-257)
 #   bash scripts/kubectl-ro.sh logs -n cilium ds/cilium --tail=50
@@ -46,6 +47,17 @@
 # (monitoring/kube-prometheus-stack-prometheus:9090, monitoring/loki-gateway:80,
 # monitoring/loki:3100). The API-side RBAC decides whether the identity may do it.
 # Query strings must be percent-encoded (PromQL/LogQL).
+#
+# Hubble flows (PRD-88, homelab only): `hubble status` or `hubble observe` with the
+# filters of HUBBLE_VALUE_FLAGS / HUBBLE_BOOL_FLAGS only (--last <= 1000, no
+# --follow, --all, --server, TLS, --port-forward or config flag). The wrapper opens
+# `kubectl port-forward svc/hubble-relay` on 127.0.0.1 (random port) with the same
+# identity, runs the local `hubble` CLI against it with an empty environment
+# (no HUBBLE_* override, no config file), then closes the tunnel. API side:
+# Role kube-system/agent-operator-hubble-relay (create pods/portforward) and the
+# matchCondition not-hubble-relay-portforward of agent-operator-guard (pod
+# hubble-relay-<hash>-<suffix> only). KUBECTL_RO_HUBBLE_PLAN=1 prints the hubble
+# command after the filters and exits before any cluster access (tests).
 set -uo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -82,8 +94,77 @@ if [ "$verb" = auth ]; then
   [ "$#" = 2 ] && [ "$2" = whoami ] || refuse "auth : seule la forme exacte 'auth whoami' est admise"
   whoami_mode=1
 fi
+# --- Hubble flows (PRD-88): positive allowlist, checked before any access
+HUBBLE_VALUE_FLAGS=' namespace from-namespace to-namespace pod from-pod to-pod workload from-workload to-workload'
+HUBBLE_VALUE_FLAGS+=' ip from-ip to-ip port from-port to-port label from-label to-label service from-service to-service'
+HUBBLE_VALUE_FLAGS+=' fqdn from-fqdn to-fqdn identity from-identity to-identity node-name protocol type verdict'
+HUBBLE_VALUE_FLAGS+=' traffic-direction since until last output '
+HUBBLE_BOOL_FLAGS=' not print-node-name print-policy-names '
+HUBBLE_LAST_MAX=1000
+hubble_mode=0
+hubble_args=()
+hubble_value_check() { # hubble_value_check FLAG VALUE
+  local f=$1 v=$2
+  case "$v" in -*|'') refuse "hubble : valeur manquante ou option à la place de la valeur pour --$f" ;; esac
+  case "$f" in
+    last) [[ "$v" =~ ^[0-9]{1,4}$ ]] && [ "$((10#$v))" -ge 1 ] && [ "$((10#$v))" -le "$HUBBLE_LAST_MAX" ] ||
+      refuse "hubble : --last entier de 1 à $HUBBLE_LAST_MAX" ;;
+    verdict) case "$v" in FORWARDED|DROPPED|ERROR|AUDIT|REDIRECTED|TRACED|TRANSLATED) ;; *) refuse "hubble : --verdict '$v' inconnu" ;; esac ;;
+    output) case "$v" in compact|dict|json|jsonpb|table) ;; *) refuse "hubble : --output '$v' (compact|dict|json|jsonpb|table)" ;; esac ;;
+    *) [[ "$v" =~ ^[A-Za-z0-9*][A-Za-z0-9._:/=,@+*-]{0,252}$ ]] || refuse "hubble : valeur '$v' de --$f invalide" ;;
+  esac
+}
+if [ "$verb" = hubble ]; then
+  hubble_mode=1
+  [ "$cluster" = homelab ] || refuse "hubble : homelab seulement (pas de droit de port-forward agent sur oracle-a1)"
+  [ "${KUBECTL_RO_IN_CLUSTER:-}" != 1 ] || refuse "hubble : pas de port-forward en mode in-cluster"
+  [ "$#" -ge 2 ] || refuse "hubble : 'hubble status' ou 'hubble observe [filtres]'"
+  case "$2" in
+    status) [ "$#" = 2 ] || refuse "hubble status ne prend pas d'option" ;;
+    observe) ;;
+    *) refuse "hubble : sous-commande '$2' hors liste (status|observe)" ;;
+  esac
+  hubble_args=("$2")
+  set -- "${@:3}"
+  while [ "$#" -gt 0 ]; do
+    a=$1
+    shift
+    case "$a" in
+      -n) a=--namespace ;; -l) a=--label ;; -t) a=--type ;; -o) a=--output ;;
+      -n=*|-l=*|-t=*|-o=*) refuse "hubble : forme '$a' non admise (--option valeur ou --option=valeur)" ;;
+      --*) ;;
+      *) refuse "hubble : argument '$a' hors liste (filtres --option valeur seulement)" ;;
+    esac
+    flag=${a#--}
+    val=""
+    has_val=0
+    case "$flag" in *=*) val=${flag#*=}; flag=${flag%%=*}; has_val=1 ;; esac
+    if [[ "$HUBBLE_BOOL_FLAGS" == *" $flag "* ]]; then
+      [ "$has_val" = 0 ] || refuse "hubble : --$flag ne prend pas de valeur"
+      hubble_args+=("--$flag")
+    elif [[ "$HUBBLE_VALUE_FLAGS" == *" $flag "* ]]; then
+      if [ "$has_val" = 0 ]; then
+        [ "$#" -ge 1 ] || refuse "hubble : --$flag sans valeur"
+        val=$1
+        shift
+      fi
+      hubble_value_check "$flag" "$val"
+      hubble_args+=("--$flag" "$val")
+    else
+      refuse "hubble : option '--$flag' hors liste blanche (ni follow, all, server, TLS, port-forward, config)"
+    fi
+  done
+  if [ "${KUBECTL_RO_HUBBLE_PLAN:-0}" = 1 ]; then
+    printf 'KUBECTL_RO_HUBBLE_PLAN=hubble --server 127.0.0.1:<port>'
+    printf ' %q' "${hubble_args[@]}"
+    printf '\n'
+    exit 0
+  fi
+  command -v hubble >/dev/null 2>&1 || { echo "kubectl-ro: hubble : CLI 'hubble' absente (brew install hubble)" >&2; exit 2; }
+fi
+
 case "$verb" in
-  get|describe|logs|top|events|api-resources|version|auth) ;;
+  get|describe|logs|top|events|api-resources|version|auth|hubble) ;;
   *) refuse "verbe '$verb' hors liste blanche (lecture seule : get|describe|logs|top|events|api-resources|version)" ;;
 esac
 
@@ -109,7 +190,9 @@ raw_check() { # raw_check PATH -> refuse unless allowed
     refuse "--raw : paramètres de requête invalides (encoder PromQL/LogQL en %XX ; un seul '?', pas de '/' ni de caractère de contrôle)"
 }
 raw_mode=0
-for arg in "${@:2}"; do
+filter_args=()
+[ "$hubble_mode" = 1 ] || filter_args=("${@:2}")
+for arg in ${filter_args[@]+"${filter_args[@]}"}; do
   case "$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')" in --raw|--raw=*) raw_mode=1 ;; esac
 done
 if [ "$raw_mode" = 1 ]; then
@@ -125,7 +208,7 @@ fi
 secret_ref=0
 output_flag=0
 next_is_output=0
-for arg in "${@:2}"; do
+for arg in ${filter_args[@]+"${filter_args[@]}"}; do
   lower=$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')
   if [ "$next_is_output" = 1 ]; then
     next_is_output=0
@@ -332,6 +415,29 @@ if [ "$whoami_mode" = 1 ]; then
   [ -n "$who" ] || { echo "kubectl-ro: identité illisible" >&2; exit 2; }
   echo "cluster=$cluster identity=$who source=${KUBE_ACCESS_SOURCE:-?}"
   exit 0
+fi
+
+if [ "$hubble_mode" = 1 ]; then
+  # Tunnel local vers le Service hubble-relay (port 80 -> 4245 gRPC), port libre choisi
+  # par kubectl, 127.0.0.1 seulement ; fermé à la sortie.
+  pf_log=$(mktemp "${TMPDIR:-/tmp}/kubectl-ro-hubble.XXXXXX")
+  hubble_home=$(mktemp -d "${TMPDIR:-/tmp}/kubectl-ro-hubble-home.XXXXXX")
+  kubectl port-forward -n kube-system svc/hubble-relay --address 127.0.0.1 :80 >"$pf_log" 2>&1 &
+  pf_pid=$!
+  trap 'kill "$pf_pid" 2>/dev/null; kube_access_cleanup; rm -rf "$status_file" "$pf_log" "$hubble_home"' EXIT
+  port=""
+  for _ in $(seq 1 75); do
+    port=$(sed -n 's/^Forwarding from 127\.0\.0\.1:\([0-9][0-9]*\) -> .*/\1/p' "$pf_log" | head -1)
+    [ -z "$port" ] || break
+    kill -0 "$pf_pid" 2>/dev/null || break
+    sleep 0.2
+  done
+  if [ -z "$port" ]; then
+    echo "kubectl-ro: hubble : port-forward vers kube-system/hubble-relay impossible : $(tr '\n' ' ' <"$pf_log" | cut -c1-300)" >&2
+    exit 2
+  fi
+  env -i PATH="$PATH" HOME="$hubble_home" hubble --server "127.0.0.1:$port" "${hubble_args[@]}"
+  exit $?
 fi
 
 kubectl --request-timeout=30s "$@"

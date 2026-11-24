@@ -94,6 +94,21 @@ verify_agent() {
   can no get secrets -n monitoring
   can yes delete pods -n media
   can yes patch cronjobs -n media
+  # PRD-88 : port-forward du relais Hubble (kube-system seul ; la garde borne au pod
+  # hubble-relay, invisible de can-i) et Jobs manuels des CronJobs de cronjob-run.tsv.
+  can yes create pods/portforward -n kube-system
+  can no create pods/portforward -n media
+  can no create pods/portforward -n monitoring
+  can no create pods/exec -n kube-system
+  can no get secrets -n kube-system
+  can yes create jobs -n home-assistant
+  can yes create jobs -n music-assistant
+  can no delete jobs -n home-assistant
+  can no patch cronjobs -n home-assistant
+  can no patch deployments -n home-assistant
+  can no create cronjobs -n music-assistant
+  can no get secrets -n home-assistant
+  can no get secrets -n music-assistant
   # can-i ne voit ni la garde d'admission (CONNECT sur le proxy) ni la réponse :
   # lecture réelle d'une requête sans effet, puis POST refusé par le RBAC.
   local prom="/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=vector%281%29"

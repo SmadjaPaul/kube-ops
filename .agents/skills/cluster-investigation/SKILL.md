@@ -39,7 +39,7 @@ Git revision -> ApplicationSet -> Application sync/health/conditions
 - Startup failure (CrashLoopBackOff, ImagePullBackOff): compare Kubernetes command/args with the image OCI ENTRYPOINT/CMD before adding shell wrappers.
 - Distinguish cosmetic resource health from a real unhealthy workload.
 - Never sync or reconcile as a deployment mechanism. A stuck sync: `scripts/argo-terminate-stuck-sync.sh` (AGENTS.md Safety).
-- Restoring service (scale, restart, rollout, suspend) goes through `scripts/kubectl-rw.sh` in the admitted scope; with Argo selfHeal, merge the Git change first or the repair is reverted.
+- Restoring service (scale, restart, rollout, suspend) goes through `scripts/kubectl-rw.sh` in the admitted scope; a manual run of a CronJob listed in `k8s/infrastructure/security/agent-operator/cronjob-run.tsv` is `kubectl-rw.sh run-cronjob <ns> cronjob/<name>` (Home Assistant and Music Assistant, PRD-88); with Argo selfHeal, merge the Git change first or the repair is reverted.
 
 ## Deliver on either cluster (homelab or oracle-a1)
 

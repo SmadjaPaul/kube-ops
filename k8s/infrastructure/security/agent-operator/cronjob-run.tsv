@@ -1,0 +1,15 @@
+# PRD-88 — CronJobs que l'identité agent-operator peut lancer à la main
+# (`bash scripts/kubectl-rw.sh run-cronjob NS cronjob/NAME`), hors scope.tsv.
+# Source unique, lue par scripts/kubectl-rw.sh. tests/agent-guard/agent-operator-identity-test.sh
+# vérifie qu'elle est identique à :
+# - la variable `manualRuns` de la policy agent-operator-guard ;
+# - un ValidatingAdmissionPolicyBinding agent-operator-cronjob-run-<cronjob> par ligne
+#   (le Job doit reprendre exactement le pod template du CronJob de Git) ;
+# - un Role/RoleBinding agent-operator-cronjob-run par namespace
+#   (k8s/applications/platform/agent-operator-access/cronjob-run.yaml, `create` sur jobs seul).
+# Aucun de ces namespaces n'entre dans scope.tsv : aucune autre écriture n'y est admise.
+#
+# namespace	cronjob	raison
+home-assistant	ha-mcp-token-rotate	PRD-80 : rotation hors calendrier du jeton HA de ha-mcp
+music-assistant	ma-reconcile-plan	PRD-83 : plan du réconciliateur Music Assistant (CronJob suspendu)
+music-assistant	ma-reconcile-apply	PRD-83 : apply du réconciliateur Music Assistant (CronJob suspendu)

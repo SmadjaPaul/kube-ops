@@ -4,7 +4,10 @@
 # dans les namespaces de scope.tsv
 # (k8s/applications/platform/agent-operator-access). Jamais de droit sur
 # secrets, PVC/PV, serviceaccounts/token, RBAC, réseau, admission, CRD,
-# namespaces, pods/exec|attach|portforward, impersonate, bind ou escalate.
+# namespaces, pods/exec|attach, impersonate, bind ou escalate. Deux exceptions
+# nommées (PRD-88) : pods/portforward dans kube-system pour le seul relais Hubble
+# (Role agent-operator-hubble-relay, borné au pod par la policy), et `create` sur
+# jobs dans les namespaces de cronjob-run.tsv (agent-operator-access/cronjob-run.yaml).
 # La policy agent-operator-guard tient même si ce RBAC devient trop large.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -128,6 +131,44 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: agent-operator-monitoring-query
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: agent-operator
+---
+# PRD-88 — lecture des flux Hubble (scripts/kubectl-ro.sh hubble status|observe).
+# Le relais hubble-relay parle gRPC (port 4245, Service port 80) : le proxy de
+# service de l'API server ne le transporte pas, d'où un port-forward. Le nom du
+# pod change à chaque rollout : resourceNames est impossible ici. La borne au pod
+# hubble-relay-<hash>-<suffixe> est la matchCondition not-hubble-relay-portforward
+# de la policy agent-operator-guard : tout autre pod de kube-system est refusé.
+# Verbe `create` seul (POST SPDY et upgrade WebSocket depuis Kubernetes 1.35) ;
+# pas de get/list sur cette sous-ressource, rien d'autre. Absent d'OKE.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-operator-hubble-relay
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [""]
+    resources: [pods/portforward]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-operator-hubble-relay
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-operator-hubble-relay
 subjects:
   - kind: ServiceAccount
     name: agent-operator
