@@ -99,9 +99,9 @@ spec:
             - port: "443"
               protocol: TCP
     # Flux audio TorBox (PRD-81) : Polyfin repond 302 vers le CDN TorBox, ffmpeg (MA) le lit
-    # directement. Pattern limite au domaine du CDN, HTTPS seul.
+    # directement. Hotes a deux labels (nexus-NNN.<region>.tb-cdn.st) : "*" ne franchit pas un point dans Cilium, "**." couvre tous les niveaux. HTTPS seul.
     - toFQDNs:
-        - matchPattern: "*.tb-cdn.st"
+        - matchPattern: "**.tb-cdn.st"
       toPorts:
         - ports:
             - port: "443"
