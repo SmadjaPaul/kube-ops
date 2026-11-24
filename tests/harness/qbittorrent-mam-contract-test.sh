@@ -12,14 +12,23 @@ grep -Fq 'replicas: 1' "$rendered"
 grep -Fq 'storageClassName: longhorn-fast' "$rendered"
 grep -Fq 'claimName: media-share' "$rendered"
 grep -Fq 'mountPath: /data' "$rendered"
-grep -Fq 'qbittorrentofficial/qbittorrent-nox:5.2.4-1@sha256:f5d34c27db7853bef7262666561d1b6e84fbffde0ffa7e9e24ed21337f006ef1' "$rendered"
-grep -Fq 'python:3.13.11-alpine3.22@sha256:4ac787b083ff5fa9d64c6f68440088545e1b941142aed716cf9378ee348a9f1b' "$rendered"
+# Renovate bumps the tag and digest: the contract is the image and the digest pin, not one frozen version.
+grep -Eq 'qbittorrentofficial/qbittorrent-nox:[0-9][0-9.]*-[0-9]+@sha256:[0-9a-f]{64}' "$rendered"
+grep -Eq 'image: python:[0-9][0-9.]*-alpine[0-9.]+@sha256:[0-9a-f]{64}' "$rendered"
 grep -Fq 'type: ClusterIP' "$rendered"
 if grep -Eq 'type: (LoadBalancer|NodePort)|kind: (Ingress|HTTPRoute)' "$rendered"; then
   echo 'QBITTORRENT_MAM_CONTRACT=FAIL public service or route found' >&2
   exit 1
 fi
-grep -Fq 'BOOKORBIT_QBITTORRENT_WEBUI_PASSWORD' "$rendered"
+# PLT-474 (#1929): the WebUI password is generated in the cluster, never read from Doppler.
+grep -Fq 'name: qbittorrent-mam-auth' "$rendered"
+grep -Fq 'WEBUI_PASSWORD: ' "$rendered"
+grep -Fq 'kind: Password' "$rendered"
+grep -Fq 'refreshPolicy: CreatedOnce' "$rendered"
+if grep -Fq 'BOOKORBIT_QBITTORRENT_WEBUI_PASSWORD' "$rendered"; then
+  echo 'QBITTORRENT_MAM_CONTRACT=FAIL WebUI password read from Doppler again' >&2
+  exit 1
+fi
 grep -Fq 'STORAGE_CONTRACT=PASS uid=2501 hardlinks=2' "$ROOT/k8s/applications/media/qbittorrent-mam/bootstrap.py"
 grep -Fq 'Session\GlobalMaxRatio' "$ROOT/k8s/applications/media/qbittorrent-mam/bootstrap.py"
 grep -Fq 'AutoDeleteAddedTorrentFile' "$ROOT/k8s/applications/media/qbittorrent-mam/bootstrap.py"
