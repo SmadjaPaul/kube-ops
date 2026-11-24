@@ -546,7 +546,8 @@ class TestDesired(unittest.TestCase):
         self.assertEqual(d["core"]["streams"], {"publish_ip": "10.0.20.192", "bind_port": 8097})
         sonos = next(p for p in d["providers"] if p["domain"] == "sonos")
         self.assertEqual(
-            sonos["values"], {"manual_discovery_ip_addresses": ["10.0.35.50", "10.0.35.54"]}
+            sonos["values"],
+            {"manual_discovery_ip_addresses": ["10.0.35.50", "10.0.35.54", "10.0.35.175", "10.0.35.221"]},
         )
         jf = next(p for p in d["providers"] if p["domain"] == "jellyfin")
         self.assertEqual(jf["values"]["password"], {"secret_env": "APP_MA_POLYFIN_PASSWORD"})
