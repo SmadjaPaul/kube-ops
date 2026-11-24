@@ -10,19 +10,7 @@ kube-ops conventions the plugin agents must follow: `implementer` runs `just che
 
 ## Per-run test result contract
 
-Coding agents must report planned checks as JSON using
-[`agent-test-result-v1.schema.json`](contracts/agent-test-result-v1.schema.json).
-The checked-in [example](contracts/agent-test-result-v1.example.json) shows the
-minimum handoff shape. A result is incomplete unless every planned check is
-classified as `passed`, `failed`, `skipped`, `unavailable`, or
-`not-applicable`, with explicit `execution`, `reason`, `risk`, and
-`expectedCi` values. `not-executed` is not a pass and must not be inferred from
-the absence of a hook artifact.
-
-The `transmission` object is a stable, append-only projection kept for the
-`factory-platform` consumer. Factory / Mastra is FROZEN (D-2026-11-22-01): this
-repository only keeps the shape, adds no new consumer work and sends no
-telemetry.
+Retired (PLT-493). The `agent-test-result/v1` schema served only the frozen Factory / Mastra consumer (D-2026-11-22-01); it and its test are removed. Result reports follow STE80 and the evidence levels of AGENTS.md. Files under `docs/operations/` that carry `schemaVersion: agent-test-result/v1` are historical records and stay unchanged.
 
 ## Layers
 

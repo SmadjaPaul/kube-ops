@@ -57,4 +57,4 @@ The delivery steps (worktree, branch, `just check`, PR, merge, `just verify-deli
 - Argo CD is the only steady-state reconciler. Longhorn `longhorn-fast` / `longhorn-bulk`; CNPG/Barman, Velero/Kopia and Longhorn backups -> Cloudflare R2.
 - Doppler -> ESO for runtime secrets. Authentik is the identity authority.
 
-PR test reporting rules: AGENTS.md Evidence. The `docs/contracts/agent-test-result-v1.schema.json` record is required only for Factory runs (D-2026-11-11-12).
+PR test reporting rules: AGENTS.md Evidence.
