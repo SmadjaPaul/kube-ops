@@ -1,7 +1,7 @@
-# PRD-80: weekly rotation of the long-lived HA token used by ha-mcp (Secret ha-mcp-token,
+# PRD-80: weekly rotation of the long-lived HA token of agent-maison (Secret ha-mcp-token,
 # user agent-maison). The script refuses to write unless the user is agent-maison and not
 # admin; it patches the existing Secret only (no create) and keeps the current and the
-# previous token. Reloader restarts ha-mcp on Secret change (annotation on its Deployment).
+# previous token. The ha-mcp server is removed (PRD-91); the Secret is read by the agent smokes.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
