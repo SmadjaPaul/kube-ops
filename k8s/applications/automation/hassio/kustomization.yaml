@@ -15,6 +15,9 @@ configMapGenerator:
   - name: ha-agent-music-smoke-script
     files:
       - ha-agent-music-smoke.py
+  - name: ha-agent-mcp-smoke-script
+    files:
+      - ha-agent-mcp-smoke.py
 
 resources:
   - namespace.yaml
@@ -30,6 +33,7 @@ resources:
   - ha-mcp-network-policy.yaml
   - ha-mcp-token-rotate.yaml
   - ha-agent-music-smoke.yaml
+  - ha-agent-mcp-smoke.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
