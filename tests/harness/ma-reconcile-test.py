@@ -55,6 +55,9 @@ SIGNATURES = {
     "auth/user/update": ((), ("user_id", "role", "username", "password", "display_name")),
     "auth/tokens": ((), ("user_id",)),
     "auth/token/create": (("name",), ("user_id",)),
+    "music/sync": ((), ("media_types", "providers")),
+    "music/tracks/count": ((), ("favorite_only",)),
+    "tasks/get": (("task_id",), ()),
 }
 # MA 2.10.8 : le fournisseur jellyfin ne declare aucune entree (get_config_entries() == ()), donc
 # config/providers(include_values) ne renvoie pas ses valeurs stockees (url, username, password).
@@ -189,6 +192,17 @@ class FakeMA:
                  "expires_at": s.get("next_expiry", "2099-01-01T00:00:00+00:00")}
             )
             return tok
+        if cmd == "music/tracks/count":
+            return s.setdefault("track_count", 0)
+        if cmd == "music/sync":
+            s["sync_polls"] = 0
+            return [{"task_id": t, "status": "pending"} for t in s.get("sync_tasks", ["sync_jellyfin_tracks"])]
+        if cmd == "tasks/get":
+            s["sync_polls"] = s.get("sync_polls", 0) + 1
+            if s["sync_polls"] < 3:
+                return {"task_id": a["task_id"], "status": "running"}
+            s["track_count"] = s.get("track_count_after", 0)
+            return {"task_id": a["task_id"], "status": s.get("sync_final", "success")}
         raise AssertionError("commande inattendue " + cmd)
 
 
@@ -535,6 +549,45 @@ class TestDesired(unittest.TestCase):
         jf = next(p for p in d["providers"] if p["domain"] == "jellyfin")
         self.assertEqual(jf["values"]["password"], {"secret_env": "APP_MA_POLYFIN_PASSWORD"})
         self.assertEqual(d["prune_domains"], [])
+
+
+class TestSync(Base):
+    def setUp(self):
+        old = ma.SYNC_POLL_SECONDS
+        ma.SYNC_POLL_SECONDS = 0
+        self.addCleanup(setattr, ma, "SYNC_POLL_SECONDS", old)
+
+    def test_sync_waits_then_prints_count_without_writing(self):
+        args = self.start("state-converged.json")
+        self.fake.state["track_count_after"] = 42
+        code, out, err = run(["--sync"] + args)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.assertIn("music/tracks/count avant : 0", out)
+        self.assertIn("tache sync_jellyfin_tracks : success", out)
+        self.assertIn("music/tracks/count apres : 42", out)
+        self.assertEqual(self.fake.writes(), [])
+        self.assertLess(self.fake.calls.index("music/sync"), self.fake.calls.index("tasks/get"))
+        self.no_leak(out, err)
+
+    def test_sync_failed_task_is_error(self):
+        args = self.start("state-converged.json")
+        self.fake.state["sync_final"] = "failed"
+        code, out, err = run(["--sync"] + args)
+        self.assertEqual(code, ma.EXIT_ERROR)
+        self.assertIn(": failed", out)
+
+    def test_sync_without_task_is_explicit(self):
+        args = self.start("state-converged.json")
+        self.fake.state["sync_tasks"] = []
+        code, out, err = run(["--sync"] + args)
+        self.assertEqual(code, ma.EXIT_OK)
+        self.assertIn("aucune tache", out)
+
+    def test_sync_excludes_plan_and_apply(self):
+        args = self.start("state-converged.json")
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                run(["--sync", "--plan"] + args)
 
 
 if __name__ == "__main__":

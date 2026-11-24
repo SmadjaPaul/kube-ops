@@ -176,6 +176,94 @@ spec:
                 name: ma-reconcile-desired
                 defaultMode: 0444
 ---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ma-sync
+  namespace: music-assistant
+  labels:
+    app.kubernetes.io/name: ma-reconcile
+    app.kubernetes.io/component: sync
+spec:
+  # Suspendu : aucun declenchement automatique (PRD-82). Lancer a la main :
+  # kubectl -n music-assistant create job --from=cronjob/ma-sync ma-sync-manual-$(date +%s)
+  suspend: true
+  schedule: "0 0 1 1 *"
+  timeZone: Europe/Paris
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 1209600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ma-reconcile
+            app.kubernetes.io/component: sync
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: reconcile
+              image: python:3.14.5-alpine3.22@sha256:1a5f0303fd8941565b5bbda3fac2345148a9fd8245d575c2971ccefcd77c78f6
+              command: ["python3", "-I", "/scripts/ma_reconcile.py", "--sync", "--desired", "/config/desired.json"]
+              env:
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+                - name: APP_MA_RECONCILE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ma-reconcile-token
+                      key: token
+                # Jeton HA courant (PRD-84) : lu par le kubelet, facultatif ; reemis s'il est invalide.
+                - name: APP_MA_HA_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ma-home-assistant-token
+                      key: token
+                      optional: true
+              envFrom:
+                - secretRef:
+                    name: ma-reconcile
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: desired
+                  mountPath: /config
+                  readOnly: true
+          volumes:
+            - name: scripts
+              configMap:
+                name: ma-reconcile-script
+                defaultMode: 0444
+            - name: desired
+              configMap:
+                name: ma-reconcile-desired
+                defaultMode: 0444
+---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

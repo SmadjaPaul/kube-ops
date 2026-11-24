@@ -3,6 +3,7 @@
 
     ma_reconcile.py --plan  [--desired desired.json]   diff, aucune ecriture
     ma_reconcile.py --apply [--prune]                  applique, puis re-plan (doit etre vide)
+    ma_reconcile.py --sync                             lance music/sync, attend les taches, affiche music/tracks/count
 
 Etat desire : JSON (stdlib, pas de PyYAML dans l'image). Les secrets y sont des references
 {"secret_env": "NOM"} lues dans l'environnement ; ils ne sont jamais affiches (plan, erreurs).
@@ -21,6 +22,9 @@ controllers/webserver/auth.py) :
   config/players(include_values=True), config/players/save(player_id, values)
   auth/users, auth/user/create(username, password, role), auth/user/update(user_id, role)
   auth/tokens(user_id?) : jetons de l'appelant (ou d'un autre utilisateur avec users.manage)
+  music/sync(media_types?, providers?) (scope library.manage) -> liste de BackgroundTask {task_id, status, ...},
+             tasks/get(task_id) -> BackgroundTask (status : idle|pending|running|success|partial_success|failed),
+             music/tracks/count(favorite_only?) -> int
   auth/token/create(name, user_id?) : jeton longue duree (1 an, sans renouvellement) ; un admin
              (users.manage) peut l'emettre pour un autre utilisateur, sans connaitre son mot de passe.
 
@@ -47,6 +51,9 @@ import urllib.request
 EXIT_OK, EXIT_ERROR, EXIT_DRIFT = 0, 1, 2
 TOKEN_ENV = "APP_MA_RECONCILE_TOKEN"
 MAX_FLOW_STEPS = 10
+SYNC_POLL_SECONDS = 5
+SYNC_TIMEOUT_SECONDS = 480
+SYNC_ACTIVE = ("idle", "pending", "running")
 
 
 TOKEN_RENEW_DAYS = 30
@@ -424,12 +431,42 @@ def apply_item(client, it, env, redact):
         client.call("auth/user/update", user_id=p["user_id"], role=p["role"])
 
 
+def sync(client):
+    """Lance music/sync (tous fournisseurs), attend la fin des taches, affiche le nombre de pistes."""
+    before = client.call("music/tracks/count")
+    print(f"music/tracks/count avant : {before}")
+    tasks = client.call("music/sync") or []
+    ids = [t.get("task_id") for t in tasks if isinstance(t, dict) and t.get("task_id")]
+    print(f"music/sync : {len(ids)} tache(s) lancee(s)")
+    if not ids:
+        print("aucune tache : aucun fournisseur de musique avec synchro de bibliotheque activee")
+    deadline = time.monotonic() + SYNC_TIMEOUT_SECONDS
+    status = {}
+    while True:
+        for tid in ids:
+            status[tid] = str((client.call("tasks/get", task_id=tid) or {}).get("status"))
+        if not any(v in SYNC_ACTIVE for v in status.values()):
+            break
+        if time.monotonic() >= deadline:
+            print("delai depasse, taches encore actives :", file=sys.stderr)
+            break
+        time.sleep(SYNC_POLL_SECONDS)
+    for tid, st in sorted(status.items()):
+        print(f"tache {tid} : {st}")
+    after = client.call("music/tracks/count")
+    print(f"music/tracks/count apres : {after}")
+    if any(v in SYNC_ACTIVE for v in status.values()):
+        return EXIT_ERROR
+    return EXIT_ERROR if any(v == "failed" for v in status.values()) else EXIT_OK
+
+
 def main(argv=None, env=None):
     env = dict(os.environ if env is None else env)
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--plan", action="store_true")
     mode.add_argument("--apply", action="store_true")
+    mode.add_argument("--sync", action="store_true", help="lance music/sync (scope library.manage) et attend")
     ap.add_argument("--desired", default="/config/desired.json")
     ap.add_argument("--prune", action="store_true", help="supprime les fournisseurs non declares de prune_domains")
     ap.add_argument("--url", help="remplace ma_url (tests)")
@@ -445,6 +482,8 @@ def main(argv=None, env=None):
         redact.add(token)
         desired = load_desired(args.desired, env)
         client = Client(args.url or desired["ma_url"], token, redact)
+        if args.sync:
+            return sync(client)
         plan = build_plan(client, desired, env, redact, args.prune)
         print(render(plan, redact))
         blocked = [i for i in plan if i["action"] == "blocked"]
