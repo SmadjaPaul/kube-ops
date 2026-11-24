@@ -10,12 +10,7 @@
     {
       "domain": "sonos",
       "values": {
-        "manual_discovery_ip_addresses": [
-          "10.0.35.11",
-          "10.0.35.50",
-          "10.0.35.53",
-          "10.0.35.54"
-        ]
+        "manual_discovery_ip_addresses": ["10.0.35.50"]
       }
     },
     {
