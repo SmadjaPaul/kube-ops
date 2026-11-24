@@ -48,5 +48,11 @@ results:
   kind: Service
   policy: platform-baseline-no-loadbalancer
   resources:
+  - qbittorrent-mam-peer
+  result: skip
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
   - system-namespace
   result: skip

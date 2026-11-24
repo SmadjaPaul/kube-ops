@@ -14,3 +14,29 @@ spec:
       port: 8080
       targetPort: webui
       protocol: TCP
+---
+# BitTorrent peer port on a LAN IP: a router port forward (TCP+UDP 51413) makes
+# the client connectable so it can upload. The WebUI stays on the ClusterIP above.
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent-mam-peer
+  namespace: media
+  labels:
+    app.kubernetes.io/name: qbittorrent-mam
+  annotations:
+    lbipam.cilium.io/ips: 10.0.20.195
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
+  selector:
+    app.kubernetes.io/name: qbittorrent-mam
+  ports:
+    - name: peer-tcp
+      port: 51413
+      targetPort: peer-tcp
+      protocol: TCP
+    - name: peer-udp
+      port: 51413
+      targetPort: peer-udp
+      protocol: UDP

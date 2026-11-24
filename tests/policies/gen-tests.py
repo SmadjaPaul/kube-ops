@@ -300,6 +300,7 @@ RULES = {
         ("load-balancer-other-gateway-name", F, svc_in("LoadBalancer", "gateway", "my-lb")),
         ("cilium-gateway-external", S, svc_in("LoadBalancer", "gateway", "cilium-gateway-external")),
         ("dns-exact-resolver", S, svc_in("LoadBalancer", "dns-exact-resolver", "dns-exact-resolver")),
+        ("qbittorrent-mam-peer", S, svc_in("LoadBalancer", "media", "qbittorrent-mam-peer")),
         ("system-namespace", S, svc_in("LoadBalancer", "kube-system", "x")),
     ],
     "storage-class-allowed": [
