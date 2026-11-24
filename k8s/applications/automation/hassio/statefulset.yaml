@@ -91,11 +91,56 @@ spec:
         resources:
           requests: { cpu: 10m, memory: 16Mi }
           limits: { cpu: 100m, memory: 64Mi }
-        command: ["sh", "-c", "chmod -R 755 /config && chown -R root:root /config"]
+        # PLT-502 : /config/matter-server appartient à l'UID 1000 du Matter Server (sidecar).
+        command: ["sh", "-c", "chmod -R 755 /config && chown -R root:root /config && mkdir -p /config/matter-server && chown -R 1000:1000 /config/matter-server"]
         volumeMounts:
         - name: data
           mountPath: /config
       containers:
+        # PLT-502 : Matter Server (matter.js) en sidecar. Il partage le hostNetwork de HA
+        # (mDNS et IPv6 de l'hôte, indispensables à Matter) sans nouvelle charge de travail
+        # hors politique ; WebSocket limité au loopback, HA s'y connecte par ws://localhost:5580/ws.
+        # Données (fabric Matter) sur le PVC de HA, sous /config/matter-server.
+        - name: matter-server
+          image: ghcr.io/matter-js/matterjs-server:1.6.0@sha256:9eb98c839d0b4b07f9230b96ad52de570f7f2a7c286c5992b4c04b6b26c08a3f
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: LISTEN_ADDRESS
+              value: "127.0.0.1"
+            - name: PRIMARY_INTERFACE
+              value: eth0
+            - name: STORAGE_PATH
+              value: /data
+            - name: MATTER_LOG_FORMAT
+              value: plain
+          resources:
+            requests:
+              cpu: 20m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              subPath: matter-server
+            - name: matter-tmp
+              mountPath: /tmp
+          livenessProbe:
+            exec:
+              command: ["/usr/local/bin/healthcheck.sh"]
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 6
         - name: home-assistant
           image: ghcr.io/home-assistant/home-assistant:2026.11.2@sha256:493a07e8f6530fc640223f4a0a5248f20a61ca2f718bb1d31efbf08a2c5ea28f
           imagePullPolicy: IfNotPresent
@@ -153,6 +198,9 @@ spec:
             timeoutSeconds: 1
             failureThreshold: 3
       volumes:
+        - name: matter-tmp
+          emptyDir:
+            sizeLimit: 64Mi
         - name: openid-patch
           configMap:
             name: ha-openid-ui-views-patch
