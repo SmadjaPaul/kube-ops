@@ -47,8 +47,14 @@ doppler() {
 }
 
 run() {
-  KUBE_ACCESS_SOURCE= KUBE_ACCESS_TOKEN_EXPIRES= KUBE_ACCESS_KUBECONFIG_SECRET=$SECRET \
-    _materialize_canonical_operator_kubeconfig 2>"$tmp/err" && echo "SOURCE=$KUBE_ACCESS_SOURCE EXP=${KUBE_ACCESS_TOKEN_EXPIRES:-}" || cat "$tmp/err"
+  KUBE_ACCESS_SOURCE=''
+  KUBE_ACCESS_TOKEN_EXPIRES=''
+  export KUBE_ACCESS_KUBECONFIG_SECRET=$SECRET
+  if _materialize_canonical_operator_kubeconfig 2>"$tmp/err"; then
+    echo "SOURCE=$KUBE_ACCESS_SOURCE EXP=${KUBE_ACCESS_TOKEN_EXPIRES:-}"
+  else
+    cat "$tmp/err"
+  fi
 }
 expect() { # expect NAME SOUS-CHAINE SORTIE
   [[ "$3" == *"$2"* ]] || { printf 'ASSERTION_FAILED %s attendu=%s sortie=%s\n' "$1" "$2" "$3" >&2; exit 1; }
@@ -58,7 +64,7 @@ stale_sha=$(digest "$stale")
 
 # 1. agent-access valide : première source, expiration affichée
 export AA_TOKEN=$fresh AA_SHA=$fresh_sha INFRA_TOKEN=$fresh INFRA_SHA=$fresh_sha
-out=$(KUBE_ACCESS_SOURCE=; run 2>&1 | tail -1)
+out=$(run 2>&1 | tail -1)
 expect agent-access-ok 'SOURCE=doppler_agent_access_oracle_a1_distribution' "$out"
 expect agent-access-exp 'EXP=20' "$out"
 
@@ -84,7 +90,7 @@ expect both-expired 'REASON=agent_token_expired' "$out"
 
 # 6. levier KUBE_ACCESS_DOPPLER_PROJECT : source unique, pas de repli
 export AA_TOKEN=$fresh AA_SHA=$fresh_sha INFRA_TOKEN=$fresh INFRA_SHA=$fresh_sha
-out=$(KUBE_ACCESS_DOPPLER_PROJECT=infrastructure run 2>&1 | tail -1)
+out=$(export KUBE_ACCESS_DOPPLER_PROJECT=infrastructure; run 2>&1 | tail -1)
 expect override 'SOURCE=doppler_agent_operator_oracle_a1_distribution' "$out"
 
 printf '%s\n' 'KUBE_PREFLIGHT_OKE_TEST=PASS'
