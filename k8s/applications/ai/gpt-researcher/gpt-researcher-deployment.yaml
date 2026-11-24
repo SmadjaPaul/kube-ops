@@ -58,8 +58,6 @@ spec:
             - name: LOGGING_LEVEL
               value: 'INFO'
             # Environment variables take precedence over config.json for FastAPI requests
-            - name: EMBEDDING
-              value: 'openai:factory/embedding'
             - name: FAST_LLM
               value: 'openai:text/fast'
             - name: SMART_LLM
