@@ -299,7 +299,7 @@ spec:
             # PLT-453: generated key of the pr-triage consumer (pr-triage-key.yaml, sync-wave -5).
             - secretRef: {name: llm-arc-runners-agent-harness}
             # PLT-453: generated key of the incident-sentinel consumer (incident-sentinel-key.yaml).
-            - secretRef: {name: llm-agents}
+            - secretRef: {name: llm-arc-runners-agent-harness--sentinel}
           ports:
             - {name: llm, containerPort: 4000}
           readinessProbe:
