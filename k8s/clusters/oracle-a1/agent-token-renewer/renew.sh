@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Renouvelle le kubeconfig agent-operator d'OKE (PLT-481). Sortie : statuts seulement, jamais le jeton.
 # 1. TokenRequest 24 h pour argocd/agent-operator (droit unique du ServiceAccount du Job).
-# 2. kubeconfig : serveur OKE_API_SERVER (Doppler agent-access/prd, adresse privee du VCN), CA du pod.
+# 2. kubeconfig : serveur OKE_API_SERVER (Doppler identity/agt, adresse privee du VCN), CA du pod.
 # 3. 16 controles `can-i` + whoami avec ce jeton contre ce serveur ; un echec n'ecrit RIEN.
 # 4. Empreinte (meme commande que _kube_access_digest de scripts/lib/kube-preflight.sh), puis ecriture
-#    des deux cles dans agent-access/prd en une seule requete.
+#    des deux cles dans identity/agt en une seule requete.
 # La liste des controles est celle de verify_agent (scripts/agent-operator-oke-token.sh) :
 # tests/agent-guard/agent-token-renewer-test.sh interdit toute derive.
 set -euo pipefail
@@ -13,8 +13,8 @@ umask 077
 NS=argocd
 SA=agent-operator
 SECRET=KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1
-PROJECT=agent-access
-CONFIG=prd
+PROJECT=identity   # repli d'agent-access : limite Doppler de 10 projets (D-2026-11-24, a valider)
+CONFIG=agt
 API=https://api.doppler.com/v3/configs/config
 W=/tmp/w
 mkdir -p "$W"

@@ -14,7 +14,7 @@ one arm64 A1 node (2 OCPU, 12 GB), CNI `OCI_VCN_IP_NATIVE`, pods `10.248.0.0/16`
 | `argocd-root/` | What `root` reconciles: projects `infrastructure` and `apps`, ApplicationSet `infrastructure` (explicit folder list, Applications `infra-<folder>`), ApplicationSet `apps` (reads `k8s/applications/*/*/argocd-app.oracle-a1.yaml`, Applications `app-<name>`). |
 | `guardrails/` | Baseline: ValidatingAdmissionPolicy denying `Service type: LoadBalancer` (PLT-260, Always Free), and `baseline-pod-hardening` (PLT-405, from #1620): no privileged container, hostNetwork, hostPID, hostIPC or hostPath, including ephemeral containers. Exempt namespaces (binding `NotIn`): `kube-system` (Cilium, CSI, kube-proxy) and `netbird` (hostPath `/var/lib/netbird-router`). Another exemption is a reviewed PR on this binding. |
 | `agent-operator/` | Read-only agent identity (ServiceAccount, RBAC without Secret data). |
-| `agent-token-renewer/` | Automatic renewal of the 24 h `agent-operator` token (PLT-481, D-2026-11-23-04). CronJob `agent-operator-token-renewer` every 6 h in namespace `agent-token-renewer` (egress-isolated: DNS, Kubernetes API, `api.doppler.com:443`). Its ServiceAccount may only `create` `serviceaccounts/token` for `argocd/agent-operator`. It builds the kubeconfig (server `OKE_API_SERVER` from Doppler `agent-access/prd`, pod CA), replays the 16 `can-i` checks of `agent-operator-oke-token.sh` with the new token (any failure writes nothing), then writes `KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1` and `_SHA256` to `agent-access/prd` through the Doppler API (ESO's Doppler provider has no PushSecret). The write token comes from `oke/prd` `AGENT_ACCESS_DOPPLER_WRITE_TOKEN` via `doppler-cluster`. `kube-preflight.sh` reads `agent-access/prd` first and falls back to `infrastructure/prd` (`--provision`, break-glass). Alert (13 h without success): homelab-infra `terraform/grafana-cloud`. Paul's one-time step: below. |
+| `agent-token-renewer/` | Automatic renewal of the 24 h `agent-operator` token (PLT-481, D-2026-11-23-04). CronJob `agent-operator-token-renewer` every 6 h in namespace `agent-token-renewer` (egress-isolated: DNS, Kubernetes API, `api.doppler.com:443`). Its ServiceAccount may only `create` `serviceaccounts/token` for `argocd/agent-operator`. It builds the kubeconfig (server `OKE_API_SERVER` from Doppler `identity/agt`, pod CA), replays the 16 `can-i` checks of `agent-operator-oke-token.sh` with the new token (any failure writes nothing), then writes `KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1` and `_SHA256` to `identity/agt` through the Doppler API (ESO's Doppler provider has no PushSecret). The write token comes from `cluster/prd` `AGENT_ACCESS_DOPPLER_WRITE_TOKEN` via `doppler-cluster`. `kube-preflight.sh` reads `identity/agt` first and falls back to `infrastructure/prd` (`--provision`, break-glass). Alert (13 h without success): homelab-infra `terraform/grafana-cloud`. Paul's one-time step: below. |
 | `external-secrets/` | External Secrets Operator (base `k8s/infrastructure/controllers/external-secrets`) with only the ClusterSecretStore `doppler-cluster`. The overlay removes what OKE cannot run: PrometheusRule and ServiceMonitors (no Prometheus Operator CRD), stores `k8s-auth` and `k8s-databases`. The base is untouched (homelab render identical). |
 | `netbird-router/` | NetBird routing peer `oke-oracle-a1-router` (namespace `netbird`, PSA `privileged`, needs NET_ADMIN/SYS_ADMIN/SYS_RESOURCE) : admin and agent path to the private API (PLT-256). Setup key from ExternalSecret `NETBIRD_SETUP_KEY_OKE` via `doppler-cluster`. Image `netbirdio/netbird:0.83.0` has a `linux/arm64` manifest. |
 | `observability/` | Export to Grafana Cloud (PLT-306): Alloy + kube-state-metrics, label `cluster="oracle-a1"`, no local storage. Secret `alloy-grafana-cloud` from `doppler-cluster`. Revived for `scripts/verify-delivery.sh` (PLT-407). |
@@ -91,11 +91,12 @@ Not in Git, no value shown (pipes only). Until it is done the Job fails without 
 `--provision` stays the way to refresh the token.
 
 ```bash
-doppler projects create agent-access
-doppler configs tokens create oke-token-renewer --project agent-access --config prd --access read/write --plain \
-  | doppler secrets set AGENT_ACCESS_DOPPLER_WRITE_TOKEN -p oke -c prd
+# Doppler free plan: 10 projects max, so `agent-access` is the isolated environment identity/agt (fallback, D-2026-11-24).
+doppler environments create agent-access agt -p identity
+doppler configs tokens create oke-token-renewer --project identity --config agt --access read/write --plain \
+  | tr -d '\n' | bash scripts/doppler-safe.sh set AGENT_ACCESS_DOPPLER_WRITE_TOKEN -p cluster -c prd  # store doppler-cluster serves cluster/prd
 bash scripts/oke-admin.sh bash scripts/agent-operator-oke-token.sh --provision  # last manual run; seeds infrastructure/prd
-# then seed agent-access/prd OKE_API_SERVER (the private https://10.0.x.y of the API) once
+# then seed identity/agt OKE_API_SERVER (the private https://10.0.x.y of the API) once
 ```
 
 Check: `kubectl-ro.sh --cluster oracle-a1 -n agent-token-renewer get cronjob,job`, then

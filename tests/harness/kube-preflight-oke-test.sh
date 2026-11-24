@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PLT-481 : lecture de la copie OKE du kubeconfig agent. Source 1 agent-access/prd (renouvelée par le
+# PLT-481 : lecture de la copie OKE du kubeconfig agent. Source 1 identity/agt (renouvelée par le
 # CronJob d'OKE), source 2 infrastructure/prd (--provision). Doppler et kubectl sont simulés.
 set -euo pipefail
 
@@ -36,8 +36,8 @@ doppler() {
   # doppler secrets get NAME --project P --config prd --plain
   local name=$3 proj=$5 var
   case "$proj:$name" in
-    "agent-access:$SECRET") var=AA_TOKEN ;;
-    "agent-access:${SECRET}_SHA256") var=AA_SHA ;;
+    "identity:$SECRET") var=AA_TOKEN ;;
+    "identity:${SECRET}_SHA256") var=AA_SHA ;;
     "infrastructure:$SECRET") var=INFRA_TOKEN ;;
     "infrastructure:${SECRET}_SHA256") var=INFRA_SHA ;;
     *) return 1 ;;
