@@ -65,6 +65,19 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # Metadata providers used by the "Demander un livre" search (title/author
+    # lookup) and cover images. Amazon (HTML scraping) is deliberately not allowed.
+    - toFQDNs:
+        - matchName: openlibrary.org
+        - matchName: covers.openlibrary.org
+        - matchName: www.goodreads.com
+        - matchName: i.gr-assets.com
+        - matchName: itunes.apple.com
+        - matchPattern: "*.mzstatic.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     # MyAnonaMouse plugin: search API, .torrent download and seedbox registration.
     - toFQDNs:
         - matchName: www.myanonamouse.net
