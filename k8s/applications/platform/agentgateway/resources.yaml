@@ -105,7 +105,6 @@ data:
                 owner: pr-triage
               allowedModels:
                 - text/fast
-                - factory/fast # DEPRECATED, removed once agent-harness defaults to text/fast
               budgets:
                 - name: pr-triage-daily-tokens
                   limit:
@@ -121,7 +120,6 @@ data:
                 owner: incident-sentinel
               allowedModels:
                 - text/fast
-                - factory/fast # DEPRECATED, removed once agent-harness defaults to text/fast
               budgets:
                 - name: incident-sentinel-daily-tokens
                   limit:
@@ -204,7 +202,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: capabilities-v1
+        checksum/agentgateway-runtime: capabilities-v2
     spec:
       automountServiceAccountToken: false
       securityContext:
