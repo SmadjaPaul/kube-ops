@@ -136,7 +136,9 @@ data:
                 - type: completions
           params:
             baseUrl: https://api.minimax.io/v1
-            model: MiniMax-M2.7
+            # PLT-487: M2.7 retired 2026-11-18 (platform.minimax.io/docs/faq/models); pinned explicitly.
+            # Thinking cannot be disabled on M3.1 Flash: callers set reasoning_effort (low) themselves.
+            model: MiniMax-M3.1-Flash
             apiKey: "$MINIMAX_API_KEY"
         - name: factory/code
           provider:
@@ -177,7 +179,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: pr-triage-sentinel-v1
+        checksum/agentgateway-runtime: pr-triage-sentinel-v2
     spec:
       automountServiceAccountToken: false
       securityContext:
