@@ -74,6 +74,10 @@ kubeProxy:
 # criteria: rule evaluation > 30s, working set > 1.6Gi or PVC reads > 50 MB/s
 # -> set kubeApiserverBurnrate back to false.
 defaultRules:
+  # PLT-470: KubeQuotaFullyUsed is replaced by quota-rules.yaml (same expression,
+  # arc-runners* excluded: a runner quota at 100% is the concurrency bound working).
+  disabled:
+    KubeQuotaFullyUsed: true
   rules:
     # Revue alertes 2026-11-23: info-only, 22 firing samples in 7 days, limits are
     # deliberately tight on the single node. Throttling stays visible in dashboards.
