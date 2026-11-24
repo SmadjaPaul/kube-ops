@@ -1,0 +1,36 @@
+# PLT-470: KubeQuotaFullyUsed (kube-prometheus-stack 93.3.0) without the ARC runner
+# namespaces. Their ResourceQuota (pods 1/1, cpu 250m/250m) is the concurrency bound
+# by design: 100 % means a job is running, not a capacity problem. KubeQuotaExceeded
+# (> 100 %) stays active for them.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: quota-fully-used
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: kubernetes-resources-quota
+      rules:
+        - alert: KubeQuotaFullyUsed
+          expr: |-
+            topk by (cluster, namespace, resource, resourcequota) (1,
+              max without (instance, job, type) (
+                kube_resourcequota{job="kube-state-metrics", type="used", namespace!~"arc-runners.*"}
+              )
+            )
+            / on (cluster, namespace, resource, resourcequota) group_left()
+            topk by (cluster, namespace, resource, resourcequota) (1,
+              max without (instance, job, type) (
+                kube_resourcequota{job="kube-state-metrics", type="hard", namespace!~"arc-runners.*"}
+              ) > 0
+            )
+            == 1
+          for: 15m
+          labels:
+            severity: info
+          annotations:
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubequotafullyused
+            summary: Namespace quota is fully used.
+            description: Namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of its {{ $labels.resource }} quota.

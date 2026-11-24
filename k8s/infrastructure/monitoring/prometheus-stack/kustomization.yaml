@@ -17,6 +17,7 @@ resources:
   - ups-thermal-rules.yaml
   - control-plane-rules.yaml
   - golden-signals-rules.yaml
+  - quota-rules.yaml
 
 patches:
   - path: kube-apiserver-cardinality-patch.json
