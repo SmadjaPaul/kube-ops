@@ -24,7 +24,7 @@ Noms de commandes et de clés vérifiés dans le code de MA 2.10.8 (PRD-83) : li
 
 ## Synchronisation de la bibliothèque (PRD-82)
 
-`music/sync` exige le scope `library.manage` : seul le jeton admin de `svc-ma-reconcile` (Secret natif `ma-reconcile-token`, qui ne quitte pas le cluster) le porte. Le CronJob suspendu `ma-sync` lance `ma_reconcile.py --sync` : `music/tracks/count`, `music/sync` (tous les fournisseurs dont la synchro est activée), attente des tâches (`tasks/get`, au plus 8 min), puis `music/tracks/count` à nouveau. Sortie 1 si une tâche échoue ou dépasse le délai. Lancement par l'identité agent-operator :
+`music/sync` exige le scope `library.manage` : seul le jeton admin de `svc-ma-reconcile` (Secret natif `ma-reconcile-token`, qui ne quitte pas le cluster) le porte. Le CronJob suspendu `ma-sync` lance `ma_reconcile.py --sync` : `music/tracks/count`, `music/sync` (tous les fournisseurs dont la synchro est activée), attente des tâches (`tasks/get`, au plus 8 min ; l'identifiant lu dans chaque `BackgroundTask` est `id`, `task_id` en repli ; une réponse non vide sans identifiant fait sortir en erreur au lieu d'afficher « 0 tâche »), puis `music/tracks/count` à nouveau. Sortie 1 si une tâche échoue ou dépasse le délai. Lancement par l'identité agent-operator :
 
 ```bash
 bash scripts/kubectl-rw.sh run-cronjob music-assistant cronjob/ma-sync

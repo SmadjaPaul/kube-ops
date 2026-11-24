@@ -196,13 +196,15 @@ class FakeMA:
             return s.setdefault("track_count", 0)
         if cmd == "music/sync":
             s["sync_polls"] = 0
-            return [{"task_id": t, "status": "pending"} for t in s.get("sync_tasks", ["sync_jellyfin_tracks"])]
+            # forme reelle de BackgroundTask (music-assistant-models 1.1.205) : champ `id`
+            key = s.get("sync_id_key", "id")
+            return [{key: t, "status": "pending"} for t in s.get("sync_tasks", ["sync_jellyfin_tracks"])]
         if cmd == "tasks/get":
             s["sync_polls"] = s.get("sync_polls", 0) + 1
             if s["sync_polls"] < 3:
-                return {"task_id": a["task_id"], "status": "running"}
+                return {"id": a["task_id"], "status": "running"}
             s["track_count"] = s.get("track_count_after", 0)
-            return {"task_id": a["task_id"], "status": s.get("sync_final", "success")}
+            return {"id": a["task_id"], "status": s.get("sync_final", "success")}
         raise AssertionError("commande inattendue " + cmd)
 
 
@@ -565,6 +567,7 @@ class TestSync(Base):
         self.assertIn("music/tracks/count avant : 0", out)
         self.assertIn("tache sync_jellyfin_tracks : success", out)
         self.assertIn("music/tracks/count apres : 42", out)
+        self.assertIn("music/sync : 1 tache(s) lancee(s)", out)
         self.assertEqual(self.fake.writes(), [])
         self.assertLess(self.fake.calls.index("music/sync"), self.fake.calls.index("tasks/get"))
         self.no_leak(out, err)
@@ -582,6 +585,21 @@ class TestSync(Base):
         code, out, err = run(["--sync"] + args)
         self.assertEqual(code, ma.EXIT_OK)
         self.assertIn("aucune tache", out)
+
+    def test_sync_accepts_legacy_task_id_key(self):
+        args = self.start("state-converged.json")
+        self.fake.state["sync_id_key"] = "task_id"
+        code, out, err = run(["--sync"] + args)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.assertIn("music/sync : 1 tache(s) lancee(s)", out)
+
+    def test_sync_items_without_id_are_not_reported_as_zero_tasks(self):
+        args = self.start("state-converged.json")
+        self.fake.state["sync_id_key"] = "autre"
+        code, out, err = run(["--sync"] + args)
+        self.assertEqual(code, ma.EXIT_ERROR)
+        self.assertIn("sans identifiant", err)
+        self.assertNotIn("aucun fournisseur", out)
 
     def test_sync_excludes_plan_and_apply(self):
         args = self.start("state-converged.json")

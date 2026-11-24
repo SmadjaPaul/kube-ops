@@ -22,7 +22,7 @@ controllers/webserver/auth.py) :
   config/players(include_values=True), config/players/save(player_id, values)
   auth/users, auth/user/create(username, password, role), auth/user/update(user_id, role)
   auth/tokens(user_id?) : jetons de l'appelant (ou d'un autre utilisateur avec users.manage)
-  music/sync(media_types?, providers?) (scope library.manage) -> liste de BackgroundTask {task_id, status, ...},
+  music/sync(media_types?, providers?) (scope library.manage) -> liste de BackgroundTask {id, status, ...},
              tasks/get(task_id) -> BackgroundTask (status : idle|pending|running|success|partial_success|failed),
              music/tracks/count(favorite_only?) -> int
   auth/token/create(name, user_id?) : jeton longue duree (1 an, sans renouvellement) ; un admin
@@ -436,9 +436,14 @@ def sync(client):
     before = client.call("music/tracks/count")
     print(f"music/tracks/count avant : {before}")
     tasks = client.call("music/sync") or []
-    ids = [t.get("task_id") for t in tasks if isinstance(t, dict) and t.get("task_id")]
+    # BackgroundTask (music-assistant-models 1.1.205) expose `id` ; `task_id` reste accepte en repli.
+    ids = [i for i in (t.get("id") or t.get("task_id") for t in tasks if isinstance(t, dict)) if i]
     print(f"music/sync : {len(ids)} tache(s) lancee(s)")
     if not ids:
+        if tasks:
+            print(f"music/sync a renvoye {len(tasks)} element(s) sans identifiant de tache : etat non verifiable", file=sys.stderr)
+            print("aucune tache suivie : identifiants absents de la reponse")
+            return EXIT_ERROR
         print("aucune tache : aucun fournisseur de musique avec synchro de bibliotheque activee")
     deadline = time.monotonic() + SYNC_TIMEOUT_SECONDS
     status = {}
