@@ -2,8 +2,10 @@
 """PRD-104: prove from the cluster that agent-maison (non admin) reaches the native MCP server of HA.
 
 Stdlib only. The token comes from the environment (HA_AGENT_TOKEN) and is never printed.
-First, PRD-80 criteria on the REST API: GET /api/ must answer 200 and the admin-only
-GET /api/config/config_entries/entry must be refused (401/403).
+First, PRD-80 criteria on the REST API: GET /api/ must answer 200, and an admin-only write on
+config entries must be refused (401/403). HA lists config entries to any user (GET is not admin
+only), so the probe is DELETE /api/config/config_entries/entry/<id that does not exist>: an admin
+would get 404 (nothing deleted), a non-admin is refused by require_admin before any lookup.
 Then, on the stateless Streamable HTTP endpoint POST /api/mcp/assist (JSON-RPC, one request per
 POST): an anonymous initialize must get 401; the all-APIs endpoint /api/mcp must refuse the
 non-admin token (403, require_admin); then initialize, tools/list and ONE read-only tools/call
@@ -21,7 +23,7 @@ HA_URL = os.environ.get("HA_URL", "http://10.0.20.60:8123").rstrip("/")
 MCP_PATH = os.environ.get("MCP_PATH", "/api/mcp/assist")
 ADMIN_PATH = "/api/mcp"
 API_ROOT = "/api/"
-CONFIG_ENTRIES = "/api/config/config_entries/entry"
+CONFIG_ENTRIES = "/api/config/config_entries/entry/prd80-smoke-nonexistent-entry"
 PROTOCOL = os.environ.get("MCP_PROTOCOL_VERSION", "2025-06-18")
 LIVE_CONTEXT = "GetLiveContext"
 EXCERPT = int(os.environ.get("EXCERPT_CHARS", "600"))
@@ -50,8 +52,8 @@ def post(path: str, payload: dict, token: str | None) -> tuple[int, dict | None]
         return e.code, None
 
 
-def get(path: str, token: str) -> int:
-    req = urllib.request.Request(HA_URL + path, headers={"Authorization": "Bearer " + token}, method="GET")
+def get(path: str, token: str, method: str = "GET") -> int:
+    req = urllib.request.Request(HA_URL + path, headers={"Authorization": "Bearer " + token}, method=method)
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 - fixed LAN URL
             resp.read()
@@ -80,9 +82,9 @@ def run(token: str, out: dict) -> None:
     out["api_root_status"] = get(API_ROOT, token)
     if out["api_root_status"] != 200:
         raise SmokeError(f"GET {API_ROOT}: HTTP {out['api_root_status']}")
-    out["config_entries_status"] = get(CONFIG_ENTRIES, token)
+    out["config_entries_status"] = get(CONFIG_ENTRIES, token, method="DELETE")
     if out["config_entries_status"] not in (401, 403):
-        raise SmokeError(f"GET {CONFIG_ENTRIES} was not refused: HTTP {out['config_entries_status']}")
+        raise SmokeError(f"DELETE {CONFIG_ENTRIES} was not refused: HTTP {out['config_entries_status']}")
 
     out["all_apis_status"], _ = post(ADMIN_PATH, {"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": init}, token)
 

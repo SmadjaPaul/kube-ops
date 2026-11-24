@@ -45,7 +45,15 @@ class FakeHA:
                 if self.path == "/api/":
                     return self._send(200, {"message": "API running."})
                 if self.path == "/api/config/config_entries/entry":
-                    return self._send(200, []) if ha.admin_ok else self._send(401)
+                    return self._send(200, [])  # HA lists entries to any user
+                return self._send(404)
+
+            def do_DELETE(self):
+                if self.headers.get("Authorization") != "Bearer " + TOKEN:
+                    return self._send(401)
+                ha.calls.append("DELETE " + self.path)
+                if self.path.startswith("/api/config/config_entries/entry/"):
+                    return self._send(404) if ha.admin_ok else self._send(401)
                 return self._send(404)
 
             def do_POST(self):
@@ -107,7 +115,7 @@ class Test(unittest.TestCase):
         self.assertEqual(out["tool_count"], 2)
         self.assertEqual(out["call"], "GetLiveContext")
         # Only the read-only tool is called: no action tool, ever.
-        self.assertEqual(ha.calls, ["GET /api/", "GET /api/config/config_entries/entry",
+        self.assertEqual(ha.calls, ["GET /api/", "DELETE /api/config/config_entries/entry/prd80-smoke-nonexistent-entry",
                                     "initialize", "tools/list", "tools/call"])
 
     def test_anonymous_accepted_fails(self):
