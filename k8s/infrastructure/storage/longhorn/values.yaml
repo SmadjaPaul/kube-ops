@@ -115,7 +115,9 @@ metrics:
         sourceLabels: [__name__]
         regex: "longhorn_rest_client_.*"
       # PLT-470: per-backup size series (~1.1k, churn with each backup) have
-      # no reader; longhorn_backup_state (LonghornBackupFailed) stays.
+      # no reader, nor the per-state volume/replica/engine gauges (~1.6k live, 4x
+      # that in the head: one series per state flip). longhorn_backup_state
+      # (LonghornBackupFailed) and longhorn_volume_robustness stay.
       - action: drop
         sourceLabels: [__name__]
-        regex: "longhorn_backup_(actual_size|uploaded_data_size)_bytes"
+        regex: "longhorn_backup_(actual_size|uploaded_data_size)_bytes|longhorn_(volume|replica|engine)_state"
