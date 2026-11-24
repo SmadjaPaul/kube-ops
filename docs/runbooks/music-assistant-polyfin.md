@@ -20,7 +20,7 @@ Lecture seule d'abord. Ne jamais afficher un jeton ni `apiKey`.
 5. **Relancer une synchro** (exige `library.manage`, donc par le CronJob, jamais depuis un jeton non administrateur) :
    ```bash
    bash scripts/kubectl-rw.sh run-cronjob music-assistant cronjob/ma-sync
-   bash scripts/kubectl-ro.sh logs -n music-assistant job/<nom>
+   bash scripts/kubectl-ro.sh logs -n music-assistant job/ma-sync-manual-<horodatage>
    ```
    Sortie attendue : `music/tracks/count` supérieur à 0 après la synchro.
 
@@ -30,7 +30,7 @@ Lecture seule d'abord. Ne jamais afficher un jeton ni `apiKey`.
 |---|---|---|
 | Polyfin met `CanDownload=false` pour l'audio ; MA lit ce champ comme `available` | `available=false`, 0 titre, « No playable items found » | Patch ci-dessous (kube-ops#1977). Amont : moodiness/polyfin#1504 |
 | Cilium : `*` ne franchit pas un point dans `toFQDNs` ; le CDN TorBox a des hôtes à deux labels | `POLICY_DENIED` vers `nexus-NNN.<région>.tb-cdn.st` | `matchPattern: "**.tb-cdn.st"` dans `networkpolicy.yaml` (kube-ops#1981, #1986) |
-| Jellyfin dans HA en `auth_required` invisible au plan | plan vide, intégration hors service | Le réconciliateur renvoie les secrets d'un fournisseur en erreur (kube-ops#1971) |
+| Fournisseur Jellyfin de MA en `auth_required`, invisible au plan | plan vide, fournisseur en erreur | Le réconciliateur renvoie les secrets d'un fournisseur en erreur (kube-ops#1971) |
 | Salon et Bureau groupés côté Sonos | lecture sur une seule enceinte | `media_player.unjoin` ; état d'exécution, pas Git |
 
 ## Patch jellyfin (contournement `CanDownload`)
