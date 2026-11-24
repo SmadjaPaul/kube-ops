@@ -85,7 +85,10 @@ for k in pr-triage incident-sentinel; do
 done
 [ "$(grep -c 'amount: 300000' "$ag")" -ge 2 ]
 # PLT-496 / D-2026-11-24-03: no Factory identity or factory/* alias remains in the gateway.
-! grep -qE 'factory/(fast|code|research|embedding)|factory-canary|AGENTGATEWAY_CLIENT_KEY' "$ag" k8s/applications/platform/agentgateway/secrets.yaml
+if grep -qE 'factory/(fast|code|research|embedding)|factory-canary|AGENTGATEWAY_CLIENT_KEY' "$ag" k8s/applications/platform/agentgateway/secrets.yaml; then
+  echo 'ERROR: a Factory identity or factory/* alias remains in the Agentgateway (D-2026-11-24-03)' >&2
+  exit 1
+fi
 # The capability aliases exist and point to the pinned models (the only place a provider name lives).
 awk '/- name: text\/fast/{f=1} f&&/model:/{print $2; exit}' "$ag" | grep -qx 'MiniMax-M3.1-Flash'
 awk '/- name: text\/strong/{f=1} f&&/model:/{print $2; exit}' "$ag" | grep -qx 'MiniMax-M3'
