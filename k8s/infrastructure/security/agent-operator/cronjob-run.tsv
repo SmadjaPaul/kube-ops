@@ -13,3 +13,4 @@
 home-assistant	ha-mcp-token-rotate	PRD-80 : rotation hors calendrier du jeton HA de ha-mcp
 music-assistant	ma-reconcile-plan	PRD-83 : plan du réconciliateur Music Assistant (CronJob suspendu)
 music-assistant	ma-reconcile-apply	PRD-83 : apply du réconciliateur Music Assistant (CronJob suspendu)
+music-assistant	ma-publish-tokens	PRD-84 : publie le jeton MA de svc-home-assistant dans Doppler home/prd_maison (CronJob suspendu)
