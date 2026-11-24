@@ -301,7 +301,6 @@ spec:
         (has(object.spec.storageClassName) && object.spec.storageClassName == oldObject.spec.storageClassName &&
         has(object.spec.claimRef) && object.spec.claimRef == oldObject.spec.claimRef &&
         has(object.spec.csi) && object.spec.csi == oldObject.spec.csi &&
-        object.spec.capacity == oldObject.spec.capacity &&
         object.spec.accessModes == oldObject.spec.accessModes &&
         has(object.spec.nodeAffinity) == has(oldObject.spec.nodeAffinity) &&
         (!has(object.spec.nodeAffinity) || object.spec.nodeAffinity == oldObject.spec.nodeAffinity) &&
