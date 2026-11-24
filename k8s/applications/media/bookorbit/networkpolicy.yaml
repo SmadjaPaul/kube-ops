@@ -65,6 +65,14 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # MyAnonaMouse plugin: search API, .torrent download and seedbox registration.
+    - toFQDNs:
+        - matchName: www.myanonamouse.net
+        - matchName: t.myanonamouse.net
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
     - toFQDNs:
         - matchName: auth.smadja.dev
       toPorts:

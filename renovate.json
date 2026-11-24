@@ -393,6 +393,13 @@
       "minimumReleaseAge": "7 days",
       "automerge": false,
       "separateMajorMinor": true
+    },
+    {
+      "description": "qBittorrent pour MyAnonaMouse : version imposee par la liste des clients approuves (https://www.myanonamouse.net/tor/allowed_clients.php). Aucune mise a jour automatique : verifier la liste, puis changer le tag et le digest a la main (PLT-500).",
+      "matchPackageNames": [
+        "/qbittorrent-nox/"
+      ],
+      "enabled": false
     }
   ],
   "kubernetes": {
