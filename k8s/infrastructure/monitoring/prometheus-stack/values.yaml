@@ -207,6 +207,14 @@ kube-state-metrics:
     monitor:
       http:
         interval: 45s
+      # PLT-470: ephemeral ARC runner pods (one per job) and their per-pod
+      # series churn ~5k series per 2 h in the head. No rule reads them;
+      # runner concurrency is read from kube_resourcequota and gha_* (Alloy).
+      metricRelabelings:
+        - action: drop
+          sourceLabels: [__name__, namespace]
+          separator: ";"
+          regex: "kube_pod_.*;arc-runners.*"
   # PLT-212 lot 1: families with no consumer in live rules or in the repo
   # (rules, dashboards, scripts). kube_replicaset_owner, kube_pod_status_*
   # used by alerts and kube_pod_container_status_* stay exported.
