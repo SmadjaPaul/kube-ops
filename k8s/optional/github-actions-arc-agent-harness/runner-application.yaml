@@ -63,12 +63,7 @@ spec:
                 volumeMounts:
                   - {name: work, mountPath: /home/runner/_work}
                   - {name: tmp, mountPath: /tmp}
-                # PLT-453: key of the Agentgateway consumer `pr-triage` (ExternalSecret
-                # pr-triage-agentgateway). optional: CI keeps running if the copy is absent.
-                env:
-                  - name: PR_TRIAGE_AGENTGATEWAY_KEY
-                    valueFrom:
-                      secretKeyRef: {name: pr-triage-agentgateway, key: PR_TRIAGE_AGENTGATEWAY_KEY, optional: true}
+                # PLT-490: no Agentgateway key here; it lives in the agents scale set only.
                 resources:
                   requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}
                   limits: {cpu: "2", memory: 2Gi, ephemeral-storage: 4Gi}

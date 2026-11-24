@@ -74,6 +74,7 @@ scratch_scale_sets=(
   github-actions-arc-website/runner-application.yaml
   github-actions-arc-ha-config/runner-application.yaml
   github-actions-arc-agent-harness/runner-application.yaml
+  github-actions-arc-agent-harness/runner-application-agents.yaml
   github-actions-arc-homelab-iac-pilot/runner-application.yaml
   github-actions-arc-homelab-infra/runner-application.yaml
   github-actions-arc-kube-ops/runner-application.yaml
@@ -372,18 +373,28 @@ assert_yq_ah() {
     exit 1
   }
 }
-assert_yq_ah 'select(.kind == "Application") | .spec.source.helm.releaseName' 'agent-harness-ci-arc'
-assert_yq_ah 'select(.kind == "Application") | .spec.destination.namespace' 'arc-runners-agent-harness'
+assert_yq_ah 'select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-ci") | .spec.source.helm.releaseName' 'agent-harness-ci-arc'
+assert_yq_ah 'select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-agents") | .spec.source.helm.releaseName' 'agent-harness-agents-arc'
+assert_yq_ah 'select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-ci") | .spec.destination.namespace' 'arc-runners-agent-harness'
+assert_yq_ah 'select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-agents") | .spec.destination.namespace' 'arc-runners-agent-harness'
 assert_yq_ah "$ah_values | .githubConfigUrl" 'https://github.com/SmadjaPaul/agent-harness'
 assert_yq_ah "$ah_values | .minRunners" '0'
 assert_yq_ah "$ah_values | .maxRunners" '1'
 assert_yq_ah "$ah_values | .template.spec.automountServiceAccountToken" 'false'
-# PLT-453: the only secret in the runner is the pr-triage Agentgateway key (one optional secretKeyRef
-# env var from the generated copy pr-triage-agentgateway); no envFrom, only the scratch volume mounts (PLT-417).
-assert_yq_ah "$ah_values | .template.spec.containers[0] | has(\"envFrom\")" 'false'
-assert_yq_ah "$ah_values | [.template.spec.containers[0].volumeMounts[].name] | join(\",\")" 'work,tmp'
-assert_yq_ah "$ah_values | .template.spec.containers[0].env | length" '1'
-assert_yq_ah "$ah_values | .template.spec.containers[0].env[0] | [.name, .valueFrom.secretKeyRef.name, .valueFrom.secretKeyRef.optional, has(\"value\")] | join(\",\")" 'PR_TRIAGE_AGENTGATEWAY_KEY,pr-triage-agentgateway,true,false'
+# PLT-490: the common CI scale set carries NO secret (pull_request jobs run PR code); the pr-triage
+# Agentgateway key (PLT-453) is mounted only in the dedicated agents scale set (one optional secretKeyRef
+# env var from the generated copy pr-triage-agentgateway). No envFrom anywhere; scratch volume mounts only (PLT-417).
+ah_agents_values='select(.kind == "Application" and .metadata.name == "apps-arc-agent-harness-agents") | .spec.source.helm.valuesObject'
+for v in "$ah_values" "$ah_agents_values"; do
+  assert_yq_ah "$v | .template.spec.containers[0] | has(\"envFrom\")" 'false'
+  assert_yq_ah "$v | [.template.spec.containers[0].volumeMounts[].name] | join(\",\")" 'work,tmp'
+  assert_yq_ah "$v | .githubConfigUrl" 'https://github.com/SmadjaPaul/agent-harness'
+  assert_yq_ah "$v | .maxRunners" '1'
+done
+assert_yq_ah "$ah_values | .template.spec.containers[0] | has(\"env\")" 'false'
+assert_yq_ah "$ah_agents_values | .template.spec.containers[0].env | length" '1'
+assert_yq_ah "$ah_agents_values | .template.spec.containers[0].env[0].name" 'PR_TRIAGE_AGENTGATEWAY_KEY'
+assert_yq_ah "$ah_agents_values | .template.spec.containers[0].env[0] | [.name, .valueFrom.secretKeyRef.name, .valueFrom.secretKeyRef.optional, has(\"value\")] | join(\",\")" 'PR_TRIAGE_AGENTGATEWAY_KEY,pr-triage-agentgateway,true,false'
 assert_yq_ah 'select(.kind == "CiliumNetworkPolicy") | [.spec.egress[]?.toCIDR[]?, .spec.egress[]?.toEntities[]?] | length' '0'
 rm -f "$agent_harness_rendered"
 for project in "$infrastructure_project" "$applications_project"; do

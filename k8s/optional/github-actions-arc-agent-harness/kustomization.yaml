@@ -12,3 +12,4 @@ resources:
   - runner-quota.yaml
   - egress-networkpolicy.yaml
   - runner-application.yaml
+  - runner-application-agents.yaml
