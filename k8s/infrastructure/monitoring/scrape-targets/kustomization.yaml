@@ -6,4 +6,5 @@ kind: Kustomization
 resources:
   - argocd-monitoring.yaml
   - cnpg-podmonitor.yaml
+  - cloudflared-podmonitor.yaml
   - arc-podmonitor.yaml

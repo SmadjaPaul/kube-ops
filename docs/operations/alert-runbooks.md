@@ -99,6 +99,11 @@ Routage : `critical` va sur ntfy (téléphone). `warning` et `info` vont sur le 
 - **Première vérification** : `get pods -n cloudflared` (ou le namespace du tunnel), `logs`.
 - **Action** : corriger le déploiement. Garder l'accès d'administration par le LAN avant toute modification.
 
+### CloudflareTunnelNoConnection
+- **Signal** : `cloudflared_tunnel_ha_connections` vaut 0 depuis 5 min : le pod tourne mais le tunnel n'a plus de lien avec le bord Cloudflare.
+- **Première vérification** : `logs -n cloudflared ds/cloudflared`, état du tunnel dans Cloudflare.
+- **Action** : corriger le jeton ou le réseau sortant. Garder l'accès d'administration par le LAN.
+
 ### HostDiskWriteLatencyHigh
 - **Signal** : latence d'écriture disque élevée pendant 15 min sur un hôte.
 - **Première vérification** : métriques `node_disk_*` du périphérique, iowait.

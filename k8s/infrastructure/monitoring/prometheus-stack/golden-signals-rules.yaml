@@ -190,6 +190,20 @@ spec:
               Les routes publiques (*.smadja.dev) ne répondent plus. Vérifier
               `kubectl -n cloudflared get pods` et l'état du tunnel côté
               Cloudflare.
+        # PLT-459 : pod Ready mais tunnel coupé côté bord Cloudflare. Complète
+        # CloudflareTunnelDown (qui reste le filet si les métriques disparaissent).
+        - alert: CloudflareTunnelNoConnection
+          expr: max(cloudflared_tunnel_ha_connections) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#cloudflaretunnelnoconnection
+            summary: "Tunnel Cloudflare : aucune connexion HA vers le bord"
+            description: >-
+              cloudflared tourne mais n'a plus de connexion vers Cloudflare :
+              les routes publiques sont coupées. Voir les logs du DaemonSet et
+              l'état du tunnel côté Cloudflare.
         # PLT-417 : stalls disque. Seuils au-dessus du pire mesuré sur 3 jours
         # (iowait max 16 %, latence d'écriture moyenne 5 min max 167 ms sur le
         # disque système du nœud) : seule une dégradation nette alerte.

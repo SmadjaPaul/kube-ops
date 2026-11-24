@@ -236,6 +236,8 @@ alloy:
             "cnpg_pg_stat_archiver_last_failed_time",
             "cnpg_pg_replication_lag",
             "cnpg_pg_replication_in_recovery",
+            // Cloudflare tunnel (PLT-459)
+            "cloudflared_tunnel_ha_connections",
             // barman-cloud plugin backup metrics (the cnpg_collector_last_*
             // series stay 0 for plugin backups)
             "barman_cloud_cloudnative_pg_io_last_available_backup_timestamp",
