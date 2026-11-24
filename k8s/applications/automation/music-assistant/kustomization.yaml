@@ -5,9 +5,6 @@ configMapGenerator:
   - name: ma-reconcile-script
     files:
       - reconcile/ma_reconcile.py
-  - name: ma-publish-tokens-script
-    files:
-      - reconcile/ma_publish_tokens.py
   - name: ma-jellyfin-parsers-patch
     files:
       - parsers.py=patches/jellyfin-parsers.py
@@ -29,4 +26,3 @@ resources:
   - reconcile/external-secret.yaml
   - reconcile/rbac.yaml
   - reconcile/cronjobs.yaml
-  - reconcile/publish-tokens.yaml

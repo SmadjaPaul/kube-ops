@@ -47,23 +47,8 @@ Idempotence : le jeton courant arrive aux jobs par `secretKeyRef` facultatif (`A
 
 Compromis RBAC : `create` sur les Secrets n'est pas restreignable par `resourceNames`. Le Secret est donc créé à l'avance par un ExternalSecret (`Password` + `CreatedOnce` + `Orphan`, valeur aléatoire factice refusée par MA) et le Role `ma-reconcile` n'a que `patch` sur ce seul Secret : ni `create`, ni `get`, ni liste. Seul le CronJob apply monte le jeton de ServiceAccount, et seul lui a un egress vers kube-apiserver.
 
-## Publication vers Doppler `home/prd_maison` (PRD-84, `ma-publish-tokens`)
+## Jeton de Home Assistant (PRD-103)
 
-HA est consommé par OpenTofu/ARC, hors cluster : le jeton doit donc finir dans Doppler `home/prd_maison` (clé `MA_HOME_ASSISTANT_TOKEN`, D-2026-11-23-06). Chaîne complète :
+Il n'y a plus de publication vers Doppler. L'intégration `music_assistant` de Home Assistant a été créée une fois à la main par l'API de config flow (HA garde son propre jeton MA longue durée) puis adoptée par OpenTofu, qui l'a ensuite oubliée du state (bloc `removed`, `destroy = false`, homelab-infra PRD-103) sans toucher à HA. Le CronJob `ma-publish-tokens`, l'ExternalSecret `maison-doppler-write` et la clé Doppler `home/prd_maison` ne servent plus à rien.
 
-1. `ma-reconcile-apply` émet le jeton de `svc-home-assistant` et le range dans le Secret natif `ma-home-assistant-token` (voir ci-dessus).
-2. L'ExternalSecret `maison-doppler-write` fabrique le Secret `maison-doppler-write` (clé `APP_MAISON_DOPPLER_WRITE_TOKEN`) depuis Doppler `cluster/prd` : jeton de service `maison-write`, lecture et écriture sur `home/prd_maison` seul.
-3. Le CronJob `ma-publish-tokens` (suspendu, `ma_publish_tokens.py`, stdlib) reçoit les deux jetons par `secretKeyRef` : aucun accès à l'API Kubernetes (`automountServiceAccountToken: false`). Il calcule le SHA-256 du jeton MA, lit la clé annexe `MA_HOME_ASSISTANT_TOKEN_SHA256` (`GET /v3/configs/config/secret`) et, seulement si elle diffère, écrit `MA_HOME_ASSISTANT_TOKEN` et l'empreinte en un appel (`POST /v3/configs/config/secrets`). Aucune valeur n'est journalisée ; une réponse 401/403 ou un jeton absent fait échouer le job (code 1).
-4. Réseau : `CiliumNetworkPolicy ma-publish-tokens`, egress DNS (`api.doppler.com`) et `api.doppler.com:443` seulement, aucun ingress.
-5. OpenTofu/ARC lit `MA_HOME_ASSISTANT_TOKEN` dans `home/prd_maison` (PRD-82).
-
-Lancement (le CronJob est `suspend: true` ; ne le planifier qu'après le premier apply réussi) :
-
-```bash
-bash scripts/kubectl-rw.sh run-cronjob music-assistant cronjob/ma-publish-tokens
-kubectl -n music-assistant logs job/<nom>   # "OK: ... publie" ou "deja a jour"
-```
-
-Rotation : le jeton MA est réémis par `ma-reconcile-apply` (absent, refusé ou à moins de 30 jours de l'expiration). Après chaque émission, relancer `ma-publish-tokens` : l'empreinte change, Doppler est mis à jour, ARC lit le nouveau jeton au prochain plan. Sans changement, le job est un no-op (aucune écriture). Pour forcer une republication, supprimer `MA_HOME_ASSISTANT_TOKEN_SHA256` dans `home/prd_maison` (la seule détection est l'empreinte : supprimer seulement le jeton ne le restaure pas). Rotation du jeton de service `maison-write` : le régénérer dans Doppler, mettre la valeur dans `cluster/prd` `APP_MAISON_DOPPLER_WRITE_TOKEN`, attendre l'ExternalSecret (1 h) ou le rafraîchir.
-
-Le même mécanisme servira au jeton `reconciler` de HA à son renouvellement : ajouter une paire clé/empreinte au script (entrée `secretKeyRef` supplémentaire) plutôt qu'un second CronJob.
+`ma-reconcile-apply` continue d'émettre le jeton de `svc-home-assistant` et de le ranger dans le Secret natif `ma-home-assistant-token` (voir ci-dessus). En cas de perte de l'entrée HA, la recréer à la main par l'API de config flow avec ce jeton, sans passer par Doppler.
