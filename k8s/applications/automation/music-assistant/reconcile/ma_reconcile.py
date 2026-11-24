@@ -11,21 +11,29 @@ MA ne relit pas ses secrets : un champ secret n'est envoye qu'a la creation d'un
 Codes de sortie : 0 aucun ecart, 2 ecarts (plan) , 1 erreur, refus ou ecart residuel apres apply.
 
 API : POST {ma_url}/api {"command": ..., "args": {...}}, Bearer APP_MA_RECONCILE_TOKEN.
-Commandes (MA 2.10.8, a confirmer sur /api-docs/openapi.json avant le premier apply) :
-config/core/get|save, config/providers/get|setup|save|remove, config/flows/submit,
-config/players/get|save, auth/users, auth/user/create|update.
+Commandes verifiees dans le code de MA 2.10.8 (controllers/config/{core,providers,flows,players}.py,
+controllers/webserver/auth.py) :
+  config/core/get(domain), config/core/save(domain, values)
+  config/providers(include_values=True) -> liste ; config/providers/get exige instance_id (sinon HTTP 500)
+  config/providers/save(provider_domain, values, instance_id), config/providers/remove(instance_id)
+  creation : config/providers/setup(provider_domain) -> etape de flux {flow_id, type, entries},
+             puis config/flows/submit(flow_id, values) jusqu'a type "finish" (config/flows/get pour "progress")
+  config/players(include_values=True), config/players/save(player_id, values)
+  auth/users, auth/user/create(username, password, role), auth/user/update(user_id, role)
+Un HTTP 500 de MA est generique ("Internal server error") : le detail est dans les journaux du serveur.
 """
 
 import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 
 EXIT_OK, EXIT_ERROR, EXIT_DRIFT = 0, 1, 2
 TOKEN_ENV = "APP_MA_RECONCILE_TOKEN"
-MAX_FLOW_STEPS = 6
+MAX_FLOW_STEPS = 10
 
 
 class ReconcileError(Exception):
@@ -74,7 +82,13 @@ class Client:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 body = resp.read()
         except urllib.error.HTTPError as e:
-            raise ReconcileError(f"{command}: HTTP {e.code}") from None
+            detail = ""
+            if e.code != 500:  # le 500 de MA est toujours generique ; 400/403 portent la cause
+                try:
+                    detail = ": " + self.redact(e.read().decode("utf-8", "replace")[:200])
+                except OSError:
+                    pass
+            raise ReconcileError(f"{command}: HTTP {e.code}{detail}") from None
         except (urllib.error.URLError, OSError) as e:
             raise ReconcileError(self.redact(f"{command}: {e}")) from None
         try:
@@ -92,9 +106,8 @@ def entry_values(cfg):
 
 
 def canon(key, v):
-    if key.endswith("ips") and isinstance(v, str):
-        return sorted(p.strip() for p in v.split(",") if p.strip())
-    if key.endswith("ips") and isinstance(v, list):
+    """Les listes (ex. manual_discovery_ip_addresses) se comparent sans tenir compte de l'ordre."""
+    if isinstance(v, list):
         return sorted(str(p) for p in v)
     return v
 
@@ -150,7 +163,7 @@ def build_plan(client, desired, env, redact, prune):
         ch = diff_values(wanted, cur)
         plan.append(item("core", domain, "update" if ch else "noop", ch, domain=domain, values=wanted))
 
-    providers = client.call("config/providers/get") or []
+    providers = client.call("config/providers", include_values=True) or []
     by_domain = {}
     for cfg in providers:
         by_domain.setdefault(cfg.get("domain"), []).append(cfg)
@@ -181,7 +194,7 @@ def build_plan(client, desired, env, redact, prune):
                 plan.append(item("provider", dom, "undeclared", note="non declare, conserve (prune non demande ou domaine hors prune_domains)"))
 
     if desired.get("players"):
-        cur_players = {pl.get("player_id"): pl for pl in (client.call("config/players/get") or [])}
+        cur_players = {pl.get("player_id"): pl for pl in (client.call("config/players", include_values=True) or [])}
         for pl in desired["players"]:
             pid = pl["player_id"]
             if pid not in cur_players:
@@ -236,11 +249,32 @@ def apply_item(client, it):
         client.call("config/core/save", domain=p["domain"], values=p["values"])
     elif kind == "provider" and act == "create":
         values = {k: (v["secret"] if isinstance(v, dict) and "secret" in v else v) for k, v in p["values"].items()}
-        res = client.call("config/providers/setup", provider_domain=p["domain"], values=values)
+        res = client.call("config/providers/setup", provider_domain=p["domain"])
+        submitted = set()
         for _ in range(MAX_FLOW_STEPS):
-            if not isinstance(res, dict) or not res.get("flow_id") or res.get("type") in ("create_entry", "done"):
+            step = res.get("type") if isinstance(res, dict) else None
+            if step == "finish":
+                # Un fournisseur sans flux (Sonos, Chromecast) est cree vide : les valeurs que
+                # aucun formulaire n'a recues passent par config/providers/save.
+                rest = {k: v for k, v in values.items() if k not in submitted}
+                inst = (res.get("result") or {}).get("instance_id")
+                if rest and inst:
+                    client.call("config/providers/save", provider_domain=p["domain"], instance_id=inst, values=rest)
                 return
-            res = client.call("config/flows/submit", flow_id=res["flow_id"], values=values)
+            if step == "abort":
+                raise ReconcileError(f"provider/{p['domain']}: flux abandonne ({res.get('reason')})")
+            if res.get("errors"):
+                raise ReconcileError(f"provider/{p['domain']}: formulaire refuse {sorted(res['errors'].items())}")
+            if step == "form":
+                keys = {e.get("key") for e in res.get("entries") or []}
+                send = {k: v for k, v in values.items() if k in keys}
+                submitted |= set(send)
+                res = client.call("config/flows/submit", flow_id=res["flow_id"], values=send)
+            elif step == "progress":
+                time.sleep(1)
+                res = client.call("config/flows/get", flow_id=res["flow_id"])
+            else:
+                raise ReconcileError(f"provider/{p['domain']}: etape de flux inattendue '{step}'")
         raise ReconcileError(f"provider/{p['domain']}: flux de configuration non termine")
     elif kind == "provider" and act == "update":
         values = dict(p["values"])
