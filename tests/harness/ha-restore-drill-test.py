@@ -4,11 +4,14 @@
 - the pods rule of restore-pvc-isolation, applied the way Velero 1.18.2 does it
   (JSONPatch.ToString + evanphx json-patch, a failed `test` returns the object
   unchanged), turns the restored production pod into the read-only verifier,
-  and the admission predicate (mirror of ha-restore-test-guard) accepts only
+  and the admission predicate (mirror of ha-restore-test-pod-guard) accepts only
   that result;
 - the verifier script (embedded in the modifier) on fake /config trees;
 - the drill Job script against an in-memory API (success, hostNetwork stop,
-  production drift).
+  production drift, PV reclaim policy: Velero 1.18.2 copies Retain from the
+  production PV onto the drill PV, the Job patches it back to Delete under the
+  mirror of ha-restore-drill-pv-guard, leftovers are reclaimed, a PV stuck in
+  Retain fails fast).
 """
 
 import copy
@@ -142,7 +145,7 @@ def velero_apply(pod, rule):
         return copy.deepcopy(pod)
 
 
-# --- mirror of the ValidatingAdmissionPolicy ha-restore-test-guard ----------
+# --- mirror of the ValidatingAdmissionPolicy ha-restore-test-pod-guard-------
 def guard_admits_pod(pod, image):
     s = pod["spec"]
     if any(s.get(f) for f in ("hostNetwork", "hostPID", "hostIPC")):
@@ -331,7 +334,8 @@ class FakeKube:
     def __init__(self, drill, scenario="pass"):
         self.d, self.scenario, self.calls = drill, scenario, []
         self.restore = None
-        self.pods, self.pvcs, self.pvs = {}, {}, set()
+        self.pods, self.pvcs, self.pvs = {}, {}, {}
+        self.patches = []
         self.prod_restarts = 0
         self.cm = {"data": {"resource-modifier.yaml": RULES_YAML.read_text()}}
 
@@ -340,7 +344,7 @@ class FakeKube:
         base = path.split("?")[0]
         if method == "GET" and base == "/api/v1/namespaces/home-assistant-restore-test":
             return {"status": {"phase": "Active"}, "metadata": {"labels": {"pod-security.kubernetes.io/enforce": "baseline"}}}
-        if method == "GET" and "validatingadmissionpolicies" in base:
+        if method == "GET" and "validatingadmissionpolic" in base:
             return {"metadata": {}}
         if method == "GET" and base.endswith("/configmaps/restore-pvc-isolation"):
             return self.cm
@@ -370,7 +374,8 @@ class FakeKube:
             self.pods["home-assistant-0"] = pod
             self.pvcs["home-assistant-home-assistant-0"] = {"metadata": {"name": "home-assistant-home-assistant-0"},
                                                             "spec": {"volumeName": "pvc-drill"}}
-            self.pvs.add("pvc-drill")
+            # restore finalizer: the dynamic PV gets the production PV reclaim policy (Retain)
+            self.pvs["pvc-drill"] = drill_pv("pvc-drill", "Bound")
             return body
         if method == "GET" and "/restores/" in base:
             return {"status": {"phase": "Completed", "warnings": 1}}
@@ -387,11 +392,80 @@ class FakeKube:
         if method == "DELETE" and base.startswith(self.TEST + "/pods/"):
             return self.pods.pop(base.rsplit("/", 1)[1], None)
         if method == "DELETE" and base.startswith(self.TEST + "/persistentvolumeclaims/"):
-            self.pvs.discard("pvc-drill")
+            for pv in self.pvs.values():
+                pv["status"]["phase"] = "Released"
+            self.reclaim()
             return self.pvcs.pop(base.rsplit("/", 1)[1], None)
+        if method == "GET" and base == "/api/v1/persistentvolumes":
+            return {"items": [copy.deepcopy(pv) for pv in self.pvs.values()] + [other_pv()]}
         if method == "GET" and base.startswith("/api/v1/persistentvolumes/"):
-            return {} if base.rsplit("/", 1)[1] in self.pvs else None
+            pv = self.pvs.get(base.rsplit("/", 1)[1])
+            return copy.deepcopy(pv) if pv else None
+        if method == "PATCH" and base.startswith("/api/v1/persistentvolumes/"):
+            name = base.rsplit("/", 1)[1]
+            if self.scenario == "patch-denied":
+                raise self.d.DrillError(f"PATCH {path}: HTTP 403 denied")
+            old = self.pvs[name]
+            new = merge_patch(old, body)
+            assert pv_guard_admits(old, new), (old, new)
+            self.patches.append(name)
+            if self.scenario != "patch-reverted":  # Velero re-patching Retain after the Job
+                self.pvs[name] = new
+            self.reclaim()
+            return new
         raise AssertionError(f"unexpected call {method} {path}")
+
+
+    def reclaim(self):
+        """PV controller + Longhorn: a Released PV in Delete disappears."""
+        for n in [n for n, pv in self.pvs.items() if pv["status"]["phase"] == "Released"
+                  and pv["spec"]["persistentVolumeReclaimPolicy"] == "Delete"]:
+            del self.pvs[n]
+
+
+def drill_pv(name, phase, policy="Retain"):
+    return {"metadata": {"name": name, "labels": {"velero.io/restore-name": "x"},
+                         "finalizers": ["kubernetes.io/pv-protection"]},
+            "spec": {"storageClassName": "longhorn-drill", "persistentVolumeReclaimPolicy": policy,
+                     "claimRef": {"namespace": "home-assistant-restore-test", "name": "home-assistant-home-assistant-0"},
+                     "csi": {"driver": "driver.longhorn.io", "volumeHandle": name},
+                     "capacity": {"storage": "5Gi"}, "accessModes": ["ReadWriteOnce"]},
+            "status": {"phase": phase}}
+
+
+def other_pv():
+    pv = drill_pv("pvc-1b4227d4", "Bound")
+    pv["spec"]["storageClassName"] = "longhorn-fast"
+    pv["spec"]["claimRef"]["namespace"] = "home-assistant"
+    return pv
+
+
+def merge_patch(obj, patch):
+    out = copy.deepcopy(obj)
+    for k, v in patch.items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = merge_patch(out[k], v)
+        elif v is None:
+            out.pop(k, None)
+        else:
+            out[k] = v
+    return out
+
+
+def pv_guard_admits(old, new):
+    """Mirror of ha-restore-drill-pv-guard (UPDATE, no subresource)."""
+    o, n = old["spec"], new["spec"]
+    if not (o.get("storageClassName") == "longhorn-drill"
+            and (o.get("claimRef") or {}).get("namespace") == "home-assistant-restore-test"
+            and (o.get("csi") or {}).get("driver") == "driver.longhorn.io"):
+        return False
+    if n.get("persistentVolumeReclaimPolicy") != "Delete":
+        return False
+    if {k: v for k, v in n.items() if k != "persistentVolumeReclaimPolicy"} != \
+            {k: v for k, v in o.items() if k != "persistentVolumeReclaimPolicy"}:
+        return False
+    return all(new["metadata"].get(f) == old["metadata"].get(f)
+               for f in ("labels", "annotations", "finalizers", "ownerReferences"))
 
 
 def restore_guard_admits(body):
@@ -413,6 +487,7 @@ def restore_guard_admits(body):
 class DrillJobTest(unittest.TestCase):
     def setUp(self):
         self.d = load_drill()
+        self.d.LEFTOVER_SECONDS = 30
 
     def test_guard_text_matches_restore_body(self):
         adm = (DRILL_DIR / "admission.yaml").read_text()
@@ -428,11 +503,80 @@ class DrillJobTest(unittest.TestCase):
         self.assertEqual(r["status"], "PASS", r)
         self.assertEqual(r["backup"], "velero-daily-home-assistant-20261124082947")
         self.assertTrue(r["prod_unchanged"])
-        self.assertEqual(r["cleanup"], {"pods": 1, "pvcs": 1, "pvs_deleted": ["pvc-drill"]})
-        self.assertEqual((k.pods, k.pvcs, k.pvs), ({}, {}, set()))
+        self.assertEqual(r["cleanup"], {"pods": 1, "pvcs": 1, "pvs_reclaim_patched": ["pvc-drill"],
+                                        "pvs_deleted": ["pvc-drill"]})
+        self.assertEqual((k.pods, k.pvcs, k.pvs), ({}, {}, {}))
+        self.assertNotIn("leftover_pvs_deleted", r)
         writes = [c for c in k.calls if c[0] != "GET"]
-        self.assertTrue(all(p.startswith(("/apis/velero.io/v1/namespaces/velero/restores", FakeKube.TEST))
+        self.assertTrue(all(p.startswith(("/apis/velero.io/v1/namespaces/velero/restores", FakeKube.TEST,
+                                          "/api/v1/persistentvolumes/pvc-drill"))
                             for _, p in writes), writes)
+        # the PV is switched to Delete BEFORE its PVC is deleted
+        order = [c[0] + " " + c[1] for c in writes]
+        self.assertLess(order.index("PATCH /api/v1/persistentvolumes/pvc-drill"),
+                        [i for i, c in enumerate(order) if "/persistentvolumeclaims/" in c][0])
+
+    def test_leftover_released_pv_is_reclaimed_first(self):
+        k = FakeKube(self.d)
+        k.pvs["pvc-08519a57"] = drill_pv("pvc-08519a57", "Released")
+        r = self.d.run(k)
+        self.assertEqual(r["status"], "PASS", r)
+        self.assertEqual(r["leftover_pvs_deleted"], ["pvc-08519a57"])
+        self.assertEqual(k.pvs, {})
+        self.assertEqual(k.patches[0], "pvc-08519a57")
+        self.assertLess([c[0] for c in k.calls].index("PATCH"), [c[0] for c in k.calls].index("POST"))
+
+    def test_bound_leftover_pv_stops_before_restore(self):
+        k = FakeKube(self.d)
+        k.pvs["pvc-x"] = drill_pv("pvc-x", "Bound")
+        with self.assertRaises(self.d.DrillError):
+            self.d.run(k)
+        self.assertNotIn("POST", [c[0] for c in k.calls])
+        self.assertNotIn("PATCH", [c[0] for c in k.calls])
+
+    def test_retain_pv_fails_fast(self):
+        k = FakeKube(self.d, "patch-reverted")
+        self.d.DEADLINE = 10 ** 6
+        r = self.d.run(k)
+        self.assertEqual(r["status"], "FAIL")
+        self.assertIn("Released en Retain", r["cleanup_error"])
+        self.assertEqual((k.pods, k.pvcs), ({}, {}))
+        self.assertLess(r["total_seconds"], 60)
+
+    def test_patch_denied_still_cleans(self):
+        k = FakeKube(self.d, "patch-denied")
+        r = self.d.run(k)
+        self.assertEqual(r["status"], "FAIL")
+        self.assertIn("403", r["cleanup_error"])
+        self.assertEqual((k.pods, k.pvcs), ({}, {}))
+
+    def test_pv_guard_mirror(self):
+        old = drill_pv("p", "Released")
+        ok = merge_patch(old, {"spec": {"persistentVolumeReclaimPolicy": "Delete"}})
+        self.assertTrue(pv_guard_admits(old, ok))
+        self.assertFalse(pv_guard_admits(old, merge_patch(old, {"spec": {"persistentVolumeReclaimPolicy": "Recycle"}})))
+        self.assertFalse(pv_guard_admits(old, merge_patch(ok, {"spec": {"claimRef": {"namespace": "x"}}})))
+        self.assertFalse(pv_guard_admits(old, merge_patch(ok, {"metadata": {"finalizers": None}})))
+        self.assertFalse(pv_guard_admits(other_pv(), merge_patch(other_pv(), {"spec": {"persistentVolumeReclaimPolicy": "Delete"}})))
+
+    def test_policies_and_bindings(self):
+        adm = (DRILL_DIR / "admission.yaml").read_text()
+        docs = [d for d in adm.split("\n---\n")]
+        kinds = [(re.search(r"^kind: (\S+)", d, re.M).group(1), re.search(r"^  name: (\S+)", d, re.M).group(1))
+                 for d in docs]
+        policies = [n for kd, n in kinds if kd == "ValidatingAdmissionPolicy"]
+        bindings = [n for kd, n in kinds if kd == "ValidatingAdmissionPolicyBinding"]
+        self.assertEqual(sorted(policies), sorted(self.d.GUARDS))
+        self.assertEqual(sorted(bindings), sorted(policies))
+        for n in policies:  # the policy is declared before its binding
+            self.assertLess(kinds.index(("ValidatingAdmissionPolicy", n)),
+                            kinds.index(("ValidatingAdmissionPolicyBinding", n)))
+        self.assertNotIn("ha-restore-test-guard\n", adm)
+        pv = docs[kinds.index(("ValidatingAdmissionPolicy", "ha-restore-drill-pv-guard"))]
+        for frag in ("system:serviceaccount:velero:ha-restore-drill", "oldObject.spec.storageClassName == 'longhorn-drill'",
+                     "oldObject.spec.claimRef.namespace == 'home-assistant-restore-test'",
+                     "object.spec.persistentVolumeReclaimPolicy == 'Delete'", "persistentvolumes/status"):
+            self.assertIn(frag, pv)
 
     def test_hostnetwork_pod_stops_and_cleans(self):
         k = FakeKube(self.d, "hostnetwork")

@@ -3,7 +3,10 @@
 #   lister les backups et PodVolumeRestores, lire le modifier restore-pvc-isolation ;
 # - home-assistant-restore-test : lire, journaux et suppression du pod et du PVC restaurés ;
 # - home-assistant : lecture du seul PVC et du seul pod de production (comparaison avant/après) ;
-# - cluster : lecture du namespace de test, des deux policies et des PV (preuve de suppression).
+# - cluster : lecture du namespace de test, des policies et de leurs bindings, des PV ;
+#   patch des PV du drill, borné par ha-restore-drill-pv-guard à reclaimPolicy -> Delete
+#   sur un PV longhorn-drill réclamé depuis home-assistant-restore-test (Velero y recopie
+#   le Retain du PV de prod : sans ce patch, le PV reste Released).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -123,12 +126,12 @@ rules:
     resourceNames: [home-assistant-restore-test]
     verbs: [get]
   - apiGroups: [admissionregistration.k8s.io]
-    resources: [validatingadmissionpolicies]
-    resourceNames: [ha-restore-test-guard, ha-restore-drill-restore-guard]
+    resources: [validatingadmissionpolicies, validatingadmissionpolicybindings]
+    resourceNames: [ha-restore-test-pod-guard, ha-restore-test-pvc-guard, ha-restore-drill-pv-guard, ha-restore-drill-restore-guard]
     verbs: [get]
   - apiGroups: [""]
     resources: [persistentvolumes]
-    verbs: [get]
+    verbs: [get, list, patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

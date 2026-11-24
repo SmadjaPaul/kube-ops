@@ -79,7 +79,15 @@ ligne JSON finale : `backup`, `restore`, `restore_phase`, `pvr` (octets),
   `securityContext` du conteneur HA (NET_ADMIN, NET_RAW, NET_BROADCAST).
 - `ownerReferences` est retiré par Velero (pas de ramasse-miettes du pod).
 - `longhorn-fast` est en `Retain` : le PVC du drill passe en `longhorn-drill`
-  (`Delete`), sinon chaque drill laisserait un PV `Released`.
+  (`Delete`). Cela ne suffit pas : à la fin du Restore, le restore finalizer
+  (`pkg/controller/restore_finalizer_controller.go`,
+  `patchDynamicPVWithVolumeInfo`) recopie sur le PV reprovisionné la
+  `reclaimPolicy` et les labels du PV sauvegardé (`Retain`), sans option pour
+  l'éviter ; un resource modifier ne s'applique pas (le PV n'est pas un objet
+  restauré). Preuve : `managedFields` du PV `pvc-08519a57-…` du 2026-11-24,
+  `persistentVolumeReclaimPolicy` écrit par `velero-server` 30 s après le
+  provisionnement CSI ; PV resté `Released`. Le Job repasse donc le PV en
+  `Delete` avant de supprimer le PVC.
 - Le pod de production est `hostNetwork` (10.0.20.60) : restauré tel quel, il
   démarrerait un second HA sur le réseau des appareils.
 
@@ -89,14 +97,16 @@ ligne JSON finale : `backup`, `restore`, `restore_phase`, `pvr` (octets),
    `infrastructure`), Pod Security `enforce: baseline`, CiliumNetworkPolicy
    `default-deny` avec `ingressDeny`/`egressDeny` vers `all`. Permanent et vide
    hors drill.
-2. ValidatingAdmissionPolicy `ha-restore-test-guard` (toute identité, ce
+2. ValidatingAdmissionPolicy `ha-restore-test-pod-guard` (toute identité, ce
    namespace) : pas de hostNetwork/hostPID/hostIPC, aucun conteneur privilégié
    ni capability ajoutée, `allowPrivilegeEscalation: false` partout, init
    containers = `[restore-wait]` (image `docker.io/velero/velero:vX.Y.Z`),
    conteneurs = `[ha-restore-verify]` (image HA de production épinglée),
    montages en lecture seule, un seul volume `data` (PVC), ServiceAccount
-   `default` sans jeton, aucun conteneur éphémère ; PVC seulement en
-   `longhorn-drill`.
+   `default` sans jeton, aucun conteneur éphémère ; et
+   `ha-restore-test-pvc-guard` : PVC seulement en `longhorn-drill` (une policy
+   par type : la policy commune `ha-restore-test-guard` produisait des
+   avertissements `typeChecking`).
 3. Deux règles de `restore-pvc-isolation`, limitées à `home-assistant` :
    PVC `home-assistant-home-assistant-0` en `longhorn-drill` ; pod
    `home-assistant-0` neutralisé par un JSON Patch (deux `test`, puis
@@ -113,11 +123,18 @@ ligne JSON finale : `backup`, `restore`, `restore_phase`, `pvr` (octets),
    vers `home-assistant-restore-test`, `restorePVs: true`, modifier
    `restore-pvc-isolation`, aucun autre champ (ni hook, ni sélecteur, ni
    `existingResourcePolicy`).
-5. RBAC du Job : `create/get` restores, `list` backups et podvolumerestores,
+5. ValidatingAdmissionPolicy `ha-restore-drill-pv-guard` : le compte
+   `velero/ha-restore-drill` ne peut que **patcher** un PV (ni création, ni
+   suppression, ni `status`), seulement un PV CSI Longhorn `longhorn-drill`
+   dont `claimRef.namespace` est `home-assistant-restore-test`, et seulement
+   pour `persistentVolumeReclaimPolicy: Delete` : spec, labels, annotations,
+   finalizers et ownerReferences inchangés.
+6. RBAC du Job : `create/get` restores, `list` backups et podvolumerestores,
    `get` du ConfigMap modifier (velero) ; `get/list/delete` pods et PVC,
    `get` pods/log (namespace de test) ; `get` du seul pod et du seul PVC de
-   production ; `get` du namespace de test, des deux policies et des PV.
-6. Lancement agent : ligne de `cronjob-run.tsv`, `manualRuns` de
+   production ; `get` du namespace de test, des policies et de leurs bindings ;
+   `get/list/patch` des PV (patch borné par `ha-restore-drill-pv-guard`).
+7. Lancement agent : ligne de `cronjob-run.tsv`, `manualRuns` de
    `agent-operator-guard`, binding `agent-operator-cronjob-run-ha-restore-drill`,
    Role `agent-operator-cronjob-run` de `velero`
    (`k8s/infrastructure/security/agent-operator/cronjob-run-infra.yaml`).
@@ -127,12 +144,17 @@ ligne JSON finale : `backup`, `restore`, `restore_phase`, `pvr` (octets),
    du namespace (incident du 2026-11-24, #2031 puis #2032 : hook
    `velero-upgrade-crds` refusé, sync `infra-controllers` bloquée). Le CronJob
    (app `infra-controllers`) et le binding (app `infra-security`) sont donc
-   livrés en deux PR.
+   livrés en deux PR. Même règle pour les policies du drill : la policy
+   d'abord (sans binding, `status.typeChecking` vérifié), le binding et le
+   droit qu'elle borne ensuite (PRD-76, #2036 puis la PR des bindings).
 
 ### Déroulé du Job (`ha-restore-drill.py`)
 
-1. Pré-contrôles : namespace de test `Active` et `baseline`, les deux
-   policies présentes, modifier avec ses règles HA, namespace de test vide.
+1. Pré-contrôles : namespace de test `Active` et `baseline`, les quatre
+   policies et leurs bindings présents, modifier avec ses règles HA, namespace
+   de test vide. PV du drill laissés `Released` par un passage précédent
+   (classe `longhorn-drill`, `claimRef` dans le namespace de test) : repassés
+   en `Delete`, disparition attendue au plus 180 s (`leftover_pvs_deleted`).
 2. Photo de production : UID et volume du PVC, UID, phase et redémarrages
    du pod `home-assistant-0`.
 3. Dernier backup `Completed` du schedule ; création du Restore.
@@ -143,8 +165,10 @@ ligne JSON finale : `backup`, `restore`, `restore_phase`, `pvr` (octets),
    `mode=ro&immutable=1`, `PRAGMA integrity_check` = `ok`, nombre d'états et
    dernier horodatage, `backups/*.tar` (information), chaînes
    `maison_musique_` dans `scripts.yaml`, `automations.yaml` ou `.storage/`.
-6. Nettoyage **toujours** : suppression du pod et du PVC restaurés, attente de
-   la disparition du PV (`Delete`).
+6. Nettoyage **toujours** : PV restauré repassé en `Delete`
+   (`pvs_reclaim_patched`), suppression du pod et du PVC restaurés, attente de
+   la disparition du PV. Un PV `Released` encore en `Retain` après le patch,
+   ou en `Failed`, arrête l'attente aussitôt (`FAIL`, pas de deadline de 1200 s).
 7. Production comparée : PVC (UID, volume) et pod (UID, redémarrages)
    identiques, pod `Running`, sinon `FAIL`.
 
