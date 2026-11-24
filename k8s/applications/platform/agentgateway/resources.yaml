@@ -104,7 +104,8 @@ data:
                 name: pr-triage
                 owner: pr-triage
               allowedModels:
-                - factory/fast
+                - text/fast
+                - factory/fast # DEPRECATED, removed once agent-harness defaults to text/fast
               budgets:
                 - name: pr-triage-daily-tokens
                   limit:
@@ -119,7 +120,8 @@ data:
                 name: incident-sentinel
                 owner: incident-sentinel
               allowedModels:
-                - factory/fast
+                - text/fast
+                - factory/fast # DEPRECATED, removed once agent-harness defaults to text/fast
               budgets:
                 - name: incident-sentinel-daily-tokens
                   limit:
@@ -129,6 +131,28 @@ data:
                     rolling: 24h
                   onBudgetExceeded: Block
       models:
+        # PLT-496: capability aliases. Consumers call a capability, never a provider model name; the model
+        # behind each alias lives only here. factory/* below are DEPRECATED aliases kept while
+        # gpt-researcher, hindsight, librechat and factory-canary migrate, then removed.
+        - name: text/fast
+          provider:
+            custom:
+              formats:
+                - type: completions
+          params:
+            baseUrl: https://api.minimax.io/v1
+            model: MiniMax-M3.1-Flash
+            apiKey: "$MINIMAX_API_KEY"
+        - name: text/strong
+          provider:
+            custom:
+              formats:
+                - type: completions
+          params:
+            baseUrl: https://api.minimax.io/v1
+            model: MiniMax-M3
+            apiKey: "$MINIMAX_API_KEY"
+        # DEPRECATED (PLT-496): use text/fast.
         - name: factory/fast
           provider:
             custom:
@@ -140,6 +164,7 @@ data:
             # Thinking cannot be disabled on M3.1 Flash: callers set reasoning_effort (low) themselves.
             model: MiniMax-M3.1-Flash
             apiKey: "$MINIMAX_API_KEY"
+        # DEPRECATED (PLT-496): use text/strong.
         - name: factory/code
           provider:
             custom:
@@ -179,7 +204,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: pr-triage-sentinel-v2
+        checksum/agentgateway-runtime: capabilities-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
