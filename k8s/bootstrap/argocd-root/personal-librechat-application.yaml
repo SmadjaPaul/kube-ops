@@ -30,6 +30,10 @@ spec:
                     key: OPENID_SESSION_SECRET
         librechat:
           configEnv:
+            # PLT-496: only the custom endpoint "Personal Agentgateway" is offered. The secret is no longer
+            # named OPENAI_API_KEY, which enabled LibreChat's built-in OpenAI endpoint (api.openai.com,
+            # blocked by egress: model fetch and title generation timed out).
+            ENDPOINTS: custom
             ALLOW_REGISTRATION: "false"
             ALLOW_EMAIL_LOGIN: "false"
             ALLOW_EMAIL_LOGIN_OVERRIDE: "false"
@@ -53,7 +57,7 @@ spec:
             endpoints:
               custom:
                 - name: Personal Agentgateway
-                  apiKey: "${OPENAI_API_KEY}"
+                  apiKey: "${AGENTGATEWAY_API_KEY}"
                   baseURL: http://agentgateway.agentgateway.svc.cluster.local:4000/v1
                   models:
                     default: [text/fast]
