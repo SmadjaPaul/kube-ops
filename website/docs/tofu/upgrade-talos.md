@@ -29,13 +29,13 @@ talos_image.update_version = "v1.11.5"  # target
 ```
 
 :::tip Key Rule Once a node has `upgrade = true`, **keep it true** until you update the base `version` to match. Setting
-`upgrade = false` before updating the base version triggers a downgrade! :::
+`upgrade = false` before updating the base version triggers a downgrade. :::
 
 ## Upgrade Process
 
 ### Step 1: Check Current Status
 
-```bash
+```shell
 cd tofu
 tofu plan
 ```
@@ -70,13 +70,13 @@ nodes_config = {
 
 ### Step 3: Apply First Upgrade
 
-```bash
+```shell
 tofu apply
 ```
 
 Only `ctrl-00` will be replaced. Wait for it to become Ready:
 
-```bash
+```shell
 kubectl get nodes -w
 ```
 
@@ -91,7 +91,7 @@ Set `upgrade = true` on the next node:
 }
 ```
 
-```bash
+```shell
 tofu apply
 ```
 
@@ -103,7 +103,7 @@ Repeat for all nodes in the recommended order:
 ### Step 5: Finalize Upgrade
 
 :::warning Important **Keep `upgrade = true`** on nodes that have been upgraded until you finalize. Setting
-`upgrade = false` before updating the base version will trigger a downgrade! :::
+`upgrade = false` before updating the base version will trigger a downgrade. :::
 
 After **all nodes** are upgraded:
 
@@ -131,7 +131,7 @@ nodes_config = {
 
 3. Apply to clean up state:
 
-```bash
+```shell
 tofu apply
 ```
 
@@ -145,7 +145,7 @@ To upgrade all nodes at once, set `upgrade = true` on all nodes, then run `tofu 
 
 During upgrades:
 
-```bash
+```shell
 # Watch Kubernetes node status
 kubectl get nodes -w
 
@@ -168,7 +168,7 @@ the base version:
 }
 ```
 
-```bash
+```shell
 tofu apply
 ```
 
@@ -183,31 +183,6 @@ back requires setting `version` back to the old value. :::
 talos_image = {
   version        = "v1.10.3"  # Current deployed version
   update_version = "v1.11.5"  # Target version (updated by Renovate)
-=======
-The Talos upgrade process is **fully automated**. Simply change the version and run `tofu apply` once - all nodes will upgrade sequentially with automatic health checks.
-
-## Automated Upgrade Flow
-
-The upgrade system automatically:
-
-1. ✓ Upgrades control plane nodes first (sorted alphabetically: `ctrl-00` → `ctrl-01` → `ctrl-02`)
-2. ✓ Runs health checks after each control plane node
-3. ✓ Upgrades worker nodes sequentially (`work-00` → `work-01` → `work-02`)
-4. ✓ Runs health checks after each worker node
-5. ✓ Ensures only one node upgrades at a time via dependency chaining
-
-**No manual intervention required!**
-
-## Upgrade Process
-
-### 1. Change Version
-
-Edit `tofu/talos_image.auto.tfvars` and update the version:
-
-```hcl
-talos_image = {
-  version        = "v1.10.0"  # Change this to your target version
->>>>>>> Stashed changes
   schematic_path = "talos/image/schematic.yaml.tftpl"
 }
 ```
@@ -241,7 +216,7 @@ nodes_config = {
 
 ### Node Stuck After Replacement
 
-```bash
+```shell
 kubectl describe node <node-name>
 talosctl --nodes <NODE_IP> services
 talosctl --nodes <NODE_IP> dmesg
@@ -249,13 +224,13 @@ talosctl --nodes <NODE_IP> dmesg
 
 ### Check Effective Versions
 
-```bash
+```shell
 tofu output -json | jq '.upgrade_sequence.value.node_versions'
 ```
 
 ### Partial Upgrade State
 
-```bash
+```shell
 tofu refresh
 tofu plan
 ```
