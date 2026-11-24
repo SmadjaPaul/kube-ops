@@ -11,6 +11,7 @@ trap 'rm -rf "$work"' EXIT
 
 command -v kustomize >/dev/null 2>&1 || { echo 'DNS_EXACT_RESOLVER_CONTRACT_TEST=BLOCKED missing_tool=kustomize' >&2; exit 2; }
 kustomize build "$root" > "$work/render.yaml"
+python3 -I -c 'import yaml' 2>/dev/null || { echo 'DNS_EXACT_RESOLVER_CONTRACT_TEST=BLOCKED missing_python_module=yaml (voir docs/runbooks/agent-tooling-notes.md : PyYAML)' >&2; exit 2; }
 
 python3 -I - "$work/render.yaml" <<'PY'
 import copy, ipaddress, re, sys
