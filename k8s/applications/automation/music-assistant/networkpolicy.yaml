@@ -7,7 +7,7 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: music-assistant
-  description: "MA: ingress Gateway, HA (hostNetwork = entity host); les Sonos tirent le flux via la Gateway; egress DNS, Polyfin, enceintes Media, metadonnees."
+  description: "MA: ingress Gateway, HA (hostNetwork = entity host); les Sonos tirent le flux via la Gateway; egress DNS, Polyfin, enceintes Media, metadonnees, CDN TorBox."
   ingress:
     - fromEntities:
         - ingress
@@ -59,6 +59,10 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
+          # Proxy DNS L7 : requis pour que Cilium apprenne les IP des regles toFQDNs.
+          rules:
+            dns:
+              - matchPattern: "*"
     # Source musicale : Polyfin (API Jellyfin) par son Service interne, jamais tv.smadja.dev.
     - toEndpoints:
         - matchLabels:
@@ -90,6 +94,14 @@ spec:
         - matchName: fanart.tv
         - matchName: assets.fanart.tv
         - matchName: www.theaudiodb.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Flux audio TorBox (PRD-81) : Polyfin repond 302 vers le CDN TorBox, ffmpeg (MA) le lit
+    # directement. Pattern limite au domaine du CDN, HTTPS seul.
+    - toFQDNs:
+        - matchPattern: "*.tb-cdn.st"
       toPorts:
         - ports:
             - port: "443"
