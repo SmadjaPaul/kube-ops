@@ -25,3 +25,8 @@ spec:
         - sourceLabels: [__name__]
           regex: gha_.*
           action: keep
+        # PLT-470: job duration histograms (~4.4k series, one per workflow/job)
+        # have no reader; the Alloy keep-list does not use them either.
+        - sourceLabels: [__name__]
+          regex: gha_.*_bucket
+          action: drop
