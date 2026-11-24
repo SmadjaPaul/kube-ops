@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# PRD-76 : drill de restauration Velero de Home Assistant, sans effet sur la
+# production. Lancement : bash scripts/kubectl-rw.sh run-cronjob velero cronjob/ha-restore-drill
+# Pas de `namespace:` ici : les objets vivent dans velero, home-assistant,
+# home-assistant-restore-test et au niveau cluster (namespace explicite partout).
+# Conception et preuves : docs/runbooks/home-assistant-backup-restore.md.
+resources:
+  - namespace.yaml
+  - admission.yaml
+  - rbac.yaml
+  - cronjob.yaml
+
+configMapGenerator:
+  - name: ha-restore-drill-script
+    namespace: velero
+    files:
+      - ha-restore-drill.py
+
+generatorOptions:
+  disableNameSuffixHash: true

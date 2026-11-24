@@ -2,9 +2,11 @@
 
 Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the production to be reconciled at that commit, run `just app-test APP NAMESPACE --phase runtime --cluster homelab`, and, when the deployment itself is broken, open a `git revert` PR in auto-merge and notify through ntfy. Rules of revert come from PLT-141.
 
+Cible PLT-394 : une Application par app (`app-<name>`) declaree par `argocd-app.yaml`, voir [argo-app-descriptor.md](argo-app-descriptor.md). La chaine ci-dessous decrit l'etat actuel (une Application par domaine).
+
 ## Chain
 
-1. `scripts/post-merge-affected.sh SHA`: files of the commit to apps. `k8s/applications/<domain>/<app>/**` gives app `<app>`, Argo Application `apps-<domain>` (one Application per domain directory), namespace from the kustomization. Documentation is ignored. Everything else (domain-level files, `platform`, infrastructure, optional, policy, scripts, tests, workflows) is OTHER.
+1. `scripts/post-merge-affected.sh SHA`: files of the commit to apps. `k8s/applications/<domain>/<app>/**` gives app `<app>`, Argo Application `apps-<domain>` (one Application per domain directory), or `app-<app>` when the app folder has an `argocd-app.yaml` descriptor (PLT-394), namespace from the kustomization. Documentation is ignored. Everything else (domain-level files, `platform`, infrastructure, optional, policy, scripts, tests, workflows) is OTHER.
 2. `scripts/verify-revision.sh ARGO_APP SHA`: `status.sync.revision` contains the commit, `Synced`, `Healthy`, last operation not `Running`/`Failed`/`Error`. Evidence level RECONCILED. Timeout at most 600 s, then FAIL. The orchestrator passes `--allow-unhealthy`: it still waits for `Healthy`, but at the deadline a `Synced` Application whose last operation `Succeeded` at the commit proves the revision (`HEALTH=<status>` printed). Argo health is aggregate over the domain Application, so it does not gate the proof; a broken deploy (CrashLoop, bad image) reaches `app-test` runtime, whose FAIL leads to REVERT. A sync failure or a revision never reached stays NOT_PROVEN, hence NOTIFY.
 3. `just app-test` (lot 1): `CHECK ...` lines then `APP_TEST=PASS|FAIL|BLOCKED`. Evidence level RUNTIME.
 4. `scripts/lib/post-merge-decision.sh`: `NONE`, `NOTIFY`, `REVERT` or `ESCALATE`.
@@ -24,11 +26,19 @@ Decision (Paul, 20/11/2026): after a merge that touches an app, wait for the pro
 | `DEPLOY_HEALTH=FAIL`, newer commit touches the same app | ESCALATE, no revert |
 | `DEPLOY_HEALTH=FAIL`, a revert of this commit already exists | ESCALATE (one revert, then escalation) |
 | `FAIL` on a commit that is itself a revert | ESCALATE (never a revert of a revert) |
-| `DEPLOY_HEALTH=FAIL`, otherwise | REVERT, plus `verify-migration` when the app has a PVC or a CNPG Cluster |
+| `DEPLOY_HEALTH=FAIL`, an affected app has a PVC or a CNPG Cluster | ESCALATE `stateful_app_no_auto_revert` (`verify-migration`): the revert does not undo a migration, Paul decides (PLT-398) |
+| `DEPLOY_HEALTH=FAIL`, otherwise | REVERT |
 
-`DEPLOY_HEALTH=PASS|FAIL|UNKNOWN` is printed by `app-test` (runtime) from the `selfheal` check: `FAIL` only for pods not Ready or recent restarts (after exceptions and ratchet); `UNKNOWN` for no pod, scale to zero, BLOCKED. The runtime ratchet freezes only static debt, so the other checks cannot gate a revert. With several apps, one `FAIL` is enough.
+`DEPLOY_HEALTH=PASS|FAIL|UNKNOWN` is printed by `app-test` (runtime) from the `selfheal` check: `FAIL` only for pods not Ready or recent restarts (pods `Failed`/Evicted and pods being deleted are ignored) (after exceptions and ratchet); `UNKNOWN` for no pod, scale to zero, BLOCKED. The runtime ratchet freezes only static debt, so the other checks cannot gate a revert. With several apps, one `FAIL` is enough.
 
 The revert restores manifests only. It does not restore data or undo a migration: the PR body and the ntfy message say so.
+
+## Reliability rules (PLT-398)
+
+- `verify-revision.sh` runs `git fetch origin` when the Application revision or the commit is missing from the clone (main moves on during the wait). All waits share one global deadline (`--timeout`, passed as `--deadline`); one wait per Argo Application, shared by the apps of a domain.
+- The loop guards read through a read-only `GITHUB_TOKEN` (`pull-requests: read`). A failing `gh` is `GUARD_UNKNOWN` and fails safe (treated as already reverted / a revert: ESCALATE). The revert commit itself carries the trailer `Post-merge-revert-of: <sha>`.
+- Files of every commit of the push (`github.event.before..sha`) count, not only the tip (`post-merge-affected.sh SHA BASE`).
+- Job `alert`: ntfy `urgent` when `verify`, `revert` or `announce` failed or was cancelled.
 
 ## Identities and RBAC
 
@@ -62,4 +72,8 @@ Nothing else: no Doppler token, no kubeconfig, no ntfy URL in GitHub. The reposi
 
 ## Evidence
 
-Contract tests: `tests/harness/verify-revision-test.sh`, `post-merge-decision-test.sh`, `post-merge-verify-test.sh`, `tests/agent-guard/kubectl-ro-in-cluster-test.sh`. `just post-merge-verify --dry-run SHA` shows the decision and the revert plan without creating a PR or sending ntfy.
+Contract tests: `tests/harness/verify-revision-test.sh`, `post-merge-decision-test.sh`, `post-merge-verify-test.sh`, `post-merge-revert-test.sh`, `tests/agent-guard/kubectl-ro-in-cluster-test.sh`. `just post-merge-verify --dry-run SHA` shows the decision and the revert plan without creating a PR or sending ntfy.
+
+## OKE (PLT-407)
+
+Apps with an `argocd-app.oracle-a1.yaml` are verified by the job `verify-oke`, on the ARC scale set `kube-ops-oke-arc` that runs inside oracle-a1 (`k8s/clusters/oracle-a1/arc-runner`), not by the homelab runner: `post-merge-verify.sh --only-cluster oracle-a1` there, `--only-cluster homelab` on the homelab runner. The OKE runner reads the cluster with its own read-only ServiceAccount (`KUBECTL_RO_IN_CLUSTER_CLUSTER=oracle-a1`), so the homelab holds no access to OKE and OKE none to the homelab. The decision on OKE is NOTIFY at most (ntfy from the Secret `arc-runners-oke/ntfy-publish-url`), never a revert. `app-test` skips the local-Prometheus check on oracle-a1 (Grafana Cloud export, `scripts/verify-delivery.sh`).

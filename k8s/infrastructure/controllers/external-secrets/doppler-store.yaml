@@ -5,6 +5,11 @@ metadata:
   annotations:
     smadja.dev/provider: doppler
 spec:
+  # PLT-395: never served to a preview namespace (smadja.dev/preview=true).
+  conditions:
+    - namespaceSelector:
+        matchExpressions:
+          - {key: smadja.dev/preview, operator: NotIn, values: ["true"]}
   provider:
     doppler:
       auth:

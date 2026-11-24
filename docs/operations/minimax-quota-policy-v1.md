@@ -11,6 +11,10 @@ resume decisions.
 
 ## Static route isolation
 
+> **Retired 2026-11-24 (PLT-496, Paul's decision):** the `factory-canary` identity and the `factory/code`
+> and `factory/research` aliases are removed from the Agentgateway; consumers use the capability
+> aliases `text/*`. The text below is kept as history.
+
 The `factory-canary` Agentgateway identity allows only `factory/fast` and
 `factory/code`. Both models use the MiniMax base URL, their respective MiniMax
 model IDs, and the single existing `MINIMAX_API_KEY` environment reference.

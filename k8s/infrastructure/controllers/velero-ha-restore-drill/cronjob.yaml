@@ -1,0 +1,72 @@
+# PRD-76 : drill de restauration Velero de Home Assistant. CronJob SUSPENDU,
+# lancé à la main par agent-operator :
+#   bash scripts/kubectl-rw.sh run-cronjob velero cronjob/ha-restore-drill
+# Une ligne JSON finale (drill, backup, durées, vérificateur, nettoyage,
+# production avant/après), code 0 si PASS. Le script supprime toujours le pod
+# et le PVC restaurés ; deadline interne (1200 s) < activeDeadlineSeconds.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ha-restore-drill
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+spec:
+  suspend: true
+  schedule: "0 0 1 1 *"
+  timeZone: Europe/Paris
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ha-restore-drill
+        spec:
+          restartPolicy: Never
+          serviceAccountName: ha-restore-drill
+          automountServiceAccountToken: true
+          enableServiceLinks: false
+          hostNetwork: false
+          hostPID: false
+          hostIPC: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: drill
+              image: python:3.14.5-alpine3.22@sha256:1a5f0303fd8941565b5bbda3fac2345148a9fd8245d575c2971ccefcd77c78f6
+              command: ["python3", "-I", "/scripts/ha-restore-drill.py"]
+              env:
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+          volumes:
+            - name: scripts
+              configMap:
+                name: ha-restore-drill-script
+                defaultMode: 0444

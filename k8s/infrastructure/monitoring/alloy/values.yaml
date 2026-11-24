@@ -236,19 +236,45 @@ alloy:
             "cnpg_pg_stat_archiver_last_failed_time",
             "cnpg_pg_replication_lag",
             "cnpg_pg_replication_in_recovery",
+            // Cloudflare tunnel (PLT-459)
+            "cloudflared_tunnel_ha_connections",
+            // barman-cloud plugin backup metrics (the cnpg_collector_last_*
+            // series stay 0 for plugin backups)
+            "barman_cloud_cloudnative_pg_io_last_available_backup_timestamp",
+            "barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp",
+            "barman_cloud_cloudnative_pg_io_first_recoverability_point",
             // Velero and Longhorn backups
             "velero_backup_last_successful_timestamp",
             "velero_backup_last_status",
             "velero_backup_failure_total",
             "velero_backup_partial_failure_total",
             "longhorn_volume_robustness",
-            "longhorn_backup_state",
+            "velero_backup_attempt_total",
+            // Revue 2026-11-23: longhorn_backup_state (533 series, value 3 =
+            // Completed for every healthy backup, no cloud reader) replaced by
+            // its problem-only recording (empty while backups are healthy).
+            "longhorn:backup_not_completed:state",
             // restic CronJobs (PLT-286, rule restic_backup_failed in homelab-infra)
             "kube_cronjob_status_last_schedule_time{cronjob=~\".*-restic-.*\"}",
             "kube_cronjob_status_last_successful_time{cronjob=~\".*-restic-.*\"}",
             // cert-manager
             "certmanager_certificate_ready_status{condition=\"True\"}",
             "certmanager_certificate_expiration_timestamp_seconds",
+            // Control plane (PLT-417). etcd series are empty until the Talos
+            // metrics endpoints are enabled (homelab-infra). Histograms are
+            // kept to the two disk latencies only; apiserver request
+            // histograms stay in the local Prometheus.
+            "{__name__=~\"etcd_disk_(wal_fsync|backend_commit)_duration_seconds_(bucket|sum|count)\",job=\"kube-etcd\"}",
+            "{__name__=~\"etcd_mvcc_db_total_size_(in_bytes|in_use_in_bytes)|etcd_server_(leader_changes_seen_total|proposals_failed_total|slow_apply_total|slow_read_indexes_total|quota_backend_bytes)|etcd_network_peer_round_trip_time_seconds_(sum|count)\",job=\"kube-etcd\"}",
+            "{__name__=~\"leader_election_master_status|workqueue_depth|scheduler_pending_pods|scheduler_schedule_attempts_total\",job=~\"kube-scheduler|kube-controller-manager\"}",
+            "{__name__=~\"apiserver_storage_size_bytes|apiserver_current_inflight_requests|apiserver_request_terminations_total|etcd_request_errors_total\",job=\"apiserver\"}",
+            // Golden signals (prometheus-stack/golden-signals-rules.yaml,
+            // ~150-250 series): Proxmox host and Talos node CPU, iowait,
+            // memory, load, physical disk latency/throughput, network; writes
+            // per pod and per Longhorn PVC (PLT-417 attribution); CPU and
+            // memory per namespace; ExternalSecrets not Ready.
+            "{__name__=~\"host:.+|host_device:.+\"}",
+            "{__name__=~\"namespace_pod:container_fs_writes_bytes:rate5m|namespace_pvc:longhorn_volume_write_bytes:rate|namespace:container_cpu_usage_cores:rate5m|namespace:container_memory_working_set_bytes:sum|externalsecret:not_ready:status\"}",
             // ARC (empty until listener metrics are scraped)
             "{__name__=~\"gha_(assigned_jobs|running_jobs|registered_runners|busy_runners|idle_runners)\"}",
           ],
@@ -262,13 +288,13 @@ alloy:
       prometheus.relabel "grafana_cloud" {
         rule {
           source_labels = ["__name__", "cluster"]
-          regex         = "cnpg_.*;(.+)"
+          regex         = "(cnpg|barman_cloud)_.*;(.+)"
           target_label  = "cnpg_cluster"
-          replacement   = "$1"
+          replacement   = "$2"
         }
         rule {
           source_labels = ["__name__"]
-          regex         = "cnpg_.*"
+          regex         = "(cnpg|barman_cloud)_.*"
           target_label  = "cluster"
           replacement   = ""
         }

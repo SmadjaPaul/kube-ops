@@ -1,0 +1,160 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: apps
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  description: Applications utilisateur, une Application par app (PLT-394)
+  sourceRepos:
+    - https://github.com/SmadjaPaul/kube-ops.git
+  # Destinations en negation (doc Argo CD, "Project destinations" / negations : une destination
+  # est valide si une regle d'autorisation la permet ET qu'aucune regle `!` ne la refuse).
+  # `*` autorise tout namespace, les `!<ns>` retirent les namespaces d'infrastructure :
+  # ajouter une app ne touche donc plus ce fichier. Un nouveau namespace d'infrastructure
+  # doit etre ajoute ici (scripts/check-argo-app-descriptors.sh le verifie contre le
+  # projet infrastructure). `pr-*` appartient au projet previews.
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+    - namespace: '!pr-*'
+      server: '*'
+    - namespace: '!agent-observers'
+      server: '*'
+    - namespace: '!agent-operator'
+      server: '*'
+    - namespace: '!agent-sandbox-system'
+      server: '*'
+    - namespace: '!argo-rollouts'
+      server: '*'
+    - namespace: '!argocd'
+      server: '*'
+    - namespace: '!arc-runners'
+      server: '*'
+    - namespace: '!arc-runners-kube-ops'
+      server: '*'
+    - namespace: '!arc-runners-kube-ops-pr'
+      server: '*'
+    - namespace: '!arc-runners-website'
+      server: '*'
+    - namespace: '!arc-runners-agent-harness'
+      server: '*'
+    - namespace: '!arc-runners-ha-config'
+      server: '*'
+    - namespace: '!arc-systems'
+      server: '*'
+    - namespace: '!auth'
+      server: '*'
+    - namespace: '!cert-manager'
+      server: '*'
+    - namespace: '!cilium-secrets'
+      server: '*'
+    - namespace: '!cloudflared'
+      server: '*'
+    - namespace: '!cnpg-system'
+      server: '*'
+    - namespace: '!csi-proxmox'
+      server: '*'
+    - namespace: '!databases'
+      server: '*'
+    - namespace: '!dns-exact-resolver'
+      server: '*'
+    - namespace: '!external-dns-private'
+      server: '*'
+    - namespace: '!external-secrets'
+      server: '*'
+    - namespace: '!falco'
+      server: '*'
+    - namespace: '!gatekeeper-system'
+      server: '*'
+    - namespace: '!gateway'
+      server: '*'
+    - namespace: '!home-assistant-restore-test'
+      server: '*'
+    - namespace: '!keda'
+      server: '*'
+    - namespace: '!kube-node-lease'
+      server: '*'
+    - namespace: '!kube-public'
+      server: '*'
+    - namespace: '!kube-system'
+      server: '*'
+    - namespace: '!kubearmor'
+      server: '*'
+    - namespace: '!kubechecks'
+      server: '*'
+    - namespace: '!kyverno'
+      server: '*'
+    - namespace: '!litellm'
+      server: '*'
+    - namespace: '!longhorn-system'
+      server: '*'
+    - namespace: '!metrics-server'
+      server: '*'
+    - namespace: '!monitoring'
+      server: '*'
+    - namespace: '!node-feature-discovery'
+      server: '*'
+    - namespace: '!open-webui'
+      server: '*'
+    - namespace: '!preview-system'
+      server: '*'
+    - namespace: '!qdrant'
+      server: '*'
+    - namespace: '!reloader'
+      server: '*'
+    - namespace: '!security-system'
+      server: '*'
+    - namespace: '!trivy-system'
+      server: '*'
+    - namespace: '!velero'
+      server: '*'
+    - namespace: '!vertical-pod-autoscaler'
+      server: '*'
+  # Pas de ClusterRole ni de ClusterRoleBinding : une application ne peut pas
+  # accorder de privilege cluster-wide par Git (meme contrat que le projet applications).
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  # PLT-399 : ni acces inter-namespace ni store de secrets par une application.
+  namespaceResourceBlacklist:
+    - group: gateway.networking.k8s.io
+      kind: ReferenceGrant
+    - group: external-secrets.io
+      kind: SecretStore
+    - group: external-secrets.io
+      kind: PushSecret
+  orphanedResources:
+    warn: true
+    # These are deterministic children of active operators. Keep the
+    # exception list name-scoped; workloads and unknown objects remain visible.
+    ignore:
+      - kind: ConfigMap
+        name: cnpg-default-monitoring
+      - kind: ConfigMap
+        name: reloader-meta-info
+      - group: aquasecurity.github.io
+        kind: ConfigAuditReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: ExposedSecretReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: RbacAssessmentReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: SbomReport
+        name: '*'
+      - group: aquasecurity.github.io
+        kind: VulnerabilityReport
+        name: '*'
+      - group: autoscaling.k8s.io
+        kind: VerticalPodAutoscalerCheckpoint
+        name: '*'

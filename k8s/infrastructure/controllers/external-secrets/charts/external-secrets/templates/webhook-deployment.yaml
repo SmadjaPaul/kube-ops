@@ -44,7 +44,7 @@ spec:
       imagePullSecrets:
         {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
       {{- end }}
-      hostNetwork: {{ .Values.webhook.hostNetwork}}
+      hostNetwork: {{ .Values.webhook.hostNetwork }}
       serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.webhook.serviceAccount.automount }}
       {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
@@ -71,7 +71,7 @@ spec:
           args:
           - webhook
           - --port={{ .Values.webhook.port }}
-          - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ template "external-secrets.namespace" . }}.svc
+          - --dns-name={{ include "external-secrets.componentName" (list . "-webhook") }}.{{ template "external-secrets.namespace" . }}.svc
           - --cert-dir={{ .Values.webhook.certDir }}
           - --check-interval={{ .Values.webhook.certCheckInterval }}
           - --metrics-addr=:{{ .Values.webhook.metrics.listen.port }}
@@ -83,6 +83,15 @@ spec:
           {{- end }}
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
+          {{- end }}
+          {{- if (.Values.webhook.tls.minVersion | default .Values.tls.minVersion) }}
+          - --tls-min-version={{ .Values.webhook.tls.minVersion | default .Values.tls.minVersion }}
+          {{- end }}
+          {{- if (.Values.webhook.tls.ciphers | default .Values.tls.ciphers) }}
+          - --tls-ciphers={{ .Values.webhook.tls.ciphers | default .Values.tls.ciphers }}
+          {{- end }}
+          {{- if (.Values.webhook.tls.curvePreferences | default .Values.tls.curvePreferences) }}
+          - --tls-curve-preferences={{ join "," (.Values.webhook.tls.curvePreferences | default .Values.tls.curvePreferences) }}
           {{- end }}
           {{- range $key, $value := .Values.webhook.extraArgs }}
             {{- if $value }}
@@ -131,6 +140,15 @@ spec:
             timeoutSeconds: {{ .Values.webhook.readinessProbe.timeoutSeconds }}
             failureThreshold: {{ .Values.webhook.readinessProbe.failureThreshold }}
             successThreshold: {{ .Values.webhook.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.webhook.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              port: ready
+              path: /readyz
+            initialDelaySeconds: {{ .Values.webhook.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.webhook.startupProbe.failureThreshold }}
           {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
@@ -187,5 +205,11 @@ spec:
       {{- end }}
       {{- if .Values.webhook.priorityClassName }}
       priorityClassName: {{ .Values.webhook.priorityClassName }}
+      {{- end }}
+      {{- if .Values.webhook.schedulerName }}
+      schedulerName: {{ .Values.webhook.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.webhook.runtimeClassName }}
+      runtimeClassName: {{ .Values.webhook.runtimeClassName | quote }}
       {{- end }}
 {{- end }}

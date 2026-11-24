@@ -14,6 +14,8 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: sparkyfitness-cnpg-r2-credentials
   namespace: wellness
 spec:
@@ -38,6 +40,8 @@ spec:
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: sparkyfitness-r2-store
   namespace: wellness
 spec:

@@ -1,0 +1,23 @@
+# PLT-455: copy, in the runner namespace, of the Agentgateway key `incident-sentinel` generated in the
+# cluster by k8s/applications/platform/agentgateway/incident-sentinel-key.yaml (source `llm-arc-runners-agent-harness--sentinel`,
+# store k8s-agentgateway). Same pattern as pr-triage-key.yaml. Never in Doppler, never in Git.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: incident-sentinel-agentgateway
+  namespace: arc-runners-agent-harness
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: k8s-agentgateway
+    kind: ClusterSecretStore
+  target:
+    name: incident-sentinel-agentgateway
+    creationPolicy: Owner
+  data:
+    - secretKey: INCIDENT_SENTINEL_AGENTGATEWAY_KEY
+      remoteRef:
+        key: llm-arc-runners-agent-harness--sentinel
+        property: INCIDENT_SENTINEL_AGENTGATEWAY_KEY

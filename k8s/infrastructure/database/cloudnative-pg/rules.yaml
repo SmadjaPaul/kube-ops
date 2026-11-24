@@ -7,37 +7,32 @@ spec:
   groups:
     - name: cnp-default.rules
       rules:
-        - alert: LongRunningTransaction
+        # PLT-459 (23/11/2026): removed LongRunningTransaction, BackendsWaiting,
+        # PGDatabaseXidAge and DatabaseDeadlockConflicts. Their metrics
+        # (cnpg_backends_*, cnpg_pg_database_xid_age, cnpg_pg_stat_database_deadlocks)
+        # are not exported by this CNPG version's default queries and no custom
+        # queries exist, so they could never fire. XID wraparound is NOT watched
+        # until a custom query is added (PLT-459 follow-up).
+        # PLT-459: backups go through the barman-cloud plugin, so the native
+        # cnpg_collector_last_*_backup_timestamp series stay 0. Most clusters
+        # back up weekly (pg-shared-homelab daily): 8 days = one missed run.
+        - alert: CNPGPluginBackupStale
           annotations:
-            description:
-              Pod {{ $labels.pod }} is taking more than 5 minutes (300 seconds)
-              for a query.
-            summary: A query is taking longer than 5 minutes.
+            description: No successful barman-cloud backup for over 8 days in namespace {{ $labels.namespace }} (cluster {{ $labels.cluster }}).
+            summary: The last available plugin backup of a CNPG cluster is too old
           expr: |-
-            cnpg_backends_max_tx_duration_seconds > 300
-          for: 1m
+            (time() - max by (namespace, cluster) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp > 0)) > 8 * 86400
+          for: 30m
           labels:
             severity: warning
-        - alert: BackendsWaiting
+        - alert: CNPGPluginBackupFailed
           annotations:
-            description: |
-              Pod {{ $labels.pod }} has been waiting for over 5 minutes.
-            summary: Backends waiting over 5 minutes.
+            description: The latest barman-cloud backup failed after the last successful one in namespace {{ $labels.namespace }} (cluster {{ $labels.cluster }}).
+            summary: A CNPG plugin backup failed
           expr: |-
-            cnpg_backends_waiting_total > 300
-          for: 1m
-          labels:
-            severity: warning
-        - alert: PGDatabaseXidAge
-          annotations:
-            description:
-              Over 150,000,000 transactions from frozen xid on pod {{
-              $labels.pod  }}
-            summary:
-              Number of transactions from the frozen XID to the current one
-          expr: |-
-            cnpg_pg_database_xid_age > 300000000
-          for: 1m
+            max by (namespace, cluster) (barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp)
+              > max by (namespace, cluster) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
+          for: 30m
           labels:
             severity: warning
         - alert: PGReplication
@@ -58,16 +53,6 @@ spec:
               failed.
           expr: |-
             (cnpg_pg_stat_archiver_last_failed_time - cnpg_pg_stat_archiver_last_archived_time) > 1
-          for: 1m
-          labels:
-            severity: warning
-        - alert: DatabaseDeadlockConflicts
-          annotations:
-            description:
-              There are over 10 deadlock conflicts in {{ $labels.pod }}
-            summary: Checks the number of database conflicts
-          expr: |-
-            cnpg_pg_stat_database_deadlocks > 10
           for: 1m
           labels:
             severity: warning

@@ -1,13 +1,12 @@
-# One-time operator bootstrap on the Oracle cluster (never synced by the
-# homelab Argo CD):
-#   kustomize build --enable-helm k8s/clusters/oracle-a1/bootstrap | kubectl apply --server-side -f -
-# kubectl has no --enable-helm. Re-run the same command once if the
-# Application/AppProject CRDs were not yet established on the first pass.
+# Bootstrap operateur de l'Argo CD d'OKE (jamais synchronise par un Argo CD) :
+#   bash scripts/oke-bootstrap.sh --kubeconfig <fichier>
+# Le script rend ce dossier (kustomize --enable-helm), applique d'abord le namespace et les CRD,
+# puis le projet `bootstrap` et l'Application `root`. Procedure : k8s/clusters/oracle-a1/README.md.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - namespace.yaml
-  - project.yaml
+  - bootstrap-project.yaml
   - root-application.yaml
 
 helmCharts:
@@ -15,12 +14,12 @@ helmCharts:
     namespace: argocd
     releaseName: argocd
     repo: https://argoproj.github.io/argo-helm
+    # Meme chart que le homelab (k8s/infrastructure/controllers/argocd) : Argo CD v3.5.1.
     version: 10.3.3
     valuesFile: values.yaml
 
-# Chart 10.3.3 omits hostNetwork/hostPID/hostIPC; k8s/CLAUDE.md requires them
-# explicit. Covers controller (StatefulSet), server, repo-server, redis
-# (Deployments) and the redis-secret-init Job.
+# Le chart omet hostNetwork/hostPID/hostIPC ; k8s/CLAUDE.md les exige explicites
+# (controleur StatefulSet, serveurs, redis, applicationset, Job redis-secret-init).
 patches:
   - target: {kind: Deployment}
     patch: |-

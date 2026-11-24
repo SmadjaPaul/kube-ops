@@ -1,0 +1,6 @@
+# Contrat de test (PLT-392). Les manifestes vivent dans k8s/optional/sparkyfitness (extraPaths,
+# migration PLT-394) ; les workloads viennent du chart Helm de l'Application personal-sparkyfitness
+# (geree par le root). La supervision n'a jamais ete declaree (aucun ServiceMonitor/PodMonitor/Probe).
+# Constat conserve a la migration, a traiter hors de son perimetre.
+exceptions:
+  observability: "supervision jamais declaree (aucun ServiceMonitor/PodMonitor/Probe, hors perimetre de la migration PLT-394)"

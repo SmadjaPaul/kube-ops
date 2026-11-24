@@ -9,6 +9,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: '-10'
 spec:
+  # PLT-394 I1-I3 : les dossiers migres vers infra-root (k8s/bootstrap/infra-root) sortent de cette
+  # liste dans le meme commit que l'arrivee de leurs Applications (monitoring : I1).
   generators:
     - git:
         repoURL: https://github.com/SmadjaPaul/kube-ops.git
@@ -17,8 +19,6 @@ spec:
           - path: k8s/infrastructure/controllers
           - path: k8s/infrastructure/network
           - path: k8s/infrastructure/storage
-          - path: k8s/infrastructure/monitoring
-          - path: k8s/infrastructure/deployment
           - path: k8s/infrastructure/auth
           - path: k8s/infrastructure/database
           - path: k8s/infrastructure/security
@@ -26,7 +26,10 @@ spec:
           - path: k8s/optional/github-actions-arc
           - path: k8s/optional/github-actions-arc-homelab-infra
           - path: k8s/optional/github-actions-arc-website
+          - path: k8s/optional/github-actions-arc-ha-config
+          - path: k8s/optional/github-actions-arc-agent-harness
           - path: k8s/optional/github-actions-arc-kube-ops
+          - path: k8s/optional/github-actions-arc-kube-ops-pr
           - path: k8s/optional/github-actions-arc-homelab-iac-pilot
   # Retrait sans cascade : la suppression d'une Application générée par cet ApplicationSet
   # ne supprime plus ses ressources (pas de finalizer resources-finalizer à la génération,
@@ -65,11 +68,11 @@ spec:
           prune: true
           selfHeal: true
         retry:
-          limit: 1
+          limit: 5
           backoff:
             duration: 10s
             factor: 2
-            maxDuration: 3m
+            maxDuration: 5m
         syncOptions:
           - CreateNamespace=true
           - ApplyOutOfSyncOnly=true

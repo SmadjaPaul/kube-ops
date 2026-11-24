@@ -64,7 +64,7 @@ proposed StatefulSet change:
 ## Rollout acceptance
 
 1. `just check` and GitHub CI PASS.
-2. Argo `infra-monitoring` Synced/Healthy at the merged SHA.
+2. Argo `infra-monitoring-prometheus-stack` (and the other `infra-monitoring-*` Applications of infra-root) Synced/Healthy at the merged SHA.
 3. Grafana dashboard sidecar recognizes the seven folders; curated panels render and the Loki datasource resolves.
 4. Grafana SSO, preserved dashboard UIDs, Prometheus scrapes and KPS default alerts remain functional.
 5. Confirm before claiming delivery: `ALERTS` existence != Alertmanager-to-ntfy success.

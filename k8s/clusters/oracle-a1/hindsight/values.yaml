@@ -13,11 +13,14 @@ api:
   replicaCount: 1
   automountServiceAccountToken: false
   env:
-    # Direct provider (no Agentgateway on Oracle). Same model as the homelab
-    # route factory/fast. One concurrent call bounds the cost.
+    # Direct provider: Oracle has no route to the homelab Agentgateway
+    # (one-way flow, D-2026-11-11-17). Same model as the homelab alias
+    # factory/fast (MiniMax-M2.7 retired 2026-11-18, PLT-497). M3.1 Flash always
+    # reasons and the reasoning counts in max_tokens. One concurrent call
+    # bounds the cost.
     HINDSIGHT_API_LLM_PROVIDER: openai
     HINDSIGHT_API_LLM_BASE_URL: https://api.minimax.io/v1
-    HINDSIGHT_API_LLM_MODEL: MiniMax-M2.7
+    HINDSIGHT_API_LLM_MODEL: MiniMax-M3.1-Flash
     HINDSIGHT_API_LLM_MAX_CONCURRENT: "1"
     HINDSIGHT_API_EMBEDDINGS_PROVIDER: local
     HINDSIGHT_API_EMBEDDINGS_LOCAL_MODEL: BAAI/bge-small-en-v1.5

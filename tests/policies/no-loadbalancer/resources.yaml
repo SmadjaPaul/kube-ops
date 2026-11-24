@@ -1,0 +1,95 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-ip
+  namespace: app
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-port
+  namespace: app
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: load-balancer
+  namespace: app
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: load-balancer-other-gateway-name
+  namespace: gateway
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cilium-gateway-external
+  namespace: gateway
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns-exact-resolver
+  namespace: dns-exact-resolver
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent-mam-peer
+  namespace: media
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: system-namespace
+  namespace: kube-system
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer

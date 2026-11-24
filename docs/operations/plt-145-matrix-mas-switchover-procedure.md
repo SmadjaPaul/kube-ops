@@ -54,4 +54,4 @@ mutates production data needs operator approval (PLT-145 constraints).
 - RPO: the 5 min archive timeout bounds loss only if archiving was healthy.
   Before cutover, establish the latest archived and replayed WAL and report
   the actual loss window. MAS currently holds `users=0` (PLT-145).
-- Hetzner copy only; the R2 variant needs its own drill (PLT-248).
+- Former-store copy only (Hetzner, abandoned); the R2 variant needs its own drill (PLT-248).

@@ -1,0 +1,4 @@
+name: mqtt
+namespace: mqtt
+postMerge: notify
+preview: false

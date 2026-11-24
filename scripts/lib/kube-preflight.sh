@@ -18,6 +18,30 @@ _kube_access_digest() {
     _kube_access_sha256_stream
 }
 
+# Expiration (ISO 8601 UTC) du jeton du kubeconfig agent ; vide si ce n'est pas un JWT lisible.
+_kube_access_token_expiry() {
+  local exp
+  exp="$(_kube_access_token_exp_epoch "$1")" || return 0
+  [[ -n "$exp" ]] || return 0
+  date -u -d "@$exp" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -r "$exp" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true
+}
+
+_kube_access_token_exp_epoch() {
+  local payload
+  payload="$(KUBECONFIG="$1" kubectl config view --raw --minify -o jsonpath='{.users[0].user.token}' 2>/dev/null |
+    cut -d. -f2 | tr '_-' '/+')" || return 0
+  [[ -n "$payload" ]] || return 0
+  while (( ${#payload} % 4 )); do payload+="="; done
+  printf '%s' "$payload" | base64 -d 2>/dev/null | jq -r '.exp // empty' 2>/dev/null || true
+}
+
+# 0 si le jeton n'a pas expiré (ou si l'expiration est illisible : le serveur tranchera).
+_kube_access_not_expired() {
+  local exp
+  exp="$(_kube_access_token_exp_epoch "$1")"
+  [[ -z "$exp" ]] || (( exp > $(date -u +%s) ))
+}
+
 kube_access_cleanup() {
   if [[ -n "${KUBE_ACCESS_TMPDIR:-}" && -d "$KUBE_ACCESS_TMPDIR" ]]; then
     rm -rf -- "$KUBE_ACCESS_TMPDIR"
@@ -76,50 +100,65 @@ _materialize_canonical_operator_kubeconfig() {
     return
   fi
 
+  # PLT-481 : la copie OKE est d'abord lue dans identity/agt (renouvelée par le CronJob d'OKE,
+  # D-2026-11-23-04), puis dans infrastructure/prd (--provision, bris de glace). Une copie absente,
+  # altérée ou expirée dans la première source bascule sur la seconde ; KUBE_ACCESS_DOPPLER_PROJECT
+  # force une source unique.
+  local -a projects=("$project")
+  if [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 && -z "${KUBE_ACCESS_DOPPLER_PROJECT:-}" ]]; then
+    projects=(agent-access infrastructure)  # agent-access = identity/agt (limite Doppler de 10 projets)
+  fi
+
   umask 077
   KUBE_ACCESS_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/kube-ops-operator-access.XXXXXX")"
   kubeconfig="$KUBE_ACCESS_TMPDIR/kubeconfig"
-
-  if ! doppler secrets get "$secret" \
-    --project "$project" --config "$config" --plain >"$kubeconfig" 2>/dev/null; then
+  local candidate fail_reason= fail_present=no found=
+  for candidate in "${projects[@]}"; do
+    fail_reason=canonical_operator_kubeconfig_missing
+    fail_present=no
+    local cproj=$candidate cconf=$config ctok=
+    if [[ "$candidate" == agent-access ]]; then
+      cproj=identity cconf=agt
+      # Le jeton de service des agents est limité à infrastructure : second jeton, lecture seule de identity/agt.
+      [[ -s "${KUBE_ACCESS_AGENT_ACCESS_TOKEN_FILE:-$HOME/.claude-worker/doppler-token-agent-access}" ]] &&
+        ctok=$(tr -d '\n' <"${KUBE_ACCESS_AGENT_ACCESS_TOKEN_FILE:-$HOME/.claude-worker/doppler-token-agent-access}")
+    fi
+    if ! DOPPLER_TOKEN="${ctok:-${DOPPLER_TOKEN:-}}" doppler secrets get "$secret" \
+      --project "$cproj" --config "$cconf" --plain >"$kubeconfig" 2>/dev/null; then
+      continue
+    fi
+    chmod 600 "$kubeconfig"
+    fail_present=yes
+    fail_reason=canonical_operator_fingerprint_missing
+    if ! expected="$(
+      DOPPLER_TOKEN="${ctok:-${DOPPLER_TOKEN:-}}" doppler secrets get "${secret}_SHA256" \
+        --project "$cproj" --config "$cconf" --plain 2>/dev/null
+    )" || [[ -z "$expected" ]]; then
+      continue
+    fi
+    fail_reason=canonical_operator_context_invalid
+    if ! actual="$(_kube_access_digest "$kubeconfig")" || [[ -z "$actual" ]]; then
+      continue
+    fi
+    fail_reason=canonical_operator_integrity_mismatch
+    if [[ "$actual" != "$expected" ]]; then
+      continue
+    fi
+    if [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 ]]; then
+      KUBE_ACCESS_TOKEN_EXPIRES="$(_kube_access_token_expiry "$kubeconfig")"
+      if [[ -n "$KUBE_ACCESS_TOKEN_EXPIRES" ]] && ! _kube_access_not_expired "$kubeconfig"; then
+        fail_reason=agent_token_expired
+        continue
+      fi
+    fi
+    found="$candidate"
+    break
+  done
+  if [[ -z "$found" ]]; then
     kube_access_cleanup
     _kube_access_blocked \
-      canonical_operator_kubeconfig_missing \
-      no \
-      no \
-      RUN_HOMELAB_INFRA_JUST_KUBE_ACCESS_SYNC
-    return
-  fi
-  chmod 600 "$kubeconfig"
-
-  if ! expected="$(
-    doppler secrets get "${secret}_SHA256" \
-      --project "$project" --config "$config" --plain 2>/dev/null
-  )" || [[ -z "$expected" ]]; then
-    kube_access_cleanup
-    _kube_access_blocked \
-      canonical_operator_fingerprint_missing \
-      yes \
-      no \
-      RUN_HOMELAB_INFRA_JUST_KUBE_ACCESS_SYNC
-    return
-  fi
-
-  if ! actual="$(_kube_access_digest "$kubeconfig")" || [[ -z "$actual" ]]; then
-    kube_access_cleanup
-    _kube_access_blocked \
-      canonical_operator_context_invalid \
-      yes \
-      no \
-      RUN_HOMELAB_INFRA_JUST_KUBE_ACCESS_SYNC
-    return
-  fi
-
-  if [[ "$actual" != "$expected" ]]; then
-    kube_access_cleanup
-    _kube_access_blocked \
-      canonical_operator_integrity_mismatch \
-      yes \
+      "$fail_reason" \
+      "$fail_present" \
       no \
       RUN_HOMELAB_INFRA_JUST_KUBE_ACCESS_SYNC
     return
@@ -129,6 +168,8 @@ _materialize_canonical_operator_kubeconfig() {
   export KUBE_ACCESS_CANONICALIZED=yes
   if [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 ]]; then
     export KUBE_ACCESS_SOURCE=doppler_agent_operator_oracle_a1_distribution
+    [[ "$found" == agent-access ]] && export KUBE_ACCESS_SOURCE=doppler_agent_access_oracle_a1_distribution
+    export KUBE_ACCESS_TOKEN_EXPIRES
   elif [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG ]]; then
     export KUBE_ACCESS_SOURCE=doppler_agent_operator_distribution
   else
@@ -200,6 +241,7 @@ require_kube_access() {
     if [[ "${KUBE_ACCESS_QUIET:-}" != 1 ]]; then
       printf 'KUBE_ACCESS=PASS\nKUBECONFIG_PRESENT=yes\nAPI_REACHABLE=yes\nCLUSTER_VERSION=%s\nKUBE_ACCESS_SOURCE=%s\n' \
         "$cluster_version" "$source" >&2
+      [[ -z "${KUBE_ACCESS_TOKEN_EXPIRES:-}" ]] || printf 'KUBE_ACCESS_TOKEN_EXPIRES=%s\n' "$KUBE_ACCESS_TOKEN_EXPIRES" >&2
     fi
     return 0
   fi

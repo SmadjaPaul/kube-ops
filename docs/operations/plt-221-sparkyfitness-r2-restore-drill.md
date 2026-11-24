@@ -210,7 +210,8 @@ and drill destination), #1362 (drill), this PR (teardown).
   Immich client connections) is not proven. First WAL on R2: `…02BA` at
   15:48:31Z.
 - Known anomaly reproduced: the `gap-remediation-20261019` Backup CR, pinned
-  by `tests/harness/cnpg-gap-backup-contract-test.sh`, ran again after the
+  by the former `tests/harness/cnpg-gap-backup-contract-test.sh` (removed
+  with the CR, PLT-388), ran again after the
   restart to Hetzner (`20261113T154828`) while WAL already went to R2. That
   base cannot be restored from Hetzner alone; do not use it for a rollback.
 - R2 base `20261113T155503` (WAL `…02BF`) completed at 15:55:29Z. Window

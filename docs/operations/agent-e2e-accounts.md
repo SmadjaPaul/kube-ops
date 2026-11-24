@@ -42,7 +42,7 @@ value only as `AGENT_E2E_TOKEN` (output is masked). Never print it, never write 
 | Mealie | Yes (static): `OIDC_SIGNUP_ENABLED=true`, `OIDC_USER_GROUP=family` | `k8s/applications/catalog/mealie/deployment.yaml`; runtime NOT_TESTED |
 | Immich | Yes (static): `oauth.autoRegister: true` | `k8s/applications/media/immich/immich-server/immich-config-external-secret.yaml`; runtime NOT_TESTED |
 | Vikunja | Yes (static): OpenID provider `authentik` enabled, upstream creates the user on first login | `k8s/applications/catalog/vikunja/deployment.yaml`; runtime NOT_TESTED |
-| Polyfin (media) | No: native Polyfin accounts; OIDC blocked upstream | `k8s/applications/media/polyfin/README.md`, section "Authentik OIDC status" |
+| Polyfin (media) | No: `create_accounts = false` (`polyfin_identity_provider`, homelab-infra#784). Pre-create the Polyfin account (`POST /admin/api/users`, `providerOnly: true`, no password) then `PATCH` `providerLinkAllowed: true`; the next Authentik sign-in under that name links it. Delete it afterwards (`DELETE /admin/api/users/{id}`). RUNTIME 2026-11-24 (PRD-86) | `k8s/applications/media/polyfin/README.md`, section "Authentik OIDC status" |
 | Actual Budget | Not deployed (removed earlier) | no manifest |
 | Paperless | No: no OIDC setting in `k8s/applications/catalog/paperless/app.yaml`; Authentik provider exists | BLOCKED until Paperless gets `PAPERLESS_APPS` / `PAPERLESS_SOCIALACCOUNT_PROVIDERS` |
 | Trilium | No: no OIDC setting in `k8s/applications/web/trilium/deployment.yaml`; no Authentik provider | BLOCKED |

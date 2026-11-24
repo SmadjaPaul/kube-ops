@@ -1,0 +1,6 @@
+# Contrat de test (PLT-391) : BookOrbit n'expose pas de /metrics ; seule sa base CNPG est surveillee,
+# par le PodMonitor central monitoring/cnpg-instances (k8s/infrastructure/monitoring/cnpg-podmonitor.yaml),
+# volontairement hors du dossier de l'app (un PodMonitor local sans label release n'est pas selectionne).
+# Le scrape depuis monitoring est autorise par la CiliumNetworkPolicy bookorbit-postgresql (port 9187).
+exceptions:
+  observability: "base CNPG surveillee par le PodMonitor central monitoring/cnpg-instances ; l'app n'expose pas de metrics"

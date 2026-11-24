@@ -1,0 +1,8 @@
+{
+  "name": "arc-ci-runner-tools",
+  "private": true,
+  "description": "Outils npm globaux preinstalles dans l'image arc-ci-runner (versions gerees par Renovate).",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.330"
+  }
+}

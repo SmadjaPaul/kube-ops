@@ -17,7 +17,18 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: searxng
-          image: searxng/searxng:2026.9.30-revert-drill-missing
+          image: searxng/searxng:2026.9.30-a9d990033@sha256:a07a5cd2da2c63d66e559f9e4d3a3db106cfc6c32fb0ac70abe91cc28bcd7350
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            failureThreshold: 3
           envFrom:
             - secretRef: { name: searxng-runtime }
           ports:
@@ -50,8 +61,15 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata: { name: searxng, namespace: searxng }
 spec:
+  # PRD-28 pilot: `external` publishes search.smadja.dev through the Cloudflare
+  # tunnel, ONLY behind the Cloudflare Access application `family-search`
+  # (homelab-infra terraform/cloudflare/access-family.tf). Merge only after
+  # that application is applied and an anonymous request is redirected to
+  # smadja.cloudflareaccess.com. Rollback: remove `external` first.
+  # `internal` keeps the LAN and NetBird path; in-cluster agents use ClusterIP.
   parentRefs:
     - { name: internal, namespace: gateway }
+    - { name: external, namespace: gateway }
   hostnames: [search.smadja.dev]
   rules:
     - backendRefs:

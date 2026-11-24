@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: github-actions-arc
     policy-type: github-actions-arc
 spec:
-  description: "Allow only the pilot runner's GitHub, OpenTofu and dedicated OCI state endpoints"
+  description: "Allow only the pilot runner's GitHub, OpenTofu, PyPI (OCI CLI) and dedicated OCI state endpoints"
   endpointSelector:
     matchLabels:
       k8s:actions.github.com/scale-set-name: homelab-iac-pilot-arc
@@ -45,6 +45,9 @@ spec:
         - matchName: registry.opentofu.org
         - matchName: releases.hashicorp.com
         - matchName: axnvxxurxefp.compat.objectstorage.eu-paris-1.oraclecloud.com
+        # PLT-403 : installation de l'OCI CLI (oci-cli épinglé, paquets vérifiés par hash).
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
       toPorts:
         - ports:
             - port: "443"

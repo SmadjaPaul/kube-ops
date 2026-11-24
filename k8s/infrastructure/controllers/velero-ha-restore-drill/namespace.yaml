@@ -1,0 +1,37 @@
+# PRD-76 : îlot du drill de restauration de HA. Permanent et vide hors drill :
+# le Job ha-restore-drill supprime le pod et le PVC restaurés à chaque passage.
+# Pod Security baseline (refuse hostNetwork, NET_ADMIN, hostPath, privileged),
+# aucun trafic entrant ni sortant, ValidatingAdmissionPolicy
+# ha-restore-test-pod-guard et ha-restore-test-pvc-guard (admission.yaml) en plus.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: home-assistant-restore-test
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    app.kubernetes.io/part-of: ha-restore-drill
+---
+# Refus total : les règles vides mettent chaque endpoint en default-deny et les
+# règles Deny l'emportent sur toute autorisation (y compris clusterwide).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: default-deny
+  namespace: home-assistant-restore-test
+  labels:
+    policy-type: default-deny
+spec:
+  description: "Drill HA : aucun trafic entrant ni sortant"
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+  ingressDeny:
+    - fromEntities:
+        - all
+  egressDeny:
+    - toEntities:
+        - all

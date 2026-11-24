@@ -1,9 +1,11 @@
 # Polyfin — family media pilot (private LAN/VPN)
 
-Status: **OFFICIAL 0.61.1 PRIVATE PILOT / ROUTE DISABLED**. The parent media
+Status: **OFFICIAL 0.85.0 PRIVATE PILOT / ROUTE DISABLED** (upgraded from
+0.61.1; runtime requalification pending). The parent media
 Kustomization keeps the workload and its data resources staged, but its Gateway
-HTTPRoute is intentionally disabled. `tv.smadja.dev` remains reserved for the
-native AIOStreams family player; this migration does not delete Polyfin data.
+`media.smadja.dev` route is rendered by the parent Kustomization. The
+`tv.smadja.dev` route (`tv-http-route.yaml`, object `aiostreams-family`) is
+owned by Polyfin since PLT-392; this migration does not delete Polyfin data.
 There is no external HTTPRoute or Cloudflare Tunnel.
 
 The existing `polyfin-data` PVC is intentionally 20Gi. Polyfin stores
@@ -15,7 +17,7 @@ does not remove application data or cache contents.
 The T2 acceptance is machine-checked by
 `.github/polyfin/private-pilot-admission.json` and
 `scripts/polyfin-admission-check.sh`. It is bound to the official upstream
-`ghcr.io/moodiness/polyfin:0.61.1` linux/amd64 digest and expires at
+`ghcr.io/moodiness/polyfin:0.85.0` linux/amd64 digest and expires at
 `2026-12-05T23:59:59Z`. The upstream release and GHCR digest are recorded, but
 no upstream Cosign signature or GitHub artifact attestation was found and none
 is claimed. Trivy output remains complete and visible.
@@ -27,6 +29,49 @@ findings (`CVE-2026-115506`, `CVE-2026-119374`, `CVE-2026-119379`) and two
 findings marked fixed (`CVE-2026-85091`, `CVE-2026-78661`). The new affected
 findings are explicitly recorded as temporary T2 residuals; the fixed ones
 are tracked as `mustBeAbsent`. Trivy output remains complete and visible.
+
+### Upgrade 0.61.1 to 0.85.0
+
+Complete Trivy scan of the `linux/amd64` digest (Trivy 0.68.2, Debian 13.7,
+`HIGH,CRITICAL`, vulnerabilities only): **70 occurrences**. Five tracked CVEs
+are gone (`CVE-2026-111943`, `CVE-2026-78667`, `CVE-2026-78669`,
+`CVE-2026-97031` and the zlib `CVE-2026-76844`), and the policy entries were
+removed. One CVE is new and unreviewed: **`CVE-2026-124709`** (HIGH,
+`libssl3t64` and `openssl-provider-legacy` 3.5.7-1~deb13u2, no fix), so
+`scripts/polyfin-admission-check.sh` failed against the real scan until the
+operator accepted it as a temporary T2 residual (same private perimeter and
+the same 2026-12-05 expiry); the check now passes on the real scan. The `linux/arm64` image (the A1 cluster
+architecture) reports a subset of the same CVE ids.
+
+Behaviour changes to decide or perform at the operator console (none of them
+is in Git; the Polyfin provider root is dormant):
+
+- **Server addon streams go through Polyfin for members** (0.83.0). The
+  setting **Send apps to the source** (Settings > Playback, off by default)
+  sends apps back to the source, but then shows the source address, its keys
+  and IPTV credentials to the users who play. Keeping it off creates a media
+  relay path through the server, which conflicts with the direct-TorBox rule;
+  turning it on is only acceptable if every user may know the AIOStreams
+  manifest URL. Decide before opening the route to members.
+- List the Gateway under **Settings > Security > Known proxies**, or users
+  restricted to the local network cannot sign in or play through it.
+- The AIOStreams source is added by its in-cluster address, which counts as
+  local: a source added by a public address no longer reaches local addresses.
+  If AIOStreams answers redirect to a public host, add that host separately.
+- Subtitle files and playback addresses are bound to a user and device;
+  scripts must use the `DeliveryUrl` from PlaybackInfo.
+- `POLYFIN_SECRET_KEY` now derives the signing secret: everything signed
+  before stops working once at first start. Keep the key with the backups.
+- 24 database migrations (0233 to 0257) run at first start; take a backup
+  first. The connection pool is capped at 10.
+- The security release 0.83.0 fixes twelve medium advisories that 0.61.1
+  still has, among them subtitle files served without credentials and a
+  member reading source addresses with addon keys.
+
+Suggested operator settings from the research pass (unverified on this
+server): order versions by **Preferred audio language** first, keep **Sync
+addon subtitles** on and keep playback without conversion preferred. No
+release up to 0.85.0 adds a subtitle-language allow-list.
 
 The previous downstream build/backport evidence is historical only. It is
 preserved in closed PR [#1018](https://github.com/SmadjaPaul/kube-ops/pull/1018)
@@ -143,7 +188,7 @@ Public route and Polyfin admission remain OFF.
 - This draft's CI does not run the security gate or prove runtime. Keep Argo
   Polyfin admission OFF until the candidate image passes the approved policy.
 - `polyfin-db` now declares `spec.plugins` with `isWALArchiver: true`, bound to
-  `polyfin-hetzner-store`. Verify that the Barman CNPG-I operator exists in the
+  `polyfin-r2-store` (Cloudflare R2). Verify that the Barman CNPG-I operator exists in the
   cluster and inspect WAL archival status, a successful backup AND a restore
   before reporting backup operational.
 - The configured AIOStreams HTTPS manifest uses split DNS / internal Gateway
@@ -196,9 +241,8 @@ same issue arises repeatedly across workloads.
 
 ## Intended topology
 
-- No active HTTPRoute exposes Polyfin. `tv.smadja.dev` is owned by the native
-  AIOStreams route; the Polyfin workload remains unreachable through the
-  Gateway until a separate reviewed hostname and admission decision exists.
+- `tv.smadja.dev` is served by `tv-http-route.yaml` (Polyfin, backend `polyfin:80`);
+  `media.smadja.dev` by `polyfin-media-route.yaml`.
 - App: one Pod (nonroot UID 65532, readonly rootfs), `/data` on Longhorn.
 - Database: separate single-instance CNPG `polyfin-db`, with app credentials
   auto-generated in Secret `polyfin-db-app` (field `uri`).
@@ -226,43 +270,52 @@ recording intentionally moves bytes through the server. Therefore:
   publish until remote IPTV *cannot* use the server as video relay.
 - No P2P torrenting, WireGuard, inbound UDP discovery or DLNA in this pilot.
 
-## Authentik OIDC status — explicitly blocked upstream
+## Authentik OIDC status
 
-Polyfin SSO is **not configured**. This is intentional: upstream issue
-[#217](https://github.com/moodiness/polyfin/issues/217) remains open in the
-`Later` milestone, with no linked implementation branch or pull request. The
-current official pilot uses Polyfin `0.61.1`; upstream's
-current Silo capability contract still advertises both OAuth and external sign
-in as unsupported, and the deployed web login remains the native username /
-password flow.
+Polyfin has a native OpenID Connect identity provider (Settings > Security >
+Identity provider; upstream issue #217 closed, `docs/sign-in-and-security.md`).
+The Authentik side is declared here and in the blueprint
+`k8s/infrastructure/auth/authentik/extra/blueprints/apps-polyfin.yaml`
+(client `polyfin`, groups `family`, `friends`, `authentik-admins`, plus
+`maison-musique` from `identity-maison.yaml`). Authentik reads the client
+secret from the Doppler key `APP_POLYFIN_OIDC_CLIENT_SECRET` through
+`k8s/infrastructure/auth/authentik/extra/polyfin-oidc-externalsecret.yaml`; the
+Polyfin side must read the same key (see below). The Cilium egress to `auth.smadja.dev` is in
+`networkpolicy.yaml`.
 
-Do not add an Authentik provider, client secret, callback URL, Cilium egress
-exception or web-only button until Polyfin has a real server-side callback.
-There is no valid redirect URI to register today. An Authentik reverse-proxy
-outpost would only front the page and would not create a Polyfin/Jellyfin
-session, so it is not an acceptable substitute.
+The Polyfin side is not a Kubernetes manifest: it is a server setting, owned by
+OpenTofu as the resource `polyfin_identity_provider` of
+`terraform-provider-polyfin` (root `terraform/polyfin` of homelab-infra,
+applied by ARC only). Values: issuer
+`https://auth.smadja.dev/application/o/polyfin/`, user claim
+`preferred_username`, administrator claim `groups` = `authentik-admins`, redirect URI
+`https://tv.smadja.dev/admin/api/provider/callback`. The secret is write-only
+and never enters the state or Git.
 
-The minimum maintainable implementation belongs upstream and must be treated
-as a new Polyfin image, not as a Kubernetes overlay. It requires:
+Status (PRD-86, 2026-11-24): applied (provider v0.1.8, homelab-infra#784, ARC
+apply). `create_accounts = false`: the first sign-in never creates a Polyfin
+account. An administrator creates the account first (it may be "Identity
+provider only", without a password) and turns on "Link at the next provider
+sign-in"; the next Authentik sign-in under the same name links it.
 
-1. server-side Authorization Code + PKCE routes with `state`, `nonce`, one-use
-   expiry and replay protection;
-2. discovery/JWKS validation with exact issuer, audience and expiration checks;
-3. an encrypted provider configuration and a stable `(issuer, sub)` identity
-   table, with explicit linking of the existing administrator and a local
-   break-glass account;
-4. creation of a normal Polyfin/Jellyfin session, logout and revocation
-   semantics, plus authorization/group mapping;
-5. web and admin-client integration, Quick Connect compatibility and tests for
-   denied groups, account isolation and session invalidation; and
-6. a new signed image with SBOM, provenance, vulnerability scan and a new
-   immutable admission record. The current temporary CVE acceptance is bound
-   to the existing digest and must not transfer to that image.
+End-to-end proof (RUNTIME, 2026-11-24), with throwaway users deleted afterwards
+on both sides:
 
-Until those upstream contracts exist and a real end-to-end login is proven,
-the acceptance state is `OIDC=NOT_EXECUTED`, while native Polyfin login and
-Quick Connect remain unchanged. No Authentik secret is read or added by this
-pilot.
+- `agent-e2e-20261124` (Authentik groups `test-users` + `family`), Polyfin
+  account pre-created and linkable: `/admin/api/provider/start` signs in and
+  lands on the Polyfin home of that user; the account becomes "Linked".
+- `agent-e2e-out-20261124` (group `test-users` only): Authentik answers
+  "Permission denied" on `/application/o/authorize/`; the Polyfin account stays
+  unlinked.
+- Break-glass: `polyfin-breakglass` stays a local administrator, not linked to
+  the provider (so its password sign-in is not replaced); the activity log
+  shows its sign-ins after the apply.
+
+Not proven by an agent: the library seen from a Jellyfin client by the test
+user (the Quick Connect approval for a test device is left to a human).
+Native login and Quick Connect stay unchanged.
+
+Start URL for an SSO sign-in to the admin site: `https://tv.smadja.dev/admin/api/provider/start`.
 
 ## Codex activation checklist
 
@@ -272,13 +325,13 @@ pilot.
    Do not enable until pinned. Verify CVEs and upstream release changes.
 2. Provision Doppler `APP_POLYFIN_SECRET_KEY` through the normal secure
    workflow, confirm ESO Ready. Do not store values in Git or shell logs.
-3. Verify CNPG storage, bootstrap Secret field `uri`, backups to Hetzner
-   and test a restore. Check CIDR/pod labels, supported PostgreSQL version
+3. Verify CNPG storage, bootstrap Secret field `uri`, backups to R2
+   (`polyfin-r2-store`) and test a restore. Check CIDR/pod labels, supported PostgreSQL version
    and pinned image policy before admitting the root.
 4. Confirm `kustomize build k8s/applications/media/polyfin` and repository
    `just check`. Add `- polyfin` to the parent Kustomization in a separate
    reviewed activation PR. No manual kubectl apply or imperative resources.
-5. Verify Argo `apps-media` Synced/Healthy, `/healthz`, `/readyz`,
+5. Verify Argo `app-polyfin` Synced/Healthy, `/healthz`, `/readyz`,
    Endpoints and internal TLS. Set the upstream **Known proxies** option
    using actual Gateway identity, and public address only when validated.
 6. Load `/admin/`. Polyfin prints a **one-time setup code** in its own logs;
@@ -309,6 +362,49 @@ For IPTV prefer a valid licensed source with an XMLTV guide for the pilot.
 Keep **recording OFF** until its traffic and disk retention are separately
 qualified. Restrict Live TV by user, but *do not mistake account permissions
 for network-local-only enforcement*. Playlist URLs and logins are secrets.
+
+## Backup CNPG and pre-bump guard (PLT-394 / PLT-46)
+
+State: `polyfin-db` archives WAL and takes weekly base backups to Cloudflare R2
+(`polyfin-r2-store`, `backup-r2.yaml`; `ScheduledBackup polyfin-postgresql-weekly`,
+Sunday 06:30 UTC). Read-only check on 2026-11-22: Backup
+`polyfin-postgresql-weekly-20261115063000` and `polyfin-r2-initial-20261115`
+both `completed`, Cluster `ContinuousArchiving=True`, `LastBackupSucceeded=True`.
+
+Before ANY Polyfin version bump (image tag/digest in `deployment.yaml`, Renovate
+included), in this order:
+
+1. Record the current pin for rollback:
+   `git show origin/main:k8s/applications/media/polyfin/deployment.yaml | grep 'image: ghcr.io/moodiness/polyfin'`
+   (keep the full `tag@sha256:digest`).
+2. Check the last backup is `completed` and archiving is healthy:
+   `kubectl -n media get backup.postgresql.cnpg.io | grep polyfin` and
+   `kubectl -n media get cluster.postgresql.cnpg.io polyfin-db -o jsonpath='{range .status.conditions[*]}{.type}={.status} {end}'`
+   (`ContinuousArchiving=True`, `LastBackupSucceeded=True`).
+3. Take a named on-demand Backup (applied once by a reviewed PR or by a
+   maintainer, never kept in the Kustomization), named after the bump:
+   ```yaml
+   apiVersion: postgresql.cnpg.io/v1
+   kind: Backup
+   metadata:
+     name: polyfin-pre-bump-<YYYYMMDD>-<version>
+     namespace: media
+   spec:
+     cluster: {name: polyfin-db}
+     method: plugin
+     pluginConfiguration:
+       name: barman-cloud.cloudnative-pg.io
+       parameters: {barmanObjectName: polyfin-r2-store}
+   ```
+4. Verify: `kubectl -n media get backup.postgresql.cnpg.io polyfin-pre-bump-... -w`
+   until `PHASE=completed` with empty ERROR. Do NOT merge the bump before that.
+5. Merge the bump, check Argo `app-polyfin` Synced/Healthy, `/healthz`, `/readyz`.
+
+Rollback: revert the bump PR (restores the previous `tag@sha256:digest`
+pin; Argo redeploys it). If the new version migrated the schema and the old image
+refuses it, restore the pre-bump Backup into a NEW Cluster
+(`bootstrap.recovery` with `source`/`backup: polyfin-pre-bump-...`), never over
+`polyfin-db` in place, and never delete the PVC or the Cluster (`Prune=false`).
 
 ## Acceptance matrix / rollback
 
@@ -342,16 +438,14 @@ was pinned in an `optional/polyfin-v059` overlay, since removed. It is
 superseded by the official 0.61.1 image and its new digest-specific T2
 admission. The old downstream evidence remains historical and is not reused.
 
-`media.smadja.dev` is the future private Polyfin hostname. The staged
-`http-route.yaml` remains excluded; `tv.smadja.dev` belongs to
-AIOStreams. The new route must not be attached without a separate security,
-DNS/TLS and user-journey review. Enabling `Gateway/external` is outside
-this migration.
+`media.smadja.dev` is the future private Polyfin hostname. The former
+staged `http-route.yaml` duplicate was removed (PLT-392); `tv.smadja.dev` is
+the single `tv-http-route.yaml`.
 
 Promotion prerequisites: sign/verify the exact image and provenance,
 Trivy scan linux/amd64 including unfixed findings, review any CVEs without
 transferring the 0.50 digest waiver, backup and restore the Polyfin CNPG
-database before its 0.59 schema migration, qualify upstream Authentik OIDC
+database before its 0.59 schema migration, qualify the Authentik OIDC sign-in (PRD-86)
 (issuer/sub mapping, provisioning, log out, Quick Connect), validate Jellyfin
 web/mobile plus AIOStreams/Eclipse network dependencies, then introduce the
 route and image into the admitted root in a dedicated PR. A new image does not

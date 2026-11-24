@@ -1,0 +1,69 @@
+# Renouvellement du jeton agent-operator toutes les 6 h (PLT-481, D-2026-11-23-04). Jeton de 24 h (M5), donc
+# trois echecs tolerables ; alerte Grafana a 13 h sans succes (homelab-infra terraform/grafana-cloud).
+# Le script est renew.sh (ConfigMap) ; il n'ecrit dans Doppler qu'apres les 16 controles can-i.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: agent-operator-token-renewer
+  namespace: agent-token-renewer
+  labels:
+    app.kubernetes.io/name: agent-token-renewer
+    app.kubernetes.io/part-of: security
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: agent-token-renewer
+        spec:
+          restartPolicy: Never
+          serviceAccountName: agent-token-renewer
+          automountServiceAccountToken: true
+          hostNetwork: false
+          hostPID: false
+          hostIPC: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            fsGroup: 65532
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: renew
+              # Index multi-arch (linux/arm64 inclus), epingle par digest. kubectl 1.37 comme le Mac des agents :
+              # l'empreinte du kubeconfig depend du JSON de `kubectl config view` (voir README).
+              image: docker.io/alpine/k8s:1.37.2@sha256:7a82aeefea3d554a43a8676b137f2b88bae6c1fe11c13862b191b3a086cc28c0 # renovate: docker=alpine/k8s
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/scripts/renew.sh"]
+              resources:
+                requests: {cpu: 10m, memory: 32Mi}
+                limits: {cpu: 200m, memory: 128Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              volumeMounts:
+                - {name: script, mountPath: /scripts, readOnly: true}
+                - {name: doppler, mountPath: /etc/doppler, readOnly: true}
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: script
+              configMap:
+                name: agent-token-renewer-script
+                defaultMode: 0555
+            - name: doppler
+              secret:
+                secretName: agent-access-doppler
+                defaultMode: 0440
+            - name: tmp
+              emptyDir:
+                medium: Memory
+                sizeLimit: 8Mi

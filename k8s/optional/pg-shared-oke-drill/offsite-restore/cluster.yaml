@@ -25,7 +25,8 @@ spec:
         name: barman-cloud.cloudnative-pg.io
         parameters:
           barmanObjectName: pg-shared-oke-r2-ro
-          serverName: pg-shared
+          # OKE rebuilt 21/11/2026: archive prefix oracle-a1/pg-shared-v2/ (PLT-408).
+          serverName: pg-shared-v2
   storage: {size: 10Gi, storageClass: longhorn-fast}
   resources:
     requests: {cpu: 50m, memory: 256Mi}

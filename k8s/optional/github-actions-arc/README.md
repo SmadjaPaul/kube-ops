@@ -22,9 +22,21 @@ Upstream reference: https://github.com/actions/actions-runner-controller (offici
 - The official image currently has no OCI `USER` field; the pod therefore sets `runAsUser: 70` and `runAsGroup: 70`, matching the image's Alpine `postgres` account. `PGDATA` remains the image default `/var/lib/postgresql/18/docker` on the pod's disposable container filesystem; no PVC is mounted.
 - For repository-scoped registration, the dedicated GitHub App needs Repository `Administration: Read and write` and `Metadata: Read-only`. Organization `Self-hosted runners: Read and write` is only needed for organization-scoped registration. The existing ARC App is acceptable only after its installation is restricted to `factory-platform`, `homelab-infra` and `website` (PRD-28, decision of 15/11/2026); the retired Atlantis App, the IaC, Factory source-control and Codex Connector Apps are never reused.
 
+## Common runner image (arc-ci-runner)
+
+All scale sets except the Factory ones run `ghcr.io/smadjapaul/arc-ci-runner` (`images/arc-ci-runner`): the official runner plus the repositories' toolchain (mise.lock, Node 22/24/26 in the Actions tool cache, Playwright Chromium, claude CLI), so jobs download nothing. It replaces `homelab-infra-ci-runner` and `website-ci-runner`. Bump: merge the image change (workflow `Build and Push Docker Images`), then pin the published digest in each `runner-application.yaml`. A tool missing from the image is still downloaded by setup-node or mise (slower, never broken).
+
 ## website scale set (PRD-28)
 
 `website-ci-arc` (`k8s/optional/github-actions-arc-website`, Application `apps-arc-website-ci`) serves `SmadjaPaul/website` only, min=0/max=1, in its own namespace `arc-runners-website` (PSA restricted, ResourceQuota 1 pod / 250m requests, default-deny egress limited to DNS, GitHub and `registry.npmjs.org`). It does not use the `arc-runners` quota or policies. The runner image is `ghcr.io/smadjapaul/website-ci-runner` (`images/website-ci-runner`: Node, pnpm and Chromium inside, nothing private). Secrets of website jobs stay GitHub Actions secrets; the App secret is only read by the controller and listener. Design: `docs/architecture/website-on-arc.md` in homelab-infra. Prerequisite owner action: add `website` to the ARC App installation (GitHub, Settings, Applications). Later phases add egress hosts by PR from observed Hubble drops.
+
+## kube-ops PR CI scale set (PLT-442)
+
+`kube-ops-pr-ci-arc` (`k8s/optional/github-actions-arc-kube-ops-pr`, Application `apps-arc-kube-ops-pr-ci`) runs the kube-ops jobs that used GitHub-hosted runners (v1-contract, Documentation integrity, E2E Static), min=0/max=2, in namespace `arc-runners-kube-ops-pr`. No Kubernetes token is mounted (`automountServiceAccountToken: false`, no ServiceAccount, API server not allowed by the Cilium policy), unlike `kube-ops-ci-arc` which keeps its read-only token for post-merge jobs. Egress: DNS, GitHub, ghcr.io, registry.npmjs.org and the Helm chart repositories rendered by v1-contract. Image: `arc-ci-runner`. Rollback of the job switch: set `runs-on: ubuntu-latest` again.
+
+## agent-harness scale set
+
+`agent-harness-ci-arc` (`k8s/optional/github-actions-arc-agent-harness`, Application `apps-arc-agent-harness-ci`) serves the private repository `SmadjaPaul/agent-harness` only, min=0/max=1, ephemeral, in its own namespace `arc-runners-agent-harness` (PSA restricted, ResourceQuota 1 pod, default-deny egress limited to DNS, GitHub and `registry.npmjs.org`). Workflows use `runs-on: agent-harness-ci-arc`; GitHub-hosted runners are blocked by the account billing failure. Same pattern as the website scale set. Prerequisite owner action: add `agent-harness` to the ARC App installation (GitHub, Settings, Applications, ARC App, Configure, Repository access).
 
 ## GHCR private-image pull gate (PLT-56)
 

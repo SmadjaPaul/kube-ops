@@ -1,0 +1,13 @@
+# Controleur ARC (gha-runner-scale-set-controller) : et l'ecouteur de chaque scale set, que le controleur
+# cree dans ce namespace. Non isole (egress libre, CCNP allow-egress-unisolated) : l'ecouteur joint GitHub.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arc-systems
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

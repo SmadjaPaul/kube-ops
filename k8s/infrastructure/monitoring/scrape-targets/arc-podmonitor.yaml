@@ -1,0 +1,32 @@
+# PLT-459: ARC controller-manager and scale-set listeners expose gha_* on the
+# container port named `metrics` (infra-arc-controller values `metrics`).
+# Alloy keeps gha_(assigned|running)_jobs and runners (alloy/values.yaml).
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: arc
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: arc
+spec:
+  namespaceSelector:
+    matchNames: [arc-systems]
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [runner-scale-set-listener, controller-manager]
+  podMetricsEndpoints:
+    - port: metrics
+      scheme: http
+      interval: 60s
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: gha_.*
+          action: keep
+        # PLT-470: job duration histograms (~4.4k series, one per workflow/job)
+        # have no reader; the Alloy keep-list does not use them either.
+        - sourceLabels: [__name__]
+          regex: gha_.*_bucket
+          action: drop

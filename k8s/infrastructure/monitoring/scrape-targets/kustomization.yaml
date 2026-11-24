@@ -1,0 +1,10 @@
+# PLT-394 I1 : cibles de scrape transverses (ServiceMonitor Argo CD, PodMonitor CNPG central),
+# Application infra-monitoring-scrape-targets (k8s/bootstrap/infra-root), wave 0 : apres les CRD
+# monitoring.coreos.com rendues par prometheus-stack.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - argocd-monitoring.yaml
+  - cnpg-podmonitor.yaml
+  - cloudflared-podmonitor.yaml
+  - arc-podmonitor.yaml

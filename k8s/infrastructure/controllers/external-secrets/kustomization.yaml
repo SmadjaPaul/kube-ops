@@ -10,7 +10,7 @@ resources:
 - clusterrole-clusterpushsecret.yaml
 
 helmCharts:
-  # Vendored from the official v2.6.0 release asset. Keeping the exact chart
+  # Vendored from the official v2.14.0 release asset. Keeping the exact chart
   # in Git makes CI independent of transient Helm repository/proxy 504s.
   - name: external-secrets
     releaseName: external-secrets

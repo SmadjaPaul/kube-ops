@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-monitoring-loki
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/component: addon
+    kube-ops.dev/infra-group: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    # infra-root ne supprime jamais une Application d'infrastructure par prune (retrait = geste manuel).
+    argocd.argoproj.io/sync-options: Prune=false
+    argocd.argoproj.io/manifest-generate-paths: .
+  # Aucun finalizer resources-finalizer : supprimer l'Application laisse ses ressources en place.
+spec:
+  project: infrastructure
+  source:
+    repoURL: https://github.com/SmadjaPaul/kube-ops.git
+    targetRevision: main
+    path: k8s/infrastructure/monitoring/loki
+    kustomize: {}
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true
+      - PruneLast=true
+      - RespectIgnoreDifferences=true

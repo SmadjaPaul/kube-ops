@@ -139,7 +139,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: sweep
-              image: alpine/k8s:1.34.1 # renovate: docker=alpine/k8s
+              image: alpine/k8s:1.37.2 # renovate: docker=alpine/k8s
               imagePullPolicy: IfNotPresent
               command: ["/bin/sh", "/scripts/sweep.sh"]
               env:

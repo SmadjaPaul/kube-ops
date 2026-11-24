@@ -1,0 +1,4 @@
+name: media-shared
+namespace: media
+postMerge: notify
+preview: false

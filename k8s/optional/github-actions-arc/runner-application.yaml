@@ -35,6 +35,28 @@ spec:
               runAsGroup: 1001
               fsGroup: 1001
               fsGroupChangePolicy: OnRootMismatch
+            # PLT-417: job workspace and /tmp go to a per-pod Longhorn bulk (HDD)
+            # volume deleted with the pod, not to the Talos system disk that also
+            # holds etcd (single QLC NVMe: CI was ~40 % of the node's disk writes).
+            # longhorn-bulk-scratch is Delete/WaitForFirstConsumer; longhorn-bulk is
+            # Retain and would leak one volume per job. Rollback: revert the PR.
+            volumes:
+              - name: work
+                ephemeral:
+                  volumeClaimTemplate:
+                    spec:
+                      accessModes: [ReadWriteOnce]
+                      storageClassName: longhorn-bulk-scratch
+                      resources:
+                        requests: {storage: 10Gi}
+              - name: tmp
+                ephemeral:
+                  volumeClaimTemplate:
+                    spec:
+                      accessModes: [ReadWriteOnce]
+                      storageClassName: longhorn-bulk-scratch
+                      resources:
+                        requests: {storage: 5Gi}
             containers:
               - name: runner
                 # PLT-56 promotion-only release, built from factory-platform
@@ -42,6 +64,9 @@ spec:
                 # official runner digest recorded in the previous revision.
                 image: ghcr.io/smadjapaul/factory-ci-arc@sha256:17ea282d02b71da140ee6b6aa25793fb7c8d02fd44429769861ac8752b27a27f
                 command: ["/home/runner/run.sh"]
+                volumeMounts:
+                  - {name: work, mountPath: /home/runner/_work}
+                  - {name: tmp, mountPath: /tmp}
                 resources:
                   requests: {cpu: 250m, memory: 512Mi, ephemeral-storage: 512Mi}
                   limits: {cpu: "2", memory: 2Gi, ephemeral-storage: 4Gi}

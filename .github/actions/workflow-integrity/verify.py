@@ -18,7 +18,6 @@ REPOSITORY = "SmadjaPaul/kube-ops"
 REGISTRY = ".github/workflow-integrity-admissions.json"
 SELF = ".github/workflows/workflow-integrity.yaml"
 GATE_DIR = ".github/actions/workflow-integrity/"
-CONTRACT = "docs/contracts/agent-test-result-v1.schema.json"
 ALLOWED_FIELDS = {"repository", "pr", "changeFingerprint", "paths", "reason", "approvedBy", "expiresAt"}
 # A pre-cutover registry entry for PR #997 is still on main. Honor existing
 # time-limited SHA admissions until expiry; new admissions use fingerprints.
@@ -49,7 +48,7 @@ def safe_path(path):
 def protected(path):
     return (
         path.startswith((".github/workflows/", ".github/actions/", "tests/harness/", "scripts/check-"))
-        or path in (".justfile", CONTRACT, "package.json")
+        or path in (".justfile", "package.json")
     )
 
 

@@ -1,0 +1,39 @@
+# PLT-394 I1-I3 : App of Apps de l'infrastructure homelab. Rend k8s/bootstrap/infra-root (une
+# Application par composant, ordonnee par waves). Migration progressive : chaque dossier quitte
+# l'ApplicationSet infrastructure quand son Application arrive ici (jamais les deux a la fois).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-root
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/component: infra-root
+  annotations:
+    # Meme vague que l'ApplicationSet infrastructure, avant l'ApplicationSet apps (0).
+    argocd.argoproj.io/sync-wave: "-10"
+    # Le root ne supprime jamais infra-root par prune ; pas de finalizer : aucune cascade.
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  project: bootstrap
+  source:
+    repoURL: https://github.com/SmadjaPaul/kube-ops.git
+    targetRevision: main
+    path: k8s/bootstrap/infra-root
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true

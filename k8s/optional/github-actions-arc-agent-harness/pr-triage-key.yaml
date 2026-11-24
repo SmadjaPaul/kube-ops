@@ -1,0 +1,26 @@
+# PLT-453: copy of the Agentgateway key `pr-triage` (generated in namespace agentgateway,
+# k8s/applications/platform/agentgateway/pr-triage-key.yaml) for the runner that executes the
+# pr-triage workflow of agent-harness. Read through the store k8s-agentgateway; the source name is
+# bound to THIS namespace by the admission rule eso-k8s-store-guard and the CI contract.
+# Mounted as the env var PR_TRIAGE_AGENTGATEWAY_KEY (runner-application.yaml, optional), never in
+# a manifest. Disposable: if the source is rotated the copy follows within 1 h.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: pr-triage-agentgateway
+  namespace: arc-runners-agent-harness
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: k8s-agentgateway
+    kind: ClusterSecretStore
+  target:
+    name: pr-triage-agentgateway
+    creationPolicy: Owner
+  data:
+    - secretKey: PR_TRIAGE_AGENTGATEWAY_KEY
+      remoteRef:
+        key: llm-arc-runners-agent-harness
+        property: PR_TRIAGE_AGENTGATEWAY_KEY

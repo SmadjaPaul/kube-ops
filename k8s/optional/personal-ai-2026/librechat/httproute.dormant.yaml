@@ -4,6 +4,7 @@ metadata:
   name: librechat
   namespace: librechat
   annotations:
+    argocd.argoproj.io/sync-options: Prune=false
     qa.smadja.dev/path: /health
     qa.smadja.dev/expected-status: "200"
 spec:

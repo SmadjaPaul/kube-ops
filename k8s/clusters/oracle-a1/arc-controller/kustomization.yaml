@@ -1,0 +1,27 @@
+# Controleur ARC de l'OKE (PLT-407, post-merge independant du homelab). Meme chart et meme version que le
+# homelab (k8s/optional/github-actions-arc/controller-application.yaml), rendu ici par kustomize (OCI).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+helmCharts:
+  - name: gha-runner-scale-set-controller
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.15.0
+    releaseName: arc
+    namespace: arc-systems
+    includeCRDs: true
+    valuesFile: values.yaml
+# The chart omits false host namespace flags; k8s/CLAUDE.md requires them.
+patches:
+  - target: {group: apps, version: v1, kind: Deployment}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/hostNetwork
+        value: false
+      - op: add
+        path: /spec/template/spec/hostPID
+        value: false
+      - op: add
+        path: /spec/template/spec/hostIPC
+        value: false

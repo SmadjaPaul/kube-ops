@@ -2,19 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":rebaseStalePrs",
     ":enablePreCommit",
     "docker:enableMajor",
     "mergeConfidence:all-badges"
   ],
-  "dependencyDashboard": true,
+  "dependencyDashboard": {
+    "enabled": true
+  },
   "automerge": false,
   "timezone": "Europe/Paris",
-  "schedule": [
-    "* 0-7 * * *"
-  ],
-  "prConcurrentLimit": 20,
-  "prHourlyLimit": 5,
+  "prConcurrentLimit": 8,
+  "prHourlyLimit": 2,
   "rangeStrategy": "pin",
   "internalChecksFilter": "strict",
   "labels": [
@@ -63,486 +61,186 @@
   ],
   "packageRules": [
     {
-      "description": "PLT-128 prefer qualified npm website update PRs over Docker digest backlog",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "package.json",
-        "website/package.json"
-      ],
-      "prPriority": 10
-    },
-    {
-      "description": "PLT-128 defer non-security Docker digest PRs behind npm tooling",
+      "description": "CI load: non-critical docker patch/minor grouped in one weekend batch (sensitive components excluded, handled by PLT-172 rules)",
       "matchDatasources": [
         "docker"
       ],
       "matchUpdateTypes": [
-        "digest",
-        "pinDigest"
-      ],
-      "prPriority": -10
-    },
-    {
-      "groupName": "Media containers",
-      "matchDatasources": [
-        "docker"
+        "minor",
+        "patch"
       ],
       "matchPackageNames": [
-        "/^ghcr\\.io\\/onedr0p\\/.+$/",
-        "/^ghcr\\.io\\/jellyfin\\/.+$/"
+        "!/cilium/",
+        "!/talos/",
+        "!/longhorn/",
+        "!/authentik/",
+        "!/cloudnative-pg/",
+        "!/cnpg/",
+        "!/barman/",
+        "!/velero/",
+        "!/argo-cd/",
+        "!/argoproj/",
+        "!/cert-manager/",
+        "!/external-secrets/",
+        "!/cloudflare/",
+        "!/proxmox/",
+        "!/moodiness\\/polyfin/"
+      ],
+      "groupName": "docker non-critical minor and patch",
+      "schedule": [
+        "* 0-7 * * 0,6"
       ]
     },
     {
-      "description": "Polyfin releases and digests are security-sensitive and require manual review after the image audit",
+      "description": "CI load: helm/kustomize non-critical patch/minor grouped in one weekend batch",
+      "matchManagers": [
+        "helm-values",
+        "helm-requirements",
+        "helmv3",
+        "kustomize"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackageNames": [
+        "!/cilium/",
+        "!/talos/",
+        "!/longhorn/",
+        "!/authentik/",
+        "!/cloudnative-pg/",
+        "!/cnpg/",
+        "!/barman/",
+        "!/velero/",
+        "!/argo-cd/",
+        "!/argoproj/",
+        "!/cert-manager/",
+        "!/external-secrets/",
+        "!/cloudflare/",
+        "!/proxmox/",
+        "!/moodiness\\/polyfin/"
+      ],
+      "groupName": "helm non-critical minor and patch",
+      "schedule": [
+        "* 0-7 * * 0,6"
+      ]
+    },
+    {
+      "description": "Image runner ARC : Node, tofu et les autres outils de images/arc-ci-runner/mise.toml dans un seul lot (meme calendrier que les depots), le workflow arc-ci-runner-drift rattrape le reste",
+      "matchManagers": [
+        "mise",
+        "npm"
+      ],
+      "matchFileNames": [
+        "images/arc-ci-runner/**"
+      ],
+      "groupName": "outils de l'image runner ARC",
+      "schedule": [
+        "before 6am on monday"
+      ]
+    },
+    {
+      "description": "Image runner ARC : pnpm suit packageManager de website (source de verite par depot), pas Renovate ; arc-ci-runner-drift ajoute la version d'un depot qui change (PLT-484)",
+      "matchManagers": [
+        "mise"
+      ],
+      "matchFileNames": [
+        "images/arc-ci-runner/**"
+      ],
+      "matchPackageNames": [
+        "pnpm"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "PLT-399 pin container images in Kubernetes manifests by digest (deterministic revert)",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchFileNames": [
+        "k8s/**"
+      ],
+      "pinDigests": true
+    },
+    {
+      "description": "Gel Factory/Mastra : aucune mise a jour (decision 22/11)",
+      "matchFileNames": [
+        "mastra-factory/**",
+        "factory-platform/**",
+        "k8s/**/factory-platform/**",
+        "k8s/**/optio/**"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Abandonnes : plus de mises a jour pour Atlantis, Codex, Hetzner",
+      "matchPackageNames": [
+        "/atlantis/",
+        "/codex/",
+        "/hetzner/"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Polyfin : revue manuelle apres audit image (pas de groupe)",
       "matchDatasources": [
         "docker"
       ],
       "matchPackageNames": [
         "ghcr.io/moodiness/polyfin"
       ],
-      "matchUpdateTypes": [
-        "digest",
-        "pinDigest",
-        "patch",
-        "minor"
-      ],
-      "automerge": false,
-      "platformAutomerge": false
+      "groupName": null,
+      "automerge": false
     },
     {
-      "groupName": "Netbird",
-      "matchPackageNames": [
-        "/docker.io/netbirdio/.*/"
+      "description": "npm : docs et outillage, un lot",
+      "groupName": "npm (docs et outillage)",
+      "matchManagers": [
+        "npm"
       ]
     },
     {
-      "groupName": "Intel Device Plugins",
-      "matchPackageNames": [
-        "/intel-device-plugins/.*/"
+      "description": "GitHub Actions : un lot",
+      "groupName": "GitHub Actions",
+      "matchManagers": [
+        "github-actions"
       ]
     },
     {
-      "groupName": "Cilium",
-      "matchPackageNames": [
-        "/cilium/.*/"
-      ]
-    },
-    {
-      "matchManagers": [
-        "terraform"
-      ],
-      "matchDepTypes": [
-        "provider",
-        "required_provider"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ]
-    },
-    {
-      "matchManagers": [
-        "helm-values",
-        "helm-requirements"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ]
-    },
-    {
-      "groupName": "external-secrets",
-      "matchPackageNames": [
-        "/^ghcr.io/external-secrets//"
-      ]
-    },
-    {
-      "description": "Prevent automatic upgrades for Talos and Kubernetes versions in tofu/ - require manual review",
-      "matchFileNames": [
-        "/tofu/.*\\.(tf|tfvars|tftpl)$/"
-      ],
-      "matchPackageNames": [
-        "siderolabs/talos",
-        "kubernetes/kubernetes"
-      ],
-      "automerge": false,
-      "automergeType": "pr",
-      "schedule": [
-        "before 10am on monday"
-      ]
-    },
-    {
-      "description": "PLT-128 preserve semver ranges for the commitlint pilot",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "package.json"
-      ],
-      "matchDepTypes": [
-        "devDependencies"
-      ],
-      "matchPackageNames": [
-        "@commitlint/cli",
-        "@commitlint/config-conventional"
-      ],
-      "rangeStrategy": "bump"
-    },
-    {
-      "description": "PLT-128 narrow pilot: root npm devDependencies patch/minor, SemVer >=1, mature releases, CI required",
-      "groupName": "PLT-128 commitlint pilot",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "package.json"
-      ],
-      "matchDepTypes": [
-        "devDependencies"
-      ],
-      "matchPackageNames": [
-        "@commitlint/cli",
-        "@commitlint/config-conventional"
-      ],
-      "matchUpdateTypes": [
-        "patch",
-        "minor"
-      ],
-      "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "3 days",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
-    },
-    {
-      "description": "PLT-128 preserve ranges for static documentation tooling",
-      "enabled": true,
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "devDependencies"
-      ],
-      "matchPackageNames": [
-        "remark",
-        "remark-cli",
-        "remark-frontmatter",
-        "remark-lint",
-        "remark-lint-no-dead-urls",
-        "remark-lint-no-empty-sections",
-        "remark-lint-no-undefined-references",
-        "unist-util-visit"
-      ],
-      "rangeStrategy": "bump"
-    },
-    {
-      "description": "PLT-131 Remark tooling discovery enabled; automerge held pending required documentation gate",
-      "enabled": true,
-      "automerge": true,
-      "platformAutomerge": true,
-      "groupName": "PLT-131 Remark tooling automerge pilot",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "devDependencies"
-      ],
-      "matchPackageNames": [
-        "remark",
-        "remark-cli",
-        "remark-frontmatter",
-        "remark-lint",
-        "remark-lint-no-dead-urls",
-        "remark-lint-no-empty-sections",
-        "remark-lint-no-undefined-references",
-        "unist-util-visit"
-      ],
-      "matchUpdateTypes": [
-        "patch",
-        "minor"
-      ],
-      "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "3 days",
-      "automergeType": "pr"
-    },
-    {
-      "description": "PLT-128 preserve ranges for the documentation TypeScript toolchain",
-      "enabled": true,
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "devDependencies"
-      ],
-      "matchPackageNames": [
-        "typescript"
-      ],
-      "rangeStrategy": "bump"
-    },
-    {
-      "description": "PLT-128 TypeScript documentation patch/minor automerge candidate; gated by docs-required",
-      "enabled": true,
-      "groupName": "PLT-128 TypeScript documentation toolchain",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "devDependencies"
-      ],
-      "matchPackageNames": [
-        "typescript"
-      ],
-      "matchUpdateTypes": [
-        "patch",
-        "minor"
-      ],
-      "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "3 days",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
-    },
-    {
-      "description": "PLT-128 preserve ranges for Docusaurus runtime and plugins",
-      "enabled": true,
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "dependencies",
-        "devDependencies"
-      ],
-      "matchPackageNames": [
-        "@docusaurus/core",
-        "@docusaurus/module-type-aliases",
-        "@docusaurus/plugin-sitemap",
-        "@docusaurus/preset-classic",
-        "@docusaurus/tsconfig",
-        "@docusaurus/types"
-      ],
-      "rangeStrategy": "bump"
-    },
-    {
-      "description": "PLT-128 Docusaurus patch-only automerge candidate; gated by docs-required",
-      "enabled": true,
-      "groupName": "PLT-128 Docusaurus runtime and plugins",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "dependencies",
-        "devDependencies"
-      ],
-      "matchPackageNames": [
-        "@docusaurus/core",
-        "@docusaurus/module-type-aliases",
-        "@docusaurus/plugin-sitemap",
-        "@docusaurus/preset-classic",
-        "@docusaurus/tsconfig",
-        "@docusaurus/types"
-      ],
-      "matchUpdateTypes": [
-        "patch"
-      ],
-      "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "3 days",
-      "automerge": true,
-      "platformAutomerge": true,
-      "automergeType": "pr"
-    },
-    {
-      "description": "PLT-128 preserve ranges for documentation UI libraries",
-      "enabled": true,
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "dependencies"
-      ],
-      "matchPackageNames": [
-        "@mdx-js/react",
-        "clsx",
-        "prism-react-renderer",
-        "react-icons"
-      ],
-      "rangeStrategy": "bump"
-    },
-    {
-      "description": "PLT-128 documentation UI libraries patch-only candidate; requires docs-required and 14-day maturation",
-      "enabled": true,
-      "groupName": "PLT-128 docs UI libraries patch-only",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "dependencies"
-      ],
-      "matchPackageNames": [
-        "@mdx-js/react",
-        "clsx",
-        "prism-react-renderer",
-        "react-icons"
-      ],
-      "matchUpdateTypes": [
-        "patch"
-      ],
-      "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "3 days",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
-    },
-    {
-      "description": "PLT-143 qualified ws-rewriter Rollout Caddy patch/minor AUTO",
+      "description": "Images conteneurs sans etat : un lot (digests, patch, minor)",
+      "groupName": "Images conteneurs",
       "matchDatasources": [
         "docker"
       ],
-      "matchFileNames": [
-        "k8s/applications/ai/gpt-researcher/ws-rewriter-rollout.yaml"
+      "matchManagers": [
+        "kubernetes",
+        "dockerfile",
+        "custom.regex",
+        "helm-values",
+        "kustomize"
       ],
-      "matchPackageNames": [
-        "caddy"
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest",
+        "pin",
+        "patch",
+        "minor"
+      ]
+    },
+    {
+      "description": "Charts Helm non critiques : un lot",
+      "groupName": "Charts Helm",
+      "matchDatasources": [
+        "helm"
       ],
       "matchUpdateTypes": [
         "patch",
         "minor"
-      ],
-      "minimumReleaseAge": "3 days",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
+      ]
     },
     {
-      "description": "PLT-140 Docusaurus website React runtime pair patch-only: docs-required build and typecheck",
-      "groupName": "PLT-140 documentation React patch-only",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "dependencies"
-      ],
-      "matchPackageNames": [
-        "react",
-        "react-dom"
-      ],
-      "matchUpdateTypes": [
-        "patch"
-      ],
-      "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "3 days",
-      "rangeStrategy": "bump",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
-    },
-    {
-      "description": "PLT-140 low-risk docs UI search and typed animation patch only, docs-required gate",
-      "groupName": "PLT-140 documentation UI extras patch-only",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "dependencies"
-      ],
-      "matchPackageNames": [
-        "typed.js",
-        "@easyops-cn/docusaurus-search-local"
-      ],
-      "matchUpdateTypes": [
-        "patch"
-      ],
-      "minimumReleaseAge": "3 days",
-      "rangeStrategy": "bump",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
-    },
-    {
-      "description": "PLT-140 documentation UI libraries minor-only expansion: non-runtime application docs build/typecheck gate; stable semver >=1 and 14d",
-      "groupName": "PLT-140 docs UI libraries minor-only",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchFileNames": [
-        "website/package.json"
-      ],
-      "matchDepTypes": [
-        "dependencies"
-      ],
-      "matchPackageNames": [
-        "@mdx-js/react",
-        "clsx",
-        "prism-react-renderer",
-        "react-icons",
-        "typed.js"
-      ],
-      "matchUpdateTypes": [
-        "minor"
-      ],
-      "matchCurrentVersion": "!/^0\\./",
-      "minimumReleaseAge": "3 days",
-      "rangeStrategy": "bump",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
-    },
-    {
-      "description": "PLT-172 composants sensibles (CNI, OS, stockage, identite, base, sauvegarde, CRD, GitOps, edge Cloudflare, hyperviseur) : 14 jours, jamais d'automerge, qualification avant merge",
-      "matchPackageNames": [
-        "/cilium/",
-        "/talos/",
-        "/longhorn/",
-        "/authentik/",
-        "/cloudnative-pg/",
-        "/cnpg/",
-        "/barman/",
-        "/velero/",
-        "/argo-cd/",
-        "/argoproj/",
-        "/cert-manager/",
-        "/external-secrets/",
-        "/cloudflare/",
-        "/proxmox/",
-        "/kubernetes\\/kubernetes/"
-      ],
-      "minimumReleaseAge": "14 days",
-      "automerge": false,
-      "platformAutomerge": false
-    },
-    {
-      "description": "PLT-172 providers IaC (changement de comportement, plan ou etat) : 14 jours, jamais d'automerge",
+      "description": "Providers OpenTofu : un lot patch/minor",
+      "groupName": "Providers OpenTofu",
       "matchManagers": [
         "terraform"
       ],
@@ -550,45 +248,158 @@
         "provider",
         "required_provider"
       ],
-      "minimumReleaseAge": "14 days",
-      "automerge": false,
-      "platformAutomerge": false
-    },
-    {
-      "description": "PLT-172 providers utilitaires (random, null, local, time, external, archive) patch/minor : delai court, merge manuel apres CI verte",
-      "matchManagers": [
-        "terraform"
-      ],
-      "matchDepTypes": [
-        "provider",
-        "required_provider"
-      ],
-      "matchPackageNames": [
-        "/hashicorp\\/(random|null|local|time|external|archive)$/"
-      ],
       "matchUpdateTypes": [
         "patch",
         "minor"
-      ],
-      "minimumReleaseAge": "3 days"
+      ]
     },
     {
-      "description": "PLT-172 dependances de workflows CI (.github) : 14 jours, revue, jamais d'automerge",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "minimumReleaseAge": "14 days",
-      "automerge": false,
-      "platformAutomerge": false
-    },
-    {
-      "description": "PLT-172 toute mise a jour majeure : 14 jours, jamais d'automerge",
+      "description": "Majeures : PR individuelles, jamais groupees",
       "matchUpdateTypes": [
         "major"
       ],
-      "minimumReleaseAge": "14 days",
+      "groupName": null
+    },
+    {
+      "description": "Composant critique Cilium : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/cilium/"
+      ],
+      "minimumReleaseAge": "7 days",
       "automerge": false,
-      "platformAutomerge": false
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique CloudNativePG : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/cloudnative-pg|cnpg|barman/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique Authentik : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/authentik/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique External Secrets : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/external-secrets/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique Argo CD : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/argo-cd|argoproj/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique Longhorn : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/longhorn/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique Velero : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/velero/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique kube-prometheus-stack : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/kube-prometheus-stack/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique cert-manager : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/cert-manager/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique Talos : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/talos/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique Proxmox : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/proxmox/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique Meilisearch (index Karakeep) : bloque en 1.46.x, toute mineure exige une migration manuelle de la base (MEILI_UPGRADE_DB ou reconstruction), voir k8s/applications/ai/karakeep/meilisearch-statefulset.yaml",
+      "groupName": null,
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "getmeili/meilisearch"
+      ],
+      "allowedVersions": "/^v1\\.46\\./",
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Composant critique Kubernetes : PR individuelle, 7 jours, revue",
+      "groupName": null,
+      "matchPackageNames": [
+        "/kubernetes\\/kubernetes/"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "separateMajorMinor": true
+    },
+    {
+      "description": "qBittorrent pour MyAnonaMouse : version imposee par la liste des clients approuves (https://www.myanonamouse.net/tor/allowed_clients.php). Aucune mise a jour automatique : verifier la liste, puis changer le tag et le digest a la main (PLT-500).",
+      "matchPackageNames": [
+        "/qbittorrent-nox/"
+      ],
+      "enabled": false
     }
   ],
   "kubernetes": {
@@ -599,5 +410,12 @@
   },
   "platformAutomerge": false,
   "ignoreTests": false,
-  "minimumReleaseAge": "3 days"
+  "minimumReleaseAge": "3 days",
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security"
+    ],
+    "minimumReleaseAge": null
+  },
+  "rebaseWhen": "conflicted"
 }

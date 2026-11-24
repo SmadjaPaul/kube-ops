@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS source
+FROM python:3.15-slim AS source
 
 ARG IMAGE_VERSION=f822b554c52676a7e75953c65e2578d9c9fa89dc
 
@@ -13,7 +13,7 @@ RUN git init /src \
     && git checkout --detach FETCH_HEAD \
     && test "$(git rev-parse HEAD)" = "$IMAGE_VERSION"
 
-FROM python:3.11-slim
+FROM python:3.15-slim
 
 ARG IMAGE_VERSION=f822b554c52676a7e75953c65e2578d9c9fa89dc
 LABEL org.opencontainers.image.source="https://github.com/DSS-AI/invoice-ninja-mcp"

@@ -166,6 +166,17 @@ expect "rootfs en ecriture" network FAIL 1
 mk_app nomonitor; drop_file nomonitor monitor.yaml; run_static nomonitor
 expect "sans ServiceMonitor" observability FAIL 1
 
+# --- OKE (PLT-407, PLT-405) : Cilium est en chaining sur OKE (PLT-384), plus d'exemption : la politique reseau est exigee comme sur le homelab
+mk_app oke; drop_file oke netpol.yaml; printf 'name: oke\nnamespace: oke\ncluster: oracle-a1\n' >"$(app oke)/argocd-app.oracle-a1.yaml"; run_static oke
+expect "app OKE sans NetworkPolicy : refusee (plus d'exemption)" network FAIL 1
+mk_app okepol; printf 'name: okepol\nnamespace: okepol\ncluster: oracle-a1\n' >"$(app okepol)/argocd-app.oracle-a1.yaml"; run_static okepol
+expect "app OKE avec NetworkPolicy" network PASS 0
+mk_app okebad; drop_file okebad netpol.yaml; printf 'name: okebad\nnamespace: okebad\ncluster: oracle-a1\n' >"$(app okebad)/argocd-app.oracle-a1.yaml"
+sed -i.bak 's/readOnlyRootFilesystem: true/readOnlyRootFilesystem: false/' "$(app okebad)/app.yaml"; run_static okebad
+expect "app OKE : securityContext toujours exige" network FAIL 1
+mk_app homebis; printf 'name: homebis\nnamespace: homebis\n' >"$(app homebis)/argocd-app.yaml"; drop_file homebis netpol.yaml; run_static homebis
+expect "app homelab (argocd-app.yaml) sans CiliumNetworkPolicy : inchange" network FAIL 1
+
 # --- exceptions ----------------------------------------------------------------------------
 mk_app exc1; printf 'auth: none\n' >"$(app exc1)/app-test.yaml"
 sed -i.bak '/OIDC_AUTH_ENABLED/d' "$(app exc1)/app.yaml"; run_static exc1
@@ -262,6 +273,12 @@ rt_setup; jq '.data.result[0].value[1] = "0"' "$FAKE_DIR/up.json" | sponge_to "$
 expect "cible up==0" observability FAIL 1
 rt_setup; jq '.items[0].status.conditions[0].status = "False"' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"; run_rt good; expect "pod non Ready" selfheal FAIL 1
 grep -q '^DEPLOY_HEALTH=FAIL$' "$tmp/out" || fail "pod non Ready: DEPLOY_HEALTH=FAIL absent"
+# PLT-398 : pod Evicted/Failed ou en cours de suppression (ancienne revision) ne comptent pas dans DEPLOY_HEALTH
+rt_setup; jq --arg a "$A" '.items += [{metadata:{name:($a+"-abc-old"),labels:{app:$a},ownerReferences:[{kind:"ReplicaSet",name:($a+"-abc")}]},status:{phase:"Failed",reason:"Evicted",conditions:[{type:"Ready",status:"False"}],containerStatuses:[{name:$a,restartCount:0}]}}]' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"
+run_rt good; expect "pod Evicted ignore" selfheal PASS 0
+grep -q '^DEPLOY_HEALTH=PASS$' "$tmp/out" || fail "pod Evicted: DEPLOY_HEALTH doit rester PASS ($(grep '^CHECK selfheal' "$tmp/out"))"
+rt_setup; jq --arg a "$A" '.items += [{metadata:{name:($a+"-abc-term"),deletionTimestamp:"2026-01-01T00:00:00Z",labels:{app:$a},ownerReferences:[{kind:"ReplicaSet",name:($a+"-abc")}]},status:{phase:"Running",conditions:[{type:"Ready",status:"False"}],containerStatuses:[{name:$a,restartCount:0}]}}]' "$FAKE_DIR/pods.json" | sponge_to "$FAKE_DIR/pods.json"
+run_rt good; expect "pod Terminating ignore" selfheal PASS 0
 rt_setup unrestricted; run_rt good; expect "PSA non restricted" network FAIL 1
 rt_setup; rm "$FAKE_DIR/ns.json"; run_rt good; expect "namespace absent" selfheal FAIL 1
 grep -q '^DEPLOY_HEALTH=UNKNOWN$' "$tmp/out" || fail "aucun pod: DEPLOY_HEALTH doit etre UNKNOWN (pas de revert)"
@@ -301,6 +318,19 @@ rt_setup unrestricted; jq '.items[0].status.conditions[0].status = "False"' "$FA
 jq '.data.result[0].value[1] = "0"' "$FAKE_DIR/up.json" | sponge_to "$FAKE_DIR/up.json"
 run_rt good; expect "regression non gelee (observability)" observability FAIL 1
 rm -f "$root/policy/app-test-baseline.tsv"
+
+# dossier sans workload (RBAC seul, PLT-392) : selfheal SKIP, pas FAIL "aucun pod"
+mk_app bare
+cat >"$(app bare)/rbac.yaml" <<K
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: bare, namespace: bare }
+rules: []
+K
+printf 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources: [namespace.yaml, rbac.yaml]\n' >"$(app bare)/kustomization.yaml"
+A=bare; rt_setup; run_rt bare
+grep -q '^CHECK selfheal SKIP l.app ne declare aucun workload' "$tmp/out" || fail "app sans workload: selfheal doit etre SKIP ($(grep '^CHECK selfheal' "$tmp/out"))"
+A=good
 
 if ((fails > 0)); then echo "APP_TEST_CONTRACT=FAIL failures=$fails"; exit 1; fi
 echo "APP_TEST_CONTRACT=PASS"

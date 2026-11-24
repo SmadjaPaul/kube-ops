@@ -1,0 +1,64 @@
+# PLT-405 : pod-hardening de #1620 (testee en admission serveur sur kind), repris pour oracle-a1.
+# Pas de privileged, hostNetwork, hostPID, hostIPC ni hostPath. Couvre pods/ephemeralcontainers
+# (kubectl debug). Exemptions par binding : `kube-system` (Cilium, CSI, kube-proxy : hostNetwork et
+# hostPath obligatoires) et `netbird` (le routeur monte le hostPath /var/lib/netbird-router ; PSA
+# privileged deja declare dans netbird-router/namespace.yaml). Releve du 22/11 : seuls ces deux
+# namespaces portent un pod hostPath/hostNetwork/privileged sur le cluster.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: baseline-pod-hardening
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods", "pods/ephemeralcontainers"]
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+      - apiGroups: ["batch"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["jobs"]
+  variables:
+    - name: podSpec
+      expression: "has(object.spec.template) ? object.spec.template.spec : object.spec"
+    - name: allContainers
+      expression: >-
+        (has(variables.podSpec.containers) ? variables.podSpec.containers : []) +
+        (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) +
+        (has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])
+  validations:
+    - expression: "variables.allContainers.all(c, !has(c.securityContext) || !has(c.securityContext.privileged) || !c.securityContext.privileged)"
+      message: "privileged containers are denied on oracle-a1 (baseline, PLT-405)."
+      reason: Forbidden
+    - expression: "!has(variables.podSpec.hostNetwork) || !variables.podSpec.hostNetwork"
+      message: "hostNetwork is denied on oracle-a1 (baseline, PLT-405)."
+      reason: Forbidden
+    - expression: "!has(variables.podSpec.hostPID) || !variables.podSpec.hostPID"
+      message: "hostPID is denied on oracle-a1 (baseline, PLT-405)."
+      reason: Forbidden
+    - expression: "!has(variables.podSpec.hostIPC) || !variables.podSpec.hostIPC"
+      message: "hostIPC is denied on oracle-a1 (baseline, PLT-405)."
+      reason: Forbidden
+    - expression: "!has(variables.podSpec.volumes) || variables.podSpec.volumes.all(v, !has(v.hostPath))"
+      message: "hostPath volumes are denied on oracle-a1 (baseline, PLT-405)."
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: baseline-pod-hardening
+spec:
+  policyName: baseline-pod-hardening
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [kube-system, netbird]

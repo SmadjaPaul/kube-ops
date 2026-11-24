@@ -1,0 +1,74 @@
+# PLT-475: pending APT updates of the Proxmox host (tatouine), read from the
+# Debian apt_info.py textfile collector enabled by the homelab-infra
+# proxmox_node_exporter role (proxmox_node_exporter_enable_apt_updates).
+# The scrape job adds a static label origin="proxmox", so the collector's own
+# origin label (APT origin, e.g. "Debian-Security:13/stable-security") is
+# exposed as exported_origin.
+# Warnings are not paged (route 'null'): the weekly proxmox-updates-backlog
+# CronJob turns the same signal into a single Linear ticket. The upgrade itself
+# is always Paul's gesture from his workstation, never CI (ARC runs inside the
+# VM hosted by this host).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: proxmox-updates
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: proxmox.updates
+      rules:
+        - alert: ProxmoxSecurityUpdatesPending
+          expr: >-
+            sum by (host) (apt_upgrades_pending{job="proxmox-host",exported_origin=~".*[Ss]ecurity.*"}) > 0
+          for: 7d
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $value }} security updates pending on {{ $labels.host }} for more than 7 days"
+            description: >-
+              Debian security updates are available on the Proxmox host and
+              have not been installed for a week. Run the upgrade playbook from
+              the workstation (dry run first).
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/proxmox-updates.md#proxmoxsecurityupdatespending
+        - alert: ProxmoxRebootRequired
+          expr: max by (host) (node_reboot_required{job="proxmox-host"}) > 0
+          for: 7d
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.host }} has required a reboot for more than 7 days"
+            description: >-
+              /run/reboot-required exists on the Proxmox host (kernel, libc or
+              systemd update). A reboot stops the Talos VM, hence the whole
+              cluster: plan a maintenance window.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/proxmox-updates.md#proxmoxrebootrequired
+        - alert: ProxmoxAptIndexStale
+          expr: time() - max by (host) (apt_package_cache_timestamp_seconds{job="proxmox-host"}) > 3 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "The APT index of {{ $labels.host }} is older than 3 days"
+            description: >-
+              apt-daily.timer is not refreshing the index (or a repository
+              fails), so the pending-update count is wrong. Typical cause: an
+              enterprise repository answering 401.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/proxmox-updates.md#proxmoxaptindexstale
+        - alert: ProxmoxAptTelemetryMissing
+          # apt_upgrades_pending disappears when nothing is pending; the
+          # autoremove gauge is always written, so it proves the collector runs.
+          expr: >-
+            absent(apt_autoremove_pending{job="proxmox-host"})
+            or (time() - max(node_textfile_mtime_seconds{job="proxmox-host",file=~"(.*/)?apt\\.prom"}) > 3600)
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pending-update metrics are missing or stale on the Proxmox host"
+            description: >-
+              No fresh apt.prom textfile from the host: the absence of update
+              alerts is then not a sign of an up-to-date host. The collector is
+              enabled by the homelab-infra proxmox_node_exporter role.
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/proxmox-updates.md#proxmoxapttelemetrymissing

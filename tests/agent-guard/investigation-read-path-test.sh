@@ -74,7 +74,7 @@ cp "$tmp/kubectl-ro.sh" "$tmp/obs/kubectl-ro.sh"
 : >"$FAKE_LOG"
 PATH="$tmp/bin:$PATH" bash "$tmp/obs/observe.sh" --local app media >"$tmp/obs.out" 2>&1 || ko "observe --local app a échoué"
 argo_query=$(grep -m1 'argocd_app_info' "$FAKE_LOG" | python3 -c 'import sys,urllib.parse as u; print(u.unquote(sys.stdin.read()))' || true)
-grep -q 'argocd_app_info{name=~"(apps-|infra-)?media"}' <<<"$argo_query" &&
+grep -q 'argocd_app_info{name=~"(app-|apps-|infra-)?media"}' <<<"$argo_query" &&
   ok "observe app : requête Argo apps-/infra-/nom nu" || ko "observe app : requête Argo inattendue : $argo_query"
 ! grep -q 'argocd_app_info{name="media"}' <<<"$argo_query" && ok "observe app : plus de nom exact" || ko "observe app : nom exact"
 
@@ -108,12 +108,11 @@ grep -q '^RO --cluster oracle-a1 get ' "$FAKE_LOG" && ok "investigate : --cluste
 ! run_inv bash scripts/investigate.sh pods media >/dev/null 2>&1 && ok "investigate : sous-commande inconnue refusée" || ko "investigate : sous-commande inconnue acceptée"
 
 # Garde : aucun script d'investigation n'appelle kubectl directement (lecture via kubectl-ro.sh).
-# Exception documentée : .agents/skills/cilium-hubble/scripts/hubble-check.sh ouvre un
-# `kubectl port-forward` (verbe hors liste blanche de kubectl-ro.sh, ne lit aucune ressource).
+# Plus d'exception depuis PRD-88 : hubble-check.sh passe par `kubectl-ro.sh hubble`.
 INVESTIGATION_SCRIPTS=(
   scripts/investigate.sh scripts/status-app.sh scripts/diagnose-app.sh scripts/observe.sh
   scripts/runtime-inventory.sh scripts/runtime-smoke.sh scripts/cluster-reality.sh scripts/backup-audit.sh
-  scripts/lib/argo-app.sh scripts/lib/kube-read.sh
+  scripts/lib/argo-app.sh scripts/lib/kube-read.sh .agents/skills/cilium-hubble/scripts/hubble-check.sh
 )
 for f in "${INVESTIGATION_SCRIPTS[@]}"; do
   if grep -nE '(^|[^-/.[:alnum:]_])kubectl( |$)' "$f" | grep -vE '^[0-9]+:\s*#' | grep -q .; then
@@ -123,17 +122,10 @@ for f in "${INVESTIGATION_SCRIPTS[@]}"; do
   fi
   grep -q 'kube-preflight.sh' "$f" && ko "$f source kube-preflight.sh (le préflight appartient à kubectl-ro.sh)" || true
 done
-# hubble-check : seule exception, et seulement pour port-forward
-hc_direct=$(grep -nE '(^|[^-/.[:alnum:]_])kubectl( |$)' .agents/skills/cilium-hubble/scripts/hubble-check.sh | grep -vE '^[0-9]+:\s*#|command -v' || true)
-if [ -n "$hc_direct" ] && ! grep -v 'port-forward' <<<"$hc_direct" | grep -q .; then
-  ok "hubble-check : kubectl limité à port-forward"
-else
-  ko "hubble-check : appel kubectl autre que port-forward : $hc_direct"
-fi
-
-# hubble-check : préflight obligatoire
+# hubble-check : flux Hubble par kubectl-ro.sh seulement (PRD-88), ni préflight propre ni port-forward
 hc=.agents/skills/cilium-hubble/scripts/hubble-check.sh
-grep -q 'lib/kube-preflight.sh' "$hc" && grep -q 'require_kube_access' "$hc" && ok "hubble-check : préflight" || ko "hubble-check sans préflight"
+grep -q 'kubectl-ro.sh' "$hc" && grep -qE '"\$KRO" hubble (status|observe)' "$hc" && ok "hubble-check : kubectl-ro.sh hubble" || ko "hubble-check sans kubectl-ro.sh hubble"
+grep -nE 'port-forward|require_kube_access' "$hc" | grep -vE '^[0-9]+:\s*#' | grep -q . && ko "hubble-check ouvre son propre accès" || ok "hubble-check : aucun accès propre"
 check "hubble-check : syntaxe" bash -n "$hc"
 ! bash "$hc" 'bad ns' >/dev/null 2>&1 && ok "hubble-check : namespace invalide refusé" || ko "hubble-check : namespace invalide accepté"
 

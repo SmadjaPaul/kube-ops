@@ -15,6 +15,14 @@ spec:
       releaseName: arc
       valuesObject:
         replicaCount: 1
+        # PLT-459: controller and listener metrics (chart 0.15.0, port name
+        # `metrics`). Without this block the chart passes `--metrics-addr=0`
+        # and `--listener-metrics-addr=0`, so no gha_* series exist. The
+        # controller recreates the listener pods when its flags change.
+        metrics:
+          controllerManagerAddr: ":8080"
+          listenerAddr: ":8080"
+          listenerEndpoint: "/metrics"
         resources:
           requests: {cpu: 50m, memory: 128Mi}
           limits: {cpu: 500m, memory: 512Mi}

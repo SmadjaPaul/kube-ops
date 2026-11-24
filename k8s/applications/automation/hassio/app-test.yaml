@@ -1,0 +1,3 @@
+exceptions:
+  observability: "Home Assistant sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  network: "Home Assistant en hostNetwork avec NET_ADMIN/NET_RAW/NET_BROADCAST et ecriture dans /config (decouverte reseau domotique) : non-root et rootfs read-only incompatibles ; namespace PSA privileged (policy-exception.yaml)"

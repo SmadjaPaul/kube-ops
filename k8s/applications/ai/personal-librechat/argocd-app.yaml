@@ -1,0 +1,6 @@
+name: personal-librechat
+namespace: librechat
+postMerge: notify
+preview: false
+extraPaths:
+  - k8s/optional/personal-ai-2026/librechat

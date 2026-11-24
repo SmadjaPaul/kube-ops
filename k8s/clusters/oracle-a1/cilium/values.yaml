@@ -1,0 +1,61 @@
+# Valeurs de la doc Cilium "Oracle Kubernetes Engine (OKE) VCN-Native Pod Networking" (1.20) :
+# cni.chainingTarget=oci, cni.exclusive=false, routingMode=native, pas de masquerade, kube-proxy conserve,
+# ipam cluster-pool sur 100.64.0.0/16 (plage interne a Cilium, jamais attribuee aux pods : les IP de pods
+# viennent toujours du sous-reseau VCN via le CNI OCI).
+cni:
+  chainingTarget: oci
+  # Le dossier /etc/cni/net.d reste a vcn-native-ip-cni (OKE) : Cilium n'y renomme rien.
+  exclusive: false
+  # Pas de nettoyage du conflist a l'arret de l'agent : pendant un redemarrage de l'agent, un nouveau pod
+  # echoue a demarrer (fail-closed) au lieu de naitre sans politique (IMDS joignable). Consequence : le
+  # retour arriere demande de retirer /etc/cni/net.d/05-cilium.conflist du noeud (README).
+  uninstall: false
+  resources:
+    requests: {cpu: 10m, memory: 10Mi}
+    limits: {cpu: 100m, memory: 64Mi}
+routingMode: native
+enableIPv4Masquerade: false
+kubeProxyReplacement: false
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4PodCIDRList:
+      - 100.64.0.0/16
+
+policyEnforcementMode: default
+
+# Noeud A1 unique (2 OCPU, 12 Go).
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {memory: 1Gi}
+initResources:
+  requests: {cpu: 10m, memory: 16Mi}
+  limits: {cpu: 200m, memory: 128Mi}
+operator:
+  replicas: 1
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {memory: 256Mi}
+
+# Hubble minimal : serveur Hubble dans l'agent (cilium-dbg / hubble observe en exec), sans relay ni UI ni
+# TLS (aucun port expose hors du noeud ; un certificat genere par Helm changerait a chaque rendu Argo).
+hubble:
+  enabled: true
+  relay:
+    enabled: false
+  ui:
+    enabled: false
+  tls:
+    enabled: false
+  metrics:
+    enabled: ~
+prometheus:
+  enabled: false
+envoy:
+  enabled: false
+gatewayAPI:
+  enabled: false
+ingressController:
+  enabled: false
+l2announcements:
+  enabled: false

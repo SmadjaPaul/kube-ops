@@ -43,6 +43,18 @@ spec:
         request.resource.resource == 'services' && request.subResource == 'proxy' &&
         request.namespace == 'monitoring' &&
         request.name in ['kube-prometheus-stack-prometheus:9090', 'loki-gateway:80'])
+    # PRD-88 : lecture des flux Hubble (scripts/kubectl-ro.sh hubble). Le
+    # port-forward arrive en CONNECT pods/portforward ; seul un pod du Deployment
+    # hubble-relay de kube-system est exempté (nom <deployment>-<hash>-<suffixe>,
+    # aucun autre pod, aucun autre namespace). Le RBAC (Role
+    # agent-operator-hubble-relay) n'accorde ce verbe que dans kube-system ;
+    # l'agent ne peut créer aucun pod dans kube-system.
+    - name: not-hubble-relay-portforward
+      expression: >-
+        !(request.operation == 'CONNECT' && request.resource.group == '' &&
+        request.resource.resource == 'pods' && request.subResource == 'portforward' &&
+        request.namespace == 'kube-system' &&
+        request.name.matches('^hubble-relay-[a-z0-9]{6,10}-[a-z0-9]{5}$'))
   variables:
     - name: admitted
       expression: >-
@@ -53,6 +65,21 @@ spec:
       expression: >-
         request.resource.group + '/' + request.resource.resource +
         (has(request.subResource) && request.subResource != '' ? '/' + request.subResource : '')
+    # PRD-88 : Jobs manuels admis hors scope.tsv, couples namespace/cronjob de
+    # cronjob-run.tsv (vérifié par le test d'identité). Seule la création d'un Job
+    # nommé <cronjob>-manual-<AAAAMMJJhhmmss> ; la policy agent-operator-cronjob-run
+    # impose que son pod template soit celui du CronJob de Git.
+    - name: manualRuns
+      expression: >-
+        ['home-assistant/ha-agent-mcp-smoke', 'home-assistant/ha-agent-music-smoke',
+        'home-assistant/ha-mcp-token-rotate',
+        'music-assistant/ma-reconcile-apply', 'music-assistant/ma-reconcile-plan',
+        'music-assistant/ma-sync', 'velero/ha-restore-drill']
+    - name: manualRun
+      expression: >-
+        request.operation == 'CREATE' && variables.target == 'batch/jobs' &&
+        variables.manualRuns.exists(r,
+        (request.namespace + '/' + object.metadata.name).matches('^' + r + '-manual-[0-9]{14}$'))
     - name: templated
       expression: >-
         request.operation in ['CREATE', 'UPDATE'] &&
@@ -131,7 +158,7 @@ spec:
         variables.oldServiceAccount != 'default' ||
         variables.oldVolumes.exists(v, has(v.secret) || has(v.projected) || has(v.csi))
   validations:
-    - expression: request.namespace in variables.admitted
+    - expression: request.namespace in variables.admitted || variables.manualRun
       reason: Forbidden
       message: "agent-operator : namespace hors périmètre ou objet cluster-scoped (scope.tsv)"
     - expression: >-
@@ -167,7 +194,7 @@ spec:
       reason: Forbidden
       message: "agent-operator : StatefulSet dont la rétention des PVC vaut Delete (suppression de données)"
     - expression: >-
-        !variables.templated || request.operation != 'CREATE' ||
+        !variables.templated || request.operation != 'CREATE' || variables.manualRun ||
         (size(variables.newSecretEnv) == 0 && size(variables.newSecretEnvFrom) == 0 &&
         !variables.newVolumes.exists(v, has(v.secret) || has(v.projected) || has(v.csi) ||
         has(v.hostPath) || has(v.persistentVolumeClaim) || has(v.ephemeral)) &&
@@ -201,3 +228,212 @@ metadata:
 spec:
   policyName: agent-operator-guard
   validationActions: [Deny]
+---
+# PRD-88 — un Job manuel de l'agent (kubectl-rw.sh run-cronjob) reprend exactement
+# le CronJob de Git : même pod spec (image, commande, ServiceAccount, Secret,
+# volumes), mêmes labels et annotations de pod (hors labels posés par le
+# contrôleur Job), pas de manualSelector. Le CronJob sert de paramètre : un
+# binding par ligne de cronjob-run.tsv, paramètre absent = refus. L'agent ne peut
+# modifier aucun de ces CronJobs (namespaces hors scope.tsv) : le contenu du Job
+# vient donc de Git.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: agent-operator-cronjob-run
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  failurePolicy: Fail
+  paramKind:
+    apiVersion: batch/v1
+    kind: CronJob
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [batch]
+        apiVersions: ["*"]
+        operations: [CREATE]
+        resources: [jobs]
+  matchConditions:
+    - name: agent-operator-identity
+      expression: request.userInfo.username == 'system:serviceaccount:agent-operator:agent-operator'
+  variables:
+    - name: isRun
+      expression: >-
+        object.metadata.name.matches('^' + params.metadata.name + '-manual-[0-9]{14}$')
+    - name: controllerLabels
+      expression: >-
+        ['controller-uid', 'job-name', 'batch.kubernetes.io/controller-uid', 'batch.kubernetes.io/job-name']
+    # Branches de même forme (map ou {}) : jamais d'objet ObjectMeta face à une map vide.
+    - name: jobLabels
+      expression: >-
+        has(object.spec.template.metadata) && has(object.spec.template.metadata.labels) ?
+        object.spec.template.metadata.labels : {}
+    - name: cronLabels
+      expression: >-
+        has(params.spec.jobTemplate.spec.template.metadata) &&
+        has(params.spec.jobTemplate.spec.template.metadata.labels) ?
+        params.spec.jobTemplate.spec.template.metadata.labels : {}
+    - name: jobAnnotations
+      expression: >-
+        has(object.spec.template.metadata) && has(object.spec.template.metadata.annotations) ?
+        object.spec.template.metadata.annotations : {}
+    - name: cronAnnotations
+      expression: >-
+        has(params.spec.jobTemplate.spec.template.metadata) &&
+        has(params.spec.jobTemplate.spec.template.metadata.annotations) ?
+        params.spec.jobTemplate.spec.template.metadata.annotations : {}
+  validations:
+    - expression: >-
+        !variables.isRun ||
+        object.spec.template.spec == params.spec.jobTemplate.spec.template.spec
+      reason: Forbidden
+      message: "agent-operator : Job manuel dont le pod spec diffère du CronJob de Git"
+    - expression: >-
+        !variables.isRun || !has(object.spec.manualSelector) || !object.spec.manualSelector
+      reason: Forbidden
+      message: "agent-operator : Job manuel avec manualSelector"
+    - expression: >-
+        !variables.isRun || variables.jobAnnotations == variables.cronAnnotations
+      reason: Forbidden
+      message: "agent-operator : Job manuel dont les annotations de pod diffèrent du CronJob"
+    - expression: >-
+        !variables.isRun ||
+        (variables.jobLabels.all(k, k in variables.controllerLabels ||
+        (k in variables.cronLabels && variables.cronLabels[k] == variables.jobLabels[k])) &&
+        variables.cronLabels.all(k, k in variables.jobLabels && variables.jobLabels[k] == variables.cronLabels[k]))
+      reason: Forbidden
+      message: "agent-operator : Job manuel dont les labels de pod diffèrent du CronJob"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ha-mcp-token-rotate
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ha-mcp-token-rotate
+    namespace: home-assistant
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: home-assistant
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ma-reconcile-apply
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ma-reconcile-apply
+    namespace: music-assistant
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: music-assistant
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ma-reconcile-plan
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ma-reconcile-plan
+    namespace: music-assistant
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: music-assistant
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ma-sync
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ma-sync
+    namespace: music-assistant
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: music-assistant
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ha-agent-music-smoke
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ha-agent-music-smoke
+    namespace: home-assistant
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: home-assistant
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ha-agent-mcp-smoke
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ha-agent-mcp-smoke
+    namespace: home-assistant
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: home-assistant
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ha-restore-drill
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ha-restore-drill
+    namespace: velero
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: velero

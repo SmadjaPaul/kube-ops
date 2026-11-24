@@ -1,0 +1,4 @@
+name: gpt-researcher
+namespace: gpt-researcher
+postMerge: notify
+preview: false

@@ -36,7 +36,7 @@ before changing the group.
 
 ## Acceptance after GitOps merge
 
-1. Argo `apps-games` observed/synced/healthy on exact merge SHA.
+1. Argo `app-romm` observed/synced/healthy on exact merge SHA.
    Pod spec and runtime env reflect the new **one-group** value.
 2. Browser Authentik login with the **active** e2e-user who belongs to
    family; confirm callback HTTP success and RomM `/api/users/me`

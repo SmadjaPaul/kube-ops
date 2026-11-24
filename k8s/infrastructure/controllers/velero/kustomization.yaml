@@ -9,14 +9,13 @@ resources:
   - schedules/
   - drills/plt222-ntfy-r2-backup.yaml
   - repository-config.yaml
-  - auto-cleanup-jobs-policy.yaml
   - maintenance-job-config.yaml
   - prometheusrule.yaml
 
 helmCharts:
   - name: velero
     repo: https://vmware-tanzu.github.io/helm-charts
-    version: 12.0.1
+    version: 12.2.5
     releaseName: velero
     namespace: velero
     valuesFile: values.yaml

@@ -1,0 +1,5 @@
+auth: none
+exceptions:
+  auth: "ntfy applique auth-default-access deny-all avec comptes locaux ; route externe pour les clients mobiles et webhooks"
+  observability: "ntfy sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  rootfs: "l'image ecrit hors des volumes montes (caches/runtime) : readOnlyRootFilesystem non valide sur cluster ; le reste du securityContext est conforme"

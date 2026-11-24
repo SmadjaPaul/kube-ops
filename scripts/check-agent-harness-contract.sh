@@ -1,20 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# The versioned result contract belongs to the Factory/agent harness,
-# independently of the retired Paperclip runtime.
-contract='docs/contracts/agent-test-result-v1.schema.json'
-example='docs/contracts/agent-test-result-v1.example.json'
-[[ -f "$contract" && -f "$example" ]] || {
-  echo "ERROR: missing versioned agent test result contract" >&2
-  exit 1
-}
-node --test tests/harness/agent-test-result-contract.test.mjs
-
 # PLT-312 (M5): doppler-safe (--only, closed project list), kubectl-ro identity, 24 h agent tokens.
-bash tests/agent-guard/secret-output-guard-test.sh
+bash tests/agent-guard/secret-helpers-test.sh
 # PLT-367 / F1: agent instructions never recommend the operator-identity access recipes; includes a negative case.
 bash tests/agent-guard/agent-kube-access-doc-test.sh
+# PLT-420: automatic renewal of the 24 h agent token (stubbed provisioning, lock, failure code).
+bash tests/agent-guard/agent-operator-token-renew-test.sh
+bash tests/agent-guard/agent-token-renewer-test.sh
+bash tests/harness/kube-preflight-oke-test.sh
 
 # PLT-210: bare `! cmd` assertions never trip `set -e`.
 bash scripts/check-harness-negations.sh
@@ -27,4 +21,3 @@ if grep -Ein "$physical_pattern" "${consumer_files[@]}"; then
   exit 1
 fi
 echo "AI_CONSUMER_MODEL_ABSTRACTION=PASS"
-echo "AGENT_TEST_RESULT_CONTRACT=PASS"

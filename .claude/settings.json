@@ -1,18 +1,15 @@
 {
   "bashOutputMaxChars": 8000,
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/secret-output-guard.py\"",
-            "timeout": 10,
-            "onFailure": "block"
-          }
-        ]
+  "extraKnownMarketplaces": {
+    "agent-harness": {
+      "source": {
+        "source": "github",
+        "repo": "SmadjaPaul/agent-harness"
       }
-    ]
+    }
+  },
+  "enabledPlugins": {
+    "homelab-ops@agent-harness": true,
+    "harness-core@agent-harness": true
   }
 }

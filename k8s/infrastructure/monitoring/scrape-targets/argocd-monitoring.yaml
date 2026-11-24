@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-application-controller-metrics
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-application-controller
+    app.kubernetes.io/component: application-controller
+    monitoring.kube-ops.dev/target: argocd-application-controller
+spec:
+  selector:
+    app.kubernetes.io/name: argocd-application-controller
+    app.kubernetes.io/instance: argocd
+  ports:
+    - name: metrics
+      port: 8082
+      protocol: TCP
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-application-controller
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: argocd-application-controller
+    app.kubernetes.io/part-of: argocd
+spec:
+  namespaceSelector:
+    matchNames:
+      - argocd
+  selector:
+    matchLabels:
+      monitoring.kube-ops.dev/target: argocd-application-controller
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: argocd-orphan-monitoring
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: argocd
+spec:
+  groups:
+    - name: argocd.orphan-resources
+      rules:
+        - record: kube_ops:argocd_orphaned_resources_unique
+          # One project warning is emitted per Application. The project-level
+          # max is the de-duplicated Argo signal; the object-level inventory
+          # remains the authority for UID/GVK classification.
+          expr: max by (project) (argocd_app_orphaned_resources_count)
+        - alert: ArgoCDOrphanedResourcesPresent
+          expr: kube_ops:argocd_orphaned_resources_unique > 0
+          for: 15m
+          labels:
+            severity: warning
+            root_cause_layer: argocd_ownership
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdorphanedresourcespresent
+            summary: "Argo CD reports orphaned resources"
+            description: "Project {{ $labels.project }} reports {{ $value | printf \"%.0f\" }} de-duplicated orphaned resources. Classify ownership before deleting anything."
+        - alert: ArgoCDOrphanedResourcesGrowing
+          expr: delta(kube_ops:argocd_orphaned_resources_unique[30m]) > 0
+          for: 15m
+          labels:
+            severity: warning
+            root_cause_layer: argocd_ownership
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdorphanedresourcesgrowing
+            summary: "Argo CD orphaned-resource count is growing"
+            description: "Project {{ $labels.project }} has a higher de-duplicated orphan count than 30 minutes ago. Investigate sync, ownership and controller-created children before cleanup."
+---
+# PLT-396: application health, drift and sync failures. The previews project is
+# excluded (per-PR environments are short-lived). severity warning: Argo CD
+# Notifications already publishes to ntfy; Alertmanager only pages on critical.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: argocd-application-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: argocd
+spec:
+  groups:
+    - name: argocd.applications
+      rules:
+        - alert: ArgoCDApplicationDegraded
+          expr: max by (name, project) (argocd_app_info{health_status="Degraded", project!="previews"}) > 0
+          for: 5m
+          labels:
+            severity: warning
+            root_cause_layer: argocd_application
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdapplicationdegraded
+            summary: "Argo CD application Degraded"
+            description: "Application {{ $labels.name }} (project {{ $labels.project }}) has been Degraded for 5 minutes."
+        - alert: ArgoCDApplicationOutOfSync
+          expr: max by (name, project) (argocd_app_info{sync_status="OutOfSync", project!="previews"}) > 0
+          for: 15m
+          labels:
+            severity: warning
+            root_cause_layer: argocd_application
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdapplicationoutofsync
+            summary: "Argo CD application OutOfSync"
+            description: "Application {{ $labels.name }} (project {{ $labels.project }}) has been OutOfSync for 15 minutes."
+        - alert: ArgoCDApplicationSyncFailed
+          expr: sum by (name, project) (increase(argocd_app_sync_total{phase=~"Error|Failed", project!="previews"}[15m])) > 0
+          for: 1m
+          labels:
+            severity: warning
+            root_cause_layer: argocd_application
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#argocdapplicationsyncfailed
+            summary: "Argo CD sync failed"
+            description: "Application {{ $labels.name }} (project {{ $labels.project }}) had a failed sync in the last 15 minutes."

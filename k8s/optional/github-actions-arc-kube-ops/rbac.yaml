@@ -21,7 +21,7 @@ rules:
     resources: [httproutes]
     verbs: [get, list]
   - apiGroups: [postgresql.cnpg.io]
-    resources: [clusters, backups]
+    resources: [clusters, backups, scheduledbackups]
     verbs: [get, list]
   - apiGroups: [keda.sh]
     resources: [scaledobjects]

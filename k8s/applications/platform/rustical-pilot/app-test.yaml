@@ -1,0 +1,2 @@
+exceptions:
+  observability: "rustical-pilot sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"

@@ -23,7 +23,8 @@
 # Sortie : uniquement des statuts, l'empreinte tronquée et la date d'expiration.
 #
 # Rotation : relancer --provision (Paul) avant l'expiration, au moins une fois par jour.
-# kubectl-ro.sh repli opérateur (KUBECTL_RO_IDENTITY=auto) si le jeton est expiré. Révocation immédiate :
+# kubectl-ro.sh refuse (exit 2, plus de repli opérateur depuis PLT-420) si le jeton est expiré ; renouvellement
+# automatique : scripts/agent-operator-token-renew.sh (docs/operations/agent-operator-token-renewal.md). Révocation immédiate :
 # supprimer le ServiceAccount (rollback PLT-237) invalide tous ses jetons.
 set -uo pipefail
 
@@ -93,6 +94,21 @@ verify_agent() {
   can no get secrets -n monitoring
   can yes delete pods -n media
   can yes patch cronjobs -n media
+  # PRD-88 : port-forward du relais Hubble (kube-system seul ; la garde borne au pod
+  # hubble-relay, invisible de can-i) et Jobs manuels des CronJobs de cronjob-run.tsv.
+  can yes create pods/portforward -n kube-system
+  can no create pods/portforward -n media
+  can no create pods/portforward -n monitoring
+  can no create pods/exec -n kube-system
+  can no get secrets -n kube-system
+  can yes create jobs -n home-assistant
+  can yes create jobs -n music-assistant
+  can no delete jobs -n home-assistant
+  can no patch cronjobs -n home-assistant
+  can no patch deployments -n home-assistant
+  can no create cronjobs -n music-assistant
+  can no get secrets -n home-assistant
+  can no get secrets -n music-assistant
   # can-i ne voit ni la garde d'admission (CONNECT sur le proxy) ni la réponse :
   # lecture réelle d'une requête sans effet, puis POST refusé par le RBAC.
   local prom="/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query=vector%281%29"
@@ -177,7 +193,7 @@ git -C "$ROOT" fetch -q origin main 2>/dev/null || echo "ARGO git fetch impossib
 # Les manifestes à la révision Argo doivent être identiques à ceux de cette
 # copie de travail (même policy, même RBAC, mêmes RoleBindings).
 for pair in infra-security:k8s/infrastructure/security/agent-operator \
-  apps-platform:k8s/applications/platform/agent-operator-access; do
+  app-agent-operator-access:k8s/applications/platform/agent-operator-access; do
   app=${pair%%:*}
   path=${pair#*:}
   st=$(kubectl --request-timeout=15s get application "$app" -n argocd \

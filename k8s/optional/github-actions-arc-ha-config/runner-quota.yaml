@@ -1,0 +1,20 @@
+# One runner at a time (PLT-414), 250m CPU request.
+# former resource constraint (node at 67 % of allocatable CPU requests against a 70 %
+# ceiling, D-2026-11-15-05), which D-2026-11-20-03 lifts. The cap is not re-derived here;
+# revisit it before raising the runner count.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: arc-runner-ha-config-bounds
+  namespace: arc-runners-ha-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  hard:
+    pods: "1"
+    requests.cpu: 250m
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 4Gi
+    requests.ephemeral-storage: 1Gi
+    limits.ephemeral-storage: 10Gi

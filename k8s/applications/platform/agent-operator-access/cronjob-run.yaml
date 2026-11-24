@@ -1,0 +1,67 @@
+# PRD-88 — lancement manuel des CronJobs de
+# k8s/infrastructure/security/agent-operator/cronjob-run.tsv (kubectl-rw.sh run-cronjob).
+# Un Role par namespace de cette liste : `create` sur jobs, rien d'autre (la
+# lecture du CronJob et le suivi du Job passent par le rôle `view`). Le nom et le
+# contenu du Job sont bornés par les policies agent-operator-guard et
+# agent-operator-cronjob-run. Toute divergence avec cronjob-run.tsv fait échouer
+# tests/agent-guard/agent-operator-identity-test.sh.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-operator-cronjob-run
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-operator-cronjob-run
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-operator-cronjob-run
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: agent-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-operator-cronjob-run
+  namespace: music-assistant
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-operator-cronjob-run
+  namespace: music-assistant
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-operator-cronjob-run
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: agent-operator

@@ -1,0 +1,95 @@
+# Baseline d'OKE (PLT-405) : une Application `infra-<dossier>` par dossier liste ci-dessous.
+# Liste explicite (comme le homelab) : les anciens overlays de k8s/clusters/oracle-a1/ (hindsight,
+# media, cloudflared...) restent dormants et ne sont reconcilies par rien.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  namespace: argocd
+  name: infrastructure
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: '-10'
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
+        revision: main
+        directories:
+          # VAP qui refuse `Service type: LoadBalancer` (PLT-260, Always Free).
+          - path: k8s/clusters/oracle-a1/guardrails
+          # Lecture seule des agents (SA argocd/agent-operator, RBAC view sans Secret) :
+          # requis par scripts/agent-operator-oke-token.sh --provision.
+          - path: k8s/clusters/oracle-a1/agent-operator
+          # Renouvellement du jeton agent-operator toutes les 6 h (PLT-481, D-2026-11-23-04) : apres
+          # external-secrets (jeton d'ecriture Doppler via doppler-cluster) et cilium (egress du Job).
+          - path: k8s/clusters/oracle-a1/agent-token-renewer
+          # External Secrets + ClusterSecretStore doppler-cluster seul (PLT-406). Le Secret
+          # doppler-access-token n'est pas en Git : geste unique de Paul (README).
+          - path: k8s/clusters/oracle-a1/external-secrets
+          # Pair NetBird `oke-oracle-a1-router` (groupe OKE Routers) : chemin admin vers l'API privee.
+          # Apres external-secrets (secret NB_SETUP_KEY via doppler-cluster ; l'Application retente).
+          - path: k8s/clusters/oracle-a1/netbird-router
+          # Export Grafana Cloud (alloy + kube-state-metrics, label cluster=oracle-a1) : sans lui,
+          # scripts/verify-delivery.sh ne voit aucune app d'OKE. Secret via doppler-cluster (apres external-secrets).
+          - path: k8s/clusters/oracle-a1/observability
+          # Cilium en CNI chaining sur le CNI OCI (PLT-384) : application des NetworkPolicy/CNP/CCNP.
+          - path: k8s/clusters/oracle-a1/cilium
+          # Baseline reseau (PLT-384) : CCNP deny-imds + allow-egress-unisolated, default-deny whoami,
+          # quotas, sonde continue. Ses CRD cilium.io viennent de cilium-operator : l'Application retente
+          # (retry ci-dessous) jusqu'a leur enregistrement.
+          - path: k8s/clusters/oracle-a1/baseline
+          # Post-merge independant du homelab (PLT-407) : controleur ARC (arc-systems), puis scale set
+          # `kube-ops-oke-arc` (arc-runners-oke) qui verifie les apps d'OKE depuis OKE. Apres external-secrets
+          # (secret App GitHub via doppler-cluster) et cilium (egress du runner) ; l'Application retente.
+          - path: k8s/clusters/oracle-a1/arc-controller
+          - path: k8s/clusters/oracle-a1/arc-runner
+          # pg-shared (PLT-408) : operateur CNPG, plugin barman-cloud (TLS gRPC par un Issuer
+          # auto-signe, d'ou cert-manager). Le plugin et ses Certificate attendent les CRD de
+          # cert-manager : l'Application retente. Puis le Cluster pg-shared (cnpg-cluster) : seule
+          # exception a la regle "pas de donnees sur OKE" (README), pour le drill de restauration hors
+          # Oracle ; aucune base applicative avant un drill PROVEN.
+          - path: k8s/clusters/oracle-a1/cert-manager
+          - path: k8s/clusters/oracle-a1/cnpg-operator
+          - path: k8s/clusters/oracle-a1/cnpg-barman-plugin
+          - path: k8s/clusters/oracle-a1/cnpg-cluster
+          # Tunnel Cloudflare sortant d'OKE (PLT-407, E1). N'expose RIEN seul : sans regle d'ingress publiee par
+          # OpenTofu (homelab-infra, enable_oracle_a1_whoami, MANDAT de Paul) il repond 404. Apres external-secrets.
+          - path: k8s/clusters/oracle-a1/cloudflared
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: 'infra-{{ path.basename }}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/component: 'static-infrastructure'
+        app.kubernetes.io/part-of: infrastructure
+        kube-ops.dev/cluster: oracle-a1
+    spec:
+      project: infrastructure
+      source:
+        repoURL: https://github.com/SmadjaPaul/kube-ops.git
+        targetRevision: main
+        path: '{{ path }}'
+        kustomize: {}
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 5m
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true
+          - PruneLast=true

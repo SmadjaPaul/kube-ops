@@ -1,19 +1,29 @@
+# Racine de l'Argo CD d'OKE : reconcilie k8s/clusters/oracle-a1/argocd-root (projets et ApplicationSets).
+# Appliquee une seule fois par scripts/oke-bootstrap.sh ; ensuite elle se reconcilie seule depuis Git.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: oracle-a1-root
+  name: root
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: root
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
 spec:
-  project: oracle-a1
+  project: bootstrap
   source:
     repoURL: https://github.com/SmadjaPaul/kube-ops.git
     targetRevision: main
-    # Root is limited to the Oracle cluster tree; shared bases are only read
-    # through the overlays that live under k8s/clusters/oracle-a1/.
-    path: k8s/clusters/oracle-a1/apps
+    path: k8s/clusters/oracle-a1/argocd-root
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
   syncPolicy:
-    automated: {prune: true, selfHeal: true}
-    syncOptions: [ServerSideApply=true]
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true

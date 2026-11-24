@@ -15,36 +15,113 @@ spec:
     path: /metrics
     interval: 30s
 ---
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: gatekeeper
-  namespace: gatekeeper-system
-  labels:
-    app.kubernetes.io/name: gatekeeper
-    app.kubernetes.io/part-of: security
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: gatekeeper
-  endpoints:
-  - port: metrics
-    path: /metrics
-    interval: 30s
----
+# Revue alertes 2026-11-23: the Kyverno ServiceMonitor never scraped. The
+# Prometheus selector requires release=kube-prometheus-stack (absent before),
+# the metrics Services carry part-of=kyverno (not name=kyverno), and their port
+# is named metrics-port (not metrics). Result before: zero kyverno_* series.
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: kyverno
   namespace: kyverno
   labels:
+    release: kube-prometheus-stack
     app.kubernetes.io/name: kyverno
     app.kubernetes.io/part-of: security
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: kyverno
+      app.kubernetes.io/part-of: kyverno
   endpoints:
-  - port: metrics
+  - port: metrics-port
     path: /metrics
     interval: 30s
+    # The Kyverno alerts read apiserver_admission_webhook_* and pod readiness,
+    # not kyverno_* histograms. Their buckets (~9.6k series, mostly per-policy
+    # validating_policy_execution) and client_queries_total had no reader.
+    # Counters (admission_requests_total, reconcile) stay. PLT-470: the
+    # per-resource policy result counter (~6.5k series, churns with every pod)
+    # and per-policy execution count/sum (~1.2k) had no reader either.
+    metricRelabelings:
+    - action: drop
+      sourceLabels: [__name__]
+      regex: "kyverno_.*_duration_seconds_bucket|kyverno_client_queries_total|kyverno_validating_policy_results_total|kyverno_validating_policy_execution_duration_seconds_(count|sum)"
+---
+# Kyverno alerts. Admission webhook health is read from the apiserver side
+# (apiserver_admission_webhook_*, verified live) and from pod readiness, so the
+# rules do not depend on Kyverno's own metric names. Each alert carries an
+# action annotation: none of them is informational.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kyverno-admission
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: kyverno.admission
+      rules:
+        - alert: KyvernoAdmissionNoReadyReplica
+          expr: sum(kube_pod_status_ready{namespace="kyverno",pod=~"kyverno-admission-controller-.*",condition="true"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#kyvernoadmissionnoreadyreplica
+            summary: "Kyverno admission controller: aucun pod Ready (les déploiements peuvent être bloqués)"
+            action: "kubectl-ro get pods -n kyverno ; kubectl-ro events -n kyverno ; rollback de la dernière version Kyverno si récente (PLT-400)"
+        - alert: KyvernoAdmissionReplicasDegraded
+          expr: sum(kube_pod_status_ready{namespace="kyverno",pod=~"kyverno-admission-controller-.*",condition="true"}) < 2
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#kyvernoadmissionreplicasdegraded
+            summary: "Kyverno admission controller: moins de 2 réplicas Ready (cible 3, PLT-400)"
+            action: "kubectl-ro get pods -n kyverno -l app.kubernetes.io/component=admission-controller ; vérifier les probes readiness (timeouts observés le 23/11)"
+        - alert: KyvernoAdmissionPodRestarting
+          expr: sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace="kyverno"}[1h])) > 3
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#kyvernoadmissionpodrestarting
+            summary: "Kyverno: pod {{ $labels.pod }} redémarre plus de 3 fois par heure"
+            action: "kubectl-ro logs -n kyverno {{ $labels.pod }} --previous --tail=100 ; cause des exits (exitCode 0 observé)"
+        - alert: KyvernoWebhookFailOpen
+          expr: sum by (name) (increase(apiserver_admission_webhook_fail_open_count{name=~".*kyverno.*"}[15m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#kyvernowebhookfailopen
+            summary: "Webhook Kyverno {{ $labels.name }} en fail-open : les politiques ne sont pas appliquées"
+            action: "le webhook ne répond pas : voir KyvernoAdmissionNoReadyReplica / KyvernoAdmissionPodRestarting ; vérifier les politiques vpol platform-baseline après retour"
+        - alert: KyvernoWebhookLatencyHigh
+          expr: histogram_quantile(0.99, sum by (le, name) (rate(apiserver_admission_webhook_admission_duration_seconds_bucket{name=~".*kyverno.*"}[10m]))) > 2
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#kyvernowebhooklatencyhigh
+            summary: "Webhook Kyverno {{ $labels.name }}: p99 > 2 s (ralentit chaque création de pod)"
+            action: "kubectl-ro top pods -n kyverno ; vérifier la charge et les réplicas (PLT-400)"
+        - alert: KyvernoPolicyRejectionsRising
+          expr: sum(increase(apiserver_admission_webhook_rejection_count{name=~".*kyverno.*",error_type="no_error"}[30m])) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#kyvernopolicyrejectionsrising
+            summary: "Kyverno refuse plus de 10 requêtes en 30 min"
+            action: "identifier la politique : kubectl-ro get events -A --field-selector reason=PolicyViolation ; corriger le manifeste, ne pas désactiver la politique (PLT-467 traité ailleurs)"
+        - alert: KyvernoBackgroundControllerDown
+          expr: sum by (component) (label_replace(kube_pod_status_ready{namespace="kyverno",condition="true",pod=~"kyverno-(background|reports|cleanup)-controller-.*"}, "component", "$1", "pod", "kyverno-(background|reports|cleanup)-controller-.*")) == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#kyvernobackgroundcontrollerdown
+            summary: "Kyverno {{ $labels.component }}-controller : aucun pod Ready depuis 15 min (rapports et nettoyage à l'arrêt)"
+            action: "kubectl-ro get pods -n kyverno ; kubectl-ro logs -n kyverno deploy/kyverno-{{ $labels.component }}-controller --tail=100"

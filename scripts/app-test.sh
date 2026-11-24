@@ -29,6 +29,9 @@
 # deja gele pour cette app dans policy/app-test-baseline.tsv devient PASS "baselined" (--no-ratchet
 # l'ignore) ; seule une regression echoue.
 #
+# OKE : Cilium y est en chaining (PLT-384) ; une app a descripteur argocd-app.oracle-a1.yaml porte sa
+# CiliumNetworkPolicy/NetworkPolicy comme une app homelab (plus d'exemption).
+#
 # Exceptions : fichier optionnel `app-test.yaml` dans le dossier de l'app (format minimal) :
 #     auth: none | oidc      # none = pas d'auth devant la route externe ; oidc = OIDC natif declare
 #     backup: none           # rien a sauvegarder (sans etat)
@@ -118,6 +121,9 @@ exc_problems="$(jq -r '
   (if .backup == "none" and (((.exceptions // {}).backup // "")|gsub("\\s";"")|length) == 0 then "backup: none sans raison (exceptions.backup)" else empty end)
 ' "$EXC" 2>/dev/null)"
 
+# OKE (PLT-407) : l'app a un descripteur argocd-app.oracle-a1.yaml (pas de Prometheus Operator local, cf. observability).
+OKE=no; [[ -f $APP_DIR/argocd-app.oracle-a1.yaml ]] && OKE=yes
+
 # raison d'une exception generique (exceptions.<id>), vide si absente
 exc_reason() { jq -r --arg k "$1" '((.exceptions // {})[$k] // "") | gsub("^\\s+|\\s+$";"") | .[0:70]' "$EXC"; }
 
@@ -178,7 +184,7 @@ scope_ready=$static_ready
 static_run() {
   local id=$1 note=$2 prog=$3 out line skip="" s n
   [[ $static_ready == yes ]] || return 0
-  if ! out="$(jq -r --arg ns "$NS" --arg generic "$GENERIC_ALERTS" --slurpfile exc "$EXC" --slurpfile ctx "$CTX" "$PRE
+  if ! out="$(jq -r --arg ns "$NS" --arg oke "$OKE" --arg generic "$GENERIC_ALERTS" --slurpfile exc "$EXC" --slurpfile ctx "$CTX" "$PRE
 $prog" "$DOCS" 2>"$work/jq.err")"; then
     res "$id" static BLOCKED "erreur jq: $(head -1 "$work/jq.err" | cut -c1-90)"; return 0
   fi
@@ -405,9 +411,9 @@ if [[ $PHASE != static ]]; then
                             or any($wl[]; . as $l | ([($t.labelSelector // empty)] + ($t.orLabelSelectors // [])) | any(selmatch($l))))
                    | select((($t.includedNamespaces // []) | length) == 0 or (($t.includedNamespaces // []) | any(. == "*" or . == ($d | map(select(islong)) | .[0].metadata.namespace // $ns))))
                    | .metadata.name ]}' "$DOCS" >"$work/scope.json"
-    # pods de l'app : proprietaire = workload de l'app (ou Cluster CNPG de l'app) et selector satisfait
+    # pods de l'app (ni Succeeded, ni Failed/Evicted, ni en suppression: PLT-398) : proprietaire = workload de l'app (ou Cluster CNPG de l'app) et selector satisfait
     scope_pods() { # scope_pods FILE -> {"items":[pods de l app non Succeeded]}
-      jq --slurpfile sc "$work/scope.json" '{items: [ .items[] | select(.status.phase != "Succeeded") | . as $p
+      jq --slurpfile sc "$work/scope.json" '{items: [ .items[] | select(.status.phase != "Succeeded" and .status.phase != "Failed" and (.metadata.deletionTimestamp | not)) | . as $p
         | select( any($sc[0].wls[]; . as $w
                       | ($p.metadata.ownerReferences // [] | any(.name == $w.name or (.name | startswith($w.name + "-"))))
                       and ($w.sel | to_entries | all($p.metadata.labels[.key] == .value)))
@@ -499,7 +505,10 @@ if [[ $PHASE != static ]]; then
     prom='/api/v1/namespaces/monitoring/services/kube-prometheus-stack-prometheus:9090/proxy/api/v1/query?query='
     q="$(jq -rn --arg ns "$NS" '"up{namespace=\"\($ns)\"}" | @uri')"
     npods="$(jq '[.items[] | select(.status.phase != "Succeeded")] | length' "$work/pods.json" 2>/dev/null)"; npods=${npods:-0}
-    if kro get --raw "$prom$q" >"$work/up-all.json" 2>"$work/kget.err" && jq -e '.status == "success"' "$work/up-all.json" >/dev/null 2>&1; then
+    # OKE (PLT-407) : pas de Prometheus local (kube-state-metrics + Alloy exportent vers Grafana Cloud) ; la
+    # presence de l'app dans ces series est prouvee par scripts/verify-delivery.sh, pas par une requete locale.
+    if [[ $CLUSTER == oracle-a1 ]]; then rr observability SKIP "oracle-a1 : pas de Prometheus local (export Grafana Cloud, voir verify-delivery.sh)"
+    elif kro get --raw "$prom$q" >"$work/up-all.json" 2>"$work/kget.err" && jq -e '.status == "success"' "$work/up-all.json" >/dev/null 2>&1; then
       # cibles de l'app seulement : pod de l'app, ou service/job portant le nom d'un Service rendu de l'app
       jq --slurpfile sc "$work/scope.json" --slurpfile pd "$work/pods.json" '
         ([ $pd[0].items[].metadata.name ]) as $pods
@@ -527,7 +536,10 @@ if [[ $PHASE != static ]]; then
              | "\($pn)/\(.name) \(.restartCount) restarts" ] | .[0:3] | join(",")) as $rs
         | "\($n)|\($nr)|\($rs)"' "$work/pods.json")"
       n="${sh%%|*}"; rest="${sh#*|}"; nr="${rest%%|*}"; rs="${rest#*|}"
-      if [[ $n == 0 ]]; then
+      if [[ $n == 0 && $(jq '(.wls | length) + (.cnpg | length)' "$work/scope.json") == 0 ]]; then
+        # dossier sans workload (RBAC, template, ressources seules) : rien a auto-reparer
+        rr selfheal SKIP "l'app ne declare aucun workload ni Cluster CNPG"
+      elif [[ $n == 0 ]]; then
         if kget scaledobjects.keda.sh -n "$NS" 2>/dev/null | jq -e --slurpfile sc "$work/scope.json" '[.items[] | select((.spec.minReplicaCount // 1) == 0 and (.spec.scaleTargetRef.name | IN($sc[0].wls[].name)))] | length > 0' >/dev/null 2>&1; then
           rr selfheal SKIP "scale a zero (KEDA): aucun pod a evaluer"
         else rr_fail selfheal "aucun pod de l app dans $NS"; fi

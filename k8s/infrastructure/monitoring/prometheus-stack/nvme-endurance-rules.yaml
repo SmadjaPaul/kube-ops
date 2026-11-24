@@ -121,12 +121,15 @@ spec:
               with the host reboot causes (PLT-215).
             runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/nvme-endurance.md
         - alert: NvmeHealthTelemetryMissing
+          # absent() on the NVMe series itself: node_textfile_mtime_seconds is
+          # only exported once a .prom file is read, so the former rule could
+          # not tell a missing collector from a healthy one (PLT-471).
           expr: >-
-            (time() - max(node_textfile_mtime_seconds{job="proxmox-host",file=~"(.*/)?nvme\\.prom"}) > 3600)
-            or absent(node_textfile_mtime_seconds{job="proxmox-host",file=~"(.*/)?nvme\\.prom"})
-          for: 30m
+            absent(nvme_percentage_used_ratio{job="proxmox-host"})
+            or (time() - max(node_textfile_mtime_seconds{job="proxmox-host",file=~"(.*/)?nvme\\.prom"}) > 3600)
+          for: 1h
           labels:
-            severity: info
+            severity: warning
           annotations:
             summary: "NVMe health metrics are missing or stale on the Proxmox host"
             description: >-

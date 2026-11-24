@@ -39,7 +39,7 @@ platform.
 - Completed: 2026-09-30 09:41:36 +0200 CEST
 - TTL: 336h0m0s
 - Items: 14/14 backed up
-- Storage Location: `default` (Hetzner Object Storage via Kopia)
+- Storage Location: `default` (ancienne BSL Hetzner, retiree depuis ; drill historique)
 - Schedule: `velero-daily-pocket-tts`
 
 ## Restore target

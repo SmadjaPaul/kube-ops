@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: bootstrap
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    # Doit exister avant que l'Application root ne le référence (wave -100).
+    argocd.argoproj.io/sync-wave: "-200"
+spec:
+  description: Root app-of-apps (PLT-399), Argo CD objects only, namespace argocd
+  sourceRepos:
+    - https://github.com/SmadjaPaul/kube-ops.git
+  destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  # Aucun objet cluster-scoped : le namespace argocd préexiste.
+  # Le root ne rend que des Application, ApplicationSet et AppProject.
+  namespaceResourceWhitelist:
+    - group: argoproj.io
+      kind: Application
+    - group: argoproj.io
+      kind: ApplicationSet
+    - group: argoproj.io
+      kind: AppProject

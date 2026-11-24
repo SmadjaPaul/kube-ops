@@ -42,3 +42,25 @@ spec:
         - ports:
             - port: "4318"
               protocol: TCP
+---
+# PLT-470: factory-alloy-otlp-ingress selects the Alloy pods, so Cilium denies
+# every other ingress, including Prometheus scraping Alloy's own metrics on
+# :12345 (target `alloy` was up == 0). Allow only the Prometheus pods.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: alloy-self-metrics-ingress
+  namespace: monitoring
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "12345"
+              protocol: TCP

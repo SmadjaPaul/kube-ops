@@ -4,9 +4,11 @@
 # Cause des echecs "namespace X is not permitted in project Y" / InvalidSpecError constates apres merge
 # (infra-previews/dns-exact-resolver, arc-runners-kube-ops) : la CI etait verte, la synchro Argo non.
 #
-#   1. ApplicationSets (infrastructure, applications) : chaque namespace des manifestes rendus
+#   1. ApplicationSet infrastructure : chaque namespace des manifestes rendus
 #      (kind Namespace = metadata.name, autres objets = metadata.namespace) des chemins du generateur git
 #      doit correspondre a une destination de template.spec.project.
+#   1b. App of Apps infra-root (PLT-394) : meme controle pour le chemin source de chaque Application
+#      de k8s/bootstrap/infra-root, contre son spec.project.
 #   2. Applications imbriquees (kind: Application sous k8s/, hors bootstrap et clusters/) :
 #      spec.destination.namespace doit correspondre a une destination du spec.project reference.
 #
@@ -24,6 +26,8 @@ repo="$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd)"
 root_dir="$repo/k8s/bootstrap/argocd-root"
 [[ -d $root_dir ]] || { echo "ERROR: $root_dir not found" >&2; exit 2; }
 
+# shellcheck source=lib/argo-project-dest.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/argo-project-dest.sh"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 errors=0
@@ -34,7 +38,7 @@ errors=0
 baseline="$repo/scripts/argo-project-namespaces.baseline.tsv"
 baseline_keys="$tmp/baseline.keys"
 : >"$tmp/baseline.seen"
-if [[ -f $baseline ]]; then grep -vE '^(#|$)' "$baseline" | cut -f1,2 >"$baseline_keys"; else : >"$baseline_keys"; fi
+if [[ -f $baseline ]]; then { grep -vE '^(#|$)' "$baseline" || true; } | cut -f1,2 >"$baseline_keys"; else : >"$baseline_keys"; fi
 
 # --- AppProjects : <projet> -> destinations (une par ligne) --------------------------------
 mkdir -p "$tmp/proj"
@@ -46,18 +50,10 @@ while IFS= read -r f; do
   done < <(yq eval-all --no-doc 'select(.kind == "AppProject") | .metadata.name' "$f")
 done < <(grep -rlE '^kind: AppProject' "$repo/k8s" --include='*.yaml' 2>/dev/null | grep -v "^$repo/k8s/clusters/" | sort)
 
-# 0 si le namespace $2 est autorise par le projet $1
+# 0 si le namespace $2 est autorise par le projet $1 (semantique : scripts/lib/argo-project-dest.sh)
 allowed() {
-  local project="$1" ns="$2" pat
-  [[ $project == default ]] && return 0
-  [[ -f $tmp/proj/$project ]] || return 1
-  while IFS= read -r pat; do
-    # shellcheck disable=SC2053
-    [[ -z $pat && -z $ns ]] && return 0
-    # shellcheck disable=SC2053
-    [[ -n $pat && $ns == $pat ]] && return 0
-  done <"$tmp/proj/$project"
-  return 1
+  [[ $1 == default ]] && return 0
+  argo_ns_allowed "$tmp/proj/$1" "$2"
 }
 
 # Verifie une liste "namespace<TAB>origine" ($1) pour le projet $2
@@ -96,7 +92,8 @@ render() {
 }
 
 # --- 1. ApplicationSets -----------------------------------------------------------------------
-for appset in "$root_dir/infrastructure-applicationset.yaml" "$root_dir/applications-applicationset.yaml"; do
+appsets=("$root_dir/infrastructure-applicationset.yaml")
+for appset in "${appsets[@]}"; do
   [[ -f $appset ]] || continue
   base="$(basename "$appset" .yaml)"
   project="$(yq eval '.spec.template.spec.project' "$appset")"
@@ -123,6 +120,30 @@ for appset in "$root_dir/infrastructure-applicationset.yaml" "$root_dir/applicat
   done < <(yq eval '.spec.generators[].git.directories[] | select(.exclude != true) | .path' "$appset")
   check_list "$tmp/$base.ns" "$project" "$base"
 done
+
+# --- 1b. App of Apps infra-root (PLT-394) ---------------------------------------------------
+infra_root_dir="$repo/k8s/bootstrap/infra-root"
+if [[ -d $infra_root_dir ]]; then
+  while IFS=$'\t' read -r name project src; do
+    [[ -n $name ]] || continue
+    dir="$repo/$src"
+    : >"$tmp/infra-root.$name.ns"
+    if ! render "$dir" >"$tmp/rendered.yaml" 2>"$tmp/render.err"; then
+      echo "FAIL: kustomize build failed for $src (Application $name, infra-root)" >&2
+      sed 's/^/  /' "$tmp/render.err" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    yq eval --no-doc '
+      select(.kind != null and .kind != "List") |
+      (select(.kind == "Namespace") | .metadata.name + "\t" + "Namespace " + .metadata.name),
+      (select(.kind != "Namespace" and .metadata.namespace != null) | .metadata.namespace + "\t" + .kind + "/" + .metadata.name)
+    ' "$tmp/rendered.yaml" | sed "s|\$| in $src (Application $name, infra-root)|" >>"$tmp/infra-root.$name.ns"
+    check_list "$tmp/infra-root.$name.ns" "$project" "Application $name"
+  # yq eval (per document), not eval-all: eval-all crosses the documents and turned 7 Applications
+  # into 7^5 = 16807 lines, one render each (V1 contract stuck for 30 min after #1863).
+  done < <(yq eval --no-doc 'select(.kind == "Application") | .metadata.name + "\t" + (.spec.project // "default") + "\t" + .spec.source.path' "$infra_root_dir"/*.yaml)
+fi
 
 # --- 2. Applications imbriquees ---------------------------------------------------------------
 : >"$tmp/nested.tsv"

@@ -1,0 +1,18 @@
+# PLT-442: at most 2 runners at a time (etcd of the homelab is fragile, PLT-417). The job needs
+# little CPU but a 2 GB memory request keeps the kubeconform/helm renders from being evicted.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: arc-runner-kube-ops-pr-bounds
+  namespace: arc-runners-kube-ops-pr
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  hard:
+    pods: "2"
+    requests.cpu: 500m
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    requests.ephemeral-storage: 2Gi
+    limits.ephemeral-storage: 12Gi

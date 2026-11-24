@@ -1,7 +1,7 @@
 # PLT-227: first base backup of polyfin-db on R2, taken right after the WAL
 # archive switch, so the R2 archive is restorable before the first weekly
-# ScheduledBackup. The Hetzner chain stops at the switch (Hetzner base backup
-# kept as rollback).
+# ScheduledBackup. The previous archive chain stopped at the switch and has since been
+# removed (PLT-94); R2 is the only target.
 apiVersion: postgresql.cnpg.io/v1
 kind: Backup
 metadata:

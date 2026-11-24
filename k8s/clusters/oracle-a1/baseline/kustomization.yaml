@@ -1,0 +1,15 @@
+# Baseline reseau d'OKE (PLT-384, reprise de kube-ops#1620 et #1629), appliquee par Cilium (dossier cilium/).
+#   imds-deny.yaml     CCNP deny-imds + allow-egress-unisolated (a garder ENSEMBLE)
+#   whoami.yaml        default-deny du namespace applicatif whoami + allow listes
+#   quotas.yaml        LimitRange + ResourceQuota des namespaces applicatifs et de la sonde
+#   probe.yaml         sonde continue (CronJob) : IMDS refuse, whoami joignable
+# Les CRD cilium.io sont enregistres par cilium-operator : tant qu'ils manquent, Argo retente
+# (SkipDryRunOnMissingResource + retry de l'ApplicationSet infrastructure).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - imds-deny.yaml
+  - whoami.yaml
+  - quotas.yaml
+  - probe.yaml

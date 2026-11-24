@@ -1,0 +1,131 @@
+# PLT-375: daily logical dump, one pg_dump -Fc per database, to R2 bucket
+# homelab-backup-pgdump (prefix pg-shared-homelab/<database>/). Complements the
+# barman base backups + WAL: a dump restores ONE application without PITR of the
+# whole cluster. Init container `dump` writes every dump to an emptyDir, the
+# main container uploads them and prunes objects older than 14 days. A failed
+# dump fails the Job (no upload step, no new object), and the alerts in
+# dump-alerts.yaml fire on a failed Job or a last success older than 36 h.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-shared-homelab-dump
+  namespace: databases
+  labels:
+    app.kubernetes.io/name: pg-shared-homelab-dump
+    app.kubernetes.io/component: backup
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  schedule: "20 4 * * *"
+  timeZone: Europe/Paris
+  startingDeadlineSeconds: 64800
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 172800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: pg-shared-homelab-dump
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 26
+            runAsGroup: 26
+            fsGroup: 26
+            seccompProfile: {type: RuntimeDefault}
+          initContainers:
+            - name: dump
+              # Same image as cluster.yaml (pg_dump 18 matches the server).
+              image: ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie@sha256:ebf3919504d7523a63e8e2fee9b051211de714644b36469275558c624afd50ec
+              command: [/bin/bash, -ec]
+              args:
+                - |
+                  umask 077
+                  # The Job can start while the cluster restarts (host reboot, 24/11
+                  # 08:30 UTC: "Connection refused" twice in 10 s). Wait up to 10 min.
+                  ready=0
+                  for _ in $(seq 1 60); do
+                    if pg_isready -q; then ready=1; break; fi
+                    sleep 10
+                  done
+                  test "$ready" = 1
+                  dbs=$(psql -tA -c "SELECT datname FROM pg_database WHERE NOT datistemplate AND datallowconn AND datname <> 'postgres' ORDER BY 1")
+                  test -n "$dbs"
+                  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+                  echo "$stamp" > /dump/STAMP
+                  for db in $dbs; do
+                    echo "dump $db"
+                    pg_dump --format=custom --no-password --dbname="$db" --file="/dump/$db.dump"
+                    test -s "/dump/$db.dump"
+                    pg_restore --list "/dump/$db.dump" >/dev/null
+                  done
+              env:
+                - {name: PGHOST, value: pg-shared-homelab-rw.databases.svc.cluster.local}
+                - {name: PGPORT, value: "5432"}
+                - {name: PGDATABASE, value: postgres}
+                - {name: PGSSLMODE, value: require}
+                - name: PGUSER
+                  valueFrom: {secretKeyRef: {name: pg-pgdump, key: username}}
+                - name: PGPASSWORD
+                  valueFrom: {secretKeyRef: {name: pg-pgdump, key: password}}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {cpu: "1", memory: 1Gi}
+              volumeMounts:
+                - {name: dump, mountPath: /dump}
+                - {name: tmp, mountPath: /tmp}
+          containers:
+            - name: upload
+              image: amazon/aws-cli:2.22.35
+              command: [/bin/sh, -ec]
+              args:
+                - |
+                  stamp=$(cat /dump/STAMP)
+                  bucket=homelab-backup-pgdump
+                  for f in /dump/*.dump; do
+                    db=$(basename "$f" .dump)
+                    aws s3 cp --only-show-errors "$f" "s3://$bucket/pg-shared-homelab/$db/$stamp.dump"
+                    echo "uploaded pg-shared-homelab/$db/$stamp.dump"
+                  done
+                  # Retention: 14 days, judged on the object key stamp.
+                  limit=$(date -u -d "14 days ago" +%Y%m%dT%H%M%SZ)
+                  aws s3 ls --recursive "s3://$bucket/pg-shared-homelab/" | awk '{print $4}' | while read -r key; do
+                    s=$(basename "$key" .dump)
+                    if [ "$s" \< "$limit" ]; then aws s3 rm --only-show-errors "s3://$bucket/$key"; fi
+                  done
+              env:
+                - {name: HOME, value: /tmp}
+                - {name: AWS_DEFAULT_REGION, value: auto}
+                # R2 does not support every boto/aws-cli default checksum.
+                - {name: AWS_REQUEST_CHECKSUM_CALCULATION, value: when_required}
+                - {name: AWS_RESPONSE_CHECKSUM_VALIDATION, value: when_required}
+              envFrom:
+                - secretRef: {name: pg-shared-homelab-pgdump-r2-credentials}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              resources:
+                requests: {cpu: 25m, memory: 128Mi}
+                limits: {cpu: 500m, memory: 512Mi}
+              volumeMounts:
+                - {name: dump, mountPath: /dump, readOnly: true}
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: dump
+              emptyDir: {sizeLimit: 10Gi}
+            - name: tmp
+              emptyDir: {sizeLimit: 256Mi}

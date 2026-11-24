@@ -11,7 +11,7 @@ Keep two independent Argo CD instances: one on the homelab Talos cluster, one on
 | Criterion | Two independent Argo CD (chosen) | One central Argo CD for both clusters | Argo CD Agent |
 |---|---|---|---|
 | Simplicity for agents | Same Git workflow and same verification command; no UI. Cluster = one folder. | One UI/API. Needs cluster registration and per-cluster Projects. | One UI, plus agent and principal components to operate. |
-| Resources on OKE | Argo CD trimmed in `bootstrap/values.yaml` (no dex, notifications, applicationset): requests 70m CPU / 480 Mi in total. | Smallest: only a cluster Secret on OKE. | An agent on OKE, plus a principal and its PKI on the homelab. |
+| Resources on OKE | Argo CD trimmed in `bootstrap/values.yaml` (no dex, no notifications; ApplicationSet controller on): about 95m CPU / 545 Mi of requests. | Smallest: only a cluster Secret on OKE. | An agent on OKE, plus a principal and its PKI on the homelab. |
 | Isolated failure | Full. An outage of one Argo CD leaves the other cluster reconciling. | None. The homelab Argo CD is a single point of failure for OKE, and OKE credentials sit on the homelab. | Partial. The agent keeps its cache when the principal is down, but new changes stop. |
 | Security | No inbound path to either cluster. The homelab holds no OKE credential (D-2026-11-11-17). | The homelab holds an OKE admin credential; OKE API reachable from the homelab. | A new mTLS control path and a new component to patch. |
 | Measured benefit | Not applicable: nothing to measure. | None measured. | None: it federates two clusters that need no federation. |
@@ -27,10 +27,10 @@ Revisit only with a measured benefit written in a ticket (for example: more than
 ## Convention (no migration)
 
 - Shared base: `k8s/applications/<group>/<app>`. It is cluster-neutral where possible.
-- Homelab: the base directory is the application, once listed in the ApplicationSet `applications` (generates `apps-<app>`).
-- OKE: the folder `k8s/clusters/oracle-a1/<app>/` is an overlay on the same base (`resources: ../../../applications/<group>/<app>`), with patches for what differs. `apps/<app>.yaml` is its Application, listed in `apps/kustomization.yaml`.
-- Choice of cluster = choice of folder. Create the OKE side with `just scaffold-oke-app <group>/<app> <name> <namespace>`.
-- Data stays off OKE until PLT-190. The scaffold refuses a base with a PVC or a CNPG Cluster, and a namespace missing from `bootstrap/project.yaml` (bootstrap-only: one operator apply).
+- Homelab: the base directory is the application: `argocd-app.yaml` (ApplicationSet `apps`, `app-<name>`). The former ApplicationSet `applications` (`apps-<domain>`) is removed.
+- OKE (PLT-405, D-2026-11-21-01): same folder, descriptor `argocd-app.oracle-a1.yaml` read by the ApplicationSet `apps` of the OKE Argo CD (`k8s/clusters/oracle-a1/argocd-root`). An app runs on one cluster at a time: `scripts/check-argo-app-descriptors.sh` refuses both files in one folder.
+- Choice of cluster = choice of descriptor file. Bootstrap of the OKE Argo CD: `k8s/clusters/oracle-a1/README.md`.
+- Data stays off OKE until PLT-190.
 
 ## Verification
 

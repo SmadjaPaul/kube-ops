@@ -58,7 +58,7 @@ spec:
                       app.kubernetes.io/name: paperless
           initContainers:
             - name: restic-binary
-              image: restic/restic:0.19.1
+              image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
               command: ["cp", "/usr/bin/restic", "/restic-bin/restic"]
               securityContext:
                 allowPrivilegeEscalation: false
@@ -71,7 +71,7 @@ spec:
                 - { name: restic-bin, mountPath: /restic-bin }
             - name: postgres-dump
               # Same major version as the paperless-postgresql Cluster image.
-              image: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+              image: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie@sha256:0f29b435fb501ee534cd0c555d122a6b8e90de477de8e8381c82c5e10d9a9de4
               command: ["/bin/bash", "/scripts/backup-db.sh"]
               env:
                 - { name: APP, value: paperless }
@@ -107,7 +107,7 @@ spec:
                 - { name: tmp, mountPath: /tmp }
           containers:
             - name: files
-              image: restic/restic:0.19.1
+              image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
               command: ["/bin/sh", "/scripts/backup-files.sh"]
               env:
                 - { name: APP, value: paperless }

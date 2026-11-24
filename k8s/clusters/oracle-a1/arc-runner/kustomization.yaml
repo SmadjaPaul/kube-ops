@@ -1,0 +1,19 @@
+# Runner post-merge d'OKE (PLT-407) : scale set ARC `kube-ops-oke-arc` (0..1 runner arm64 ephemere) qui execute
+# scripts/post-merge-verify.sh --only-cluster oracle-a1 DEPUIS le cluster. Le homelab ne joint plus OKE.
+# Le controleur est dans ../arc-controller. Les CRD ARC viennent du controleur : l'Application retente
+# (SkipDryRunOnMissingResource + retry de l'ApplicationSet infrastructure) jusqu'a leur enregistrement.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - external-secrets.yaml
+  - rbac.yaml
+  - quota.yaml
+  - egress-policy.yaml
+helmCharts:
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.15.0
+    releaseName: kube-ops-oke-arc
+    namespace: arc-runners-oke
+    valuesFile: values.yaml

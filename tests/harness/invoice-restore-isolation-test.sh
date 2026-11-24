@@ -29,16 +29,29 @@ modifier_rules="$(yq -r '.data["resource-modifier.yaml"]' "$modifier")"
 grep -F 'groupResource: persistentvolumeclaims' <<<"$modifier_rules" >/dev/null
 grep -F 'namespaces:' <<<"$modifier_rules" >/dev/null
 grep -F -- '- invoice-ninja' <<<"$modifier_rules" >/dev/null
+# PRD-76 : le drill HA (home-assistant -> home-assistant-restore-test) doit
+# couvrir les deux règles (PVC et annotation Argo), comme les autres sources.
+for rule in 0 1; do
+  yq -e '.resourceModifierRules['"$rule"'].conditions.namespaces | contains(["home-assistant"])' \
+    <<<"$modifier_rules" >/dev/null
+done
 grep -F 'mergePatches:' <<<"$modifier_rules" >/dev/null
 grep -F '"volumeName": null' <<<"$modifier_rules" >/dev/null
 if grep -F 'operation: remove' <<<"$modifier_rules" >/dev/null; then
   echo 'ASSERTION_FAILED restore modifier must be idempotent when volumeName is absent' >&2
   exit 1
 fi
-if grep -F 'path: "/spec/storageClassName"' <<<"$modifier_rules" >/dev/null; then
+# Les règles communes (PVC et annotation Argo) gardent la StorageClass d'origine.
+# Seules les règles PRD-76 limitées au namespace home-assistant (drill HA,
+# tests/harness/ha-restore-drill-test.sh) passent le PVC en longhorn-drill.
+shared_rules="$(yq '.resourceModifierRules |= .[0:2]' <<<"$modifier_rules")"
+if grep -F 'storageClassName' <<<"$shared_rules" >/dev/null; then
   echo 'ASSERTION_FAILED preserve original StorageClass on restore' >&2
   exit 1
 fi
+yq -e '(.resourceModifierRules | .[2:] | length) == 2 and (.resourceModifierRules | .[2:] |
+  all_c((.conditions.namespaces | length) == 1 and .conditions.namespaces[0] == "home-assistant"))' \
+  <<<"$modifier_rules" >/dev/null
 grep -F 'groupResource: "*.*"' <<<"$modifier_rules" >/dev/null
 grep -F 'argocd.argoproj.io/tracking-id' <<<"$modifier_rules" >/dev/null
 grep -F '"argocd.argoproj.io/tracking-id": null' <<<"$modifier_rules" >/dev/null

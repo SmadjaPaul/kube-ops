@@ -1,13 +1,15 @@
+# Agregat du domaine monitoring : rendu de reference (plan, contrats, tests).
+# Argo CD ne synchronise plus ce dossier en bloc : depuis PLT-394 I1, chaque composant est une
+# Application de infra-root (k8s/bootstrap/infra-root). Ajouter un composant ici ET y ajouter son
+# Application.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - namespace.yaml
-  - project.yaml
-  - argocd-monitoring.yaml
-  - cnpg-podmonitor.yaml
+  - scrape-targets
   - hubble
   - prometheus-stack
   - blackbox
   - loki
   - alloy
   - tempo
+  - proxmox-updates-backlog

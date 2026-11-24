@@ -6,6 +6,18 @@ configMapGenerator:
   - name: ha-core-config
     files:
       - config/configuration.yaml
+  - name: ha-openid-ui-views-patch
+    files:
+      - openid-ui_views.py=patches/openid-ui_views.py
+  - name: ha-mcp-token-rotate-script
+    files:
+      - ha-mcp-token-rotate.py
+  - name: ha-agent-music-smoke-script
+    files:
+      - ha-agent-music-smoke.py
+  - name: ha-agent-mcp-smoke-script
+    files:
+      - ha-agent-mcp-smoke.py
 
 resources:
   - namespace.yaml
@@ -16,6 +28,9 @@ resources:
   - statefulset.yaml
   - policy-exception.yaml
   - external-secret.yaml
+  - ha-mcp-token-rotate.yaml
+  - ha-agent-music-smoke.yaml
+  - ha-agent-mcp-smoke.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

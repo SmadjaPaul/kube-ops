@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- PLT-420 : renouvellement du jeton agent-operator (24 h) toutes les 12 h, session de Paul (Doppler connecté).
+     Installation (geste de Paul) : voir docs/operations/agent-operator-token-renewal.md.
+     Remplacer __REPO__ par le chemin absolu du clone kube-ops. Aucun secret dans ce fichier. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>dev.smadja.agent-operator-token-renew</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO__/scripts/agent-operator-token-renew.sh</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>43200</integer>
+  <key>StandardOutPath</key><string>/tmp/agent-operator-token-renew.log</string>
+  <key>StandardErrorPath</key><string>/tmp/agent-operator-token-renew.log</string>
+</dict>
+</plist>

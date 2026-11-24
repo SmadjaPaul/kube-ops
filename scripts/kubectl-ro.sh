@@ -2,6 +2,7 @@
 # Read-only ad hoc kubectl through the canonical operator access (AGENTS.md).
 #
 # Usage: bash scripts/kubectl-ro.sh [--cluster homelab|oracle-a1] <get|describe|logs|top|events|api-resources|version> [args...]
+#        bash scripts/kubectl-ro.sh hubble <status|observe [filtres]>   (homelab, PRD-88)
 #   bash scripts/kubectl-ro.sh get applications -n argocd
 #   bash scripts/kubectl-ro.sh --cluster oracle-a1 get nodes   # OKE (PLT-257)
 #   bash scripts/kubectl-ro.sh logs -n cilium ds/cilium --tail=50
@@ -13,27 +14,28 @@
 # Prefer `just status-app`, `just diagnose-app`, `just runtime-inventory` for
 # Argo evidence; use this wrapper for anything they do not cover.
 #
-# --cluster oracle-a1 (PLT-257) reads OKE through NetBird (API 10.0.2.3:6443) with
+# --cluster oracle-a1 (PLT-257) reads OKE through NetBird or the bastion (private API of the VCN, server taken from the Doppler kubeconfig, no fixed IP) with
 # the read-only ServiceAccount argocd/agent-operator, from Doppler
 # KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 (+ _SHA256). Never the operator
 # copy nor an OCI exec kubeconfig; the effective identity is checked before any
 # command. Only valid as the first argument (after the verb it stays refused).
 #
-# Identity on homelab (PLT-312 M5). Default `auto`: the limited ServiceAccount
-# agent-operator/agent-operator (RBAC view + cluster read, no Secret data), from
-# Doppler KUBERNETES_AGENT_OPERATOR_KUBECONFIG (+ _SHA256), when that copy is
-# present, intact and accepted by the API; otherwise a warning on stderr and a
-# fallback to the operator copy (flow of the other agents unchanged).
-# KUBECTL_RO_IDENTITY=agent refuses the fallback (exit 2); =operator keeps the
-# legacy operator copy (rollback). The client-side filtering below stays as a
-# second layer: the API-side RBAC of the ServiceAccount is the first.
+# Identity on homelab (PLT-312 M5, PLT-420). Default `agent` (KUBECTL_RO_IDENTITY unset = agent): the limited
+# ServiceAccount agent-operator/agent-operator (RBAC view + cluster read, no Secret data), from
+# Doppler KUBERNETES_AGENT_OPERATOR_KUBECONFIG (+ _SHA256). When that copy is missing, expired or
+# not accepted by the API there is NO fallback to the operator copy: exit 2 with the reason and the
+# renewal command. KUBECTL_RO_IDENTITY=operator is the explicit, visible rollback (legacy operator
+# copy). The former `auto` mode (silent fallback) no longer exists. The client-side filtering below
+# stays as a second layer: the API-side RBAC of the ServiceAccount is the first.
 # `auth whoami` (exact form) prints the effective identity and its source; no
 # other `auth` form is admitted (can-i, reconcile...).
 # The ServiceAccount token is short-lived (24 h, issued by Paul): renew with
 #   AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision      (homelab)
 #   AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-oke-token.sh --provision  (oracle-a1)
 #
-# In-cluster mode (PLT-390 lot 3): KUBECTL_RO_IN_CLUSTER=1, homelab only, inside a pod. No Doppler and no
+# In-cluster mode (PLT-390 lot 3): KUBECTL_RO_IN_CLUSTER=1, inside a pod, for the cluster that pod runs in only
+# (KUBECTL_RO_IN_CLUSTER_CLUSTER, default homelab; oracle-a1 for the OKE post-merge runner, PLT-407: identity
+# system:serviceaccount:arc-runners-oke:kube-ops-post-merge-oke, RBAC in k8s/clusters/oracle-a1/arc-runner/rbac.yaml). No Doppler and no
 # kubeconfig: kubectl uses the pod's own ServiceAccount token, and the effective identity must be exactly
 # system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge (post-merge runner, RBAC in
 # k8s/optional/github-actions-arc-kube-ops/rbac.yaml). All the filters above still apply.
@@ -45,6 +47,17 @@
 # (monitoring/kube-prometheus-stack-prometheus:9090, monitoring/loki-gateway:80,
 # monitoring/loki:3100). The API-side RBAC decides whether the identity may do it.
 # Query strings must be percent-encoded (PromQL/LogQL).
+#
+# Hubble flows (PRD-88, homelab only): `hubble status` or `hubble observe` with the
+# filters of HUBBLE_VALUE_FLAGS / HUBBLE_BOOL_FLAGS only (--last <= 1000, no
+# --follow, --all, --server, TLS, --port-forward or config flag). The wrapper opens
+# `kubectl port-forward svc/hubble-relay` on 127.0.0.1 (random port) with the same
+# identity, runs the local `hubble` CLI against it with an empty environment
+# (no HUBBLE_* override, no config file), then closes the tunnel. API side:
+# Role kube-system/agent-operator-hubble-relay (create pods/portforward) and the
+# matchCondition not-hubble-relay-portforward of agent-operator-guard (pod
+# hubble-relay-<hash>-<suffix> only). KUBECTL_RO_HUBBLE_PLAN=1 prints the hubble
+# command after the filters and exits before any cluster access (tests).
 set -uo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -63,22 +76,95 @@ if [ "${1:-}" = --cluster ]; then
 fi
 
 # --- identity selector (homelab only; oracle-a1 is always the read-only ServiceAccount)
-identity_mode=${KUBECTL_RO_IDENTITY:-auto}
+identity_mode=${KUBECTL_RO_IDENTITY:-agent}
 case "$identity_mode" in
-  auto|agent|operator) ;;
-  *) refuse "KUBECTL_RO_IDENTITY='$identity_mode' inconnu (auto|agent|operator)" ;;
+  agent|operator) ;;
+  auto) refuse "KUBECTL_RO_IDENTITY=auto n'existe plus (PLT-420 : plus de repli silencieux vers l'opérateur) ; défaut agent, operator = retour arrière explicite" ;;
+  *) refuse "KUBECTL_RO_IDENTITY='$identity_mode' inconnu (agent|operator)" ;;
 esac
 
 [ "$#" -ge 1 ] || refuse "verbe manquant (get|describe|logs|top|events|api-resources|version|auth whoami)"
 
 verb=$1
+case "$verb" in
+  -*) refuse "'$verb' placé avant le verbe : le verbe vient en premier (ex. 'get pods -n ns', pas '-n ns get pods'). Seul '--cluster <nom>' peut précéder le verbe." ;;
+esac
 whoami_mode=0
 if [ "$verb" = auth ]; then
   [ "$#" = 2 ] && [ "$2" = whoami ] || refuse "auth : seule la forme exacte 'auth whoami' est admise"
   whoami_mode=1
 fi
+# --- Hubble flows (PRD-88): positive allowlist, checked before any access
+HUBBLE_VALUE_FLAGS=' namespace from-namespace to-namespace pod from-pod to-pod workload from-workload to-workload'
+HUBBLE_VALUE_FLAGS+=' ip from-ip to-ip port from-port to-port label from-label to-label service from-service to-service'
+HUBBLE_VALUE_FLAGS+=' fqdn from-fqdn to-fqdn identity from-identity to-identity node-name protocol type verdict'
+HUBBLE_VALUE_FLAGS+=' traffic-direction since until last output '
+HUBBLE_BOOL_FLAGS=' not print-node-name print-policy-names '
+HUBBLE_LAST_MAX=1000
+hubble_mode=0
+hubble_args=()
+hubble_value_check() { # hubble_value_check FLAG VALUE
+  local f=$1 v=$2
+  case "$v" in -*|'') refuse "hubble : valeur manquante ou option à la place de la valeur pour --$f" ;; esac
+  case "$f" in
+    last) [[ "$v" =~ ^[0-9]{1,4}$ ]] && [ "$((10#$v))" -ge 1 ] && [ "$((10#$v))" -le "$HUBBLE_LAST_MAX" ] ||
+      refuse "hubble : --last entier de 1 à $HUBBLE_LAST_MAX" ;;
+    verdict) case "$v" in FORWARDED|DROPPED|ERROR|AUDIT|REDIRECTED|TRACED|TRANSLATED) ;; *) refuse "hubble : --verdict '$v' inconnu" ;; esac ;;
+    output) case "$v" in compact|dict|json|jsonpb|table) ;; *) refuse "hubble : --output '$v' (compact|dict|json|jsonpb|table)" ;; esac ;;
+    *) [[ "$v" =~ ^[A-Za-z0-9*][A-Za-z0-9._:/=,@+*-]{0,252}$ ]] || refuse "hubble : valeur '$v' de --$f invalide" ;;
+  esac
+}
+if [ "$verb" = hubble ]; then
+  hubble_mode=1
+  [ "$cluster" = homelab ] || refuse "hubble : homelab seulement (pas de droit de port-forward agent sur oracle-a1)"
+  [ "${KUBECTL_RO_IN_CLUSTER:-}" != 1 ] || refuse "hubble : pas de port-forward en mode in-cluster"
+  [ "$#" -ge 2 ] || refuse "hubble : 'hubble status' ou 'hubble observe [filtres]'"
+  case "$2" in
+    status) [ "$#" = 2 ] || refuse "hubble status ne prend pas d'option" ;;
+    observe) ;;
+    *) refuse "hubble : sous-commande '$2' hors liste (status|observe)" ;;
+  esac
+  hubble_args=("$2")
+  set -- "${@:3}"
+  while [ "$#" -gt 0 ]; do
+    a=$1
+    shift
+    case "$a" in
+      -n) a=--namespace ;; -l) a=--label ;; -t) a=--type ;; -o) a=--output ;;
+      -n=*|-l=*|-t=*|-o=*) refuse "hubble : forme '$a' non admise (--option valeur ou --option=valeur)" ;;
+      --*) ;;
+      *) refuse "hubble : argument '$a' hors liste (filtres --option valeur seulement)" ;;
+    esac
+    flag=${a#--}
+    val=""
+    has_val=0
+    case "$flag" in *=*) val=${flag#*=}; flag=${flag%%=*}; has_val=1 ;; esac
+    if [[ "$HUBBLE_BOOL_FLAGS" == *" $flag "* ]]; then
+      [ "$has_val" = 0 ] || refuse "hubble : --$flag ne prend pas de valeur"
+      hubble_args+=("--$flag")
+    elif [[ "$HUBBLE_VALUE_FLAGS" == *" $flag "* ]]; then
+      if [ "$has_val" = 0 ]; then
+        [ "$#" -ge 1 ] || refuse "hubble : --$flag sans valeur"
+        val=$1
+        shift
+      fi
+      hubble_value_check "$flag" "$val"
+      hubble_args+=("--$flag" "$val")
+    else
+      refuse "hubble : option '--$flag' hors liste blanche (ni follow, all, server, TLS, port-forward, config)"
+    fi
+  done
+  if [ "${KUBECTL_RO_HUBBLE_PLAN:-0}" = 1 ]; then
+    printf 'KUBECTL_RO_HUBBLE_PLAN=hubble --server 127.0.0.1:<port>'
+    printf ' %q' "${hubble_args[@]}"
+    printf '\n'
+    exit 0
+  fi
+  command -v hubble >/dev/null 2>&1 || { echo "kubectl-ro: hubble : CLI 'hubble' absente (brew install hubble)" >&2; exit 2; }
+fi
+
 case "$verb" in
-  get|describe|logs|top|events|api-resources|version|auth) ;;
+  get|describe|logs|top|events|api-resources|version|auth|hubble) ;;
   *) refuse "verbe '$verb' hors liste blanche (lecture seule : get|describe|logs|top|events|api-resources|version)" ;;
 esac
 
@@ -104,7 +190,9 @@ raw_check() { # raw_check PATH -> refuse unless allowed
     refuse "--raw : paramètres de requête invalides (encoder PromQL/LogQL en %XX ; un seul '?', pas de '/' ni de caractère de contrôle)"
 }
 raw_mode=0
-for arg in "${@:2}"; do
+filter_args=()
+[ "$hubble_mode" = 1 ] || filter_args=("${@:2}")
+for arg in ${filter_args[@]+"${filter_args[@]}"}; do
   case "$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')" in --raw|--raw=*) raw_mode=1 ;; esac
 done
 if [ "$raw_mode" = 1 ]; then
@@ -120,7 +208,7 @@ fi
 secret_ref=0
 output_flag=0
 next_is_output=0
-for arg in "${@:2}"; do
+for arg in ${filter_args[@]+"${filter_args[@]}"}; do
   lower=$(printf '%s' "$arg" | tr '[:upper:]' '[:lower:]')
   if [ "$next_is_output" = 1 ]; then
     next_is_output=0
@@ -256,11 +344,16 @@ session_store() { # session_store USER : copy the freshly verified kubeconfig (a
   export KUBECONFIG="$session_dir/$session_name.kubeconfig"
 }
 
-IN_CLUSTER_USER=${KUBECTL_RO_IN_CLUSTER_USER:-system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge}
+pod_cluster=${KUBECTL_RO_IN_CLUSTER_CLUSTER:-homelab}
+case "$pod_cluster" in
+  oracle-a1) IN_CLUSTER_USER=${KUBECTL_RO_IN_CLUSTER_USER:-system:serviceaccount:arc-runners-oke:kube-ops-post-merge-oke} ;;
+  *) IN_CLUSTER_USER=${KUBECTL_RO_IN_CLUSTER_USER:-system:serviceaccount:arc-runners-kube-ops:kube-ops-post-merge} ;;
+esac
 SA_DIR=${KUBECTL_RO_SA_DIR:-/var/run/secrets/kubernetes.io/serviceaccount}
 in_cluster=0
 if [ "${KUBECTL_RO_IN_CLUSTER:-}" = 1 ]; then
-  [ "$cluster" = homelab ] || refuse "KUBECTL_RO_IN_CLUSTER=1 : homelab uniquement"
+  case "$pod_cluster" in homelab|oracle-a1) ;; *) refuse "KUBECTL_RO_IN_CLUSTER_CLUSTER '$pod_cluster' inconnu (homelab|oracle-a1)" ;; esac
+  [ "$cluster" = "$pod_cluster" ] || refuse "KUBECTL_RO_IN_CLUSTER=1 : ce pod ne lit que $pod_cluster (demande : $cluster)"
   [ -r "$SA_DIR/token" ] || refuse "KUBECTL_RO_IN_CLUSTER=1 hors pod (jeton ServiceAccount absent) : pas de repli sur Doppler"
   in_cluster=1
 fi
@@ -307,13 +400,9 @@ else
     fi
   fi
   if [ "$agent_ok" = 0 ]; then
-    if [ "$identity_mode" = agent ]; then
-      grep -E '^(KUBE_ACCESS|REASON|NEXT_ACTION)=' "$status_file" >&2
-      echo "kubectl-ro: identité agent-operator indisponible et KUBECTL_RO_IDENTITY=agent : pas de repli opérateur (Paul : AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision)" >&2
-      exit 2
-    fi
-    echo "kubectl-ro: AVERTISSEMENT identité agent-operator indisponible ($(grep -m1 '^REASON=' "$status_file")) : repli sur la copie opérateur (KUBECTL_RO_IDENTITY=agent pour l'interdire)" >&2
-    acquire "" || blocked_exit
+    grep -E '^(KUBE_ACCESS|REASON|NEXT_ACTION)=' "$status_file" >&2
+    echo "kubectl-ro: identité agent-operator indisponible : pas de repli opérateur (Paul : AGENT_TOKEN_DURATION=24h bash scripts/agent-operator-token.sh --provision ; renouvellement automatique : docs/operations/agent-operator-token-renewal.md)" >&2
+    exit 2
   fi
 fi
 if [ -z "$session_user" ] && [ -n "$session_dir" ]; then
@@ -326,6 +415,29 @@ if [ "$whoami_mode" = 1 ]; then
   [ -n "$who" ] || { echo "kubectl-ro: identité illisible" >&2; exit 2; }
   echo "cluster=$cluster identity=$who source=${KUBE_ACCESS_SOURCE:-?}"
   exit 0
+fi
+
+if [ "$hubble_mode" = 1 ]; then
+  # Tunnel local vers le Service hubble-relay (port 80 -> 4245 gRPC), port libre choisi
+  # par kubectl, 127.0.0.1 seulement ; fermé à la sortie.
+  pf_log=$(mktemp "${TMPDIR:-/tmp}/kubectl-ro-hubble.XXXXXX")
+  hubble_home=$(mktemp -d "${TMPDIR:-/tmp}/kubectl-ro-hubble-home.XXXXXX")
+  kubectl port-forward -n kube-system svc/hubble-relay --address 127.0.0.1 :80 >"$pf_log" 2>&1 &
+  pf_pid=$!
+  trap 'kill "$pf_pid" 2>/dev/null; kube_access_cleanup; rm -rf "$status_file" "$pf_log" "$hubble_home"' EXIT
+  port=""
+  for _ in $(seq 1 75); do
+    port=$(sed -n 's/^Forwarding from 127\.0\.0\.1:\([0-9][0-9]*\) -> .*/\1/p' "$pf_log" | head -1)
+    [ -z "$port" ] || break
+    kill -0 "$pf_pid" 2>/dev/null || break
+    sleep 0.2
+  done
+  if [ -z "$port" ]; then
+    echo "kubectl-ro: hubble : port-forward vers kube-system/hubble-relay impossible : $(tr '\n' ' ' <"$pf_log" | cut -c1-300)" >&2
+    exit 2
+  fi
+  env -i PATH="$PATH" HOME="$hubble_home" hubble --server "127.0.0.1:$port" "${hubble_args[@]}"
+  exit $?
 fi
 
 kubectl --request-timeout=30s "$@"

@@ -1,12 +1,16 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: agentgateway
   labels: {pod-security.kubernetes.io/enforce: restricted}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: agentgateway-state
   namespace: agentgateway
   labels:
@@ -31,33 +35,130 @@ data:
     gateways:
       default:
         port: 4000
+    # PLT-496: capability routes for non-text MiniMax APIs. The consumer calls a capability path and
+    # never writes a provider model name: the gateway injects `model` into the JSON body and the
+    # provider key. Probe phase: only the agent-harness runner key is accepted (no dedicated key yet).
+    routes:
+      - name: capability-speech-tts
+        gateways: default
+        matches:
+          - path: {pathPrefix: /speech/tts}
+        backends:
+          - host: api.minimax.io:443
+        policies:
+          apiKey:
+            mode: strict
+            keys:
+              - key: "$PR_TRIAGE_AGENTGATEWAY_KEY"
+                metadata: {name: media-probe, owner: pr-triage}
+          localRateLimit:
+            - maxTokens: 20
+              tokensPerFill: 20
+              fillInterval: 3600s
+              type: requests
+          urlRewrite:
+            authority: {host: api.minimax.io}
+            path: {full: /v1/t2a_v2}
+          backendTLS: {hostname: api.minimax.io}
+          backendAuth:
+            key:
+              value: $MINIMAX_API_KEY
+          transformations:
+            request:
+              body: 'toJson(json(request.body).merge({"model": "speech-2.8-hd"}))'
+      - name: capability-speech-tts-fast
+        gateways: default
+        matches:
+          - path: {pathPrefix: /speech/tts-fast}
+        backends:
+          - host: api.minimax.io:443
+        policies:
+          apiKey:
+            mode: strict
+            keys:
+              - key: "$PR_TRIAGE_AGENTGATEWAY_KEY"
+                metadata: {name: media-probe, owner: pr-triage}
+          localRateLimit:
+            - maxTokens: 20
+              tokensPerFill: 20
+              fillInterval: 3600s
+              type: requests
+          urlRewrite:
+            authority: {host: api.minimax.io}
+            path: {full: /v1/t2a_v2}
+          backendTLS: {hostname: api.minimax.io}
+          backendAuth:
+            key:
+              value: $MINIMAX_API_KEY
+          transformations:
+            request:
+              body: 'toJson(json(request.body).merge({"model": "speech-2.8-turbo"}))'
+      - name: capability-image-generate
+        gateways: default
+        matches:
+          - path: {pathPrefix: /image/generate}
+        backends:
+          - host: api.minimax.io:443
+        policies:
+          apiKey:
+            mode: strict
+            keys:
+              - key: "$PR_TRIAGE_AGENTGATEWAY_KEY"
+                metadata: {name: media-probe, owner: pr-triage}
+          localRateLimit:
+            - maxTokens: 20
+              tokensPerFill: 20
+              fillInterval: 3600s
+              type: requests
+          urlRewrite:
+            authority: {host: api.minimax.io}
+            path: {full: /v1/images/generations}
+          backendTLS: {hostname: api.minimax.io}
+          backendAuth:
+            key:
+              value: $MINIMAX_API_KEY
+          transformations:
+            request:
+              body: 'toJson(json(request.body).merge({"model": "MiniMax-H3-Image"}))'
+      - name: capability-video-generate
+        gateways: default
+        matches:
+          - path: {pathPrefix: /video/generate}
+        backends:
+          - host: api.minimax.io:443
+        policies:
+          apiKey:
+            mode: strict
+            keys:
+              - key: "$PR_TRIAGE_AGENTGATEWAY_KEY"
+                metadata: {name: media-probe, owner: pr-triage}
+          localRateLimit:
+            - maxTokens: 20
+              tokensPerFill: 20
+              fillInterval: 3600s
+              type: requests
+          urlRewrite:
+            authority: {host: api.minimax.io}
+            path: {full: /v2/video_generation}
+          backendTLS: {hostname: api.minimax.io}
+          backendAuth:
+            key:
+              value: $MINIMAX_API_KEY
+          transformations:
+            request:
+              body: 'toJson(json(request.body).merge({"model": "MiniMax-H3"}))'
     llm:
       gateways: default
       policies:
         apiKey:
           mode: strict
           keys:
-            - key: "$AGENTGATEWAY_CLIENT_KEY"
-              metadata:
-                name: factory-canary
-                owner: factory-canary
-              allowedModels:
-                - factory/fast
-                - factory/code
-              budgets:
-                - name: factory-daily-tokens
-                  limit:
-                    unit: Tokens
-                    amount: 1000000
-                  window:
-                    rolling: 24h
-                  onBudgetExceeded: Block
             - key: "$GPT_RESEARCHER_API_KEY"
               metadata:
                 name: gpt-researcher
                 owner: gpt-researcher
               allowedModels:
-                - factory/research
+                - text/research
               budgets:
                 - name: gpt-researcher-daily-tokens
                   limit:
@@ -71,7 +172,7 @@ data:
                 name: hindsight-personal
                 owner: hindsight-personal
               allowedModels:
-                - factory/fast
+                - text/fast
               budgets:
                 - name: hindsight-personal-daily-tokens
                   limit:
@@ -85,7 +186,7 @@ data:
                 name: librechat
                 owner: librechat
               allowedModels:
-                - factory/fast
+                - text/fast
               budgets:
                 - name: librechat-daily-tokens
                   limit:
@@ -94,17 +195,49 @@ data:
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
+            # PLT-453: PR triage (agent-harness workflow, ARC runner). Generated key, see pr-triage-key.yaml.
+            - key: "$PR_TRIAGE_AGENTGATEWAY_KEY"
+              metadata:
+                name: pr-triage
+                owner: pr-triage
+              allowedModels:
+                - text/fast
+              budgets:
+                - name: pr-triage-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 300000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
+            # PLT-453: incident sentinel (PLT-455, namespace agents). Generated key, see incident-sentinel-key.yaml.
+            - key: "$INCIDENT_SENTINEL_AGENTGATEWAY_KEY"
+              metadata:
+                name: incident-sentinel
+                owner: incident-sentinel
+              allowedModels:
+                - text/fast
+              budgets:
+                - name: incident-sentinel-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 300000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
       models:
-        - name: factory/fast
+        # PLT-496: capability aliases. Consumers call a capability, never a provider model name; the model
+        # behind each alias lives only here. No factory/* alias remains (PLT-496).
+        - name: text/fast
           provider:
             custom:
               formats:
                 - type: completions
           params:
             baseUrl: https://api.minimax.io/v1
-            model: MiniMax-M2.7
+            model: MiniMax-M3.1-Flash
             apiKey: "$MINIMAX_API_KEY"
-        - name: factory/code
+        - name: text/strong
           provider:
             custom:
               formats:
@@ -113,7 +246,7 @@ data:
             baseUrl: https://api.minimax.io/v1
             model: MiniMax-M3
             apiKey: "$MINIMAX_API_KEY"
-        - name: factory/research
+        - name: text/research
           provider:
             custom:
               formats:
@@ -143,7 +276,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: personal-ai-hindsight-1-v1
+        checksum/agentgateway-runtime: capabilities-media-v3
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -155,10 +288,18 @@ spec:
       containers:
         - name: agentgateway
           image: cr.agentgateway.dev/agentgateway@sha256:60216aafb03d37f94e952ff3d51d2f630a65b10ecaebdc0a864882f92610c45b
+          livenessProbe:
+            tcpSocket: { port: llm }
+            periodSeconds: 20
+            failureThreshold: 3
           args: ["-f", "/config/config.yaml"]
           workingDir: /data
           envFrom:
             - secretRef: {name: agentgateway-runtime}
+            # PLT-453: generated key of the pr-triage consumer (pr-triage-key.yaml, sync-wave -5).
+            - secretRef: {name: llm-arc-runners-agent-harness}
+            # PLT-453: generated key of the incident-sentinel consumer (incident-sentinel-key.yaml).
+            - secretRef: {name: llm-arc-runners-agent-harness--sentinel}
           ports:
             - {name: llm, containerPort: 4000}
           readinessProbe:
@@ -205,14 +346,6 @@ spec:
   endpointSelector: {matchLabels: {app: agentgateway}}
   ingress:
     - fromEndpoints:
-        - matchLabels: {k8s:io.kubernetes.pod.namespace: mastra-factory}
-      toPorts:
-        - ports: [{port: "4000", protocol: TCP}]
-    - fromEndpoints:
-        - matchLabels: {k8s:io.kubernetes.pod.namespace: factory-platform}
-      toPorts:
-        - ports: [{port: "4000", protocol: TCP}]
-    - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: gpt-researcher
             app.kubernetes.io/name: gpt-researcher
@@ -226,6 +359,18 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: librechat
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    # PLT-453: ARC runner of agent-harness (pr-triage workflow); the key is checked by the gateway.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: arc-runners-agent-harness
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    # PLT-453: namespace `agents` (incident sentinel, PLT-455); the key is checked by the gateway.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: agents
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
   egress:

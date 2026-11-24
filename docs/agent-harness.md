@@ -2,21 +2,15 @@
 
 The harness makes repository navigation and runtime evidence deterministic enough that a fresh agent does not need chat history.
 
+## Subagents
+
+Subagents come from the `harness-core` plugin of `SmadjaPaul/agent-harness` (enabled in `.claude/settings.json`), each with an explicit model: `mechanic` (haiku), `investigator`, `implementer`, `reviewer` (sonnet), `architect` (opus). Choice rule: haiku for decision-free steps, sonnet by default, opus for design, delicate security or opaque bugs. Never set `CLAUDE_CODE_SUBAGENT_MODEL`: it overrides the per-task model.
+
+kube-ops conventions the plugin agents must follow: `implementer` runs `just check`, works on its own `claude/` branch, and reports in STE80 form (`Objective`, `Status`, `Changes`, `Evidence`, `Blockers`, `NextAction`); `investigator` stays read-only (`scripts/kubectl-ro.sh`, never Secret values; Git manifests are not proof of what is deployed). Replaces the former `.claude/agents/implementer` and `repo-researcher`.
+
 ## Per-run test result contract
 
-Coding agents must report planned checks as JSON using
-[`agent-test-result-v1.schema.json`](contracts/agent-test-result-v1.schema.json).
-The checked-in [example](contracts/agent-test-result-v1.example.json) shows the
-minimum handoff shape. A result is incomplete unless every planned check is
-classified as `passed`, `failed`, `skipped`, `unavailable`, or
-`not-applicable`, with explicit `execution`, `reason`, `risk`, and
-`expectedCi` values. `not-executed` is not a pass and must not be inferred from
-the absence of a hook artifact.
-
-The `transmission` object is a stable, append-only projection for the separate
-`factory-platform` consumer: `agent.test.result` plus the schema version,
-idempotency key, and a credential-free payload. This repository defines the
-shape only; it does not send telemetry or change the factory-platform runtime.
+Retired (PLT-493). The `agent-test-result/v1` schema served only the frozen Factory / Mastra consumer (D-2026-11-22-01); it and its test are removed. Result reports follow STE80 and the evidence levels of AGENTS.md. Files under `docs/operations/` that carry `schemaVersion: agent-test-result/v1` are historical records and stay unchanged.
 
 ## Layers
 
@@ -187,23 +181,8 @@ It is currently appropriate for the vLLM model cache and other reproducible
 downloaded datasets.
 User-generated data must never use this exemption.
 
-## Multi-agent capability model
+## Multi-agent model
 
-The repository keeps shared operational knowledge in `.agents/skills/*`.
-Paperclip's former role-file matrix is not a kube-ops contract and was removed
-with the local operator scaffolding. Use the tracked skills and `AGENTS.md`
-authority/evidence rules; do not follow an untracked or missing role file.
+The central harness (skills, agents with an explicit model, hooks, MCP, friction loop, parallel lanes) lives in the private repository `SmadjaPaul/agent-harness`, distributed as the plugins `homelab-ops` and `harness-core`. `.claude/settings.json` declares that marketplace (`extraKnownMarketplaces` + `enabledPlugins`) so every session, cloud and ARC included, offers the plugin; install by hand with `/plugin marketplace add SmadjaPaul/agent-harness`.
 
-A prompt is not a security boundary. The target enforcement layers are:
-
-- GitHub App permissions for branch/PR write access;
-- Kubernetes RBAC: read-only runtime evidence by default, plus the limited-rights write identity of PLT-237 for operation-scoped mutations (AGENTS.md Safety);
-- LiteLLM virtual keys for logical-model/budget access;
-- network policy for reachable services;
-- Paperclip connector/tool policies only after the installed Paperclip version
-  has been qualified to support them.
-
-The Implementation Engineer may write a feature branch and open a pull request,
-but it never self-merges. R1 release can still be autonomous when a separate
-release authority sees independent review, QA and required CI gates pass. R2
-always remains human-only.
+Repository-specific knowledge stays in `.agents/skills/*` and `AGENTS.md`. The `secret-output-guard` PreToolUse hook (refuses Bash commands whose output can carry a secret value) and its test come from the `harness-core` plugin (`hooks/hooks.json`, fail-closed); kube-ops no longer wires its own copy in `.claude/settings.json`. The kube-ops helpers it points to (`scripts/doppler-safe.sh`, `scripts/kubectl-ro.sh`) keep their own test, `tests/agent-guard/secret-helpers-test.sh`. A prompt is not a security boundary; enforcement comes from GitHub App permissions (branch and PR write), Kubernetes RBAC (read-only `agent-operator` plus the bounded writes of AGENTS.md Safety), network policy and the CI gates. Agents merge their own PRs under the AGENTS.md merge rule (green CI, real rollback); irreversible changes keep a `MANDAT`.

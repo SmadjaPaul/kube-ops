@@ -14,6 +14,9 @@ data:
             lameduck 5s
         }
         ready
+        # A changed Corefile (list of names) is applied without a pod restart; an
+        # invalid one is ignored and the previous config keeps serving.
+        reload 30s 5s
         log . {
             class error
         }
@@ -25,23 +28,23 @@ data:
         # A = Gateway/internal VIP 10.0.20.192; AAAA/HTTPS/SVCB = NOERROR/NODATA.
         # Any other name falls through to the forward below.
         template IN A smadja.dev {
-            match "^(account[.]smadja[.]dev|aiostreams[.]smadja[.]dev|alertmanager[.]smadja[.]dev|argocd[.]smadja[.]dev|auth[.]smadja[.]dev|bookorbit[.]smadja[.]dev|calendar[.]smadja[.]dev|chat[.]smadja[.]dev|factory[.]smadja[.]dev|fitness[.]smadja[.]dev|fleet[.]smadja[.]dev|grafana[.]smadja[.]dev|hassio[.]smadja[.]dev|hubble[.]smadja[.]dev|immich[.]smadja[.]dev|ittools[.]smadja[.]dev|karakeep[.]smadja[.]dev|librechat[.]smadja[.]dev|matrix[.]smadja[.]dev|mealie[.]smadja[.]dev|media[.]smadja[.]dev|ntfy[.]smadja[.]dev|opencode[.]smadja[.]dev|paperless[.]smadja[.]dev|pdf[.]smadja[.]dev|pinepods[.]smadja[.]dev|prometheus[.]smadja[.]dev|research[.]smadja[.]dev|romm[.]smadja[.]dev|search[.]smadja[.]dev|sure[.]smadja[.]dev|tasks[.]smadja[.]dev|trilium[.]smadja[.]dev)[.]$"
+            match "^(account[.]smadja[.]dev|aiostreams[.]smadja[.]dev|alertmanager[.]smadja[.]dev|argocd[.]smadja[.]dev|auth[.]smadja[.]dev|bookorbit[.]smadja[.]dev|calendar[.]smadja[.]dev|chat[.]smadja[.]dev|factory[.]smadja[.]dev|facture[.]smadja[.]dev|fitness[.]smadja[.]dev|fleet[.]smadja[.]dev|grafana[.]smadja[.]dev|hassio[.]smadja[.]dev|hubble[.]smadja[.]dev|immich[.]smadja[.]dev|ittools[.]smadja[.]dev|karakeep[.]smadja[.]dev|librechat[.]smadja[.]dev|matrix[.]smadja[.]dev|mealie[.]smadja[.]dev|media[.]smadja[.]dev|ntfy[.]smadja[.]dev|opencode[.]smadja[.]dev|paperless[.]smadja[.]dev|pdf[.]smadja[.]dev|pinepods[.]smadja[.]dev|prometheus[.]smadja[.]dev|research[.]smadja[.]dev|romm[.]smadja[.]dev|search[.]smadja[.]dev|sure[.]smadja[.]dev|tasks[.]smadja[.]dev|trilium[.]smadja[.]dev)[.]$"
             answer "{{ .Name }} 300 IN A 10.0.20.192"
             rcode NOERROR
             fallthrough
         }
         template IN AAAA smadja.dev {
-            match "^(account[.]smadja[.]dev|aiostreams[.]smadja[.]dev|alertmanager[.]smadja[.]dev|argocd[.]smadja[.]dev|auth[.]smadja[.]dev|bookorbit[.]smadja[.]dev|calendar[.]smadja[.]dev|chat[.]smadja[.]dev|factory[.]smadja[.]dev|fitness[.]smadja[.]dev|fleet[.]smadja[.]dev|grafana[.]smadja[.]dev|hassio[.]smadja[.]dev|hubble[.]smadja[.]dev|immich[.]smadja[.]dev|ittools[.]smadja[.]dev|karakeep[.]smadja[.]dev|librechat[.]smadja[.]dev|matrix[.]smadja[.]dev|mealie[.]smadja[.]dev|media[.]smadja[.]dev|ntfy[.]smadja[.]dev|opencode[.]smadja[.]dev|paperless[.]smadja[.]dev|pdf[.]smadja[.]dev|pinepods[.]smadja[.]dev|prometheus[.]smadja[.]dev|research[.]smadja[.]dev|romm[.]smadja[.]dev|search[.]smadja[.]dev|sure[.]smadja[.]dev|tasks[.]smadja[.]dev|trilium[.]smadja[.]dev)[.]$"
+            match "^(account[.]smadja[.]dev|aiostreams[.]smadja[.]dev|alertmanager[.]smadja[.]dev|argocd[.]smadja[.]dev|auth[.]smadja[.]dev|bookorbit[.]smadja[.]dev|calendar[.]smadja[.]dev|chat[.]smadja[.]dev|factory[.]smadja[.]dev|facture[.]smadja[.]dev|fitness[.]smadja[.]dev|fleet[.]smadja[.]dev|grafana[.]smadja[.]dev|hassio[.]smadja[.]dev|hubble[.]smadja[.]dev|immich[.]smadja[.]dev|ittools[.]smadja[.]dev|karakeep[.]smadja[.]dev|librechat[.]smadja[.]dev|matrix[.]smadja[.]dev|mealie[.]smadja[.]dev|media[.]smadja[.]dev|ntfy[.]smadja[.]dev|opencode[.]smadja[.]dev|paperless[.]smadja[.]dev|pdf[.]smadja[.]dev|pinepods[.]smadja[.]dev|prometheus[.]smadja[.]dev|research[.]smadja[.]dev|romm[.]smadja[.]dev|search[.]smadja[.]dev|sure[.]smadja[.]dev|tasks[.]smadja[.]dev|trilium[.]smadja[.]dev)[.]$"
             rcode NOERROR
             fallthrough
         }
         template IN HTTPS smadja.dev {
-            match "^(account[.]smadja[.]dev|aiostreams[.]smadja[.]dev|alertmanager[.]smadja[.]dev|argocd[.]smadja[.]dev|auth[.]smadja[.]dev|bookorbit[.]smadja[.]dev|calendar[.]smadja[.]dev|chat[.]smadja[.]dev|factory[.]smadja[.]dev|fitness[.]smadja[.]dev|fleet[.]smadja[.]dev|grafana[.]smadja[.]dev|hassio[.]smadja[.]dev|hubble[.]smadja[.]dev|immich[.]smadja[.]dev|ittools[.]smadja[.]dev|karakeep[.]smadja[.]dev|librechat[.]smadja[.]dev|matrix[.]smadja[.]dev|mealie[.]smadja[.]dev|media[.]smadja[.]dev|ntfy[.]smadja[.]dev|opencode[.]smadja[.]dev|paperless[.]smadja[.]dev|pdf[.]smadja[.]dev|pinepods[.]smadja[.]dev|prometheus[.]smadja[.]dev|research[.]smadja[.]dev|romm[.]smadja[.]dev|search[.]smadja[.]dev|sure[.]smadja[.]dev|tasks[.]smadja[.]dev|trilium[.]smadja[.]dev)[.]$"
+            match "^(account[.]smadja[.]dev|aiostreams[.]smadja[.]dev|alertmanager[.]smadja[.]dev|argocd[.]smadja[.]dev|auth[.]smadja[.]dev|bookorbit[.]smadja[.]dev|calendar[.]smadja[.]dev|chat[.]smadja[.]dev|factory[.]smadja[.]dev|facture[.]smadja[.]dev|fitness[.]smadja[.]dev|fleet[.]smadja[.]dev|grafana[.]smadja[.]dev|hassio[.]smadja[.]dev|hubble[.]smadja[.]dev|immich[.]smadja[.]dev|ittools[.]smadja[.]dev|karakeep[.]smadja[.]dev|librechat[.]smadja[.]dev|matrix[.]smadja[.]dev|mealie[.]smadja[.]dev|media[.]smadja[.]dev|ntfy[.]smadja[.]dev|opencode[.]smadja[.]dev|paperless[.]smadja[.]dev|pdf[.]smadja[.]dev|pinepods[.]smadja[.]dev|prometheus[.]smadja[.]dev|research[.]smadja[.]dev|romm[.]smadja[.]dev|search[.]smadja[.]dev|sure[.]smadja[.]dev|tasks[.]smadja[.]dev|trilium[.]smadja[.]dev)[.]$"
             rcode NOERROR
             fallthrough
         }
         template IN SVCB smadja.dev {
-            match "^(account[.]smadja[.]dev|aiostreams[.]smadja[.]dev|alertmanager[.]smadja[.]dev|argocd[.]smadja[.]dev|auth[.]smadja[.]dev|bookorbit[.]smadja[.]dev|calendar[.]smadja[.]dev|chat[.]smadja[.]dev|factory[.]smadja[.]dev|fitness[.]smadja[.]dev|fleet[.]smadja[.]dev|grafana[.]smadja[.]dev|hassio[.]smadja[.]dev|hubble[.]smadja[.]dev|immich[.]smadja[.]dev|ittools[.]smadja[.]dev|karakeep[.]smadja[.]dev|librechat[.]smadja[.]dev|matrix[.]smadja[.]dev|mealie[.]smadja[.]dev|media[.]smadja[.]dev|ntfy[.]smadja[.]dev|opencode[.]smadja[.]dev|paperless[.]smadja[.]dev|pdf[.]smadja[.]dev|pinepods[.]smadja[.]dev|prometheus[.]smadja[.]dev|research[.]smadja[.]dev|romm[.]smadja[.]dev|search[.]smadja[.]dev|sure[.]smadja[.]dev|tasks[.]smadja[.]dev|trilium[.]smadja[.]dev)[.]$"
+            match "^(account[.]smadja[.]dev|aiostreams[.]smadja[.]dev|alertmanager[.]smadja[.]dev|argocd[.]smadja[.]dev|auth[.]smadja[.]dev|bookorbit[.]smadja[.]dev|calendar[.]smadja[.]dev|chat[.]smadja[.]dev|factory[.]smadja[.]dev|facture[.]smadja[.]dev|fitness[.]smadja[.]dev|fleet[.]smadja[.]dev|grafana[.]smadja[.]dev|hassio[.]smadja[.]dev|hubble[.]smadja[.]dev|immich[.]smadja[.]dev|ittools[.]smadja[.]dev|karakeep[.]smadja[.]dev|librechat[.]smadja[.]dev|matrix[.]smadja[.]dev|mealie[.]smadja[.]dev|media[.]smadja[.]dev|ntfy[.]smadja[.]dev|opencode[.]smadja[.]dev|paperless[.]smadja[.]dev|pdf[.]smadja[.]dev|pinepods[.]smadja[.]dev|prometheus[.]smadja[.]dev|research[.]smadja[.]dev|romm[.]smadja[.]dev|search[.]smadja[.]dev|sure[.]smadja[.]dev|tasks[.]smadja[.]dev|trilium[.]smadja[.]dev)[.]$"
             rcode NOERROR
             fallthrough
         }

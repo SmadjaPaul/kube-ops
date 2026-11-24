@@ -1,0 +1,34 @@
+# One monitor for every CNPG instance pod (backup age, WAL archiving,
+# replication). Per-cluster PodMonitors in application folders lack the
+# release label and are not selected; enablePodMonitor stays false on clusters.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: cnpg-instances
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: cnpg-instances
+spec:
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      cnpg.io/podRole: instance
+  podMetricsEndpoints:
+    - port: metrics
+      scheme: http
+      interval: 60s
+      # Revue alertes 2026-11-23: drill and restore clusters are temporary and
+      # their targets have been down since creation (TargetDown noise). Dropped
+      # at target level; their data is not monitored.
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_namespace]
+          regex: "hindsight-restore-drill|pg-shared-oke-drill"
+          action: drop
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          # barman_cloud_cloudnative_pg_io_*: backup metrics of the barman-cloud
+          # plugin (PLT-459), served by the instance manager on the same port.
+          regex: (cnpg_(collector|pg_stat_archiver|pg_replication)|barman_cloud_cloudnative_pg_io)_.*
+          action: keep

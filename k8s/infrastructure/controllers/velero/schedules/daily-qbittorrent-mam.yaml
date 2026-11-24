@@ -1,0 +1,29 @@
+# Back up only qBittorrent config and fast-resume metadata. The shared media
+# volume is intentionally excluded; it remains a separately managed 2-TiB PVC.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: velero-daily-qbittorrent-mam
+  namespace: velero
+  annotations:
+    kube-ops.io/fs-backup-opt-out: "opt-in par volume : annotation du pod backup.velero.io/backup-volumes (config uniquement)"
+  labels:
+    backup-tier: daily
+    backup-app: qbittorrent-mam
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedNamespaces:
+      - media
+    orLabelSelectors:
+      - matchLabels:
+          app.kubernetes.io/name: qbittorrent-mam
+    includedResources:
+      - '*'
+    excludedResources:
+      - events
+      - storageclasses.storage.k8s.io
+    defaultVolumesToFsBackup: false
+    snapshotVolumes: false
+    storageLocation: r2
+    ttl: 336h

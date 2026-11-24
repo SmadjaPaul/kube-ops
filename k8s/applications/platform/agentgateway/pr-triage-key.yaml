@@ -1,0 +1,75 @@
+# PLT-453: Agentgateway key of the `pr-triage` consumer (agent-harness workflow pr-triage.yml),
+# generated inside the cluster (D-2026-11-20-04, secrets-migration-spec class T4: disposable, not
+# backed up). Never in Doppler, never in Git. The source Secret is named after the ONLY consumer
+# namespace (convention of the store k8s-agentgateway, prefix `llm-`):
+#   - the gateway reads it through `envFrom` (deployment, resources.yaml) and checks it in config.yaml;
+#   - the ARC runner copy `pr-triage-agentgateway` (namespace arc-runners-agent-harness) is read
+#     through the store k8s-agentgateway (k8s/optional/github-actions-arc-agent-harness).
+# Rotate: rename both ExternalSecrets `llm-arc-runners-agent-harness` -> `...-r2` (keep target.name),
+# docs/operations/secrets-generated-runbook.md. Revert: remove this file, its line in
+# kustomization.yaml, the key block in config.yaml and the envFrom entry (Secrets are orphaned, delete by hand).
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: llm-arc-runners-agent-harness
+  namespace: agentgateway
+spec:
+  length: 48
+  digits: 10
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: llm-arc-runners-agent-harness
+  namespace: agentgateway
+  annotations:
+    kube-ops.io/secret-class: T4
+    kube-ops.io/not-data-key: "bearer token of an internal LLM consumer, encrypts no persisted data"
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: llm-arc-runners-agent-harness
+    creationPolicy: Orphan
+    template:
+      engineVersion: v2
+      data:
+        PR_TRIAGE_AGENTGATEWAY_KEY: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: llm-arc-runners-agent-harness
+---
+# Layer 1 of the store k8s-agentgateway: `get` on the named Secrets only. The sentinel MUST stay
+# (an empty resourceNames list would grant every Secret of the namespace, spec F4).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eso-k8s-agentgateway-reader
+  namespace: agentgateway
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get]
+    resourceNames:
+      - eso-k8s-sentinel-none   # never remove: an empty list would grant all Secrets
+      - llm-arc-runners-agent-harness
+      - llm-arc-runners-agent-harness--sentinel   # PLT-453: incident-sentinel source (incident-sentinel-key.yaml)
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eso-k8s-agentgateway-reader
+  namespace: agentgateway
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: eso-k8s-agentgateway-reader
+subjects:
+  - kind: ServiceAccount
+    name: eso-k8s-agentgateway-reader
+    namespace: external-secrets

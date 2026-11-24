@@ -26,8 +26,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: argocd
       server: https://kubernetes.default.svc
-    - namespace: argo-rollouts
-      server: https://kubernetes.default.svc
     - namespace: auth
       server: https://kubernetes.default.svc
     - namespace: cert-manager
@@ -52,13 +50,14 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: falco
       server: https://kubernetes.default.svc
-    - namespace: gatekeeper-system
-      server: https://kubernetes.default.svc
     - namespace: gateway
       server: https://kubernetes.default.svc
     - namespace: gpt-researcher
       server: https://kubernetes.default.svc
     - namespace: home-assistant
+      server: https://kubernetes.default.svc
+    # PRD-76: permanent HA restore-drill island (k8s/infrastructure/controllers/velero-ha-restore-drill).
+    - namespace: home-assistant-restore-test
       server: https://kubernetes.default.svc
     - namespace: immich
       server: https://kubernetes.default.svc
@@ -70,7 +69,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: kube-system
       server: https://kubernetes.default.svc
-    - namespace: kubechecks
+    # PLT-393: namespace declared by k8s/infrastructure/security/namespaces.yaml.
+    - namespace: kubearmor
       server: https://kubernetes.default.svc
     - namespace: kyverno
       server: https://kubernetes.default.svc
@@ -100,8 +100,15 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: arc-runners-website
       server: https://kubernetes.default.svc
+    - namespace: arc-runners-agent-harness
+      server: https://kubernetes.default.svc
+    - namespace: arc-runners-ha-config
+      server: https://kubernetes.default.svc
     # PLT-390: post-merge verification runner (k8s/optional/github-actions-arc-kube-ops).
     - namespace: arc-runners-kube-ops
+      server: https://kubernetes.default.svc
+    # PLT-442: PR CI scale set without Kubernetes token (k8s/optional/github-actions-arc-kube-ops-pr).
+    - namespace: arc-runners-kube-ops-pr
       server: https://kubernetes.default.svc
     - namespace: paperless
       server: https://kubernetes.default.svc

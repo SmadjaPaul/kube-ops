@@ -4,3 +4,4 @@ kind: Kustomization
 # k8s/infrastructure/security/agent-operator/scope.tsv (source unique).
 resources:
   - rolebindings.yaml
+  - cronjob-run.yaml

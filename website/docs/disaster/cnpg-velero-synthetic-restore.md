@@ -37,7 +37,7 @@ Do not change shared Cilium policies, resource quotas, StorageClasses or
 production resources to make the drill pass. Stop for new cluster/Factory
 health regressions, missing metrics, unexpected PVC/PV references or timeout.
 
-Atlantis is not a runtime dependency: recovery prerequisites must remain
+No IaC apply runner (ARC) is a runtime dependency: recovery prerequisites must remain
 available from Git, the canonical operator-access path in `homelab-infra`,
 and the off-cluster backup services. A production or Invoice Ninja application
 restore is **outside** this authorization and retains its separate human gates.

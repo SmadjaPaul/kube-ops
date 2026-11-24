@@ -17,8 +17,11 @@ base() { PM_APP_TEST=PASS PM_REVISION=PROVEN PM_CLASS=apps-only PM_IS_REVERT=no 
 base;                                case_ "PASS: nothing to do" NONE app_test_pass
 base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL; case_ "FAIL + deploy FAIL: revert" REVERT deploy_unhealthy
 [[ $PM_PRIORITY == urgent && -z $PM_EXTRA ]] || { echo "FAIL: revert priority/extra"; exit 1; }
-base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_STATEFUL=yes; case_ "FAIL stateful: revert + verify-migration" REVERT deploy_unhealthy
-[[ $PM_EXTRA == verify-migration ]] || { echo "FAIL: stateful lacks verify-migration"; exit 1; }
+base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_STATEFUL=yes; case_ "FAIL stateful: escalate, never auto-revert (PLT-398)" ESCALATE stateful_app_no_auto_revert
+[[ $PM_EXTRA == verify-migration && $PM_PRIORITY == urgent ]] || { echo "FAIL: stateful lacks verify-migration/urgent"; exit 1; }
+base; PM_APP_TEST=PASS PM_STATEFUL=yes; case_ "PASS stateful: nothing" NONE app_test_pass
+base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_STATEFUL=yes PM_CLASS=mixed; case_ "stateful + mixed: mixed reason first" ESCALATE more_than_apps
+base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_STATEFUL=yes PM_IS_REVERT=yes; case_ "stateful revert: still revert_of_revert" ESCALATE revert_of_revert
 base; PM_APP_TEST=BLOCKED;           case_ "BLOCKED: notify, no revert" NOTIFY app_test_BLOCKED
 base; PM_APP_TEST=NOT_RUN;           case_ "NOT_RUN: notify, no revert" NOTIFY app_test_NOT_RUN
 base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_CLASS=mixed;  case_ "FAIL on infra/mixed commit: escalate" ESCALATE more_than_apps
@@ -36,5 +39,13 @@ base; PM_APP_TEST=FAIL PM_DEPLOY=UNKNOWN; case_ "FAIL, deploy unknown (no pod): 
 base; PM_APP_TEST=FAIL; unset PM_DEPLOY; case_ "FAIL, PM_DEPLOY unset: notify" NOTIFY golden_path_fail_no_revert
 base; PM_APP_TEST=FAIL PM_DEPLOY=PASS PM_CLASS=mixed; case_ "golden-path FAIL on mixed: notify, not escalate" NOTIFY golden_path_fail_no_revert
 base; PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_CLASS=mixed; case_ "deploy FAIL + mixed: escalate" ESCALATE more_than_apps
-base; PM_APP_TEST=PASS PM_DEPLOY=FAIL; case_ "app-test PASS wins over stray deploy FAIL" NONE app_test_pass
+base; PM_APP_TEST=PASS PM_DEPLOY=FAIL; case_ "deploy FAIL wins over app-test PASS (frozen selfheal debt, drill #1691)" REVERT deploy_unhealthy
+base; PM_APP_TEST=BLOCKED PM_DEPLOY=FAIL; case_ "deploy FAIL wins over app-test BLOCKED" REVERT deploy_unhealthy
+base; PM_APP_TEST=PASS PM_DEPLOY=FAIL PM_IS_REVERT=yes; case_ "deploy FAIL on a revert: never revert a revert" ESCALATE revert_of_revert
+# OKE (PLT-407): never a revert, whatever the deployment health; the proven-revision PASS stays NONE
+base; PM_OKE=yes PM_APP_TEST=FAIL PM_DEPLOY=FAIL; case_ "OKE broken deployment: notify, no revert" NOTIFY oke_notify_only
+base; PM_OKE=yes PM_APP_TEST=PASS PM_DEPLOY=FAIL; case_ "OKE deploy FAIL wins over PASS: still notify" NOTIFY oke_notify_only
+base; PM_OKE=yes PM_APP_TEST=PASS PM_DEPLOY=PASS; case_ "OKE healthy: nothing" NONE app_test_pass
+base; PM_OKE=yes PM_APP_TEST=FAIL PM_DEPLOY=FAIL PM_CLASS=mixed; case_ "OKE mixed: notify, not escalate" NOTIFY oke_notify_only
+base; PM_OKE=no PM_APP_TEST=FAIL PM_DEPLOY=FAIL; case_ "homelab unchanged: revert" REVERT deploy_unhealthy
 echo "post-merge decision test: PASS ($n cases)"

@@ -8,6 +8,19 @@ resources:
   - ../../../optional/rustical
   - pvc-bulk.yaml
 patches:
+  # PSA restricted enforced (PLT-392): the rendered workloads already satisfy it (app-test static).
+  - target:
+      kind: Namespace
+      name: rustical
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: rustical
+        labels:
+          pod-security.kubernetes.io/enforce: restricted
+          pod-security.kubernetes.io/audit: restricted
+          pod-security.kubernetes.io/warn: restricted
   - target:
       kind: Deployment
       name: rustical

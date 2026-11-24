@@ -13,12 +13,14 @@ assert_contains() {
   fi
 }
 
-assert_contains '- bookorbit' "$root/kustomization.yaml"
+# PLT-394 : l'app est declaree par son descripteur (Application app-bookorbit).
+assert_contains 'name: bookorbit' "$root/bookorbit/argocd-app.yaml"
 assert_contains 'ghcr.io/bookorbit/bookorbit:3.9.0@sha256:79cd9c66c990a82944514e3e82d5be5987f21eda96cb37a378ed1484043716fc' "$pkg/app.yaml"
 assert_contains 'value: /data/book-dock' "$pkg/app.yaml"
 assert_contains 'value: /data/media/books' "$pkg/app.yaml"
 assert_contains 'APP_BOOKORBIT_BOOK_REQUEST_ENCRYPTION_KEY' "$pkg/external-secret.yaml"
 assert_contains 'APP_BOOKORBIT_JWT_SECRET' "$pkg/external-secret.yaml"
+assert_contains 'APP_BOOKORBIT_AI_ENCRYPTION_KEY' "$pkg/external-secret.yaml"
 # Velero must back up only the BookOrbit data volume, not the shared 2-TiB media.
 if ! grep -Eq '^[[:space:]]*backup\.velero\.io/backup-volumes:[[:space:]]*"?data"?[[:space:]]*(#.*)?$' "$pkg/app.yaml"; then
   echo "BOOKORBIT_BACKUP_SCOPE=FAIL: backup-volumes must be exactly 'data'" >&2

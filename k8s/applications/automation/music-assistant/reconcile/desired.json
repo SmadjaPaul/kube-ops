@@ -1,0 +1,54 @@
+{
+  "ma_url": "http://music-assistant.music-assistant.svc.cluster.local:8095",
+  "core": {
+    "streams": {
+      "publish_ip": "10.0.20.192",
+      "bind_port": 8097
+    }
+  },
+  "providers": [
+    {
+      "domain": "sonos",
+      "values": {
+        "manual_discovery_ip_addresses": ["10.0.35.50", "10.0.35.54", "10.0.35.175", "10.0.35.221"]
+      }
+    },
+    {
+      "domain": "chromecast",
+      "values": {
+        "manual_discovery_ip_addresses": [
+          "10.0.35.241"
+        ]
+      }
+    },
+    {
+      "domain": "jellyfin",
+      "values": {
+        "url": "http://polyfin.media.svc.cluster.local:80",
+        "username": "svc-music-assistant",
+        "password": {
+          "secret_env": "APP_MA_POLYFIN_PASSWORD"
+        }
+      }
+    }
+  ],
+  "players": [],
+  "users": [
+    {
+      "username": "svc-ma-reconcile",
+      "role": "admin"
+    },
+    {
+      "username": "svc-home-assistant",
+      "role": "service",
+      "password_generated": true,
+      "token": {
+        "name": "home-assistant",
+        "secret_env": "APP_MA_HA_TOKEN",
+        "k8s_secret": "ma-home-assistant-token",
+        "key": "token"
+      }
+    }
+  ],
+  "prune_domains": []
+}

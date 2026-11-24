@@ -11,6 +11,7 @@ trap 'rm -rf "$work"' EXIT
 
 command -v kustomize >/dev/null 2>&1 || { echo 'DNS_EXACT_RESOLVER_CONTRACT_TEST=BLOCKED missing_tool=kustomize' >&2; exit 2; }
 kustomize build "$root" > "$work/render.yaml"
+python3 -I -c 'import yaml' 2>/dev/null || { echo 'DNS_EXACT_RESOLVER_CONTRACT_TEST=BLOCKED missing_python_module=yaml (voir docs/runbooks/agent-tooling-notes.md : PyYAML)' >&2; exit 2; }
 
 python3 -I - "$work/render.yaml" <<'PY'
 import copy, ipaddress, re, sys
@@ -210,6 +211,26 @@ def problems(docs, corefile_override=None, service_ip=None, cnp_mutator=None, de
         bad.append(f"egress must be only to {UNIFI}/32")
     if "world" in str(spec) or "kube-apiserver" in str(spec):
         bad.append("policy must not open world or kube-apiserver")
+
+    # PLT-149 lot 1.4: observability (scrape target + alerts).
+    try:
+        msvc = find(docs, "Service", "dns-exact-resolver-metrics")
+        if [p.get("port") for p in msvc["spec"]["ports"]] != [9153] or msvc["spec"].get("type", "ClusterIP") != "ClusterIP":
+            bad.append("metrics Service must be ClusterIP exposing only 9153")
+        sm = find(docs, "ServiceMonitor", "dns-exact-resolver")
+        if sm["metadata"]["labels"].get("release") != "kube-prometheus-stack":
+            bad.append("ServiceMonitor needs label release=kube-prometheus-stack")
+        if not all(msvc["metadata"]["labels"].get(k) == v for k, v in sm["spec"]["selector"]["matchLabels"].items()):
+            bad.append("ServiceMonitor selector does not match the metrics Service")
+        rule = find(docs, "PrometheusRule", "dns-exact-resolver")
+        if rule["metadata"]["labels"].get("release") != "kube-prometheus-stack":
+            bad.append("PrometheusRule needs label release=kube-prometheus-stack")
+        alerts = {r["alert"] for g in rule["spec"]["groups"] for r in g["rules"]}
+        for a in ("DnsExactResolverDown", "DnsExactResolverServfail", "DnsExactResolverHighLatency"):
+            if a not in alerts:
+                bad.append("missing alert " + a)
+    except StopIteration:
+        bad.append("metrics Service, ServiceMonitor and PrometheusRule must be rendered")
 
     return bad, names
 

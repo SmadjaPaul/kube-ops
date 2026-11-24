@@ -1,5 +1,6 @@
 # NetBird routing peer (PLT-256). Routes ONE /32 (the private OKE API endpoint,
-# TCP 6443) for group Admin; no route to pods or services. Needs NET_ADMIN,
+# TCP 6443) for group Admin; the peer joins group `OKE Routers` through its setup key
+# (homelab-infra terraform/netbird, auto_groups); no route to pods or services. Needs NET_ADMIN,
 # SYS_RESOURCE and SYS_ADMIN (NetBird client documentation), so it cannot be
 # restricted further; kept to one pod, no host network, no service account
 # token. Client state (peer identity) lives on the node: the setup key is
@@ -8,7 +9,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: netbird-router
-  namespace: cloudflared
+  namespace: netbird
 spec:
   replicas: 1
   strategy: {type: Recreate}
@@ -24,7 +25,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: netbird
-          image: docker.io/netbirdio/netbird:0.83.0
+          image: docker.io/netbirdio/netbird:0.83.1@sha256:3c9d68ae8b730aaed841ff5374e3efad8be550099871a52b1a653d30e5f4faf2
           env:
             - name: NB_SETUP_KEY
               valueFrom: {secretKeyRef: {name: netbird-router-setup-key, key: NB_SETUP_KEY}}

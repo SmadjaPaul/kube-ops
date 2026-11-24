@@ -4,10 +4,10 @@ namespace: auth
 resources:
 - database.yaml
 - database-scheduled-backup.yaml
-- backup-pre-reset-20260929.yaml
 - database-r2.yaml
 - backup-r2-initial.yaml
 - podmonitor.yaml
+- podmonitor-app.yaml
 - httproute.yaml
 - referencegrant.yaml
 - extra
@@ -17,4 +17,4 @@ helmCharts:
   releaseName: authentik
   repo: https://charts.goauthentik.io
   valuesFile: values.yaml
-  version: 2026.8.3
+  version: 2026.8.6

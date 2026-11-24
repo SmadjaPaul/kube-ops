@@ -44,3 +44,15 @@ results:
   resources:
   - system-namespace-privileged
   result: skip
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-privileged
+  resources:
+  - exception-longhorn-system
+  result: skip
+- isValidatingPolicy: true
+  kind: Pod
+  policy: platform-baseline-no-privileged
+  resources:
+  - exception-csi-proxmox
+  result: skip

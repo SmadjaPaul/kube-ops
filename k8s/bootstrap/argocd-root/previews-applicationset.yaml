@@ -16,6 +16,10 @@
 # any Doppler store) is refused by Kyverno preview-namespace-guard and stays
 # Degraded: a preview never reads a production secret (D-2026-11-20-04).
 #
+# Guardrails (quota, limits, CiliumNetworkPolicy) are NOT a source of this
+# Application any more (PLT-395): the AppProject `previews` admits no cilium.io
+# object. They come from main through ApplicationSet previews-guardrails.
+#
 # Exposure: hostname <app>-<n>-preview.smadja.dev (one DNS level under the
 # wildcard Cloudflare Universal SSL covers). The parent is Gateway/internal
 # (LAN only, nothing public). Switching to `external` is allowed only after the
@@ -41,15 +45,30 @@ spec:
                 repo: kube-ops
                 labels:
                   - preview
+                # PLT-395: authenticate the PR generator (unauthenticated: 60 req/h).
+                # Paul's gesture, then a PR adding here either
+                #   tokenRef: {secretName: <secret in argocd>, key: token}
+                # or appSecretName (read-only GitHub App). Procedure:
+                # docs/runbooks/preview-environments.md. Never put a value in Git.
               filters:
                 - targetBranchMatch: '^main$'
               requeueAfterSeconds: 120
           - git:
               repoURL: https://github.com/SmadjaPaul/kube-ops.git
               revision: '{{ .head_sha }}'
-              directories:
+              # PLT-394: the descriptor of the app (argocd-app.yaml, read at the PR head)
+              # replaces the former `directories` discovery. .path.path / .path.basename
+              # are the app directory, exactly as before.
+              files:
                 - path: >-
-                    k8s/applications/*/{{- $a := "" -}}{{- range .labels -}}{{- if hasPrefix "preview:" . -}}{{- $a = trimPrefix "preview:" . -}}{{- end -}}{{- end -}}{{- if regexMatch "^[a-z0-9][a-z0-9-]{0,37}$" $a -}}{{ $a }}{{- else -}}__none__{{- end -}}
+                    k8s/applications/*/{{- $a := "" -}}{{- range .labels -}}{{- if hasPrefix "preview:" . -}}{{- $a = trimPrefix "preview:" . -}}{{- end -}}{{- end -}}{{- if regexMatch "^[a-z0-9][a-z0-9-]{0,37}$" $a -}}{{ $a }}{{- else -}}__none__{{- end -}}/argocd-app.yaml
+      # Opt-in (PLT-394): only an app whose descriptor says `preview: true` (flattened to
+      # "true" by the post-selector) gets a preview; field absent or false = no Application.
+      # Selector on the matrix itself: params are merged and the PR generator wins on any
+      # key clash (a descriptor cannot override number, head_sha or labels).
+      selector:
+        matchLabels:
+          preview: 'true'
   template:
     metadata:
       name: 'preview-pr{{ .number }}-{{ .path.basename }}'
@@ -103,6 +122,16 @@ spec:
                     value:
                       - name: internal
                         namespace: gateway
+                  # PLT-394 drill: a backendRef to another namespace (KEDA interceptor proxy)
+                  # is refused by Gateway/internal (ResolvedRefs=False, RefNotPermitted: no
+                  # ReferenceGrant in a preview) and turns the Application Degraded. The preview
+                  # route points at the in-namespace Service <app>-preview-service instead
+                  # (an app with preview: true must ship it, see argo-app-descriptor.md).
+                  - op: add
+                    path: /spec/rules/0/backendRefs
+                    value:
+                      - name: '{{ .path.basename }}-preview-service'
+                        port: 8080
               - target:
                   kind: Deployment
                 patch: |-
@@ -127,13 +156,6 @@ spec:
                   - op: add
                     path: /spec/jobTemplate/spec/template/spec/priorityClassName
                     value: preview-low
-        # Guardrails come from main, never from the PR head: a PR cannot loosen
-        # its own quota or network policy.
-        - repoURL: https://github.com/SmadjaPaul/kube-ops.git
-          targetRevision: main
-          path: k8s/previews/guardrails
-          kustomize:
-            namespace: 'pr-{{ .number }}-{{ .path.basename }}'
       destination:
         server: https://kubernetes.default.svc
         namespace: 'pr-{{ .number }}-{{ .path.basename }}'

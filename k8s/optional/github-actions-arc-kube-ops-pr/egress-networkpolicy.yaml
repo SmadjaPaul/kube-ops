@@ -1,0 +1,87 @@
+# Default deny egress for every pod of the namespace. Allowed: DNS; GitHub (job protocol, checkout,
+# release assets, ghcr.io OCI charts); registry.npmjs.org (npm install of the e2e job); pypi.org and files.pythonhosted.org (pyyaml venv of check:policy-tests);
+# the Helm chart repositories that v1-contract renders (scripts/backup-coverage-static.py,
+# kustomize --enable-helm). The LAN (10.0.0.0/8) and the Kubernetes API are not allowed (PLT-442).
+# Tools (helm, kustomize, kubeconform, kyverno, node) are in the arc-ci-runner image.
+# Hosts to add later come from observed Hubble drops, by PR.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-runners-kube-ops-pr-egress
+  namespace: arc-runners-kube-ops-pr
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app.kubernetes.io/part-of: github-actions-arc
+    policy-type: github-actions-arc
+spec:
+  description: "kube-ops PR CI runners, no Kubernetes token: DNS, GitHub, ghcr.io, registry.npmjs.org, PyPI, Docker Hub (OCI chart) and the Helm chart repositories only"
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchName: github.com
+        - matchName: api.github.com
+        - matchName: codeload.github.com
+        - matchName: objects.githubusercontent.com
+        - matchName: objects-origin.githubusercontent.com
+        - matchName: github-releases.githubusercontent.com
+        - matchName: github-registry-files.githubusercontent.com
+        - matchName: release-assets.githubusercontent.com
+        - matchName: raw.githubusercontent.com
+        - matchPattern: "*.actions.githubusercontent.com"
+        - matchPattern: "*.blob.core.windows.net"
+        - matchName: registry.npmjs.org
+        # scripts/policy-check.sh --tests creates a venv with pyyaml==6.0.2 (PyYAML is not in the image).
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
+        # OCI chart bitnamicharts/redis (immich-redis) on Docker Hub, pulled by kustomize --enable-helm.
+        - matchName: registry-1.docker.io
+        - matchName: auth.docker.io
+        - matchName: production.cloudflare.docker.com
+        - matchName: production.cloudfront.docker.com
+        - matchName: ghcr.io
+        - matchName: pkg-containers.githubusercontent.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Helm chart repositories (index.yaml and chart archives).
+    - toFQDNs:
+        - matchName: aquasecurity.github.io
+        - matchName: argoproj.github.io
+        - matchName: charts.bitnami.com
+        - matchName: charts.goauthentik.io
+        - matchName: charts.jetstack.io
+        - matchName: charts.longhorn.io
+        - matchName: cloudnative-pg.github.io
+        - matchName: collaboraonline.github.io
+        - matchName: falcosecurity.github.io
+        - matchName: grafana-community.github.io
+        - matchName: grafana.github.io
+        - matchName: helm.cilium.io
+        - matchName: kedacore.github.io
+        - matchName: kubernetes-sigs.github.io
+        - matchName: kubernetes.github.io
+        - matchName: kyverno.github.io
+        - matchName: prometheus-community.github.io
+        # charts.bitnami.com redirects to repo.broadcom.com (immich-redis).
+        - matchName: repo.broadcom.com
+        - matchName: stakater.github.io
+        - matchName: vmware-tanzu.github.io
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

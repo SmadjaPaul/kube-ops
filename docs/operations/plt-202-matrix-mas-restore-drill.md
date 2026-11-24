@@ -8,7 +8,7 @@ its control query by #1285, and removed by the PR that adds this file.
 ## Scope and safety model
 
 - Source: `s3://smadja-dev-homelab-backups/cnpg/matrix-mas-clean`, server
-  `matrix-mas-postgresql-clean` (Hetzner Object Storage, `fsn1`).
+  `matrix-mas-postgresql-clean` (former offsite store, abandoned; historical drill).
 - Target: namespace `matrix-mas-drill`, cluster `matrix-mas-clean-restore`,
   `bootstrap.recovery` without `recoveryTarget` (replay every archived WAL,
   then promote), 1 instance, `longhorn-bulk` PVCs (disposable).
@@ -21,7 +21,7 @@ its control query by #1285, and removed by the PR that adds this file.
   ObjectStore without `retentionPolicy` or `serverName`. The CNPG empty-WAL
   archive check stayed enabled as a second safety net.
 - Network: CiliumNetworkPolicy limited to DNS, kube-apiserver, intra-namespace
-  and the Hetzner endpoint. The clusterwide audit allow-all CCNP still applies
+  and the offsite S3 endpoint. The clusterwide audit allow-all CCNP still applies
   to every namespace (open CodeRabbit point, lane G).
 - Production was never written: no `kubectl` mutation, no Secret read, the
   restored database was queried in a read-only transaction by a Job.
@@ -102,7 +102,7 @@ All times UTC, 2026-11-12. Evidence levels follow
 - RTO covers a restore into a fresh namespace from a 4-day-old base backup.
   A restore right after Sunday's weekly base backup is shorter; a restore just
   before it is longer (up to 7 days of WAL).
-- The drill proves restorability of the Hetzner copy only. The R2 migration
+- The drill proves restorability of the former offsite copy only. The R2 migration
   needs its own drill once CNPG archives to R2.
 - Switchover (pointing MAS to a restored cluster) was not executed; see the
   PLT-145 procedure draft.

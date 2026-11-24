@@ -15,7 +15,8 @@
 #       missing from Doppler makes the run fail before CMD starts.
 #
 # Closed list of project/config pairs (every subcommand): infrastructure/prd
-# (default), cluster/prd, apps/prd. Any other pair is refused (exit 64): adding
+# (default), cluster/prd, apps/prd, identity/agt (PLT-481, kubeconfig agent-operator d'OKE) (PRD-103 removed home/prd_maison: no consumer left). Any
+# other pair is refused (exit 64): adding
 # one is a reviewed change to ALLOWED_SCOPES below, not a runtime option.
 #
 # `doppler secrets set|delete` print the whole secrets table (values included)
@@ -27,7 +28,7 @@ HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 DOPPLER=${DOPPLER_SAFE_BIN:-doppler}
 PROJECT=infrastructure
 CONFIG=prd
-ALLOWED_SCOPES="infrastructure/prd cluster/prd apps/prd"
+ALLOWED_SCOPES="infrastructure/prd cluster/prd apps/prd identity/agt"
 ONLY_MAX=16
 only=()
 

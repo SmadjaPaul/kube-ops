@@ -1,0 +1,8 @@
+{
+  "ma_url": "http://unused.invalid:8095",
+  "providers": [],
+  "players": [
+    {"player_id": "RINCON_AAA", "values": {"name": "Salon"}},
+    {"player_id": "RINCON_ZZZ", "values": {"name": "Inconnu"}}
+  ]
+}

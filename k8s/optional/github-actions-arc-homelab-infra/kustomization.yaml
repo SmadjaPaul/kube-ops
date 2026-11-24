@@ -16,3 +16,4 @@ resources:
   - unifi-api-networkpolicy.yaml
   - migadu-stripe-networkpolicy.yaml
   - gcp-wif-networkpolicy.yaml
+  - home-assistant-networkpolicy.yaml

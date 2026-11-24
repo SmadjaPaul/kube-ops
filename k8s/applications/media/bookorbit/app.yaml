@@ -128,6 +128,11 @@ spec:
                 secretKeyRef:
                   name: bookorbit-runtime
                   key: BOOK_REQUEST_ENCRYPTION_KEY
+            - name: AI_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-runtime
+                  key: AI_ENCRYPTION_KEY
           ports:
             - name: http
               containerPort: 3000
@@ -168,6 +173,12 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /appdata
+            - name: gutenberg-plugin
+              mountPath: /appdata/plugins/indexers/gutenberg-fr-candide
+              readOnly: true
+            - name: mam-plugin
+              mountPath: /appdata/plugins/indexers/myanonamouse
+              readOnly: true
             - name: media
               mountPath: /data
             - name: tmp
@@ -176,6 +187,12 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: bookorbit-data
+        - name: gutenberg-plugin
+          configMap:
+            name: bookorbit-plugin-gutenberg-fr-candide
+        - name: mam-plugin
+          configMap:
+            name: bookorbit-plugin-myanonamouse
         - name: media
           persistentVolumeClaim:
             claimName: media-share

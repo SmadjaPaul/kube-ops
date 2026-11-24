@@ -12,7 +12,7 @@ spec:
   parentRefs:
     - { name: external, namespace: gateway }
     - { name: internal, namespace: gateway }
-  hostnames: [gestion.lechaplais.com]
+  hostnames: [facture.smadja.dev]
   rules:
     - backendRefs:
         - { name: invoice-ninja, port: 80 }

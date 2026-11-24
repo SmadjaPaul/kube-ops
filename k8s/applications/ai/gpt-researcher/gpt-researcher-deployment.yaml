@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: gpt-researcher
-          image: ghcr.io/theepicsaxguy/gpt-researcher:3.4.3-37d220a
+          image: ghcr.io/theepicsaxguy/gpt-researcher:3.4.3-37d220a@sha256:50d8ba78248f08d4083a6fe24f60f895cd34530e9011c1768e6581f84c25eb76
           imagePullPolicy: IfNotPresent
           command: ['python', 'main.py', '--config_path', '/usr/src/app/config.json']
           securityContext:
@@ -58,14 +58,12 @@ spec:
             - name: LOGGING_LEVEL
               value: 'INFO'
             # Environment variables take precedence over config.json for FastAPI requests
-            - name: EMBEDDING
-              value: 'openai:factory/embedding'
             - name: FAST_LLM
-              value: 'openai:factory/fast'
+              value: 'openai:text/fast'
             - name: SMART_LLM
-              value: 'openai:factory/research'
+              value: 'openai:text/research'
             - name: STRATEGIC_LLM
-              value: 'openai:factory/research'
+              value: 'openai:text/research'
             # Deep Research Configuration - Controls research depth and breadth
             - name: DEEP_RESEARCH_BREADTH
               value: '4'

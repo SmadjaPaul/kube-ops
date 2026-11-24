@@ -1,0 +1,58 @@
+# Généré par tests/policies/gen-tests.py : ne pas éditer à la main.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: platform-baseline-no-loadbalancer
+policies:
+- ../../../k8s/infrastructure/security/policies/platform-baseline.yaml
+resources:
+- resources.yaml
+results:
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - cluster-ip
+  result: pass
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - node-port
+  result: pass
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - load-balancer
+  result: fail
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - load-balancer-other-gateway-name
+  result: fail
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - cilium-gateway-external
+  result: skip
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - dns-exact-resolver
+  result: skip
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - qbittorrent-mam-peer
+  result: skip
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - system-namespace
+  result: skip

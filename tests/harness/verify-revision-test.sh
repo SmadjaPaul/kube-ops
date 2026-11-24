@@ -45,6 +45,26 @@ set +e; out=$(KUBECTL_RO_BIN="$tmp/kro" FX_FILE="$tmp/app.json" bash "$g/scripts
 set +e; out=$(KUBECTL_RO_BIN="$tmp/kro" FX_FILE="$tmp/app.json" bash "$g/scripts/verify-revision.sh" apps-media "$a" --timeout 0 --exact 2>&1); got=$?; set -e
 [[ $got -eq 1 ]] || { echo "FAIL: --exact accepted a descendant"; exit 1; }
 
+# PLT-398: main moved on after the checkout: the Application revision is unknown locally, `git fetch` brings it.
+o="$tmp/origin"; c="$tmp/clone"; mkdir -p "$o"; git -C "$o" init -q -b main
+git -C "$o" -c user.email=t@t -c user.name=t commit -q --allow-empty -m a; oa=$(git -C "$o" rev-parse HEAD)
+git clone -q "$o" "$c"; mkdir -p "$c/scripts"; cp "$repo_root/scripts/verify-revision.sh" "$c/scripts/"
+git -C "$o" -c user.email=t@t -c user.name=t commit -q --allow-empty -m b; ob=$(git -C "$o" rev-parse HEAD)
+git -C "$c" cat-file -e "$ob^{commit}" 2>/dev/null && { echo "FAIL: fixture: clone already has $ob"; exit 1; }
+app_json Synced Healthy Succeeded "$ob" >"$tmp/app.json"
+set +e; out=$(KUBECTL_RO_BIN="$tmp/kro" FX_FILE="$tmp/app.json" bash "$c/scripts/verify-revision.sh" apps-media "$oa" --timeout 0 2>&1); got=$?; set -e
+[[ $got -eq 0 && $out == *"REVISION=PROVEN"* ]] || { echo "FAIL: unknown descendant revision not fetched"; echo "$out"; exit 1; }
+# Unreachable remote: no hang, no crash, NOT_PROVEN.
+git -C "$c" remote set-url origin "$tmp/does-not-exist"; git -C "$c" gc -q --prune=now 2>/dev/null || true
+app_json Synced Healthy Succeeded "cafebabecafebabecafebabecafebabecafebabe" >"$tmp/app.json"
+set +e; out=$(KUBECTL_RO_BIN="$tmp/kro" FX_FILE="$tmp/app.json" bash "$c/scripts/verify-revision.sh" apps-media "$oa" --timeout 0 2>&1); got=$?; set -e
+[[ $got -eq 1 && $out == *"REVISION=NOT_PROVEN"* ]] || { echo "FAIL: failing fetch must give NOT_PROVEN (exit $got)"; echo "$out"; exit 1; }
+# --deadline: a global epoch deadline shorter than --timeout stops the wait (here already past: one check, no sleep).
+app_json Synced Progressing Succeeded "$SHA" >"$tmp/app.json"
+start=$(date +%s); run 1 apps-media "$SHA" --timeout 600 --interval 30 --deadline "$((start - 1))"
+(( $(date +%s) - start < 20 )) || { echo "FAIL: --deadline ignored"; exit 1; }
+expect "health Progressing"
+
 app_json OutOfSync Healthy Succeeded "$SHA" >"$tmp/app.json"
 run 1 apps-media "$SHA" --timeout 0;  expect "sync OutOfSync"
 app_json Synced Progressing Succeeded "$SHA" >"$tmp/app.json"

@@ -1,0 +1,6 @@
+name: factory-platform
+namespace: factory-platform
+postMerge: notify
+preview: false
+extraPaths:
+  - k8s/components/restic-backup

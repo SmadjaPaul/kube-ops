@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+---
+# PRD-87 (M3 Maison): canonical identities for the music chain.
+# - `maison-musique`: people allowed to play music from Home Assistant/Polyfin.
+# - `agent-maison`: service account of the Maison agent. No superuser, no RBAC
+#   role, no Authentik token (it acts through Home Assistant, not Authentik).
+# Humans are added by `!Find` on their username; no password in Git.
+# Paul reaches both applications through the `authentik-admins` binding.
+version: 1
+metadata:
+  name: Identity - Maison
+entries:
+  - id: maison-musique
+    model: authentik_core.group
+    state: present
+    identifiers:
+      name: maison-musique
+    attrs:
+      name: maison-musique
+      is_superuser: false
+      users:
+        - !Find [authentik_core.user, [username, "maureen"]]
+  - id: agent-maison
+    model: authentik_core.user
+    state: present
+    identifiers:
+      username: agent-maison
+    attrs:
+      username: agent-maison
+      name: Agent Maison service account
+      type: service_account
+      is_active: true
+      path: goauthentik.io/service-accounts
+      groups:
+        - !KeyOf maison-musique
+        - !Find [authentik_core.group, [name, "Home Assistant Users"]]
+  - id: polyfin-maison-musique-binding
+    model: authentik_policies.policybinding
+    state: present
+    identifiers:
+      target: !Find [authentik_core.application, [slug, "polyfin"]]
+      group: !KeyOf maison-musique
+    attrs:
+      order: 20

@@ -23,12 +23,11 @@ import yaml
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 APPSETS = [
-    'k8s/bootstrap/argocd-root/applications-applicationset.yaml',
     'k8s/bootstrap/argocd-root/infrastructure-applicationset.yaml',
 ]
 CLASSES_FILE = 'docs/operations/backup-coverage-classes.tsv'
 R2_HINT = re.compile(r'homelab-backup-|r2\.cloudflarestorage|\br2\b', re.I)
-HETZNER_HINT = re.compile(r'your-objectstorage|smadja-dev-homelab-backups', re.I)
+LEGACY_HINT = re.compile(r'your-objectstorage|smadja-dev-homelab-backups', re.I)  # abandoned offsite store
 # Opt-in on a CNPG Cluster (PLT-369): its instance PVCs are covered by the Velero
 # FS backup of their namespace. Crash-consistent at best (data and WAL PVCs are
 # captured separately), restore unproven: reported as Velero-crash, never CNPG(R2).
@@ -206,7 +205,7 @@ def collect(docs_by_root, errors_out):
             elif kind == 'ObjectStore':
                 c = spec.get('configuration') or {}
                 dest = '%s %s' % (c.get('destinationPath'), c.get('endpointURL'))
-                stores[(ns, name)] = 'Hetzner' if HETZNER_HINT.search(dest) else (
+                stores[(ns, name)] = 'Legacy' if LEGACY_HINT.search(dest) else (
                     'R2' if R2_HINT.search(dest) else '?')
     return pvcs, pods, schedules, rjobs, scs, clusters, sbs, stores
 

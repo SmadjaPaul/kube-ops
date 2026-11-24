@@ -1,6 +1,8 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: matrix-synapse-postgresql-fast-weekly
   namespace: matrix
 spec:
@@ -18,6 +20,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
   name: matrix-mas-postgresql-fast-weekly
   namespace: matrix
 spec:

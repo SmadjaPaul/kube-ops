@@ -4,7 +4,7 @@
 #
 # Usage: bash scripts/verify-delivery.sh CLUSTER APP [--since EPOCH] [--timeout SEC] [--interval SEC]
 #   CLUSTER  homelab | oracle-a1 (label `cluster` of the exported metrics)
-#   APP      Argo Application name, or its short name (apps-APP and infra-APP are tried)
+#   APP      Argo Application name, or its short name (app-APP, apps-APP and infra-APP are tried: app-APP is the per-app Application, homelab and OKE descriptors)
 #   --since  merge time (epoch s). No verdict before since+SETTLE_SECONDS (default 300):
 #            Argo refresh (<=180 s) + scrape (60 s) must have run once.
 #   --timeout  keep polling up to SEC seconds (default 0 = single check). With a
@@ -64,7 +64,7 @@ check_once() {
   if (( since > 0 && now < since + settle )); then
     reason="settling until $((since + settle)) (Argo refresh and scrape)"; return
   fi
-  local sel="cluster=\"$cluster\",name=~\"($app|apps-$app|infra-$app)\""
+  local sel="cluster=\"$cluster\",name=~\"($app|app-$app|apps-$app|infra-$app)\""
   local a
   a=$(prom "time() - timestamp(argocd_app_info{$sel})") || blocked "Grafana query failed (argocd_app_info)"
   local n; n=$(jq -r '.data.result|length' <<<"$a")

@@ -16,6 +16,11 @@ spec:
     metadata:
       labels:
         app: opencode-web
+      annotations:
+        # Velero (defaultVolumesToFsBackup) : ne pas sauvegarder les emptyDir volatils.
+        # Le 22/11 02:02 UTC un rollout a supprimé le pod en cours de backup : ENOENT sur
+        # shared-tools et mcp-tmp, Backup PartiallyFailed. Les PVC workspace et data restent sauvegardés.
+        backup.velero.io/backup-volumes-excludes: shared-tools,mcp-cache,mcp-npm,mcp-config,mcp-tmp
     spec:
       securityContext:
         runAsNonRoot: false
@@ -27,7 +32,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: kustomize
-          image: registry.k8s.io/kustomize/kustomize:v5.7.1
+          image: registry.k8s.io/kustomize/kustomize:v5.7.1@sha256:937e7832dc0b09288b1398399dadb97382a27bbc35bee8fdcac47c7de4fff14d
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args: ["mkdir -p /opt/shared-tools/bin && cp /app/kustomize /opt/shared-tools/bin/kustomize && chmod 755 /opt/shared-tools/bin/kustomize"]
@@ -39,11 +44,14 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: "200m", memory: 64Mi }
           volumeMounts:
             - name: shared-tools
               mountPath: /opt/shared-tools
         - name: helm
-          image: alpine/helm:3.18.6
+          image: alpine/helm:4.3.2@sha256:a3b9d617c0c30a6c488cebb429c4ba83995a26dc2184599af5fd408a361b2e67
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args: ["mkdir -p /opt/shared-tools/bin && cp /usr/bin/helm /opt/shared-tools/bin/helm && chmod 755 /opt/shared-tools/bin/helm"]
@@ -55,12 +63,15 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: "200m", memory: 128Mi }
           volumeMounts:
             - name: shared-tools
               mountPath: /opt/shared-tools
       containers:
       - name: opencode-web
-        image: ghcr.io/chriswritescode-dev/opencode-manager:0.13.0
+        image: ghcr.io/chriswritescode-dev/opencode-manager:0.13.0@sha256:633e55ac56840ab3443544544e6292d4dba3389810aab77a00149b6f6854d3cf
         securityContext:
           # The image entrypoint must start as root so it can chown the
           # writable PVCs, then drops to its bundled node user via runuser.
@@ -101,6 +112,9 @@ spec:
           value: "--max-old-space-size=512"
         - name: PATH
           value: "/opt/shared-tools/bin:/opt/bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        resources:
+          requests: { cpu: 100m, memory: 512Mi }
+          limits: { cpu: "2", memory: 2Gi }
         volumeMounts:
         - name: workspace
           mountPath: /workspace
@@ -133,7 +147,7 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 30
       - name: playwright-mcp
-        image: mcr.microsoft.com/playwright:v1.60.0-jammy
+        image: mcr.microsoft.com/playwright:v1.60.0-jammy@sha256:e1529a04087193966ea15d4a1617345bdaa0791690a24ab2c42b65f9ce5b2cdc
         imagePullPolicy: IfNotPresent
         command: ["/bin/sh", "-c"]
         args:
@@ -154,6 +168,22 @@ spec:
             drop: ["ALL"]
           seccompProfile:
             type: RuntimeDefault
+        readinessProbe:
+          exec:
+            command: ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8931"]
+          initialDelaySeconds: 20
+          periodSeconds: 30
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command: ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8931"]
+          initialDelaySeconds: 120
+          periodSeconds: 60
+          timeoutSeconds: 5
+          failureThreshold: 5
+        resources:
+          requests: { cpu: 50m, memory: 256Mi }
+          limits: { cpu: "2", memory: 3Gi }
         volumeMounts:
           - name: mcp-cache
             mountPath: /home/pwuser/.cache

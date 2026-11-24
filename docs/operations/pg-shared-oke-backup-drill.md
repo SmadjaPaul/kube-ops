@@ -8,11 +8,11 @@ Contrainte (plan OKE, D-2026-11-11-17) : aucune application avec données n'est 
 
 | Chemin | Rôle |
 | --- | --- |
-| `k8s/clusters/oracle-a1/cnpg-cluster/objectstore.yaml` | `ObjectStore pg-shared-oke-r2` : `s3://homelab-backup-cnpg/oracle-a1`, `serverName pg-shared` donc préfixe `oracle-a1/pg-shared/`, rétention 14 j, identité écrivain |
+| `k8s/clusters/oracle-a1/cnpg-cluster/objectstore.yaml` | `ObjectStore pg-shared-oke-r2` : `s3://homelab-backup-cnpg/oracle-a1`, `serverName pg-shared-v2` (cluster OKE recréé le 21/11/2026) donc préfixe `oracle-a1/pg-shared-v2/` ; l'ancien préfixe `oracle-a1/pg-shared/` (WAL jusqu'au 17/11) est laissé en place, rétention 14 j, identité écrivain |
 | `cnpg-cluster/external-secrets.yaml` | `pg-shared-cnpg-r2-writer` : `R2_CNPG_WRITER_*` et `R2_S3_ENDPOINT` (noms seulement, valeurs dans Doppler `cluster/prd`) |
 | `cnpg-cluster/cluster.yaml` | plugin `barman-cloud.cloudnative-pg.io` en `isWALArchiver`, image PostgreSQL 17.7 épinglée par digest d'index multi-arch (même version sur le nœud arm64 d'OKE et sur le homelab amd64) |
 | `cnpg-cluster/scheduledbackup.yaml` | `pg-shared-daily`, 03:50 UTC, `immediate: true` |
-| `k8s/optional/pg-shared-oke-drill/` | Drill : base `backup_drill`, jobs `seed-a`, `seed-b`, `fingerprint` et `oke-backup` (OKE) ; `offsite-restore/` (homelab : restauration + empreinte) |
+| `k8s/optional/pg-shared-oke-drill/` | Drill terminé : `sql/` et `offsite-restore/` (homelab : restauration + empreinte) ; les imports OKE (base `backup_drill`, seeds, base backup, empreinte) sont retirés |
 
 Le préfixe `oracle-a1/` est séparé des archives du homelab : barman-cloud refuse une archive non vide et OKE n'écrit jamais dans un préfixe du homelab. La restauration hors Oracle lit ce préfixe avec l'identité **lecture seule** `R2_CNPG_RESTORE_RO_*` (jeton `r2-cnpg-restore-ro`, Object Read only, limité à `homelab-backup-cnpg`, posé dans `cluster/prd` le 15/11/2026). Aucune clé n'est lue ni affichée par ce plan.
 
@@ -38,7 +38,7 @@ Le drill n'ajoute aucun volume : la restauration tourne sur le homelab ; côté 
 
 ## Procédure (une PR par import, une PR par retrait)
 
-1. **Activation OKE (PR 1)** : ajouter `cnpg-cluster.yaml` à `k8s/clusters/oracle-a1/apps/kustomization.yaml` (jamais `media.yaml`), et `../../../optional/pg-shared-oke-drill/oke-database` à `cnpg-cluster/kustomization.yaml`. Attendre `Cluster pg-shared` Ready, `ContinuousArchiving=True`, `ScheduledBackup` immédiat `Completed` (relevé : `kubectl-ro.sh get cluster,backup -n databases`).
+1. **Activation OKE (PR 1)** : `k8s/clusters/oracle-a1/cnpg-cluster` dans l'ApplicationSet `infrastructure` d'OKE (PLT-408, Application `infra-cnpg-cluster`), `../../../optional/pg-shared-oke-drill/oke-database` déjà importé dans `cnpg-cluster/kustomization.yaml`. Attendre `Cluster pg-shared` Ready, `ContinuousArchiving=True`, `ScheduledBackup` immédiat `Completed` (relevé : `kubectl-ro.sh get cluster,backup -n databases`).
 2. **Seed A (avant le premier base backup)** : Importer `oke-seed-a`, lire `logs job/pg-shared-drill-seed-a` : `seed_a_rows=10000`. Le backup immédiat de `pg-shared-daily` précède ce seed : il ne sert pas de base au drill.
 3. **Backup base** : importer `oke-backup` (`Backup pg-shared-drill-base`) et attendre `Completed`, postérieur au seed A. Relever au moins un objet sous `<préfixe>/base/`, où `<préfixe>` est le `destinationPath` plus le `serverName` de l'`ObjectStore` OKE (premier run : `oracle-a1/pg-shared/` ; après reconstruction : le préfixe retenu à l'étape 1 du rejeu).
 4. **Seed B (après ce backup)** : importer `oke-seed-b` : `seed_b_rows=500`. Ces lignes n'existent que dans le flux WAL : la restauration prouve donc le rejeu des WAL, pas seulement le base backup. Noter `seed_b_done_at`.

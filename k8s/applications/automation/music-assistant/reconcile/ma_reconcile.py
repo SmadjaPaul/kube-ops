@@ -1,0 +1,518 @@
+#!/usr/bin/env python3
+"""Reconciliateur Music Assistant (PRD-83), stdlib seule.
+
+    ma_reconcile.py --plan  [--desired desired.json]   diff, aucune ecriture
+    ma_reconcile.py --apply [--prune]                  applique, puis re-plan (doit etre vide)
+    ma_reconcile.py --sync                             lance music/sync, attend les taches, affiche music/tracks/count
+
+Etat desire : JSON (stdlib, pas de PyYAML dans l'image). Les secrets y sont des references
+{"secret_env": "NOM"} lues dans l'environnement ; ils ne sont jamais affiches (plan, erreurs).
+MA ne relit pas ses secrets : un champ secret n'est envoye qu'a la creation d'un fournisseur.
+
+Codes de sortie : 0 aucun ecart, 2 ecarts (plan) , 1 erreur, refus ou ecart residuel apres apply.
+
+API : POST {ma_url}/api {"command": ..., "args": {...}}, Bearer APP_MA_RECONCILE_TOKEN.
+Commandes verifiees dans le code de MA 2.10.8 (controllers/config/{core,providers,flows,players}.py,
+controllers/webserver/auth.py) :
+  config/core/get(domain), config/core/save(domain, values)
+  config/providers(include_values=True) -> liste ; config/providers/get exige instance_id (sinon HTTP 500)
+  config/providers/save(provider_domain, values, instance_id), config/providers/remove(instance_id)
+  creation : config/providers/setup(provider_domain) -> etape de flux {flow_id, type, entries},
+             puis config/flows/submit(flow_id, values) jusqu'a type "finish" (config/flows/get pour "progress")
+  config/players(include_values=True), config/players/save(player_id, values)
+  auth/users, auth/user/create(username, password, role), auth/user/update(user_id, role)
+  auth/tokens(user_id?) : jetons de l'appelant (ou d'un autre utilisateur avec users.manage)
+  music/sync(media_types?, providers?) (scope library.manage) -> liste de BackgroundTask {id, status, ...},
+             tasks/get(task_id) -> BackgroundTask (status : idle|pending|running|success|partial_success|failed),
+             music/tracks/count(favorite_only?) -> int
+  auth/token/create(name, user_id?) : jeton longue duree (1 an, sans renouvellement) ; un admin
+             (users.manage) peut l'emettre pour un autre utilisateur, sans connaitre son mot de passe.
+
+Utilisateur de service (PRD-84) : "password_generated": true cree le compte avec un mot de passe
+aleatoire jamais stocke ni affiche (le compte ne sert qu'avec son jeton). "token": {name, secret_env,
+k8s_secret, key} emet un jeton longue duree et le range dans un Secret Kubernetes natif par PATCH
+(RBAC : patch sur ce seul Secret, aucune lecture). Le jeton courant est lu dans l'environnement
+(secretKeyRef facultatif) ; il est reemis s'il est absent, refuse par MA ou proche de l'expiration.
+Un HTTP 500 de MA est generique ("Internal server error") : le detail est dans les journaux du serveur.
+"""
+
+import argparse
+import json
+import base64
+import datetime
+import os
+import secrets
+import ssl
+import sys
+import time
+import urllib.error
+import urllib.request
+
+EXIT_OK, EXIT_ERROR, EXIT_DRIFT = 0, 1, 2
+TOKEN_ENV = "APP_MA_RECONCILE_TOKEN"
+MAX_FLOW_STEPS = 10
+SYNC_POLL_SECONDS = 5
+SYNC_TIMEOUT_SECONDS = 480
+SYNC_ACTIVE = ("idle", "pending", "running")
+
+
+TOKEN_RENEW_DAYS = 30
+SA_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
+
+
+class ReconcileError(Exception):
+    def __init__(self, msg, status=None):
+        super().__init__(msg)
+        self.status = status
+
+
+class Redactor:
+    """Remplace toute valeur secrete connue par <secret> dans un texte."""
+
+    def __init__(self):
+        self.secrets = set()
+
+    def add(self, value):
+        if value:
+            self.secrets.add(str(value))
+
+    def __call__(self, text):
+        out = str(text)
+        for s in sorted(self.secrets, key=len, reverse=True):
+            out = out.replace(s, "<secret>")
+        return out
+
+
+def is_secret(v):
+    return isinstance(v, dict) and "secret_env" in v
+
+
+class Client:
+    def __init__(self, base_url, token, redact, timeout=30):
+        self.url = base_url.rstrip("/") + "/api"
+        self.token = token
+        self.redact = redact
+        self.timeout = timeout
+
+    def with_token(self, token):
+        return Client(self.url[: -len("/api")], token, self.redact, self.timeout)
+
+    def call(self, command, **args):
+        req = urllib.request.Request(
+            self.url,
+            data=json.dumps({"command": command, "args": args}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + self.token,
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                body = resp.read()
+        except urllib.error.HTTPError as e:
+            detail = ""
+            if e.code != 500:  # le 500 de MA est toujours generique ; 400/403 portent la cause
+                try:
+                    detail = ": " + self.redact(e.read().decode("utf-8", "replace")[:200])
+                except OSError:
+                    pass
+            raise ReconcileError(f"{command}: HTTP {e.code}{detail}", status=e.code) from None
+        except (urllib.error.URLError, OSError) as e:
+            raise ReconcileError(self.redact(f"{command}: {e}")) from None
+        try:
+            return json.loads(body) if body else None
+        except ValueError:
+            raise ReconcileError(f"{command}: reponse non JSON") from None
+
+
+def entry_values(cfg):
+    """values MA = {cle: {"value": v, ...}} ; accepte aussi {cle: v}."""
+    out = {}
+    for k, e in (cfg.get("values") or {}).items():
+        out[k] = e["value"] if isinstance(e, dict) and "value" in e else e
+    return out
+
+
+def canon(key, v):
+    """Les listes (ex. manual_discovery_ip_addresses) se comparent sans tenir compte de l'ordre."""
+    if isinstance(v, list):
+        return sorted(str(p) for p in v)
+    return v
+
+
+def load_desired(path, env):
+    with open(path, encoding="utf-8") as f:
+        d = json.load(f)
+    for k in ("ma_url", "providers"):
+        if k not in d:
+            raise ReconcileError(f"desired: cle '{k}' manquante")
+    if not str(d["ma_url"]).startswith(("http://", "https://")):
+        raise ReconcileError("desired: ma_url doit etre http(s)")
+    seen = set()
+    for p in d["providers"]:
+        if p["domain"] in seen:
+            raise ReconcileError(f"desired: fournisseur '{p['domain']}' declare deux fois")
+        seen.add(p["domain"])
+    return d
+
+
+def resolve(values, env, redact):
+    """Remplace {"secret_env"} par la valeur ; refuse si la variable manque."""
+    out = {}
+    for k, v in values.items():
+        if is_secret(v):
+            name = v["secret_env"]
+            if not env.get(name):
+                raise ReconcileError(f"secret '{name}' absent de l'environnement")
+            redact.add(env[name])
+            out[k] = {"secret": env[name], "ref": name}
+        else:
+            out[k] = v
+    return out
+
+
+def diff_values(desired, current):
+    """-> [(cle, ancien, nouveau)] pour les cles non secretes qui different."""
+    changes = []
+    for k, want in desired.items():
+        if isinstance(want, dict) and "secret" in want:
+            continue
+        if k not in current:  # cle non exposee par l'API (voir unreadable) : rien a comparer
+            continue
+        have = current.get(k)
+        if canon(k, have) != canon(k, want):
+            changes.append((k, have, want))
+    return changes
+
+
+def unreadable(desired, current):
+    """Cles non secretes absentes de la lecture MA : le fournisseur ne declare pas ces entrees (ex. jellyfin 2.10.8,
+    get_config_entries() == ()), donc config/providers ne renvoie pas leurs valeurs stockees. Non verifiables."""
+    return sorted(k for k, w in desired.items() if not (isinstance(w, dict) and "secret" in w) and k not in current)
+
+
+class Kube:
+    """Ecriture d'une cle de Secret par PATCH merge avec le jeton du ServiceAccount (jamais de lecture)."""
+
+    def __init__(self, env, redact):
+        self.redact = redact
+        self.sa = env.get("MA_RECONCILE_SA_DIR", SA_DIR)
+        host = env.get("KUBERNETES_SERVICE_HOST")
+        port = env.get("KUBERNETES_SERVICE_PORT", "443")
+        self.base = env.get("MA_RECONCILE_KUBE_URL") or (f"https://{host}:{port}" if host else "https://kubernetes.default.svc")
+
+    def _read(self, name):
+        try:
+            with open(os.path.join(self.sa, name), encoding="utf-8") as f:
+                return f.read().strip()
+        except OSError:
+            raise ReconcileError(f"ServiceAccount: fichier '{name}' illisible (automountServiceAccountToken ?)") from None
+
+    def patch_secret(self, name, key, value):
+        token, ns = self._read("token"), self._read("namespace")
+        self.redact.add(token)
+        body = json.dumps({"data": {key: base64.b64encode(value.encode()).decode()}}).encode()
+        req = urllib.request.Request(
+            f"{self.base}/api/v1/namespaces/{ns}/secrets/{name}",
+            data=body,
+            method="PATCH",
+            headers={"Authorization": "Bearer " + token, "Content-Type": "application/merge-patch+json"},
+        )
+        ctx = None
+        if self.base.startswith("https://"):
+            ctx = ssl.create_default_context(cafile=os.path.join(self.sa, "ca.crt"))
+        try:
+            urllib.request.urlopen(req, timeout=30, context=ctx).close()
+        except urllib.error.HTTPError as e:
+            raise ReconcileError(f"Secret {name}: HTTP {e.code}", status=e.code) from None
+        except (urllib.error.URLError, OSError) as e:
+            raise ReconcileError(self.redact(f"Secret {name}: {e}")) from None
+
+
+def parse_time(v):
+    if not isinstance(v, str):
+        return None
+    try:
+        t = datetime.datetime.fromisoformat(v.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=datetime.timezone.utc)
+
+
+def token_problem(client, spec, env, redact):
+    """-> None si le jeton stocke est valide, sinon la raison de le reemettre."""
+    tok = env.get(spec["secret_env"])
+    if not tok:
+        return "jeton absent"
+    redact.add(tok)
+    try:
+        own = client.with_token(tok).call("auth/tokens") or []
+    except ReconcileError as e:
+        if e.status == 401:
+            return "jeton refuse par MA"
+        raise
+    limit = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=TOKEN_RENEW_DAYS)
+    # d'anciens jetons du meme nom peuvent subsister : seul le plus tardif compte
+    exps = [parse_time(t.get("expires_at")) for t in own if t.get("name") == spec["name"]]
+    exps = [e for e in exps if e]
+    if exps and max(exps) < limit:
+        return f"jeton expire bientot ({TOKEN_RENEW_DAYS} jours)"
+    return None
+
+
+def build_plan(client, desired, env, redact, prune):
+    plan = []
+
+    for domain, wanted in (desired.get("core") or {}).items():
+        cur = entry_values(client.call("config/core/get", domain=domain) or {})
+        ch = diff_values(wanted, cur)
+        plan.append(item("core", domain, "update" if ch else "noop", ch, domain=domain, values=wanted))
+
+    providers = client.call("config/providers", include_values=True) or []
+    by_domain = {}
+    for cfg in providers:
+        by_domain.setdefault(cfg.get("domain"), []).append(cfg)
+    declared = set()
+    for p in desired["providers"]:
+        dom = p["domain"]
+        declared.add(dom)
+        vals = resolve(p.get("values") or {}, env, redact)
+        found = by_domain.get(dom, [])
+        if len(found) > 1:
+            plan.append(item("provider", dom, "blocked", note="plusieurs instances, non supporte"))
+        elif not found:
+            keys = sorted(vals)
+            plan.append(item("provider", dom, "create", [(k, None, "<secret>" if "secret" in vals[k] else vals[k]) for k in keys], domain=dom, values=vals))
+        else:
+            cur = found[0]
+            seen = entry_values(cur)
+            ch = diff_values(vals, seen)
+            blind = unreadable(vals, seen)
+            if cur.get("enabled") is False:
+                ch.append(("enabled", False, True))
+            note = ("cles non lisibles via l'API, non verifiees : " + ", ".join(blind)) if blind else None
+            # Fournisseur en erreur (ex. auth_required apres rotation du mot de passe) : MA ne relit pas
+            # ses secrets, donc on les renvoie tous. Sans cela le plan resterait noop sur un fournisseur casse.
+            broken = bool(cur.get("last_error")) and cur.get("enabled") is not False
+            if broken:
+                ch.append(("credentials", "<last_error>", "<resync>"))
+            keep = vals if broken else {k: v for k, v in vals.items() if "secret" not in (v if isinstance(v, dict) else {})}
+            plan.append(item("provider", dom, "update" if ch else "noop", ch, note=note, domain=dom, instance_id=cur.get("instance_id"), values=keep, enable=cur.get("enabled") is False))
+    for dom, found in by_domain.items():
+        if dom in declared:
+            continue
+        for cfg in found:
+            if prune and dom in (desired.get("prune_domains") or []):
+                plan.append(item("provider", dom, "remove", instance_id=cfg.get("instance_id")))
+            else:
+                plan.append(item("provider", dom, "undeclared", note="non declare, conserve (prune non demande ou domaine hors prune_domains)"))
+
+    if desired.get("players"):
+        cur_players = {pl.get("player_id"): pl for pl in (client.call("config/players", include_values=True) or [])}
+        for pl in desired["players"]:
+            pid = pl["player_id"]
+            if pid not in cur_players:
+                plan.append(item("player", pid, "blocked", note="lecteur inconnu de MA (pas encore decouvert)"))
+                continue
+            ch = diff_values(pl.get("values") or {}, entry_values(cur_players[pid]))
+            plan.append(item("player", pid, "update" if ch else "noop", ch, player_id=pid, values=pl.get("values") or {}))
+
+    if desired.get("users"):
+        users = {u.get("username"): u for u in (client.call("auth/users") or [])}
+        for u in desired["users"]:
+            name = u["username"]
+            cur = users.get(name)
+            if cur is None:
+                pw = u.get("password_env")
+                if not pw and u.get("password_generated"):
+                    plan.append(item("user", name, "create", [("role", None, u["role"])], username=name, role=u["role"], password=None))
+                elif not pw:
+                    plan.append(item("user", name, "blocked", note="absent et sans password_env ni password_generated : a creer a la main (PRD-84)"))
+                else:
+                    if not env.get(pw):
+                        raise ReconcileError(f"secret '{pw}' absent de l'environnement")
+                    redact.add(env[pw])
+                    plan.append(item("user", name, "create", [("role", None, u["role"])], username=name, role=u["role"], password=env[pw]))
+                if u.get("token") and (pw or u.get("password_generated")):
+                    plan.append(item("token", name, "create", note="compte a creer", username=name, spec=u["token"]))
+                continue
+            ch = [("role", cur.get("role"), u["role"])] if cur.get("role") != u["role"] else []
+            plan.append(item("user", name, "update" if ch else "noop", ch, user_id=cur.get("user_id"), role=u["role"]))
+            if u.get("token"):
+                why = token_problem(client, u["token"], env, redact)
+                plan.append(item("token", name, "create" if why else "noop", note=why, username=name, spec=u["token"]))
+    return plan
+
+
+def item(kind, name, action, changes=None, note=None, **payload):
+    return {"kind": kind, "name": name, "action": action, "changes": changes or [], "note": note, "payload": payload}
+
+
+MARK = {"noop": "=", "update": "~", "create": "+", "remove": "-", "undeclared": "?", "blocked": "!"}
+
+
+def render(plan, redact):
+    lines = []
+    for it in plan:
+        lines.append(f"{MARK[it['action']]} {it['kind']}/{it['name']} {it['action']}" + (f" ({it['note']})" if it["note"] else ""))
+        for k, old, new in it["changes"]:
+            lines.append(redact(f"    {k}: {json.dumps(old)} -> {json.dumps(new)}"))
+    return "\n".join(lines)
+
+
+def pending(plan):
+    return [i for i in plan if i["action"] in ("create", "update", "remove")]
+
+
+def apply_item(client, it, env, redact):
+    p, kind, act = it["payload"], it["kind"], it["action"]
+    if kind == "core":
+        client.call("config/core/save", domain=p["domain"], values=p["values"])
+    elif kind == "provider" and act == "create":
+        values = {k: (v["secret"] if isinstance(v, dict) and "secret" in v else v) for k, v in p["values"].items()}
+        res = client.call("config/providers/setup", provider_domain=p["domain"])
+        submitted = set()
+        for _ in range(MAX_FLOW_STEPS):
+            step = res.get("type") if isinstance(res, dict) else None
+            if step == "finish":
+                # Un fournisseur sans flux (Sonos, Chromecast) est cree vide : les valeurs que
+                # aucun formulaire n'a recues passent par config/providers/save.
+                rest = {k: v for k, v in values.items() if k not in submitted}
+                inst = (res.get("result") or {}).get("instance_id")
+                if rest and inst:
+                    client.call("config/providers/save", provider_domain=p["domain"], instance_id=inst, values=rest)
+                return
+            if step == "abort":
+                raise ReconcileError(f"provider/{p['domain']}: flux abandonne ({res.get('reason')})")
+            if res.get("errors"):
+                raise ReconcileError(f"provider/{p['domain']}: formulaire refuse {sorted(res['errors'].items())}")
+            if step == "form":
+                keys = {e.get("key") for e in res.get("entries") or []}
+                send = {k: v for k, v in values.items() if k in keys}
+                submitted |= set(send)
+                res = client.call("config/flows/submit", flow_id=res["flow_id"], values=send)
+            elif step == "progress":
+                time.sleep(1)
+                res = client.call("config/flows/get", flow_id=res["flow_id"])
+            else:
+                raise ReconcileError(f"provider/{p['domain']}: etape de flux inattendue '{step}'")
+        raise ReconcileError(f"provider/{p['domain']}: flux de configuration non termine")
+    elif kind == "provider" and act == "update":
+        values = {k: (v["secret"] if isinstance(v, dict) and "secret" in v else v) for k, v in p["values"].items()}
+        if p.get("enable"):
+            values["enabled"] = True
+        client.call("config/providers/save", provider_domain=p["domain"], instance_id=p["instance_id"], values=values)
+    elif kind == "provider" and act == "remove":
+        client.call("config/providers/remove", instance_id=p["instance_id"])
+    elif kind == "player":
+        client.call("config/players/save", player_id=p["player_id"], values=p["values"])
+    elif kind == "user" and act == "create":
+        password = p["password"]
+        if password is None:  # compte de service sans connexion par mot de passe : jamais stocke
+            password = secrets.token_urlsafe(32)
+            redact.add(password)
+        client.call("auth/user/create", username=p["username"], password=password, role=p["role"])
+    elif kind == "token":
+        spec = p["spec"]
+        user = next((u for u in client.call("auth/users") or [] if u.get("username") == p["username"]), None)
+        if not user:
+            raise ReconcileError(f"token/{p['username']}: utilisateur introuvable")
+        tok = client.call("auth/token/create", name=spec["name"], user_id=user["user_id"])
+        if not isinstance(tok, str) or not tok:
+            raise ReconcileError(f"token/{p['username']}: reponse inattendue de auth/token/create")
+        redact.add(tok)
+        try:
+            Kube(env, redact).patch_secret(spec["k8s_secret"], spec["key"], tok)
+        except ReconcileError as e:
+            raise ReconcileError(f"jeton emis mais non range ({e}) : un jeton '{spec['name']}' orphelin reste dans MA") from None
+        env[spec["secret_env"]] = tok  # le re-plan voit le jeton fraichement emis
+    elif kind == "user":
+        client.call("auth/user/update", user_id=p["user_id"], role=p["role"])
+
+
+def sync(client):
+    """Lance music/sync (tous fournisseurs), attend la fin des taches, affiche le nombre de pistes."""
+    before = client.call("music/tracks/count")
+    print(f"music/tracks/count avant : {before}")
+    tasks = client.call("music/sync") or []
+    # BackgroundTask (music-assistant-models 1.1.205) expose `id` ; `task_id` reste accepte en repli.
+    ids = [i for i in (t.get("id") or t.get("task_id") for t in tasks if isinstance(t, dict)) if i]
+    print(f"music/sync : {len(ids)} tache(s) lancee(s)")
+    if not ids:
+        if tasks:
+            print(f"music/sync a renvoye {len(tasks)} element(s) sans identifiant de tache : etat non verifiable", file=sys.stderr)
+            print("aucune tache suivie : identifiants absents de la reponse")
+            return EXIT_ERROR
+        print("aucune tache : aucun fournisseur de musique avec synchro de bibliotheque activee")
+    deadline = time.monotonic() + SYNC_TIMEOUT_SECONDS
+    status = {}
+    while True:
+        for tid in ids:
+            status[tid] = str((client.call("tasks/get", task_id=tid) or {}).get("status"))
+        if not any(v in SYNC_ACTIVE for v in status.values()):
+            break
+        if time.monotonic() >= deadline:
+            print("delai depasse, taches encore actives :", file=sys.stderr)
+            break
+        time.sleep(SYNC_POLL_SECONDS)
+    for tid, st in sorted(status.items()):
+        print(f"tache {tid} : {st}")
+    after = client.call("music/tracks/count")
+    print(f"music/tracks/count apres : {after}")
+    if any(v in SYNC_ACTIVE for v in status.values()):
+        return EXIT_ERROR
+    return EXIT_ERROR if any(v == "failed" for v in status.values()) else EXIT_OK
+
+
+def main(argv=None, env=None):
+    env = dict(os.environ if env is None else env)
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    mode = ap.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--plan", action="store_true")
+    mode.add_argument("--apply", action="store_true")
+    mode.add_argument("--sync", action="store_true", help="lance music/sync (scope library.manage) et attend")
+    ap.add_argument("--desired", default="/config/desired.json")
+    ap.add_argument("--prune", action="store_true", help="supprime les fournisseurs non declares de prune_domains")
+    ap.add_argument("--url", help="remplace ma_url (tests)")
+    args = ap.parse_args(argv)
+    if args.prune and not args.apply:
+        print("refus: --prune n'a de sens qu'avec --apply", file=sys.stderr)
+        return EXIT_ERROR
+    redact = Redactor()
+    try:
+        token = env.get(TOKEN_ENV)
+        if not token:
+            raise ReconcileError(f"{TOKEN_ENV} absent : jeton MA a creer (PRD-84)")
+        redact.add(token)
+        desired = load_desired(args.desired, env)
+        client = Client(args.url or desired["ma_url"], token, redact)
+        if args.sync:
+            return sync(client)
+        plan = build_plan(client, desired, env, redact, args.prune)
+        print(render(plan, redact))
+        blocked = [i for i in plan if i["action"] == "blocked"]
+        if args.plan:
+            if blocked:
+                return EXIT_ERROR
+            return EXIT_DRIFT if pending(plan) else EXIT_OK
+        if blocked:
+            print("refus: elements bloques, rien n'est applique", file=sys.stderr)
+            return EXIT_ERROR
+        for it in pending(plan):
+            apply_item(client, it, env, redact)
+            print(f"applique {it['kind']}/{it['name']} {it['action']}")
+        again = build_plan(client, desired, env, redact, args.prune)
+        if pending(again):
+            print("ECART RESIDUEL apres apply :", file=sys.stderr)
+            print(render(pending(again), redact), file=sys.stderr)
+            return EXIT_ERROR
+        print("apply termine, plan suivant vide")
+        return EXIT_OK
+    except ReconcileError as e:
+        print(redact(f"erreur: {e}"), file=sys.stderr)
+        return EXIT_ERROR
+
+
+if __name__ == "__main__":
+    sys.exit(main())

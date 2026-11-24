@@ -1,0 +1,88 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infrastructure
+  namespace: argocd
+  annotations:
+    # Le projet existe avant que les ApplicationSets generent leurs Applications.
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/managed-by: argocd
+spec:
+  description: Infrastructure d'OKE (oracle-a1), reconciliee depuis kube-ops
+  sourceRepos:
+    - https://github.com/SmadjaPaul/kube-ops.git
+  destinations:
+    # Liste fermee des namespaces rendus par les dossiers de l'ApplicationSet
+    # infrastructure (Argo compare le namespace de chaque objet, pas la destination
+    # vide) : '' couvre les objets cluster-scoped.
+    - namespace: ''
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: external-secrets
+      server: https://kubernetes.default.svc
+    - namespace: netbird
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    # Cilium (PLT-384) : agent et operateur dans kube-system, Roles TLS du chart dans cilium-secrets.
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+    - namespace: cilium-secrets
+      server: https://kubernetes.default.svc
+    # Baseline (PLT-384) : sonde, et politiques/quotas du namespace applicatif whoami.
+    # Renouvellement du jeton agent-operator (PLT-481).
+    - namespace: agent-token-renewer
+      server: https://kubernetes.default.svc
+    - namespace: baseline-probe
+      server: https://kubernetes.default.svc
+    - namespace: whoami
+      server: https://kubernetes.default.svc
+    - namespace: cloudflared
+      server: https://kubernetes.default.svc
+    # Post-merge d'OKE (PLT-407) : controleur et ecouteur ARC, pod runner.
+    - namespace: arc-systems
+      server: https://kubernetes.default.svc
+    - namespace: arc-runners-oke
+      server: https://kubernetes.default.svc
+    # pg-shared (PLT-408) : cert-manager (pour le plugin barman-cloud), operateur et plugin CNPG,
+    # Cluster pg-shared.
+    - namespace: cert-manager
+      server: https://kubernetes.default.svc
+    - namespace: cnpg-system
+      server: https://kubernetes.default.svc
+    - namespace: databases
+      server: https://kubernetes.default.svc
+  # Liste fermee : ajouter un kind cluster-scoped d'infrastructure passe par une PR sur ce fichier.
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: admissionregistration.k8s.io
+      kind: ValidatingAdmissionPolicy
+    - group: admissionregistration.k8s.io
+      kind: ValidatingAdmissionPolicyBinding
+    # External Secrets (PLT-406) : CRD, webhooks de validation et RBAC cluster du chart.
+    # agent-operator utilisait deja ClusterRole et ClusterRoleBinding.
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+    # cert-manager et l'operateur CNPG (PLT-408) : webhooks de mutation.
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    # Store Doppler d'External Secrets (cluster-scoped ; le rendu porte un namespace
+    # hérité de la kustomization, ignoré par l'API).
+    - group: external-secrets.io
+      kind: ClusterSecretStore
+    # Baseline reseau (PLT-384) : CCNP deny-imds et allow-egress-unisolated.
+    - group: cilium.io
+      kind: CiliumClusterwideNetworkPolicy
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

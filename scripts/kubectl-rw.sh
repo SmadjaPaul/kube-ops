@@ -14,9 +14,12 @@
 #   delete    NS KIND/NAME              pod|job|replicaset|deployment|statefulset|daemonset|cronjob
 #   apply     NS FILE                   server-side, field manager agent-operator ;
 #                                       Deployment|StatefulSet|DaemonSet|Job|CronJob seulement
+#   run-cronjob NS cronjob/NAME         Job manuel <NAME>-manual-<AAAAMMJJhhmmss> (create job --from),
+#                                       couples NS/NAME de cronjob-run.tsv seulement (PRD-88)
 #
 # Contrôles avant tout appel : namespace dans
-# k8s/infrastructure/security/agent-operator/scope.tsv, verbe et type admis,
+# k8s/infrastructure/security/agent-operator/scope.tsv (run-cronjob : couple
+# namespace/cronjob dans cronjob-run.tsv, hors scope.tsv), verbe et type admis,
 # nom DNS-1123, aucune option libre (kubeconfig, token, impersonation, TLS,
 # --force, --grace-period, sélecteurs, --all sont impossibles par construction).
 # L'API applique ensuite le RBAC agent-operator-workload et la policy
@@ -41,6 +44,7 @@ set -uo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$HERE/.." && pwd)
 SCOPE=${KUBECTL_RW_SCOPE:-$ROOT/k8s/infrastructure/security/agent-operator/scope.tsv}
+CRONJOB_RUN=$ROOT/k8s/infrastructure/security/agent-operator/cronjob-run.tsv
 AGENT_USER=system:serviceaccount:agent-operator:agent-operator
 ROLLOUT_TIMEOUT=${KUBECTL_RW_ROLLOUT_TIMEOUT:-180s}
 
@@ -54,9 +58,11 @@ verb=$1 ns=$2 target=$3
 shift 3
 [ "$#" -le 2 ] || refuse "arguments en trop"
 
-[ -r "$SCOPE" ] || refuse "périmètre introuvable : $SCOPE"
-grep -vE '^#|^$' "$SCOPE" | cut -f1 | grep -qxF -- "$ns" ||
-  refuse "namespace '$ns' hors périmètre agent-operator (scope.tsv)"
+if [ "$verb" != run-cronjob ]; then
+  [ -r "$SCOPE" ] || refuse "périmètre introuvable : $SCOPE"
+  grep -vE '^#|^$' "$SCOPE" | cut -f1 | grep -qxF -- "$ns" ||
+    refuse "namespace '$ns' hors périmètre agent-operator (scope.tsv)"
+fi
 
 DNS='^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$'
 kind=""
@@ -160,7 +166,18 @@ case "$verb" in
       pinned_image "$img" || refuse "apply : image '$img' non épinglée"
     done <<<"$images"
     cmd=(apply --server-side --field-manager=agent-operator -n "$ns" -f "$file") ;;
-  *) refuse "verbe '$verb' hors liste (patch|scale|restart|undo|set-image|suspend|resume|delete|apply)" ;;
+  run-cronjob)
+    # Liste blanche namespace/cronjob (cronjob-run.tsv) ; nom de Job imposé, que la
+    # policy agent-operator-guard reconnaît ; agent-operator-cronjob-run impose le
+    # pod template du CronJob. Aucune option, aucun nom ni contenu fourni par l'agent.
+    allow_kinds cronjob
+    [ "$#" -eq 0 ] || refuse "run-cronjob ne prend pas d'argument (nom du Job imposé)"
+    [ -r "$CRONJOB_RUN" ] || refuse "liste introuvable : $CRONJOB_RUN"
+    grep -vE '^#|^$' "$CRONJOB_RUN" | cut -f1,2 | grep -qxF -- "$ns"$'\t'"$name" ||
+      refuse "cronjob '$ns/$name' hors liste run-cronjob (cronjob-run.tsv)"
+    job="$name-manual-$(date -u +%Y%m%d%H%M%S)"
+    cmd=(create job "$job" -n "$ns" --from="cronjob/$name") ;;
+  *) refuse "verbe '$verb' hors liste (patch|scale|restart|undo|set-image|suspend|resume|delete|apply|run-cronjob)" ;;
 esac
 [ "$dry" = 0 ] || cmd+=(--dry-run=server)
 
@@ -233,6 +250,25 @@ case "$verb" in
     while IFS='|' read -r dk _ dn; do
       case "$dk" in Deployment|StatefulSet|DaemonSet) rollout_targets+=("$(tr '[:upper:]' '[:lower:]' <<<"$dk")/$dn") ;; esac
     done <<<"$docs" ;;
+  run-cronjob)
+    # Suivi borné du Job : Complete ou Failed, sinon FAIL au délai (KUBECTL_RW_ROLLOUT_TIMEOUT).
+    echo "VERIFY job/$job créé depuis cronjob/$name"
+    limit=${ROLLOUT_TIMEOUT%s}
+    case "$limit" in '' | *[!0-9]*) limit=180 ;; esac
+    state=""
+    waited=0
+    while [ "$waited" -lt "$limit" ]; do
+      state=$(kubectl --request-timeout=15s get "job/$job" -n "$ns" \
+        -o jsonpath='{.status.conditions[?(@.status=="True")].type}' 2>/dev/null)
+      case " $state " in *" Complete "* | *" Failed "*) break ;; esac
+      sleep 5
+      waited=$((waited + 5))
+    done
+    case " $state " in
+      *" Complete "*) echo "VERIFY job/$job Complete" ;;
+      *" Failed "*) echo "VERIFY job/$job Failed (logs : bash scripts/kubectl-ro.sh logs -n $ns job/$job --tail=100)"; verify=FAIL ;;
+      *) echo "VERIFY job/$job non terminé après ${limit}s (état : ${state:-aucun})"; verify=FAIL ;;
+    esac ;;
   suspend|resume)
     got=$(kubectl --request-timeout=15s get "$kind/$name" -n "$ns" -o jsonpath='{.spec.suspend}' 2>/dev/null)
     [ "$got" = "$want" ] || verify=FAIL

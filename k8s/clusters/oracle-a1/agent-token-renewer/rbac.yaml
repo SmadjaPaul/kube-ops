@@ -1,0 +1,43 @@
+# Seul droit du renouvellement : TokenRequest pour argocd/agent-operator (resourceNames). Rien d'autre :
+# aucun Secret lisible ni modifiable, aucun verbe d'ecriture. Le jeton produit n'est jamais stocke dans le
+# cluster : il va dans le kubeconfig que le Job pousse vers Doppler identity/agt.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-token-renewer
+  namespace: agent-token-renewer
+  labels:
+    app.kubernetes.io/name: agent-token-renewer
+    app.kubernetes.io/part-of: security
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-token-renewer
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: agent-token-renewer
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [""]
+    resources: [serviceaccounts/token]
+    resourceNames: [agent-operator]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-token-renewer
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: agent-token-renewer
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-token-renewer
+subjects:
+  - kind: ServiceAccount
+    name: agent-token-renewer
+    namespace: agent-token-renewer

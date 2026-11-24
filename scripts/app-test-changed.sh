@@ -23,6 +23,20 @@ all_apps() {
   done | sort
 }
 
+# Un digest (@sha256:<64 hex>) ecrit dans un bloc `replacements:` de kustomize n'est suivi par aucun
+# manager Renovate : l'image y reste figee en silence (cas karakeep, PLT-392). Le digest doit vivre dans
+# `images:` ou dans le manifeste, jamais dans une valeur de replacement. Sortie : "<fichier>" par fautif.
+replacements_digest_files() { # replacements_digest_files APP_DIR
+  local k
+  for k in "$1"/kustomization.yaml "$1"/kustomization.yml; do
+    [[ -f $k ]] || continue
+    awk -v f="$k" '
+      /^replacements:/ {inr=1; next}
+      /^[^[:space:]#-]/ {inr=0}
+      inr && /sha256:[0-9a-f]{64}/ {print f; exit}' "$k"
+  done
+}
+
 changed_files() {
   if [[ -n ${V1_CHANGED_FILES:-} ]]; then printf '%s\n' "$V1_CHANGED_FILES"
   elif [[ -n ${GITHUB_BASE_SHA:-} && -n ${GITHUB_HEAD_SHA:-} ]]; then git diff --name-only "$GITHUB_BASE_SHA" "$GITHUB_HEAD_SHA"
@@ -49,11 +63,22 @@ blocked=0
 for d in "${apps[@]}"; do
   name="$(basename "$d")"
   ns="$name"
-  bash scripts/app-test.sh "$name" "$ns" --phase static --app-dir "$d" >"$tmp/out.$name" 2>&1
+  bash scripts/app-test.sh "$name" "$ns" --phase static --app-dir "$d" --no-ratchet >"$tmp/out.$name" 2>&1
   # --app-dir : le nom peut ne pas etre unique, le dossier fait foi
   awk -v app="$name" '$1=="CHECK" && ($3=="FAIL"||$3=="BLOCKED") {print app "\t" $2 "\t" $3}' "$tmp/out.$name" >>"$tmp/current.tsv"
 done
 sort -u -o "$tmp/current.tsv" "$tmp/current.tsv"
+
+# Controle replacements/digest : toujours bloquant (aucune baseline), uniquement sur les apps evaluees.
+repl_bad=""
+for d in "${apps[@]}"; do repl_bad+="$(replacements_digest_files "$d")"$'\n'; done
+repl_bad="$(printf '%s' "$repl_bad" | sed '/^$/d')"
+if [[ -n $repl_bad && $mode != update ]]; then
+  echo "APP_TEST_CHANGED=FAIL replacements_digest (digest dans un bloc replacements: kustomize, invisible a Renovate)" >&2
+  printf '  %s\n' $repl_bad >&2
+  echo "Deplacer le digest dans images: (newName/digest) ou dans le manifeste suivi par Renovate." >&2
+  exit 1
+fi
 
 if [[ $mode == update ]]; then
   if grep -q $'\tBLOCKED$' "$tmp/current.tsv"; then echo "APP_TEST_BASELINE=BLOCKED (rendu impossible pour une app)"; grep $'\tBLOCKED$' "$tmp/current.tsv"; exit 2; fi

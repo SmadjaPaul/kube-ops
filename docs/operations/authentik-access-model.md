@@ -29,10 +29,10 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 | paperless, pinepods, matrix-mas | family ; Pinepods Users ; family | stockage | family |
 | mealie, vikunja, rustical, sparkyfitness, sure | family | faible stockage ; Sure crée le compte au premier login | family (Sure : finances, à confirmer) |
 | home-assistant | Home Assistant Users | nul, mais pilote la maison | groupe dédié, foyer seulement |
-| invoice-ninja | family | données de l'activité de Maureen | groupe dédié proposé (`lechaplais`) |
+| invoice-ninja | lechaplais, authentik-admins | données de l'activité de Maureen | groupe dédié `lechaplais` (membre : maureen ; PLT-176) |
 | argocd, kubectl, grafana, aiostreams, talos-* | admin, dev ; Kubectl/Grafana/Talos Users | admin | admin |
 | cloudflare | authentik-admins, admin, authentik Admins, family, friends | nul (fournisseur d'identité de Cloudflare Access pour les services derrière les tunnels) | toutes les classes humaines ; un compte sans groupe lié est refusé (décision de Paul, 2026-11-15) |
-| jellyfin, bazarr, lidarr, prowlarr, radarr, sonarr, sabnzbd, jellyseerr, audiobookshelf, openwebui, litellm, zigbee2mqtt | divers | service retiré ou non déployé | à supprimer d'Authentik |
+| jellyfin, bazarr, lidarr, prowlarr, radarr, sonarr, sabnzbd, jellyseerr, audiobookshelf, openwebui, litellm | divers | service retiré ou non déployé | à supprimer d'Authentik |
 
 ## Comptes de service
 
@@ -41,6 +41,7 @@ L'accès passe toujours par un groupe, jamais par une liaison par utilisateur. A
 - Jeton `intent: api` lu par `!Env` depuis Doppler via ExternalSecret ; jamais dans Git. Rotation : nouvelle valeur dans Doppler, puis resynchronisation.
 - Création : Paul seulement (PR revue + merge). Un agent ne crée pas de compte de service.
 - Applications OIDC : un client confidentiel par application, secret dans Doppler (`APP_<APP>_OIDC_CLIENT_SECRET`), pas de compte utilisateur.
+- Maison (PRD-87) : `agent-maison` (sans jeton Authentik ni rôle) et groupe `maison-musique`, lié à Polyfin ; blueprint `identity-maison.yaml`. Création par PR : décision D-2026-11-23-05 (proposée, homelab-infra#766).
 - Aujourd'hui : `agent-e2e` (tests d'agents) ; outpost proxy (géré par Authentik) ; `e2e-user` / `e2e-user-secondary` sont des comptes `internal` de test avec mot de passe (Doppler), à classer.
 
 ## Break-glass (hors SSO)

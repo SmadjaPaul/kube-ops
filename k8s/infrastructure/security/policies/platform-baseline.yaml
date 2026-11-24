@@ -7,8 +7,13 @@
 # (CI figee sur la meme version). Meme source pour le cluster (Audit) et pour `just check`
 # (scripts/policy-check.sh : `kyverno apply` sur le rendu, avec cliquet sur policy/baseline.tsv).
 #
-# Mode Audit uniquement : comme la politique legacy, aucune admission n'est refusee. Le gate
-# statique est ce qui bloque (violation nouvelle = echec). Les politiques ciblent Pod ; Kyverno
+# Mode Audit, sauf les INTERDITS ABSOLUS (PLT-390 lot 5) en Deny : no-privileged et no-loadbalancer
+# (la 3e, route publique sans auth, est indecidable a l'admission : auth OIDC native dans l'app ; elle
+# est bloquee en CI par app-test `oidc`). Retour arriere : repasser validationActions en [Audit]
+# (une PR d'une ligne par politique). Exceptions explicites : csi-proxmox et longhorn-system (DaemonSets
+# CSI/stockage privilegies par conception), Services LoadBalancer cilium-gateway-* (ns gateway,
+# crees par Cilium) dns-exact-resolver (PLT-149) et media/qbittorrent-mam-peer (PLT-500, port pair BitTorrent 51413 pour MAM). failurePolicy Ignore : Kyverno indisponible ne
+# bloque pas le cluster. Pour le reste, le gate statique est ce qui bloque (violation nouvelle = echec). Les politiques ciblent Pod ; Kyverno
 # genere les regles pour Deployment, StatefulSet, DaemonSet, Job et CronJob (autogen).
 # Namespaces systeme exclus : meme liste que l'ancienne politique (+ kyverno).
 # Exceptions : policies.kyverno.io/v1 PolicyException (voir opencode et hassio). Rappel : le chart
@@ -24,6 +29,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -53,9 +61,20 @@ metadata:
   annotations:
     description: "Aucun conteneur privilegie (NSA/CISA 4.1)."
 spec:
-  validationActions: [Audit]
+  validationActions: [Deny]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
+    # PLT-467: l'autogen reecrit le matchCondition namespace pour les controleurs sur
+    # spec.template.metadata.namespace (jamais renseigne) : DaemonSet csi-proxmox et longhorn-system
+    # etaient refuses a l'admission/dry-run Argo. Un namespaceSelector s'applique a tous les kinds.
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [csi-proxmox, longhorn-system]
     resourceRules:
       - apiGroups: [""]
         apiVersions: ["v1"]
@@ -64,7 +83,7 @@ spec:
   matchConditions:
     - name: not-system-namespace
       expression: >-
-        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system', 'csi-proxmox', 'longhorn-system'])
   variables:
     - name: c
       expression: >-
@@ -83,6 +102,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -111,6 +133,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -139,6 +164,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -167,6 +195,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -195,6 +226,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -219,6 +253,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -243,6 +280,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -271,6 +311,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -295,6 +338,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -317,12 +363,45 @@ spec:
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 metadata:
+  name: platform-baseline-no-loadbalancer
+  annotations:
+    description: "Pas de Service LoadBalancer hors exceptions explicites (interdit absolu, PLT-390)."
+spec:
+  validationActions: [Deny]
+  failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [services]
+  matchConditions:
+    - name: not-system-namespace
+      expression: >-
+        !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
+    - name: not-explicit-exception
+      expression: >-
+        !((object.metadata.namespace == 'gateway' && object.metadata.name.startsWith('cilium-gateway-')) || (object.metadata.namespace == 'dns-exact-resolver' && object.metadata.name == 'dns-exact-resolver') || (object.metadata.namespace == 'media' && object.metadata.name == 'qbittorrent-mam-peer'))
+  validations:
+    - expression: >-
+        !has(object.spec.type) || object.spec.type != 'LoadBalancer'
+      message: "Un Service ne doit pas etre de type LoadBalancer (exposition via Gateway). (no-loadbalancer)"
+---
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
   name: platform-baseline-no-nodeport
   annotations:
     description: "Pas de Service NodePort (k8s/CLAUDE.md, Network)."
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -343,10 +422,13 @@ kind: ValidatingPolicy
 metadata:
   name: platform-baseline-storage-class-allowed
   annotations:
-    description: "PVC sur longhorn-fast, longhorn-bulk ou oci-bv (k8s/CLAUDE.md, Storage)."
+    description: "PVC sur longhorn-fast, longhorn-bulk, longhorn-bulk-scratch ou oci-bv (k8s/CLAUDE.md, Storage)."
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -359,8 +441,8 @@ spec:
         !has(object.metadata.namespace) || !(object.metadata.namespace in ['gatekeeper-system', 'kube-node-lease', 'kube-public', 'kube-system', 'kubearmor', 'kyverno', 'monitoring', 'security-system'])
   validations:
     - expression: >-
-        has(object.spec.storageClassName) && object.spec.storageClassName in ['longhorn-fast', 'longhorn-bulk', 'oci-bv']
-      message: "Un PVC doit declarer storageClassName parmi longhorn-fast, longhorn-bulk, oci-bv. (storage-class-allowed)"
+        has(object.spec.storageClassName) && object.spec.storageClassName in ['longhorn-fast', 'longhorn-bulk', 'longhorn-bulk-scratch', 'oci-bv']
+      message: "Un PVC doit declarer storageClassName parmi longhorn-fast, longhorn-bulk, longhorn-bulk-scratch, oci-bv. (storage-class-allowed)"
 ---
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
@@ -371,6 +453,9 @@ metadata:
 spec:
   validationActions: [Audit]
   failurePolicy: Ignore
+  # PLT-400: 5 s instead of 10 s; with Ignore a slow Kyverno must not hold API writes.
+  webhookConfiguration:
+    timeoutSeconds: 5
   matchConstraints:
     resourceRules:
       - apiGroups: [""]

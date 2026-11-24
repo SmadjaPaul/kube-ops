@@ -52,6 +52,14 @@ singleBinary:
 gateway:
   enabled: true
   replicas: 1
+  # Loki chart 21 sets a required podAntiAffinity on the gateway by default.
+  # Single node: the surge pod of a rollout can never schedule next to the old
+  # one (FailedScheduling, rollout stuck). `null` removes the chart default ({} would merge).
+  affinity: null
+  # Keep the chart's RollingUpdate. Recreate (#1935) broke Argo's server-side
+  # diff: the live object keeps the defaulted spec.strategy.rollingUpdate,
+  # which is Forbidden with type Recreate (infra-monitoring ComparisonError,
+  # PLT-470). With the anti-affinity gone, a surge pod schedules on one node.
   verboseLogging: false
   resources:
     requests:
@@ -71,9 +79,6 @@ chunksCache:
   enabled: false
 
 resultsCache:
-  enabled: false
-
-minio:
   enabled: false
 
 backend:
@@ -111,5 +116,8 @@ monitoring:
     enabled: false
   serviceMonitor:
     enabled: true
+    # Revue séries 2026-11-23: chart default is 15s; Loki self-metrics are read
+    # through 5m rates only.
+    interval: 60s
     labels:
       release: kube-prometheus-stack

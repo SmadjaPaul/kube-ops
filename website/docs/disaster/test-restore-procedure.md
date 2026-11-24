@@ -428,7 +428,7 @@ kubectl get pvc -n <app>-test <pvc-name>
 **Example**: NFS volume `media-share` in media namespace requires manual PV/PVC application:
 ```bash
 kubectl apply -f k8s/applications/media/nfs-pv.yaml
-kubectl apply -f k8s/applications/media/media-share-pvc.yaml
+kubectl apply -f k8s/applications/media/media-shared/media-share-pvc.yaml
 kubectl patch pv media-share -p '{"spec":{"claimRef":null}}'
 ```
 

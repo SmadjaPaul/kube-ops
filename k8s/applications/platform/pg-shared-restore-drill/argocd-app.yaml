@@ -1,0 +1,4 @@
+name: pg-shared-restore-drill
+namespace: pg-shared-restore-drill
+postMerge: notify
+preview: false

@@ -6,7 +6,6 @@ namespace: karakeep
 configMapGenerator:
 - literals:
   - NEXTAUTH_URL=https://karakeep.smadja.dev
-  - KARAKEEP_VERSION=0.32.0
   name: karakeep-configuration
 
 resources:
@@ -20,20 +19,9 @@ resources:
 - http-route.yaml
 - karakeep-secrets-external.yaml
 
-replacements:
-- source:
-    fieldPath: data.KARAKEEP_VERSION
-    kind: ConfigMap
-    name: karakeep-configuration
-    version: v1
-  targets:
-  - fieldPaths:
-    - spec.template.spec.containers.0.image
-    options:
-      delimiter: ':'
-      index: 1
-    select:
-      group: apps
-      kind: StatefulSet
-      name: web
-      version: v1
+# Tag + digest portes par le transformateur images (PLT-392) : un replacement sur le champ image
+# cassait l'epinglage par digest (delimiter ':'). Renovate suit newTag/digest (manager kustomize).
+images:
+- name: ghcr.io/karakeep-app/karakeep
+  newTag: 0.32.0
+  digest: sha256:64d6a9bbf2d37b5c808cf06b5d87f1f1c7846fdd3844724145a9741aeb06fd31

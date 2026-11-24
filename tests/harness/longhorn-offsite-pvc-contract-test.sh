@@ -5,19 +5,19 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 longhorn="$repo_root/k8s/infrastructure/storage/longhorn"
 
 values="$longhorn/values.yaml"
-credentials="$longhorn/backup-credentials.yaml"
+credentials="$longhorn/backup-credentials-r2.yaml"
 job="$longhorn/recurring-job.yaml"
 immich_job="$longhorn/immich-redis-recurring-job.yaml"
 immich_pvc="$repo_root/k8s/applications/media/immich/immich-redis/redis-pvc-labels.yaml"
 
 grep -F 'version: 1.12.1' "$longhorn/kustomization.yaml" >/dev/null
-grep -F 'backupTarget: s3://smadja-dev-homelab-backups@fsn1/longhorn/' "$values" >/dev/null
-grep -F 'backupTargetCredentialSecret: longhorn-hetzner-credentials' "$values" >/dev/null
+grep -Fx '  backupTarget: s3://homelab-backup-longhorn@auto/' "$values" >/dev/null
+grep -Fx '  backupTargetCredentialSecret: longhorn-r2-credentials' "$values" >/dev/null
 grep -F 'allowRecurringJobWhileVolumeDetached: false' "$values" >/dev/null
-grep -F 'key: HETZNER_S3_ACCESS_KEY_ID' "$credentials" >/dev/null
-grep -F 'key: HETZNER_S3_SECRET_ACCESS_KEY' "$credentials" >/dev/null
+grep -F 'key: R2_LONGHORN_WRITER_ACCESS_KEY_ID' "$credentials" >/dev/null
+grep -F 'key: R2_LONGHORN_WRITER_SECRET_ACCESS_KEY' "$credentials" >/dev/null
 if rg -n 'AWS_ACCESS_KEY_ID: [A-Za-z0-9+/=]{16,}|AWS_SECRET_ACCESS_KEY: [A-Za-z0-9+/=]{16,}' "$credentials" >/dev/null; then
-  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: inline Longhorn backup credential found in backup-credentials.yaml' >&2
+  echo 'LONGHORN_OFFSITE_PVC_CONTRACT=FAIL: inline Longhorn backup credential found in backup-credentials-r2.yaml' >&2
   exit 1
 fi
 grep -F 'kind: RecurringJob' "$job" >/dev/null

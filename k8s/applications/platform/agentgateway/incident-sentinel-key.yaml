@@ -1,0 +1,44 @@
+# PLT-453: Agentgateway key of the `incident-sentinel` consumer (PLT-455, runner namespace arc-runners-agent-harness),
+# generated inside the cluster like pr-triage-key.yaml (D-2026-11-20-04, class T4: disposable, not
+# backed up). Never in Doppler, never in Git. Source named `llm-arc-runners-agent-harness--sentinel` (store k8s-agentgateway,
+# prefix `llm-`, bound to the consumer namespace arc-runners-agent-harness (suffix --sentinel, eso-k8s-store-guard)). The gateway reads it through
+# `envFrom` (resources.yaml) and checks it in config.yaml (budget 300000 tokens / 24 h, Block).
+# The copy in namespace arc-runners-agent-harness (ExternalSecret on the store k8s-agentgateway, key `llm-arc-runners-agent-harness--sentinel`)
+# is created with the sentinel manifests of PLT-455, NOT here: this file only declares the key.
+# Revert: remove this file, its line in kustomization.yaml, the key block in config.yaml, the
+# envFrom entry, the Role line and the ingress rule (Secret is orphaned, delete by hand).
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: llm-arc-runners-agent-harness--sentinel
+  namespace: agentgateway
+spec:
+  length: 48
+  digits: 10
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: llm-arc-runners-agent-harness--sentinel
+  namespace: agentgateway
+  annotations:
+    kube-ops.io/secret-class: T4
+    kube-ops.io/not-data-key: "bearer token of an internal LLM consumer, encrypts no persisted data"
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: llm-arc-runners-agent-harness--sentinel
+    creationPolicy: Orphan
+    template:
+      engineVersion: v2
+      data:
+        INCIDENT_SENTINEL_AGENTGATEWAY_KEY: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: llm-arc-runners-agent-harness--sentinel

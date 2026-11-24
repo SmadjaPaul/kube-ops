@@ -1,0 +1,40 @@
+# PRD-84 : le job apply range le jeton HA dans un Secret natif. Droit minimal : patch sur ce seul Secret.
+# Pas de create (non restreignable par resourceNames : le Secret est préexistant via l'ExternalSecret)
+# et pas de get/list/watch : le jeton courant arrive par secretKeyRef, jamais lu par l'API.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ma-reconcile
+  namespace: music-assistant
+  labels:
+    app.kubernetes.io/name: ma-reconcile
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ma-reconcile
+  namespace: music-assistant
+  labels:
+    app.kubernetes.io/name: ma-reconcile
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["ma-home-assistant-token"]
+    verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ma-reconcile
+  namespace: music-assistant
+  labels:
+    app.kubernetes.io/name: ma-reconcile
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ma-reconcile
+subjects:
+  - kind: ServiceAccount
+    name: ma-reconcile
+    namespace: music-assistant
