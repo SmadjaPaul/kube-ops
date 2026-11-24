@@ -75,7 +75,7 @@ grep -q 'name: internal' k8s/applications/business/invoice-ninja/service-route.y
 # policy is strict. Retired Qdrant/OpenWebUI routes must not be referenced.
 grep -q 'type: ClusterIP' k8s/applications/platform/agentgateway/resources.yaml
 grep -q 'mode: strict' k8s/applications/platform/agentgateway/resources.yaml
-# PLT-453: each AI SDK agent key (pr-triage, incident-sentinel) is restricted to factory/fast with
+# PLT-453: each AI SDK agent key (pr-triage, incident-sentinel) is restricted to text/fast with
 # a blocking 300000-token / 24 h budget.
 ag=k8s/applications/platform/agentgateway/resources.yaml
 # PLT-496: consumers use the capability alias text/fast, never a provider model name.
@@ -84,6 +84,8 @@ for k in pr-triage incident-sentinel; do
   grep -q "name: $k-daily-tokens" "$ag"
 done
 [ "$(grep -c 'amount: 300000' "$ag")" -ge 2 ]
+# PLT-496 / D-2026-11-24-03: no Factory identity or factory/* alias remains in the gateway.
+! grep -qE 'factory/(fast|code|research|embedding)|factory-canary|AGENTGATEWAY_CLIENT_KEY' "$ag" k8s/applications/platform/agentgateway/secrets.yaml
 # The capability aliases exist and point to the pinned models (the only place a provider name lives).
 awk '/- name: text\/fast/{f=1} f&&/model:/{print $2; exit}' "$ag" | grep -qx 'MiniMax-M3.1-Flash'
 awk '/- name: text\/strong/{f=1} f&&/model:/{print $2; exit}' "$ag" | grep -qx 'MiniMax-M3'
