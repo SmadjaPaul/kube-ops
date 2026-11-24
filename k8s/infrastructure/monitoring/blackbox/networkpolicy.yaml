@@ -102,3 +102,12 @@ spec:
         - ports:
             - port: "3000"
               protocol: TCP
+    # PLT-470: certificate expiry probe of the Kyverno admission webhook
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kyverno
+            app.kubernetes.io/component: admission-controller
+      toPorts:
+        - ports:
+            - port: "9443"
+              protocol: TCP
