@@ -13,6 +13,8 @@ VAP=$DIR/validatingadmissionpolicy.yaml
 RBAC=$DIR/rbac.yaml
 CJR=$DIR/cronjob-run.tsv
 CJR_RBAC=k8s/applications/platform/agent-operator-access/cronjob-run.yaml
+# PRD-76 : namespaces d'infrastructure (refusés au projet apps), comme velero.
+CJR_RBAC_INFRA=$DIR/cronjob-run-infra.yaml
 fails=0
 ok() { echo "ok   $*"; }
 ko() { echo "FAIL $*" >&2; fails=$((fails + 1)); }
@@ -167,23 +169,24 @@ cjr_ns=$(cut -d/ -f1 <<<"$pairs" | sort -u)
 for ns in $cjr_ns; do grep -qxF "$ns" <<<"$scope" && ko "namespace run-cronjob aussi dans scope.tsv : $ns"; done
 ok "namespaces run-cronjob hors scope.tsv"
 for p in $pairs; do
-  f=$(grep -rlE "^  name: ${p#*/}\$" k8s/applications | xargs grep -l '^kind: CronJob' 2>/dev/null | head -1 || true)
+  f=$(grep -rlE "^  name: ${p#*/}\$" k8s/applications k8s/infrastructure | xargs grep -l '^kind: CronJob' 2>/dev/null | head -1 || true)
   [ -n "$f" ] && yq -N "select(.kind == \"CronJob\" and .metadata.name == \"${p#*/}\") | .metadata.namespace // \"\"" "$f" | grep -qxE "(${p%/*})?" ||
-    ko "CronJob $p absent de Git (k8s/applications)"
+    ko "CronJob $p absent de Git (k8s/applications, k8s/infrastructure)"
 done
 ok "chaque CronJob de cronjob-run.tsv est déclaré dans Git"
 check "Roles cronjob-run : un par namespace de cronjob-run.tsv" \
-  test "$(yq -N 'select(.kind == "Role" and .metadata.name == "agent-operator-cronjob-run") | .metadata.namespace' "$CJR_RBAC" | sort)" = "$cjr_ns"
+  test "$(yq -N 'select(.kind == "Role" and .metadata.name == "agent-operator-cronjob-run") | .metadata.namespace' "$CJR_RBAC" "$CJR_RBAC_INFRA" | sort)" = "$cjr_ns"
 check "Roles cronjob-run : create sur jobs seulement" \
-  test "$(yq -N -o=json -I=0 'select(.kind == "Role") | .rules' "$CJR_RBAC" | grep -vx 'null' | sort -u)" = '[{"apiGroups":["batch"],"resources":["jobs"],"verbs":["create"]}]'
+  test "$(yq -N -o=json -I=0 'select(.kind == "Role") | .rules' "$CJR_RBAC" "$CJR_RBAC_INFRA" | grep -vx 'null' | sort -u)" = '[{"apiGroups":["batch"],"resources":["jobs"],"verbs":["create"]}]'
 check "cronjob-run.yaml : Roles et RoleBindings seulement, aucun autre objet" \
-  test "$(yq -N '.kind' "$CJR_RBAC" | sort -u | tr '\n' ' ')" = "Role RoleBinding "
+  test "$(yq -N '.kind' "$CJR_RBAC" "$CJR_RBAC_INFRA" | sort -u | tr '\n' ' ')" = "Role RoleBinding "
 check "RoleBindings cronjob-run : rôle et sujet exacts" \
-  test "$(yq -N -o=json -I=0 'select(.kind == "RoleBinding") | [.metadata.name, .roleRef.kind, .roleRef.name, .subjects[0].kind, .subjects[0].name, .subjects[0].namespace, (.subjects | length)]' "$CJR_RBAC" | grep -vx '\[\]' | sort -u)" = \
+  test "$(yq -N -o=json -I=0 'select(.kind == "RoleBinding") | [.metadata.name, .roleRef.kind, .roleRef.name, .subjects[0].kind, .subjects[0].name, .subjects[0].namespace, (.subjects | length)]' "$CJR_RBAC" "$CJR_RBAC_INFRA" | grep -vx '\[\]' | sort -u)" = \
   '["agent-operator-cronjob-run","Role","agent-operator-cronjob-run","ServiceAccount","agent-operator","agent-operator",1]'
 check "RoleBindings cronjob-run : un par namespace" \
-  test "$(yq -N 'select(.kind == "RoleBinding") | .metadata.namespace' "$CJR_RBAC" | sort)" = "$cjr_ns"
+  test "$(yq -N 'select(.kind == "RoleBinding") | .metadata.namespace' "$CJR_RBAC" "$CJR_RBAC_INFRA" | sort)" = "$cjr_ns"
 check "agent-operator-access importe cronjob-run.yaml" grep -qx '  - cronjob-run.yaml' k8s/applications/platform/agent-operator-access/kustomization.yaml
+check "agent-operator importe cronjob-run-infra.yaml" grep -qx '  - cronjob-run-infra.yaml' "$DIR/kustomization.yaml"
 
 # 6. wrapper kubectl-rw.sh (mode plan : contrôles sans cluster)
 W=scripts/kubectl-rw.sh

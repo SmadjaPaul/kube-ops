@@ -56,6 +56,9 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: home-assistant
       server: https://kubernetes.default.svc
+    # PRD-76: permanent HA restore-drill island (k8s/infrastructure/controllers/velero-ha-restore-drill).
+    - namespace: home-assistant-restore-test
+      server: https://kubernetes.default.svc
     - namespace: immich
       server: https://kubernetes.default.svc
     - namespace: it-tools

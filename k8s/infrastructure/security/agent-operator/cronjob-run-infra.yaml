@@ -1,0 +1,35 @@
+# PRD-76 — lancement manuel (kubectl-rw.sh run-cronjob) des CronJobs de
+# cronjob-run.tsv situés dans un namespace d'infrastructure, que le projet Argo
+# `apps` (agent-operator-access) refuse. Même forme que
+# k8s/applications/platform/agent-operator-access/cronjob-run.yaml : `create`
+# sur jobs seul ; nom et contenu du Job bornés par agent-operator-guard et
+# agent-operator-cronjob-run. Vérifié par tests/agent-guard/agent-operator-identity-test.sh.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-operator-cronjob-run
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-operator-cronjob-run
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-operator-cronjob-run
+subjects:
+  - kind: ServiceAccount
+    name: agent-operator
+    namespace: agent-operator

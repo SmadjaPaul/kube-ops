@@ -1,0 +1,146 @@
+# PRD-76 — droits du Job ha-restore-drill, au plus juste :
+# - velero : créer/lire SON Restore (forme bornée par ha-restore-drill-restore-guard),
+#   lister les backups et PodVolumeRestores, lire le modifier restore-pvc-isolation ;
+# - home-assistant-restore-test : lire, journaux et suppression du pod et du PVC restaurés ;
+# - home-assistant : lecture du seul PVC et du seul pod de production (comparaison avant/après) ;
+# - cluster : lecture du namespace de test, des deux policies et des PV (preuve de suppression).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ha-restore-drill
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ha-restore-drill
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+rules:
+  - apiGroups: [velero.io]
+    resources: [restores]
+    verbs: [create, get]
+  - apiGroups: [velero.io]
+    resources: [backups, podvolumerestores]
+    verbs: [list]
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [restore-pvc-isolation]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ha-restore-drill
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ha-restore-drill
+subjects:
+  - kind: ServiceAccount
+    name: ha-restore-drill
+    namespace: velero
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ha-restore-drill
+  namespace: home-assistant-restore-test
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+rules:
+  - apiGroups: [""]
+    resources: [pods, persistentvolumeclaims]
+    verbs: [get, list, delete]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ha-restore-drill
+  namespace: home-assistant-restore-test
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ha-restore-drill
+subjects:
+  - kind: ServiceAccount
+    name: ha-restore-drill
+    namespace: velero
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ha-restore-drill-prod-read
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    resourceNames: [home-assistant-0]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    resourceNames: [home-assistant-home-assistant-0]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ha-restore-drill-prod-read
+  namespace: home-assistant
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ha-restore-drill-prod-read
+subjects:
+  - kind: ServiceAccount
+    name: ha-restore-drill
+    namespace: velero
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ha-restore-drill
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+rules:
+  - apiGroups: [""]
+    resources: [namespaces]
+    resourceNames: [home-assistant-restore-test]
+    verbs: [get]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources: [validatingadmissionpolicies]
+    resourceNames: [ha-restore-test-guard, ha-restore-drill-restore-guard]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [persistentvolumes]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ha-restore-drill
+  labels:
+    app.kubernetes.io/name: ha-restore-drill
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ha-restore-drill
+subjects:
+  - kind: ServiceAccount
+    name: ha-restore-drill
+    namespace: velero

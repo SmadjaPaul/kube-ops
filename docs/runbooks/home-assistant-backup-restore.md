@@ -1,8 +1,7 @@
 # Sauvegarde et reprise de Home Assistant
 
-Statut de la preuve de restauration : `NOT_TESTED`. Le drill Velero ci-dessous
-est **NON EXÉCUTÉ** : aucun chemin agent ne crée de `Restore` (voir « Drill
-non destructif »). Ce document ne lance aucun Restore.
+Statut de la preuve de restauration : `NOT_TESTED` (drill livré, voir « Drill
+non destructif » ; passe à `RUNTIME` après une exécution PASS consignée ici).
 
 ## État des sauvegardes (constat du 2026-11-24, niveau RUNTIME)
 
@@ -46,86 +45,105 @@ Pour la perte du PVC ou du namespace. Restaurer le dernier backup `Completed`
 de `velero-daily-home-assistant` dans `home-assistant` : arrêter d'abord le
 StatefulSet (réplicas 0 via Git, Argo selfHeal), supprimer le PVC cassé, puis
 `velero restore create ha-restore-$(date -u +%Y%m%d) --from-backup <backup>` et
-laisser Argo reconcilier. Geste d'incident, décision de Paul ; pas un drill.
+laisser Argo reconcilier, **sans** `--resource-modifier-configmap restore-pvc-isolation`
+(il neutraliserait le pod HA). Geste d'incident, décision de Paul ; pas un drill.
 
-## Drill non destructif (NON EXÉCUTÉ)
+## Drill non destructif
 
-État au 2026-11-24 (RUNTIME, lecture seule) :
+Statut : livré (PR PRD-76d), résultats mesurés ci-dessous après exécution.
+Lancement, une seule commande agent :
 
-- isolation vivante : la ConfigMap `restore-pvc-isolation` appliquée dans
-  `velero` contient `home-assistant` dans ses deux règles (`volumeName: null`
-  sur les PVC, `argocd.argoproj.io/tracking-id: null`) ;
-- dernier backup : `velero-daily-home-assistant-20261124082947`, `Completed`,
-  16 objets, 0 erreur ; un seul PodVolumeBackup, pod `home-assistant-0`, volume
-  `data`, uploader `kopia`, 9 141 242 octets ;
-- production de référence : PVC `home-assistant-home-assistant-0`, UID
-  `1b4227d4-8b89-4e5e-9a0a-e52f95125314`, volume
-  `pvc-1b4227d4-8b89-4e5e-9a0a-e52f95125314`, `longhorn-fast`, 5 Gi ;
-  namespace `home-assistant` en Pod Security `privileged`.
+```bash
+bash scripts/kubectl-rw.sh run-cronjob velero cronjob/ha-restore-drill
+```
 
-Blocage : aucun chemin agent ne crée de `Restore` (`scripts/kubectl-rw.sh` ne
-couvre que des workloads, Jobs et Pods ; `run-cronjob` seulement les couples de
-`cronjob-run.tsv`). Le drill attend un CronJob suspendu dédié (ci-dessous).
+Le Job `ha-restore-drill-manual-<horodatage>` (namespace `velero`) écrit une
+ligne JSON finale : `backup`, `restore`, `restore_phase`, `pvr` (octets),
+`verifier` (ligne JSON du vérificateur), `cleanup`, `prod_before`,
+`prod_after`, `prod_unchanged`, durées `restore_seconds`, `verify_seconds`,
+`total_seconds`, `status` `PASS|FAIL`. Lecture :
+`bash scripts/kubectl-ro.sh logs -n velero job/<nom>`.
 
-### Piège : restaurer seulement PVC et PV donne un volume vide
+### Pièges établis (Velero 1.18.2, `pkg/restore/restore.go`)
 
-Le backup est un File System Backup Kopia (PodVolumeBackup), pas un snapshot
-CSI. Velero ne réécrit les données que par un PodVolumeRestore, qui exige que
-le **pod** `home-assistant-0` soit restauré : Velero lui ajoute l'init
-container `restore-wait`, et le node-agent écrit les fichiers quand ce
-conteneur tourne. Avec `--include-resources persistentvolumeclaims,persistentvolumes`
-(ancienne version de ce runbook), le PVC est provisionné vide et le Restore
-reste `Completed` : faux positif.
+- Restaurer seulement PVC et PV donne un volume **vide** : le backup est un
+  File System Backup Kopia ; seul un PodVolumeRestore réécrit les données, et
+  il exige le **pod** `home-assistant-0` restauré (Velero lui ajoute l'init
+  container `restore-wait`).
+- `persistentvolumes` doit figurer dans `includedResources` : sinon Velero ne
+  crée aucun PodVolumeRestore (`ShouldInclude(PersistentVolumes)`), même avec
+  le pod. Le PV n'est pas restauré : il est reprovisionné (méthode FSB).
+- Les resource modifiers s'appliquent **après** les RestoreItemActions, et
+  l'objet est créé même si le patch échoue ; un `test` JSON Patch en échec
+  rend même l'objet **inchangé sans erreur**. `restore-wait` hérite du
+  `securityContext` du conteneur HA (NET_ADMIN, NET_RAW, NET_BROADCAST).
+- `ownerReferences` est retiré par Velero (pas de ramasse-miettes du pod).
+- `longhorn-fast` est en `Retain` : le PVC du drill passe en `longhorn-drill`
+  (`Delete`), sinon chaque drill laisserait un PV `Released`.
+- Le pod de production est `hostNetwork` (10.0.20.60) : restauré tel quel, il
+  démarrerait un second HA sur le réseau des appareils.
 
-Or le pod de production est `hostNetwork` (10.0.20.60), avec `NET_ADMIN`,
-`NET_RAW`, `NET_BROADCAST`, et ses volumes `openid-patch`, `core-config`,
-`secrets` qui ne sont pas restaurés. Restauré tel quel, il démarrerait un
-second HA sur le réseau des appareils. Le pod doit donc être neutralisé
-**avant** création, par une règle du modifier, et refusé par l'admission si la
-règle échoue.
+### Barrières (k8s/infrastructure/controllers/velero-ha-restore-drill)
 
-### Conception retenue (à livrer par PR)
+1. Namespace `home-assistant-restore-test`, géré par Git (projet Argo
+   `infrastructure`), Pod Security `enforce: baseline`, CiliumNetworkPolicy
+   `default-deny` avec `ingressDeny`/`egressDeny` vers `all`. Permanent et vide
+   hors drill.
+2. ValidatingAdmissionPolicy `ha-restore-test-guard` (toute identité, ce
+   namespace) : pas de hostNetwork/hostPID/hostIPC, aucun conteneur privilégié
+   ni capability ajoutée, `allowPrivilegeEscalation: false` partout, init
+   containers = `[restore-wait]` (image `docker.io/velero/velero:vX.Y.Z`),
+   conteneurs = `[ha-restore-verify]` (image HA de production épinglée),
+   montages en lecture seule, un seul volume `data` (PVC), ServiceAccount
+   `default` sans jeton, aucun conteneur éphémère ; PVC seulement en
+   `longhorn-drill`.
+3. Deux règles de `restore-pvc-isolation`, limitées à `home-assistant` :
+   PVC `home-assistant-home-assistant-0` en `longhorn-drill` ; pod
+   `home-assistant-0` neutralisé par un JSON Patch (deux `test`, puis
+   `restore-wait` seul en init container et durci, conteneur remplacé par le
+   vérificateur, volumes = `data`, `hostNetwork: false`, `dnsPolicy:
+   ClusterFirst`, ServiceAccount `default`, `automountServiceAccountToken:
+   false`, `restartPolicy: Never`, labels et annotations remplacés). **Ne pas
+   utiliser ce modifier pour une vraie reprise.**
+4. ValidatingAdmissionPolicy `ha-restore-drill-restore-guard` : le compte
+   `velero/ha-restore-drill` ne peut que **créer** un Restore nommé
+   `ha-restore-drill-<14 chiffres>`, backup `velero-daily-home-assistant-<14
+   chiffres>`, `includedNamespaces: [home-assistant]`, `includedResources:
+   [pods, persistentvolumeclaims, persistentvolumes]`, `namespaceMapping`
+   vers `home-assistant-restore-test`, `restorePVs: true`, modifier
+   `restore-pvc-isolation`, aucun autre champ (ni hook, ni sélecteur, ni
+   `existingResourcePolicy`).
+5. RBAC du Job : `create/get` restores, `list` backups et podvolumerestores,
+   `get` du ConfigMap modifier (velero) ; `get/list/delete` pods et PVC,
+   `get` pods/log (namespace de test) ; `get` du seul pod et du seul PVC de
+   production ; `get` du namespace de test, des deux policies et des PV.
+6. Lancement agent : ligne de `cronjob-run.tsv`, `manualRuns` de
+   `agent-operator-guard`, binding `agent-operator-cronjob-run-ha-restore-drill`,
+   Role `agent-operator-cronjob-run` de `velero`
+   (`k8s/infrastructure/security/agent-operator/cronjob-run-infra.yaml`).
 
-1. Namespace `home-assistant-restore-test` géré par Git, Pod Security
-   `enforce: baseline` (refuse `hostNetwork`, `NET_ADMIN`, `hostPath`), plus
-   une CiliumNetworkPolicy en refus d'entrée et de sortie. Deuxième barrière :
-   dans Velero 1.18 les resource modifiers s'appliquent après les
-   RestoreItemActions, et un patch en échec n'empêche pas la création de
-   l'objet ; seule l'admission rattrape un pod non patché.
-2. Troisième règle dans `restore-pvc-isolation`, `groupResource: pods`,
-   namespace source `home-assistant`, en JSON Patch unique (tout ou rien) :
-   `test` du nom des conteneurs et volumes attendus, `test`
-   `/spec/initContainers/0/name == restore-wait` (ajouté en tête par Velero),
-   retrait des trois init containers d'origine et des volumes `openid-patch`,
-   `core-config`, `secrets`, `hostNetwork: false`, `dnsPolicy: ClusterFirst`,
-   `serviceAccountName: default`, `automountServiceAccountToken: false`,
-   remplacement de `/spec/containers` par un vérificateur : image HA de
-   production épinglée (python et sqlite3 déjà présents), `data` monté en
-   lecture seule sur `/config`, aucune capability, script de contrôle puis
-   attente.
-3. Contrôles du vérificateur (sortie dans le journal du pod, sans valeur de
-   jeton) : `.storage/` non vide, `configuration.yaml` présent sur le PVC
-   (copie historique), dernier `backups/*.tar` et sa taille,
-   `home-assistant_v2.db` ouvert en `mode=ro&immutable=1`,
-   `PRAGMA integrity_check` = `ok`, chaînes `maison_musique_` trouvées dans
-   `scripts.yaml` ou `.storage/`.
-4. Déclencheur : CronJob suspendu `ha-restore-drill` (namespace `velero`, modèle
-   `ha-agent-mcp-smoke`), ajouté à `cronjob-run.tsv`, lancé par
-   `bash scripts/kubectl-rw.sh run-cronjob velero cronjob/ha-restore-drill`.
-   Son ServiceAccount a seulement `create`/`get` sur `restores.velero.io` et
-   `get` sur `backups.velero.io` dans `velero` ; une ValidatingAdmissionPolicy
-   n'admet de ce compte qu'un `Restore` exact : backup du schedule
-   `velero-daily-home-assistant`, `includedNamespaces: [home-assistant]`,
-   `namespaceMapping` vers `home-assistant-restore-test`,
-   `includedResources: [pods, persistentvolumeclaims]`, `restorePVs: true`,
-   `resourceModifier` = `restore-pvc-isolation`, `existingResourcePolicy`
-   absent. Le Job choisit le dernier backup `Completed`, crée le Restore,
-   attend `Completed` et le PodVolumeRestore `Completed`, puis s'arrête.
-5. Nettoyage : suppression du pod et du PVC restaurés par une PR qui retire le
-   namespace de test (Argo prune) ; vérifier ensuite que le PVC de production
-   garde l'UID et le volume ci-dessus et qu'aucun PV `Released` ne reste.
-6. Consigner durée (création du Restore au journal du vérificateur) et
-   contrôles PASS/FAIL ici ; passer la preuve de `NOT_TESTED` à `RUNTIME`.
+### Déroulé du Job (`ha-restore-drill.py`)
+
+1. Pré-contrôles : namespace de test `Active` et `baseline`, les deux
+   policies présentes, modifier avec ses règles HA, namespace de test vide.
+2. Photo de production : UID et volume du PVC, UID, phase et redémarrages
+   du pod `home-assistant-0`.
+3. Dernier backup `Completed` du schedule ; création du Restore.
+4. Attente du Restore (arrêt immédiat si un pod `hostNetwork` apparaît dans le
+   namespace de test), PodVolumeRestore `Completed`, puis fin du vérificateur.
+5. Vérificateur (dans le pod restauré, `/config` en lecture seule) :
+   `.storage/` non vide, `home-assistant_v2.db` ouvert en
+   `mode=ro&immutable=1`, `PRAGMA integrity_check` = `ok`, nombre d'états et
+   dernier horodatage, `backups/*.tar` (information), chaînes
+   `maison_musique_` dans `scripts.yaml`, `automations.yaml` ou `.storage/`.
+6. Nettoyage **toujours** : suppression du pod et du PVC restaurés, attente de
+   la disparition du PV (`Delete`).
+7. Production comparée : PVC (UID, volume) et pod (UID, redémarrages)
+   identiques, pod `Running`, sinon `FAIL`.
+
+Retour arrière : retirer le dossier `velero-ha-restore-drill`, les deux
+dernières règles du modifier et les lignes agent-operator (une PR) ; Argo
+supprime le namespace de test. Contrat : `tests/harness/ha-restore-drill-test.sh`.
 
 ## Sauvegarde native planifiée de HA (active depuis le 2026-11-24)
 
