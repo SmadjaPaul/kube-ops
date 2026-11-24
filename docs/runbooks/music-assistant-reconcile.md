@@ -72,7 +72,7 @@ Si le Secret est vide ou refusé par MA (401), `bash scripts/kubectl-rw.sh run-c
 
 ### Recréer l'entrée par l'API du flux
 
-Prérequis : un jeton HA administrateur (`ha.py` le lit dans Doppler, projet `home`, config `prd`, sans l'afficher) et le jeton MA ci-dessus. `scripts/ha.py` du plugin `homelab-ops` fournit `flow start|step|abort` ; ces commandes écrivent dans HA et exigent `--confirmed`, à ne passer qu'avec l'accord de Paul pour cette étape. Équivalent REST : `POST /api/config/config_entries/flow` (démarrage) puis `POST /api/config/config_entries/flow/<flow_id>` (étapes).
+Prérequis : un jeton HA administrateur (`ha.py` le lit dans Doppler, projet `home`, config `prd`, sans l'afficher) et le jeton MA ci-dessus. `scripts/ha.py` du plugin `homelab-ops` fournit `flow start|step|abort` ; ces commandes écrivent dans HA et exigent `--confirmed`, à ne passer qu'avec l'accord de Paul pour CHAQUE étape (jamais en lot), en nommant le handler, l'étape et les champs envoyés. Équivalent REST : `POST /api/config/config_entries/flow` (démarrage) puis `POST /api/config/config_entries/flow/<flow_id>` (étapes).
 
 ```bash
 HA=/Users/paul/Developer/agent/agent-harness/plugins/homelab-ops/scripts/ha.py
