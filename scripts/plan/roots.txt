@@ -35,6 +35,7 @@ k8s/optional/github-actions-arc-homelab-iac-pilot
 # Oracle-a1 : agent-operator, baseline, cilium, external-secrets, guardrails, netbird-router et observability sont reconcilies par l'ApplicationSet infrastructure d'OKE ; les autres
 # dossiers sont des overlays dormants (aucune racine ne les reconcilie, PLT-405), rendus pour memoire.
 k8s/clusters/oracle-a1/agent-operator
+k8s/clusters/oracle-a1/agent-token-renewer
 k8s/clusters/oracle-a1/arc-controller
 k8s/clusters/oracle-a1/arc-runner
 k8s/clusters/oracle-a1/baseline

@@ -1,5 +1,6 @@
 # Only the families exported to Grafana Cloud (PLT-306).
 collectors:
+  - cronjobs
   - daemonsets
   - deployments
   - nodes
@@ -20,6 +21,9 @@ metricAllowlist:
   - kube_statefulset_replicas
   - kube_daemonset_status_number_unavailable
   - kube_persistentvolumeclaim_status_phase
+  # PLT-481 : alerte 13 h sans renouvellement du jeton agent-operator (homelab-infra grafana-cloud).
+  - kube_cronjob_status_last_successful_time
+  - kube_cronjob_spec_suspend
 selfMonitor:
   enabled: false
 prometheus:

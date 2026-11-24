@@ -17,6 +17,8 @@ bash tests/agent-guard/secret-helpers-test.sh
 bash tests/agent-guard/agent-kube-access-doc-test.sh
 # PLT-420: automatic renewal of the 24 h agent token (stubbed provisioning, lock, failure code).
 bash tests/agent-guard/agent-operator-token-renew-test.sh
+bash tests/agent-guard/agent-token-renewer-test.sh
+bash tests/harness/kube-preflight-oke-test.sh
 
 # PLT-210: bare `! cmd` assertions never trip `set -e`.
 bash scripts/check-harness-negations.sh

@@ -1,0 +1,14 @@
+# Renouvellement du jeton agent-operator (PLT-481, D-2026-11-23-04). ISOLE : label egress-isolated=true, donc
+# pas d'allow-all de la CCNP allow-egress-unisolated ; l'egress est regi par egress-policy.yaml (liste fermee).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-token-renewer
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+  labels:
+    app.kubernetes.io/part-of: security
+    platform.smadja.dev/egress-isolated: "true"
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
