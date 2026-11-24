@@ -236,6 +236,11 @@ alloy:
             "cnpg_pg_stat_archiver_last_failed_time",
             "cnpg_pg_replication_lag",
             "cnpg_pg_replication_in_recovery",
+            // barman-cloud plugin backup metrics (the cnpg_collector_last_*
+            // series stay 0 for plugin backups)
+            "barman_cloud_cloudnative_pg_io_last_available_backup_timestamp",
+            "barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp",
+            "barman_cloud_cloudnative_pg_io_first_recoverability_point",
             // Velero and Longhorn backups
             "velero_backup_last_successful_timestamp",
             "velero_backup_last_status",
@@ -281,13 +286,13 @@ alloy:
       prometheus.relabel "grafana_cloud" {
         rule {
           source_labels = ["__name__", "cluster"]
-          regex         = "cnpg_.*;(.+)"
+          regex         = "(cnpg|barman_cloud)_.*;(.+)"
           target_label  = "cnpg_cluster"
-          replacement   = "$1"
+          replacement   = "$2"
         }
         rule {
           source_labels = ["__name__"]
-          regex         = "cnpg_.*"
+          regex         = "(cnpg|barman_cloud)_.*"
           target_label  = "cluster"
           replacement   = ""
         }

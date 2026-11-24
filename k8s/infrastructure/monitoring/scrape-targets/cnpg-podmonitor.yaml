@@ -28,5 +28,7 @@ spec:
           action: drop
       metricRelabelings:
         - sourceLabels: [__name__]
-          regex: cnpg_(collector|pg_stat_archiver|pg_replication)_.*
+          # barman_cloud_cloudnative_pg_io_*: backup metrics of the barman-cloud
+          # plugin (PLT-459), served by the instance manager on the same port.
+          regex: (cnpg_(collector|pg_stat_archiver|pg_replication)|barman_cloud_cloudnative_pg_io)_.*
           action: keep

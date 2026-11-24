@@ -13,6 +13,28 @@ spec:
         # are not exported by this CNPG version's default queries and no custom
         # queries exist, so they could never fire. XID wraparound is NOT watched
         # until a custom query is added (PLT-459 follow-up).
+        # PLT-459: backups go through the barman-cloud plugin, so the native
+        # cnpg_collector_last_*_backup_timestamp series stay 0. Most clusters
+        # back up weekly (pg-shared-homelab daily): 8 days = one missed run.
+        - alert: CNPGPluginBackupStale
+          annotations:
+            description: No successful barman-cloud backup for over 8 days in namespace {{ $labels.namespace }} (cluster {{ $labels.cluster }}).
+            summary: The last available plugin backup of a CNPG cluster is too old
+          expr: |-
+            (time() - max by (namespace, cluster) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp > 0)) > 8 * 86400
+          for: 30m
+          labels:
+            severity: warning
+        - alert: CNPGPluginBackupFailed
+          annotations:
+            description: The latest barman-cloud backup failed after the last successful one in namespace {{ $labels.namespace }} (cluster {{ $labels.cluster }}).
+            summary: A CNPG plugin backup failed
+          expr: |-
+            max by (namespace, cluster) (barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp)
+              > max by (namespace, cluster) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
+          for: 30m
+          labels:
+            severity: warning
         - alert: PGReplication
           annotations:
             description:
