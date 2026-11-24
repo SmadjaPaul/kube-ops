@@ -5,3 +5,4 @@ resources:
   - resources.yaml
   - secrets.yaml
   - pr-triage-key.yaml
+  - incident-sentinel-key.yaml
