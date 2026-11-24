@@ -236,6 +236,8 @@ alloy:
             "cnpg_pg_stat_archiver_last_failed_time",
             "cnpg_pg_replication_lag",
             "cnpg_pg_replication_in_recovery",
+            // Cloudflare tunnel (PLT-459)
+            "cloudflared_tunnel_ha_connections",
             // Velero and Longhorn backups
             "velero_backup_last_successful_timestamp",
             "velero_backup_last_status",
