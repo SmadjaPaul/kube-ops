@@ -20,12 +20,25 @@ controllers/webserver/auth.py) :
              puis config/flows/submit(flow_id, values) jusqu'a type "finish" (config/flows/get pour "progress")
   config/players(include_values=True), config/players/save(player_id, values)
   auth/users, auth/user/create(username, password, role), auth/user/update(user_id, role)
+  auth/tokens(user_id?) : jetons de l'appelant (ou d'un autre utilisateur avec users.manage)
+  auth/token/create(name, user_id?) : jeton longue duree (1 an, sans renouvellement) ; un admin
+             (users.manage) peut l'emettre pour un autre utilisateur, sans connaitre son mot de passe.
+
+Utilisateur de service (PRD-84) : "password_generated": true cree le compte avec un mot de passe
+aleatoire jamais stocke ni affiche (le compte ne sert qu'avec son jeton). "token": {name, secret_env,
+k8s_secret, key} emet un jeton longue duree et le range dans un Secret Kubernetes natif par PATCH
+(RBAC : patch sur ce seul Secret, aucune lecture). Le jeton courant est lu dans l'environnement
+(secretKeyRef facultatif) ; il est reemis s'il est absent, refuse par MA ou proche de l'expiration.
 Un HTTP 500 de MA est generique ("Internal server error") : le detail est dans les journaux du serveur.
 """
 
 import argparse
 import json
+import base64
+import datetime
 import os
+import secrets
+import ssl
 import sys
 import time
 import urllib.error
@@ -36,8 +49,14 @@ TOKEN_ENV = "APP_MA_RECONCILE_TOKEN"
 MAX_FLOW_STEPS = 10
 
 
+TOKEN_RENEW_DAYS = 30
+SA_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
+
+
 class ReconcileError(Exception):
-    pass
+    def __init__(self, msg, status=None):
+        super().__init__(msg)
+        self.status = status
 
 
 class Redactor:
@@ -68,6 +87,9 @@ class Client:
         self.redact = redact
         self.timeout = timeout
 
+    def with_token(self, token):
+        return Client(self.url[: -len("/api")], token, self.redact, self.timeout)
+
     def call(self, command, **args):
         req = urllib.request.Request(
             self.url,
@@ -88,7 +110,7 @@ class Client:
                     detail = ": " + self.redact(e.read().decode("utf-8", "replace")[:200])
                 except OSError:
                     pass
-            raise ReconcileError(f"{command}: HTTP {e.code}{detail}") from None
+            raise ReconcileError(f"{command}: HTTP {e.code}{detail}", status=e.code) from None
         except (urllib.error.URLError, OSError) as e:
             raise ReconcileError(self.redact(f"{command}: {e}")) from None
         try:
@@ -155,6 +177,75 @@ def diff_values(desired, current):
     return changes
 
 
+class Kube:
+    """Ecriture d'une cle de Secret par PATCH merge avec le jeton du ServiceAccount (jamais de lecture)."""
+
+    def __init__(self, env, redact):
+        self.redact = redact
+        self.sa = env.get("MA_RECONCILE_SA_DIR", SA_DIR)
+        host = env.get("KUBERNETES_SERVICE_HOST")
+        port = env.get("KUBERNETES_SERVICE_PORT", "443")
+        self.base = env.get("MA_RECONCILE_KUBE_URL") or (f"https://{host}:{port}" if host else "https://kubernetes.default.svc")
+
+    def _read(self, name):
+        try:
+            with open(os.path.join(self.sa, name), encoding="utf-8") as f:
+                return f.read().strip()
+        except OSError:
+            raise ReconcileError(f"ServiceAccount: fichier '{name}' illisible (automountServiceAccountToken ?)") from None
+
+    def patch_secret(self, name, key, value):
+        token, ns = self._read("token"), self._read("namespace")
+        self.redact.add(token)
+        body = json.dumps({"data": {key: base64.b64encode(value.encode()).decode()}}).encode()
+        req = urllib.request.Request(
+            f"{self.base}/api/v1/namespaces/{ns}/secrets/{name}",
+            data=body,
+            method="PATCH",
+            headers={"Authorization": "Bearer " + token, "Content-Type": "application/merge-patch+json"},
+        )
+        ctx = None
+        if self.base.startswith("https://"):
+            ctx = ssl.create_default_context(cafile=os.path.join(self.sa, "ca.crt"))
+        try:
+            urllib.request.urlopen(req, timeout=30, context=ctx).close()
+        except urllib.error.HTTPError as e:
+            raise ReconcileError(f"Secret {name}: HTTP {e.code}", status=e.code) from None
+        except (urllib.error.URLError, OSError) as e:
+            raise ReconcileError(self.redact(f"Secret {name}: {e}")) from None
+
+
+def parse_time(v):
+    if not isinstance(v, str):
+        return None
+    try:
+        t = datetime.datetime.fromisoformat(v.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=datetime.timezone.utc)
+
+
+def token_problem(client, spec, env, redact):
+    """-> None si le jeton stocke est valide, sinon la raison de le reemettre."""
+    tok = env.get(spec["secret_env"])
+    if not tok:
+        return "jeton absent"
+    redact.add(tok)
+    try:
+        own = client.with_token(tok).call("auth/tokens") or []
+    except ReconcileError as e:
+        if e.status == 401:
+            return "jeton refuse par MA"
+        raise
+    limit = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=TOKEN_RENEW_DAYS)
+    # d'anciens jetons du meme nom peuvent subsister : seul le plus tardif compte
+    exps = [parse_time(t.get("expires_at")) for t in own if t.get("name") == spec["name"]]
+    exps = [e for e in exps if e]
+    if exps and max(exps) < limit:
+        return f"jeton expire bientot ({TOKEN_RENEW_DAYS} jours)"
+    return None
+
+
 def build_plan(client, desired, env, redact, prune):
     plan = []
 
@@ -210,16 +301,23 @@ def build_plan(client, desired, env, redact, prune):
             cur = users.get(name)
             if cur is None:
                 pw = u.get("password_env")
-                if not pw:
-                    plan.append(item("user", name, "blocked", note="absent et sans password_env : a creer a la main (PRD-84)"))
+                if not pw and u.get("password_generated"):
+                    plan.append(item("user", name, "create", [("role", None, u["role"])], username=name, role=u["role"], password=None))
+                elif not pw:
+                    plan.append(item("user", name, "blocked", note="absent et sans password_env ni password_generated : a creer a la main (PRD-84)"))
                 else:
                     if not env.get(pw):
                         raise ReconcileError(f"secret '{pw}' absent de l'environnement")
                     redact.add(env[pw])
                     plan.append(item("user", name, "create", [("role", None, u["role"])], username=name, role=u["role"], password=env[pw]))
+                if u.get("token") and (pw or u.get("password_generated")):
+                    plan.append(item("token", name, "create", note="compte a creer", username=name, spec=u["token"]))
                 continue
             ch = [("role", cur.get("role"), u["role"])] if cur.get("role") != u["role"] else []
             plan.append(item("user", name, "update" if ch else "noop", ch, user_id=cur.get("user_id"), role=u["role"]))
+            if u.get("token"):
+                why = token_problem(client, u["token"], env, redact)
+                plan.append(item("token", name, "create" if why else "noop", note=why, username=name, spec=u["token"]))
     return plan
 
 
@@ -243,7 +341,7 @@ def pending(plan):
     return [i for i in plan if i["action"] in ("create", "update", "remove")]
 
 
-def apply_item(client, it):
+def apply_item(client, it, env, redact):
     p, kind, act = it["payload"], it["kind"], it["action"]
     if kind == "core":
         client.call("config/core/save", domain=p["domain"], values=p["values"])
@@ -286,13 +384,31 @@ def apply_item(client, it):
     elif kind == "player":
         client.call("config/players/save", player_id=p["player_id"], values=p["values"])
     elif kind == "user" and act == "create":
-        client.call("auth/user/create", username=p["username"], password=p["password"], role=p["role"])
+        password = p["password"]
+        if password is None:  # compte de service sans connexion par mot de passe : jamais stocke
+            password = secrets.token_urlsafe(32)
+            redact.add(password)
+        client.call("auth/user/create", username=p["username"], password=password, role=p["role"])
+    elif kind == "token":
+        spec = p["spec"]
+        user = next((u for u in client.call("auth/users") or [] if u.get("username") == p["username"]), None)
+        if not user:
+            raise ReconcileError(f"token/{p['username']}: utilisateur introuvable")
+        tok = client.call("auth/token/create", name=spec["name"], user_id=user["user_id"])
+        if not isinstance(tok, str) or not tok:
+            raise ReconcileError(f"token/{p['username']}: reponse inattendue de auth/token/create")
+        redact.add(tok)
+        try:
+            Kube(env, redact).patch_secret(spec["k8s_secret"], spec["key"], tok)
+        except ReconcileError as e:
+            raise ReconcileError(f"jeton emis mais non range ({e}) : un jeton '{spec['name']}' orphelin reste dans MA") from None
+        env[spec["secret_env"]] = tok  # le re-plan voit le jeton fraichement emis
     elif kind == "user":
         client.call("auth/user/update", user_id=p["user_id"], role=p["role"])
 
 
 def main(argv=None, env=None):
-    env = os.environ if env is None else env
+    env = dict(os.environ if env is None else env)
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--plan", action="store_true")
@@ -323,7 +439,7 @@ def main(argv=None, env=None):
             print("refus: elements bloques, rien n'est applique", file=sys.stderr)
             return EXIT_ERROR
         for it in pending(plan):
-            apply_item(client, it)
+            apply_item(client, it, env, redact)
             print(f"applique {it['kind']}/{it['name']} {it['action']}")
         again = build_plan(client, desired, env, redact, args.prune)
         if pending(again):

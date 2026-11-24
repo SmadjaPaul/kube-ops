@@ -47,6 +47,13 @@ spec:
                     secretKeyRef:
                       name: ma-reconcile-token
                       key: token
+                # Jeton HA courant (PRD-84) : lu par le kubelet, facultatif ; reemis s'il est invalide.
+                - name: APP_MA_HA_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ma-home-assistant-token
+                      key: token
+                      optional: true
               envFrom:
                 - secretRef:
                     name: ma-reconcile
@@ -108,7 +115,9 @@ spec:
             app.kubernetes.io/component: apply
         spec:
           restartPolicy: Never
-          automountServiceAccountToken: false
+          # Jeton de ServiceAccount monte : seul usage = PATCH du Secret ma-home-assistant-token (Role ma-reconcile).
+          serviceAccountName: ma-reconcile
+          automountServiceAccountToken: true
           enableServiceLinks: false
           securityContext:
             runAsNonRoot: true
@@ -128,6 +137,13 @@ spec:
                     secretKeyRef:
                       name: ma-reconcile-token
                       key: token
+                # Jeton HA courant (PRD-84) : lu par le kubelet, facultatif ; reemis s'il est invalide.
+                - name: APP_MA_HA_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ma-home-assistant-token
+                      key: token
+                      optional: true
               envFrom:
                 - secretRef:
                     name: ma-reconcile
@@ -190,3 +206,20 @@ spec:
         - ports:
             - port: "8095"
               protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ma-reconcile-apply-kube
+  namespace: music-assistant
+  labels:
+    policy-type: application
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ma-reconcile
+      app.kubernetes.io/component: apply
+  description: "Apply seulement : kube-apiserver pour ranger le jeton HA dans son Secret natif."
+  egress:
+    - toEntities:
+        - kube-apiserver

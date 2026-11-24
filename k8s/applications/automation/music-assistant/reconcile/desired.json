@@ -45,7 +45,14 @@
     },
     {
       "username": "svc-home-assistant",
-      "role": "service"
+      "role": "service",
+      "password_generated": true,
+      "token": {
+        "name": "home-assistant",
+        "secret_env": "APP_MA_HA_TOKEN",
+        "k8s_secret": "ma-home-assistant-token",
+        "key": "token"
+      }
     }
   ],
   "prune_domains": []

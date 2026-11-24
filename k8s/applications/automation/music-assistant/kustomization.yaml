@@ -21,4 +21,5 @@ resources:
   - tcp-route.yaml
   - networkpolicy.yaml
   - reconcile/external-secret.yaml
+  - reconcile/rbac.yaml
   - reconcile/cronjobs.yaml

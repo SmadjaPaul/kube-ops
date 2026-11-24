@@ -13,5 +13,8 @@
     {"user_id": "u1", "username": "paul", "role": "admin"},
     {"user_id": "u2", "username": "svc-ma-reconcile", "role": "admin"},
     {"user_id": "u3", "username": "svc-home-assistant", "role": "service"}
+  ],
+  "tokens": [
+    {"token_id": "t0", "user_id": "u3", "name": "home-assistant", "is_long_lived": true, "value": "HA-STORED-CANARY", "expires_at": "2099-01-01T00:00:00+00:00"}
   ]
 }
