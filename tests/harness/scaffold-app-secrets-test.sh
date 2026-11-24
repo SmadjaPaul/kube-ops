@@ -98,7 +98,7 @@ grep -q -- '- oidc-demoapp-ns.yaml' "$c/$a/extra/kustomization.yml" || fail "ext
 grep -q -- '- pg-demoapp-ns.yaml' "$c/$p/kustomization.yaml" || fail "pg kustomization not updated"
 grep -q -- '- demoapp-database.yaml' "$c/$p/kustomization.yaml" || fail "Database not in pg kustomization"
 grep -q 'name: pg-demoapp-ns' "$c/$p/cluster.yaml" || fail "managed role not added"
-[[ $(yq -r '.spec.managed.roles[0].name' "$c/$p/cluster.yaml") == demoapp ]] || fail "managed role name"
+[[ $(yq -r '.spec.managed.roles[-1].name' "$c/$p/cluster.yaml") == demoapp ]] || fail "managed role name (appended last)"
 yq -e '.spec.envFrom' "$c/$a/values.yaml" >/dev/null 2>&1 || true
 grep -A2 'name: oidc-demoapp-ns' "$c/$a/values.yaml" | grep -q 'optional: true' || fail "envFrom entry lacks optional: true"
 grep -q 'authentik-blueprint-librechat,oidc-demoapp-ns"' "$c/$a/values.yaml" || fail "Reloader list not extended"
@@ -128,7 +128,7 @@ gblock() { yq -o=json -I=0 -N 'sort_keys(..)' "$@"; }
 [[ $(tblock source) == "$(gblock "$c/$p/pg-demoapp-ns.yaml")" ]] || fail "T1 source differs from the lot 1 template"
 [[ $(tblock copy) == "$(gblock "$c/$d/demoapp-db-externalsecret.yaml")" ]] || fail "T1 copy differs from the lot 1 template"
 [[ $(tblock database) == "$(gblock "$c/$p/demoapp-database.yaml" | sed -n 1p)" ]] || fail "Database differs from the lot 1 template"
-[[ $(tblock cluster-role | yq -o=json -I=0 '.managed.roles[0]') == "$(yq -o=json -I=0 'sort_keys(..) | .spec.managed.roles[0]' "$c/$p/cluster.yaml")" ]] || fail "managed role differs from the lot 1 template"
+[[ $(tblock cluster-role | yq -o=json -I=0 '.managed.roles[0]') == "$(yq -o=json -I=0 'sort_keys(..) | .spec.managed.roles[-1]' "$c/$p/cluster.yaml")" ]] || fail "managed role differs from the lot 1 template"
 jobq='select(.kind == "Job") | [.metadata, .spec.backoffLimit, .spec.template.spec.restartPolicy, .spec.template.spec.containers[0].env] | sort_keys(..)'
 [[ $(tblock isolation-job | yq -o=json -I=0 "$jobq" | grep -v '^\[\]$') == "$(yq -o=json -I=0 "$jobq" "$c/$p/demoapp-database.yaml" | grep -v '^\[\]$')" ]] || fail "isolation Job (name, hook, env, secretKeyRef) differs from the lot 1 template"
 yq -e '.spec.template.spec.containers[0].env[] | select(.name == "PGUSER") | .valueFrom.secretKeyRef.name == "pg-demoapp-ns"' "$c/$p/demoapp-database.yaml" >/dev/null 2>&1 \

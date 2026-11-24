@@ -129,6 +129,16 @@ Routage : `critical` va sur ntfy (téléphone). `warning` et `info` vont sur le 
 - **Première vérification** : `logs --previous` du pod.
 - **Action** : traiter la cause (lease perdue, etcd lent). Vérifier les webhooks en fail-open.
 
+### KyvernoWebhookCertExpiring
+- **Signal** : le certificat TLS du webhook Kyverno (`kyverno-svc`) expire dans moins de 7 jours (sonde blackbox, PLT-470).
+- **Première vérification** : `get pods -n kyverno` ; les contrôleurs Kyverno renouvellent ce certificat seuls : vérifier que le contrôleur d'admission tourne et que ses journaux ne montrent pas d'erreur de renouvellement.
+- **Action** : rétablir le contrôleur ; ne jamais passer le webhook en ignore.
+
+### KyvernoWebhookCertProbeFailed
+- **Signal** : la sonde TLS de `kyverno-svc.kyverno.svc:443` échoue depuis 2 h.
+- **Première vérification** : `get pods -n monitoring` (blackbox-exporter), NetworkPolicy egress de blackbox-exporter vers `kyverno:9443`, pods admission.
+- **Action** : rétablir la sonde ; sans elle, l'expiration n'est plus surveillée.
+
 ### KyvernoWebhookFailOpen
 - **Signal** : un webhook Kyverno est en fail-open : les politiques ne sont pas appliquées.
 - **Première vérification** : `get validatingwebhookconfigurations` et l'état des pods admission.
