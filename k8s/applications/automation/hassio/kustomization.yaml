@@ -6,6 +6,9 @@ configMapGenerator:
   - name: ha-core-config
     files:
       - config/configuration.yaml
+  - name: ha-openid-ui-views-patch
+    files:
+      - openid-ui_views.py=patches/openid-ui_views.py
   - name: ha-mcp-token-rotate-script
     files:
       - ha-mcp-token-rotate.py

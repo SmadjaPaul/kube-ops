@@ -46,6 +46,9 @@ spec:
           tar -xzf "$archive" -C /tmp;
           rm -rf /config/custom_components/openid;
           cp -R /tmp/hass-openid-$OPENID_COMMIT/custom_components/openid /config/custom_components/openid;
+          echo "$OPENID_UI_VIEWS_UPSTREAM_SHA256  /config/custom_components/openid/ui_views.py" | sha256sum -c -;
+          cp /openid-patch/openid-ui_views.py /config/custom_components/openid/ui_views.py;
+          echo "$OPENID_UI_VIEWS_PATCHED_SHA256  /config/custom_components/openid/ui_views.py" | sha256sum -c -;
           test -f /config/custom_components/openid/__init__.py
         env:
         - name: OPENID_COMMIT
@@ -54,9 +57,17 @@ spec:
           value: https://github.com/cavefire/hass-openid/archive/0135a6f8150693ecb99cd5ba42446e0d1e66994d.tar.gz
         - name: OPENID_ARCHIVE_SHA256
           value: bf742ea17a3111ddb7b060835225dcaebb3d9debe73a89b4ddec62ae880ee6f4
+        # PRD-87b : ui_views.py corrigé (PR cavefire/hass-openid#101, non mergée) ; à retirer quand elle l'est.
+        - name: OPENID_UI_VIEWS_UPSTREAM_SHA256
+          value: 7ba0578671820ac5504fbde3201e12092512a3a1ee101e0a05bad9dad6c27b01
+        - name: OPENID_UI_VIEWS_PATCHED_SHA256
+          value: 858d760fe9f52456cf3840f6ecd703234ed756bef244f4a593e32edc8950c807
         volumeMounts:
         - name: data
           mountPath: /config
+        - name: openid-patch
+          mountPath: /openid-patch
+          readOnly: true
       - name: init-ui-files
         # PLT-444 : crée sur le PVC les fichiers inclus par configuration.yaml s'ils manquent.
         # Ne jamais écraser un fichier existant (UI HA et provider OpenTofu y écrivent).
@@ -142,6 +153,9 @@ spec:
             timeoutSeconds: 1
             failureThreshold: 3
       volumes:
+        - name: openid-patch
+          configMap:
+            name: ha-openid-ui-views-patch
         - name: core-config
           configMap:
             name: ha-core-config
