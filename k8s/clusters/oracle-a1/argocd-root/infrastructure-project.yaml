@@ -33,6 +33,9 @@ spec:
     - namespace: cilium-secrets
       server: https://kubernetes.default.svc
     # Baseline (PLT-384) : sonde, et politiques/quotas du namespace applicatif whoami.
+    # Renouvellement du jeton agent-operator (PLT-481).
+    - namespace: agent-token-renewer
+      server: https://kubernetes.default.svc
     - namespace: baseline-probe
       server: https://kubernetes.default.svc
     - namespace: whoami

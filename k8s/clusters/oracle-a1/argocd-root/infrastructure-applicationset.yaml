@@ -23,6 +23,9 @@ spec:
           # Lecture seule des agents (SA argocd/agent-operator, RBAC view sans Secret) :
           # requis par scripts/agent-operator-oke-token.sh --provision.
           - path: k8s/clusters/oracle-a1/agent-operator
+          # Renouvellement du jeton agent-operator toutes les 6 h (PLT-481, D-2026-11-23-04) : apres
+          # external-secrets (jeton d'ecriture Doppler via doppler-cluster) et cilium (egress du Job).
+          - path: k8s/clusters/oracle-a1/agent-token-renewer
           # External Secrets + ClusterSecretStore doppler-cluster seul (PLT-406). Le Secret
           # doppler-access-token n'est pas en Git : geste unique de Paul (README).
           - path: k8s/clusters/oracle-a1/external-secrets

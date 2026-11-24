@@ -1,0 +1,36 @@
+# Egress du Job : default-deny, puis DNS, API Kubernetes (TokenRequest et controles can-i) et api.doppler.com:443
+# (lecture d'OKE_API_SERVER, ecriture du kubeconfig). Pas d'ingress, pas d'IMDS (CCNP deny-imds).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: agent-token-renewer-egress
+  namespace: agent-token-renewer
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  description: "agent-token-renewer: DNS, Kubernetes API, api.doppler.com only"
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEntities:
+        - kube-apiserver
+    - toFQDNs:
+        - matchName: api.doppler.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
