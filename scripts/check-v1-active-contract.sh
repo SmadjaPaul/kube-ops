@@ -78,11 +78,15 @@ grep -q 'mode: strict' k8s/applications/platform/agentgateway/resources.yaml
 # PLT-453: each AI SDK agent key (pr-triage, incident-sentinel) is restricted to factory/fast with
 # a blocking 300000-token / 24 h budget.
 ag=k8s/applications/platform/agentgateway/resources.yaml
+# PLT-496: consumers use the capability alias text/fast, never a provider model name.
 for k in pr-triage incident-sentinel; do
-  [ "$(awk -v k="$k" '$0 ~ "name: "k"$" {f=1} f && /allowedModels/ {getline; print $2; exit}' "$ag")" = 'factory/fast' ]
+  [ "$(awk -v k="$k" '$0 ~ "name: "k"$" {f=1} f && /allowedModels/ {getline; print $2; exit}' "$ag")" = 'text/fast' ]
   grep -q "name: $k-daily-tokens" "$ag"
 done
 [ "$(grep -c 'amount: 300000' "$ag")" -ge 2 ]
+# The capability aliases exist and point to the pinned models (the only place a provider name lives).
+awk '/- name: text\/fast/{f=1} f&&/model:/{print $2; exit}' "$ag" | grep -qx 'MiniMax-M3.1-Flash'
+awk '/- name: text\/strong/{f=1} f&&/model:/{print $2; exit}' "$ag" | grep -qx 'MiniMax-M3'
 if grep -qE '^-[[:space:]]*(litellm|openwebui|qdrant|openclaw(-talos-.*)?)$' k8s/applications/ai/kustomization.yaml; then
   echo 'ERROR: legacy AI workloads must not be rendered by apps-ai' >&2
   exit 1
