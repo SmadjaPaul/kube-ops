@@ -20,8 +20,9 @@ TOOLS = [
 
 
 class FakeHA:
-    def __init__(self, anonymous_ok=False, tools=None, live_error=False):
+    def __init__(self, anonymous_ok=False, tools=None, live_error=False, admin_ok=False):
         self.anonymous_ok, self.tools, self.live_error = anonymous_ok, TOOLS if tools is None else tools, live_error
+        self.admin_ok = admin_ok
         self.calls = []
         ha = self
 
@@ -36,6 +37,16 @@ class FakeHA:
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()
                 self.wfile.write(data)
+
+            def do_GET(self):
+                if self.headers.get("Authorization") != "Bearer " + TOKEN:
+                    return self._send(401)
+                ha.calls.append("GET " + self.path)
+                if self.path == "/api/":
+                    return self._send(200, {"message": "API running."})
+                if self.path == "/api/config/config_entries/entry":
+                    return self._send(200, []) if ha.admin_ok else self._send(401)
+                return self._send(404)
 
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
@@ -90,11 +101,14 @@ class Test(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertEqual(out["result"], "PASS")
         self.assertEqual(out["anonymous_status"], 401)
+        self.assertEqual(out["api_root_status"], 200)
+        self.assertEqual(out["config_entries_status"], 401)
         self.assertEqual(out["all_apis_status"], 403)
         self.assertEqual(out["tool_count"], 2)
         self.assertEqual(out["call"], "GetLiveContext")
         # Only the read-only tool is called: no action tool, ever.
-        self.assertEqual(ha.calls, ["initialize", "tools/list", "tools/call"])
+        self.assertEqual(ha.calls, ["GET /api/", "GET /api/config/config_entries/entry",
+                                    "initialize", "tools/list", "tools/call"])
 
     def test_anonymous_accepted_fails(self):
         ha = FakeHA(anonymous_ok=True)
@@ -104,6 +118,16 @@ class Test(unittest.TestCase):
             ha.close()
         self.assertEqual(code, 1)
         self.assertIn("401", out["error"])
+
+    def test_config_entries_allowed_fails(self):
+        ha = FakeHA(admin_ok=True)
+        try:
+            code, out = run(ha)
+        finally:
+            ha.close()
+        self.assertEqual(code, 1)
+        self.assertIn("not refused", out["error"])
+        self.assertNotIn("initialize", ha.calls)
 
     def test_no_live_context_fails(self):
         ha = FakeHA(tools=[TOOLS[0]])
