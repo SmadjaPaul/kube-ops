@@ -4,6 +4,9 @@
 Stdlib only. Reads the current token from the native Secret, mints a new
 30-day token over the HA WebSocket API, checks it, patches the Secret, then
 revokes older ha-mcp-* tokens (the current and the previous one are kept).
+PRD-104: after the Secret patch, the new token is also published to Doppler
+(HA_AGENT_TOKEN) for consumers outside the cluster (the Mac MCP client). Publication
+is skipped with a message when APP_HA_AGENT_DOPPLER_WRITE_TOKEN is absent.
 No token value is ever printed.
 """
 
@@ -27,6 +30,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "token")
 NAMESPACE = os.environ.get("NAMESPACE", "home-assistant")
 K8S_API = os.environ.get("K8S_API", "https://kubernetes.default.svc")
 SA_DIR = os.environ.get("SA_DIR", "/var/run/secrets/kubernetes.io/serviceaccount")
+DOPPLER_API = os.environ.get("DOPPLER_API_URL", "https://api.doppler.com")
+DOPPLER_PROJECT = os.environ.get("DOPPLER_PROJECT", "cluster")
+DOPPLER_CONFIG = os.environ.get("DOPPLER_CONFIG", "prd")
+DOPPLER_KEY = "HA_AGENT_TOKEN"
 LIFESPAN_DAYS = 30
 CLIENT_PREFIX = "ha-mcp-"
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -192,6 +199,32 @@ class Kube:
         self._req("PATCH", {"data": {SECRET_KEY: enc}}, "application/merge-patch+json")
 
 
+def publish_doppler(token: str) -> bool:
+    """Write the new token to Doppler. Return False when disabled; raise RotateError on refusal."""
+    auth = os.environ.get("APP_HA_AGENT_DOPPLER_WRITE_TOKEN", "").strip()
+    if not auth:
+        log("Doppler publication disabled: APP_HA_AGENT_DOPPLER_WRITE_TOKEN not set")
+        return False
+    body = json.dumps(
+        {"project": DOPPLER_PROJECT, "config": DOPPLER_CONFIG, "secrets": {DOPPLER_KEY: token}}
+    ).encode()
+    req = urllib.request.Request(DOPPLER_API + "/v3/configs/config/secrets", data=body, method="POST")
+    req.add_header("Authorization", "Bearer " + auth)
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            status = r.status
+    except urllib.error.HTTPError as e:
+        status = e.code
+    except Exception as e:  # network, TLS, timeout: type only
+        raise RotateError("Doppler unreachable (" + type(e).__name__ + ")") from None
+    if status != 200:
+        raise RotateError(f"Doppler refused the write (HTTP {status})")
+    log(f"{DOPPLER_KEY} published to Doppler {DOPPLER_PROJECT}/{DOPPLER_CONFIG}")
+    return True
+
+
 def parse_ts(value: str) -> datetime.datetime:
     return datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -242,7 +275,16 @@ def main() -> int:
             probe.close()
         kube.write_token(new)
         log(f"secret {SECRET_NAME} patched with new token {client}")
+        # The Secret is the source of truth: a Doppler failure never blocks the pruning,
+        # but it fails the job (alert) so that the stale Doppler copy gets noticed.
+        publish_error = None
+        try:
+            publish_doppler(new)
+        except RotateError as e:
+            publish_error = e
         log(f"revoked {prune(ha, client)} older ha-mcp-* token(s)")
+        if publish_error:
+            raise publish_error
     finally:
         ha.close()
     return 0

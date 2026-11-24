@@ -89,6 +89,14 @@ spec:
                   value: agent-maison
                 - name: PYTHONDONTWRITEBYTECODE
                   value: "1"
+                # PRD-104 : jeton de service Doppler (ecriture sur cluster/prd), pose par Paul.
+                # optional : sans lui, la publication Doppler est desactivee, le reste est inchange.
+                - name: APP_HA_AGENT_DOPPLER_WRITE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ha-agent-doppler-write
+                      key: APP_HA_AGENT_DOPPLER_WRITE_TOKEN
+                      optional: true
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
@@ -122,7 +130,7 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: ha-mcp-token-rotate
-  description: "Rotation job: Kubernetes API, DNS, and Home Assistant (hostNetwork, 10.0.20.60:8123)"
+  description: "Rotation job: Kubernetes API, DNS, Home Assistant (hostNetwork, 10.0.20.60:8123) and api.doppler.com:443 only (PRD-104)"
   egress:
     - toEntities:
         - kube-apiserver
@@ -142,6 +150,16 @@ spec:
             - port: "53"
               protocol: UDP
             - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              # toFQDNs needs the DNS proxy; names stay unrestricted as before (kubernetes.default.svc)
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchName: api.doppler.com
+      toPorts:
+        - ports:
+            - port: "443"
               protocol: TCP
 ---
 apiVersion: monitoring.coreos.com/v1

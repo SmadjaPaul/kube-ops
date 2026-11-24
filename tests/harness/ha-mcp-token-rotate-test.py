@@ -145,6 +145,29 @@ class FakeKube:
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
 
+class FakeDoppler:
+    def __init__(self, status=200):
+        self.writes = []
+        doppler = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_POST(self):
+                n = int(self.headers["Content-Length"])
+                doppler.writes.append(
+                    (self.path, self.headers["Authorization"], json.loads(self.rfile.read(n)))
+                )
+                self.send_response(status)
+                self.end_headers()
+                self.wfile.write(b"{}")
+
+        self.server = HTTPServer(("127.0.0.1", 0), Handler)
+        self.port = self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+
 def rt(i, name, created, current=False, kind="long_lived_access_token"):
     return {"id": i, "client_name": name, "type": kind, "created_at": created, "is_current": current}
 
@@ -161,7 +184,7 @@ REFRESH = [
 
 
 class RotateTest(unittest.TestCase):
-    def run_script(self, ha, kube):
+    def run_script(self, ha, kube, doppler=None, write_token="fixture-doppler-write"):
         with tempfile.TemporaryDirectory() as sa:
             Path(sa, "token").write_text("fixture-sa-bearer")
             env = {
@@ -169,9 +192,12 @@ class RotateTest(unittest.TestCase):
                 "HA_URL": f"http://127.0.0.1:{ha.port}",
                 "K8S_API": f"http://127.0.0.1:{kube.port}",
             }
+            if doppler is not None:
+                env["DOPPLER_API_URL"] = f"http://127.0.0.1:{doppler.port}"
+                env["APP_HA_AGENT_DOPPLER_WRITE_TOKEN"] = write_token
             p = subprocess.run([sys.executable, "-I", str(SCRIPT)], env=env, capture_output=True, text=True, timeout=60)
         out = p.stdout + p.stderr
-        for secret in (OLD, NEW, "fixture-sa-bearer"):
+        for secret in (OLD, NEW, "fixture-sa-bearer", "fixture-doppler-write"):
             self.assertNotIn(secret, out, "token value leaked in logs")
         return p
 
@@ -184,6 +210,40 @@ class RotateTest(unittest.TestCase):
         self.assertEqual(ctype, "application/merge-patch+json")
         self.assertEqual(base64.b64decode(body["data"]["token"]).decode(), NEW)
         self.assertEqual(sorted(r["id"] for r in ha.refresh_tokens), ["r3", "r4", "r5", "r6"])
+
+    def test_publishes_new_token_to_doppler_after_secret_patch(self):
+        ha, kube, dop = FakeHA({OLD: dict(AGENT)}, [dict(r) for r in REFRESH]), FakeKube(), FakeDoppler()
+        p = self.run_script(ha, kube, dop)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(len(kube.writes), 1)
+        self.assertEqual(len(dop.writes), 1)
+        path, auth, body = dop.writes[0]
+        self.assertEqual(path, "/v3/configs/config/secrets")
+        self.assertEqual(auth, "Bearer fixture-doppler-write")
+        self.assertEqual(body, {"project": "cluster", "config": "prd", "secrets": {"HA_AGENT_TOKEN": NEW}})
+
+    def test_missing_doppler_write_token_disables_publication_only(self):
+        ha, kube, dop = FakeHA({OLD: dict(AGENT)}, [dict(r) for r in REFRESH]), FakeKube(), FakeDoppler()
+        p = self.run_script(ha, kube, dop, write_token="")
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("publication disabled", p.stdout)
+        self.assertEqual(dop.writes, [])
+        self.assertEqual(len(kube.writes), 1)
+        self.assertEqual(sorted(r["id"] for r in ha.refresh_tokens), ["r3", "r4", "r5", "r6"])
+
+    def test_doppler_refusal_fails_job_but_secret_and_pruning_are_done(self):
+        ha, kube, dop = FakeHA({OLD: dict(AGENT)}, [dict(r) for r in REFRESH]), FakeKube(), FakeDoppler(403)
+        p = self.run_script(ha, kube, dop)
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("HTTP 403", p.stdout)
+        self.assertEqual(len(kube.writes), 1)
+        self.assertEqual(sorted(r["id"] for r in ha.refresh_tokens), ["r3", "r4", "r5", "r6"])
+
+    def test_no_doppler_write_when_rotation_fails_before_secret_patch(self):
+        ha, kube, dop = FakeHA({OLD: dict(AGENT)}, [dict(r) for r in REFRESH], fail_create=True), FakeKube(), FakeDoppler()
+        p = self.run_script(ha, kube, dop)
+        self.assertEqual(p.returncode, 1)
+        self.assertEqual(dop.writes, [])
 
     def test_admin_user_is_refused_before_any_write(self):
         ha, kube = FakeHA({OLD: {"name": "agent-maison", "is_admin": True}}, [dict(r) for r in REFRESH]), FakeKube()

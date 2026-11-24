@@ -10,6 +10,10 @@ if command -v kustomize >/dev/null 2>&1; then
   out="$(kustomize build "$APP")"
   grep -q 'secret.reloader.stakater.com/reload: ha-mcp-token' <<<"$out"
   grep -q 'name: ha-mcp-token-rotate-script' <<<"$out"
+  # PRD-104 : publication Doppler optionnelle, egress limité à api.doppler.com:443.
+  grep -q 'name: ha-agent-doppler-write' <<<"$out"
+  grep -q 'APP_HA_AGENT_DOPPLER_WRITE_TOKEN' <<<"$out"
+  grep -q 'matchName: api.doppler.com' <<<"$out"
   # Le Role ne doit jamais accorder create ni list sur les Secrets.
   if grep -A8 'kind: Role$' <<<"$out" | grep -Eq '(create|list|delete)'; then
     echo "FAIL: Role ha-mcp-token-rotate trop large" >&2
