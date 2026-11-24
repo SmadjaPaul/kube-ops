@@ -229,7 +229,12 @@ def run(token: str, out: dict) -> None:
                 ha.service("media_player", "media_pause", {}, {"entity_id": ENCEINTE})
                 if original is not None:
                     set_volume(ha, float(original), capped=False)
-                    out["restored_volume"] = ha.state(ENCEINTE).get("attributes", {}).get("volume_level")
+                    # L'état Sonos suit la commande avec un léger retard : on relit jusqu'à 8 s.
+                    for _ in range(8):
+                        time.sleep(1)
+                        out["restored_volume"] = ha.state(ENCEINTE).get("attributes", {}).get("volume_level")
+                        if out["restored_volume"] == original:
+                            break
         except Exception as e:  # noqa: BLE001 - report, do not mask the primary error
             out["cleanup_error"] = str(e)
         ha.close()
