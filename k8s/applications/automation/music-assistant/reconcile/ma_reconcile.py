@@ -285,7 +285,13 @@ def build_plan(client, desired, env, redact, prune):
             if cur.get("enabled") is False:
                 ch.append(("enabled", False, True))
             note = ("cles non lisibles via l'API, non verifiees : " + ", ".join(blind)) if blind else None
-            plan.append(item("provider", dom, "update" if ch else "noop", ch, note=note, domain=dom, instance_id=cur.get("instance_id"), values={k: v for k, v in vals.items() if "secret" not in (v if isinstance(v, dict) else {})}, enable=cur.get("enabled") is False))
+            # Fournisseur en erreur (ex. auth_required apres rotation du mot de passe) : MA ne relit pas
+            # ses secrets, donc on les renvoie tous. Sans cela le plan resterait noop sur un fournisseur casse.
+            broken = bool(cur.get("last_error")) and cur.get("enabled") is not False
+            if broken:
+                ch.append(("credentials", "<last_error>", "<resync>"))
+            keep = vals if broken else {k: v for k, v in vals.items() if "secret" not in (v if isinstance(v, dict) else {})}
+            plan.append(item("provider", dom, "update" if ch else "noop", ch, note=note, domain=dom, instance_id=cur.get("instance_id"), values=keep, enable=cur.get("enabled") is False))
     for dom, found in by_domain.items():
         if dom in declared:
             continue
@@ -386,7 +392,7 @@ def apply_item(client, it, env, redact):
                 raise ReconcileError(f"provider/{p['domain']}: etape de flux inattendue '{step}'")
         raise ReconcileError(f"provider/{p['domain']}: flux de configuration non termine")
     elif kind == "provider" and act == "update":
-        values = dict(p["values"])
+        values = {k: (v["secret"] if isinstance(v, dict) and "secret" in v else v) for k, v in p["values"].items()}
         if p.get("enable"):
             values["enabled"] = True
         client.call("config/providers/save", provider_domain=p["domain"], instance_id=p["instance_id"], values=values)
