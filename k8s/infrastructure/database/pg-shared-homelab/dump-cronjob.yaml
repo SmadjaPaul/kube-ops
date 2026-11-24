@@ -24,7 +24,7 @@ spec:
   failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
-      backoffLimit: 1
+      backoffLimit: 3
       activeDeadlineSeconds: 7200
       ttlSecondsAfterFinished: 172800
       template:
@@ -50,6 +50,14 @@ spec:
               args:
                 - |
                   umask 077
+                  # The Job can start while the cluster restarts (host reboot, 24/11
+                  # 08:30 UTC: "Connection refused" twice in 10 s). Wait up to 10 min.
+                  ready=0
+                  for _ in $(seq 1 60); do
+                    if pg_isready -q; then ready=1; break; fi
+                    sleep 10
+                  done
+                  test "$ready" = 1
                   dbs=$(psql -tA -c "SELECT datname FROM pg_database WHERE NOT datistemplate AND datallowconn AND datname <> 'postgres' ORDER BY 1")
                   test -n "$dbs"
                   stamp=$(date -u +%Y%m%dT%H%M%SZ)
