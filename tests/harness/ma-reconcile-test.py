@@ -31,28 +31,64 @@ def fixture(name):
         return json.load(f)
 
 
+# Signatures REELLES de MA 2.10.8 (music_assistant/controllers/config/*.py, webserver/auth.py) :
+# commande -> (arguments obligatoires, arguments facultatifs). Un argument manquant ou inconnu
+# donne un HTTP 500 comme sur la vraie instance ; une commande inconnue un HTTP 400.
+SIGNATURES = {
+    "config/core/get": (("domain",), ()),
+    "config/core/save": (("domain", "values"), ()),
+    "config/providers": ((), ("provider_type", "provider_domain", "include_values")),
+    "config/providers/get": (("instance_id",), ()),
+    "config/providers/save": (("provider_domain", "values"), ("instance_id",)),
+    "config/providers/remove": (("instance_id",), ()),
+    "config/providers/setup": (("provider_domain",), ()),
+    "config/flows/submit": (("flow_id", "values"), ()),
+    "config/flows/get": (("flow_id",), ()),
+    "config/players": ((), ("provider", "include_values", "include_unavailable", "include_disabled")),
+    "config/players/save": (("player_id", "values"), ()),
+    "auth/users": ((), ()),
+    "auth/user/create": (("username", "password"), ("role", "display_name")),
+    "auth/user/update": ((), ("user_id", "role", "username", "password", "display_name")),
+}
+FORM_ENTRIES = {
+    "jellyfin": ["url", "username", "password", "verify_ssl"],
+}
+
+
 class FakeMA:
     def __init__(self, state):
         self.state = state
         self.calls = []
+        self.flows = {}
         fake = self
 
         class H(BaseHTTPRequestHandler):
             def log_message(self, *a):
                 pass
 
-            def do_POST(self):
-                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-                if self.headers.get("Authorization") != "Bearer " + TOKEN:
-                    self.send_response(401)
-                    self.end_headers()
-                    return
-                fake.calls.append(body["command"])
-                out = fake.handle(body["command"], body["args"])
-                data = json.dumps(out).encode()
-                self.send_response(200)
+            def reply(self, code, data=b""):
+                self.send_response(code)
                 self.end_headers()
                 self.wfile.write(data)
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                if self.path != "/api":
+                    return self.reply(404)
+                if self.headers.get("Authorization") != "Bearer " + TOKEN:
+                    return self.reply(401)
+                cmd, args = body["command"], body.get("args") or {}
+                fake.calls.append(cmd)
+                if cmd not in SIGNATURES:
+                    return self.reply(400, b"Invalid Command: " + cmd.encode())
+                required, optional = SIGNATURES[cmd]
+                if set(required) - set(args) or set(args) - set(required) - set(optional):
+                    return self.reply(500, b"Internal server error")
+                try:
+                    out = fake.handle(cmd, args)
+                except (KeyError, StopIteration):
+                    return self.reply(500, b"Internal server error")
+                self.reply(200, json.dumps(out).encode())
 
         self.httpd = HTTPServer(("127.0.0.1", 0), H)
         self.url = f"http://127.0.0.1:{self.httpd.server_port}"
@@ -71,15 +107,28 @@ class FakeMA:
         if cmd == "config/core/save":
             for k, v in a["values"].items():
                 s["core"][a["domain"]]["values"][k] = {"value": v}
-            return None
+            return s["core"][a["domain"]]
+        if cmd == "config/providers":
+            if a.get("include_values"):
+                return s["providers"]
+            return [{**p, "values": {}} for p in s["providers"]]
         if cmd == "config/providers/get":
-            return s["providers"]
+            return next(p for p in s["providers"] if p["instance_id"] == a["instance_id"])
         if cmd == "config/providers/setup":
-            vals = {k: {"value": ("$ENC$" if k == "password" else v)} for k, v in a["values"].items()}
-            s["providers"].append({"instance_id": a["provider_domain"] + "--new", "domain": a["provider_domain"], "enabled": True, "values": vals})
-            return {"flow_id": "f1", "type": "form"}
+            dom = a["provider_domain"]
+            if dom not in FORM_ENTRIES:  # sans flux : instance creee vide, etape finish immediate
+                s["providers"].append({"instance_id": dom + "--new", "domain": dom, "enabled": True, "values": {}})
+                return {"flow_id": "f0", "step_id": "done", "type": "finish", "result": {"instance_id": dom + "--new"}}
+            self.flows["f1"] = dom
+            entries = [{"key": k, "type": "string"} for k in FORM_ENTRIES[dom]]
+            return {"flow_id": "f1", "step_id": "user", "type": "form", "entries": entries, "errors": {}}
         if cmd == "config/flows/submit":
-            return {"flow_id": "f1", "type": "create_entry"}
+            dom = self.flows[a["flow_id"]]
+            if set(a["values"]) - set(FORM_ENTRIES[dom]):
+                raise KeyError("champ inconnu")
+            vals = {k: {"value": ("$ENC$" if k == "password" else v)} for k, v in a["values"].items()}
+            s["providers"].append({"instance_id": dom + "--new", "domain": dom, "enabled": True, "values": vals})
+            return {"flow_id": a["flow_id"], "step_id": "done", "type": "finish", "result": {"instance_id": dom + "--new"}}
         if cmd == "config/providers/save":
             p = next(x for x in s["providers"] if x["instance_id"] == a["instance_id"])
             for k, v in a["values"].items():
@@ -87,25 +136,27 @@ class FakeMA:
                     p["enabled"] = v
                 else:
                     p["values"][k] = {"value": v}
-            return None
+            return p
         if cmd == "config/providers/remove":
             s["providers"] = [x for x in s["providers"] if x["instance_id"] != a["instance_id"]]
             return None
-        if cmd == "config/players/get":
+        if cmd == "config/players":
             return s["players"]
         if cmd == "config/players/save":
             p = next(x for x in s["players"] if x["player_id"] == a["player_id"])
             for k, v in a["values"].items():
                 p["values"][k] = {"value": v}
-            return None
+            return p
         if cmd == "auth/users":
             return s["users"]
         if cmd == "auth/user/create":
-            s["users"].append({"user_id": "new-" + a["username"], "username": a["username"], "role": a["role"]})
-            return None
+            u = {"user_id": "new-" + a["username"], "username": a["username"], "role": a.get("role", "user")}
+            s["users"].append(u)
+            return u
         if cmd == "auth/user/update":
-            next(u for u in s["users"] if u["user_id"] == a["user_id"])["role"] = a["role"]
-            return None
+            u = next(u for u in s["users"] if u["user_id"] == a["user_id"])
+            u["role"] = a["role"]
+            return u
         raise AssertionError("commande inattendue " + cmd)
 
 
@@ -153,7 +204,7 @@ class TestPlan(Base):
     def test_drift_detected(self):
         args = self.start("state-converged.json")
         self.fake.state["core"]["streams"]["values"]["publish_ip"] = {"value": "1.2.3.4"}
-        self.fake.state["providers"][1]["values"]["ips"] = {"value": "10.0.35.11"}
+        self.fake.state["providers"][1]["values"]["manual_discovery_ip_addresses"] = {"value": ["10.0.35.11"]}
         self.fake.state["users"][2]["role"] = "user"
         code, out, err = run(["--plan"] + args)
         self.assertEqual(code, ma.EXIT_DRIFT)
@@ -187,6 +238,7 @@ class TestApply(Base):
         self.assertEqual(code, ma.EXIT_OK, out + err)
         self.assertIn("config/providers/setup", self.fake.calls)
         self.assertIn("config/flows/submit", self.fake.calls)
+        self.assertNotIn("config/providers/get", self.fake.calls)  # exige instance_id : jamais en liste
         self.no_leak(out, err)
 
     def test_secret_is_not_compared_nor_resent_on_update(self):
@@ -269,7 +321,9 @@ class TestDesired(unittest.TestCase):
             d = json.load(f)
         self.assertEqual(d["core"]["streams"], {"publish_ip": "10.0.20.192", "bind_port": 8097})
         sonos = next(p for p in d["providers"] if p["domain"] == "sonos")
-        self.assertEqual(sonos["values"]["ips"], "10.0.35.11,10.0.35.50,10.0.35.53,10.0.35.54")
+        self.assertEqual(
+            sonos["values"], {"manual_discovery_ip_addresses": ["10.0.35.11", "10.0.35.50", "10.0.35.53", "10.0.35.54"]}
+        )
         jf = next(p for p in d["providers"] if p["domain"] == "jellyfin")
         self.assertEqual(jf["values"]["password"], {"secret_env": "APP_MA_POLYFIN_PASSWORD"})
         self.assertEqual(d["prune_domains"], [])
