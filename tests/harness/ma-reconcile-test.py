@@ -56,6 +56,9 @@ SIGNATURES = {
     "auth/tokens": ((), ("user_id",)),
     "auth/token/create": (("name",), ("user_id",)),
 }
+# MA 2.10.8 : le fournisseur jellyfin ne declare aucune entree (get_config_entries() == ()), donc
+# config/providers(include_values) ne renvoie pas ses valeurs stockees (url, username, password).
+UNEXPOSED = {"jellyfin"}
 FORM_ENTRIES = {
     "jellyfin": ["url", "username", "password", "verify_ssl"],
 }
@@ -121,7 +124,7 @@ class FakeMA:
             return s["core"][a["domain"]]
         if cmd == "config/providers":
             if a.get("include_values"):
-                return s["providers"]
+                return [{**p, "values": {} if p["domain"] in UNEXPOSED else p["values"]} for p in s["providers"]]
             return [{**p, "values": {}} for p in s["providers"]]
         if cmd == "config/providers/get":
             return next(p for p in s["providers"] if p["instance_id"] == a["instance_id"])
@@ -264,6 +267,24 @@ class TestApply(Base):
         self.assertEqual(code, ma.EXIT_OK)
         self.assertEqual(len(self.fake.writes()), before)  # deuxieme passage : zero ecriture
 
+    def test_unexposed_provider_values_are_not_drift(self):
+        # defaut observe en prod : url/username lus null alors que le fournisseur est charge
+        args = self.start("state-converged.json")
+        code, out, err = run(["--plan"] + args)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.assertIn("= provider/jellyfin noop", out)
+        self.assertIn("url, username", out)  # la note dit lesquelles ne sont pas verifiables
+        self.assertNotIn("null", out)
+        self.assertEqual(self.fake.writes(), [])
+        self.no_leak(out, err)
+
+    def test_exposed_key_still_drifts(self):
+        args = self.start("state-converged.json")
+        self.fake.state["providers"][1]["values"]["manual_discovery_ip_addresses"] = {"value": ["10.0.35.11"]}
+        code, out, err = run(["--plan"] + args)
+        self.assertEqual(code, ma.EXIT_DRIFT)
+        self.assertIn("provider/sonos update", out)
+
     def test_apply_creates_jellyfin_with_secret_never_printed(self):
         args = self.start("state-converged.json")
         self.fake.state["providers"] = [p for p in self.fake.state["providers"] if p["domain"] != "jellyfin"]
@@ -276,9 +297,10 @@ class TestApply(Base):
 
     def test_secret_is_not_compared_nor_resent_on_update(self):
         args = self.start("state-converged.json")
-        self.fake.state["providers"][3]["values"]["username"] = {"value": "autre"}
+        self.fake.state["providers"][3]["enabled"] = False
         code, out, err = run(["--plan"] + args)
         self.assertEqual(code, ma.EXIT_DRIFT)
+        self.assertIn("provider/jellyfin update", out)
         self.assertNotIn("password", out)
         self.no_leak(out, err)
 

@@ -171,10 +171,18 @@ def diff_values(desired, current):
     for k, want in desired.items():
         if isinstance(want, dict) and "secret" in want:
             continue
+        if k not in current:  # cle non exposee par l'API (voir unreadable) : rien a comparer
+            continue
         have = current.get(k)
         if canon(k, have) != canon(k, want):
             changes.append((k, have, want))
     return changes
+
+
+def unreadable(desired, current):
+    """Cles non secretes absentes de la lecture MA : le fournisseur ne declare pas ces entrees (ex. jellyfin 2.10.8,
+    get_config_entries() == ()), donc config/providers ne renvoie pas leurs valeurs stockees. Non verifiables."""
+    return sorted(k for k, w in desired.items() if not (isinstance(w, dict) and "secret" in w) and k not in current)
 
 
 class Kube:
@@ -271,10 +279,13 @@ def build_plan(client, desired, env, redact, prune):
             plan.append(item("provider", dom, "create", [(k, None, "<secret>" if "secret" in vals[k] else vals[k]) for k in keys], domain=dom, values=vals))
         else:
             cur = found[0]
-            ch = diff_values(vals, entry_values(cur))
+            seen = entry_values(cur)
+            ch = diff_values(vals, seen)
+            blind = unreadable(vals, seen)
             if cur.get("enabled") is False:
                 ch.append(("enabled", False, True))
-            plan.append(item("provider", dom, "update" if ch else "noop", ch, domain=dom, instance_id=cur.get("instance_id"), values={k: v for k, v in vals.items() if "secret" not in (v if isinstance(v, dict) else {})}, enable=cur.get("enabled") is False))
+            note = ("cles non lisibles via l'API, non verifiees : " + ", ".join(blind)) if blind else None
+            plan.append(item("provider", dom, "update" if ch else "noop", ch, note=note, domain=dom, instance_id=cur.get("instance_id"), values={k: v for k, v in vals.items() if "secret" not in (v if isinstance(v, dict) else {})}, enable=cur.get("enabled") is False))
     for dom, found in by_domain.items():
         if dom in declared:
             continue
