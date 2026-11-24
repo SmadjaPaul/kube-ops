@@ -23,6 +23,8 @@ cj="$DRILL/cronjob.yaml"
 [ "$(yq -r '.spec.jobTemplate.spec.activeDeadlineSeconds' "$cj")" -gt 1500 ] || fail "activeDeadlineSeconds > deadline interne + nettoyage"
 grep -q 'DEADLINE = int(os.environ.get("DRILL_DEADLINE_SECONDS", "1200"))' "$DRILL/ha-restore-drill.py" || fail "deadline interne 1200 s attendue"
 grep -q ttlSecondsAfterFinished "$cj" && fail "pas de ttlSecondsAfterFinished (journaux à lire)"
+grep -qxF "velero	ha-restore-drill	PRD-76 : drill de restauration Velero de HA dans home-assistant-restore-test (CronJob suspendu)" \
+  "$ROOT/k8s/infrastructure/security/agent-operator/cronjob-run.tsv" || fail "ligne cronjob-run.tsv absente"
 [ "$(yq -r 'select(.kind == "Namespace") | .metadata.labels["pod-security.kubernetes.io/enforce"]' "$DRILL/namespace.yaml")" = baseline ] ||
   fail "namespace de test : Pod Security baseline attendu"
 [ "$(yq -r 'select(.kind == "CiliumNetworkPolicy") | .spec.egressDeny[0].toEntities[0]' "$DRILL/namespace.yaml")" = all ] ||

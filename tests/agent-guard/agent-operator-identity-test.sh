@@ -14,7 +14,7 @@ RBAC=$DIR/rbac.yaml
 CJR=$DIR/cronjob-run.tsv
 CJR_RBAC=k8s/applications/platform/agent-operator-access/cronjob-run.yaml
 # PRD-76 : namespaces d'infrastructure (refusés au projet apps), comme velero.
-CJR_RBAC_INFRA=/dev/null
+CJR_RBAC_INFRA=$DIR/cronjob-run-infra.yaml
 fails=0
 ok() { echo "ok   $*"; }
 ko() { echo "FAIL $*" >&2; fails=$((fails + 1)); }
@@ -186,6 +186,7 @@ check "RoleBindings cronjob-run : rôle et sujet exacts" \
 check "RoleBindings cronjob-run : un par namespace" \
   test "$(yq -N 'select(.kind == "RoleBinding") | .metadata.namespace' "$CJR_RBAC" "$CJR_RBAC_INFRA" | sort)" = "$cjr_ns"
 check "agent-operator-access importe cronjob-run.yaml" grep -qx '  - cronjob-run.yaml' k8s/applications/platform/agent-operator-access/kustomization.yaml
+check "agent-operator importe cronjob-run-infra.yaml" grep -qx '  - cronjob-run-infra.yaml' "$DIR/kustomization.yaml"
 
 # 6. wrapper kubectl-rw.sh (mode plan : contrôles sans cluster)
 W=scripts/kubectl-rw.sh

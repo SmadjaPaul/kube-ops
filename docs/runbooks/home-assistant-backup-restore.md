@@ -121,6 +121,13 @@ ligne JSON finale : `backup`, `restore`, `restore_phase`, `pvr` (octets),
    `agent-operator-guard`, binding `agent-operator-cronjob-run-ha-restore-drill`,
    Role `agent-operator-cronjob-run` de `velero`
    (`k8s/infrastructure/security/agent-operator/cronjob-run-infra.yaml`).
+   Ordre obligatoire : le CronJob doit exister **avant** le binding. Avec
+   `parameterNotFoundAction: Deny`, le paramètre est résolu avant les
+   `matchConditions` : un binding sans son CronJob refuse toute création de Job
+   du namespace (incident du 2026-11-24, #2031 puis #2032 : hook
+   `velero-upgrade-crds` refusé, sync `infra-controllers` bloquée). Le CronJob
+   (app `infra-controllers`) et le binding (app `infra-security`) sont donc
+   livrés en deux PR.
 
 ### Déroulé du Job (`ha-restore-drill.py`)
 
