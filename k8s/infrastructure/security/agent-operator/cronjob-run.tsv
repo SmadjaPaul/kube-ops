@@ -15,3 +15,4 @@ music-assistant	ma-reconcile-plan	PRD-83 : plan du réconciliateur Music Assista
 music-assistant	ma-reconcile-apply	PRD-83 : apply du réconciliateur Music Assistant (CronJob suspendu)
 music-assistant	ma-sync	PRD-82 : music/sync de Music Assistant (scope library.manage, jeton admin ma-reconcile resté dans le cluster ; CronJob suspendu)
 music-assistant	ma-publish-tokens	PRD-84 : publie le jeton MA de svc-home-assistant dans Doppler home/prd_maison (CronJob suspendu)
+home-assistant	ha-agent-music-smoke	PRD-79 : preuve agent-maison musique (CronJob suspendu)

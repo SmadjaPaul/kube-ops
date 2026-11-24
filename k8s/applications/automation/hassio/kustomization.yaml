@@ -9,6 +9,9 @@ configMapGenerator:
   - name: ha-mcp-token-rotate-script
     files:
       - ha-mcp-token-rotate.py
+  - name: ha-agent-music-smoke-script
+    files:
+      - ha-agent-music-smoke.py
 
 resources:
   - namespace.yaml
@@ -23,6 +26,7 @@ resources:
   - ha-mcp-service.yaml
   - ha-mcp-network-policy.yaml
   - ha-mcp-token-rotate.yaml
+  - ha-agent-music-smoke.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
