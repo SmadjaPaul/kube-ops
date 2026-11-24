@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import tempfile
+import base64
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -23,7 +24,10 @@ spec.loader.exec_module(ma)
 
 CANARY = "S3CR3T-CANARY-PASSWORD"
 TOKEN = "T0KEN-CANARY"
-ENV = {"APP_MA_RECONCILE_TOKEN": TOKEN, "APP_MA_POLYFIN_PASSWORD": CANARY}
+STORED = "HA-STORED-CANARY"
+ENV = {"APP_MA_RECONCILE_TOKEN": TOKEN, "APP_MA_POLYFIN_PASSWORD": CANARY, "APP_MA_HA_TOKEN": STORED}
+HA_TOKEN_ENV = "APP_MA_HA_TOKEN"
+HA_SECRET = "ma-home-assistant-token"
 
 
 def fixture(name):
@@ -49,6 +53,8 @@ SIGNATURES = {
     "auth/users": ((), ()),
     "auth/user/create": (("username", "password"), ("role", "display_name")),
     "auth/user/update": ((), ("user_id", "role", "username", "password", "display_name")),
+    "auth/tokens": ((), ("user_id",)),
+    "auth/token/create": (("name",), ("user_id",)),
 }
 FORM_ENTRIES = {
     "jellyfin": ["url", "username", "password", "verify_ssl"],
@@ -60,6 +66,9 @@ class FakeMA:
         self.state = state
         self.calls = []
         self.flows = {}
+        self.issued = {t["value"]: t["user_id"] for t in state.get("tokens", []) if "value" in t}
+        self.passwords = []
+        self.bearer = None
         fake = self
 
         class H(BaseHTTPRequestHandler):
@@ -75,8 +84,10 @@ class FakeMA:
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 if self.path != "/api":
                     return self.reply(404)
-                if self.headers.get("Authorization") != "Bearer " + TOKEN:
+                bearer = (self.headers.get("Authorization") or "")[len("Bearer "):]
+                if bearer != TOKEN and bearer not in fake.issued:
                     return self.reply(401)
+                fake.bearer = bearer
                 cmd, args = body["command"], body.get("args") or {}
                 fake.calls.append(cmd)
                 if cmd not in SIGNATURES:
@@ -150,6 +161,7 @@ class FakeMA:
         if cmd == "auth/users":
             return s["users"]
         if cmd == "auth/user/create":
+            self.passwords.append(a["password"])
             u = {"user_id": "new-" + a["username"], "username": a["username"], "role": a.get("role", "user")}
             s["users"].append(u)
             return u
@@ -157,6 +169,23 @@ class FakeMA:
             u = next(u for u in s["users"] if u["user_id"] == a["user_id"])
             u["role"] = a["role"]
             return u
+        if cmd == "auth/tokens":
+            uid = a.get("user_id") or ("u2" if self.bearer == TOKEN else self.issued[self.bearer])
+            return [t for t in s.setdefault("tokens", []) if t["user_id"] == uid]
+        if cmd == "auth/token/create":
+            if self.bearer != TOKEN:  # users.manage : admin seulement pour un autre utilisateur
+                raise KeyError
+            uid = a.get("user_id", "u2")
+            if not any(u["user_id"] == uid for u in s["users"]):
+                raise KeyError
+            n = sum(1 for t in self.issued if t.startswith("HA-ISSUED")) + 1
+            tok = f"HA-ISSUED-CANARY-{n}"
+            self.issued[tok] = uid
+            s.setdefault("tokens", []).append(
+                {"token_id": "t" + str(n), "user_id": uid, "name": a["name"], "is_long_lived": True,
+                 "expires_at": s.get("next_expiry", "2099-01-01T00:00:00+00:00")}
+            )
+            return tok
         raise AssertionError("commande inattendue " + cmd)
 
 
@@ -177,6 +206,10 @@ class Base(unittest.TestCase):
         for t in texts:
             self.assertNotIn(CANARY, t)
             self.assertNotIn(TOKEN, t)
+            self.assertNotIn(STORED, t)
+            self.assertNotIn("HA-ISSUED-CANARY", t)
+            for pw in self.fake.passwords:
+                self.assertNotIn(pw, t)
 
 
 class TestPlan(Base):
@@ -313,6 +346,159 @@ class TestRefusals(Base):
         self.assertEqual(code, ma.EXIT_ERROR)
         self.assertIn("! player/RINCON_ZZZ blocked", out)
         self.assertIn('name: "Sonos Roam" -> "Salon"', out)
+
+
+class FakeKube:
+    """Faux kube-apiserver : accepte seulement PATCH merge d'un Secret precis avec le jeton du ServiceAccount."""
+
+    SA_TOKEN = "SA-CANARY"
+
+    def __init__(self, fail=False):
+        self.patches = []
+        self.fail = fail
+        fake = self
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_PATCH(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                ok = self.headers.get("Authorization") == "Bearer " + FakeKube.SA_TOKEN
+                if fake.fail or not ok:
+                    self.send_response(403 if not ok else 500)
+                    self.end_headers()
+                    return
+                fake.patches.append((self.path, self.headers.get("Content-Type"), body))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"{}")
+
+            def do_GET(self):
+                fake.patches.append(("GET " + self.path, None, None))
+                self.send_response(500)
+                self.end_headers()
+
+        self.httpd = HTTPServer(("127.0.0.1", 0), H)
+        self.url = f"http://127.0.0.1:{self.httpd.server_port}"
+        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.httpd.shutdown()
+
+
+class TestHomeAssistantToken(Base):
+    def setUp(self):
+        self.sa = tempfile.TemporaryDirectory()
+        self.addCleanup(self.sa.cleanup)
+        for name, val in (("token", FakeKube.SA_TOKEN), ("namespace", "music-assistant")):
+            with open(os.path.join(self.sa.name, name), "w", encoding="utf-8") as f:
+                f.write(val)
+        self.kube = FakeKube()
+        self.addCleanup(self.kube.close)
+        self.env = dict(ENV, MA_RECONCILE_KUBE_URL=self.kube.url, MA_RECONCILE_SA_DIR=self.sa.name)
+
+    def expect_secret_patch(self, token):
+        self.assertEqual(len(self.kube.patches), 1)
+        path, ctype, body = self.kube.patches[0]
+        self.assertEqual(path, f"/api/v1/namespaces/music-assistant/secrets/{HA_SECRET}")
+        self.assertEqual(ctype, "application/merge-patch+json")
+        self.assertEqual(base64.b64decode(body["data"]["token"]).decode(), token)
+        self.assertEqual(list(body), ["data"])
+
+    def test_valid_stored_token_is_noop(self):
+        args = self.start("state-converged.json")
+        code, out, err = run(["--plan"] + args, self.env)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.assertIn("= token/svc-home-assistant noop", out)
+        code, out, err = run(["--apply"] + args, self.env)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.assertNotIn("auth/token/create", self.fake.calls)
+        self.assertEqual(self.kube.patches, [])
+
+    def test_placeholder_token_is_replaced_and_stored(self):
+        args = self.start("state-converged.json")
+        env = dict(self.env, APP_MA_HA_TOKEN="placeholder-aleatoire")
+        code, out, err = run(["--plan"] + args, env)
+        self.assertEqual(code, ma.EXIT_DRIFT, out + err)
+        self.assertIn("+ token/svc-home-assistant create", out)
+        self.assertEqual(self.kube.patches, [])  # plan : aucune ecriture
+        self.assertNotIn("auth/token/create", self.fake.calls)
+        code, out, err = run(["--apply"] + args, env)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.assertEqual(self.fake.calls.count("auth/token/create"), 1)
+        self.expect_secret_patch("HA-ISSUED-CANARY-1")
+        self.no_leak(out, err)
+        self.assertNotIn("placeholder-aleatoire", out + err)
+
+    def test_absent_env_token_is_issued(self):
+        args = self.start("state-converged.json")
+        env = {k: v for k, v in self.env.items() if k != HA_TOKEN_ENV}
+        code, out, err = run(["--apply"] + args, env)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.expect_secret_patch("HA-ISSUED-CANARY-1")
+
+    def test_expiring_token_is_renewed(self):
+        args = self.start("state-converged.json")
+        self.fake.state["tokens"][0]["expires_at"] = "2020-01-01T00:00:00+00:00"
+        code, out, err = run(["--plan"] + args, self.env)
+        self.assertEqual(code, ma.EXIT_DRIFT)
+        self.assertIn("expire", out)
+        code, out, err = run(["--apply"] + args, self.env)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.expect_secret_patch("HA-ISSUED-CANARY-1")
+
+    def test_missing_user_is_created_with_generated_password_then_token_issued(self):
+        args = self.start("state-converged.json")
+        self.fake.state["users"] = [u for u in self.fake.state["users"] if u["username"] != "svc-home-assistant"]
+        self.fake.state["tokens"] = []
+        code, out, err = run(["--plan"] + args, self.env)
+        self.assertEqual(code, ma.EXIT_DRIFT, out + err)  # plus de blocage : mot de passe genere
+        self.assertIn("+ user/svc-home-assistant create", out)
+        self.assertIn("+ token/svc-home-assistant create", out)
+        code, out, err = run(["--apply"] + args, self.env)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        created = next(u for u in self.fake.state["users"] if u["username"] == "svc-home-assistant")
+        self.assertEqual(created["role"], "service")
+        self.assertEqual(self.fake.issued["HA-ISSUED-CANARY-1"], created["user_id"])
+        (pw,) = self.fake.passwords
+        self.assertGreaterEqual(len(pw), 16)  # MA exige 8 caracteres au moins
+        self.expect_secret_patch("HA-ISSUED-CANARY-1")
+        self.no_leak(out, err)
+        # second passage : convergence, plus aucune ecriture
+        self.env[HA_TOKEN_ENV] = "HA-ISSUED-CANARY-1"
+        before = len(self.fake.writes())
+        code, out, err = run(["--apply"] + args, self.env)
+        self.assertEqual(code, ma.EXIT_OK, out + err)
+        self.assertEqual(len(self.fake.writes()), before)
+        self.assertEqual(len(self.kube.patches), 1)
+
+    def test_kube_write_failure_is_error_without_leak(self):
+        args = self.start("state-converged.json")
+        self.kube.fail = True
+        env = dict(self.env, APP_MA_HA_TOKEN="placeholder")
+        code, out, err = run(["--apply"] + args, env)
+        self.assertEqual(code, ma.EXIT_ERROR)
+        self.assertIn("Secret", err)
+        self.no_leak(out, err)
+        self.assertNotIn(FakeKube.SA_TOKEN, out + err)
+
+    def test_other_users_never_read_secrets(self):
+        args = self.start("state-converged.json")
+        env = dict(self.env, APP_MA_HA_TOKEN="placeholder")
+        run(["--apply"] + args, env)
+        self.assertTrue(all(not p[0].startswith("GET") for p in self.kube.patches))
+
+    def test_desired_declares_token_and_generated_password(self):
+        with open(os.path.join(APP, "desired.json"), encoding="utf-8") as f:
+            d = json.load(f)
+        u = next(u for u in d["users"] if u["username"] == "svc-home-assistant")
+        self.assertEqual(u["role"], "service")
+        self.assertTrue(u["password_generated"])
+        self.assertNotIn("password_env", u)
+        self.assertEqual(
+            u["token"], {"name": "home-assistant", "secret_env": HA_TOKEN_ENV, "k8s_secret": HA_SECRET, "key": "token"}
+        )
 
 
 class TestDesired(unittest.TestCase):
