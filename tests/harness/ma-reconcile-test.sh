@@ -5,13 +5,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 APP="$ROOT/k8s/applications/automation/music-assistant"
 
 python3 -I "$ROOT/tests/harness/ma-reconcile-test.py"
-python3 -I "$ROOT/tests/harness/ma-publish-tokens-test.py"
 
 if command -v kustomize >/dev/null 2>&1; then
   out="$(kustomize build "$APP")"
-  # Aucun declenchement automatique : les quatre CronJobs (plan, apply, sync, publish-tokens) sont suspendus.
-  [ "$(grep -c 'suspend: true' <<<"$out")" -eq 4 ] || {
-    echo "FAIL: les CronJobs ma-reconcile, ma-sync et ma-publish-tokens doivent etre suspendus" >&2
+  # Aucun declenchement automatique : les trois CronJobs (plan, apply, sync) sont suspendus.
+  [ "$(grep -c 'suspend: true' <<<"$out")" -eq 3 ] || {
+    echo "FAIL: les CronJobs ma-reconcile (plan, apply) et ma-sync doivent etre suspendus" >&2
     exit 1
   }
   grep -q 'name: ma-reconcile-script' <<<"$out"
@@ -35,38 +34,11 @@ if command -v kustomize >/dev/null 2>&1; then
     echo "FAIL: un seul CronJob (apply) monte le jeton de ServiceAccount" >&2
     exit 1
   }
-  # PRD-84 : ma-publish-tokens, jeton Doppler en ecriture pour ce job seul, sans API Kubernetes.
-  pub="$(kustomize build "$APP" | yq -N 'select(.kind == "CronJob" and .metadata.name == "ma-publish-tokens")')"
-  [ "$(grep -c 'maison-doppler-write' <<<"$out")" -ge 2 ] || {
-    echo "FAIL: ExternalSecret maison-doppler-write absent" >&2
+  # PRD-103 : plus de chaîne vers Doppler home/prd_maison ; ni CronJob, ni ExternalSecret, ni CNP de publication.
+  if grep -Eq 'maison-doppler-write|APP_MAISON_DOPPLER_WRITE_TOKEN|ma-publish-tokens|prd_maison' <<<"$out"; then
+    echo "FAIL: la chaine de publication Doppler (ma-publish-tokens, maison-doppler-write) doit rester supprimee" >&2
     exit 1
-  }
-  grep -q 'name: maison-doppler-write' <<<"$pub" || {
-    echo "FAIL: le CronJob ma-publish-tokens doit lire le jeton Doppler en ecriture" >&2
-    exit 1
-  }
-  for other in ma-reconcile-plan ma-reconcile-apply ma-sync; do
-    if kustomize build "$APP" | yq -N "select(.kind == \"CronJob\" and .metadata.name == \"$other\")" | grep -q 'maison-doppler-write\|APP_MAISON_DOPPLER_WRITE_TOKEN'; then
-      echo "FAIL: $other ne doit pas voir le jeton Doppler en ecriture" >&2
-      exit 1
-    fi
-  done
-  grep -q 'automountServiceAccountToken: false' <<<"$pub" || {
-    echo "FAIL: ma-publish-tokens ne monte pas le jeton de ServiceAccount" >&2
-    exit 1
-  }
-  grep -Eq 'image: .*@sha256:[0-9a-f]{64}' <<<"$pub" || {
-    echo "FAIL: image de ma-publish-tokens non epinglee par digest" >&2
-    exit 1
-  }
-  cnp="$(kustomize build "$APP" | yq -N 'select(.kind == "CiliumNetworkPolicy" and .metadata.name == "ma-publish-tokens")')"
-  [ "$(yq '[.spec.egress[].toFQDNs[].matchName] | join(",")' <<<"$cnp")" = "api.doppler.com" ] &&
-    [ "$(yq '[.spec.egress[] | select(has("toFQDNs")) | .toPorts[].ports[].port] | join(",")' <<<"$cnp")" = "443" ] &&
-    [ "$(yq '.spec.egress | length' <<<"$cnp")" = "2" ] &&
-    [ "$(yq '.spec.ingress | length' <<<"$cnp")" = "0" ] || {
-    echo "FAIL: egress de ma-publish-tokens = DNS + api.doppler.com:443 seulement, aucun ingress" >&2
-    exit 1
-  }
+  fi
   # Aucun secret en clair dans les manifestes rendus.
   if grep -Eq 'kind: Secret$' <<<"$out"; then
     echo "FAIL: Secret en clair rendu" >&2
