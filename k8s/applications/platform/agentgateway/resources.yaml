@@ -120,33 +120,6 @@ data:
           transformations:
             request:
               body: 'toJson(json(request.body).merge({"model": "MiniMax-H3-Image"}))'
-      - name: capability-image-fast
-        gateways: default
-        matches:
-          - path: {pathPrefix: /image/fast}
-        backends:
-          - host: api.minimax.io:443
-        policies:
-          apiKey:
-            mode: strict
-            keys:
-              - key: "$PR_TRIAGE_AGENTGATEWAY_KEY"
-                metadata: {name: media-probe, owner: pr-triage}
-          localRateLimit:
-            - maxTokens: 20
-              tokensPerFill: 20
-              fillInterval: 3600s
-              type: requests
-          urlRewrite:
-            authority: {host: api.minimax.io}
-            path: {full: /v1/images/generations}
-          backendTLS: {hostname: api.minimax.io}
-          backendAuth:
-            key:
-              value: $MINIMAX_API_KEY
-          transformations:
-            request:
-              body: 'toJson(json(request.body).merge({"model": "MiniMax-H3-Image-Highspeed"}))'
       - name: capability-video-generate
         gateways: default
         matches:
@@ -318,7 +291,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: capabilities-media-v1
+        checksum/agentgateway-runtime: capabilities-media-v2
     spec:
       automountServiceAccountToken: false
       securityContext:
