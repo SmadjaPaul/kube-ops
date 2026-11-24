@@ -13,4 +13,5 @@ resources:
 - metrics-server
 - vpa
 - velero
+- velero-ha-restore-drill
 - agent-sandbox

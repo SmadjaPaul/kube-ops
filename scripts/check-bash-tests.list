@@ -62,4 +62,5 @@ tests/harness/restic-negative-real-test.sh
 tests/harness/ha-mcp-token-rotate-test.sh
 tests/harness/ma-reconcile-test.sh
 tests/harness/ha-agent-mcp-smoke-test.sh
+tests/harness/ha-restore-drill-test.sh
 tests/harness/incident-sentinel-rbac-test.sh

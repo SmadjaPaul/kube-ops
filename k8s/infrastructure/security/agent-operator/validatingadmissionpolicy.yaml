@@ -74,7 +74,7 @@ spec:
         ['home-assistant/ha-agent-mcp-smoke', 'home-assistant/ha-agent-music-smoke',
         'home-assistant/ha-mcp-token-rotate',
         'music-assistant/ma-reconcile-apply', 'music-assistant/ma-reconcile-plan',
-        'music-assistant/ma-sync']
+        'music-assistant/ma-sync', 'velero/ha-restore-drill']
     - name: manualRun
       expression: >-
         request.operation == 'CREATE' && variables.target == 'batch/jobs' &&
@@ -418,3 +418,22 @@ spec:
     namespaceSelector:
       matchLabels:
         kubernetes.io/metadata.name: home-assistant
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ha-restore-drill
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ha-restore-drill
+    namespace: velero
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: velero

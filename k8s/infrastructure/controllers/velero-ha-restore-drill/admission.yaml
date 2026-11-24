@@ -1,0 +1,162 @@
+# PRD-76 — barrière d'admission du namespace home-assistant-restore-test, pour
+# toute identité (Velero compris). Velero 1.18 applique les resource modifiers
+# après ses actions et crée l'objet même si un patch échoue : seule l'admission
+# garantit qu'aucun second Home Assistant (hostNetwork, NET_ADMIN, ConfigMap,
+# Secret) ne démarre. N'admet que la forme exacte produite par la règle pods de
+# restore-pvc-isolation : init container restore-wait de Velero durci et un
+# vérificateur en lecture seule ; PVC seulement en longhorn-drill (Delete).
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: ha-restore-test-guard
+  labels:
+    app.kubernetes.io/part-of: ha-restore-drill
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [pods, pods/ephemeralcontainers, persistentvolumeclaims]
+  variables:
+    - name: sub
+      expression: "has(request.subResource) ? request.subResource : ''"
+    - name: isPod
+      expression: "request.resource.resource == 'pods' && variables.sub == ''"
+    - name: ctrs
+      expression: >-
+        variables.isPod ?
+        object.spec.containers + (has(object.spec.initContainers) ? object.spec.initContainers : []) : []
+  validations:
+    - expression: "variables.sub != 'ephemeralcontainers'"
+      reason: Forbidden
+      message: "ha-restore-test-guard : aucun conteneur éphémère"
+    - expression: >-
+        request.resource.resource != 'persistentvolumeclaims' || variables.sub != '' ||
+        (has(object.spec.storageClassName) && object.spec.storageClassName == 'longhorn-drill')
+      reason: Forbidden
+      message: "ha-restore-test-guard : PVC du drill seulement en longhorn-drill (Delete)"
+    - expression: >-
+        !variables.isPod ||
+        (!(has(object.spec.hostNetwork) && object.spec.hostNetwork) &&
+        !(has(object.spec.hostPID) && object.spec.hostPID) &&
+        !(has(object.spec.hostIPC) && object.spec.hostIPC))
+      reason: Forbidden
+      message: "ha-restore-test-guard : hostNetwork, hostPID et hostIPC interdits"
+    - expression: >-
+        !variables.isPod || variables.ctrs.all(c,
+        !(has(c.securityContext) && has(c.securityContext.privileged) && c.securityContext.privileged) &&
+        !(has(c.securityContext) && has(c.securityContext.capabilities) &&
+        has(c.securityContext.capabilities.add) && size(c.securityContext.capabilities.add) > 0) &&
+        has(c.securityContext) && has(c.securityContext.allowPrivilegeEscalation) &&
+        !c.securityContext.allowPrivilegeEscalation)
+      reason: Forbidden
+      message: "ha-restore-test-guard : conteneur privilégié, capability ajoutée ou escalade de privilèges"
+    - expression: >-
+        !variables.isPod ||
+        (has(object.spec.initContainers) && size(object.spec.initContainers) == 1 &&
+        object.spec.initContainers[0].name == 'restore-wait' &&
+        object.spec.initContainers[0].image.matches('^docker\\.io/velero/velero:v[0-9]+\\.[0-9]+\\.[0-9]+$') &&
+        size(object.spec.containers) == 1 &&
+        object.spec.containers[0].name == 'ha-restore-verify' &&
+        object.spec.containers[0].image == 'ghcr.io/home-assistant/home-assistant:2026.11.2@sha256:493a07e8f6530fc640223f4a0a5248f20a61ca2f718bb1d31efbf08a2c5ea28f' &&
+        has(object.spec.containers[0].volumeMounts) &&
+        object.spec.containers[0].volumeMounts.all(m, has(m.readOnly) && m.readOnly) &&
+        !has(object.spec.ephemeralContainers))
+      reason: Forbidden
+      message: "ha-restore-test-guard : seuls restore-wait et le vérificateur ha-restore-verify (lecture seule) sont admis"
+    - expression: >-
+        !variables.isPod ||
+        (has(object.spec.volumes) && size(object.spec.volumes) == 1 &&
+        object.spec.volumes[0].name == 'data' && has(object.spec.volumes[0].persistentVolumeClaim) &&
+        object.spec.volumes[0].persistentVolumeClaim.claimName == 'home-assistant-home-assistant-0')
+      reason: Forbidden
+      message: "ha-restore-test-guard : seul le volume data (PVC restauré) est admis, ni ConfigMap, ni Secret, ni jeton"
+    - expression: >-
+        !variables.isPod ||
+        (has(object.spec.serviceAccountName) && object.spec.serviceAccountName == 'default' &&
+        has(object.spec.automountServiceAccountToken) && !object.spec.automountServiceAccountToken)
+      reason: Forbidden
+      message: "ha-restore-test-guard : ServiceAccount default sans jeton monté"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: ha-restore-test-guard
+  labels:
+    app.kubernetes.io/part-of: ha-restore-drill
+spec:
+  policyName: ha-restore-test-guard
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: home-assistant-restore-test
+---
+# PRD-76 — le ServiceAccount velero/ha-restore-drill ne peut créer qu'UN Restore
+# de forme exacte : dernier backup du schedule velero-daily-home-assistant, pods,
+# PVC et PV (sans les PV, Velero 1.18 ne crée aucun PodVolumeRestore), namespace
+# home-assistant vers home-assistant-restore-test, modifier restore-pvc-isolation,
+# ni hook, ni sélecteur, ni existingResourcePolicy. Ni UPDATE ni DELETE.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: ha-restore-drill-restore-guard
+  labels:
+    app.kubernetes.io/part-of: ha-restore-drill
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [velero.io]
+        apiVersions: ["*"]
+        operations: ["*"]
+        resources: ["*"]
+  matchConditions:
+    - name: ha-restore-drill-identity
+      expression: request.userInfo.username == 'system:serviceaccount:velero:ha-restore-drill'
+  validations:
+    - expression: >-
+        request.operation == 'CREATE' && request.resource.resource == 'restores' &&
+        (!has(request.subResource) || request.subResource == '')
+      reason: Forbidden
+      message: "ha-restore-drill : seule la création d'un Restore est admise"
+    - expression: >-
+        request.namespace == 'velero' &&
+        object.metadata.name.matches('^ha-restore-drill-[0-9]{14}$') &&
+        has(object.spec.backupName) &&
+        object.spec.backupName.matches('^velero-daily-home-assistant-[0-9]{14}$')
+      reason: Forbidden
+      message: "ha-restore-drill : nom du Restore ou backup hors du schedule velero-daily-home-assistant"
+    - expression: >-
+        has(object.spec.includedNamespaces) && object.spec.includedNamespaces == ['home-assistant'] &&
+        has(object.spec.includedResources) &&
+        object.spec.includedResources == ['pods', 'persistentvolumeclaims', 'persistentvolumes'] &&
+        has(object.spec.namespaceMapping) &&
+        object.spec.namespaceMapping == {'home-assistant': 'home-assistant-restore-test'} &&
+        has(object.spec.restorePVs) && object.spec.restorePVs &&
+        has(object.spec.resourceModifier) && object.spec.resourceModifier.kind == 'ConfigMap' &&
+        object.spec.resourceModifier.name == 'restore-pvc-isolation' &&
+        (!has(object.spec.resourceModifier.apiGroup) || object.spec.resourceModifier.apiGroup == '')
+      reason: Forbidden
+      message: "ha-restore-drill : périmètre du Restore différent du drill (namespaces, ressources, mapping, modifier)"
+    - expression: >-
+        !has(object.spec.scheduleName) && !has(object.spec.excludedNamespaces) &&
+        !has(object.spec.excludedResources) && !has(object.spec.labelSelector) &&
+        !has(object.spec.orLabelSelectors) && !has(object.spec.restoreStatus) &&
+        !has(object.spec.preserveNodePorts) && !has(object.spec.includeClusterResources) &&
+        !has(object.spec.hooks) && !has(object.spec.existingResourcePolicy) &&
+        !has(object.spec.itemOperationTimeout) && !has(object.spec.uploaderConfig)
+      reason: Forbidden
+      message: "ha-restore-drill : champ de Restore non admis (hooks, sélecteurs, existingResourcePolicy...)"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: ha-restore-drill-restore-guard
+  labels:
+    app.kubernetes.io/part-of: ha-restore-drill
+spec:
+  policyName: ha-restore-drill-restore-guard
+  validationActions: [Deny]

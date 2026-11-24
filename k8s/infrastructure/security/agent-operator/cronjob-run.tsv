@@ -6,7 +6,8 @@
 # - un ValidatingAdmissionPolicyBinding agent-operator-cronjob-run-<cronjob> par ligne
 #   (le Job doit reprendre exactement le pod template du CronJob de Git) ;
 # - un Role/RoleBinding agent-operator-cronjob-run par namespace
-#   (k8s/applications/platform/agent-operator-access/cronjob-run.yaml, `create` sur jobs seul).
+#   (k8s/applications/platform/agent-operator-access/cronjob-run.yaml, `create` sur jobs seul ;
+#   namespaces d'infrastructure refusés au projet apps, comme velero : cronjob-run-infra.yaml ici).
 # Aucun de ces namespaces n'entre dans scope.tsv : aucune autre écriture n'y est admise.
 #
 # namespace	cronjob	raison
@@ -16,3 +17,4 @@ music-assistant	ma-reconcile-apply	PRD-83 : apply du réconciliateur Music Assis
 music-assistant	ma-sync	PRD-82 : music/sync de Music Assistant (scope library.manage, jeton admin ma-reconcile resté dans le cluster ; CronJob suspendu)
 home-assistant	ha-agent-music-smoke	PRD-79 : preuve agent-maison musique (CronJob suspendu)
 home-assistant	ha-agent-mcp-smoke	PRD-104 : preuve MCP natif HA pour agent-maison, lecture seule (CronJob suspendu)
+velero	ha-restore-drill	PRD-76 : drill de restauration Velero de HA dans home-assistant-restore-test (CronJob suspendu)
