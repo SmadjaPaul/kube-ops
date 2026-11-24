@@ -9,9 +9,9 @@ python3 -I "$ROOT/tests/harness/ma-publish-tokens-test.py"
 
 if command -v kustomize >/dev/null 2>&1; then
   out="$(kustomize build "$APP")"
-  # Aucun declenchement automatique : les trois CronJobs (plan, apply, publish-tokens) sont suspendus.
-  [ "$(grep -c 'suspend: true' <<<"$out")" -eq 3 ] || {
-    echo "FAIL: les CronJobs ma-reconcile et ma-publish-tokens doivent etre suspendus" >&2
+  # Aucun declenchement automatique : les quatre CronJobs (plan, apply, sync, publish-tokens) sont suspendus.
+  [ "$(grep -c 'suspend: true' <<<"$out")" -eq 4 ] || {
+    echo "FAIL: les CronJobs ma-reconcile, ma-sync et ma-publish-tokens doivent etre suspendus" >&2
     exit 1
   }
   grep -q 'name: ma-reconcile-script' <<<"$out"
@@ -45,7 +45,7 @@ if command -v kustomize >/dev/null 2>&1; then
     echo "FAIL: le CronJob ma-publish-tokens doit lire le jeton Doppler en ecriture" >&2
     exit 1
   }
-  for other in ma-reconcile-plan ma-reconcile-apply; do
+  for other in ma-reconcile-plan ma-reconcile-apply ma-sync; do
     if kustomize build "$APP" | yq -N "select(.kind == \"CronJob\" and .metadata.name == \"$other\")" | grep -q 'maison-doppler-write\|APP_MAISON_DOPPLER_WRITE_TOKEN'; then
       echo "FAIL: $other ne doit pas voir le jeton Doppler en ecriture" >&2
       exit 1

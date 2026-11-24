@@ -72,7 +72,8 @@ spec:
     - name: manualRuns
       expression: >-
         ['home-assistant/ha-mcp-token-rotate', 'music-assistant/ma-publish-tokens',
-        'music-assistant/ma-reconcile-apply', 'music-assistant/ma-reconcile-plan']
+        'music-assistant/ma-reconcile-apply', 'music-assistant/ma-reconcile-plan',
+        'music-assistant/ma-sync']
     - name: manualRun
       expression: >-
         request.operation == 'CREATE' && variables.target == 'batch/jobs' &&
@@ -372,6 +373,25 @@ spec:
   validationActions: [Deny]
   paramRef:
     name: ma-reconcile-plan
+    namespace: music-assistant
+    parameterNotFoundAction: Deny
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: music-assistant
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: agent-operator-cronjob-run-ma-sync
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/part-of: security
+spec:
+  policyName: agent-operator-cronjob-run
+  validationActions: [Deny]
+  paramRef:
+    name: ma-sync
     namespace: music-assistant
     parameterNotFoundAction: Deny
   matchResources:

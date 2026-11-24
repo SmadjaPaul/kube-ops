@@ -22,6 +22,17 @@ Règles : jamais de suppression sans `--prune` et sans que le domaine soit list�
 
 Noms de commandes et de clés vérifiés dans le code de MA 2.10.8 (PRD-83) : liste `config/providers` avec `include_values` (`config/providers/get` exige `instance_id`, d'où le HTTP 500 du premier plan), clé `manual_discovery_ip_addresses` (liste) pour Sonos et Chromecast, création via `config/providers/setup` puis `config/flows/submit` (un fournisseur sans flux est créé vide puis complété par `config/providers/save`). Limite connue : le fournisseur `jellyfin` ne déclare aucune entrée de configuration (`get_config_entries()` vide), donc `config/providers` ne renvoie pas `url` ni `username` stockés ; le plan les marque « non lisibles » et ne les compare pas (le mot de passe n'est jamais lu). Changer `url` ou `username` dans `desired.json` n'est donc pas détecté : supprimer l'instance (`prune`) ou la modifier à la main. À contrôler au premier `plan` réel ; en cas d'écart, `/api-docs/commands.json` de l'instance fait foi. Les jetons longue durée MA expirent après un an. Repli : sauvegarde Velero de `/data`.
 
+## Synchronisation de la bibliothèque (PRD-82)
+
+`music/sync` exige le scope `library.manage` : seul le jeton admin de `svc-ma-reconcile` (Secret natif `ma-reconcile-token`, qui ne quitte pas le cluster) le porte. Le CronJob suspendu `ma-sync` lance `ma_reconcile.py --sync` : `music/tracks/count`, `music/sync` (tous les fournisseurs dont la synchro est activée), attente des tâches (`tasks/get`, au plus 8 min), puis `music/tracks/count` à nouveau. Sortie 1 si une tâche échoue ou dépasse le délai. Lancement par l'identité agent-operator :
+
+```bash
+bash scripts/kubectl-rw.sh run-cronjob music-assistant cronjob/ma-sync
+bash scripts/kubectl-ro.sh logs -n music-assistant job/<nom>
+```
+
+Commandes vérifiées dans MA 2.10.8 (`controllers/music/controller.py`, `controllers/tasks`) : `music/sync(media_types?, providers?)`, `tasks/get(task_id)`, `music/tracks/count(favorite_only?)`. Une bibliothèque qui reste vide après la synchro s'explique d'abord côté fournisseur (pistes `available=false`), pas par ce job.
+
 ## Jeton de `svc-home-assistant` (PRD-84, sans geste manuel)
 
 Cible : l'intégration `music_assistant` de Home Assistant (PRD-82) s'authentifie par un jeton longue durée du compte `svc-home-assistant` (rôle `service`).
