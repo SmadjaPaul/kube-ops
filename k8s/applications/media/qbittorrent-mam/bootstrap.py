@@ -83,7 +83,7 @@ def write_config() -> None:
         ("BitTorrent", r"Session\DefaultSavePath", str(DOWNLOADS)),
         ("BitTorrent", r"Session\TempPath", str(DOWNLOADS / ".incomplete")),
         ("BitTorrent", r"Session\TempPathEnabled", "true"),
-        ("BitTorrent", r"Session\Port", "6881"),
+        ("BitTorrent", r"Session\Port", "51413"),
         ("BitTorrent", r"Session\GlobalMaxRatio", "-1"),
         ("BitTorrent", r"Session\GlobalMaxSeedingMinutes", "0"),
         ("Preferences", r"WebUI\Username", "admin"),
