@@ -11,10 +11,10 @@ metadata:
     argocd.argoproj.io/sync-wave: "5"
 spec:
   hard:
-    pods: "2"
-    requests.cpu: 500m
-    requests.memory: 2Gi
-    limits.cpu: "4"
-    limits.memory: 8Gi
-    requests.ephemeral-storage: 2Gi
-    limits.ephemeral-storage: 12Gi
+    pods: "3"
+    requests.cpu: 750m
+    requests.memory: 3Gi
+    limits.cpu: "6"
+    limits.memory: 12Gi
+    requests.ephemeral-storage: 3Gi
+    limits.ephemeral-storage: 16Gi

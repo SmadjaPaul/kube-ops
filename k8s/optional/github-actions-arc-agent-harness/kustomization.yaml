@@ -13,3 +13,7 @@ resources:
   - egress-networkpolicy.yaml
   - runner-application.yaml
   - runner-application-agents.yaml
+  - incident-sentinel-rbac.yaml
+  - incident-sentinel-key.yaml
+  - incident-sentinel-egress.yaml
+  - runner-application-sentinel.yaml

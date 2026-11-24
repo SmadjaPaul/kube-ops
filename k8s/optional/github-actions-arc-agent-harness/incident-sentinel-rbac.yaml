@@ -1,0 +1,55 @@
+# PLT-455: read-only identity of the incident-sentinel agent (runs in the sentinel scale set).
+# get/list/watch only. NO `secrets`, no configmaps, no pods/exec|attach|portforward, no write verb,
+# no impersonate/bind/escalate, no serviceaccounts/token. Resources are named one by one: never "*"
+# on the core group. Proof: tests/harness/incident-sentinel-rbac-test.sh (static) and
+# `kubectl auth can-i --list --as=system:serviceaccount:arc-runners-agent-harness:incident-sentinel`.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-sentinel
+  namespace: arc-runners-agent-harness
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: incident-sentinel-read
+  labels:
+    app.kubernetes.io/name: incident-sentinel
+    app.kubernetes.io/part-of: security
+rules:
+  - apiGroups: [""]
+    resources: [pods, pods/log, events, services, endpoints, namespaces, nodes, persistentvolumeclaims, persistentvolumes, resourcequotas]
+    verbs: [get, list, watch]
+  - apiGroups: [apps, batch]
+    resources: [deployments, replicasets, statefulsets, daemonsets, jobs, cronjobs]
+    verbs: [get, list, watch]
+  - apiGroups: [events.k8s.io, discovery.k8s.io]
+    resources: ["*"]
+    verbs: [get, list, watch]
+  - apiGroups: [metrics.k8s.io]
+    resources: [pods, nodes]
+    verbs: [get, list]
+  - apiGroups: [argoproj.io]
+    resources: [applications, appprojects]
+    verbs: [get, list, watch]
+  - apiGroups: [postgresql.cnpg.io, cert-manager.io, external-secrets.io]
+    resources: [clusters, backups, scheduledbackups, certificates, certificaterequests, externalsecrets]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: incident-sentinel-read
+  labels:
+    app.kubernetes.io/name: incident-sentinel
+    app.kubernetes.io/part-of: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: incident-sentinel-read
+subjects:
+  - kind: ServiceAccount
+    name: incident-sentinel
+    namespace: arc-runners-agent-harness
