@@ -3,7 +3,7 @@
 Décision D-2026-11-22-02 (matrice `agent-access-matrix.json` de homelab-infra, écarts F1, F2, F3).
 
 OKE (`oracle-a1`) : le renouvellement automatique du jeton de 24 h se fera dans le cluster (CronJob, puis Doppler
-`agent-access/prd`), selon la décision D-2026-11-23-04 de homelab-infra `docs/decisions.md` (homelab-infra#758). Pas encore
+`identity/agt`), selon la décision D-2026-11-23-04 de homelab-infra `docs/decisions.md` (homelab-infra#758). Pas encore
 déployé : d'ici là, `scripts/agent-operator-oke-token.sh --provision` par Paul reste le seul geste ; il reste ensuite le
 recours d'urgence. Cette page couvre le homelab ; ses gestes ne changent pas.
 
@@ -53,3 +53,6 @@ Créer la GitHub App `atlas-tech` (compte de Paul) : permissions `contents`, `pu
 `administration` ; l'installer sur les dépôts choisis ; générer une clé privée par exécutant. Ensuite un agent range la clé dans
 Doppler, bascule `gh` sur le jeton d'installation d'1 h et ajuste les règles de branche. Preuve attendue : une PR ouverte et mergée
 par l'App, auteur des commits = le bot.
+
+
+Repli (24/11/2026) : la limite de 10 projets Doppler empêche de créer le projet `agent-access` ; le rôle est tenu par l'environnement isolé `identity/agt`. Lecture par `kube-preflight.sh` : second jeton de lecture dans `~/.claude-worker/doppler-token-agent-access` (le jeton de service des agents est limité à `infrastructure`).

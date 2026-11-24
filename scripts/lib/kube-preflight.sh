@@ -100,13 +100,13 @@ _materialize_canonical_operator_kubeconfig() {
     return
   fi
 
-  # PLT-481 : la copie OKE est d'abord lue dans agent-access/prd (renouvelée par le CronJob d'OKE,
+  # PLT-481 : la copie OKE est d'abord lue dans identity/agt (renouvelée par le CronJob d'OKE,
   # D-2026-11-23-04), puis dans infrastructure/prd (--provision, bris de glace). Une copie absente,
   # altérée ou expirée dans la première source bascule sur la seconde ; KUBE_ACCESS_DOPPLER_PROJECT
   # force une source unique.
   local -a projects=("$project")
   if [[ "$secret" == KUBERNETES_AGENT_OPERATOR_KUBECONFIG_ORACLE_A1 && -z "${KUBE_ACCESS_DOPPLER_PROJECT:-}" ]]; then
-    projects=(agent-access infrastructure)
+    projects=(agent-access infrastructure)  # agent-access = identity/agt (limite Doppler de 10 projets)
   fi
 
   umask 077
@@ -116,16 +116,23 @@ _materialize_canonical_operator_kubeconfig() {
   for candidate in "${projects[@]}"; do
     fail_reason=canonical_operator_kubeconfig_missing
     fail_present=no
-    if ! doppler secrets get "$secret" \
-      --project "$candidate" --config "$config" --plain >"$kubeconfig" 2>/dev/null; then
+    local cproj=$candidate cconf=$config ctok=
+    if [[ "$candidate" == agent-access ]]; then
+      cproj=identity cconf=agt
+      # Le jeton de service des agents est limité à infrastructure : second jeton, lecture seule de identity/agt.
+      [[ -s "${KUBE_ACCESS_AGENT_ACCESS_TOKEN_FILE:-$HOME/.claude-worker/doppler-token-agent-access}" ]] &&
+        ctok=$(tr -d '\n' <"${KUBE_ACCESS_AGENT_ACCESS_TOKEN_FILE:-$HOME/.claude-worker/doppler-token-agent-access}")
+    fi
+    if ! DOPPLER_TOKEN="${ctok:-${DOPPLER_TOKEN:-}}" doppler secrets get "$secret" \
+      --project "$cproj" --config "$cconf" --plain >"$kubeconfig" 2>/dev/null; then
       continue
     fi
     chmod 600 "$kubeconfig"
     fail_present=yes
     fail_reason=canonical_operator_fingerprint_missing
     if ! expected="$(
-      doppler secrets get "${secret}_SHA256" \
-        --project "$candidate" --config "$config" --plain 2>/dev/null
+      DOPPLER_TOKEN="${ctok:-${DOPPLER_TOKEN:-}}" doppler secrets get "${secret}_SHA256" \
+        --project "$cproj" --config "$cconf" --plain 2>/dev/null
     )" || [[ -z "$expected" ]]; then
       continue
     fi
