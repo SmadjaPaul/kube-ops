@@ -68,6 +68,42 @@ spec:
         - name: openid-patch
           mountPath: /openid-patch
           readOnly: true
+      - name: install-dreame-vacuum
+        # PRD-111 : composant Tasshack/dreame-vacuum (robot Dreame L20 Ultra, compte Dreamehome).
+        # Archive épinglée par commit (tag v2.0.3) et sha256. frontend.py est retiré : module
+        # obfusqué de licence de la carte payante DVC (appel à api.tasshack.com, vue JS sans auth) ;
+        # le paquet le charge en optionnel (import_module + ModuleNotFoundError -> None).
+        image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }
+          limits: { cpu: 200m, memory: 128Mi }
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - >-
+          set -eu;
+          archive=/tmp/dreame-vacuum.tar.gz;
+          wget -q -O "$archive" "$DREAME_ARCHIVE_URL";
+          echo "$DREAME_ARCHIVE_SHA256  $archive" | sha256sum -c -;
+          src="dreame-vacuum-$DREAME_COMMIT/custom_components/dreame_vacuum";
+          tar -xzf "$archive" -C /tmp;
+          rm -f "$archive";
+          rm -f "/tmp/$src/frontend.py";
+          mkdir -p /config/custom_components;
+          rm -rf /config/custom_components/dreame_vacuum;
+          cp -R "/tmp/$src" /config/custom_components/dreame_vacuum;
+          test -f /config/custom_components/dreame_vacuum/manifest.json;
+          test ! -e /config/custom_components/dreame_vacuum/frontend.py
+        env:
+        - name: DREAME_COMMIT
+          value: fec086caf064f2681e8bcc7be20a0d0ef54f444d
+        - name: DREAME_ARCHIVE_URL
+          value: https://github.com/Tasshack/dreame-vacuum/archive/fec086caf064f2681e8bcc7be20a0d0ef54f444d.tar.gz
+        - name: DREAME_ARCHIVE_SHA256
+          value: 108b3f785ff94976ea8aa542a679748cd2665654251ebde2c6a8e0d150c7f08c
+        volumeMounts:
+        - name: data
+          mountPath: /config
       - name: init-ui-files
         # PLT-444 : crée sur le PVC les fichiers inclus par configuration.yaml s'ils manquent.
         # Ne jamais écraser un fichier existant (UI HA et provider OpenTofu y écrivent).
