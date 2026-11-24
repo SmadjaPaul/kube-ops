@@ -15,7 +15,7 @@ grep -Fq 'mountPath: /data' "$rendered"
 grep -Fq 'qbittorrentofficial/qbittorrent-nox:5.2.4-1@sha256:92bfd78d731e254ba64f62b77b0696add6447a33642ee5feda106a26b285aa7f' "$rendered"
 grep -Fq 'python:3.14.5-alpine3.22@sha256:1a5f0303fd8941565b5bbda3fac2345148a9fd8245d575c2971ccefcd77c78f6' "$rendered"
 grep -Fq 'type: ClusterIP' "$rendered"
-if grep -Eq 'type: (LoadBalancer|NodePort)|kind: (Ingress|HTTPRoute)' "$rendered"; then
+if grep -Eq 'type: NodePort|kind: (Ingress|HTTPRoute)' "$rendered" || [ "$(grep -Ec 'type: LoadBalancer' "$rendered")" -ne 1 ] || ! grep -Fq 'name: qbittorrent-mam-peer' "$rendered"; then
   echo 'QBITTORRENT_MAM_CONTRACT=FAIL public service or route found' >&2
   exit 1
 fi

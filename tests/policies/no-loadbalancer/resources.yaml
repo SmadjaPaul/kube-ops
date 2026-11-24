@@ -73,6 +73,18 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: qbittorrent-mam-peer
+  namespace: media
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: system-namespace
   namespace: kube-system
 spec:

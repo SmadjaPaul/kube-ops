@@ -2,3 +2,4 @@
 # is covered by Kubernetes probes; torrent state will be checked during runtime qualification.
 exceptions:
   observability: "image qBittorrent sans endpoint de métriques scrapeable ; probes TCP WebUI sur 8080 et qualification runtime des états torrent"
+  exposure: "Service LoadBalancer qbittorrent-mam-peer (10.0.20.195, TCP+UDP 51413) : port pair BitTorrent seul pour rendre le client joignable et permettre l'upload MAM ; WebUI reste en ClusterIP ; exception décidée par Paul (PLT-500)"
