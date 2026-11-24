@@ -61,7 +61,8 @@ data:
                 name: gpt-researcher
                 owner: gpt-researcher
               allowedModels:
-                - factory/research
+                - text/research
+                - factory/research # DEPRECATED, removed once the consumer uses text/research
               budgets:
                 - name: gpt-researcher-daily-tokens
                   limit:
@@ -89,7 +90,8 @@ data:
                 name: librechat
                 owner: librechat
               allowedModels:
-                - factory/fast
+                - text/fast
+                - factory/fast # DEPRECATED, removed once the consumer uses text/fast
               budgets:
                 - name: librechat-daily-tokens
                   limit:
@@ -150,6 +152,15 @@ data:
             baseUrl: https://api.minimax.io/v1
             model: MiniMax-M3
             apiKey: "$MINIMAX_API_KEY"
+        - name: text/research
+          provider:
+            custom:
+              formats:
+                - type: completions
+          params:
+            baseUrl: https://api.minimax.io/v1
+            model: MiniMax-M3
+            apiKey: "$MINIMAX_API_KEY"
         # DEPRECATED (PLT-496): use text/fast.
         - name: factory/fast
           provider:
@@ -172,6 +183,7 @@ data:
             baseUrl: https://api.minimax.io/v1
             model: MiniMax-M3
             apiKey: "$MINIMAX_API_KEY"
+        # DEPRECATED (PLT-496): use text/research.
         - name: factory/research
           provider:
             custom:
@@ -202,7 +214,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: capabilities-v2
+        checksum/agentgateway-runtime: capabilities-v3
     spec:
       automountServiceAccountToken: false
       securityContext:
