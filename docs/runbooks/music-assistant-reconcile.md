@@ -47,8 +47,61 @@ Idempotence : le jeton courant arrive aux jobs par `secretKeyRef` facultatif (`A
 
 Compromis RBAC : `create` sur les Secrets n'est pas restreignable par `resourceNames`. Le Secret est donc créé à l'avance par un ExternalSecret (`Password` + `CreatedOnce` + `Orphan`, valeur aléatoire factice refusée par MA) et le Role `ma-reconcile` n'a que `patch` sur ce seul Secret : ni `create`, ni `get`, ni liste. Seul le CronJob apply monte le jeton de ServiceAccount, et seul lui a un egress vers kube-apiserver.
 
-## Jeton de Home Assistant (PRD-103)
+## Entrée `music_assistant` de Home Assistant : recréation (PRD-100, PRD-103)
 
-Il n'y a plus de publication vers Doppler. L'intégration `music_assistant` de Home Assistant a été créée une fois à la main par l'API de config flow (HA garde son propre jeton MA longue durée) puis adoptée par OpenTofu, qui l'a ensuite oubliée du state (bloc `removed`, `destroy = false`, homelab-infra PRD-103) sans toucher à HA. Le CronJob `ma-publish-tokens`, l'ExternalSecret `maison-doppler-write` et la clé Doppler `home/prd_maison` ne servent plus à rien.
+### État
 
-`ma-reconcile-apply` continue d'émettre le jeton de `svc-home-assistant` et de le ranger dans le Secret natif `ma-home-assistant-token` (voir ci-dessus). En cas de perte de l'entrée HA, la recréer à la main par l'API de config flow avec ce jeton, sans passer par Doppler.
+- L'entrée a été créée une fois à la main par l'API de flux de configuration de HA. HA y garde SON PROPRE jeton MA longue durée, nommé « Home Assistant », créé pendant le flux (`create_long_lived_token` dans `config_flow.py` de l'intégration, HA 2026.11.2). Ce jeton n'est pas celui que le réconciliateur émet pour `svc-home-assistant` (Secret `ma-home-assistant-token`).
+- L'entrée est sortie du suivi OpenTofu : bloc `removed` avec `destroy = false` (homelab-infra#800, `terraform/home-assistant/music_assistant.tf`). OpenTofu ne la crée, ne la modifie ni ne la détruit : la recréer ne demande aucun `import` ni apply.
+- Il n'y a plus de publication vers Doppler (CronJob `ma-publish-tokens`, clé `home/prd_maison`, `DOPPLER_MAISON_TOKEN` supprimés, kube-ops#2004).
+
+### À ne pas faire
+
+- Ne pas révoquer le jeton « Home Assistant » dans MA (`auth/token/revoke`) : HA perdrait l'intégration. `auth/tokens` liste plusieurs jetons de `svc-home-assistant` (un nommé `home-assistant` émis par le réconciliateur, un nommé « Home Assistant » créé par HA) ; seul le second sert à HA en fonctionnement.
+- Une rotation ou une réémission du jeton du réconciliateur (`ma-home-assistant-token`) n'atteint pas HA : HA ne lit jamais ce Secret.
+- Le jeton de HA dure environ 1 an (jeton longue durée MA). Entrée créée le 24/11/2026 : la réauthentification de HA est attendue vers 11/2027. Si seul le jeton est invalide, l'entrée existe encore : ne pas la supprimer, terminer le flux de réauthentification (voir plus bas).
+
+### Obtenir un jeton MA de `svc-home-assistant`
+
+Le jeton émis par `ma-reconcile-apply` n'est écrit que dans le Secret natif `music-assistant/ma-home-assistant-token` (clé `token`, PATCH par le ServiceAccount `ma-reconcile`, `ma_reconcile.py`, classe `Kube`). Aucun mode du script (`--plan`, `--apply`, `--sync`) ne l'affiche, et les sorties sont filtrées. L'identité agent-operator ne lit pas le contenu des Secrets (`kubectl-ro.sh` refuse `get secret -o`). Deux voies :
+
+1. Geste de Paul : lire la clé `token` du Secret avec l'identité opérateur, puis la saisir masquée dans le terminal de la procédure ci-dessous (`read -rs`).
+2. Un Job dans le cluster qui monte le Secret par `secretKeyRef` (même forme que `APP_MA_HA_TOKEN` dans `reconcile/cronjobs.yaml`) et appelle lui-même l'API de flux de HA. Ce Job n'existe pas : il faudrait l'écrire (PR), avec un egress du pod vers le Service `home-assistant` (ns `home-assistant`, port 8123) et un jeton HA administrateur. Tant qu'il n'existe pas, utiliser la voie 1.
+
+Si le Secret est vide ou refusé par MA (401), `bash scripts/kubectl-rw.sh run-cronjob music-assistant cronjob/ma-reconcile-apply` réémet le jeton (absent, 401 ou à moins de 30 jours de l'expiration) et le range dans le Secret ; lancer d'abord `cronjob/ma-reconcile-plan` pour voir `+ token/svc-home-assistant create`.
+
+### Recréer l'entrée par l'API du flux
+
+Prérequis : un jeton HA administrateur (`ha.py` le lit dans Doppler, projet `home`, config `prd`, sans l'afficher) et le jeton MA ci-dessus. `scripts/ha.py` du plugin `homelab-ops` fournit `flow start|step|abort` ; ces commandes écrivent dans HA et exigent `--confirmed`, à ne passer qu'avec l'accord de Paul pour CHAQUE étape (jamais en lot), en nommant le handler, l'étape et les champs envoyés. Équivalent REST : `POST /api/config/config_entries/flow` (démarrage) puis `POST /api/config/config_entries/flow/<flow_id>` (étapes).
+
+```bash
+HA=/Users/paul/Developer/agent/agent-harness/plugins/homelab-ops/scripts/ha.py
+# 1. Démarrer le flux (handler music_assistant). Réponse : étape manual (formulaire url).
+python3 "$HA" flow start music_assistant --confirmed
+# 2. Étape manual : l'URL doit être joignable par HA, pas par un navigateur
+python3 "$HA" flow step <flow_id> --confirmed --data '{"url": "http://music-assistant.music-assistant.svc.cluster.local:8095"}'
+# 3. Étape auth : saisie masquée du jeton MA, jamais dans un fichier
+read -rs MA_TOKEN
+python3 "$HA" flow step <flow_id> --confirmed --data "$(jq -nc --arg c "$MA_TOKEN" '{code:$c}')"
+# 4. Étape finish_auth : corps vide ; la réponse est type create_entry
+python3 "$HA" flow step <flow_id> --confirmed
+unset MA_TOKEN
+```
+
+Ce que le code de l'intégration impose (HA 2026.11.2, `homeassistant/components/music_assistant/config_flow.py`) :
+
+- `manual` : `{url}` ; le flux interroge `server_info` de MA, fixe l'identifiant unique sur le `server_id` de MA et avorte avec `already_configured` si l'entrée existe encore (il met alors son URL à jour : c'est le signe que l'entrée n'est pas supprimée). `schema_version >= AUTH_SCHEMA_VERSION` mène à l'étape `auth`.
+- `auth` : si le composant `my` est chargé, ou si la requête porte l'en-tête `HA-Frontend-Base`, le flux répond `external` avec une URL de connexion MA ; on n'ouvre pas cette URL, on envoie `{"code": <jeton>}`, ce qui termine l'étape externe et passe à `finish_auth`. Sans `my` ni en-tête, le flux retombe sur l'étape de formulaire `auth_manual` : y envoyer `{"token": <jeton>}`, qui crée l'entrée directement (sans `finish_auth`, mais alors HA garde CE jeton et non un jeton « Home Assistant » dédié). Lire le `step_id` de la réponse avant d'envoyer.
+- `finish_auth` : HA échange le jeton reçu contre un nouveau jeton longue durée nommé « Home Assistant » (`create_long_lived_token`) et crée l'entrée `{url, token}`. C'est ce nouveau jeton que HA garde ; un jeton MA valide quelconque de `svc-home-assistant` suffit comme `code`.
+- Réauthentification (jeton invalide, entrée présente) : HA ouvre un flux `reauth` visible par `flow list` ; l'étape `reauth_confirm` (corps `{}`) mène à `auth`, puis mêmes étapes 3 et 4 ; l'entrée est mise à jour, pas recréée.
+
+Statut des preuves de cette procédure : lue et vérifiée dans le code de l'intégration et dans `ha.py` (STATIC). Non rejouée sur l'instance ; les noms d'étapes `external`/`external_done` du gestionnaire de flux de HA ne figurent pas dans ce code et restent à confirmer au premier rejeu.
+
+### Vérifier après recréation
+
+```bash
+python3 "$HA" registry entities --platform music_assistant     # media_player.salon, media_player.bureau, etc.
+python3 "$HA" music search "<un titre Polyfin>"                # utilise HA_AGENT_TOKEN (agent-maison)
+```
+
+Aucun import OpenTofu n'est à refaire : l'entrée n'est plus suivie, et le plan `home-assistant` doit rester vide.

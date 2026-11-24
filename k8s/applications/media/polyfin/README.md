@@ -292,11 +292,30 @@ applied by ARC only). Values: issuer
 `https://tv.smadja.dev/admin/api/provider/callback`. The secret is write-only
 and never enters the state or Git.
 
-Status (PRD-86): resource in review (provider PR #17); the apply and the
-end-to-end proof are `NOT_TESTED`. Acceptance, when applied: a test user in
-`test-users` and `family` signs in with "Sign in with Authentik" and sees the
-library; a user outside the groups is refused; the local break-glass account
-still signs in with its password. Native login and Quick Connect stay unchanged.
+Status (PRD-86, 2026-11-24): applied (provider v0.1.8, homelab-infra#784, ARC
+apply). `create_accounts = false`: the first sign-in never creates a Polyfin
+account. An administrator creates the account first (it may be "Identity
+provider only", without a password) and turns on "Link at the next provider
+sign-in"; the next Authentik sign-in under the same name links it.
+
+End-to-end proof (RUNTIME, 2026-11-24), with throwaway users deleted afterwards
+on both sides:
+
+- `agent-e2e-20261124` (Authentik groups `test-users` + `family`), Polyfin
+  account pre-created and linkable: `/admin/api/provider/start` signs in and
+  lands on the Polyfin home of that user; the account becomes "Linked".
+- `agent-e2e-out-20261124` (group `test-users` only): Authentik answers
+  "Permission denied" on `/application/o/authorize/`; the Polyfin account stays
+  unlinked.
+- Break-glass: `polyfin-breakglass` stays a local administrator, not linked to
+  the provider (so its password sign-in is not replaced); the activity log
+  shows its sign-ins after the apply.
+
+Not proven by an agent: the library seen from a Jellyfin client by the test
+user (the Quick Connect approval for a test device is left to a human).
+Native login and Quick Connect stay unchanged.
+
+Start URL for an SSO sign-in to the admin site: `https://tv.smadja.dev/admin/api/provider/start`.
 
 ## Codex activation checklist
 

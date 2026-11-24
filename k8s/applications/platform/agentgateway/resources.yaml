@@ -173,7 +173,6 @@ data:
                 owner: hindsight-personal
               allowedModels:
                 - text/fast
-                - factory/fast # DEPRECATED, removed once personal-hindsight uses text/fast
               budgets:
                 - name: hindsight-personal-daily-tokens
                   limit:
@@ -188,7 +187,6 @@ data:
                 owner: librechat
               allowedModels:
                 - text/fast
-                - factory/fast # DEPRECATED, removed once the consumer uses text/fast
               budgets:
                 - name: librechat-daily-tokens
                   limit:
@@ -229,8 +227,7 @@ data:
                   onBudgetExceeded: Block
       models:
         # PLT-496: capability aliases. Consumers call a capability, never a provider model name; the model
-        # behind each alias lives only here. factory/fast below is a DEPRECATED alias kept until
-        # hindsight and librechat run on text/fast (their keys still allow it), then removed.
+        # behind each alias lives only here. No factory/* alias remains (PLT-496).
         - name: text/fast
           provider:
             custom:
@@ -258,18 +255,6 @@ data:
             baseUrl: https://api.minimax.io/v1
             model: MiniMax-M3
             apiKey: "$MINIMAX_API_KEY"
-        # DEPRECATED (PLT-496): use text/fast.
-        - name: factory/fast
-          provider:
-            custom:
-              formats:
-                - type: completions
-          params:
-            baseUrl: https://api.minimax.io/v1
-            # PLT-487: M2.7 retired 2026-11-18 (platform.minimax.io/docs/faq/models); pinned explicitly.
-            # Thinking cannot be disabled on M3.1 Flash: callers set reasoning_effort (low) themselves.
-            model: MiniMax-M3.1-Flash
-            apiKey: "$MINIMAX_API_KEY"
     frontendPolicies:
       tracing:
         host: alloy.monitoring.svc.cluster.local:4318
@@ -291,7 +276,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: capabilities-media-v2
+        checksum/agentgateway-runtime: capabilities-media-v3
     spec:
       automountServiceAccountToken: false
       securityContext:

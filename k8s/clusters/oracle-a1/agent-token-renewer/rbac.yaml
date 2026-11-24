@@ -1,6 +1,6 @@
 # Seul droit du renouvellement : TokenRequest pour argocd/agent-operator (resourceNames). Rien d'autre :
 # aucun Secret lisible ni modifiable, aucun verbe d'ecriture. Le jeton produit n'est jamais stocke dans le
-# cluster : il va dans le kubeconfig que le Job pousse vers Doppler agent-access/prd.
+# cluster : il va dans le kubeconfig que le Job pousse vers Doppler identity/agt.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

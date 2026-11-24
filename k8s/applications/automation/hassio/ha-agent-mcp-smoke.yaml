@@ -5,6 +5,8 @@
 # Le jeton vient du Secret natif ha-mcp-token (variable d'environnement, jamais affiché) ;
 # le ServiceAccount n'a aucun RBAC et ne monte pas de jeton Kubernetes.
 # Aucun SON : initialize, tools/list et un seul tools/call en lecture (GetLiveContext).
+# PRD-80 : avant le MCP, GET /api/ doit répondre 200 et DELETE sur une config entry inexistante
+# (réservé aux admins ; un admin aurait 404, rien n'est supprimé) doit être refusé (401/403).
 apiVersion: v1
 kind: ServiceAccount
 metadata:

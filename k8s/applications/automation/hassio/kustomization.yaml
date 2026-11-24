@@ -28,9 +28,6 @@ resources:
   - statefulset.yaml
   - policy-exception.yaml
   - external-secret.yaml
-  - ha-mcp-deployment.yaml
-  - ha-mcp-service.yaml
-  - ha-mcp-network-policy.yaml
   - ha-mcp-token-rotate.yaml
   - ha-agent-music-smoke.yaml
   - ha-agent-mcp-smoke.yaml
