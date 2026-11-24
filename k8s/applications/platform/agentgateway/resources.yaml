@@ -76,7 +76,8 @@ data:
                 name: hindsight-personal
                 owner: hindsight-personal
               allowedModels:
-                - factory/fast
+                - text/fast
+                - factory/fast # DEPRECATED, removed once personal-hindsight uses text/fast
               budgets:
                 - name: hindsight-personal-daily-tokens
                   limit:
@@ -214,7 +215,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: capabilities-v3
+        checksum/agentgateway-runtime: capabilities-v4
     spec:
       automountServiceAccountToken: false
       securityContext:
