@@ -29,6 +29,12 @@ modifier_rules="$(yq -r '.data["resource-modifier.yaml"]' "$modifier")"
 grep -F 'groupResource: persistentvolumeclaims' <<<"$modifier_rules" >/dev/null
 grep -F 'namespaces:' <<<"$modifier_rules" >/dev/null
 grep -F -- '- invoice-ninja' <<<"$modifier_rules" >/dev/null
+# PRD-76 : le drill HA (home-assistant -> home-assistant-restore-test) doit
+# couvrir les deux règles (PVC et annotation Argo), comme les autres sources.
+for rule in 0 1; do
+  yq -e '.resourceModifierRules['"$rule"'].conditions.namespaces | contains(["home-assistant"])' \
+    <<<"$modifier_rules" >/dev/null
+done
 grep -F 'mergePatches:' <<<"$modifier_rules" >/dev/null
 grep -F '"volumeName": null' <<<"$modifier_rules" >/dev/null
 if grep -F 'operation: remove' <<<"$modifier_rules" >/dev/null; then

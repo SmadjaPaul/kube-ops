@@ -15,6 +15,7 @@ data:
           namespaces:
             - invoice-ninja
             - longhorn-tier-dr-source
+            - home-assistant
         # JSON Merge Patch deletion is idempotent: unlike a JSON Patch remove,
         # it also succeeds when Velero has already omitted volumeName.
         mergePatches:
@@ -32,6 +33,7 @@ data:
           namespaces:
             - invoice-ninja
             - longhorn-tier-dr-source
+            - home-assistant
         mergePatches:
           - patchData: |
               {
