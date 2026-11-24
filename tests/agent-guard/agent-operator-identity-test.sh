@@ -256,6 +256,7 @@ refused "run-cronjob : type job" run-cronjob home-assistant job/ha-mcp-token-rot
 refused "home-assistant : restart (hors scope.tsv)" restart home-assistant deploy/home-assistant
 refused "home-assistant : delete job (hors scope.tsv)" delete home-assistant job/ha-mcp-token-rotate-1
 refused "music-assistant : resume du CronJob apply (hors scope.tsv)" resume music-assistant cj/ma-reconcile-apply
+refused "music-assistant : resume du CronJob publish-tokens (hors scope.tsv)" resume music-assistant cj/ma-publish-tokens
 refused "music-assistant : apply (hors scope.tsv)" apply music-assistant "$tmp/ok.yaml"
 check "can-i de agent-operator-token.sh : port-forward Hubble et Jobs manuels, positif et négatif" bash -c \
   "grep -q 'can yes create pods/portforward -n kube-system' scripts/agent-operator-token.sh \
