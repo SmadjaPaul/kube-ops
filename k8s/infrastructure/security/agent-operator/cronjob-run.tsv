@@ -17,4 +17,3 @@ music-assistant	ma-reconcile-apply	PRD-83 : apply du réconciliateur Music Assis
 music-assistant	ma-sync	PRD-82 : music/sync de Music Assistant (scope library.manage, jeton admin ma-reconcile resté dans le cluster ; CronJob suspendu)
 home-assistant	ha-agent-music-smoke	PRD-79 : preuve agent-maison musique (CronJob suspendu)
 home-assistant	ha-agent-mcp-smoke	PRD-104 : preuve MCP natif HA pour agent-maison, lecture seule (CronJob suspendu)
-velero	ha-restore-drill	PRD-76 : drill de restauration Velero de HA dans home-assistant-restore-test (CronJob suspendu)

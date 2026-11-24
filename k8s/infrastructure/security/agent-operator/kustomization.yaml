@@ -7,4 +7,3 @@ resources:
   - identity.yaml
   - rbac.yaml
   - validatingadmissionpolicy.yaml
-  - cronjob-run-infra.yaml
