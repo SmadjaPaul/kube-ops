@@ -1,7 +1,8 @@
 # Sauvegarde et reprise de Home Assistant
 
-Statut de la preuve de restauration : `NOT_TESTED` (drill livré, voir « Drill
-non destructif » ; passe à `RUNTIME` après une exécution PASS consignée ici).
+Statut de la preuve de restauration : `RUNTIME` (drill PASS le 2026-11-24,
+production intacte, aucun reste ; mesures dans « Drill non destructif »,
+section « Résultats »).
 
 ## État des sauvegardes (constat du 2026-11-24, niveau RUNTIME)
 
@@ -17,7 +18,8 @@ sortent du nœud par Velero (PodVolumeBackup Kopia du volume `data` vers R2,
 02:30 UTC) et par Longhorn (03:17). Leur intérêt : une archive cohérente de
 la base SQLite, écrite par HA lui-même, à l'intérieur de chaque copie Velero.
 
-Limites connues : aucune restauration testée ; la cohérence d'une copie à
+Limites connues : restauration testée dans un namespace isolé seulement
+(drill), jamais en place dans `home-assistant` ; la cohérence d'une copie à
 chaud de la base SQLite (`home-assistant_v2.db`) n'est pas prouvée (Kopia lit
 les fichiers pendant que HA écrit) : l'archive native du jour en est le
 recours. `configuration.yaml` n'est pas lu sur le PVC : il est monté par-dessus
@@ -50,7 +52,24 @@ laisser Argo reconcilier, **sans** `--resource-modifier-configmap restore-pvc-is
 
 ## Drill non destructif
 
-Statut : livré (PR PRD-76d), résultats mesurés ci-dessous après exécution.
+Statut : `RUNTIME` PASS (2026-11-24). Livraison : kube-ops#2031, #2032,
+#2034, puis correctif du PV `Retain` #2036, #2037, #2040.
+
+### Résultats (2026-11-24)
+
+| Mesure | Passage 1 (18:17 UTC) | Passage 2 (19:32 UTC) |
+|---|---|---|
+| Job | `ha-restore-drill-manual-20261124181713` : `FAIL` (nettoyage) | `ha-restore-drill-manual-20261124193200` : `PASS` |
+| Backup | `velero-daily-home-assistant-20261124082947` | idem |
+| Restore | `ha-restore-drill-20261124181723` `Completed`, 3/3 objets | `ha-restore-drill-20261124193211` `Completed`, 3/3, 0 avertissement, 0 erreur |
+| PodVolumeRestore `data` | 9 141 242 octets (= backup) | 9 141 242 octets |
+| Vérificateur | `PASS` | `PASS` : `.storage` 30 fichiers, `configuration.yaml`, `home-assistant_v2.db` 1 720 320 octets, `integrity_check` = `ok`, 578 états, `maison_musique_` dans `scripts.yaml`, `automations.yaml`, `core.entity_registry`, `core.restore_state`, `lovelace.maison_musique`, 1 archive native |
+| Durée | 36 s (Restore + vérification) | 75,7 s au total, dont la reprise du PV laissé par le passage 1 ; Restore créé à +10 s, vérification finie à +51,7 s |
+| Nettoyage | pod et PVC supprimés ; PV `pvc-08519a57-…` resté `Released` en `Retain` | PV `pvc-14c57ad9-…` repassé en `Delete` puis supprimé ; PV `pvc-08519a57-…` repris (`leftover_pvs_deleted`) ; namespace vide, aucun PV `longhorn-drill`, volumes Longhorn absents |
+| Production | inchangée | inchangée : PVC UID `1b4227d4-8b89-4e5e-9a0a-e52f95125314`, volume `pvc-1b4227d4-…` `Bound`, pod `Running`, 0 redémarrage |
+
+Réserve du passage 1, levée : cause et correctif dans « Pièges établis »
+(reclaimPolicy recopiée par Velero) et « Déroulé du Job » (étapes 1 et 6).
 Lancement, une seule commande agent :
 
 ```bash
