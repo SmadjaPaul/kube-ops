@@ -5,6 +5,9 @@ metadata:
   namespace: music-assistant
   labels:
     app.kubernetes.io/name: music-assistant
+  annotations:
+    # subPath ne propage pas les mises a jour de ConfigMap : Reloader redemarre le pod.
+    configmap.reloader.stakater.com/reload: "ma-jellyfin-parsers-patch"
 spec:
   replicas: 1
   strategy:
@@ -83,6 +86,12 @@ spec:
               mountPath: /data
             - name: tmp
               mountPath: /tmp
+            # Contournement Polyfin (CanDownload=false sur l'audio) : parsers.py 2.10.8 avec une ligne changee.
+            # Retirer ce montage apres correctif amont ou MA > 2.10.8 (garde : tests/harness/ma-jellyfin-patch-test.sh).
+            - name: jellyfin-parsers-patch
+              mountPath: /app/venv/lib/python3.14/site-packages/music_assistant/providers/jellyfin/parsers.py
+              subPath: parsers.py
+              readOnly: true
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -90,3 +99,6 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 1Gi
+        - name: jellyfin-parsers-patch
+          configMap:
+            name: ma-jellyfin-parsers-patch

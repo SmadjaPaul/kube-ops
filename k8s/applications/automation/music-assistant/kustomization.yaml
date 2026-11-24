@@ -8,6 +8,9 @@ configMapGenerator:
   - name: ma-publish-tokens-script
     files:
       - reconcile/ma_publish_tokens.py
+  - name: ma-jellyfin-parsers-patch
+    files:
+      - parsers.py=patches/jellyfin-parsers.py
   - name: ma-reconcile-desired
     files:
       - reconcile/desired.json
