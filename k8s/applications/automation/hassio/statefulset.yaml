@@ -134,6 +134,13 @@ spec:
               subPath: matter-server
             - name: matter-tmp
               mountPath: /tmp
+          readinessProbe:
+            exec:
+              command: ["/usr/local/bin/healthcheck.sh"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
           livenessProbe:
             exec:
               command: ["/usr/local/bin/healthcheck.sh"]
