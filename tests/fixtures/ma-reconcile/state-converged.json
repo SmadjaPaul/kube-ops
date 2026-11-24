@@ -4,7 +4,7 @@
   },
   "providers": [
     {"instance_id": "builtin", "domain": "builtin", "enabled": true, "values": {}},
-    {"instance_id": "sonos--a1", "domain": "sonos", "enabled": true, "values": {"manual_discovery_ip_addresses": {"value": ["10.0.35.50"]}}},
+    {"instance_id": "sonos--a1", "domain": "sonos", "enabled": true, "values": {"manual_discovery_ip_addresses": {"value": ["10.0.35.50", "10.0.35.54"]}}},
     {"instance_id": "chromecast--b2", "domain": "chromecast", "enabled": true, "values": {"manual_discovery_ip_addresses": {"value": ["10.0.35.241"]}}},
     {"instance_id": "jellyfin--c3", "domain": "jellyfin", "enabled": true, "values": {"url": {"value": "http://polyfin.media.svc.cluster.local:80"}, "username": {"value": "svc-music-assistant"}, "password": {"value": "$ENC$opaque"}}}
   ],
