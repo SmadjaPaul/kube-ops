@@ -46,9 +46,10 @@ A dedicated admission PR, image digest and runtime tests are mandatory.
   writer (`R2_CNPG_WRITER_*` and `R2_S3_ENDPOINT` in Doppler, bucket
   `homelab-backup-cnpg`), like Immich and Vikunja (PLT-219/PLT-73). Nothing
   goes to Hetzner. No secret value belongs in this repo.
-- **Private admission:** the staged HTTPRoute attaches only to
-  `Gateway/internal`. Adding `Gateway/external` is a separate reviewed
-  exposure decision and is not part of BookOrbit admission.
+- **Exposure (PRD-122):** the HTTPRoute serves `book.smadja.dev` on
+  `Gateway/internal` and `Gateway/external`. The external path is allowed only
+  behind Cloudflare Access (homelab-infra MANDAT 28). Rollback: remove
+  `external` first. The former `bookorbit` host name is not served.
 - **Path gate:** upstream v3.6 creates `APP_DATA_PATH` and its Book Dock
   directory at startup. The configured `/data/book-dock` path is therefore
   a runtime check, not a reason to mutate the shared media-layout job.
@@ -65,7 +66,7 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
 
 1. **Static:** run `kustomize build k8s/applications/media/bookorbit`, the
    staged contract, and `just check`. Confirm that the Media root
-   imports `bookorbit`, the route has only `Gateway/internal`, and
+   imports `bookorbit`, the route matches the exposure contract above, and
    `backup.yaml` uses the R2 contract (`R2_CNPG_WRITER_ACCESS_KEY_ID`,
    `R2_CNPG_WRITER_SECRET_ACCESS_KEY`, `R2_S3_ENDPOINT`) with no Hetzner
    identity.
@@ -87,7 +88,7 @@ this staged PR performs no Kubernetes mutation and no credentialed probe.
    and the `/data/book-dock` plus `/data/media/books` path contract. Do not
    delete or reinitialize the production claim.
 5. **Private admission:** merge the dedicated BookOrbit admission PR only after
-   all preceding gates pass. Keep Gateway/external, indexer/source egress and
+   all preceding gates pass. Keep indexer/source egress and
    automatic searching disabled. The owner has approved this target, but tests
    and runtime evidence must precede promotion.
 

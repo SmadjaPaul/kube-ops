@@ -4,3 +4,8 @@
 # Le scrape depuis monitoring est autorise par la CiliumNetworkPolicy bookorbit-postgresql (port 9187).
 exceptions:
   observability: "base CNPG surveillee par le PodMonitor central monitoring/cnpg-instances ; l'app n'expose pas de metrics"
+# PRD-122 : route sur la gateway external derriere Cloudflare Access. La sonde runtime vise un chemin
+# liseuse que Access laisse passer (homelab-infra MANDAT 28) : BookOrbit doit le refuser sans identifiants
+# (401). Elle ne prouve pas Access ; la preuve Access est un prealable au merge.
+auth: oidc
+auth_probe: /api/v1/opds

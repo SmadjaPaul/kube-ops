@@ -18,7 +18,7 @@ entries:
       client_id: bookorbit
       client_secret: !Env BOOKORBIT_CLIENT_SECRET
       redirect_uris:
-        - {url: https://bookorbit.smadja.dev/oauth2-callback, matching_mode: strict}
+        - {url: https://book.smadja.dev/oauth2-callback, matching_mode: strict}
         - {url: "bookorbit://oauth2-callback", matching_mode: strict}
       sub_mode: hashed_user_id
       property_mappings:
@@ -32,7 +32,7 @@ entries:
     attrs:
       name: BookOrbit
       group: Media
-      meta_launch_url: https://bookorbit.smadja.dev
+      meta_launch_url: https://book.smadja.dev
       provider: !KeyOf bookorbit_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding
