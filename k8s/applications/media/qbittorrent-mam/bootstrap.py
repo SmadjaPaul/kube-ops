@@ -85,7 +85,7 @@ def write_config() -> None:
         ("BitTorrent", r"Session\TempPathEnabled", "true"),
         ("BitTorrent", r"Session\Port", "51413"),
         ("BitTorrent", r"Session\GlobalMaxRatio", "-1"),
-        ("BitTorrent", r"Session\GlobalMaxSeedingMinutes", "0"),
+        ("BitTorrent", r"Session\GlobalMaxSeedingMinutes", "-1"),
         # A queued torrent does not seed, which would break MAM's 72 h seeding rule.
         ("BitTorrent", r"Session\QueueingSystemEnabled", "false"),
         ("Preferences", r"WebUI\Username", "admin"),

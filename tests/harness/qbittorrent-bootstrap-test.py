@@ -57,7 +57,7 @@ class QbittorrentBootstrapTest(unittest.TestCase):
         config = BOOTSTRAP.CONFIG.read_text()
         self.assertIn(f"Session\\DefaultSavePath={BOOTSTRAP.DOWNLOADS}", config)
         self.assertIn("Session\\GlobalMaxRatio=-1", config)
-        self.assertIn("Session\\GlobalMaxSeedingMinutes=0", config)
+        self.assertIn("Session\\GlobalMaxSeedingMinutes=-1", config)
         self.assertIn("AutoDeleteAddedTorrentFile=Never", config)
         self.assertIn("KeepThis=true", config)
         self.assertNotIn("offline-fixture-password-value", config)
