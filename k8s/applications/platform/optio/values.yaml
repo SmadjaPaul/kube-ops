@@ -65,6 +65,8 @@ existingSecrets:
   OPTIO_ENCRYPTION_KEY: {name: optio-app, key: OPTIO_ENCRYPTION_KEY}
   OIDC_CLIENT_ID: {name: optio-oidc, key: OIDC_CLIENT_ID}
   OIDC_CLIENT_SECRET: {name: optio-oidc, key: OIDC_CLIENT_SECRET}
+  # Deployment admins (comma-separated sign-in identities), read from a Secret: never in this public repo.
+  OPTIO_DEPLOYMENT_ADMINS: {name: optio-admins, key: OPTIO_DEPLOYMENT_ADMINS}
 
 publicUrl: https://optio.smadja.dev
 
