@@ -7,9 +7,11 @@ runbook).
 
 ## Drill automatisé (poste de Paul)
 
-`scripts/factory-pg2-restore-drill.sh` exécute les sections 2 à 4 : dernier snapshot, PostgreSQL 17
-jetable dans un conteneur sans réseau (`--network none`, données et dump en tmpfs), restauration
-complète, comptes et durées. Le conteneur est détruit en sortie. Prérequis : `restic`, Docker
+`scripts/factory-pg2-restore-drill.sh` automatise les sections 2 à 4, sans la comparaison avec la
+source : dernier snapshot (moins de 48 h), PostgreSQL 17 jetable dans un conteneur sans réseau
+(`--network none`, données et dump en tmpfs), tables exigées au TOC, restauration complète. Échec si
+`public.raw_events` ou une table `public.github_collection_*` est vide, ou si le trigger
+`raw_events_immutable` manque. Le conteneur est détruit en sortie. Prérequis : `restic`, Docker
 (`colima start`), session Doppler du poste. Clé R2 en lecture seule, aucune valeur affichée :
 
 ```bash
@@ -30,7 +32,8 @@ bash scripts/doppler-safe.sh run -p cluster --only RESTIC_BACKUP_PASSWORD,R2_S3_
 | `raw.events` / schéma `control` | 0 ligne / 0 ligne |
 | `public.github_collection_runs` / `_watermarks` | 529 / 10 lignes |
 | Trigger append-only de `raw.events` | présent (`raw_events_immutable`) |
-| Durée | 7 s (préparation 2 s, téléchargement 2 s, restauration 3 s), image déjà présente |
+| Durée | 5 à 7 s sur deux passages (dernier : préparation 1 s, téléchargement 2 s, restauration 2 s), image déjà présente |
+| Échec attendu | `MAX_AGE_HOURS=1` sur le même snapshot : `DRILL=FAIL`, code 1 |
 
 Limites : les comptes n'ont pas été comparés à la source (aucun accès SQL à pg2 avec l'identité
 agent). `pg_dump` échoue sur un droit manquant ou une politique RLS au lieu de produire une table
