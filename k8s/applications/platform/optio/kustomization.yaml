@@ -108,3 +108,9 @@ patches:
       apiVersion: v1
       kind: Pod
       metadata: {name: optio-test-web}
+  - target: {version: v1, kind: Pod, name: optio-test-metrics}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Pod
+      metadata: {name: optio-test-metrics}
