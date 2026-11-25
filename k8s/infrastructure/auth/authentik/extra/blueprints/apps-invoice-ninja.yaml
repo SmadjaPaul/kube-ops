@@ -29,6 +29,7 @@ entries:
       name: Invoice Ninja
       group: Business
       meta_launch_url: https://facture.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/invoice-ninja.png
       provider: !KeyOf invoice_ninja_provider
       policy_engine_mode: any
   # PLT-176: business data of Studio Lechaplais, reserved to `lechaplais`.

@@ -30,6 +30,7 @@ entries:
       name: SparkyFitness
       group: Personal
       meta_launch_url: https://fitness.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/sparkyfitness.png
       provider: !KeyOf sparkyfitness_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding

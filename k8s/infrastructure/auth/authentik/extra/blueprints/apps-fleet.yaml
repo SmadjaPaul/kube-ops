@@ -35,6 +35,7 @@ entries:
       name: Fleet
       group: Administration
       meta_launch_url: https://fleet.smadja.dev
+      meta_icon: https://raw.githubusercontent.com/fleetdm/fleet/02e64b1fb37ddc4196b16eda2babaa6f8f5a535a/apps/fleet-desktop-macos/FleetDesktop/fleet-logo.png
       provider: !KeyOf fleet_saml_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding

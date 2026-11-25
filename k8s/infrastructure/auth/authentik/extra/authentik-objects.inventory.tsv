@@ -1,0 +1,100 @@
+# Authentik applications and providers that Git declares or retires (PRD-122).
+# application<TAB>slug | provider<TAB>model<TAB>name. Add a line with each new object.
+# Do not delete a line to retire an object: add it to blueprints/apps-retired.yaml.
+# Checked by tests/harness/authentik-retirements-contract-test.sh.
+application	actual
+application	aiostreams
+application	argocd
+application	audiobookshelf
+application	bazarr
+application	bookorbit
+application	cloudflare
+application	dawarich
+application	factory
+application	fleet
+application	grafana
+application	home-assistant
+application	immich
+application	invoice-ninja
+application	jellyfin
+application	jellyseerr
+application	karakeep
+application	kubectl
+application	librechat
+application	lidarr
+application	litellm
+application	matrix-mas
+application	mealie
+application	messages
+application	metabase
+application	ntfy
+application	opencode
+application	openwebui
+application	paperless
+application	pinepods
+application	polyfin
+application	prowlarr
+application	radarr
+application	romm
+application	rustical
+application	sabnzbd
+application	searxng
+application	sonarr
+application	sparkyfitness
+application	stirling-pdf
+application	sure
+application	talos-ops-blue
+application	talos-ops-green
+application	talos-personal-blue
+application	talos-personal-green
+application	talos-test-blue
+application	talos-test-green
+application	vikunja
+application	zigbee2mqtt
+provider	authentik_providers_oauth2.oauth2provider	cloudflare-provider
+provider	authentik_providers_oauth2.oauth2provider	jellyfin
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/ai-karakeep
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/ai/litellm
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/ai/openwebui
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/argocd
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/automation/home-assistant
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/business/invoice-ninja
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/business/messages
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/catalog/actual-budget
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/catalog/dawarich
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/catalog/mealie
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/catalog/metabase
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/catalog/ntfy
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/catalog/paperless
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/catalog/sure
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/catalog/vikunja
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/games/romm
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/infra-observability/grafana
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/kubectl
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/media/aiostreams
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/media/bookorbit
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/media/polyfin
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/personal-ai/librechat
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/personal/rustical
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/personal/sparkyfitness
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/platform/mastra-factory
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/platform/matrix-mas
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/services-external/zigbee2mqtt
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/services-immich
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/services-media/audiobookshelf
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/services-media/bazarr
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/services-media/jellyseerr
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/services-media/lidarr
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/services-media/sabnzbd
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/ops-blue
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/ops-green
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/personal-blue
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/personal-green
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/test-blue
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/test-green
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/web/pinepods
+provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-media/prowlarr-proxy
+provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-media/radarr-proxy
+provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-media/sonarr-proxy
+provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-opencode
+provider	authentik_providers_saml.samlprovider	k8s.smadja.dev/identity/fleet

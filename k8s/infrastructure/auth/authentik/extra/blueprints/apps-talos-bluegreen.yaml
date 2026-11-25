@@ -173,6 +173,7 @@ entries:
       group: Talos
       meta_description: Staged Talos Personal native OIDC cell
       meta_launch_url: https://talos-personal-blue.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1f916.png
       provider: !KeyOf talos-personal-blue-provider
       policy_engine_mode: any
   - id: talos-personal-green-application
@@ -183,6 +184,7 @@ entries:
       group: Talos
       meta_description: Staged Talos Personal native OIDC cell
       meta_launch_url: https://talos-personal-green.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1f916.png
       provider: !KeyOf talos-personal-green-provider
       policy_engine_mode: any
   - id: talos-ops-blue-application
@@ -193,6 +195,7 @@ entries:
       group: Talos
       meta_description: Staged Talos Ops native OIDC cell
       meta_launch_url: https://talos-ops-blue.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1f916.png
       provider: !KeyOf talos-ops-blue-provider
       policy_engine_mode: any
   - id: talos-ops-green-application
@@ -203,6 +206,7 @@ entries:
       group: Talos
       meta_description: Staged Talos Ops native OIDC cell
       meta_launch_url: https://talos-ops-green.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1f916.png
       provider: !KeyOf talos-ops-green-provider
       policy_engine_mode: any
   - id: talos-test-blue-application
@@ -213,6 +217,7 @@ entries:
       group: Talos
       meta_description: Staged Talos Test native OIDC cell
       meta_launch_url: https://talos-test-blue.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1f916.png
       provider: !KeyOf talos-test-blue-provider
       policy_engine_mode: any
   - id: talos-test-green-application
@@ -223,6 +228,7 @@ entries:
       group: Talos
       meta_description: Staged Talos Test native OIDC cell
       meta_launch_url: https://talos-test-green.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1f916.png
       provider: !KeyOf talos-test-green-provider
       policy_engine_mode: any
 

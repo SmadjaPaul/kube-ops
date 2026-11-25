@@ -35,6 +35,7 @@ entries:
       name: LibreChat
       group: Personal AI
       meta_launch_url: https://librechat.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/librechat.png
       provider: !KeyOf librechat_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding

@@ -34,6 +34,7 @@ entries:
       slug: matrix-mas
     attrs:
       name: Matrix Authentication Service
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/matrix.png
       group: Infrastructure
       meta_description: Matrix human identity via Authentik
       provider: !KeyOf matrix_mas_oidc_provider

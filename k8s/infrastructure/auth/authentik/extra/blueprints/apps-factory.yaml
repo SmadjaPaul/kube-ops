@@ -35,6 +35,7 @@ entries:
       slug: factory
     attrs:
       name: Mastra Factory
+      meta_icon: https://raw.githubusercontent.com/mastra-ai/mastra/ec2619c57e1978ffbdfc5380cc11b88b4fe418b3/mastracode/factory-ui/src/ui/public/apple-touch-icon.png
       group: Infrastructure
       meta_description: AI-native software delivery
       provider: !KeyOf factory_oidc_provider

@@ -31,6 +31,7 @@ entries:
       name: ntfy
       group: Family
       meta_launch_url: https://ntfy.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/ntfy.png
       provider: !KeyOf ntfy_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding
