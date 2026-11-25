@@ -9,7 +9,6 @@ resources:
 - podmonitor.yaml
 - podmonitor-app.yaml
 - httproute.yaml
-- referencegrant.yaml
 - extra
 helmCharts:
 - name: authentik

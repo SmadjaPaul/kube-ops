@@ -111,8 +111,8 @@ if grep -q 'flows-passwordless-authentication.yaml\|flows-default-authentication
   echo "ERROR: Authentik must use the upstream-native authentication baseline" >&2
   exit 1
 fi
-if grep -q 'homelab\.orkestack\.com\|sso\.smadja\.dev' k8s/infrastructure/auth/authentik/extra/blueprints/{brands,outposts}.yaml; then
-  echo "ERROR: Authentik branding/outposts contain stale external bindings" >&2
+if grep -q 'homelab\.orkestack\.com\|sso\.smadja\.dev' k8s/infrastructure/auth/authentik/extra/blueprints/brands.yaml; then
+  echo "ERROR: Authentik branding contains stale external bindings" >&2
   exit 1
 fi
 

@@ -50,7 +50,7 @@ Access is **always by group, never per user**. Model: `docs/operations/authentik
 
 ## Q4 — Identity
 - App has native OIDC: Authentik blueprint (`k8s/infrastructure/auth/authentik/extra/blueprints/`), **confidential client**. Its secret is generated in the cluster (class T3, `oidc-<namespace>` in `auth`, copy `<app>-oidc` through store `k8s-auth`); nothing goes to Doppler, the client id is a Git literal. Run `bash scripts/scaffold-app-secrets.sh APP --namespace NS --oidc CLIENT_ID` (dry-run, then `--write`). Keep the local login until the first admin OIDC login works (`.agents/skills/oidc-integration`).
-- No OIDC: forward-auth through the Authentik outpost.
+- No OIDC: forward-auth needs an Authentik outpost; none is declared (Proxy Outpost retired, PRD-122), so declare one in a blueprint first.
 - Policy binds a group (Q1), never a user.
 
 ## Q5 — Exposure

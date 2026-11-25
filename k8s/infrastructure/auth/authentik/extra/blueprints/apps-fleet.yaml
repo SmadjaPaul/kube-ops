@@ -22,6 +22,8 @@ entries:
       issuer_override: authentik
       sp_binding: post
       signing_kp: !Find [authentik_crypto.certificatekeypair, [name, "authentik Self-signed Certificate"]]
+      # The 2026.8.6 serializer refuses signing_kp without a signed assertion or response.
+      sign_assertion: true
       name_id_mapping: !Find
         - authentik_providers_saml.samlpropertymapping
         - [managed, "goauthentik.io/providers/saml/email"]

@@ -5,7 +5,6 @@ resources:
   - secrets.yml
   - eso-k8s-reader-rbac.yaml
   - smtp-externalsecret.yaml
-  - talos-bluegreen-externalsecret.yaml
   - factory-oidc-external-secret.dormant.yaml
   - matrix-mas-oidc-externalsecret.yaml
   # Legacy filename retained; this AIOStreams ExternalSecret is active.
@@ -54,11 +53,9 @@ configMapGenerator:
       - ./blueprints/authentication.yaml
       - ./blueprints/flows-default-provider-authorization-one-time-consent.yaml
       - ./blueprints/oauth-scopes.yaml
-      - ./blueprints/outposts-v2.yaml    # Human users enroll through short-lived Authentik invitations; no human
-      - ./blueprints/outposts.yaml    # Legacy managed instance compatibility; source is Git-owned.
+      # Human users enroll through short-lived Authentik invitations; no human
       # password or invitation token is stored in Git/Doppler. notifications.yaml
       # stays excluded until its optional Slack webhook exists.
-      - ./blueprints/apps-talos-bluegreen.yaml
       - ./blueprints/apps-factory.yaml
       - ./blueprints/apps-fleet.yaml
       - ./blueprints/apps-matrix-mas.yaml
