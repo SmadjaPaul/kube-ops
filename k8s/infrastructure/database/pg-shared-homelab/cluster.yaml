@@ -54,6 +54,15 @@ spec:
         createrole: false
         passwordSecret:
           name: pg-pgdump
+      # PLT-339: Optio (namespace optio), optio-database.yaml.
+      - name: optio
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        passwordSecret:
+          name: pg-optio
   storage:
     storageClass: longhorn-fast
     size: 20Gi

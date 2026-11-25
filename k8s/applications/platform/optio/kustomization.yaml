@@ -1,0 +1,73 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: optio
+
+resources:
+  - namespace.yaml
+  - quota.yaml
+  - networkpolicy.yaml
+  - externalsecrets.yaml
+  - httproute.yaml
+
+helmCharts:
+  - name: optio
+    repo: oci://ghcr.io/jonwiggins
+    version: 0.26.4
+    releaseName: optio
+    namespace: optio
+    includeCRDs: false
+    valuesFile: values.yaml
+
+# OPTIO_MAX_AUTO_RESUMES (default 10, docs/reconciliation.md) has no chart value in 0.26.4: set it on
+# the API container. 3 automatic resumes at most per task (MANDAT 30).
+patches:
+  - target: {group: apps, version: v1, kind: Deployment, name: optio-api}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: OPTIO_MAX_AUTO_RESUMES, value: "3"}
+      # The chart config holds no secret value (secrets come from existingSecrets): served as a
+      # ConfigMap, a rendered Secret is refused by repo-contract-no-rendered-secret.
+      - op: replace
+        path: /spec/template/spec/containers/0/envFrom/0
+        value: {configMapRef: {name: optio-config}}
+      # emptyDir size limits (platform-baseline-emptydir-size-limit).
+      - op: replace
+        path: /spec/template/spec/volumes/0/emptyDir
+        value: {sizeLimit: 512Mi}
+      - op: replace
+        path: /spec/template/spec/volumes/1/emptyDir
+        value: {sizeLimit: 256Mi}
+      - op: replace
+        path: /spec/template/spec/volumes/2/emptyDir
+        value: {sizeLimit: 1Gi}
+  - target: {version: v1, kind: Secret, name: optio-config}
+    patch: |-
+      - op: replace
+        path: /kind
+        value: ConfigMap
+      - op: move
+        from: /stringData
+        path: /data
+      - op: remove
+        path: /type
+  # Helm test Pods (helm.sh/hook: test): not run by Argo CD, and they would count in quota.yaml.
+  - target: {version: v1, kind: Pod, name: optio-test-api}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Pod
+      metadata: {name: optio-test-api}
+  - target: {version: v1, kind: Pod, name: optio-test-redis}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Pod
+      metadata: {name: optio-test-redis}
+  - target: {version: v1, kind: Pod, name: optio-test-web}
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Pod
+      metadata: {name: optio-test-web}

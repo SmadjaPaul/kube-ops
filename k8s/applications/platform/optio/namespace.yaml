@@ -1,0 +1,12 @@
+# PLT-339 (D-2026-11-25-05, MANDAT 30): Optio (API, web, Redis and the agent pods it starts).
+# PSA restricted: every pod, agent pods included, must be non-root with RuntimeDefault seccomp.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: optio
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
