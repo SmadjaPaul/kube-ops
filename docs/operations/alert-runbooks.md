@@ -164,11 +164,6 @@ Routage : `critical` va sur ntfy (téléphone). `warning` et `info` vont sur le 
 - **Première vérification** : `get backups -n velero`, puis `describe backup <nom>`.
 - **Action** : corriger la cause (R2, PVC, timeout). Relancer une sauvegarde manuelle après correction.
 
-### VeleroBackupSkippedVolumes
-- **Signal** : un backup planifié a sauté au moins un volume parce que le pod était `Pending` ou `Unknown`. La phase du backup reste `Completed`.
-- **Première vérification** : Loki `{namespace="velero", container="velero"} |= "Skip pod volume" |= "<velero_schedule>"` (pod, namespace, phase), puis `get pods -n <ns>` et `get podvolumebackups -n velero -l velero.io/backup-name=<backup>`.
-- **Action** : remettre le pod Running, puis lancer un backup depuis le Schedule ou attendre le passage suivant. Vérifier un `PodVolumeBackup` `Completed` par volume attendu. L'alerte s'éteint 25 h après le dernier volume sauté, ou au redémarrage d'Alloy : son extinction ne prouve pas un backup complet. Détail et limites : [velero-node-boot-catch-up.md](../runbooks/velero-node-boot-catch-up.md).
-
 ### VeleroBackupPartialFailure
 - **Signal** : une sauvegarde Velero est partielle.
 - **Première vérification** : `describe backup <nom>` (erreurs et avertissements par ressource).
