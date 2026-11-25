@@ -81,3 +81,16 @@ spec:
   selector:
     a: b
   type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  deletionTimestamp: '2026-01-01T00:00:00Z'
+  name: deletion-timestamp-no-old-object
+  namespace: app
+spec:
+  ports:
+  - port: 80
+  selector:
+    a: b
+  type: LoadBalancer
