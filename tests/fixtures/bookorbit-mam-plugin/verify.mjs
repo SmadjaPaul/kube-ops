@@ -477,9 +477,9 @@ console.log('forget()');
 {
   const config = cfg({ settings: { dynamicSeedbox: true } });
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: true, msg: 'Completed' }) : bencode()));
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, config, host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, config, host);
   plugin.forget(config.id);
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://x/2' }, config, host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/2' }, config, host);
   ok('gives a new session its own seedbox attempt within the hour', host.calls.filter((u) => u.includes('dynamicSeedbox')).length === 2, host.calls);
 }
 {
@@ -506,7 +506,7 @@ console.log('forget()');
 console.log('fetchTorrentFile()');
 {
   const host = makeHost(() => bencode());
-  const out = await plugin.fetchTorrentFile({ guid: '1', title: 't', downloadUrl: 'https://www.myanonamouse.net/tor/download.php?tid=1' }, cfg(), host);
+  const out = await plugin.fetchTorrentFile({ guid: '1', title: 't', freeleech: true, downloadUrl: 'https://www.myanonamouse.net/tor/download.php?tid=1' }, cfg(), host);
   ok('returns the torrent bytes', out instanceof Uint8Array && out[0] === 0x64);
   ok('fetches it with the session', host.reqs[0].init.headers.Cookie === 'mam_id=session-abc');
 }
@@ -515,28 +515,28 @@ console.log('fetchTorrentFile()');
   ok('refuses a release with no download link', err.code === 'error', err.message);
 }
 {
-  const err = await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg(), makeHost(() => res(new Uint8Array()))).catch((e) => e);
+  const err = await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg(), makeHost(() => res(new Uint8Array()))).catch((e) => e);
   ok('refuses an empty torrent', err.code === 'error', err.message);
 }
 {
-  const err = await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg(), makeHost(() => res(new Uint8Array(3 * 1024 * 1024)))).catch((e) => e);
+  const err = await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg(), makeHost(() => res(new Uint8Array(3 * 1024 * 1024)))).catch((e) => e);
   ok('refuses a torrent too large to be one', err.code === 'error', err.message);
 }
 {
   // An expired session answers a download link with an HTML login page, not an error status.
-  const err = await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg(), makeHost(() => res('<html>login</html>'))).catch((e) => e);
+  const err = await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg(), makeHost(() => res('<html>login</html>'))).catch((e) => e);
   ok('reads a login page in place of a torrent as an expired session', err.code === 'unauthorized', err.message);
 }
 
 console.log('dynamic seedbox');
 {
   const host = makeHost(() => bencode());
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg(), host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg(), host);
   ok('is not registered unless asked for', host.calls.every((u) => !u.includes('dynamicSeedbox')));
 }
 {
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: true, msg: 'Completed' }) : bencode()));
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg({ settings: { dynamicSeedbox: true } }), host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg({ settings: { dynamicSeedbox: true } }), host);
   // Before the fetch, because the announce follows within seconds of the client getting the file.
   ok('registers the address before fetching the torrent', host.calls[0].includes('dynamicSeedbox'), host.calls);
 }
@@ -546,7 +546,7 @@ console.log('dynamic seedbox');
   for (const baseUrl of ['https://www.myanonamouse.net', 'https://www.myanonamouse.net/', 'https://myanonamouse.net', 'https://t.myanonamouse.net']) {
     const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: true, msg: 'Completed' }) : bencode()));
     const config = cfg({ baseUrl, settings: { dynamicSeedbox: true } });
-    await plugin.fetchTorrentFile({ downloadUrl: 'https://www.myanonamouse.net/tor/download.php?tid=1' }, config, host);
+    await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://www.myanonamouse.net/tor/download.php?tid=1' }, config, host);
     ok(`registers on the seedbox host for ${baseUrl}`, host.calls[0] === seedboxUrl, host.calls);
     ok(`and sends the session there for ${baseUrl}`, host.reqs[0].init.headers.Cookie === 'mam_id=session-abc', host.reqs[0].init);
   }
@@ -558,7 +558,7 @@ console.log('dynamic seedbox');
   );
   const config = cfg({ settings: { dynamicSeedbox: true } });
   const [release] = await plugin.search(query(), config, host);
-  await plugin.fetchTorrentFile(release, config, host);
+  await plugin.fetchTorrentFile({ ...release, freeleech: true }, config, host);
   ok('keeps search on the configured host', host.calls[0].startsWith('https://www.myanonamouse.net/tor/'), host.calls);
   ok('keeps the torrent download on the configured host', host.calls.at(-1).startsWith('https://www.myanonamouse.net/tor/download.php'), host.calls);
 }
@@ -566,20 +566,20 @@ console.log('dynamic seedbox');
   // Any other base is an operator's proxy, which routes the registration itself.
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: true, msg: 'Completed' }) : bencode()));
   const config = cfg({ baseUrl: 'https://mam.proxy.example/mam/', settings: { dynamicSeedbox: true } });
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://mam.proxy.example/mam/tor/download.php?tid=1' }, config, host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://mam.proxy.example/mam/tor/download.php?tid=1' }, config, host);
   ok('registers through a custom base unchanged', host.calls[0] === 'https://mam.proxy.example/mam/json/dynamicSeedbox.php', host.calls);
 }
 {
   // A suffix match on the bare name would send a lookalike domain the tracker's session.
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: true, msg: 'Completed' }) : bencode()));
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg({ baseUrl: 'https://notmyanonamouse.net', settings: { dynamicSeedbox: true } }), host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg({ baseUrl: 'https://notmyanonamouse.net', settings: { dynamicSeedbox: true } }), host);
   ok('does not treat a lookalike domain as the tracker', host.calls[0] === 'https://notmyanonamouse.net/json/dynamicSeedbox.php', host.calls);
 }
 {
   const config = cfg({ settings: { dynamicSeedbox: true } });
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: true, msg: 'Completed' }) : bencode()));
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, config, host);
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://x/2' }, config, host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, config, host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/2' }, config, host);
   // The tracker will not move the registration more than once an hour, so neither does this.
   ok('registers at most once an hour', host.calls.filter((u) => u.includes('dynamicSeedbox')).length === 1);
 }
@@ -587,19 +587,19 @@ console.log('dynamic seedbox');
   // Overwhelmingly a session created without dynamic-seedbox permission. Never fatal: the grab is
   // left to fail at the tracker with the tracker's own message.
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: false, msg: 'Not authorized' }) : bencode()));
-  const out = await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg({ settings: { dynamicSeedbox: true } }), host).catch((e) => e);
+  const out = await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg({ settings: { dynamicSeedbox: true } }), host).catch((e) => e);
   ok('hands over the torrent even when registration is refused', out instanceof Uint8Array);
   ok('and says so in the log', host.logs.some((m) => /Not authorized/.test(m)), host.logs);
 }
 {
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? Promise.reject(new Error('boom')) : bencode()));
-  const out = await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg({ settings: { dynamicSeedbox: true } }), host).catch((e) => e);
+  const out = await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg({ settings: { dynamicSeedbox: true } }), host).catch((e) => e);
   ok('hands over the torrent even when registration throws', out instanceof Uint8Array);
 }
 {
   // "No change" means the registration is already where it should be, not that anything failed.
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: false, msg: 'No change' }) : bencode()));
-  await plugin.fetchTorrentFile({ downloadUrl: 'https://x/1' }, cfg({ settings: { dynamicSeedbox: true } }), host);
+  await plugin.fetchTorrentFile({ freeleech: true, downloadUrl: 'https://x/1' }, cfg({ settings: { dynamicSeedbox: true } }), host);
   ok('treats "no change" as success', host.logs.some((m) => /seedbox address registered/.test(m)), host.logs);
 }
 
@@ -633,6 +633,52 @@ console.log('test() and keepalive()');
   const host = makeHost((url) => (url.includes('dynamicSeedbox') ? json({ Success: true, msg: 'ok' }) : json({ unread: 0 })));
   await plugin.keepalive(cfg({ settings: { dynamicSeedbox: true } }), host);
   ok('keepalive refreshes the seedbox registration too', host.calls.some((u) => u.includes('dynamicSeedbox')));
+}
+
+console.log('account guard and VIP top-up');
+{
+  const account = (over = {}) => ({
+    classname: 'User',
+    seedbonus: 10700,
+    ratio: '2,000',
+    uploaded: '1.00 GiB',
+    downloaded: '506.18 KiB',
+    snatch_summary: { unsat: { count: 7, limit: 20 } },
+    ...over,
+  });
+  const hostFor = (payload) => makeHost((url) => (url.includes('jsonLoad') ? json(payload) : url.includes('bonusBuy') ? json({ success: true }) : bencode()));
+  const grab = (payload, release) => {
+    const host = hostFor(payload);
+    return plugin
+      .fetchTorrentFile({ guid: '1', title: 't', downloadUrl: 'https://www.myanonamouse.net/tor/download.php?tid=1', ...release }, cfg(), host)
+      .then((out) => ({ out, host }), (error) => ({ error, host }));
+  };
+  const downloaded = (result) => result.host.calls.some((u) => u.includes('download.php'));
+
+  ok('lets a small paid release through when the ratio can afford it', downloaded(await grab(account(), { sizeBytes: 5 * 1024 ** 2 })));
+  const big = await grab(account(), { sizeBytes: 2 * 1024 ** 3 });
+  ok('refuses a paid release that would drop the ratio below 2', /ratio below 2/.test(big.error?.message) && !downloaded(big), big.error?.message);
+  ok('lets the same size through when it is freeleech', downloaded(await grab(account(), { sizeBytes: 2 * 1024 ** 3, freeleech: true })));
+  ok('lets a VIP take a VIP release', downloaded(await grab(account({ classname: 'VIP' }), { sizeBytes: 2 * 1024 ** 3, vipOnly: true })));
+  const full = await grab(account({ snatch_summary: { unsat: { count: 18, limit: 20 } } }), { sizeBytes: 1, freeleech: true });
+  ok('keeps two unsatisfied slots free', /18 unsatisfied/.test(full.error?.message) && !downloaded(full), full.error?.message);
+  const blind = await grab({ classname: 'User' }, { sizeBytes: 1024 });
+  ok('refuses a paid release when the volumes are unknown', /cannot be checked/.test(blind.error?.message), blind.error?.message);
+
+  const keep = async (payload, settings = { autoVip: true }) => {
+    const host = hostFor(payload);
+    await plugin.keepalive(cfg({ settings }), host);
+    return host;
+  };
+  const bought = (host) => host.calls.filter((u) => u.includes('bonusBuy.php/?spendtype=VIP&duration=max')).length;
+  const logged = await keep(account());
+  ok('logs the account reading', logged.logs.some((m) => /\[mam\.account\].*points=10700.*unsat=7 unsatLimit=20/.test(m)), logged.logs);
+  ok('never buys VIP for a plain User', bought(logged) === 0);
+  ok('buys VIP for a Power User with enough points', bought(await keep(account({ classname: 'Power User' }))) === 1);
+  ok('does not buy unless asked', bought(await keep(account({ classname: 'Power User' }), {})) === 0);
+  ok('does not buy under 5000 points', bought(await keep(account({ classname: 'Power User', seedbonus: 4999 }))) === 0);
+  const far = new Date(Date.now() + 40 * 864e5).toISOString().slice(0, 19).replace('T', ' ');
+  ok('does not top up while more than 30 days remain', bought(await keep(account({ classname: 'VIP', vip_until: far }))) === 0);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
