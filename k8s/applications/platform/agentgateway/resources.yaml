@@ -275,7 +275,9 @@ data:
           provider: anthropic
           params:
             model: claude-opus-5-5
-            apiKey: "$ANTHROPIC_UPSTREAM_API_KEY"
+            # `${VAR:-}` (shellexpand, config.rs parse_config): an absent key expands to "" instead of
+            # failing the whole config load; code/frontier then answers 401 until the key exists.
+            apiKey: "${ANTHROPIC_UPSTREAM_API_KEY:-}"
         - name: text/research
           provider:
             custom:
