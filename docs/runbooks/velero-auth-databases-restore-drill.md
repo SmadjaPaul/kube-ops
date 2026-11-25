@@ -9,7 +9,7 @@ prouve que leurs backups sont restaurables.
 
 | Schedule | Inclus | Exclu |
 |---|---|---|
-| `velero-daily-auth` | Secrets, ConfigMaps, ExternalSecrets, HTTPRoute, ReferenceGrant, PodMonitor, workloads et PVC Redis (fs-backup Kopia) | tout objet labellisé `cnpg.io/cluster` (pods, PVC data/WAL, Secrets générés par CNPG), CRs `clusters`, `backups`, `scheduledbackups`, `objectstores` |
+| `velero-daily-auth` | Secrets, ConfigMaps, ExternalSecrets, HTTPRoute, ReferenceGrant, PodMonitor, workloads (aucun volume copié : les `emptyDir` `shm` et `media` sont exclus, PLT-503) | tout objet labellisé `cnpg.io/cluster` (pods, PVC data/WAL, Secrets générés par CNPG), CRs `clusters`, `backups`, `scheduledbackups`, `objectstores` |
 | `velero-daily-databases` | Secrets, ConfigMaps, ExternalSecrets, CRs `Cluster`, `ScheduledBackup`, `ObjectStore`, CiliumNetworkPolicy | pods, PVC, PV, VolumeSnapshots, CRs `Backup` ; objets `cnpg.io/cluster` ; aucun fs-backup ni snapshot |
 
 Pourquoi aucun volume PG dans Velero : les données PostgreSQL sont déjà protégées
@@ -80,8 +80,8 @@ Variables : `NS_DRILL=drill-auth-db-$(date -u +%Y%m%d)`.
    l'`ObjectStore` restauré référence le même bucket/prefix que Git.
 4. `databases` : zéro PodVolumeBackup et zéro VolumeSnapshot pour ce backup
    (`kubectl -n velero get podvolumebackup -l velero.io/backup-name=<backup-databases>` vide).
-5. `auth` : si le PVC Redis est restauré, il est `Bound` avec les données
-   attendues ; aucun PVC `authentik-postgresql-restored-*` n'apparaît.
+5. `auth` : aucun PVC `authentik-postgresql-restored-*` n'apparaît (le namespace
+   n'a pas d'autre PVC).
 6. Aucune ressource du drill ne parle à la production : pas de Cluster CNPG
    créé, aucun nouveau WAL/objet sous les préfixes R2 de prod pendant la fenêtre
    (comparer le dernier WAL archivé avant/après).
