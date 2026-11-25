@@ -1,8 +1,41 @@
 # Restauration du dump logique de factory-platform-pg2 (PLT-369)
 
-Statut : runbook. Aucune restauration complète n'a encore été exécutée. La procédure ci-dessous
-restaure dans une base temporaire, jamais dans `factory-platform-pg2` (la restauration en place
-est une décision de Paul, destructive, hors de ce runbook).
+Statut : restauration complète prouvée le 25/11/2026 dans une base jetable (section « Dernier
+drill »). La procédure ci-dessous restaure dans une base temporaire, jamais dans
+`factory-platform-pg2` (la restauration en place est une décision de Paul, destructive, hors de ce
+runbook).
+
+## Drill automatisé (poste de Paul)
+
+`scripts/factory-pg2-restore-drill.sh` exécute les sections 2 à 4 : dernier snapshot, PostgreSQL 17
+jetable dans un conteneur sans réseau (`--network none`, données et dump en tmpfs), restauration
+complète, comptes et durées. Le conteneur est détruit en sortie. Prérequis : `restic`, Docker
+(`colima start`), session Doppler du poste. Clé R2 en lecture seule, aucune valeur affichée :
+
+```bash
+bash scripts/doppler-safe.sh run -p cluster --only RESTIC_BACKUP_PASSWORD,R2_S3_ENDPOINT -- \
+  bash scripts/doppler-safe.sh run -p infrastructure --only R2_RESTIC_READER_ACCESS_KEY_ID,R2_RESTIC_READER_SECRET_ACCESS_KEY -- \
+  bash scripts/factory-pg2-restore-drill.sh
+```
+
+### Dernier drill : 25/11/2026, `DRILL=PASS` (RUNTIME)
+
+| Mesure | Valeur |
+|---|---|
+| Snapshot | `6b29ddfb`, pris le 24/11 à 20:15 UTC |
+| Dump | 14 739 882 octets, 41 entrées `TABLE DATA` |
+| `pg_restore --exit-on-error` | PASS |
+| Base restaurée | 224 MB (`analytics` 6 tables, `control` 13, `elementary` 17, `public` 4, `raw` 1) |
+| `public.raw_events` | 85 119 lignes |
+| `raw.events` / schéma `control` | 0 ligne / 0 ligne |
+| `public.github_collection_runs` / `_watermarks` | 529 / 10 lignes |
+| Trigger append-only de `raw.events` | présent (`raw_events_immutable`) |
+| Durée | 7 s (préparation 2 s, téléchargement 2 s, restauration 3 s), image déjà présente |
+
+Limites : les comptes n'ont pas été comparés à la source (aucun accès SQL à pg2 avec l'identité
+agent). `pg_dump` échoue sur un droit manquant ou une politique RLS au lieu de produire une table
+vide, ce qui n'a pas été revérifié sur pg2. La durée est mesurée sur le Mac, pas sur le cluster, et
+n'inclut ni la création d'un cluster CNPG ni la bascule des consommateurs.
 
 ## Ce qui existe
 
