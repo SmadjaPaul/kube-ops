@@ -1,7 +1,6 @@
 # PLT-339: 2 agents at most (MANDAT 30). A quota cannot select pods by label, so the cap counts
 # every pod of the namespace: 4 = api (with its web container) + redis + 2 agent pods (repo pod or Job, PR review
-# included). A third agent pod is refused by the API server (Forbidden: exceeded quota).
-# 2 PVCs = the agent home directories. The per-workspace concurrency in Optio must also be 2
+# included). A third agent pod is refused by the API server (Forbidden: exceeded quota). The per-workspace concurrency in Optio must also be 2
 # (UI or config-as-code, NON VERIFIE: no chart value for it in 0.26.4).
 apiVersion: v1
 kind: ResourceQuota
@@ -11,7 +10,10 @@ metadata:
 spec:
   hard:
     pods: "4"
-    persistentvolumeclaims: "2"
+    # Optio keeps one home PVC per repo pod ordinal (volumeClaimTemplates, never deleted:
+    # k8s-workload-service.ts deleteStatefulSet). 8 = the 5 repositories of the scope plus margin.
+    persistentvolumeclaims: "8"
+    requests.storage: 80Gi
     requests.cpu: "6"
     requests.memory: 16Gi
     limits.cpu: "12"

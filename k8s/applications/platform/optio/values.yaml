@@ -10,18 +10,25 @@ createNamespace: false   # namespace.yaml (PSA restricted labels)
 updates:
   check: false
 
+# auth.smadja.dev resolves to Gateway/internal (private VIP) on the cluster DNS view: Optio's
+# outbound guard (utils/outbound-url.ts, used by services/oauth/oidc.ts) refuses private addresses
+# unless the host is listed. Only this host; private ranges stay refused.
+outbound:
+  allowPrivate: false
+  allowedHosts: ["auth.smadja.dev"]
+
 workspaces:
   creation: admins
 
 api:
-  image: {repository: ghcr.io/jonwiggins/optio-api, tag: "0.26.4", pullPolicy: IfNotPresent}
+  image: {repository: ghcr.io/jonwiggins/optio-api, tag: "0.26.4@sha256:31de15bb8cd9d672cec1cac21717b0ef488f3d1c255a0a91b1fd99c695eedc68", pullPolicy: IfNotPresent}
   replicas: 1
   resources:
     requests: {cpu: 250m, memory: 512Mi}
     limits: {cpu: "1", memory: 1Gi}
 
 web:
-  image: {repository: ghcr.io/jonwiggins/optio-web, tag: "0.26.4", pullPolicy: IfNotPresent}
+  image: {repository: ghcr.io/jonwiggins/optio-web, tag: "0.26.4@sha256:0c68d82dba574998a19dfdb2d76a1d3c3cee72e13cdc56dfcf2751c8a7b50f9a", pullPolicy: IfNotPresent}
   resources:
     requests: {cpu: 100m, memory: 256Mi}
     limits: {cpu: 500m, memory: 512Mi}
@@ -29,6 +36,8 @@ web:
 agent:
   image:
     repository: ghcr.io/jonwiggins/optio-agent-base
+    # Tag only: Optio builds preset images as {prefix}{preset}:{tag}, a digest here would be wrong
+    # for every preset. optio-agent-base:0.26.4 = sha256:4c76bc13cf8f053d239e5e25015a17e00464231ac6f79e63af069ea94edfd4f5 (25/11).
     tag: "0.26.4"
     prefix: "ghcr.io/jonwiggins/optio-agent-"
   # PSA restricted: no root initContainer, runAsNonRoot on agent pods (k8s-workload-service.ts).
@@ -106,5 +115,15 @@ rbac:
 resourceQuota:
   enabled: false
 
+# Prometheus metrics of the API (port 9464) scraped by kube-prometheus-stack. The chart's own
+# metrics NetworkPolicy is a standard NetworkPolicy (k8s/CLAUDE.md: Cilium only): disabled, the
+# CiliumNetworkPolicy optio-api admits the monitoring namespace on 9464.
 metrics:
-  enabled: false
+  enabled: true
+  port: 9464
+  networkPolicy:
+    enabled: false
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack

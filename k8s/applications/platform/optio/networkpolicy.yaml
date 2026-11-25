@@ -85,6 +85,10 @@ spec:
         - matchLabels: {managed-by: optio}
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}
+      toPorts:
+        - ports: [{port: "9464", protocol: TCP}]
   egress:
     - toEndpoints:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: kube-system, k8s:k8s-app: kube-dns}
@@ -110,8 +114,20 @@ spec:
       toPorts:
         - ports: [{port: "4318", protocol: TCP}]
     # Web container to the API in the same pod uses localhost (not filtered).
+    # OIDC: auth.smadja.dev resolves to Gateway/internal on the cluster DNS view (librechat pattern):
+    # VIP 443 plus the Authentik server backend.
+    - toCIDRSet:
+        - cidr: 10.0.20.192/32
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports: [{port: "9000", protocol: TCP}]
     - toFQDNs:
-        - matchName: auth.smadja.dev
         - matchName: api.github.com
         - matchName: github.com
         - matchName: api.linear.app
