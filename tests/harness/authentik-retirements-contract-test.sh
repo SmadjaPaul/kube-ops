@@ -4,6 +4,9 @@
 # compares the blueprints loaded by Authentik with a versioned inventory. Every
 # inventory object is either declared or listed in apps-retired.yaml, never both.
 # Nothing is derived from the absence of a service.
+# Outposts are inventory objects too; only the `Proxy Outpost` can be retired.
+# Also checked: a SAML provider with signing_kp signs the assertion or the
+# response (Authentik 2026.8.6 serializer, providers/saml/api/providers.py).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -13,6 +16,9 @@ import copy, os, sys, yaml
 ROOT = sys.argv[1]
 RETIRED = "apps-retired.yaml"
 APP = "authentik_core.application"
+OUTPOST = "authentik_outposts.outpost"
+SAML = "authentik_providers_saml.samlprovider"
+RETIRABLE_OUTPOSTS = {"Proxy Outpost"}  # never the embedded outpost
 
 class Tag:
     def __init__(self, name, value):
@@ -37,17 +43,21 @@ def is_provider(model):
     return model.startswith("authentik_providers_") and model.endswith("provider")
 
 def key_of(entry, where):
-    """Inventory key of an application or provider entry, None for other models."""
+    """Inventory key of an application, provider or outpost entry, None for other models."""
     model = entry.get("model")
     if not isinstance(model, str):
         raise Refused(f"{where}: model must be a plain string")
-    if model != APP and not is_provider(model):
+    if model not in (APP, OUTPOST) and not is_provider(model):
         return None
     field = "slug" if model == APP else "name"
     value = (entry.get("identifiers") or {}).get(field)
     if not isinstance(value, str) or not value:
         raise Refused(f"{where}: {model} needs a plain identifiers.{field}")
-    return ("application", value) if model == APP else ("provider", model, value)
+    if model == APP:
+        return ("application", value)
+    if model == OUTPOST:
+        return ("outpost", value)
+    return ("provider", model, value)
 
 def finds(node):
     if isinstance(node, Tag):
@@ -70,9 +80,15 @@ def check(loaded, blueprints, inventory):
         for entry in blueprints[name].get("entries") or []:
             state = entry.get("state", "present")
             key = key_of(entry, name)
+            if entry["model"] == SAML and state != "absent":
+                attrs = entry.get("attrs") or {}
+                if attrs.get("signing_kp") and not (attrs.get("sign_assertion") is True
+                                                    or attrs.get("sign_response") is True):
+                    raise Refused(f"{name}: {key} signing_kp needs sign_assertion or sign_response")
             if name == RETIRED:
-                if key is None:
-                    raise Refused(f"{name}: only applications and providers, not {entry['model']}")
+                if key is None or (key[0] == "outpost" and key[1] not in RETIRABLE_OUTPOSTS):
+                    raise Refused(f"{name}: only applications and providers (and the Proxy Outpost), "
+                                  f"not {entry['model']} {key}")
                 if state != "absent":
                     raise Refused(f"{name}: {key} must have state: absent")
                 if set(entry) != {"model", "state", "identifiers"} or len(entry["identifiers"]) != 1:
@@ -112,7 +128,8 @@ def read_inventory(path):
         if not line or line.startswith("#"):
             continue
         row = tuple(line.split("\t"))
-        if not ((len(row) == 2 and row[0] == "application") or (len(row) == 3 and row[0] == "provider")):
+        if not ((len(row) == 2 and row[0] in ("application", "outpost"))
+                or (len(row) == 3 and row[0] == "provider")):
             raise Refused(f"inventory: bad line {line!r}")
         if row in rows:
             raise Refused(f"inventory: duplicate line {line!r}")
@@ -160,6 +177,9 @@ def wrong_model(l, b, i):
             e["model"] = "authentik_providers_proxy.proxyprovider"
             return
 
+def saml_attrs(b):
+    return [e for e in entries(b, "apps-fleet.yaml") if e["model"] == SAML][0]["attrs"]
+
 NEGATIVES = {
     "application removed": ("removed from the blueprints", lambda l, b, i: drop(b, APP)),
     "blueprint unlisted": ("removed from the blueprints", lambda l, b, i: l.remove(GRAFANA)),
@@ -181,8 +201,21 @@ NEGATIVES = {
     "retirements unlisted": ("is not in the authentik-blueprints",
         lambda l, b, i: l.remove(RETIRED)),
     "find retired provider": ("!Find uses the retired provider",
-        lambda l, b, i: entries(b, GRAFANA).append({"model": "authentik_outposts.outpost",
-            "attrs": {"providers": [Tag("Find", ["authentik_core.provider", ["name", "jellyfin"]])]}})),
+        lambda l, b, i: (i.add(("outpost", "x")), entries(b, GRAFANA).append({"model": OUTPOST,
+            "identifiers": {"name": "x"},
+            "attrs": {"providers": [Tag("Find", ["authentik_core.provider", ["name", "jellyfin"]])]}}))),
+    "embedded outpost retired": ("only applications and providers",
+        lambda l, b, i: entries(b, RETIRED).append(absent(OUTPOST, name="authentik Embedded Outpost"))),
+    "user retired": ("only applications and providers",
+        lambda l, b, i: entries(b, RETIRED).append(absent("authentik_core.user", username="x"))),
+    "flow retired": ("only applications and providers",
+        lambda l, b, i: entries(b, RETIRED).append(absent("authentik_flows.flow", slug="x"))),
+    "outpost retirement dropped": ("removed from the blueprints",
+        lambda l, b, i: b[RETIRED].update(entries=[e for e in entries(b, RETIRED) if e["model"] != OUTPOST])),
+    "saml signing without signature": ("signing_kp needs",
+        lambda l, b, i: saml_attrs(b).update(sign_assertion=False, sign_response=False)),
+    "saml signing flags absent": ("signing_kp needs",
+        lambda l, b, i: saml_attrs(b).pop("sign_assertion")),
 }
 for label, (expected, mutate) in NEGATIVES.items():
     case = copy.deepcopy((loaded, blueprints, inventory))

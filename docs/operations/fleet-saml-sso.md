@@ -9,7 +9,7 @@ Authentik is the SAML identity provider; Fleet is the service provider. Access i
 |---|---|
 | Blueprint | `k8s/infrastructure/auth/authentik/extra/blueprints/apps-fleet.yaml` (listed in `extra/kustomization.yml`) |
 | Provider | `k8s.smadja.dev/identity/fleet`, ACS `https://fleet.smadja.dev/api/v1/fleet/sso/callback`, audience `https://fleet.smadja.dev` |
-| Schema check | every provider field exists in the Authentik 2026.8.3 `blueprints/schema.json` (model `authentik_providers_saml.samlprovider`) |
+| Schema check | the schema alone is not enough: the Authentik 2026.8.6 serializer (`providers/saml/api/providers.py`) also refuses `signing_kp` without `sign_assertion` or `sign_response`. Fleet signs the assertion; `tests/harness/authentik-retirements-contract-test.sh` enforces the rule |
 | Metadata URL (Fleet side) | `https://auth.smadja.dev/application/saml/fleet/metadata/` |
 
 ## Fleet side (not in this repository's manifests)
@@ -32,7 +32,7 @@ Without JIT provisioning, a Fleet user with the same e-mail address must already
 
 ## Verification levels
 
-- STATIC/CI: schema check above, `kustomize build` of the auth tree.
+- STATIC/CI: signing rule above, `kustomize build` of the auth tree.
 - RECONCILED: Argo `infra-auth` Synced/Healthy and the application `fleet` visible in Authentik.
 - RUNTIME/USER: SSO login with a member of `admin`, refusal for an account outside the groups. A password login on
   auth.smadja.dev is a human or browser-operator step, not an executor one.

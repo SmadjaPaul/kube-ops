@@ -1,5 +1,5 @@
 # Authentik applications and providers that Git declares or retires (PRD-122).
-# application<TAB>slug | provider<TAB>model<TAB>name. Add a line with each new object.
+# application<TAB>slug | provider<TAB>model<TAB>name | outpost<TAB>name. Add a line with each new object.
 # Do not delete a line to retire an object: add it to blueprints/apps-retired.yaml.
 # Checked by tests/harness/authentik-retirements-contract-test.sh.
 application	actual
@@ -12,6 +12,7 @@ application	cloudflare
 application	dawarich
 application	factory
 application	fleet
+application	frigate
 application	grafana
 application	home-assistant
 application	immich
@@ -93,8 +94,10 @@ provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/personal
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/test-blue
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/talos/test-green
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/web/pinepods
+provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-frigate
 provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-media/prowlarr-proxy
 provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-media/radarr-proxy
 provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-media/sonarr-proxy
 provider	authentik_providers_proxy.proxyprovider	k8s.smadja.dev/services-opencode
 provider	authentik_providers_saml.samlprovider	k8s.smadja.dev/identity/fleet
+outpost	Proxy Outpost
