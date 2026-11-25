@@ -78,6 +78,10 @@ global:
     - secretRef:
         name: authentik-blueprint-sparkyfitness
         optional: true
+    # PLT-509: Optio OIDC client, optional until its Doppler keys exist.
+    - secretRef:
+        name: authentik-blueprint-optio
+        optional: true
     # LibreChat's provider blueprint is admitted only by the single Draft
     # activation PR. Keep this optional until its Doppler credential exists.
     - secretRef:
@@ -237,7 +241,7 @@ server:
 worker:
   enabled: true
   deploymentAnnotations:
-    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-paperless,authentik-blueprint-ntfy,authentik-blueprint-romm,authentik-blueprint-sure,authentik-blueprint-matrix-mas-oidc,authentik-blueprint-aiostreams-oidc,oidc-rustical-pilot,authentik-blueprint-polyfin,authentik-blueprint-bookorbit,authentik-blueprint-sparkyfitness,authentik-blueprint-librechat"
+    secret.reloader.stakater.com/reload: "authentik-blueprint-core-secrets,authentik-blueprint-oidc-existing,authentik-blueprint-mealie,authentik-blueprint-vikunja,authentik-blueprint-paperless,authentik-blueprint-ntfy,authentik-blueprint-romm,authentik-blueprint-sure,authentik-blueprint-matrix-mas-oidc,authentik-blueprint-aiostreams-oidc,oidc-rustical-pilot,authentik-blueprint-polyfin,authentik-blueprint-bookorbit,authentik-blueprint-sparkyfitness,authentik-blueprint-optio,authentik-blueprint-librechat"
     configmap.reloader.stakater.com/auto: "true"
   # Force one desired-state rollout so the already-merged blueprint reload
   # wiring is applied to the existing worker pod. Subsequent ConfigMap changes
