@@ -50,3 +50,9 @@ results:
   resources:
   - system-namespace
   result: skip
+- isValidatingPolicy: true
+  kind: Service
+  policy: platform-baseline-no-loadbalancer
+  resources:
+  - deletion-timestamp-no-old-object
+  result: fail

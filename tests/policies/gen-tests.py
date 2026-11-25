@@ -111,6 +111,12 @@ def svc_in(t, ns, name):
     return s
 
 
+def svc_deleting(t):
+    s = svc(t)
+    s["metadata"]["deletionTimestamp"] = "2026-01-01T00:00:00Z"
+    return s
+
+
 def pvc(sc=None):
     o = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": "x", "namespace": "app"},
          "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": "1Gi"}}}}
@@ -301,6 +307,8 @@ RULES = {
         ("cilium-gateway-external", S, svc_in("LoadBalancer", "gateway", "cilium-gateway-external")),
         ("dns-exact-resolver", S, svc_in("LoadBalancer", "dns-exact-resolver", "dns-exact-resolver")),
         ("system-namespace", S, svc_in("LoadBalancer", "kube-system", "x")),
+        # Without an unchanged oldObject, a deletionTimestamp must not bypass the ban.
+        ("deletion-timestamp-no-old-object", F, svc_deleting("LoadBalancer")),
     ],
     "storage-class-allowed": [
         ("longhorn-fast", P, pvc("longhorn-fast")),

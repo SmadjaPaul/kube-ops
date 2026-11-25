@@ -385,6 +385,12 @@ spec:
     - name: not-explicit-exception
       expression: >-
         !((object.metadata.namespace == 'gateway' && object.metadata.name.startsWith('cilium-gateway-')) || (object.metadata.namespace == 'dns-exact-resolver' && object.metadata.name == 'dns-exact-resolver'))
+    # A Service being deleted must still accept the update that removes its finalizer,
+    # otherwise removing an exception leaves it stuck. Spec must be unchanged, so a
+    # dying Service cannot be turned into a LoadBalancer.
+    - name: not-finalizing-unchanged
+      expression: >-
+        !(request.operation == 'UPDATE' && has(object.metadata.deletionTimestamp) && object.spec == oldObject.spec)
   validations:
     - expression: >-
         !has(object.spec.type) || object.spec.type != 'LoadBalancer'
