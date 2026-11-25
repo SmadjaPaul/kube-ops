@@ -1,0 +1,115 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# yamllint disable-file
+# PRD-122: Authentik objects retired from this platform (deletion confirmed by
+# Paul, 2026-11-25). `state: absent` deletes the object when it exists and does
+# nothing when it does not (Authentik 2026.8.6, blueprints/v1/importer.py).
+# Rules, enforced by tests/harness/authentik-retirements-contract-test.sh:
+#   - only applications and providers, never users, groups or flows;
+#   - identifiers only (slug or name), no attrs: an incomplete entry cannot
+#     create anything;
+#   - keep the entries: a retired object stays listed (retired and declared at
+#     the same time is refused).
+# Each application is listed before its provider.
+# `frigate` is not here: the `Proxy Outpost` (outposts*.yaml) still uses its
+# provider, and Authentik refuses a proxy outpost without a provider.
+---
+version: 1
+metadata:
+  name: Apps - Retired
+entries:
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: actual}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/catalog/actual-budget"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: audiobookshelf}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-media/audiobookshelf"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: bazarr}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-media/bazarr"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: dawarich}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/catalog/dawarich"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: jellyfin}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "jellyfin"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: lidarr}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-media/lidarr"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: litellm}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/ai/litellm"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: messages}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/business/messages"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: metabase}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/catalog/metabase"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: openwebui}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/ai/openwebui"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: prowlarr}
+  - model: authentik_providers_proxy.proxyprovider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-media/prowlarr-proxy"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: radarr}
+  - model: authentik_providers_proxy.proxyprovider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-media/radarr-proxy"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: sabnzbd}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-media/sabnzbd"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: jellyseerr}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-media/jellyseerr"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: sonarr}
+  - model: authentik_providers_proxy.proxyprovider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-media/sonarr-proxy"}
+  - model: authentik_core.application
+    state: absent
+    identifiers: {slug: zigbee2mqtt}
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers: {name: "k8s.smadja.dev/services-external/zigbee2mqtt"}

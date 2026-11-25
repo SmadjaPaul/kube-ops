@@ -7,8 +7,8 @@
     "check:argo-project-namespaces": "bash scripts/check-argo-project-namespaces.sh",
     "check:argo-app-descriptors": "bash scripts/check-argo-app-descriptors.sh",
     "check:backup-contract": "bash scripts/backup-static-contract.sh",
-    "check": "node scripts/run-checks-parallel.mjs check:documentation check:v1-contract check:argo-project-namespaces check:argo-app-descriptors check:backup-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:bookorbit-plugin check:policy check:policy-tests",
-    "check:local": "node scripts/run-checks-parallel.mjs --first check:v1-contract,check:agent-harness,check:backup-contract,tests/agent-guard/secret-helpers-test.sh --bash-list scripts/check-bash-tests.list check:documentation check:v1-contract check:argo-project-namespaces check:argo-app-descriptors check:backup-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:bookorbit-plugin check:policy check:policy-tests",
+    "check": "node scripts/run-checks-parallel.mjs check:documentation check:v1-contract check:argo-project-namespaces check:argo-app-descriptors check:backup-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:bookorbit-plugin check:authentik-retirements check:policy check:policy-tests",
+    "check:local": "node scripts/run-checks-parallel.mjs --first check:v1-contract,check:agent-harness,check:backup-contract,tests/agent-guard/secret-helpers-test.sh --bash-list scripts/check-bash-tests.list check:documentation check:v1-contract check:argo-project-namespaces check:argo-app-descriptors check:backup-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:bookorbit-plugin check:authentik-retirements check:policy check:policy-tests",
     "check:documentation": "node scripts/check-documentation-integrity.mjs && node --test tests/harness/documentation-integrity-test.mjs",
     "check:cluster-contract": "npm run check:v1-contract",
     "check:agent-harness": "bash scripts/check-agent-harness-contract.sh",
@@ -18,7 +18,8 @@
     "check:bookorbit-plugin": "node --test tests/harness/bookorbit-gutenberg-fr-candide.test.mjs && node tests/fixtures/bookorbit-mam-plugin/verify.mjs && python3 -I tests/harness/qbittorrent-bootstrap-test.py",
     "check:policy": "bash scripts/policy-check.sh",
     "check:policy-tests": "bash scripts/policy-check.sh --tests",
-    "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh"
+    "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh",
+    "check:authentik-retirements": "bash tests/harness/authentik-retirements-contract-test.sh"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "21.2.4",

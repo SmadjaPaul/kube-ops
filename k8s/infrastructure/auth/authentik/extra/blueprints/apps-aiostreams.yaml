@@ -33,6 +33,7 @@ entries:
       name: AIOStreams
       group: Media
       meta_launch_url: https://aiostreams.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/aiostreams.png
       provider: !KeyOf aiostreams_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding

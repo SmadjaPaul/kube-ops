@@ -68,3 +68,4 @@ configMapGenerator:
       - ./blueprints/apps-bookorbit.yaml
       - ./blueprints/apps-sparkyfitness.yaml
       - ./blueprints/apps-librechat.dormant.yaml
+      - ./blueprints/apps-retired.yaml

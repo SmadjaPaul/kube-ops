@@ -29,6 +29,7 @@ entries:
       name: Vikunja
       group: Productivity
       meta_launch_url: https://tasks.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/vikunja.png
       provider: !KeyOf vikunja_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding

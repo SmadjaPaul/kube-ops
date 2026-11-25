@@ -30,6 +30,7 @@ entries:
       name: RustiCal
       group: Personal
       meta_launch_url: https://calendar.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1f4c5.png
       provider: !KeyOf rustical_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding
