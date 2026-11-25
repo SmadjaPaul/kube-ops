@@ -16,6 +16,9 @@ entries:
       authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
       invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
       client_type: confidential
+      # Authentik refuses a flow whose grant type is not listed: without this,
+      # Access gets "Invalid grant_type for provider" and shows an auth error.
+      grant_types: [authorization_code]
       client_id: !Env CLOUDFLARE_CLIENT_ID
       client_secret: !Env CLOUDFLARE_CLIENT_SECRET
       # PLT-176 (Paul, 2026-11-15): the Cloudflare Access team domain is
