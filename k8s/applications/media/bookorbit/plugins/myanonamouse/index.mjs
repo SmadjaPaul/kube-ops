@@ -33,6 +33,19 @@ const SEEDBOX_MIN_INTERVAL_MS = 60 * 60 * 1000;
 /** Answers that mean the registration is already where it should be, not that anything failed. */
 const SEEDBOX_BENIGN = /no change|too recent/i;
 
+/** The bonus point store. Only the VIP top-up is automated; the tracker forbids automating gifts. */
+const BONUS_PATH = '/json/bonusBuy.php/';
+/** A non-freeleech grab may not take the account ratio below this. */
+const MIN_RATIO = 2;
+/** Slots kept free under the tracker's unsatisfied torrent limit. */
+const UNSAT_MARGIN = 2;
+/** Four weeks of VIP. */
+const VIP_MIN_POINTS = 5000;
+/** The tracker caps VIP at 90 days; topping up only below 30 keeps purchases rare. */
+const VIP_REFILL_BELOW_MS = 30 * 24 * 60 * 60 * 1000;
+const VIP_ELIGIBLE_CLASS = /^(power user|vip)$/i;
+const SIZE_UNITS = { b: 0, kib: 1, mib: 2, gib: 3, tib: 4, pib: 5 };
+
 /** A .torrent is a few kilobytes of metadata; anything larger is not one. */
 const MAX_TORRENT_FILE_BYTES = 2 * 1024 * 1024;
 /** A refusal is a sentence, not a document: enough to read it, little enough to never buffer a page. */
@@ -156,6 +169,13 @@ export default {
       hint: 'The tracker refuses announces from an address your account has not registered. Turn this on to register the address BookOrbit connects from, which is only correct when your download client shares that address. The session must have been created with dynamic seedbox permission.',
       default: false,
     },
+    {
+      key: 'autoVip',
+      type: 'boolean',
+      label: 'Top up VIP with bonus points',
+      hint: 'Every six hours, a Power User or VIP account holding at least 5000 bonus points buys VIP up to the 90 day cap once less than 30 days remain.',
+      default: false,
+    },
   ],
 
   async search(query, config, host) {
@@ -176,7 +196,7 @@ export default {
     if (!config.credential) return { success: false, error: 'MyAnonaMouse needs a mam_id session id before it can be tested' };
     try {
       const response = await call(config, host, `${KEEPALIVE_PATH}?snatch_summary`, { method: 'GET' });
-      await readJson(config, host, response);
+      logAccount(config, host, parseAccount(await readJson(config, host, response)));
       return { success: true, indexerName: 'MyAnonaMouse' };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -195,6 +215,7 @@ export default {
     // Before the fetch rather than after: the announce follows within seconds of the download
     // client being handed the file, and the registration has to already be in place by then.
     await authorizeSeedbox(config, host);
+    await assertGrabAllowed(release, config, host);
 
     const response = await fetchWithSession(config, host, release.downloadUrl, { method: 'GET' });
     const body = new Uint8Array(await response.arrayBuffer());
@@ -215,8 +236,9 @@ export default {
    */
   async keepalive(config, host) {
     if (!config.credential) return;
-    const response = await call(config, host, `${KEEPALIVE_PATH}?snatch_summary`, { method: 'GET' });
-    await readJson(config, host, response);
+    const account = await readAccount(config, host);
+    logAccount(config, host, account);
+    await topUpVip(account, config, host);
     // A home connection's address moves on its own schedule, so the registration is refreshed on
     // the same tick rather than only when somebody happens to grab something.
     await authorizeSeedbox(config, host);
@@ -346,6 +368,101 @@ async function captureRotatedSession(config, host, response) {
   const lineage = [...(held?.lineage ?? [config.credential]), rotated].slice(-MAX_SESSION_LINEAGE);
   sessions.set(config.id, { live: rotated, lineage });
   await host.saveCredential(rotated);
+}
+
+async function readAccount(config, host) {
+  const response = await call(config, host, `${KEEPALIVE_PATH}?snatch_summary`, { method: 'GET' });
+  return parseAccount(await readJson(config, host, response));
+}
+
+/** Every field is optional in practice, so anything missing is null (unknown), never zero. */
+function parseAccount(payload) {
+  const unsat = payload?.snatch_summary?.unsat ?? payload?.unsat ?? {};
+  const vipUntil = payload?.vip_until ? Date.parse(`${String(payload.vip_until).trim().replace(' ', 'T')}Z`) : NaN;
+  return {
+    className: typeof payload?.classname === 'string' ? payload.classname : null,
+    points: toCount(payload?.seedbonus),
+    ratio: payload?.ratio === undefined ? null : String(payload.ratio),
+    uploaded: toCount(payload?.uploaded_bytes) ?? parseBytes(payload?.uploaded),
+    downloaded: toCount(payload?.downloaded_bytes) ?? parseBytes(payload?.downloaded),
+    unsatCount: toCount(unsat.count),
+    unsatLimit: toCount(unsat.limit),
+    vipUntil: Number.isNaN(vipUntil) ? null : vipUntil,
+  };
+}
+
+function toCount(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+/** The tracker formats volumes for people: "506.18 KiB", "1,023.5 MiB". */
+function parseBytes(value) {
+  const match = /^([\d.,]+)\s*([KMGTP]iB|B)$/i.exec(String(value ?? '').trim());
+  if (!match) return null;
+  const number = Number(match[1].replace(/,/g, ''));
+  return Number.isFinite(number) ? number * 1024 ** SIZE_UNITS[match[2].toLowerCase()] : null;
+}
+
+/** One line per reading: it is what the dashboards and alerts are built from. */
+function logAccount(config, host, account) {
+  const field = (value) => (value === null ? 'unknown' : value);
+  host.logger.log(
+    `[mam.account] indexerId=${config.id} class="${field(account.className)}" points=${field(account.points)} ratio="${field(account.ratio)}" ` +
+      `uploadedBytes=${field(account.uploaded === null ? null : Math.round(account.uploaded))} downloadedBytes=${field(account.downloaded === null ? null : Math.round(account.downloaded))} ` +
+      `unsat=${field(account.unsatCount)} unsatLimit=${field(account.unsatLimit)} vipUntil=${account.vipUntil === null ? 'unknown' : new Date(account.vipUntil).toISOString()}`,
+  );
+}
+
+/**
+ * Refuses the grabs that would hurt the account, so that automatic grabbing is safe to leave on.
+ * Freeleech costs no ratio and passes even when the account cannot be read; anything that does
+ * cost ratio is refused unless the account is known to afford it.
+ */
+async function assertGrabAllowed(release, config, host) {
+  let account = null;
+  try {
+    account = await readAccount(config, host);
+  } catch (error) {
+    host.logger.warn(`[mam.guard] [fail] indexerId=${config.id} error="${error instanceof Error ? error.message : String(error)}" - the account could not be read`);
+  }
+  const refuse = (reason) => {
+    host.logger.warn(`[mam.guard] [refuse] indexerId=${config.id} release=${release.guid} reason="${reason}"`);
+    throw host.fail('error', `grab refused: ${reason}`);
+  };
+
+  if (account && account.unsatCount !== null && account.unsatLimit !== null && account.unsatCount >= account.unsatLimit - UNSAT_MARGIN) {
+    refuse(`${account.unsatCount} unsatisfied torrents out of ${account.unsatLimit}`);
+  }
+
+  const vip = /^vip$/i.test(account?.className ?? '');
+  if (release.freeleech === true || (vip && release.vipOnly === true)) return;
+
+  if (!account || account.uploaded === null || account.downloaded === null || !(release.sizeBytes > 0)) {
+    refuse('this release is not freeleech and the ratio cannot be checked');
+  }
+  const projected = account.uploaded / (account.downloaded + release.sizeBytes);
+  if (projected < MIN_RATIO) refuse(`this release is not freeleech and would bring the ratio below ${MIN_RATIO}`);
+}
+
+/** Never throws: a refused purchase must not stop the session keepalive. */
+async function topUpVip(account, config, host) {
+  if (config.settings?.autoVip !== true) return;
+  if (!VIP_ELIGIBLE_CLASS.test(account.className ?? '')) return;
+  if (account.points === null || account.points < VIP_MIN_POINTS) return;
+  if (account.vipUntil !== null && account.vipUntil - Date.now() > VIP_REFILL_BELOW_MS) return;
+
+  try {
+    const response = await call(config, host, `${BONUS_PATH}?spendtype=VIP&duration=max&_=${Date.now()}`, { method: 'GET' });
+    const payload = await readJson(config, host, response);
+    const ok = payload.success ?? payload.Success ?? false;
+    const message = payload.error ?? payload.msg ?? '';
+    if (ok) host.logger.log(`[mam.vip] [end] indexerId=${config.id} pointsBefore=${account.points} - VIP topped up`);
+    else host.logger.warn(`[mam.vip] [fail] indexerId=${config.id} result="${message}" - the tracker refused the purchase`);
+  } catch (error) {
+    host.logger.warn(`[mam.vip] [fail] indexerId=${config.id} error="${error instanceof Error ? error.message : String(error)}"`);
+  }
 }
 
 /**

@@ -167,3 +167,11 @@ The pinned BookOrbit image was updated to `ghcr.io/bookorbit/bookorbit:3.6.0@sha
 The Media application root still excludes BookOrbit; the existing pause, separate
 CNPG/S3 credentials, Velero/Kopia PVC restore, OIDC and filesystem compatibility
 gates remain in force. No migration or live rollout is authorized by this change.
+
+## MyAnonaMouse account guard (PRD-119)
+
+The MAM plugin (`plugins/myanonamouse/index.mjs`) reuses the indexer session; no extra secret.
+
+- Every 6 h and on **Test**, it logs one `[mam.account]` line (points, class, ratio, volumes, unsatisfied count).
+- A grab is refused when fewer than two unsatisfied slots remain, or when a non-freeleech release would bring the ratio below 2 (`[mam.guard]`).
+- `Top up VIP with bonus points` (off by default) buys VIP for a Power User or VIP holding 5000 points once less than 30 days remain (`[mam.vip]`).
