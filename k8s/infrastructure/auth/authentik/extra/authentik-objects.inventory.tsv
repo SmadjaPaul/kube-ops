@@ -42,6 +42,7 @@ application	sabnzbd
 application	searxng
 application	sonarr
 application	sparkyfitness
+application	optio
 application	stirling-pdf
 application	sure
 application	talos-ops-blue
@@ -78,6 +79,7 @@ provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/media/polyfin
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/personal-ai/librechat
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/personal/rustical
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/personal/sparkyfitness
+provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/platform/optio
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/platform/mastra-factory
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/platform/matrix-mas
 provider	authentik_providers_oauth2.oauth2provider	k8s.smadja.dev/services-external/zigbee2mqtt
