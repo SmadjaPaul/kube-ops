@@ -339,15 +339,21 @@ alloy:
           source   = "effective_severity"
           template = `{{ "{{" }} if .pg_severity {{ "}}" }}{{ "{{" }} .pg_severity {{ "}}" }}{{ "{{" }} else {{ "}}" }}{{ "{{" }} .severity {{ "}}" }}{{ "{{" }} end {{ "}}" }}`
         }
-        stage.drop {
-          source              = "effective_severity"
-          expression          = "(?i)^(info|debug[1-5]?|trace|log|notice)$"
-          drop_counter_reason = "grafana_cloud_low_severity_field"
-        }
+        // The MyAnonaMouse account reading and VIP purchases are info lines
+        // (about 4 a day, PRD-119) read by a Grafana Cloud dashboard: they
+        // skip both severity filters below.
         stage.match {
-          selector = `{namespace=~".+"} !~ "(?i)(level=\"?(warn|warning|error|err|fatal|crit|critical|panic)|\"level\":\"(warn|warning|error|fatal|critical|panic)\"|\\b(WARN|WARNING|ERROR|FATAL|CRITICAL|PANIC)\\b|^[EW][0-9]{4} )"`
-          action   = "drop"
-          drop_counter_reason = "grafana_cloud_below_warning"
+          selector = `{namespace=~".+"} !~ "\\[mam\\.(account|vip)\\]"`
+          stage.drop {
+            source              = "effective_severity"
+            expression          = "(?i)^(info|debug[1-5]?|trace|log|notice)$"
+            drop_counter_reason = "grafana_cloud_low_severity_field"
+          }
+          stage.match {
+            selector = `{namespace=~".+"} !~ "(?i)(level=\"?(warn|warning|error|err|fatal|crit|critical|panic)|\"level\":\"(warn|warning|error|fatal|critical|panic)\"|\\b(WARN|WARNING|ERROR|FATAL|CRITICAL|PANIC)\\b|^[EW][0-9]{4} )"`
+            action   = "drop"
+            drop_counter_reason = "grafana_cloud_below_warning"
+          }
         }
         // Ceiling: 5 lines/s sustained, burst 200 (~13 GB/month at 1 KB/line).
         stage.limit {
