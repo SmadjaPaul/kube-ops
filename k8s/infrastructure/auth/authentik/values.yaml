@@ -191,6 +191,12 @@ server:
   # -- whether to enable server resources
   enabled: true
 
+  podAnnotations:
+    # PLT-503 : emptyDir volatils, hors fs-backup Velero. Sans volume à copier,
+    # le backup `velero-daily-auth` ne dépend plus de node-agent (rattrapage au
+    # redémarrage du nœud, avant que node-agent soit Running).
+    backup.velero.io/backup-volumes-excludes: shm,media
+
   # -- authentik server pod-level security context
   securityContext:
     runAsNonRoot: true
@@ -241,6 +247,10 @@ worker:
   # are handled by the Reloader annotation above.
   podAnnotations:
     authentik.smadja.dev/blueprint-reconcile: "4"
+    # PLT-503 : emptyDir volatils, hors fs-backup Velero. Sans volume à copier,
+    # le backup `velero-daily-auth` ne dépend plus de node-agent (rattrapage au
+    # redémarrage du nœud, avant que node-agent soit Running).
+    backup.velero.io/backup-volumes-excludes: shm,media
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
