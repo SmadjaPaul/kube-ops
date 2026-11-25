@@ -146,6 +146,36 @@ alloy:
           action              = "drop"
           drop_counter_reason = "argocd_repo_server_info"
         }
+        // PLT-506: Velero reports a backup Completed even when it skipped the
+        // volumes of a pod that was not running. Count those warnings per
+        // Schedule for the VeleroBackupSkippedVolumes alert. Succeeded/Failed
+        // pods (finished Jobs) are skipped by design and are not counted. The
+        // lines stay in Loki unchanged.
+        stage.match {
+          selector = `{namespace="velero", container="velero"} |= "level=warning msg=\"Skip pod volume " |~ "phase=(Pending|Unknown): pod is not running"`
+
+          stage.regex {
+            expression = `backup=velero/(?P<velero_schedule>\S+)-[0-9]{14} `
+          }
+          stage.labels {
+            values = {
+              velero_schedule = "",
+            }
+          }
+          stage.metrics {
+            metric.counter {
+              name        = "velero_skipped_pod_volumes_total"
+              description = "Pod volumes skipped by a scheduled Velero backup because the pod was not running"
+              action      = "inc"
+              match_all   = true
+              // Default 5m. One daily Schedule period plus one hour.
+              max_idle_duration = "25h"
+            }
+          }
+          stage.label_drop {
+            values = ["velero_schedule"]
+          }
+        }
         stage.static_labels {
           values = {
             cluster = "homeops",

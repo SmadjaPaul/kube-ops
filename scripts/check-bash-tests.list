@@ -66,3 +66,4 @@ tests/harness/ha-agent-mcp-smoke-test.sh
 tests/harness/ha-restore-drill-test.sh
 tests/harness/incident-sentinel-rbac-test.sh
 tests/harness/arc-runners-no-talos-egress-test.sh
+tests/harness/velero-skipped-volumes-alert-test.sh

@@ -58,3 +58,33 @@ spec:
           for: 30m
           labels:
             severity: critical
+---
+# PLT-506 : objet séparé, avec le label exigé par le ruleSelector de Prometheus.
+# velero-backup-alerts ci-dessus n'a pas ce label : ses règles ne sont pas
+# chargées (suivi à part, elles ne sont pas modifiées ici).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: velero-backup-volume-alerts
+  namespace: velero
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: velero-volumes.rules
+      rules:
+        - alert: VeleroBackupSkippedVolumes
+          annotations:
+            runbook_url: https://github.com/SmadjaPaul/kube-ops/blob/main/docs/operations/alert-runbooks.md#velerobackupskippedvolumes
+            summary: "Velero : {{ $labels.velero_schedule }} a sauté {{ $value }} volume(s)"
+            description: >-
+              Le pod n'était pas Running pendant le backup. Velero annonce
+              Completed, mais ces volumes ne sont pas sauvegardés.
+          # Compteur Alloy (monitoring/alloy/values.yaml), retiré après 25 h
+          # sans nouveau volume sauté. Pas d'increase() : la première valeur
+          # d'une série neuve serait perdue.
+          expr: |-
+            sum by (velero_schedule) (loki_process_custom_velero_skipped_pod_volumes_total{velero_schedule!=""}) > 0
+          for: 0m
+          labels:
+            severity: warning
