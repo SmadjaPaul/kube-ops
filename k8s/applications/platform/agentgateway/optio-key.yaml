@@ -1,0 +1,45 @@
+# PLT-339 (D-2026-11-25-05, MANDAT 30): Agentgateway key of the `optio` consumer (Optio agent pods,
+# namespace optio, workspace "passerelle"), generated inside the cluster like pr-triage-key.yaml
+# (D-2026-11-20-04, class T4: disposable, not backed up). Never in Doppler, never in Git.
+# Source named `llm-optio` (store k8s-agentgateway, prefix `llm-` + consumer namespace, eso-k8s-store-guard).
+#   - the gateway reads it through `envFrom` (resources.yaml) and checks it in config.yaml
+#     (strict, allowedModels text/strong and code/frontier, budget 3 000 000 tokens / 24 h, Block);
+#   - the copy in namespace optio (ExternalSecret on the store k8s-agentgateway, key `llm-optio`) is
+#     created with the Optio manifests (k8s/applications/platform/optio), NOT here.
+# Revert: remove this file, its line in kustomization.yaml, the key block in config.yaml, the envFrom
+# entry, the Role line and the ingress rule (Secret is orphaned, delete by hand).
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: llm-optio
+  namespace: agentgateway
+spec:
+  length: 48
+  digits: 10
+  symbols: 0
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: llm-optio
+  namespace: agentgateway
+  annotations:
+    kube-ops.io/secret-class: T4
+    kube-ops.io/not-data-key: "bearer token of an internal LLM consumer, encrypts no persisted data"
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: llm-optio
+    creationPolicy: Orphan
+    template:
+      engineVersion: v2
+      data:
+        OPTIO_AGENTGATEWAY_KEY: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: llm-optio

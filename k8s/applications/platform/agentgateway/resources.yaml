@@ -225,6 +225,24 @@ data:
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
+            # PLT-339 (D-2026-11-25-05, MANDAT 30): Optio agent pods, workspace "passerelle". Generated
+            # key, see optio-key.yaml. text/strong = MiniMax (mechanical tickets, builder fallback);
+            # code/frontier = Claude API (PR review, model:frontier tickets).
+            - key: "$OPTIO_AGENTGATEWAY_KEY"
+              metadata:
+                name: optio
+                owner: optio
+              allowedModels:
+                - text/strong
+                - code/frontier
+              budgets:
+                - name: optio-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 3000000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
       models:
         # PLT-496: capability aliases. Consumers call a capability, never a provider model name; the model
         # behind each alias lives only here. No factory/* alias remains (PLT-496).
@@ -242,10 +260,22 @@ data:
             custom:
               formats:
                 - type: completions
+                # PLT-339: Anthropic Messages format for Claude Code (Optio). Absolute upstream path,
+                # same convention as the deepseek/deepinfra presets of v1.6.0 (crates/llm/src/custom.rs).
+                # RUNTIME not proven: tool calls through MiniMax /anthropic.
+                - type: messages
+                  path: /anthropic/v1/messages
           params:
             baseUrl: https://api.minimax.io/v1
             model: MiniMax-M3
             apiKey: "$MINIMAX_API_KEY"
+        # PLT-339: Claude API (Anthropic upstream), built-in `anthropic` provider of v1.6.0
+        # (LocalBuiltinModelAIProvider::Anthropic). Key created out of Git by Paul, Console spend limit.
+        - name: code/frontier
+          provider: anthropic
+          params:
+            model: claude-opus-5-5
+            apiKey: "$ANTHROPIC_UPSTREAM_API_KEY"
         - name: text/research
           provider:
             custom:
@@ -276,7 +306,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: capabilities-media-v3
+        checksum/agentgateway-runtime: optio-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -300,6 +330,11 @@ spec:
             - secretRef: {name: llm-arc-runners-agent-harness}
             # PLT-453: generated key of the incident-sentinel consumer (incident-sentinel-key.yaml).
             - secretRef: {name: llm-arc-runners-agent-harness--sentinel}
+            # PLT-339: generated key of the optio consumer (optio-key.yaml).
+            - secretRef: {name: llm-optio}
+            # PLT-339: Claude API key of the code/frontier upstream (secrets.yaml, created by Paul).
+            # optional: a missing Doppler key must never stop the gateway for its other consumers.
+            - secretRef: {name: agentgateway-anthropic, optional: true}
           ports:
             - {name: llm, containerPort: 4000}
           readinessProbe:
@@ -373,6 +408,13 @@ spec:
             k8s:io.kubernetes.pod.namespace: agents
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
+    # PLT-339: Optio agent pods (namespace optio, label managed-by=optio); the key is checked by the gateway.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: optio
+            managed-by: optio
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
   egress:
     - toEndpoints:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}
@@ -386,5 +428,7 @@ spec:
     # api.minimax.io, and only 443/TCP is allowed to that exact FQDN.
     - toFQDNs:
         - matchName: api.minimax.io
+        # PLT-339: code/frontier upstream.
+        - matchName: api.anthropic.com
       toPorts:
         - ports: [{port: "443", protocol: TCP}]
