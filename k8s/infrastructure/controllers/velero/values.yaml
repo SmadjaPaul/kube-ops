@@ -11,6 +11,45 @@ initContainers:
     volumeMounts:
       - mountPath: /target
         name: plugins
+  # PLT-505: after a node boot, Velero starts every overdue Schedule at once,
+  # before node-agent and the application pods are Running. Volumes are then
+  # skipped (PartiallyFailed, or Completed with no volume data). Hold the server
+  # until the node has been up for NODE_SETTLE_SECONDS. No wait on a rollout of
+  # a settled node. Limits: docs/runbooks/velero-node-boot-catch-up.md.
+  - name: wait-node-boot
+    image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+    imagePullPolicy: IfNotPresent
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        read -r uptime _ < "${UPTIME_FILE:-/proc/uptime}"
+        wait=$((NODE_SETTLE_SECONDS - ${uptime%.*}))
+        if [ "$wait" -gt 0 ]; then
+          echo "node up for ${uptime%.*}s: waiting ${wait}s before starting velero"
+          sleep "$wait"
+        fi
+    env:
+      - name: NODE_SETTLE_SECONDS
+        value: "900"
+    resources:
+      requests:
+        cpu: 5m
+        memory: 8Mi
+      limits:
+        cpu: 50m
+        memory: 32Mi
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      runAsGroup: 65534
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
 
 rbac:
   create: true

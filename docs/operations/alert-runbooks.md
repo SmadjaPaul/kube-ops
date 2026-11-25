@@ -167,7 +167,7 @@ Routage : `critical` va sur ntfy (téléphone). `warning` et `info` vont sur le 
 ### VeleroBackupPartialFailure
 - **Signal** : une sauvegarde Velero est partielle.
 - **Première vérification** : `describe backup <nom>` (erreurs et avertissements par ressource).
-- **Action** : identifier la ressource en erreur et la corriger. Une sauvegarde partielle n'est pas une sauvegarde complète.
+- **Action** : identifier la ressource en erreur et la corriger. Une sauvegarde partielle n'est pas une sauvegarde complète. Si le backup suit un démarrage du nœud : [velero-node-boot-catch-up](../runbooks/velero-node-boot-catch-up.md).
 
 ### VeleroBackupNotRunRecently
 - **Signal** : aucune sauvegarde Velero réussie depuis 48 h.

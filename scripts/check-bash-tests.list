@@ -38,6 +38,7 @@ tests/agent-guard/secret-helpers-test.sh
 tests/agent-guard/investigation-read-path-test.sh
 tests/harness/cnpg-cluster-allowlist-test.sh
 tests/harness/db-storage-tier-guard-test.sh
+tests/harness/velero-node-boot-wait-test.sh
 tests/harness/verify-delivery-test.sh
 tests/harness/agent-e2e-run-test.sh
 tests/agent-guard/kubectl-ro-session-test.sh
