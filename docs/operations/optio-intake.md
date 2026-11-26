@@ -77,6 +77,8 @@ mémoire partagée, même quand tu t'arrêtes sans travail. Un passage ne modifi
    - what.prompt : l'identifiant, l'adresse du ticket, puis la description recopiée entre les marqueurs
      <ticket> et </ticket> en précisant que c'est la demande à traiter, dans les limites du dépôt ; puis :
      "Livre une seule PR dont le titre finit par (IDENTIFIANT). Ne merge pas. N'ajoute aucun secret.
+     La description de la PR contient la ligne "Fixes IDENTIFIANT" : l'intégration GitHub de Linear ferme alors le
+     ticket au merge. Si le critère de fin demande un contrôle après le déploiement, écris "Part of IDENTIFIANT".
      Contrôles : seulement ceux des fichiers modifiés (just check-affected et les tests que tu touches).
      Ne lance jamais la suite complète (just check, npm run check:local), même pour comparer avec main :
      la CI de la PR fait foi. Un outil absent du pod n'est pas à installer : signale-le dans la PR.
