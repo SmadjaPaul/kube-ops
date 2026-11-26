@@ -1,0 +1,135 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-310",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-04-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-310/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-301] Premier travail",
+        "state": "running",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/101",
+        "prNumber": 101,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-302] Deuxième travail",
+        "state": "running",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/102",
+        "prNumber": 102,
+        "prChecksStatus": "failing",
+        "conflicts": false
+      },
+      {
+        "name": "[CORRIGE PR-102 1]",
+        "state": "completed",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      },
+      {
+        "name": "[CORRIGE PR-102 2]",
+        "state": "completed",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-303] Troisième travail",
+        "state": "running",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/103",
+        "prNumber": 103,
+        "prChecksStatus": "failing",
+        "conflicts": false
+      },
+      {
+        "name": "[CORRIGE PR-103 1]",
+        "state": "completed",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      },
+      {
+        "name": "[CORRIGE PR-103 2]",
+        "state": "completed",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      },
+      {
+        "name": "[CORRIGE PR-103 3]",
+        "state": "completed",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-304] Quatrième travail",
+        "state": "running",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/104",
+        "prNumber": 104,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[REVUE PR-104]",
+        "state": "completed",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-310",
+        "name": "[PLT-310] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "url": "https://linear.app/boule/issue/PLT-310/reprise-du-graphique-de-latence",
+        "priority": 2,
+        "createdAt": "2026-04-01T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [
+      {
+        "prNumber": 101,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/101",
+        "name": "[REVUE PR-101]"
+      }
+    ],
+    "create_fixes": [
+      {
+        "prNumber": 102,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/102",
+        "name": "[CORRIGE PR-102 3]",
+        "attempt": 3
+      }
+    ],
+    "skipped": []
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-501",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-13T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-501/reprise-du-graphique-de-latence",
+            "labels": {
+              "nodes": [{ "name": "wip:optio" }, { "name": "Needs-operator" }]
+            },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-502",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-14T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-502/reprise-du-graphique-de-latence",
+            "labels": {
+              "nodes": [{ "name": "wip:optio" }, { "name": "Différé" }]
+            },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-503",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-15T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-503/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": { "works": [] },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-503",
+        "name": "[PLT-503] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "url": "https://linear.app/boule/issue/PLT-503/reprise-du-graphique-de-latence",
+        "priority": 2,
+        "createdAt": "2026-01-15T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      { "id": "PLT-501", "reason": "label interdit : Needs-operator" },
+      { "id": "PLT-502", "reason": "label interdit : Différé" }
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "slots": 3,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-610",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-610/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-620] travail en cours",
+        "state": "running",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-700] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/601",
+        "prNumber": 601,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-701] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/602",
+        "prNumber": 602,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-702] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/603",
+        "prNumber": 603,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-610",
+        "name": "[PLT-610] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "url": "https://linear.app/boule/issue/PLT-610/reprise-du-graphique-de-latence",
+        "priority": 1,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [
+      {
+        "prNumber": 601,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/601",
+        "name": "[REVUE PR-601]"
+      }
+    ],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "slots": 10,
+  "linear": { "data": { "issues": { "nodes": [] } } },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-700] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/501",
+        "prNumber": 501,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-701] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/502",
+        "prNumber": 502,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-702] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/503",
+        "prNumber": 503,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-703] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/504",
+        "prNumber": 504,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-704] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/505",
+        "prNumber": 505,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-705] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/506",
+        "prNumber": 506,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      },
+      {
+        "name": "[PLT-706] travail",
+        "state": "completed",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/507",
+        "prNumber": 507,
+        "prChecksStatus": "passing",
+        "conflicts": false
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [
+      {
+        "prNumber": 501,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/501",
+        "name": "[REVUE PR-501]"
+      },
+      {
+        "prNumber": 502,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/502",
+        "name": "[REVUE PR-502]"
+      },
+      {
+        "prNumber": 503,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/503",
+        "name": "[REVUE PR-503]"
+      },
+      {
+        "prNumber": 504,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/504",
+        "name": "[REVUE PR-504]"
+      },
+      {
+        "prNumber": 505,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/505",
+        "name": "[REVUE PR-505]"
+      }
+    ],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

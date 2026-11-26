@@ -1,0 +1,112 @@
+{
+  "slots": 3,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-201",
+            "title": "Priorité 3 ancienne",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 3,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-201/priorite-3-ancienne",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-202",
+            "title": "Priorité 1 récente",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 1,
+            "createdAt": "2026-06-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-202/priorite-1-recente",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-203",
+            "title": "Priorité 1 ancienne",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 1,
+            "createdAt": "2026-02-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-203/priorite-1-ancienne",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-204",
+            "title": "Priorité 0 sans priorité",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 0,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-204/priorite-0-sans-priorite",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-205",
+            "title": "Priorité 2 moyenne",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-03-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-205/priorite-2-moyenne",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-206",
+            "title": "Priorité 4 faible",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 4,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-206/priorite-4-faible",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": { "works": [] },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-203",
+        "name": "[PLT-203] Priorité 1 ancienne",
+        "title": "Priorité 1 ancienne",
+        "url": "https://linear.app/boule/issue/PLT-203/priorite-1-ancienne",
+        "priority": 1,
+        "createdAt": "2026-02-01T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-202",
+        "name": "[PLT-202] Priorité 1 récente",
+        "title": "Priorité 1 récente",
+        "url": "https://linear.app/boule/issue/PLT-202/priorite-1-recente",
+        "priority": 1,
+        "createdAt": "2026-06-01T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-205",
+        "name": "[PLT-205] Priorité 2 moyenne",
+        "title": "Priorité 2 moyenne",
+        "url": "https://linear.app/boule/issue/PLT-205/priorite-2-moyenne",
+        "priority": 2,
+        "createdAt": "2026-03-01T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

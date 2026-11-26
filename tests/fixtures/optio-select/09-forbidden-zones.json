@@ -1,0 +1,64 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-401",
+            "title": "Reprendre la configuration Talos du cluster",
+            "description": "Reprendre la configuration Talos du cluster.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-10T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-401/reprendre-la-configuration-talos-du-cluster",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-402",
+            "title": "Ajouter une étape de publication",
+            "description": "Ajouter une étape dans .github/workflows.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-11T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-402/ajouter-une-etape-de-publication",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-403",
+            "title": "Ajouter une alerte de latence",
+            "description": "Ajouter une alerte de latence dans le tableau de bord.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-12T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-403/ajouter-une-alerte-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": { "works": [] },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-403",
+        "name": "[PLT-403] Ajouter une alerte de latence",
+        "title": "Ajouter une alerte de latence",
+        "url": "https://linear.app/boule/issue/PLT-403/ajouter-une-alerte-de-latence",
+        "priority": 2,
+        "createdAt": "2026-01-12T00:00:00.000Z",
+        "description": "Ajouter une alerte de latence dans le tableau de bord.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      { "id": "PLT-401", "reason": "zone interdite citée : Talos" },
+      { "id": "PLT-402", "reason": "zone interdite citée : .github/workflows" }
+    ]
+  }
+}

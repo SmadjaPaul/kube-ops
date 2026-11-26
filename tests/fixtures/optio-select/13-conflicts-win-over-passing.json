@@ -1,0 +1,29 @@
+{
+  "slots": 10,
+  "linear": { "data": { "issues": { "nodes": [] } } },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-800] Travail",
+        "state": "running",
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/301",
+        "prNumber": 301,
+        "prChecksStatus": "passing",
+        "conflicts": true
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [],
+    "create_fixes": [
+      {
+        "prNumber": 301,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/301",
+        "name": "[CORRIGE PR-301 1]",
+        "attempt": 1
+      }
+    ],
+    "skipped": []
+  }
+}
