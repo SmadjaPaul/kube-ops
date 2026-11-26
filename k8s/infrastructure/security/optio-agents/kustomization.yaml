@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - volume-retention.yaml
   - priorityclass.yaml
+  - job-pod-nonroot.yaml
