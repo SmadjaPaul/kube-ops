@@ -20,6 +20,17 @@ déclenche pas (constaté le 26/11 : PR mergées sans revue), alors que le merge
 
 Une PR mise en brouillon attend une personne. Une PR corrigée après un refus n'est pas relue automatiquement.
 
+## Contrôle déterministe
+
+Les chemins réservés et la taille du diff sont aussi contrôlés par un script déterministe et testé,
+`scripts/optio/pr-scope-check.sh` : il lit la sortie de `gh pr view N --json files` (aucun appel réseau) et
+refuse la PR, avec une raison par ligne, si elle touche un chemin réservé — la liste de la consigne REVUE dans
+[optio-intake.md](optio-intake.md), plus les manifestes rbac, role, rolebinding, store de secrets ou
+exception de politique —, si le diff dépasse 400 lignes (additions + suppressions) ou si elle touche plus de
+15 fichiers ; sinon il écrit `OK`. Son test est `tests/harness/optio-pr-scope-check-test.sh`. La consigne REVUE
+appellera ce script avant de juger : ce changement de consigne est fait à part, par une personne. Tant qu'il
+n'est pas fait, les chemins réservés ne reposent que sur la consigne.
+
 ## Retour arrière
 
 Désactiver le travail « Orchestrateur des tickets Linear ». Revenir sur un merge : revert de la PR.
