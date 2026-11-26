@@ -14,6 +14,8 @@ resources:
   - grafana-resource-efficiency.yaml
   # PLT-528: tableau de bord de la factory Optio (metriques de l'API 0.26.4).
   - grafana-factory-optio.yaml
+  # PLT-536: tableau de bord de la passerelle Agentgateway (jetons, cout estime, 429).
+  - grafana-agentgateway.yaml
   - nvme-endurance-rules.yaml
   - proxmox-updates-rules.yaml
   - ups-thermal-rules.yaml
