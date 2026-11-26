@@ -239,7 +239,7 @@ data:
                 - name: optio-daily-tokens
                   limit:
                     unit: Tokens
-                    amount: 30000000
+                    amount: 1000000000
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
@@ -318,7 +318,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: optio-v2
+        checksum/agentgateway-runtime: optio-v3
     spec:
       automountServiceAccountToken: false
       securityContext:
