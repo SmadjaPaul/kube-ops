@@ -12,6 +12,10 @@
 #
 # Lecture seule, aucun accès cluster, aucun appel réseau. Autonome : mktemp,
 # aucune écriture dans le dépôt.
+#
+# Chaque cas est rejoué deux fois : avec le jq de la machine, puis avec un jq
+# qui se comporte comme jq 1.6. Les deux exécutions doivent rendre la même
+# sortie, sinon le script dépend de la version de jq installée.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -24,6 +28,35 @@ command -v jq >/dev/null || { echo "OPTIO_SELECT_ACTIONS=BLOCKED reason=jq_requi
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+
+# jq 1.6 lève une erreur « capture requires a match » quand l'entrée ne
+# correspond pas à l'expression régulière ; jq 1.7 (et 1.8) renvoient un
+# résultat vide. Ce shim rejoue le comportement de jq 1.6 : le script doit
+# rendre la même décision avec les deux versions, sinon il s'arrête sur le
+# premier travail sans PR.
+real_jq="$(command -v jq)"
+jq16_bin="$tmp/jq16"
+mkdir -p "$jq16_bin"
+cat >"$jq16_bin/jq" <<SHIM
+#!/usr/bin/env bash
+# Émulateur de jq 1.6 : capture/1 échoue quand l'entrée ne correspond pas et
+# expose les captures nommées sous .namedCaptures.
+set -euo pipefail
+override='def capture(\$re): ([match(\$re)] | if length == 0 then error("capture requires a match") else .[0] | {captures: .captures, namedCaptures: (.captures | map({key: .name, value: .string}) | from_entries)} end); '
+args=("\$@")
+main=0
+for arg in "\${args[@]}"; do
+  if [ "\$arg" = "--slurpfile" ]; then
+    main=1
+  fi
+done
+if ((main)); then
+  last=\$((\${#args[@]} - 1))
+  args[\$last]="\$override\${args[\$last]}"
+fi
+exec "$real_jq" "\${args[@]}"
+SHIM
+chmod +x "$jq16_bin/jq"
 
 fail() {
   echo "OPTIO_SELECT_ACTIONS=FAIL $*" >&2
@@ -82,6 +115,19 @@ run_case() {
     --slots "$slots" >"$case_dir/out2.json" 2>/dev/null || rc=$?
   ((rc == 0)) || fail "reason=script_failed_on_second_run case=$name rc=$rc"
   cmp -s "$case_dir/out.json" "$case_dir/out2.json" || fail "reason=unstable_output case=$name"
+
+  # jq 1.6 : même décision, même sortie. Sans garde-fou, capture() sur une URL
+  # sans numéro de PR arrête le script entier.
+  rc=0
+  PATH="$jq16_bin:$PATH" bash "$script" --linear "$case_dir/linear.json" \
+    --work "$case_dir/work.json" --slots "$slots" \
+    >"$case_dir/out-jq16.json" 2>"$case_dir/err-jq16" || rc=$?
+  ((rc == 0)) || fail "reason=script_failed_under_jq16 case=$name rc=$rc detail=$(tr '\n' ' ' <"$case_dir/err-jq16")"
+  jq -S . "$case_dir/out-jq16.json" >"$case_dir/actual-jq16.json"
+  if ! diff -u "$case_dir/expected.json" "$case_dir/actual-jq16.json" >"$case_dir/diff-jq16" 2>&1; then
+    cat "$case_dir/diff-jq16" >&2
+    fail "reason=output_mismatch_under_jq16 case=$name"
+  fi
 
   echo "  case $name: PASS"
 }

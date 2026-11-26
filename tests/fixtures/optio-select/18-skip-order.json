@@ -1,0 +1,42 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-701",
+            "title": "Reprendre la configuration Talos du cluster",
+            "description": "Reprendre la configuration Talos du cluster.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-20T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-701/reprendre-la-configuration-talos-du-cluster",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-701] Reprendre la configuration Talos du cluster",
+        "state": "completed",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      { "id": "PLT-701", "reason": "zone interdite citée : Talos" }
+    ]
+  }
+}

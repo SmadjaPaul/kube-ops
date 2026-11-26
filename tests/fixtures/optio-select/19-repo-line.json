@@ -1,0 +1,64 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-702",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-21T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-702/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-703",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops-legacy\n",
+            "priority": 2,
+            "createdAt": "2026-01-22T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-703/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-704",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops (copie)\n",
+            "priority": 2,
+            "createdAt": "2026-01-23T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-704/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": { "works": [] },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-702",
+        "name": "[PLT-702] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "url": "https://linear.app/boule/issue/PLT-702/reprise-du-graphique-de-latence",
+        "priority": 2,
+        "createdAt": "2026-01-21T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      { "id": "PLT-703", "reason": "description sans la ligne Dépôt: kube-ops" },
+      { "id": "PLT-704", "reason": "description sans la ligne Dépôt: kube-ops" }
+    ]
+  }
+}

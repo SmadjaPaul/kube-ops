@@ -27,6 +27,8 @@
 # Règles reprises de la consigne de l'orchestrateur, sans en ajouter :
 #   - un ticket écarté porte sa raison dans skipped (première règle satisfaite,
 #     dans l'ordre de la consigne) ;
+#   - la ligne « Dépôt: kube-ops » est cherchée ligne par ligne : une mention
+#     dans une autre phrase ne vaut pas la ligne ;
 #   - un ticket éligible mais sans place libre n'est ni créé ni écarté : il sera
 #     repris au passage suivant ;
 #   - les places libres se partagent : d'abord les tâches (étape 5), puis les
@@ -34,9 +36,9 @@
 #   - une PR en conflit passe en correction même si ses checks passent : une
 #     PR en conflit ne peut pas être mergée.
 #
-# États de travail reconnus : queued (en file), preparing (en préparation),
-# running (en cours), completed (terminé), failed (échoué). Tout état inconnu
-# est actif : il occupe une place.
+# États de travail terminaux : completed (terminé), canceled (annulé), failed
+# (échoué). Tout autre état — y compris un état inconnu — est actif : il
+# occupe une place.
 #
 # Codes de retour : 0 succès, 2 usage ou entrée invalide.
 set -euo pipefail
@@ -154,8 +156,11 @@ def norm_state:
 def rel_type:
   (lc | gsub("[^a-z]"; ""));
 
+def terminal_state:
+  (. == "completed" or . == "canceled" or . == "failed");
+
 def active_state:
-  (. == "queued" or . == "preparing" or . == "running");
+  (terminal_state | not);
 
 def finished_state:
   (. == "completed" or . == "canceled" or . == "done");
@@ -175,12 +180,25 @@ def has_assignee:
     ((.assignee | length) > 0)
   else false end;
 
+# Capture nommée "n" d'une expression régulière. Les versions de jq
+# n'exposent pas les captures nommées de la même façon (.n, .namedCaptures.n
+# ou la capture nommée dans .captures) : les trois formes sont lues.
+def captured_n:
+  (.n // .namedCaptures.n // ([.captures[]? | select(.name == "n") | .string][0]) // empty);
+
+# Numéro de PR : le champ prNumber s'il est là, sinon le numéro déduit de
+# l'URL. capture() est gardé dans un try : jq 1.6 lève une erreur quand l'URL
+# ne correspond pas, jq 1.7 renvoie un résultat vide. Sans ce garde-fou, le
+# script s'arrête sur le premier travail sans PR.
 def pr_number:
   (if (.prNumber? | type) == "number" then .prNumber
    elif ((.prNumber? // "") | type) == "string" then ((.prNumber | as_int) // null)
    else null end) as $n
   | if $n != null then $n
-    else ([((.prUrl // "") | capture("/(?:pull|merge_requests)/(?<n>[0-9]+)") | .n | tonumber)] | .[0])
+    else ([((.prUrl // "")
+             | (try capture("/(?:pull|merge_requests)/(?<n>[0-9]+)") catch empty)
+             | captured_n
+             | tonumber?)] | .[0])
     end;
 
 def blockers_of:
@@ -248,7 +266,8 @@ def norm_work:
    | ($i.labels | map(select((lc | startswith("attend:"))))) as $attend
    | ($labels_lc | index("needs-operator")) as $needs_operator
    | ($labels_lc | index("différé")) as $deferred
-   | ($i.description | split("\n") | map(select(test("dépôt\\s*:\\s*kube-ops"; "i"))) | length) as $repo_lines
+   | ($i.description | split("\n")
+      | map(select(test("^\\s*dépôt\\s*:\\s*kube-ops\\s*$"; "i"))) | length) as $repo_lines
    | . + {skip_reason:
        (if $i.assigned then "assigné"
         elif ($open | length) > 0 then
@@ -257,8 +276,8 @@ def norm_work:
         elif $deferred != null then "label interdit : Différé"
         elif ($attend | length) > 0 then "label interdit : " + $attend[0]
         elif $repo_lines == 0 then "description sans la ligne Dépôt: kube-ops"
-        elif ($dupes | length) > 0 then "travail existant : " + $dupes[0]
         elif ($zones | length) > 0 then "zone interdite citée : " + $zones[0]
+        elif ($dupes | length) > 0 then "travail existant : " + $dupes[0]
         else null end)}
   ] as $decided
 
