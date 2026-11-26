@@ -9,6 +9,7 @@ resources:
   - networkpolicy.yaml
   - externalsecrets.yaml
   - httproute.yaml
+  - secret-sync.yaml
 
 helmCharts:
   - name: optio

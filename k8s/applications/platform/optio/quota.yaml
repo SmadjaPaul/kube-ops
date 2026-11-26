@@ -1,3 +1,4 @@
+# The optio-secret-sync CronJob pod also takes one of these slots for a few seconds.
 # PLT-339: 2 agents at most (MANDAT 30). A quota cannot select pods by label, so the cap counts
 # every pod of the namespace: 4 = api (with its web container) + redis + 2 agent pods (repo pod or Job, PR review
 # included). A third agent pod is refused by the API server (Forbidden: exceeded quota). The per-workspace concurrency in Optio must also be 2
