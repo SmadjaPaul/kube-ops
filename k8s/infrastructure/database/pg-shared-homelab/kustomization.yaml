@@ -14,3 +14,4 @@ resources:
   - dump-cronjob.yaml
   - dump-alerts.yaml
   - optio-database.yaml
+  - optio-d1b-seed.yaml
