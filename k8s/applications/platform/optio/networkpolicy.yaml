@@ -1,7 +1,8 @@
 # PLT-339: CiliumNetworkPolicy set of namespace optio (default deny ingress and egress).
 # Agent pods (label managed-by=optio, set by the Optio API) reach only DNS, the Optio API, the
-# Agentgateway, the Alloy OTLP receiver and an FQDN allow-list on 443. Any other egress is refused:
-# this is what protects the Claude subscription token visible in the agent pod (PLAN.md §5.2).
+# Agentgateway, the Alloy OTLP receiver and the public Internet on 80/443 (PLT-541, Paul's decision
+# of 2026-11-26: make the factory work first, harden later). Private and link-local ranges stay
+# refused. Accepted risk: a token visible in an agent pod can now be sent to any public host.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -68,6 +69,17 @@ spec:
         - matchName: api.linear.app
       toPorts:
         - ports: [{port: "443", protocol: TCP}]
+    # PLT-541: web research. Public addresses only; the LAN and the cluster are not reachable here.
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 10.0.0.0/8
+            - 100.64.0.0/10
+            - 169.254.0.0/16
+            - 172.16.0.0/12
+            - 192.168.0.0/16
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}, {port: "80", protocol: TCP}]
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
