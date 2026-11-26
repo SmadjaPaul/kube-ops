@@ -29,7 +29,7 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: Both Optio agent slots have been taken for 3 hours.
+            summary: Every Optio pod slot has been taken for 3 hours.
             description: No new agent pod can start in namespace optio.
         - alert: OptioMaintenanceStale
           expr: |-

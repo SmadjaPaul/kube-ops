@@ -1,8 +1,6 @@
-# PLT-339: 2 agents at most (MANDAT 30). A quota cannot select pods by label, so the pod cap is a
-# second quota counting every pod without a PriorityClass: 4 = api (with its web container) + redis +
-# 2 agent pods (repo pod or Job, PR review included). A third agent pod is refused by the API server
-# (Forbidden: exceeded quota). Only the maintenance CronJob has a PriorityClass. The per-workspace
-# concurrency in Optio must also be 2 (UI or config-as-code, NON VERIFIE: no chart value in 0.26.4).
+# MANDAT 35: 10 agents in parallel. The agent limit is OPTIO_MAX_CONCURRENT (kustomization.yaml) and
+# the repository settings in Optio; one pod hosts several agents. These quotas only bound the namespace:
+# pods without a PriorityClass (api, redis, agent and job pods; the maintenance CronJob has one).
 apiVersion: v1
 kind: ResourceQuota
 metadata:
@@ -12,12 +10,12 @@ spec:
   hard:
     # Two PVCs (home, workspace) per repo pod, deleted with its StatefulSet (PLT-516,
     # k8s/infrastructure/security/optio-agents).
-    persistentvolumeclaims: "8"
-    requests.storage: 80Gi
-    requests.cpu: "6"
-    requests.memory: 16Gi
-    limits.cpu: "12"
-    limits.memory: 32Gi
+    persistentvolumeclaims: "24"
+    requests.storage: 240Gi
+    requests.cpu: "8"
+    requests.memory: 24Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
 ---
 apiVersion: v1
 kind: ResourceQuota
@@ -26,7 +24,7 @@ metadata:
   namespace: optio
 spec:
   hard:
-    pods: "4"
+    pods: "12"
   scopeSelector:
     matchExpressions:
       - {scopeName: PriorityClass, operator: DoesNotExist}
