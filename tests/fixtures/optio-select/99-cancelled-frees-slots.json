@@ -1,0 +1,103 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-900",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-900",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            },
+            "inverseRelations": {
+              "nodes": []
+            }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-800] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-801] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-802] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-803] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-804] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-805] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-806] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-807] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-808] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      },
+      {
+        "name": "[PLT-809] annulé",
+        "type": "repo",
+        "state": "cancelled"
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-900",
+        "name": "[PLT-900] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "url": "https://linear.app/boule/issue/PLT-900",
+        "priority": 2,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

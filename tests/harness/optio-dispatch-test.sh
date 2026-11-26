@@ -477,6 +477,16 @@ expect_posts "$dir" "/api/tasks" 0 pr-closed-active
 expect_posts "$dir" "/cancel" 2 pr-closed-active
 cases=$((cases + 1))
 
+# --- 6 bis. travaux déjà annulés (graphie de l'API) : aucune ré-annulation ----
+
+dir="$(setup_case pr-closed-cancelled linear-empty.json optio-tasks-pr-closed-cancelled.json github-pulls-empty.json)"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 pr-closed-cancelled
+expect_counter "$dir" cancelled 0 pr-closed-cancelled
+expect_counter "$dir" errors 0 pr-closed-cancelled
+expect_posts "$dir" "/cancel" 0 pr-closed-cancelled
+cases=$((cases + 1))
+
 # --- 7. nouvelle tête : nouvelle revue ----------------------------------------
 
 dir="$(setup_case new-head linear-empty.json optio-tasks-review-old-head.json github-pulls-new-head.json)"

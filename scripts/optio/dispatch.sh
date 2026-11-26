@@ -523,7 +523,7 @@ build_plan() {
 def lc: ascii_downcase;
 def is_active:
   ((.state // "") | lc) as $s
-  | ($s != "completed" and $s != "canceled" and $s != "failed");
+  | ($s != "completed" and $s != "cancelled" and $s != "canceled" and $s != "failed");
 def has_pr:
   (((.prUrl // "") | tostring) != "")
   or ((((.prNumber // null) | tostring) != "null")
