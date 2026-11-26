@@ -1,0 +1,34 @@
+# PLT-525: Prometheus scrape of the Optio API metrics.
+#
+# The API serves /metrics on port 9464 when OPTIO_METRICS_PORT is set (chart 0.26.4,
+# metrics.enabled, values.yaml ; upstream apps/api/src/telemetry/prometheus.ts). The chart
+# exposes that port through its own Service (optio-api-metrics): this ServiceMonitor targets
+# it, never the ingress.
+#
+# Name `optio-api`: the name of the chart's own ServiceMonitor, disabled in values.yaml. The
+# Argo project `apps` does not prune (sync-options Prune=false): another name would leave
+# both ServiceMonitors scraping the same Service and double the series.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: optio-api
+  namespace: optio
+  labels:
+    # Selected by the Prometheus of kube-prometheus-stack (serviceMonitorSelector).
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - optio
+  selector:
+    # Labels of the optio-api-metrics Service rendered by the chart.
+    matchLabels:
+      app: optio-api
+      app.kubernetes.io/component: metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      # 60 s: Optio's counters (tasks, durations, costs, tokens, queue depth) move slowly;
+      # scraping more often adds no information.
+      interval: 60s
+      scrapeTimeout: 10s

@@ -119,11 +119,14 @@ resourceQuota:
 # metrics NetworkPolicy is a standard NetworkPolicy (k8s/CLAUDE.md: Cilium only): disabled, the
 # CiliumNetworkPolicy optio-api admits the monitoring namespace on 9464.
 metrics:
+  # metrics.enabled is the chart's switch for the metrics endpoint: it sets OPTIO_METRICS_PORT
+  # on the API container (templates/api-deployment.yaml) and publishes the container port.
+  # The API then serves /metrics on that port (amont apps/api/src/telemetry/prometheus.ts).
   enabled: true
   port: 9464
   networkPolicy:
     enabled: false
+  # The scrape belongs to the repository (servicemonitor.yaml, 60 s): the chart's own
+  # ServiceMonitor is disabled, two ServiceMonitors on the same Service double the series.
   serviceMonitor:
-    enabled: true
-    labels:
-      release: kube-prometheus-stack
+    enabled: false

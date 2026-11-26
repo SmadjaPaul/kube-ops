@@ -86,6 +86,9 @@ spec:
         - matchLabels: {managed-by: optio}
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
+    # Prometheus scrape of the API metrics (PLT-525; rule already in place since PLT-339):
+    # the pods of the monitoring namespace only, on the metrics port only. The metrics have
+    # no sign-in.
     - fromEndpoints:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}
       toPorts:
