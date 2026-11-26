@@ -1,0 +1,33 @@
+{
+  "data": {
+    "issues": {
+      "nodes": [
+        {
+          "identifier": "PLT-901",
+          "title": "Ticket déjà assigné",
+          "description": "Ticket déjà assigné.\n\nDépôt: kube-ops\n",
+          "priority": 3,
+          "createdAt": "2026-01-02T00:00:00.000Z",
+          "url": "https://linear.app/boule/issue/PLT-901",
+          "labels": {
+            "nodes": [
+              {
+                "name": "wip:optio"
+              }
+            ]
+          },
+          "assignee": {
+            "id": "u-1",
+            "name": "Paul"
+          },
+          "relations": {
+            "nodes": []
+          },
+          "inverseRelations": {
+            "nodes": []
+          }
+        }
+      ]
+    }
+  }
+}
