@@ -488,6 +488,27 @@ expect_counter "$dir" errors 0 pr-closed-cancelled
 expect_posts "$dir" "/cancel" 0 pr-closed-cancelled
 cases=$((cases + 1))
 
+# --- 6 ter. attentes sans objet : annulées ; les autres restent ----------------
+
+dir="$(setup_case attention linear-empty.json optio-tasks-attention.json github-pulls-new-head.json)"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 attention
+expect_counter "$dir" cancelled 2 attention
+expect_posts "$dir" "/cancel" 2 attention
+for id in attention-1 attention-4; do
+  grep -q "/api/tasks/$id/cancel" "$dir/calls.log" || fail "reason=missing_cancel case=attention id=$id"
+done
+cases=$((cases + 1))
+
+# --- 6 quater. la tâche a repris entre deux lectures : aucune annulation -------
+
+dir="$(setup_case attention-moved linear-empty.json optio-tasks-attention.json github-pulls-new-head.json optio-tasks-attention-moved.json)"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 attention-moved
+expect_counter "$dir" cancelled 0 attention-moved
+expect_posts "$dir" "/cancel" 0 attention-moved
+cases=$((cases + 1))
+
 # --- 7. nouvelle tête : nouvelle revue ----------------------------------------
 
 dir="$(setup_case new-head linear-empty.json optio-tasks-review-old-head.json github-pulls-new-head.json)"

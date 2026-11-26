@@ -1,0 +1,72 @@
+[
+  {
+    "id": "attention-1",
+    "title": "[REVUE PR-42 aaaa1111]",
+    "state": "running",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": null,
+    "prNumber": null,
+    "prState": "open",
+    "prChecksStatus": "pending",
+    "errorMessage": "Agent completed successfully but did not open a pull request.",
+    "retryCount": 0,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "attention-2",
+    "title": "[CORRIGE PR-42 1]",
+    "state": "running",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": null,
+    "prNumber": null,
+    "prState": "open",
+    "prChecksStatus": "pending",
+    "errorMessage": "stall_detected",
+    "retryCount": 0,
+    "createdAt": "2026-01-02T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "attention-3",
+    "title": "[PLT-900] PR ouverte",
+    "state": "running",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/42",
+    "prNumber": 42,
+    "prState": "open",
+    "prChecksStatus": "pending",
+    "errorMessage": "ci_failing_needs_attention",
+    "retryCount": 0,
+    "createdAt": "2026-01-03T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "attention-4",
+    "title": "[PLT-901] PR mergée",
+    "state": "running",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/41",
+    "prNumber": 41,
+    "prState": "open",
+    "prChecksStatus": "pending",
+    "errorMessage": "ci_failing_needs_attention",
+    "retryCount": 0,
+    "createdAt": "2026-01-04T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "attention-5",
+    "title": "[PLT-902] autre dépôt",
+    "state": "running",
+    "repoUrl": "https://github.com/smadjapaul/website",
+    "prUrl": "https://github.com/smadjapaul/website/pull/41",
+    "prNumber": 41,
+    "prState": "open",
+    "prChecksStatus": "pending",
+    "errorMessage": "ci_failing_needs_attention",
+    "retryCount": 0,
+    "createdAt": "2026-01-05T00:00:00.000Z",
+    "metadata": {}
+  }
+]

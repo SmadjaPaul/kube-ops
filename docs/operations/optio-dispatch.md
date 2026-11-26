@@ -46,6 +46,9 @@ ligne de commande, et que les trois en-têtes sont bien présents.
 4. **L'état réel des PR** — relu sur GitHub avant toute revue, correction ou reprise. L'état mis en cache
    par Optio (`prState`) n'est jamais utilisé pour décider. Une PR fermée ou mergée : aucune création, et
    les revues ou corrections encore actives pour cette PR sont annulées (`POST /api/tasks/:id/cancel`).
+   Une tâche `needs_attention` est aussi annulée quand elle est sans objet : revue ou correction terminée
+   (« did not open a pull request »), ou tâche de ce dépôt dont la PR est fermée ou mergée. Son état est relu
+   avant l'annulation. Tout autre motif (agent bloqué, CI en échec sur une PR ouverte) reste visible.
 5. **Une création à la fois** — la liste des travaux est relue avant chaque création. Si le nom
    `[IDENTIFIANT]`, `[REVUE PR-N <sha8>]` ou `[CORRIGE PR-N k]` existe déjà, le script s'abstient et
    l'écarte avec la raison.
