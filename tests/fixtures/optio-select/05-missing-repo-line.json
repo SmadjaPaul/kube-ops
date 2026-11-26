@@ -1,0 +1,31 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-104",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n",
+            "priority": 2,
+            "createdAt": "2026-01-08T10:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-104/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": { "works": [] },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      { "id": "PLT-104", "reason": "description sans la ligne Dépôt: kube-ops" }
+    ]
+  }
+}

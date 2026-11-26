@@ -1,0 +1,45 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-105",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-09T10:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-105/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-105] Reprise du graphique de latence",
+        "state": "completed",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      {
+        "id": "PLT-105",
+        "reason": "travail existant : [PLT-105] Reprise du graphique de latence"
+      }
+    ]
+  }
+}

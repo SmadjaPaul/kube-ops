@@ -1,0 +1,41 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-102",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-06T10:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-102/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": {
+              "nodes": [
+                {
+                  "type": "blockedBy",
+                  "relatedIssue": {
+                    "identifier": "PLT-099",
+                    "state": { "type": "started" }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "work": { "works": [] },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      { "id": "PLT-102", "reason": "bloqué par un ticket non terminé : PLT-099" }
+    ]
+  }
+}

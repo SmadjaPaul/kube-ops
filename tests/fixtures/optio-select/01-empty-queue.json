@@ -1,0 +1,11 @@
+{
+  "slots": 10,
+  "linear": { "data": { "issues": { "nodes": [] } } },
+  "work": { "works": [] },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "slots": 10,
+  "linear": {
+    "issues": [
+      {
+        "identifier": "PLT-901",
+        "title": "Reprise du graphique de latence",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+        "priority": "2",
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "url": "https://linear.app/boule/issue/PLT-901/reprise-du-graphique-de-latence",
+        "labels": ["wip:optio"],
+        "assignee": "Paul Smadja",
+        "inverseRelations": {
+          "nodes": [
+            {
+              "type": "blocks",
+              "relatedIssue": { "identifier": "PLT-900", "state": { "type": "started" } }
+            }
+          ]
+        }
+      },
+      {
+        "identifier": "PLT-902",
+        "title": "Reprise du graphique de latence",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+        "priority": 2,
+        "createdAt": "2026-01-02T00:00:00.000Z",
+        "url": "https://linear.app/boule/issue/PLT-902/reprise-du-graphique-de-latence",
+        "labels": { "nodes": [{ "name": "wip:optio" }] },
+        "assignee": null,
+        "inverseRelations": {
+          "nodes": [
+            {
+              "type": "blocks",
+              "relatedIssue": { "identifier": "PLT-900", "state": { "type": "started" } }
+            }
+          ]
+        }
+      },
+      {
+        "identifier": "PLT-904",
+        "title": "Reprise du graphique de latence",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+        "priority": "1",
+        "createdAt": "2026-01-03T00:00:00.000Z",
+        "url": "https://linear.app/boule/issue/PLT-904/reprise-du-graphique-de-latence",
+        "labels": ["wip:optio"],
+        "assignee": null
+      }
+    ]
+  },
+  "work": [
+    {
+      "name": "[PLT-903] travail",
+      "state": "running",
+      "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/4242",
+      "prChecksStatus": "passing"
+    }
+  ],
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-904",
+        "name": "[PLT-904] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "url": "https://linear.app/boule/issue/PLT-904/reprise-du-graphique-de-latence",
+        "priority": 1,
+        "createdAt": "2026-01-03T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [
+      {
+        "prNumber": 4242,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/4242",
+        "name": "[REVUE PR-4242]"
+      }
+    ],
+    "create_fixes": [],
+    "skipped": [
+      { "id": "PLT-901", "reason": "assigné" },
+      { "id": "PLT-902", "reason": "bloqué par un ticket non terminé : PLT-900" }
+    ]
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-801",
+            "title": "Tâche 1",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-02-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-801/tache-1",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-802",
+            "title": "Tâche 2",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-02-02T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-802/tache-2",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-803",
+            "title": "Tâche 3",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-02-03T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-803/tache-3",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-804",
+            "title": "Tâche 4",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-02-04T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-804/tache-4",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-805",
+            "title": "Tâche 5",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-02-05T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-805/tache-5",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-806",
+            "title": "Tâche 6",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-02-06T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-806/tache-6",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-807",
+            "title": "Tâche 7",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-02-07T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-807/tache-7",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": { "works": [] },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-801",
+        "name": "[PLT-801] Tâche 1",
+        "title": "Tâche 1",
+        "url": "https://linear.app/boule/issue/PLT-801/tache-1",
+        "priority": 2,
+        "createdAt": "2026-02-01T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-802",
+        "name": "[PLT-802] Tâche 2",
+        "title": "Tâche 2",
+        "url": "https://linear.app/boule/issue/PLT-802/tache-2",
+        "priority": 2,
+        "createdAt": "2026-02-02T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-803",
+        "name": "[PLT-803] Tâche 3",
+        "title": "Tâche 3",
+        "url": "https://linear.app/boule/issue/PLT-803/tache-3",
+        "priority": 2,
+        "createdAt": "2026-02-03T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-804",
+        "name": "[PLT-804] Tâche 4",
+        "title": "Tâche 4",
+        "url": "https://linear.app/boule/issue/PLT-804/tache-4",
+        "priority": 2,
+        "createdAt": "2026-02-04T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-805",
+        "name": "[PLT-805] Tâche 5",
+        "title": "Tâche 5",
+        "url": "https://linear.app/boule/issue/PLT-805/tache-5",
+        "priority": 2,
+        "createdAt": "2026-02-05T00:00:00.000Z",
+        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

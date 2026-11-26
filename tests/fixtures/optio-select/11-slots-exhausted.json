@@ -1,0 +1,51 @@
+{
+  "slots": 1,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-601",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 1,
+            "createdAt": "2026-01-16T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-601/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-602",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 1,
+            "createdAt": "2026-01-17T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-602/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": { "name": "Paul Smadja" },
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-600] Travail en cours",
+        "state": "running",
+        "prUrl": null,
+        "prNumber": null,
+        "prChecksStatus": null,
+        "conflicts": false
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [{ "id": "PLT-602", "reason": "assigné" }]
+  }
+}
