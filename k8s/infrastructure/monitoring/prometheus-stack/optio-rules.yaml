@@ -1,0 +1,42 @@
+# PLT-516: Optio stops taking work silently when its agent volumes or pod slots are exhausted.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: optio-capacity
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: optio-capacity
+      rules:
+        - alert: OptioAgentVolumesNearlyFull
+          expr: |-
+            max(kube_resourcequota{job="kube-state-metrics", namespace="optio", resource="persistentvolumeclaims", type="used"})
+            / max(kube_resourcequota{job="kube-state-metrics", namespace="optio", resource="persistentvolumeclaims", type="hard"})
+            >= 0.75
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Optio agent volumes are nearly exhausted.
+            description: Volume quota of namespace optio at {{ $value | humanizePercentage }} for 30 minutes.
+        - alert: OptioAgentSlotsStuck
+          expr: |-
+            max(kube_resourcequota{job="kube-state-metrics", namespace="optio", resourcequota="optio-agent-pods", type="used"})
+            >= max(kube_resourcequota{job="kube-state-metrics", namespace="optio", resourcequota="optio-agent-pods", type="hard"})
+          for: 3h
+          labels:
+            severity: warning
+          annotations:
+            summary: Both Optio agent slots have been taken for 3 hours.
+            description: No new agent pod can start in namespace optio.
+        - alert: OptioMaintenanceStale
+          expr: |-
+            time() - max(kube_cronjob_status_last_successful_time{job="kube-state-metrics", namespace="optio", cronjob="optio-secret-sync"}) > 3600
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Optio maintenance has not succeeded for an hour.
+            description: CronJob optio-secret-sync (gateway key and cleanup) in namespace optio.

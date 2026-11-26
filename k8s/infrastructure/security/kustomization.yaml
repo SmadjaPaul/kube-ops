@@ -7,4 +7,5 @@ resources:
   - falco
   - policies
   - agent-operator
+  - optio-agents
   - monitoring.yaml

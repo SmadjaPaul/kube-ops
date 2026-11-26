@@ -1,0 +1,35 @@
+# PLT-516: Optio deletes idle repo StatefulSets but keeps their volumes (no setting upstream), so the
+# volume quota of namespace optio fills up and no agent pod starts. This sets the native retention
+# policy on the StatefulSets Optio creates: their volumes are deleted with them (scratch data: clone,
+# agent home). failurePolicy Ignore: never blocks Optio; the quota alert catches a policy not applied.
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: optio-agent-volume-retention
+spec:
+  failurePolicy: Ignore
+  reinvocationPolicy: Never
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: [CREATE, UPDATE]
+        resources: [statefulsets]
+  mutations:
+    - patchType: ApplyConfiguration
+      applyConfiguration:
+        expression: >-
+          Object{spec: Object.spec{persistentVolumeClaimRetentionPolicy:
+          Object.spec.persistentVolumeClaimRetentionPolicy{whenDeleted: "Delete", whenScaled: "Delete"}}}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: optio-agent-volume-retention
+spec:
+  policyName: optio-agent-volume-retention
+  matchResources:
+    namespaceSelector:
+      matchLabels: {kubernetes.io/metadata.name: optio}
+    objectSelector:
+      matchLabels: {managed-by: optio}

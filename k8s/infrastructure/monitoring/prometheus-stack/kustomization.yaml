@@ -18,6 +18,7 @@ resources:
   - control-plane-rules.yaml
   - golden-signals-rules.yaml
   - quota-rules.yaml
+  - optio-rules.yaml
 
 patches:
   - path: kube-apiserver-cardinality-patch.json

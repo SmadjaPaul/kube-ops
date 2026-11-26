@@ -1,0 +1,9 @@
+# PLT-516: lets the Optio maintenance CronJob be counted outside the agent pod quota.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: optio-maintenance
+value: 0
+globalDefault: false
+preemptionPolicy: Never
+description: "Optio maintenance CronJob (PLT-516). Never preempts."
