@@ -1,0 +1,50 @@
+{
+  "slots": 2,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-712",
+            "title": "Reprise du graphique de latence",
+            "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+            "priority": 1,
+            "createdAt": "2026-01-24T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-712/reprise-du-graphique-de-latence",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          },
+          {
+            "identifier": "PLT-713",
+            "title": "Reprise du tableau de bord",
+            "description": "Reprise du tableau de bord.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-25T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-713/reprise-du-tableau-de-bord",
+            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "assignee": null,
+            "relations": { "nodes": [] }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-710] Travail en pause",
+        "state": "paused"
+      },
+      {
+        "name": "[PLT-711] Travail sans état"
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": []
+  }
+}
