@@ -1,6 +1,6 @@
-# Contrat de test (PLT-375). Drill temporaire de restauration de pg-shared-homelab depuis R2
-# dans un namespace isole : retire par PR apres mesure du RTO, aucune supervision a declarer.
+# Contrat de test (PLT-339). Drill D1b temporaire de restauration de pg-shared-homelab depuis R2
+# dans un namespace isole : retire par PR apres la preuve, aucune supervision a declarer.
 exceptions:
-  backup: "copie jetable restauree depuis la sauvegarde R2 de pg-shared-homelab (la source est deja sauvegardee), supprimee apres mesure (PLT-375)"
-  observability: "drill temporaire de restauration, retire apres mesure (PLT-375)"
+  backup: "copie jetable restauree depuis la sauvegarde R2 de pg-shared-homelab (la source est deja sauvegardee), supprimee apres le drill D1b (PLT-339)"
+  observability: "drill temporaire de restauration, retire apres la preuve (PLT-339)"
 backup: none
