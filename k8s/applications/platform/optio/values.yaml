@@ -93,7 +93,7 @@ auth:
   cliKeyMaxDays: 90
 
 # GitHub App without the `workflows` permission (PLT-509). Keys GITHUB_APP_ID,
-# GITHUB_APP_INSTALLATION_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_CLIENT_ID, GITHUB_APP_CLIENT_SECRET.
+# GITHUB_APP_INSTALLATION_ID, GITHUB_APP_PRIVATE_KEY (no OAuth client: see externalsecrets.yaml).
 github:
   app:
     existingSecret: optio-github-app
