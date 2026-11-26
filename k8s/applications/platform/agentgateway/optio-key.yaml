@@ -3,7 +3,7 @@
 # (D-2026-11-20-04, class T4: disposable, not backed up). Never in Doppler, never in Git.
 # Source named `llm-optio` (store k8s-agentgateway, prefix `llm-` + consumer namespace, eso-k8s-store-guard).
 #   - the gateway reads it through `envFrom` (resources.yaml) and checks it in config.yaml
-#     (strict, allowedModels text/strong and code/frontier, budgets 30 000 000 tokens and 2 USD / 24 h, Block);
+#     (strict, allowedModels text/strong and code/frontier, budgets 1 000 000 000 tokens and 2 USD / 24 h, Block);
 #   - the copy in namespace optio (ExternalSecret on the store k8s-agentgateway, key `llm-optio`) is
 #     created with the Optio manifests (k8s/applications/platform/optio), NOT here.
 # Revert: remove this file, its line in kustomization.yaml, the key block in config.yaml, the envFrom

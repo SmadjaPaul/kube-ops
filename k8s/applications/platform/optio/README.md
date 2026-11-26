@@ -33,7 +33,7 @@ Exploitation générale : `docs/operations/optio.md`.
 | `code/frontier` | API Claude (Anthropic) | revue de PR, tickets `model:frontier` |
 
 L'alias est choisi **par exécution** ; chaque exécution tourne avec une fenêtre de contexte de **200k tokens**.
-La clé `optio` de l'Agentgateway n'accepte que ces deux alias (budgets 30 000 000 tokens et 2 USD / 24 h, `Block` ; le budget en dollars ne compte que `code/frontier`,
+La clé `optio` de l'Agentgateway n'accepte que ces deux alias (budgets 1 000 000 000 tokens et 2 USD / 24 h, `Block` ; le budget en dollars ne compte que `code/frontier`,
 mais son dépassement bloque la clé entière).
 
 ## À re-vérifier à chaque montée de version
