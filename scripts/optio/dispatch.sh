@@ -369,9 +369,23 @@ run_decision() {
     api_error "Optio" "the selection script is not readable: $select_actions"
     return 1
   fi
+  # Le sélecteur plafonne les revues et corrections par numéro de PR croissant :
+  # une PR fermée ou mergée prendrait une place à chaque passage et les PR
+  # récentes ne seraient jamais choisies. Le travail reste, sans sa PR.
+  if ! jq -n --slurpfile works "$work_dir/work.json" \
+    --slurpfile pulls "$work_dir/pulls.json" '
+      ([$pulls[0][] | .number | tostring]) as $open
+      | $works[0]
+      | map(((.prNumber // ((.prUrl // "") | split("/") | last)) | tostring) as $n
+            | if ($open | index($n)) != null then .
+              else .prNumber = null | .prUrl = "" end)' >"$work_dir/work-open.json"; then
+    warn "the work list could not be filtered"
+    errors=$((errors + 1))
+    return 1
+  fi
   if ! bash "$select_actions" \
     --linear "$work_dir/linear.json" \
-    --work "$work_dir/work.json" \
+    --work "$work_dir/work-open.json" \
     --slots "$slots" >"$work_dir/decision.json" 2>"$work_dir/decision-error"; then
     warn "the selection failed: $(tr '\n' ' ' <"$work_dir/decision-error" | cut -c1-200)"
     errors=$((errors + 1))

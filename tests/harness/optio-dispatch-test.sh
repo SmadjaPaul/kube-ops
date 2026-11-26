@@ -463,8 +463,8 @@ expect_counter "$dir" created 0 pr-closed
 expect_counter "$dir" fixes 0 pr-closed
 expect_counter "$dir" reviews 0 pr-closed
 expect_posts "$dir" "/api/tasks" 0 pr-closed
-jq -e '.skipped[0].reason | test("fermée ou mergée")' <<<"$(actions_of "$dir")" >/dev/null ||
-  fail "reason=unexpected_skip_reason case=pr-closed actions=$(actions_of "$dir")"
+# La PR fermée ne parvient pas au sélecteur : ni action, ni écart.
+expect_counter "$dir" skipped 0 pr-closed
 cases=$((cases + 1))
 
 # --- 6. PR fermée ou mergée : annulation des travaux encore actifs -------------
@@ -507,6 +507,15 @@ run_dispatch "$dir" --apply
 expect_rc "$dir" 0 attention-moved
 expect_counter "$dir" cancelled 0 attention-moved
 expect_posts "$dir" "/cancel" 0 attention-moved
+cases=$((cases + 1))
+
+# --- 6 quinquies. des PR fermées ne bloquent pas la revue d'une PR ouverte ----
+
+dir="$(setup_case review-cap linear-empty.json optio-tasks-review-cap.json github-pulls-new-head.json)"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 review-cap
+expect_counter "$dir" reviews 1 review-cap
+expect_counter "$dir" skipped 0 review-cap
 cases=$((cases + 1))
 
 # --- 7. nouvelle tête : nouvelle revue ----------------------------------------

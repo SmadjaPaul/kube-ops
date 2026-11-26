@@ -49,6 +49,8 @@ ligne de commande, et que les trois en-têtes sont bien présents.
    Une tâche `needs_attention` est aussi annulée quand elle est sans objet : revue ou correction terminée
    (« did not open a pull request »), ou tâche de ce dépôt dont la PR est fermée ou mergée. Son état est relu
    avant l'annulation. Tout autre motif (agent bloqué, CI en échec sur une PR ouverte) reste visible.
+   Le sélecteur ne reçoit que les PR ouvertes : une PR fermée ne prend aucune des 5 places de revue ou de
+   correction (PLT-537).
 5. **Une création à la fois** — la liste des travaux est relue avant chaque création. Si le nom
    `[IDENTIFIANT]`, `[REVUE PR-N <sha8>]` ou `[CORRIGE PR-N k]` existe déjà, le script s'abstient et
    l'écarte avec la raison.

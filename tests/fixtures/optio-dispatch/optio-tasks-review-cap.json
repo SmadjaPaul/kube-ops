@@ -1,0 +1,93 @@
+[
+  {
+    "id": "cap-1",
+    "title": "[PLT-901] travail 1",
+    "state": "completed",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/31",
+    "prNumber": 31,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "retryCount": 0,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "cap-2",
+    "title": "[PLT-902] travail 2",
+    "state": "completed",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/32",
+    "prNumber": 32,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "retryCount": 0,
+    "createdAt": "2026-01-02T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "cap-3",
+    "title": "[PLT-903] travail 3",
+    "state": "completed",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/33",
+    "prNumber": 33,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "retryCount": 0,
+    "createdAt": "2026-01-03T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "cap-4",
+    "title": "[PLT-904] travail 4",
+    "state": "completed",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/34",
+    "prNumber": 34,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "retryCount": 0,
+    "createdAt": "2026-01-04T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "cap-5",
+    "title": "[PLT-905] travail 5",
+    "state": "completed",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/35",
+    "prNumber": 35,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "retryCount": 0,
+    "createdAt": "2026-01-05T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "cap-6",
+    "title": "[PLT-906] travail 6",
+    "state": "completed",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/36",
+    "prNumber": 36,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "retryCount": 0,
+    "createdAt": "2026-01-06T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "cap-7",
+    "title": "[PLT-907] travail 7",
+    "state": "pr_opened",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/42",
+    "prNumber": 42,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "retryCount": 0,
+    "createdAt": "2026-01-07T00:00:00.000Z",
+    "metadata": {}
+  }
+]
