@@ -1,0 +1,38 @@
+[
+  {
+    "id": "task-1",
+    "title": "[PLT-900] Reprise du graphique de latence",
+    "state": "running",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/42",
+    "prNumber": 42,
+    "prState": "open",
+    "prChecksStatus": "failing",
+    "retryCount": 0,
+    "createdAt": "2026-01-02T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "task-2",
+    "title": "[REVUE PR-42 aaaa1111]",
+    "state": "running",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/42",
+    "prNumber": 42,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "retryCount": 0,
+    "createdAt": "2026-01-03T00:00:00.000Z",
+    "metadata": {}
+  },
+  {
+    "id": "task-3",
+    "title": "[CORRIGE PR-42 1]",
+    "state": "queued",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/42",
+    "prNumber": 42,
+    "prState": "open",
+    "prChecksStatus": "failing",
+    "retryCount": 0,
+    "createdAt": "2026-01-04T00:00:00.000Z",
+    "metadata": {}
+  }
+]

@@ -36,8 +36,8 @@
 #   - une PR en conflit passe en correction même si ses checks passent : une
 #     PR en conflit ne peut pas être mergée.
 #
-# États de travail terminaux : completed (terminé), canceled (annulé), failed
-# (échoué). Tout autre état — y compris un état inconnu — est actif : il
+# États de travail terminaux : completed (terminé), cancelled (annulé, graphie de
+# l'API Optio ; « canceled » toléré), failed (échoué). Tout autre état — y compris un état inconnu — est actif : il
 # occupe une place.
 #
 # Codes de retour : 0 succès, 2 usage ou entrée invalide.
@@ -157,13 +157,13 @@ def rel_type:
   (lc | gsub("[^a-z]"; ""));
 
 def terminal_state:
-  (. == "completed" or . == "canceled" or . == "failed");
+  (. == "completed" or . == "cancelled" or . == "canceled" or . == "failed");
 
 def active_state:
   (terminal_state | not);
 
 def finished_state:
-  (. == "completed" or . == "canceled" or . == "done");
+  (. == "completed" or . == "cancelled" or . == "canceled" or . == "done");
 
 def prio_rank:
   if . == 1 then 1

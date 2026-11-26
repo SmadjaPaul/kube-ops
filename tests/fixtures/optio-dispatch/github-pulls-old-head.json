@@ -1,0 +1,11 @@
+[
+  {
+    "number": 42,
+    "state": "open",
+    "title": "Reprise du graphique de latence",
+    "head": {
+      "ref": "optio/task-plt-900",
+      "sha": "aaaa111122233333444455556666777788889999"
+    }
+  }
+]

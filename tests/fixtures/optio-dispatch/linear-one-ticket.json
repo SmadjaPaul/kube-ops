@@ -1,0 +1,30 @@
+{
+  "data": {
+    "issues": {
+      "nodes": [
+        {
+          "identifier": "PLT-900",
+          "title": "Reprise du graphique de latence",
+          "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n",
+          "priority": 2,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "url": "https://linear.app/boule/issue/PLT-900",
+          "labels": {
+            "nodes": [
+              {
+                "name": "wip:optio"
+              }
+            ]
+          },
+          "assignee": null,
+          "relations": {
+            "nodes": []
+          },
+          "inverseRelations": {
+            "nodes": []
+          }
+        }
+      ]
+    }
+  }
+}
