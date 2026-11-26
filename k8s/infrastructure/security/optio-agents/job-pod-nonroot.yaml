@@ -1,0 +1,40 @@
+# PLT-515: Optio 0.26.4 sets a pod security context on repo pods only; its Job pods (restartPolicy
+# Never) are refused by Pod Security "restricted" (runAsNonRoot missing). This adds the same non-root
+# identity (uid 1001, the image's `agent` user) to Optio pods that declare none. Pods that already
+# declare runAsNonRoot are not touched. Remove once upstream sets it.
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: optio-agent-pod-nonroot
+spec:
+  failurePolicy: Ignore
+  reinvocationPolicy: Never
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE]
+        resources: [pods]
+  matchConditions:
+    - name: no-run-as-non-root
+      expression: >-
+        !has(object.spec.securityContext) || !has(object.spec.securityContext.runAsNonRoot)
+  mutations:
+    - patchType: ApplyConfiguration
+      applyConfiguration:
+        expression: >-
+          Object{spec: Object.spec{securityContext: Object.spec.securityContext{
+          runAsNonRoot: true, runAsUser: 1001, runAsGroup: 1001, fsGroup: 1001,
+          seccompProfile: Object.spec.securityContext.seccompProfile{type: "RuntimeDefault"}}}}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: optio-agent-pod-nonroot
+spec:
+  policyName: optio-agent-pod-nonroot
+  matchResources:
+    namespaceSelector:
+      matchLabels: {kubernetes.io/metadata.name: optio}
+    objectSelector:
+      matchLabels: {managed-by: optio}
