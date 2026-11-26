@@ -64,6 +64,20 @@ patches:
         name: optio-api
         annotations:
           secret.reloader.stakater.com/reload: "optio-github-app"
+  # MANDAT 35: 10 repository agents in parallel (upstream default 5; no chart value for it).
+  - target: {group: apps, version: v1, kind: Deployment, name: optio-api}
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: optio-api
+      spec:
+        template:
+          spec:
+            containers:
+              - name: api
+                env:
+                  - {name: OPTIO_MAX_CONCURRENT, value: "10"}
   # Redis: RuntimeDefault seccomp and probes.
   - target: {group: apps, version: v1, kind: Deployment, name: optio-redis}
     patch: |-

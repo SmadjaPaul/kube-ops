@@ -13,12 +13,13 @@ Un nettoyage des verrous périmés ne doit pas retirer `wip:optio`.
 
 | Élément | Valeur |
 |---|---|
-| Secret privé | `LINEAR_READONLY_KEY` : clé personnelle Linear, permission **Read** seule |
+| Secret privé | `LINEAR_INTAKE_KEY`, écrit par `optio-secret-sync` depuis Doppler (clé Linear existante, qui peut écrire) |
 | Fournisseur de connexion | `linear-lecture` : variable `LINEAR_API_KEY` = `{{linearKey}}` |
-| Connexion privée | `linear-lecture`, `linearKey` = `${{LINEAR_READONLY_KEY}}`, sans affectation |
+| Connexion privée | `linear-lecture`, `linearKey` = `${{LINEAR_INTAKE_KEY}}`, sans affectation |
 | Travail | Job planifié, propriétaire « moi », `claude-code`, `text/strong`, contexte 200k, effort `medium` |
 | Réglages du travail | accès contrôleur `manage`, connexion `linear-lecture` ajoutée |
-| Planification | `0 0 1 1 *` tant que le test n'a pas réussi, puis `0 * * * *` (Europe/Paris) |
+| Planification | `0 0 1 1 *` tant que le test n'a pas réussi, puis `*/10 * * * *` (Europe/Paris) |
+| Dépôt kube-ops | 10 tâches, 5 agents par pod, 2 pods ; mémoire 2 à 8 Gi, CPU 0,5 à 4 |
 
 La connexion privée de la passerelle (affectation globale) s'applique aussi à ce travail.
 
@@ -26,13 +27,13 @@ La connexion privée de la passerelle (affectation globale) s'applique aussi à 
 
 - L'accès contrôleur `manage` permet aussi de merger, modifier et supprimer du travail : seule la consigne
   l'interdit. Le texte d'un ticket est une donnée qui pourrait tenter de détourner l'agent.
-- La clé Linear est visible dans le pod de l'orchestrateur ; elle est en lecture seule.
-- L'orchestrateur occupe une des deux places d'agent pendant son exécution.
+- La clé Linear est visible dans le pod de l'orchestrateur et peut écrire dans Linear (MANDAT 35).
+- Les 10 agents partagent un seul nœud : mémoire et CPU à surveiller.
 - L'orchestrateur ne modifie pas Linear : le statut du ticket reste à mettre à jour.
 
 ## Retour arrière
 
-Désactiver le travail, puis désactiver la connexion `linear-lecture` et supprimer la clé dans Linear.
+Désactiver le travail et la connexion `linear-lecture` ; retirer `optio-linear` et supprimer le secret privé.
 
 ## Consigne du travail
 
@@ -53,9 +54,10 @@ merger, supprimer, modifier un travail). N'affiche jamais la valeur de LINEAR_AP
    AGENTS.md, CLAUDE.md, CODEOWNERS, un ruleset, .github/workflows, des secrets, ou une suppression de données.
 3. Avec les outils optio, liste le travail existant (toutes les pages, terminé compris). Écarte tout ticket
    pour lequel un travail dont le nom commence par "[IDENTIFIANT]" existe déjà, quel que soit son état.
-4. Si une tâche de dépôt privée est en file, en préparation ou en cours, ne crée rien.
-5. Sinon, prends UN seul ticket : la priorité la plus haute (1 avant 4, 0 en dernier), puis le plus ancien.
-6. Crée une tâche avec optio_create_work :
+4. Compte les tâches de dépôt en file, en préparation ou en cours. Places libres = 10 moins ce nombre.
+5. Prends au plus 5 tickets par passage, sans dépasser les places libres : la priorité la plus haute d'abord
+   (1 avant 4, 0 en dernier), puis le plus ancien. N'en prends pas deux qui modifient les mêmes fichiers.
+6. Pour chacun, crée une tâche avec optio_create_work :
    - name : "[IDENTIFIANT] titre du ticket" ;
    - when : manual ;
    - where : cluster, dépôt https://github.com/smadjapaul/kube-ops ;
@@ -68,5 +70,5 @@ merger, supprimer, modifier un travail). N'affiche jamais la valeur de LINEAR_AP
    - then : exits ; settings.controllerAccess : off.
 7. N'utilise aucun autre outil d'écriture : ni merge, ni suppression, ni modification, ni contrôle, ni message.
 8. Termine par un compte rendu court en français : tickets lus, tickets écartés avec la raison, tâche créée
-   avec son identifiant, ou "aucune". Si une étape échoue, dis laquelle et ne crée rien.
+   avec leurs identifiants, ou "aucune". Si une étape échoue, dis laquelle et ne crée rien de plus.
 ```
