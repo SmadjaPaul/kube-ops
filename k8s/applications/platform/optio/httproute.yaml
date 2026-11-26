@@ -10,11 +10,21 @@ spec:
   hostnames:
     - optio.smadja.dev
   rules:
+    # WebSockets go straight to the API (session cookie + trusted Origin).
     - matches:
-        - path: {type: PathPrefix, value: /api}
         - path: {type: PathPrefix, value: /ws}
       backendRefs:
         - {name: optio-api, port: 4000}
+    # API clients with their own token (PAT, CLI): the web proxy drops Authorization.
+    - matches:
+        - path: {type: PathPrefix, value: /api}
+          headers:
+            - {type: RegularExpression, name: Authorization, value: "^Bearer .+"}
+      backendRefs:
+        - {name: optio-api, port: 4000}
+    # Everything else, /api included, goes through the web app: its proxy turns the session
+    # cookie into a token and adds the browser challenge that sign-in requires
+    # (upstream docs/sign-in.md, "Browser authentication").
     - matches:
         - path: {type: PathPrefix, value: /}
       backendRefs:
