@@ -419,6 +419,15 @@ alertmanager:
         - receiver: ntfy-critical
           matchers: ['severity = critical']
           group_by: [namespace, alertname]
+        # PLT-526: the Optio capacity alerts are warnings, so the root route
+        # sent them to the null receiver and a blocked factory stayed silent.
+        # This sub-route sends them to the existing ntfy receiver (same URL
+        # secret as the critical route, no new receiver) before the fallback.
+        - receiver: ntfy-critical
+          matchers: ['alertname =~ "Optio.*"', 'severity = "warning"']
+          group_wait: 5m
+          group_interval: 30m
+          repeat_interval: 12h
     receivers:
       - name: 'null'
       - name: healthchecks-watchdog
