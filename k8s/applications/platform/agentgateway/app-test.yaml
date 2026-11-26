@@ -1,2 +1,2 @@
 exceptions:
-  observability: "agentgateway sans endpoint /metrics natif ; surveillance par la couverture generique kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
+  observability: "pas de ServiceMonitor/PodMonitor dans l'arbre de l'app ; le /metrics natif de la passerelle (:15020) est scrape par le PodMonitor `agentgateway` (k8s/infrastructure/monitoring/scrape-targets/) et la sante du pod reste couverte par les regles generiques kube-prometheus-stack (KubePodCrashLooping, KubePodNotReady)"
