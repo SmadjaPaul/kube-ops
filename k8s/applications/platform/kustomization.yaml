@@ -10,6 +10,8 @@ resources:
   - factory-platform
   - open-connector
   - agentgateway
+  # PLT-339: Optio (MANDAT 30).
+  - optio
   - mastra-factory
   - mastra-sandbox
   - matrix

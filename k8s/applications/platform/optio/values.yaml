@@ -1,0 +1,129 @@
+# PLT-339 (D-2026-11-25-05, MANDAT 30): Optio upstream, unmodified, chart oci://ghcr.io/jonwiggins/optio
+# 0.26.4 (digest sha256:a097a79558672d92fa45e968f81f38aae8ba51a0733cd6ed78f335c06d18b150, checked
+# 25/11). Values read in helm/optio/values.yaml of tag v0.26.4 (e8abde4).
+# Every secret is referenced by name (existingSecrets / existingSecret), never written here.
+
+namespace: optio
+createNamespace: false   # namespace.yaml (PSA restricted labels)
+
+# No in-app update and no registry call: upgrades go through this file (Renovate, PR).
+updates:
+  check: false
+
+# auth.smadja.dev resolves to Gateway/internal (private VIP) on the cluster DNS view: Optio's
+# outbound guard (utils/outbound-url.ts, used by services/oauth/oidc.ts) refuses private addresses
+# unless the host is listed. Only this host; private ranges stay refused.
+outbound:
+  allowPrivate: false
+  allowedHosts: ["auth.smadja.dev"]
+
+workspaces:
+  creation: admins
+
+api:
+  image: {repository: ghcr.io/jonwiggins/optio-api, tag: "0.26.4@sha256:31de15bb8cd9d672cec1cac21717b0ef488f3d1c255a0a91b1fd99c695eedc68", pullPolicy: IfNotPresent}
+  replicas: 1
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: "1", memory: 1Gi}
+
+web:
+  image: {repository: ghcr.io/jonwiggins/optio-web, tag: "0.26.4@sha256:0c68d82dba574998a19dfdb2d76a1d3c3cee72e13cdc56dfcf2751c8a7b50f9a", pullPolicy: IfNotPresent}
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+
+agent:
+  image:
+    repository: ghcr.io/jonwiggins/optio-agent-base
+    # Tag only: Optio builds preset images as {prefix}{preset}:{tag}, a digest here would be wrong
+    # for every preset. optio-agent-base:0.26.4 = sha256:4c76bc13cf8f053d239e5e25015a17e00464231ac6f79e63af069ea94edfd4f5 (25/11).
+    tag: "0.26.4"
+    prefix: "ghcr.io/jonwiggins/optio-agent-"
+  # PSA restricted: no root initContainer, runAsNonRoot on agent pods (k8s-workload-service.ts).
+  rootless: true
+  pvc:
+    storageClass: longhorn-bulk-scratch
+    size: 10Gi
+  cache:
+    storageClass: longhorn-bulk-scratch
+
+# Agent-pod isolation is the CiliumNetworkPolicy set of networkpolicy.yaml, not the chart's
+# NetworkPolicy: the chart allows every public address on 443/80, and Cilium policies are
+# additive (allow-lists are unioned), so enabling it would void the FQDN egress list.
+networkPolicy:
+  enabled: false
+
+# PostgreSQL on CNPG pg-shared-homelab (k8s/infrastructure/database/pg-shared-homelab), not the chart pod.
+postgresql:
+  enabled: false
+externalDatabase:
+  url: ""   # DATABASE_URL comes from existingSecrets below
+
+# Chart Redis, without TLS and without auth: both use `lookup` + genCA/rand in the chart, which
+# Argo CD renders empty on every sync (new cert/password each time). Access is limited by
+# CiliumNetworkPolicy to the optio-api pods only (networkpolicy.yaml).
+redis:
+  enabled: true
+  tls: {enabled: false}
+  auth: {enabled: false}
+  persistence: {enabled: false}
+
+existingSecrets:
+  DATABASE_URL: {name: optio-db, key: DATABASE_URL}
+  OPTIO_ENCRYPTION_KEY: {name: optio-app, key: OPTIO_ENCRYPTION_KEY}
+  OIDC_CLIENT_ID: {name: optio-oidc, key: OIDC_CLIENT_ID}
+  OIDC_CLIENT_SECRET: {name: optio-oidc, key: OIDC_CLIENT_SECRET}
+  # Deployment admins (comma-separated sign-in identities), read from a Secret: never in this public repo.
+  OPTIO_DEPLOYMENT_ADMINS: {name: optio-admins, key: OPTIO_DEPLOYMENT_ADMINS}
+
+publicUrl: https://optio.smadja.dev
+
+auth:
+  # OIDC Authentik (preset docs/sign-in.md). Client created by PLT-509.
+  oidc:
+    issuerUrl: https://auth.smadja.dev/application/o/optio/
+    displayName: Authentik
+    scopes: "openid email profile groups"
+    usePkce: true
+    trustEmail: true
+  sessions:
+    maxHours: 168
+    idleMinutes: 1440
+  cliKeyMaxDays: 90
+
+# GitHub App without the `workflows` permission (PLT-509). Keys GITHUB_APP_ID,
+# GITHUB_APP_INSTALLATION_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_CLIENT_ID, GITHUB_APP_CLIENT_SECRET.
+github:
+  app:
+    existingSecret: optio-github-app
+
+observability:
+  otel:
+    enabled: true
+    endpoint: http://alloy.monitoring.svc.cluster.local:4318
+    protocol: http/protobuf
+    serviceName: optio-api
+
+# The chart ClusterRole (nodes, namespaces: get/list) is refused by the Argo project `apps`
+# (cluster resources: Namespace only). Effect on Optio NON VERIFIE (cluster overview pages).
+rbac:
+  clusterRole:
+    create: false
+
+# quota.yaml carries the 2-agent cap (namespace-wide pod count).
+resourceQuota:
+  enabled: false
+
+# Prometheus metrics of the API (port 9464) scraped by kube-prometheus-stack. The chart's own
+# metrics NetworkPolicy is a standard NetworkPolicy (k8s/CLAUDE.md: Cilium only): disabled, the
+# CiliumNetworkPolicy optio-api admits the monitoring namespace on 9464.
+metrics:
+  enabled: true
+  port: 9464
+  networkPolicy:
+    enabled: false
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack

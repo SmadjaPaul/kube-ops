@@ -13,3 +13,4 @@ resources:
   - dump-credentials.yaml
   - dump-cronjob.yaml
   - dump-alerts.yaml
+  - optio-database.yaml
