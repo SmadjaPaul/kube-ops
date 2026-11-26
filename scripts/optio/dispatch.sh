@@ -600,6 +600,24 @@ def sha8($s):
     | select($p == null)
     | {id: (.id | tostring), name: ($w.title // ""), prNumber: $n,
        reason: "PR fermée ou mergée"}]) as $cancels
+# Optio ne sort jamais seul une tâche de « needs_attention ». Deux cas sont sans
+# objet : une revue ou correction terminée (elle n'ouvre jamais de PR) et une
+# tâche de ce dépôt dont la PR est fermée ou mergée. Tout autre motif reste.
+| ([$T[]
+    | select(((.state // "") | lc) == "needs_attention")
+    | . as $w
+    | (title_pr_number) as $tn
+    | (if $tn != null then
+         (if ((.errorMessage // "") | test("did not open a pull request"))
+          then {prNumber: $tn, reason: "revue ou correction terminée : aucune PR attendue"}
+          else empty end)
+       elif (((.repoUrl // "") | lc | rtrimstr(".git")) == ($repo | lc))
+            and ((.prNumber // 0) | tostring) != "0"
+            and open_pr($P; .prNumber) == null then
+         {prNumber: .prNumber, reason: "PR fermée ou mergée"}
+       else empty end)
+    | {id: ($w.id | tostring), name: ($w.title // ""), prNumber: .prNumber,
+       reason: .reason, requires_state: "needs_attention"}]) as $stale
 | ([$cand_tasks[], $cand_reviews[], $cand_fixes[]
     | . as $c
     | select(.name as $n | ($names | index($n)) != null)
@@ -609,7 +627,7 @@ def sha8($s):
     reviews: [$cand_reviews[] | . as $c | select(.name as $n | ($names | index($n)) == null)],
     fixes: [$cand_fixes[] | . as $c | select(.name as $n | ($names | index($n)) == null)],
     retries: $retryable,
-    cancellations: $cancels,
+    cancellations: ($stale + ([$cancels[] | select(.id as $i | all($stale[]; .id != $i))])),
     skipped: ((($d.skipped // []) | map({id: (.id // ""), reason: (.reason // "")}))
               + $skip_existing + $skip_closed_pr + $skip_ceiling)
   }
@@ -619,6 +637,7 @@ JQ
     --slurpfile tasks "$work_dir/tasks.json" \
     --slurpfile pulls "$work_dir/pulls.json" \
     --argjson max_retries "$MAX_RETRIES" \
+    --arg repo "$repo_url" \
     "$jq_program" >"$work_dir/plan.json" || {
     warn "the plan could not be built"
     errors=$((errors + 1))
@@ -849,11 +868,22 @@ apply_plan() {
     retried=$((retried + 1))
   done <"$work_dir/apply-retries.ndjson"
 
-  # Annulation des revues et corrections d'une PR fermée ou mergée.
+  # Annulations : travaux d'une PR fermée ou mergée, attentes sans objet.
   jq -c '.cancellations[]' "$work_dir/plan.json" >"$work_dir/apply-cancellations.ndjson"
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
     id="$(jq -r '.id' <<<"$entry")"
+    if [ "$(jq -r '.requires_state // ""' <<<"$entry")" = "needs_attention" ]; then
+      if ! refresh_task_states; then return 1; fi
+      if ! jq -e --arg id "$id" \
+        'any(.[]; (.id | tostring) == $id and ((.state // "") | ascii_downcase) == "needs_attention")' \
+        "$work_dir/tasks-now.json" >/dev/null; then
+        name="$(jq -r '.name' <<<"$entry")"
+        remove_from_plan cancellations "$name"
+        add_skip "$name" "la tâche n'attend plus d'intervention"
+        continue
+      fi
+    fi
     if ! post_action cancel "$id"; then return 1; fi
     cancelled=$((cancelled + 1))
   done <"$work_dir/apply-cancellations.ndjson"
