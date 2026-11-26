@@ -1,12 +1,44 @@
 # Optio : alertes de capacité (PLT-517)
 
 Règles : `k8s/infrastructure/monitoring/prometheus-stack/optio-rules.yaml` (PrometheusRule `optio-capacity`,
-namespace `monitoring`). Les trois sont `severity: warning` : visibles dans Prometheus et Alertmanager,
-sans notification (receiver `null`, voir [alert-runbooks.md](alert-runbooks.md)).
+namespace `monitoring`). Les trois sont `severity: warning` : visibles dans Prometheus et Alertmanager, et
+notifiées sur ntfy par une sous-route dédiée (PLT-526, voir « Notification » plus bas).
 
 Repères du namespace `optio` (`k8s/applications/platform/optio/quota.yaml`) : 24 PVC (240 Gi) et 12 pods
 sans PriorityClass — `optio-api` et Redis en occupent 2 ; le CronJob de maintenance est hors quota
 (PriorityClass `optio-maintenance`). Un pod d'agent garde 2 PVC (home, workspace) de 10 Gi.
+
+## Notification (PLT-526)
+
+La route par défaut d'Alertmanager envoie les `warning` et les `info` vers le receiver `null`
+([alert-runbooks.md](alert-runbooks.md)). Une sous-route dédiée, placée avant ce fallback, envoie les
+alertes Optio vers le receiver ntfy existant :
+
+```yaml
+- receiver: ntfy-critical
+  matchers: ['alertname =~ "Optio.*"', 'severity = "warning"']
+  group_wait: 5m
+  group_interval: 30m
+  repeat_interval: 12h
+```
+
+- **Où** : le topic ntfy des alertes `critical` — même receiver `ntfy-critical`, même secret
+  `ALERTMANAGER_NTFY_URL`, aucune URL en clair. Aucun receiver, aucune URL et aucun secret nouveaux :
+  c'est le routage qui change, pas le destinataire.
+- **Quand** : première notification 5 min après le début de l'alerte (`group_wait`), puis au plus une
+  toutes les 30 min (`group_interval`), et répétition de la même alerte après 12 h (`repeat_interval`).
+  Les trois alertes partagent le groupe `namespace=optio` (hérité de la route par défaut) : une seule
+  notification les liste.
+- **Ce qui ne change pas** : les alertes `critical` gardent leur route dédiée, les autres `warning` et
+  `info` continuent d'aller vers `null`, et les inhibitions sont inchangées. Seules les alertes dont le
+  nom commence par `Optio` et dont la sévérité est `warning` sont concernées.
+
+### Couper ces notifications
+
+Supprimer la sous-route `alertname =~ "Optio.*"` de
+`k8s/infrastructure/monitoring/prometheus-stack/values.yaml` (`alertmanager.config.route.routes`), puis
+`just check` → PR → merge : Argo réconcilie et les trois alertes redeviennent muettes (receiver `null`),
+sans autre effet de bord. Retour arrière : revert de la PR (ni receiver, ni URL, ni inhibition ajoutés).
 
 ## OptioAgentVolumesNearlyFull
 

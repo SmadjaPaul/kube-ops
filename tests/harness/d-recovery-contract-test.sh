@@ -44,7 +44,10 @@ am_check '.alertmanager.config.receivers | map(.name) | contains(["healthchecks-
 am_check '[.alertmanager.config.route.routes[] | select(.receiver == "healthchecks-watchdog")] | length == 1' watchdog-route-single
 am_check '[.alertmanager.config.route.routes[] | select(.receiver == "healthchecks-watchdog")] | .[0].matchers[0] == "alertname = Watchdog"' watchdog-route-matcher
 am_check '[.alertmanager.config.route.routes[] | select(.receiver == "healthchecks-watchdog")] | .[0].repeat_interval | test("^([1-5]m|[0-9]+s)$")' watchdog-route-short-repeat
-am_check '[.alertmanager.config.route.routes[] | select(.receiver == "ntfy-critical")] | length == 1' ntfy-route
+am_check '[.alertmanager.config.route.routes[] | select(.receiver == "ntfy-critical" and (.matchers | contains(["severity = critical"])))] | length == 1' ntfy-critical-route
+# PLT-526 : le receiver ntfy porte desormais deux routes (critical et sous-route
+# Optio). Le receiver, son URL secrete et son unique webhook ne changent pas.
+am_check '[.alertmanager.config.route.routes[] | select(.receiver == "ntfy-critical") | .matchers[] | select(test("Optio"))] | length == 1' ntfy-optio-route
 am_check '[.alertmanager.config.receivers[] | select(.name == "ntfy-critical") | .webhook_configs[] | select(.send_resolved == true and .url_file == "/etc/alertmanager/secrets/alertmanager-ntfy-url/url")] | length == 1' ntfy-url-file-resolved
 am_check '[.alertmanager.config.receivers[] | select(.name == "healthchecks-watchdog") | .webhook_configs[] | select(.url_file == "/etc/alertmanager/secrets/alertmanager-healthchecks-ping/url")] | length == 1' watchdog-url-file
 am_check '[.alertmanager.config.receivers[].webhook_configs[]? | select(has("url"))] | length == 0' no-inline-url
