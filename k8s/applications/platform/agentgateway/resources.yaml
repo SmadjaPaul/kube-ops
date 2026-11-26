@@ -239,7 +239,17 @@ data:
                 - name: optio-daily-tokens
                   limit:
                     unit: Tokens
-                    amount: 3000000
+                    amount: 30000000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
+                # PLT-515: caps the paid Claude API. The gateway prices code/frontier only (no cost
+                # for the MiniMax custom provider, so it is not charged here). Once exceeded, the
+                # whole key is blocked until the window resets, text/strong included.
+                - name: optio-daily-usd
+                  limit:
+                    unit: USD
+                    amount: 2
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
@@ -308,7 +318,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: optio-v1
+        checksum/agentgateway-runtime: optio-v2
     spec:
       automountServiceAccountToken: false
       securityContext:
