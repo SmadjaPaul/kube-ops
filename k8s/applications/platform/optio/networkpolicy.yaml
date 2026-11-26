@@ -63,8 +63,9 @@ spec:
         - matchName: registry.npmjs.org
         - matchName: pypi.org
         - matchName: files.pythonhosted.org
-        # Linear MCP (read), PLAN.md Q2 context.
+        # Linear (read): MCP and the GraphQL API used by the ticket intake job (docs/operations/optio-intake.md).
         - matchName: mcp.linear.app
+        - matchName: api.linear.app
       toPorts:
         - ports: [{port: "443", protocol: TCP}]
 ---
