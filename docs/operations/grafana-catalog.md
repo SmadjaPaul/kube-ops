@@ -53,7 +53,7 @@ The repair uses only the installed chart's supported settings:
 The values change also rolls the Grafana pod declaratively. Since the old
 files are in `emptyDir`, the new pod starts with a clean provisioning
 directory; no Grafana database, data volume, PVC, metrics, rules or alerts are
-deleted. The expected post-reconcile filesystem is exactly 11 JSON files under
+deleted. The expected post-reconcile filesystem is exactly 12 JSON files under
 the seven catalogue folders. A legitimate No Data result for intermittent
 Factory/dbt executions remains a dashboard/query concern and is not altered
 by this provisioning repair.
@@ -67,7 +67,7 @@ chart catalogue the operational interface.
 
 This change disables only dashboard ConfigMaps from the two charts. Prometheus,
 Loki, Tempo and Alloy metrics, ServiceMonitors, recording rules and alerts stay
-enabled. Eleven versioned ConfigMaps become the GitOps catalogue:
+enabled. Twelve versioned ConfigMaps become the GitOps catalogue:
 
 | Folder | Dashboard | UID | Decision |
 | --- | --- | --- | --- |
@@ -79,11 +79,12 @@ enabled. Eleven versioned ConfigMaps become the GitOps catalogue:
 | 30 — Observability | Telemetry Pipeline | `homeops-logs-efficiency` | merge Prometheus/Loki/Tempo/Alloy operations |
 | 40 — Software Factory | Factory Operations | `factory-operations` | new observed factory-platform operations view |
 | 40 — Software Factory | Factory Performance | `factory-performance` | new view using existing CI/merge/collection metrics |
+| 40 — Software Factory | Factory Optio | `factory-optio` | later addition (PLT-528): read-only view of the Optio API metrics (queue, tasks, duration, tokens, estimated cost) |
 | 50 — Data Platform | dbt V2 Operations | `factory-data-platform-v2` | preserve existing UID and split quality concerns |
 | 50 — Data Platform | Data Quality | `data-quality` | new dbt test/freshness/publication-gate view |
 | 90 — Advanced Diagnostics | Prometheus & Scrape Diagnostics | `9fa0d141-d019-4ad7-8bc5-42196ee308bd` | preserve useful Prometheus Overview URL |
 
-The first ten are the operational target. The eleventh is intentionally an
+The first eleven are the operational target. The twelfth is intentionally an
 advanced diagnostic view, not another landing page.
 
 ## Keep / merge / advanced / disable matrix
@@ -120,6 +121,17 @@ Likewise, the live factory exporter provides the metrics used by Factory
 Operations, Factory Performance, dbt V2 Operations and Data Quality. It does
 not currently expose token/cost-per-run or agentgateway/sandbox-specific
 series, so those panels were not invented.
+
+Factory Optio is the exception: it reads the `optio_*` metrics of the Optio
+API itself (ServiceMonitor `optio-api`, namespace `optio`), not the factory
+exporter. Its token and cost panels query `optio_task_tokens` and
+`optio_task_cost_usd`, both exposed by the API and scraped since PLT-525. They
+stay empty only while the agent results carry neither tokens nor cost, a limit
+of the MiniMax models that the first panel of the dashboard recalls: the
+gateway (Agentgateway) remains the source of truth for the tokens and the recap
+comment of the ticket in Linear for the billed cost. The runtime check after
+the merge is therefore: the dashboard appears in Grafana and its panels 1 to
+3 carry data.
 
 The pre-merge Prometheus audit evaluated 81 unique PromQL expressions (94
 panel usages): there were no query errors. Before the blackbox relabel fix,
@@ -173,5 +185,5 @@ Before merging, verify the four preserved UIDs and the replacement rendering in
 Grafana. After merge, verify `infra-monitoring-prometheus-stack` is `Synced/Healthy`, the
 Grafana rollout is complete, the sidecar reports `NAMESPACE=monitoring` and
 `METHOD=SLEEP`, the provisioning directory has no root-level retired files,
-and the authenticated Grafana API exposes exactly 11 curated views in seven
+and the authenticated Grafana API exposes exactly 12 curated views in seven
 folders. A route returning HTTP 302 alone is not dashboard validation.
