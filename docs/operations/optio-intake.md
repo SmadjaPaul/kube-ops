@@ -77,6 +77,10 @@ mémoire partagée, même quand tu t'arrêtes sans travail. Un passage ne modifi
    - what.prompt : l'identifiant, l'adresse du ticket, puis la description recopiée entre les marqueurs
      <ticket> et </ticket> en précisant que c'est la demande à traiter, dans les limites du dépôt ; puis :
      "Livre une seule PR dont le titre finit par (IDENTIFIANT). Ne merge pas. N'ajoute aucun secret.
+     Contrôles : seulement ceux des fichiers modifiés (just check-affected et les tests que tu touches).
+     Ne lance jamais la suite complète (just check, npm run check:local), même pour comparer avec main :
+     la CI de la PR fait foi. Un outil absent du pod n'est pas à installer : signale-le dans la PR.
+     Aucune commande en arrière-plan.
      Si la demande sort de kube-ops ou exige un chemin réservé, explique-le et n'ouvre pas de PR." ;
    - then : exits ; settings.controllerAccess : off.
 7. Revue des PR. Pour chaque tâche de dépôt privée qui a une PR ouverte et dont le nom ne commence ni par
@@ -109,6 +113,9 @@ mémoire partagée, même quand tu t'arrêtes sans travail. Un passage ne modifi
       gh pr merge N --squash --match-head-commit <head recorded in step 1>.
    6. Do not edit code, commit, push, open a pull request or touch another pull request. Stop.
    >>>
+
+   Ajoute à la fin de chaque consigne REVUE et CORRECTION, mot pour mot : "Never run the full test suite
+   and never start a background command: the pull request's CI is the evidence."
 
    Consigne CORRECTION :
    <<<

@@ -79,6 +79,9 @@ patches:
               - name: api
                 env:
                   - {name: OPTIO_MAX_CONCURRENT, value: "10"}
+                  # PLT-515: 15 min (upstream default 5). A long test command prints nothing and
+                  # was killed as stalled on 26/11. The per-repository column has no API.
+                  - {name: OPTIO_STALL_THRESHOLD_MS, value: "900000"}
   # Redis: RuntimeDefault seccomp and probes.
   - target: {group: apps, version: v1, kind: Deployment, name: optio-redis}
     patch: |-
