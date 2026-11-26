@@ -78,6 +78,14 @@ Verdict D0: PASS only if 1 to 6 are PASS. A merged PR proves no runtime level; u
 | Drill | Procedure | Status | Verdict |
 | --- | --- | --- | --- |
 | D1 rotation of a role | `docs/operations/secrets-drill-d1-pg-shared-role.md` | NOT_RUN | NOT_PROVEN |
-| D1b Barman restore + new Secret (before any real data) | `docs/operations/pg-shared-app-restore-drill.md`, section D1b | NOT_RUN | NOT_PROVEN |
+| D1b Barman restore + new Secret (before any real data) | `docs/operations/pg-shared-app-restore-drill.md`, section D1b | DONE (2026-11-26) | PASS (RUNTIME) |
 
-Evidence: none yet. Until D1b is PASS, no real data goes into `pg-shared-homelab` and no existing database is migrated to a generated role password.
+D1b evidence (2026-11-26, MANDAT 32, database `optio`, kube-ops#2065 seed and #2068 restore):
+
+- Seed: `SEED_ROWS=3`, `SEED_STATUS=PASS`, last row written 00:57:01 UTC; WAL segments archived at 01:02:01 and 01:07:01 UTC.
+- Restore from R2 into `pg-shared-restore-drill`: cluster created 01:11:02, Ready 01:12:13 UTC (71 s).
+- New role Secret: `Password` and `ExternalSecret` `pg-pg-shared-restore-drill` created with the restore, `SecretSynced`; role `optio` in `managedRolesStatus` `reconciled`, `passwordStatus.optio` set. Condition `PasswordSecretChange` was not present when read.
+- Job: `DRILL_CONNECT=PASS user=optio`, `DRILL_SYNTHETIC_ROWS=3`, `DRILL_STATUS=PASS`. No secret value read. RPO not measured.
+- A first restore (#2066, 00:32 UTC) was merged before the seed and MANDAT 32 and failed as expected (`marks_unreadable`); reverted by #2067. Its `Orphan` Secret may have been left in the drill namespace.
+
+Other databases or roles added to `pg-shared-homelab` still follow their own admission rules.
