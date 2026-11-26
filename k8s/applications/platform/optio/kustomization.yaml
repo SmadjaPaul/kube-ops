@@ -54,6 +54,15 @@ patches:
       - op: add
         path: /spec/template/spec/containers/1/livenessProbe
         value: {tcpSocket: {port: 3000}, initialDelaySeconds: 30, periodSeconds: 20, failureThreshold: 3}
+  # Restart the API when the GitHub App secret changes: envFrom is read at start only.
+  - target: {group: apps, version: v1, kind: Deployment, name: optio-api}
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: optio-api
+        annotations:
+          secret.reloader.stakater.com/reload: "optio-github-app"
   # Redis: RuntimeDefault seccomp and probes.
   - target: {group: apps, version: v1, kind: Deployment, name: optio-redis}
     patch: |-
