@@ -110,6 +110,9 @@ spec:
             k8s:io.kubernetes.pod.namespace: optio
             app: optio-api
         - matchLabels:
+            k8s:io.kubernetes.pod.namespace: optio
+            app: optio-secret-sync
+        - matchLabels:
             app.kubernetes.io/name: pg-shared-homelab-optio-isolation
       toPorts:
         - ports:
