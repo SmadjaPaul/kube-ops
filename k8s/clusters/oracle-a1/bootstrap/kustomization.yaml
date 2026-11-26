@@ -15,7 +15,7 @@ helmCharts:
     releaseName: argocd
     repo: https://argoproj.github.io/argo-helm
     # Meme chart que le homelab (k8s/infrastructure/controllers/argocd) : Argo CD v3.5.1.
-    version: 10.3.3
+    version: 10.18.2
     valuesFile: values.yaml
 
 # Le chart omet hostNetwork/hostPID/hostIPC ; k8s/CLAUDE.md les exige explicites
