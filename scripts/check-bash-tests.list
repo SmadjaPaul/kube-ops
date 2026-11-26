@@ -70,3 +70,4 @@ tests/harness/velero-skipped-volumes-alert-test.sh
 tests/harness/optio-clusterwide-exclusion-test.sh
 tests/harness/optio-metrics-contract-test.sh
 tests/harness/optio-select-actions-test.sh
+tests/harness/optio-pr-scope-check-test.sh
