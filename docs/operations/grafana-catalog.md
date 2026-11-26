@@ -125,8 +125,11 @@ series, so those panels were not invented.
 Factory Optio is the exception: it reads the `optio_*` metrics of the Optio
 API itself (ServiceMonitor `optio-api`, namespace `optio`), not the factory
 exporter. Its token and cost panels query `optio_task_tokens` and
-`optio_task_cost_usd`, so they stay empty until the Optio API exposes and
-scrapes them (the blocking dependency of PLT-528). The runtime check after
+`optio_task_cost_usd`, both exposed by the API and scraped since PLT-525. They
+stay empty only while the agent results carry neither tokens nor cost, a limit
+of the MiniMax models that the first panel of the dashboard recalls: the
+gateway (Agentgateway) remains the source of truth for the tokens and the recap
+comment of the ticket in Linear for the billed cost. The runtime check after
 the merge is therefore: the dashboard appears in Grafana and its panels 1 to
 3 carry data.
 
