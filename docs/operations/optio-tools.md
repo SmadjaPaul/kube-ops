@@ -62,6 +62,10 @@ outil dont l'artefact vient d'un autre hôte est signalé ABSENT, pas installé.
 
 ## Les outils restés absents
 
+Depuis PLT-541 (26/11/2026), les pods d'agents joignent les adresses publiques en 80 et 443 : les hôtes
+`get.helm.sh` et `dl.k8s.io` ne sont plus refusés par le réseau. Les constats ci-dessous datent d'avant ;
+`.optio/setup.sh` et le contrôle préalable ne sont pas encore adaptés.
+
 - **`helm`** (`get.helm.sh`) : 32 racines Kustomize utilisent `helmCharts`, donc `kustomize build
   --enable-helm` — le rendu du dépôt — ne peut pas aboutir dans le pod. La porte complète (`just check`)
   et la porte des racines affectées (`just check-affected`, qui rend toutes les racines dès qu'un
