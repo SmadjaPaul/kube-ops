@@ -1,0 +1,4 @@
+name: optio
+namespace: optio
+postMerge: notify
+preview: false

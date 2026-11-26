@@ -31,6 +31,7 @@ entries:
       name: Polyfin
       group: Media
       meta_launch_url: https://tv.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1f3ac.png
       provider: !KeyOf polyfin_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding

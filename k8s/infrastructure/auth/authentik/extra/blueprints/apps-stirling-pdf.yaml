@@ -12,6 +12,7 @@ entries:
       name: Stirling PDF
       group: Family
       meta_launch_url: https://pdf.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/stirling-pdf.png
       policy_engine_mode: any
       # No OAuth2/OIDC provider: upstream image 3.0.0 has only basic
       # local-user auth (SECURITY_ENABLELOGIN=true). Surface it in the

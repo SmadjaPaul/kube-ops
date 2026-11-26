@@ -19,6 +19,14 @@ spec:
         operator: NotIn
         values:
           - "true"
+      # PLT-339 (MANDAT 30): Optio agent pods run untrusted code with a model token. They must reach
+      # neither the LAN (10.0.0.0/8), nor the Kubernetes API, nor the internal Gateway: namespace optio
+      # carries its own policies (k8s/applications/platform/optio/networkpolicy.yaml), API pods
+      # included. Guarded by tests/harness/optio-clusterwide-exclusion-test.sh.
+      - key: k8s:io.kubernetes.pod.namespace
+        operator: NotIn
+        values:
+          - optio
   enableDefaultDeny:
     ingress: false
     egress: false

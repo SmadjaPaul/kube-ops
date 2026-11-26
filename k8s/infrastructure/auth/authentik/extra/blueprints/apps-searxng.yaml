@@ -12,6 +12,7 @@ entries:
       name: SearXNG
       group: Family
       meta_launch_url: https://search.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/selfhst/icons@df07d93a4b9e1c3930007971a1dfa6203ea02aea/png/searxng.png
       policy_engine_mode: any
       # SearXNG is intentionally public (meta-search engine). No
       # OAuth2 provider: surfacing the launch tile from the Authentik

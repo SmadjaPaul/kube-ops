@@ -1,0 +1,150 @@
+# PLT-339: CiliumNetworkPolicy set of namespace optio (default deny ingress and egress).
+# Agent pods (label managed-by=optio, set by the Optio API) reach only DNS, the Optio API, the
+# Agentgateway, the Alloy OTLP receiver and an FQDN allow-list on 443. Any other egress is refused:
+# this is what protects the Claude subscription token visible in the agent pod (PLAN.md §5.2).
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: optio-baseline
+  namespace: optio
+spec:
+  # Puts every pod of the namespace in default deny on both directions (Cilium enforces a direction
+  # as soon as one rule selects the endpoint for it). Allowed here: ingress from the Optio API only,
+  # egress to cluster DNS only. The policies below add the per-role flows (policies are additive).
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels: {app: optio-api}
+  egress:
+    - toEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: kube-system, k8s:k8s-app: kube-dns}
+      toPorts:
+        - ports: [{port: "53", protocol: UDP}, {port: "53", protocol: TCP}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: optio-agents
+  namespace: optio
+spec:
+  endpointSelector:
+    matchLabels: {managed-by: optio}
+  egress:
+    - toEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: kube-system, k8s:k8s-app: kube-dns}
+      toPorts:
+        - ports: [{port: "53", protocol: UDP}, {port: "53", protocol: TCP}]
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels: {app: optio-api}
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: agentgateway, app: agentgateway}
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}
+      toPorts:
+        - ports: [{port: "4318", protocol: TCP}]
+    - toFQDNs:
+        # Claude Code with the subscription token (workspace "abonnement").
+        - matchName: api.anthropic.com
+        - matchName: statsig.anthropic.com
+        # Git and the GitHub API (GitHub App installation token).
+        - matchName: github.com
+        - matchName: api.github.com
+        - matchName: codeload.github.com
+        - matchName: objects.githubusercontent.com
+        - matchName: raw.githubusercontent.com
+        # Package registries used by repository checks.
+        - matchName: registry.npmjs.org
+        - matchName: pypi.org
+        - matchName: files.pythonhosted.org
+        # Linear MCP (read), PLAN.md Q2 context.
+        - matchName: mcp.linear.app
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: optio-api
+  namespace: optio
+spec:
+  endpointSelector:
+    matchLabels: {app: optio-api}
+  ingress:
+    # Gateway/internal (Cilium Gateway API: traffic arrives from the ingress identity).
+    - fromEntities: [ingress]
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}, {port: "3000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels: {managed-by: optio}
+      toPorts:
+        - ports: [{port: "4000", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}
+      toPorts:
+        - ports: [{port: "9464", protocol: TCP}]
+  egress:
+    - toEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: kube-system, k8s:k8s-app: kube-dns}
+      toPorts:
+        - ports: [{port: "53", protocol: UDP}, {port: "53", protocol: TCP}]
+          rules:
+            dns:
+              - matchPattern: "*"
+    # The API creates and watches agent pods, StatefulSets, Jobs, PVCs and Secrets (chart Role).
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports: [{port: "6443", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels: {app: redis}
+      toPorts:
+        - ports: [{port: "6379", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: databases, cnpg.io/cluster: pg-shared-homelab}
+      toPorts:
+        - ports: [{port: "5432", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}
+      toPorts:
+        - ports: [{port: "4318", protocol: TCP}]
+    # Web container to the API in the same pod uses localhost (not filtered).
+    # OIDC: auth.smadja.dev resolves to Gateway/internal on the cluster DNS view (librechat pattern):
+    # VIP 443 plus the Authentik server backend.
+    - toCIDRSet:
+        - cidr: 10.0.20.192/32
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: auth
+            app.kubernetes.io/name: authentik
+            app.kubernetes.io/component: server
+      toPorts:
+        - ports: [{port: "9000", protocol: TCP}]
+    - toFQDNs:
+        - matchName: api.github.com
+        - matchName: github.com
+        - matchName: api.linear.app
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: optio-redis
+  namespace: optio
+spec:
+  endpointSelector:
+    matchLabels: {app: redis}
+  ingress:
+    # Only the API: Redis has no auth (values.yaml), agent pods must never reach it.
+    - fromEndpoints:
+        - matchLabels: {app: optio-api}
+      toPorts:
+        - ports: [{port: "6379", protocol: TCP}]

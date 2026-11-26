@@ -1,0 +1,21 @@
+# LAN only (Gateway/internal): no new public exposure (MANDAT 30). Linear is polled, no inbound webhook.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: optio
+  namespace: optio
+spec:
+  parentRefs:
+    - {name: internal, namespace: gateway}
+  hostnames:
+    - optio.smadja.dev
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /api}
+        - path: {type: PathPrefix, value: /ws}
+      backendRefs:
+        - {name: optio-api, port: 4000}
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: optio-web, port: 3000}

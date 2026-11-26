@@ -32,6 +32,7 @@ entries:
       name: Sure
       group: Family
       meta_launch_url: https://sure.smadja.dev
+      meta_icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@23fc02e7710a66e0c774989f6e78372e9b6c2e15/png/sure.png
       provider: !KeyOf sure_provider
       policy_engine_mode: any
   - model: authentik_policies.policybinding

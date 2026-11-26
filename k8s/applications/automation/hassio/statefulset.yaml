@@ -104,6 +104,39 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /config
+      - name: install-xiaomi-home
+        # PRD-112 : intégration officielle XiaoMi/ha_xiaomi_home (aspirateur Xiaomi Robot Vacuum S12,
+        # xiaomi.vacuum.b106eu, non géré par dreame_vacuum). Archive épinglée par commit (tag v0.5.0)
+        # et sha256. Pas de HACS : copie de custom_components/xiaomi_home sur le PVC.
+        image: busybox:1.38@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }
+          limits: { cpu: 200m, memory: 128Mi }
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - >-
+          set -eu;
+          archive=/tmp/xiaomi-home.tar.gz;
+          wget -q -O "$archive" "$XIAOMI_HOME_ARCHIVE_URL";
+          echo "$XIAOMI_HOME_ARCHIVE_SHA256  $archive" | sha256sum -c -;
+          src="ha_xiaomi_home-$XIAOMI_HOME_COMMIT/custom_components/xiaomi_home";
+          tar -xzf "$archive" -C /tmp;
+          rm -f "$archive";
+          mkdir -p /config/custom_components;
+          rm -rf /config/custom_components/xiaomi_home;
+          cp -R "/tmp/$src" /config/custom_components/xiaomi_home;
+          test -f /config/custom_components/xiaomi_home/manifest.json
+        env:
+        - name: XIAOMI_HOME_COMMIT
+          value: 75b3acb6325a3a8d295688b13904737d6738a6a5
+        - name: XIAOMI_HOME_ARCHIVE_URL
+          value: https://github.com/XiaoMi/ha_xiaomi_home/archive/75b3acb6325a3a8d295688b13904737d6738a6a5.tar.gz
+        - name: XIAOMI_HOME_ARCHIVE_SHA256
+          value: 972246fda97a9e8fd772f141beb505941647157fe7282b1dfc64d0ffd407600f
+        volumeMounts:
+        - name: data
+          mountPath: /config
       - name: init-ui-files
         # PLT-444 : crée sur le PVC les fichiers inclus par configuration.yaml s'ils manquent.
         # Ne jamais écraser un fichier existant (UI HA et provider OpenTofu y écrivent).
