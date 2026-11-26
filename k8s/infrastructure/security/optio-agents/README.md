@@ -1,0 +1,3 @@
+- `kustomization.yaml` : assemble les trois ressources de ce dossier.
+- `job-pod-nonroot.yaml` : ajoute `runAsNonRoot` (uid 1001) aux pods d'agents Optio sans `runAsNonRoot`.
+- `volume-retention.yaml` : supprime les volumes des StatefulSets supprimés ; `priorityclass.yaml` : crée la classe `optio-maintenance`.
