@@ -2,7 +2,7 @@
 # Role password generated in the cluster (class T1, CreatedOnce, Orphan), copied into optio by the
 # ExternalSecret optio-db (store k8s-databases). Never in Doppler, never in Git.
 # Precondition before the first real data: drill D1b (docs/operations/pg-shared-app-restore-drill.md),
-# status NOT_RUN on 25/11, run by an operator under MANDAT.
+# PASS on 2026-11-26 under MANDAT 32.
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: Password
 metadata: {name: pg-optio, namespace: databases}

@@ -106,7 +106,7 @@ Décisions hors périmètre de ce drill :
 
 ## D1b : restauration Barman avec un Secret de rôle neuf (secrets, lot 1)
 
-Statut : **NOT_RUN.** Procédure seulement. **Obligatoire avant la première donnée réelle** dans `pg-shared-homelab` et avant de migrer une base existante vers un rôle au mot de passe généré. Elle ne bloque pas le merge du lot 1 (`docs/architecture/secrets-migration-spec.md`, §3.4 et lot 1). Exécution sous **MANDAT** : un opérateur la lance ; aucun agent ne la lance.
+Statut : **PASS le 26/11/2026** pour la base `optio` (preuves : `secrets-migration-evidence.md`, lot 1). **Obligatoire avant la première donnée réelle** dans `pg-shared-homelab` et avant de migrer une base existante vers un rôle au mot de passe généré. Elle ne bloque pas le merge du lot 1 (`docs/architecture/secrets-migration-spec.md`, §3.4 et lot 1). Exécution sous **MANDAT** : un opérateur la lance ; aucun agent ne la lance.
 
 Ce qu'elle prouve (fait F5/F6 de la spec) : Barman ne sauvegarde aucun Secret ; sur un cluster reconstruit, l'ExternalSecret `pg-<ns>` est neuf (statut vide), ESO génère une valeur **neuve**, CNPG l'applique au rôle de la base restaurée, et la connexion réussit. Cette réapplication au premier passage après restauration est attendue mais non documentée par CNPG : c'est ce que D1b prouve.
 
