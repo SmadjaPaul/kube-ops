@@ -10,6 +10,10 @@ spec:
   hostnames:
     - optio.smadja.dev
   rules:
+    # /api/internal/ is for agent pods, over the cluster Service. Never through the gateway
+    # (the upstream chart blocks it at its ingress): a rule without backend answers an error.
+    - matches:
+        - path: {type: PathPrefix, value: /api/internal}
     # WebSockets go straight to the API (session cookie + trusted Origin).
     - matches:
         - path: {type: PathPrefix, value: /ws}
