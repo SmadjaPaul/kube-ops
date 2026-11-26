@@ -13,7 +13,8 @@
 # (aucune revue, aucune correction, annulation des travaux encore actifs) ;
 # nouvelle tête de PR (nouvelle revue) ; tâche échouée (une reprise, puis le
 # plafond, puis une tâche qui a changé entre deux lectures) ; erreur d'API
-# (code de retour non nul) ; consignes recopiées depuis
+# (code de retour non nul, erreur comptée dans le compte rendu, y compris au
+# téléchargement du script de sélection) ; consignes recopiées depuis
 # docs/operations/optio-intake.md ; secret jamais dans la sortie ni dans la
 # ligne de commande ; un seul passage à la fois ; jq 1.6.
 #
@@ -597,6 +598,36 @@ run_dispatch "$dir" --apply
 [[ "$RC" != "0" ]] || fail "reason=unexpected_rc case=api-error-tasks got=0"
 expect_counter "$dir" errors 1 api-error-tasks
 expect_posts "$dir" "/api/tasks" 0 api-error-tasks
+cases=$((cases + 1))
+
+# --- 13 bis. le script de sélection est introuvable : l'erreur est comptée ------
+
+# Le script de sélection est téléchargé depuis main quand le fichier demandé est
+# absent. Le téléchargement échoue ici (aucune route ne sert l'URL de main) :
+# l'erreur d'API est rapportée une fois, avec sa cause, et elle est comptée
+# dans le compte rendu. Une erreur ne passe jamais en silence.
+
+dir="$(setup_case selection-download-error linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+run_dispatch "$dir" --apply --select-actions "$dir/absent-select-actions.sh"
+[[ "$RC" != "0" ]] || fail "reason=unexpected_rc case=selection-download-error got=0"
+expect_counter "$dir" errors 1 selection-download-error
+expect_posts "$dir" "/api/tasks" 0 selection-download-error
+api_errors="$(grep -c 'API error (' "$dir/err" || true)"
+[[ "$api_errors" == "1" ]] ||
+  fail "reason=unexpected_api_error_count case=selection-download-error want=1 got=$api_errors err=$(tr '\n' ' ' <"$dir/err")"
+cases=$((cases + 1))
+
+# --- 13 ter. le script de sélection demandé est utilisé ------------------------
+
+dir="$(setup_case selection-file linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+run_dispatch "$dir" --apply --select-actions "$repo_root/scripts/optio/select-actions.sh"
+expect_rc "$dir" 0 selection-file
+expect_counter "$dir" created 1 selection-file
+expect_counter "$dir" errors 0 selection-file
+# Le fichier demandé est utilisé tel quel : rien n'est téléchargé.
+if grep -Fq "raw.githubusercontent.com" "$dir/calls.log"; then
+  fail "reason=unexpected_download case=selection-file calls=$(tr '\n' ' ' <"$dir/calls.log")"
+fi
 cases=$((cases + 1))
 
 # --- 14. secret : jamais dans la sortie ni dans la ligne de commande ------------

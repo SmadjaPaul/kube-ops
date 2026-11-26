@@ -102,8 +102,9 @@ n'écrit pas sur GitHub.
 sans), label `agent:opus` (modèle `code/frontier`), ticket assigné (aucun travail), second passage sans
 doublon, PR fermée ou mergée (aucune revue, aucune correction, annulation des travaux encore actifs), nouvelle
 tête de PR (nouvelle revue), tâche échouée (une reprise, puis le plafond), état de la tâche changé entre deux
-lectures, erreur d'API, consignes recopiées, secret jamais dans la sortie ni dans la ligne de commande, un seul
-passage à la fois, et la compatibilité jq 1.6.
+lectures, erreur d'API (code de retour non nul, erreur comptée dans le compte rendu), consignes recopiées,
+secret jamais dans la sortie ni dans la ligne de commande, un seul passage à la fois, et la compatibilité
+jq 1.6.
 
 ## Limites acceptées
 

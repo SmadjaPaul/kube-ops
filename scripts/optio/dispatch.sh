@@ -50,6 +50,7 @@ apply_mode=false
 slots=$DEFAULT_SLOTS
 instructions_file=""
 select_actions_file=""
+select_actions_path=""
 api_url_override=""
 repo_url=$DEFAULT_REPO_URL
 
@@ -326,23 +327,25 @@ pr_is_open() {
 
 # Le script de sélection est celui du dépôt ; le travail de commande n'a pas de
 # dépôt cloné, il est donc téléchargé depuis la branche main quand il est
-# absent.
+# absent. Le chemin est rendu dans select_actions_path et la fonction est
+# appelée dans le shell courant : dans une substitution de commande, l'appel à
+# api_error qui compte l'erreur de téléchargement tournerait dans un
+# sous-processus et son incrément serait perdu.
 resolve_select_actions() {
+  select_actions_path=""
   if [ -n "$select_actions_file" ]; then
     if [ -f "$select_actions_file" ]; then
-      printf '%s' "$select_actions_file"
+      select_actions_path="$select_actions_file"
       return 0
     fi
-    download_to "$GITHUB_RAW_BASE/$SELECT_ACTIONS_PATH" "$work_dir/select-actions.sh"
-    printf '%s' "$work_dir/select-actions.sh"
+  elif [ -f "$script_dir/select-actions.sh" ]; then
+    select_actions_path="$script_dir/select-actions.sh"
     return 0
   fi
-  if [ -f "$script_dir/select-actions.sh" ]; then
-    printf '%s' "$script_dir/select-actions.sh"
-    return 0
+  if ! download_to "$GITHUB_RAW_BASE/$SELECT_ACTIONS_PATH" "$work_dir/select-actions.sh"; then
+    return 1
   fi
-  download_to "$GITHUB_RAW_BASE/$SELECT_ACTIONS_PATH" "$work_dir/select-actions.sh"
-  printf '%s' "$work_dir/select-actions.sh"
+  select_actions_path="$work_dir/select-actions.sh"
   return 0
 }
 
@@ -358,9 +361,10 @@ download_to() {
 
 run_decision() {
   local select_actions
-  if ! select_actions="$(resolve_select_actions)"; then
+  if ! resolve_select_actions; then
     return 1
   fi
+  select_actions="$select_actions_path"
   if [ ! -r "$select_actions" ]; then
     api_error "Optio" "the selection script is not readable: $select_actions"
     return 1
