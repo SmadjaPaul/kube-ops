@@ -12,6 +12,8 @@ resources:
   - prometheus-http-route.yaml
   - grafana-catalog.yaml
   - grafana-resource-efficiency.yaml
+  # PLT-528: tableau de bord de la factory Optio (metriques de l'API 0.26.4).
+  - grafana-factory-optio.yaml
   - nvme-endurance-rules.yaml
   - proxmox-updates-rules.yaml
   - ups-thermal-rules.yaml

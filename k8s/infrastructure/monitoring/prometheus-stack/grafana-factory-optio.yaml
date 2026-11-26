@@ -1,0 +1,391 @@
+# PLT-528: read-only Grafana dashboard of the Optio factory.
+#
+# The panels read the metrics of the Optio API (0.26.4), scraped from the
+# namespace `optio` by the ServiceMonitor `optio-api`
+# (k8s/applications/platform/optio/servicemonitor.yaml, interval 60 s).
+#
+# The metric names and the labels are the ones upstream really emits
+# (apps/api/src/telemetry/attributes.ts and apps/api/src/telemetry/metrics.ts of
+# Optio 0.26.4): state, agent_type, model, repo_url, direction, terminal_state.
+# Upstream exposes no per-issue label, so the completed tasks are counted by
+# state. The contract test (tests/harness/grafana-dashboard-contract-test.sh)
+# refuses any other metric or label.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-factory-optio-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "40 — Software Factory"
+  labels:
+    grafana_dashboard: "1"
+data:
+  factory-optio.json: |
+    {
+      "uid": "factory-optio",
+      "title": "Factory Optio",
+      "description": "Optio factory queue, task outcomes, task duration, tokens per model and estimated cost.",
+      "tags": [
+        "factory",
+        "observability"
+      ],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "1m",
+      "time": {
+        "from": "now-24h",
+        "to": "now"
+      },
+      "editable": false,
+      "links": [
+        {
+          "title": "Factory Operations",
+          "type": "link",
+          "url": "/d/factory-operations",
+          "targetBlank": false
+        },
+        {
+          "title": "Factory Performance",
+          "type": "link",
+          "url": "/d/factory-performance",
+          "targetBlank": false
+        },
+        {
+          "title": "Platform Overview",
+          "type": "link",
+          "url": "/d/homeops-operations",
+          "targetBlank": false
+        },
+        {
+          "title": "Explore Prometheus",
+          "type": "link",
+          "url": "/explore?orgId=1",
+          "targetBlank": true
+        }
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "label": "Namespace",
+            "type": "constant",
+            "query": "optio",
+            "current": {
+              "text": "optio",
+              "value": "optio"
+            },
+            "hide": 2
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "text",
+          "title": "Scope and limits",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 4
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**Scope.** Metrics of the Optio API 0.26.4 (`optio_*`), scraped every 60 s from the namespace `optio` by the ServiceMonitor `optio-api`. The default period is 24 h; the time picker also gives 7 days, and the panels that count a period follow the selected range.\n\n**Limits to keep in mind.**\n- MiniMax token counts can come back empty on the Optio side; the source of truth for the tokens is the gateway (Agentgateway).\n- The cost of a ticket is in the recap comment of that ticket in Linear.\n- Upstream 0.26.4 emits the labels `state`, `agent_type`, `model`, `repo_url`, `direction` and `terminal_state`. There is no per-issue label, so the completed tasks are counted by `state`.\n- The cost panel is an Optio estimate, not an invoice."
+          }
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Queue depth by state",
+          "description": "Waiting work of the factory, by state (queued, provisioning, running).",
+          "gridPos": {
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max by (state) (optio_queue_depth{namespace=\"$namespace\"})",
+              "legendFormat": "{{state}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "Active tasks",
+          "description": "Tasks running or provisioning right now.",
+          "gridPos": {
+            "x": 12,
+            "y": 4,
+            "w": 6,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max(optio_active_tasks{namespace=\"$namespace\"})",
+              "instant": true,
+              "legendFormat": "active tasks"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value",
+            "graphMode": "none"
+          }
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Repo pods by state",
+          "description": "Agent pods of the factory, by state (provisioning, ready, error).",
+          "gridPos": {
+            "x": 18,
+            "y": 4,
+            "w": 6,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max by (state) (optio_pod_count{namespace=\"$namespace\"})",
+              "legendFormat": "{{state}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "Completed tasks by state",
+          "description": "Tasks that reached a terminal state during the selected period.",
+          "gridPos": {
+            "x": 0,
+            "y": 12,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (state) (increase(optio_tasks_total{namespace=\"$namespace\"}[$__range_s]))",
+              "legendFormat": "{{state}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "Task duration p50 and p90",
+          "description": "Time from the creation of a task to its terminal state.",
+          "gridPos": {
+            "x": 12,
+            "y": 12,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "histogram_quantile(0.50, sum by (le) (rate(optio_task_duration_seconds_bucket{namespace=\"$namespace\"}[$__rate_interval])))",
+              "legendFormat": "p50"
+            },
+            {
+              "refId": "B",
+              "expr": "histogram_quantile(0.90, sum by (le) (rate(optio_task_duration_seconds_bucket{namespace=\"$namespace\"}[$__rate_interval])))",
+              "legendFormat": "p90"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 7,
+          "type": "timeseries",
+          "title": "Tokens by model and direction",
+          "description": "Tokens consumed during the selected period, by model and by direction (input, output).",
+          "gridPos": {
+            "x": 0,
+            "y": 20,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (model, direction) (increase(optio_task_tokens_sum{namespace=\"$namespace\"}[$__range_s]))",
+              "legendFormat": "{{model}} {{direction}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 8,
+          "type": "timeseries",
+          "title": "Estimated cost by model (Optio estimate, not an invoice)",
+          "description": "Cost estimated by Optio during the selected period, by model. The recap comment of the ticket in Linear holds the cost that was actually billed.",
+          "gridPos": {
+            "x": 12,
+            "y": 20,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (model) (increase(optio_task_cost_usd_sum{namespace=\"$namespace\"}[$__range_s]))",
+              "legendFormat": "{{model}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        }
+      ]
+    }
