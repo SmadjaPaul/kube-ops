@@ -1,0 +1,48 @@
+# PLT-566 : romm est inactive la plupart du temps ; elle dort a zero et se reveille sur le
+# premier hit. Le trafic passe par le proxy KEDA (namespace keda), qui relaie vers le Service
+# `romm` et previent le scaler, qui ramene le Deployment a 1 replica.
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: romm
+  namespace: romm
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  target:
+    service: romm
+    port: 8080
+  rules:
+    - hosts:
+        - romm.smadja.dev
+  scalingMetric:
+    concurrency:
+      targetValue: 10
+  coldStart:
+    maxPendingRequests: 100
+  timeouts:
+    # PLT-566 : le demarrage a froid (gunicorn + base + volumes) peut depasser le delai
+    # par defaut.
+    readiness: 120s
+    responseHeader: 15s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: romm
+  namespace: romm
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: romm
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 300
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.keda:9090
+        interceptorRoute: romm

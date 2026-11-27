@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: romm
 spec:
-  replicas: 1
+  # Replica count is controlled by the KEDA ScaledObject; do not pin it in GitOps.
   strategy:
     type: Recreate
   revisionHistoryLimit: 2

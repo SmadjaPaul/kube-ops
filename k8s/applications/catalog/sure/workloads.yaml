@@ -6,7 +6,7 @@ metadata:
   annotations:
     secret.reloader.stakater.com/reload: "sure-runtime,sure-postgresql-app"
 spec:
-  replicas: 1
+  # Replica count is controlled by the KEDA ScaledObject; do not pin it in GitOps.
   strategy: { type: Recreate }
   selector:
     matchLabels: { app.kubernetes.io/name: sure, app.kubernetes.io/component: web }
@@ -85,7 +85,7 @@ metadata:
   annotations:
     secret.reloader.stakater.com/reload: "sure-runtime,sure-postgresql-app"
 spec:
-  replicas: 1
+  # Replica count is controlled by the KEDA ScaledObject; do not pin it in GitOps.
   strategy: { type: Recreate }
   selector:
     matchLabels: { app.kubernetes.io/name: sure, app.kubernetes.io/component: worker }

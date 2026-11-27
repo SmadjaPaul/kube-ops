@@ -10,6 +10,7 @@ resources:
   - storage.yaml
   - redis.yaml
   - workloads.yaml
+  - interceptorroute.yaml
   - service-route.yaml
   - networkpolicy.yaml
   - networkpolicy-data.yaml

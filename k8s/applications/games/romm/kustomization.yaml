@@ -11,6 +11,7 @@ resources:
   - pvcs.yaml
   - deployment.yaml
   - service.yaml
+  - interceptorroute.yaml
   - http-route.yaml
   - networkpolicy.yaml
   - vpa.yaml

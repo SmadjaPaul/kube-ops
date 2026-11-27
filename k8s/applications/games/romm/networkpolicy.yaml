@@ -19,6 +19,17 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
+    # PLT-566 : le proxy KEDA (namespace keda) relaie la route HTTPRoute vers le Service
+    # romm ; sans cette regle, la policy (default deny ingress) bloque le reveil a froid.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: keda
+            app.kubernetes.io/name: http-add-on
+            app.kubernetes.io/component: interceptor
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
