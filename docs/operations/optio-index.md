@@ -10,4 +10,5 @@ Guides d'exploitation d'Optio dans `docs/operations/`, un par sujet :
 - [optio-factory-report.md](optio-factory-report.md) — le rapport Markdown sans modèle de ce que chaque tâche a fait et de ce qu'elle demande.
 - [optio-gateway.md](optio-gateway.md) — travail privé par Agentgateway, vérification des journaux, retour arrière.
 - [optio-intake.md](optio-intake.md) — prise des tickets Linear par l'orchestrateur, configuration et limites.
+- [optio-triage.md](optio-triage.md) — le triage planifié : tickets rendus prenables, découpés, bloqués, soldés.
 - [optio-review.md](optio-review.md) — revue et merge automatiques, ce qui bloque un merge, retour arrière.

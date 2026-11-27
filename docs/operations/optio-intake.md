@@ -69,7 +69,7 @@ mémoire partagée, même quand tu t'arrêtes sans travail. Un passage ne modifi
    attendent une intervention). Places libres = 5 moins ce nombre. Les revues et corrections de l'étape 7 sont
    servies avant les nouveaux tickets.
 5. Prends au plus 5 tickets par passage, sans dépasser les places libres : la priorité la plus haute d'abord
-   (1 avant 4, 0 en dernier), puis le plus ancien. N'en prends pas deux qui modifient les mêmes fichiers.
+   (1 avant 4, 0 en dernier), puis le palier (P0, J1 à J7), le nombre de tickets débloqués et le plus ancien. N'en prends pas deux qui modifient les mêmes fichiers.
 6. Pour chacun, crée une tâche avec optio_create_work :
    - name : "[IDENTIFIANT] titre du ticket" ;
    - when : manual ;
@@ -153,9 +153,10 @@ quand tous les checks de la CI sont verts. Un check en échec, annulé ou en att
 pas de CI, lance d'abord les tests du dépôt, mets la preuve (commandes et résultats) dans la PR, puis merge ; sans
 tests réussis, ne merge pas. N'utilise jamais --admin ni --auto et ne contourne aucun contrôle ni refus : laisse
 alors la PR ouverte et dis pourquoi.
-Exceptions où la PR reste ouverte, sans merge : dans homelab-infra et ha-config, dès que le diff touche autre chose
-que de la documentation, des tests ou des évaluations (un merge y change l'infrastructure ou la maison) ; dans
-agent-harness, dès que le diff touche des hooks, des garde-fous ou .github/. En cas de doute, ne merge pas.
+Exceptions où la PR reste ouverte, sans merge : dans Atlas, toujours ; dans homelab-infra et ha-config, dès que le
+diff touche autre chose que de la documentation, des tests ou des évaluations (un merge y change l'infrastructure ou
+la maison) ; dans agent-harness, dès que le diff touche des hooks, des garde-fous ou .github/. En cas de doute, ne
+merge pas.
 Si la demande sort du dépôt REPO, explique-le et n'ouvre pas de PR.
 >>>
 ```
@@ -180,7 +181,7 @@ arrête-toi. Si ses commentaires donnent une raison de la laisser ouverte qui re
 4. Tous les checks verts et diff conforme à la description : gh pr merge N --squash --match-head-commit (tête relue).
 S'il n'y a pas de CI, lance d'abord les tests du dépôt et mets la preuve dans un commentaire de la PR.
 N'utilise jamais --admin ni --auto et ne contourne aucun contrôle ni refus. Exceptions où la PR reste ouverte, sans
-merge : dans homelab-infra et ha-config, dès que le diff touche autre chose que de la documentation, des tests ou des
+merge : dans Atlas, toujours ; dans homelab-infra et ha-config, dès que le diff touche autre chose que de la documentation, des tests ou des
 évaluations ; dans agent-harness, dès que le diff touche des hooks, des garde-fous ou .github/. En cas de doute, ne
 merge pas. Quand tu laisses la PR ouverte, dis pourquoi dans un commentaire de la PR.
 N'ouvre aucune autre PR, ne touche aucune autre PR, n'ajoute aucun secret ni donnée personnelle, ne supprime aucune

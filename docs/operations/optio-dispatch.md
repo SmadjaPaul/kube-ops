@@ -43,6 +43,9 @@ dépôt figure dans `GET /api/repos` (`{"repos":[{"repoUrl":…}]}`), sous le m�
 si cette liste est illisible, aucun ticket n'est pris et l'erreur est comptée. Les zones interdites restent les
 mêmes ; seule la zone `ha-config` ne s'applique pas à un ticket du dépôt ha-config.
 
+Ordre de prise (PLT-562, comme Atlas `priorities.yaml`) : priorité Linear, puis palier, puis nombre de tickets
+ouverts débloqués, puis ancienneté. Une relation bloquante entrante se lit dans `inverseRelations.issue`.
+
 Les revues et corrections ne concernent que les PR de `--repo-url` (kube-ops). Les PR des autres dépôts ne donnent
 ni revue ni correction : elles ont les reprises et les clôtures décrites plus bas. Leur tâche de code reçoit la consigne AUTRE-DEPOT
 ([optio-intake.md](optio-intake.md)) : l'agent merge lui-même sa PR, sauf les exceptions qu'elle liste. Cette

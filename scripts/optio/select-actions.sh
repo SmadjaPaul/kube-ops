@@ -266,10 +266,24 @@ def blockers_of:
   | (((.inverseRelations? // {}) | (.nodes? // [])) | if type == "array" then . else [] end) as $inv
   | ($explicit
      + [$rel[] | select(((.type // "") | rel_type) == "blockedby") | (.relatedIssue // empty)]
+     # Une relation entrante porte le bloqueur dans « issue » : « relatedIssue » y
+     # désigne le ticket lui-même (PLT-562).
      + [$inv[] | select(((.type // "") | rel_type) as $t | ($t == "blocks" or $t == "blockedby"))
-             | (.relatedIssue // empty)])
+             | (.issue // .relatedIssue // empty)])
   | map(select(type == "object"))
   | map({identifier: ((.identifier // .id // "") | tostring), state: (.state | norm_state)});
+
+# PLT-562 : palier (P0, J1 à J7) puis nombre de tickets ouverts débloqués,
+# comme Atlas priorities.yaml.
+def palier_rank:
+  ([.[] | if . == "P0" then 0 elif test("^J[1-7]$") then (.[1:] | tonumber) else empty end] | min) // 8;
+
+def unblocks_count:
+  [(((.relations? // {}) | (.nodes? // [])) | if type == "array" then . else [] end)[]
+   | select(((.type // "") | rel_type) == "blocks")
+   | (.relatedIssue // empty)
+   | select((.state | norm_state | finished_state) | not)]
+  | length;
 
 def norm_issue:
   {
@@ -281,7 +295,8 @@ def norm_issue:
     url: ((.url // "") | tostring),
     labels: (.labels | norm_labels),
     assigned: has_assignee,
-    blockers: blockers_of
+    blockers: blockers_of,
+    unblocks: unblocks_count
   };
 
 def norm_work:
@@ -400,7 +415,8 @@ def norm_work:
 
 | ($free_slots - ($chosen | length)) as $remaining
 | ([$decided[] | select(.skip_reason == null)]) as $eligible
-| ($eligible | sort_by([(.priority | prio_rank), .createdAt, .identifier])) as $ordered
+| ($eligible | sort_by([(.priority | prio_rank), (.labels | palier_rank), (- .unblocks),
+                        .createdAt, .identifier])) as $ordered
 | ($ordered[0:5]) as $capped_tasks
 | ($capped_tasks[0:$remaining]) as $tasks
 
