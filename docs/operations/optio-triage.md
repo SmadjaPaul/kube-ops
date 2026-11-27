@@ -20,8 +20,9 @@ supprime rien, ne merge rien et n'écrit rien dans Optio (requêtes `GET` seulem
 
 1. **Tickets mergés** — ticket In Progress (ou `wip:optio`) sans tâche active et sans PR ouverte. Le triage
    n'écrit que si la factory l'a livré : la dernière PR mergée à son nom est celle d'une tâche Optio du ticket, il
-   n'a ni assigné ni label de blocage. Avec la preuve « closes » (lien Linear, ou ligne `Fixes` sans `Part of` d'un
-   dépôt public), il passe à Done avec la preuve ; sans elle, un seul commentaire. Les autres tickets avec PR
+   n'a ni assigné ni label de blocage. Il passe à Done avec la preuve si la PR le dit :
+   ligne `Fixes` sans `Part of` pour un dépôt public, lien Linear « closes » pour un dépôt privé ; sinon, un seul
+   commentaire. Les autres tickets avec PR
    mergée sont listés dans le journal, sans écriture.
 2. **Orphelins** — ticket In Progress sans PR ni tâche active, avec un verrou `wip:*` et aucune activité depuis
    3 h (Atlas `policies/coordination.md`), ou sans assigné ni verrou depuis 24 h : retour en Todo, assigné et
@@ -72,7 +73,8 @@ Désactiver le travail (`enabled` à faux) ou sa planification dans Optio. Le di
 - Le script merge-able par la factory agit avec la clé Linear et le jeton Optio de ce pod.
 - Le dispatch écarte tout ticket qui cite une zone interdite, même en passant (« aucun secret »). Le triage ne
   reformule jamais un ticket pour contourner ce filtre.
-- Dépôt privé sans métadonnée « closes » : le ticket mergé reste ouvert avec un commentaire.
+- Dépôt privé sans métadonnée « closes » : le ticket mergé reste ouvert avec un commentaire. Avec elle, le texte de
+  la PR n'est pas lu : une ligne `Part of` d'une PR privée n'est pas vue.
 
 ## Consigne du modèle
 
