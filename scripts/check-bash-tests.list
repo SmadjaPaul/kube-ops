@@ -9,6 +9,7 @@ tests/harness/runtime-smoke-test.sh
 tests/harness/argo-terminate-stuck-sync-test.sh
 tests/harness/argo-orphan-contract-test.sh
 tests/harness/trilium-probe-test.sh
+tests/harness/keda-scale-to-zero-contract-test.sh
 tests/harness/ma-jellyfin-patch-test.sh
 tests/harness/hass-openid-patch-test.sh
 tests/harness/mastra-factory-readiness-test.sh
@@ -75,6 +76,7 @@ tests/harness/optio-dispatch-test.sh
 tests/harness/optio-triage-test.sh
 tests/harness/optio-factory-report-test.sh
 tests/harness/plan-replay-retry-test.sh
+tests/harness/agentgateway-cost-catalog-test.sh
 tests/harness/run-checks-parallel-test.sh
 tests/harness/github-queued-runs-check-test.sh
-tests/harness/keda-scale-to-zero-contract-test.sh
+tests/harness/mealie-stirling-pdf-keda-scale-to-zero-contract-test.sh

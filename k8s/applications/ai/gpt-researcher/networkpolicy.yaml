@@ -19,10 +19,13 @@ spec:
     - ports:
       - port: "4000"
         protocol: TCP
+  # PLT-564 : la recherche passe par le proxy KEDA (namespace keda), qui reveille
+  # SearXNG a froid puis relaie vers le Service searxng.
   - toEndpoints:
     - matchLabels:
-        k8s:io.kubernetes.pod.namespace: searxng
-        app.kubernetes.io/name: searxng
+        k8s:io.kubernetes.pod.namespace: keda
+        app.kubernetes.io/name: http-add-on
+        app.kubernetes.io/component: interceptor
     toPorts:
     - ports:
       - port: "8080"

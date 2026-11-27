@@ -227,7 +227,7 @@ class TriageTest(unittest.TestCase):
 
     def test_merged_ticket_goes_done_with_proof(self):
         world = World([issue("PRD-1", state="started", labels=["wip:optio"], attachments={"nodes": [pr("PRD-1")]})],
-                      tasks=[task("PRD-1")], prs={"1": "merged"})
+                      tasks=[task("PRD-1")], prs={"1": "merged"}, github={"1": "Fixes PRD-1"})
         self.run_pass(world)
         self.assertEqual(["commentCreate", "issueUpdate"], self.names(world))
         self.assertEqual({"stateId": "PRD-done"}, world.writes[1][1]["input"])
@@ -242,6 +242,12 @@ class TriageTest(unittest.TestCase):
         again = World([ticket], tasks=[task("PLT-1")], prs={"1": "merged"})
         self.run_pass(again)
         self.assertEqual([], again.writes)
+
+    def test_part_of_wins_over_the_closes_link(self):
+        world = World([issue("PLT-1", state="started", attachments={"nodes": [pr("PLT-1")]})],
+                      tasks=[task("PLT-1")], prs={"1": "merged"}, github={"1": "Fixes PLT-1\nPart of PLT-1"})
+        self.run_pass(world)
+        self.assertEqual((0, ["commentCreate"]), (self.summary["closed"], self.names(world)))
 
     def test_public_fixes_line_proves_the_merge_and_part_of_does_not(self):
         for body, expected in (("Fixes PLT-1", 1), ("Fixes PLT-1\nPart of PLT-1", 0), (None, 0)):

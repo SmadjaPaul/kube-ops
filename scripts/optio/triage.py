@@ -356,17 +356,20 @@ class Triage:
 
     def fixes_proven(self, attachment, identifier):
         kind = (attachment.get("metadata") or {}).get("linkKind")
-        if kind:
-            return kind == "closes"
+        if kind and kind != "closes":
+            return False
         owner, repo, number = PR_URL.match(attachment["url"]).groups()
         status, text = self.http(
             "GET", f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}",
             {"User-Agent": "kube-ops-optio-triage", "Accept": "application/vnd.github+json"}, None)
-        if status != 200:  # private repository: no proof, not an error
-            return False
+        if status != 200:  # private repository: only the Linear link proves it
+            return kind == "closes"
         body = json.loads(text).get("body") or ""
-        return bool(re.search(rf"(fixes|closes|resolves)[ \t]+\[?{identifier}(?!\d)", body, re.I)
-                    and not re.search(rf"part of[ \t]+\[?{identifier}(?!\d)", body, re.I))
+        # "Part of" wins over "closes": the end criterion is still to be checked (PLT-536).
+        if re.search(rf"part of[ \t]+\[?{identifier}(?!\d)", body, re.I):
+            return False
+        # A readable body must say it: the Linear link alone is not enough (PLT-528, PLT-535).
+        return bool(re.search(rf"(fixes|closes|resolves)[ \t]+\[?{identifier}(?!\d)", body, re.I))
 
     def reconcile(self):
         written = 0
