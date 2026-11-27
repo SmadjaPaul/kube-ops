@@ -32,6 +32,9 @@ patches:
   # PLT-212 lot 1: appended to the chart's cAdvisor relabelings (values would
   # replace the chart defaults). The test ops fail the build if the chart
   # reorders endpoints instead of silently patching the wrong one.
+  # PLT-538 lot 2a: the cAdvisor families without a reader (memory_failcnt,
+  # pressure, oom_events, kernel_usage, total_inactive_file) are dropped here;
+  # npm run check:monitoring-cardinality proves none of them is read.
   - path: kubelet-cardinality-patch.json
     target:
       group: monitoring.coreos.com

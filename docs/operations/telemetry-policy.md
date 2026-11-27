@@ -44,7 +44,7 @@ disk writes in total. It is not the source of the NVMe bursts: the gains here ar
 
 | Source | Interval | Policy |
 |---|---|---|
-| kubelet cAdvisor | 30s | chart default drops plus blkio and memory-failure families |
+| kubelet cAdvisor | 30s | chart default drops plus blkio, memory-failure, memory-accounting, pressure and OOM-event families |
 | kubelet probes | default | probe latency buckets dropped, `prober_probe_total` kept |
 | apiserver | 60s | duration buckets dropped, SLI histogram kept (burn-rate rules stay disabled, PLT-187/PLT-208) |
 | kube-state-metrics | 45s | denylist of unread pod/replicaset families |
@@ -61,6 +61,18 @@ series. Golden-signal recording rules and critical alerts live in
 `longhorn_backup_state` (533 healthy series) for the problem-only
 `longhorn:backup_not_completed:state` (Longhorn backup state stays complete in
 the local Prometheus).
+
+PLT-538 (lot 2a de PLT-460) : les familles cAdvisor et
+`kubernetes_feature_enabled` sans lecteur sont retirees a la source, apres
+recherche dans les regles, les alertes, les tableaux de bord, les autoscalers
+et les scripts du depot (les regles embarquees du chart incluses) :
+`container_memory_failcnt`, `container_pressure_{cpu,io}_{stalled,waiting}_seconds_total`,
+`container_oom_events_total`, `container_memory_kernel_usage`,
+`container_memory_total_inactive_file_bytes` (endpoint `/metrics/cadvisor` du
+ServiceMonitor kubelet) et `kubernetes_feature_enabled` (kubelet `/metrics` et
+apiserver). Le contrat `npm run check:monitoring-cardinality` verifie que ces
+familles restent coupees et qu'aucun lecteur ne les cite dans le depot. Le gain
+en series reste NOT_PROVEN tant qu'il n'est pas mesure apres deploiement.
 
 A new ServiceMonitor names its consumer (alert, dashboard or recording rule) in
 the PR; otherwise `metricRelabelings` keeps only what is read.
@@ -105,7 +117,10 @@ name, plus a request/correlation id where a request spans services.
 - openclaw-operator is in CrashLoopBackOff (268 restarts in 32 h): root cause
   belongs to its own ticket; it feeds the Alloy log-stream loop above.
 - Remaining no-reader families: Loki and Prometheus self-histograms (about
-  5k), kubelet `kubernetes_feature_enabled`, apiserver workqueue buckets.
+  5k), apiserver workqueue buckets. `kubernetes_feature_enabled` is not one of
+  them any more: PLT-538 lot 2a confirms the reader search and the family is
+  dropped on every source that emits it (kubelet `/metrics`, apiserver,
+  scheduler, controller-manager).
 - GitHub runner logs (33 MB/6h, 382k lines): JSON dumps are split over many
   lines and cannot be filtered safely in Alloy; fix at the runner.
 - CoreDNS NXDOMAIN bursts from search-path expansion (ndots:5) of one
