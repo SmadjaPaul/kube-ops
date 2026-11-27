@@ -43,8 +43,8 @@ dépôt figure dans `GET /api/repos` (`{"repos":[{"repoUrl":…}]}`), sous le m�
 si cette liste est illisible, aucun ticket n'est pris et l'erreur est comptée. Les zones interdites restent les
 mêmes ; seule la zone `ha-config` ne s'applique pas à un ticket du dépôt ha-config.
 
-Le script ne lit sur GitHub que les PR de `--repo-url` (kube-ops). Les travaux des autres dépôts ne donnent ni
-revue, ni correction, ni annulation. Leur tâche de code reçoit la consigne AUTRE-DEPOT
+Les revues et corrections ne concernent que les PR de `--repo-url` (kube-ops). Les PR des autres dépôts ne donnent
+ni revue ni correction : elles ont les reprises et les clôtures décrites plus bas. Leur tâche de code reçoit la consigne AUTRE-DEPOT
 ([optio-intake.md](optio-intake.md)) : l'agent merge lui-même sa PR, sauf les exceptions qu'elle liste. Cette
 règle n'est portée que par la consigne : le script ne contrôle ni le diff ni le merge.
 
@@ -52,19 +52,22 @@ règle n'est portée que par la consigne : le script ne contrôle ni le diff ni 
 
 Seuls les travaux qui consomment un agent comptent : `pending`, `queued`, `provisioning`, `running` et tout état
 inconnu. `pr_opened`, `needs_attention`, `waiting_on_deps` et les états terminés ne prennent aucune place. Les
-places libres sont servies dans cet ordre : reprises de revue et de correction, nouvelles revues, nouvelles
-corrections, reprises de ticket, nouveaux tickets.
+places libres sont servies dans cet ordre : reprises de revue et de correction, reprises de PR d'autres dépôts,
+nouvelles revues, nouvelles corrections, reprises de ticket, nouveaux tickets.
 
 ## Ce que fait un passage
 
 1. **Un passage à la fois** — verrou local `flock` (facultatif : le script continue sans, en le signalant).
    Un passage déjà en cours fait sortir le nouveau avec le code 3, sans rien créer.
 2. **Une seule requête Linear** — GraphQL, filtrée côté serveur : label `wip:optio`, états `backlog` et
-   `unstarted`, 50 au plus. Aucune autre requête Linear, aucune pagination au-delà.
+   `unstarted`, 50 au plus, sans pagination. Les clôtures et les blocages (ci-dessous) ajoutent une seule requête
+   groupée.
 3. **La décision** — `scripts/optio/select-actions.sh` (PLT-522), la version testable des étapes 2 à 7 de la
    consigne. Le fichier local est utilisé quand il existe ; sinon il est téléchargé depuis `main`, le travail
    de commande n'ayant pas de dépôt cloné.
-4. **L'état réel des PR** — relu sur GitHub avant toute revue, correction ou reprise. L'état mis en cache
+4. **L'état réel des PR** — relu avant toute revue, correction ou reprise, par l'API Optio
+   (`GET /api/pull-requests`) ; repli sur GitHub sans jeton si la liste échoue, ne contient aucune PR de kube-ops
+   ou en contient 50 ou plus (Optio omet en silence un dépôt en erreur). L'état mis en cache
    par Optio (`prState`) n'est jamais utilisé pour décider. Une PR fermée ou mergée : aucune création, et
    les revues ou corrections encore actives pour cette PR sont annulées (`POST /api/tasks/:id/cancel`).
    Une tâche `needs_attention` est aussi annulée quand elle est sans objet : revue ou correction terminée
@@ -79,30 +82,60 @@ corrections, reprises de ticket, nouveaux tickets.
 6. **Les reprises** — une tâche de ticket échouée sans PR est reprise, quel que soit son dépôt. Une revue ou une
    correction de kube-ops est reprise seulement si `errorMessage` contient `usage limit` ou `429`, si la PR est
    ouverte (même tête pour une revue ; pour une correction, la plus récente d'une PR encore en échec ou en
-   conflit). Plafond : 2 reprises ; 6 après un échec sur la limite du forfait, avec au moins 60 min depuis
-   l'échec. Le nombre de reprises est le plus grand de `retryCount` et du nombre d'événements `user_retry`
+   conflit). La même règle vaut pour une panne de pod (`Timed out waiting for pod`, `Pod needs recovery`,
+   `Pod is recovering`). Plafond : 2 reprises ; 6 après un échec sur la limite du forfait, avec au moins 60 min
+   depuis l'échec ; 6 après une panne de pod, avec au moins 30 min. Une tâche de ticket au plafond reste en échec et
+   son ticket reçoit un commentaire, une seule fois. Le nombre de reprises est le plus grand de `retryCount` et du nombre d'événements `user_retry`
    (`GET /api/tasks/:id/events`) : Optio v0.26.4 n'incrémente pas `retryCount` pour une tâche de dépôt. Sans
    historique lisible, aucune reprise. L'état de la tâche et des PR est relu avant la reprise.
 7. **Les consignes** — recopiées mot pour mot depuis `docs/operations/optio-intake.md` : la consigne de code
    (avec `(IDENTIFIANT)` remplacé par l'identifiant du ticket), la consigne REVUE, la consigne CORRECTION, la
-   consigne AUTRE-DEPOT et la phrase de fin. Le fichier est lu quand `--instructions` le donne, sinon téléchargé depuis `main` ; il
-   n'est téléchargé que s'il y a au moins une création à faire.
+   consigne AUTRE-DEPOT, la consigne REPRISE et la phrase de fin. Le fichier est lu quand `--instructions` le donne,
+   sinon téléchargé depuis `main` par `raw.githubusercontent.com` (hors quota de l'API GitHub) ; il n'est
+   téléchargé que s'il y a au moins une création à faire.
 8. **Le modèle** — `text/strong`, ou `code/frontier` si le ticket porte le label `agent:opus`.
 9. **Le compte rendu** — la dernière ligne est un JSON : `{"tickets_read":n,"created":n,"reviews":n,
-   "fixes":n,"retried":n,"cancelled":n,"skipped":n,"errors":n}`. Une erreur d'API donne un code de retour non
+   "fixes":n,"retried":n,"cancelled":n,"skipped":n,"errors":n,"resumed":n,"closed":n,"notices":n}`. Une erreur d'API donne un code de retour non
    nul et n'est jamais passée en silence : le compte rendu des actions est alors affiché avec `errors` à 1.
+
+## PR d'autres dépôts restées ouvertes (PLT-560)
+
+Une tâche de ticket d'un autre dépôt dont l'agent a fini (`pr_opened`, `needs_attention`, `failed`, `completed` ;
+jamais `cancelled`), sans autre travail actif pour le ticket, garde parfois une PR ouverte : la CI a fini après
+l'agent, un check a échoué ou la branche est en conflit. La PR est la sienne (`prUrl`) ou, si la tâche n'a rien
+enregistré, une PR dont le titre porte `(IDENTIFIANT)` ou `[IDENTIFIANT]`, créée pendant son exécution.
+
+* `GET /api/pull-requests/status` relit la CI. Checks en attente (ou aucun check depuis moins de 15 min) : rien.
+  PR en brouillon : rien.
+* Sinon le script crée `[REPRISE <dépôt>#N <sha8> k]` avec la consigne REPRISE : corriger sur la branche, ou
+  merger quand tout est vert, avec les mêmes exceptions que la consigne AUTRE-DEPOT.
+* Plafond : 3 reprises par PR et une seule par tête (une reprise en échec est retentée après 60 min). Au plafond, ou
+  quand une reprise a laissé la PR ouverte sur la même tête, le ticket reçoit un commentaire, une seule fois.
+* Une reprise terminée sans PR est annulée : elle ne reste pas dans « Needs you ».
+
+## Tâches mergées sans PR détectée (PLT-560)
+
+Une tâche de ticket `needs_attention` avec « did not open a pull request » est close quand une PR du même dépôt,
+attachée au ticket Linear après la création de la tâche et portant son identifiant, est mergée (état lu par l'API
+Optio) et qu'aucune autre n'est ouverte. Optio 0.26.4 n'a aucune transition `needs_attention` -> `completed`
+(seulement `running`, `queued`, `cancelled`) : la tâche est **annulée** (`POST /api/tasks/:id/cancel`).
+
+Avant l'annulation, le ticket reçoit un commentaire avec l'URL et la tête mergée. Il passe à Done seulement si la PR
+le corrige : lien Linear `closes` (métadonnée `linkKind`), ou, sans cette métadonnée et pour un dépôt public, ligne
+`Fixes IDENTIFIANT` sans `Part of`. Sinon il reste ouvert, avec le commentaire. Si une écriture Linear échoue, la
+tâche n'est pas annulée. Ce sont les seules écritures Linear du script, avec les commentaires de blocage.
 
 ## Sortie
 
 Deux lignes JSON, la dernière est le compte rendu :
 
 ```json
-{"mode":"dry-run","apply":false,"tasks":[],"reviews":[],"fixes":[],"retries":[],"cancellations":[],"skipped":[]}
-{"tickets_read":1,"created":0,"reviews":0,"fixes":0,"retried":0,"cancelled":0,"skipped":0,"errors":0}
+{"mode":"dry-run","apply":false,"tasks":[],"reviews":[],"fixes":[],"resumes":[],"closures":[],"notices":[],"retries":[],"cancellations":[],"skipped":[]}
+{"tickets_read":1,"created":0,"reviews":0,"fixes":0,"retried":0,"cancelled":0,"skipped":0,"errors":0,"resumed":0,"closed":0,"notices":0}
 ```
 
 En mode `--apply`, la première ligne décrit les actions **effectuées** ; en mode essai, les actions
-**prévues** (rien n'est écrit). Lesctions écartées sont dans `skipped`, avec `id` et `reason`.
+**prévues** (rien n'est écrit). Les actions écartées sont dans `skipped`, avec `id` et `reason`.
 
 | Code | Signification |
 |---|---|
@@ -115,17 +148,20 @@ En mode `--apply`, la première ligne décrit les actions **effectuées** ; en m
 
 | Destination | Appels | Authentification |
 |---|---|---|
-| Linear (`POST /graphql`) | 1 par passage | clé Linear, en-tête |
-| API Optio (`GET /api/tasks?limit=1000`) | 1 au début, puis 1 avant chaque création ou reprise | jeton, en-tête |
+| Linear (`POST /graphql`) | 1 par passage ; 1 de plus s'il y a une clôture ou un blocage ; 1 par écriture | clé Linear, en-tête |
+| API Optio (`GET /api/tasks?limit=1000`) | 1 au début, puis 1 avant chaque création, reprise ou clôture | jeton, en-tête |
 | API Optio (`GET /api/repos`) | 1 par passage | jeton, en-tête |
+| API Optio (`GET /api/pull-requests`) | 1 par passage, 1 de plus avant les écritures | jeton, en-tête |
+| API Optio (`GET /api/pull-requests/status`) | 1 par PR à reprendre ou à clore | jeton, en-tête |
 | API Optio (`GET /api/tasks/:id/events`) | 1 par tâche en échec candidate | jeton, en-tête |
 | API Optio (`POST /api/tasks`, `/retry`, `/cancel`) | 1 par action | jeton, en-tête |
-| GitHub (`GET /repos/.../pulls`) | 1 par passage (5 au plus si la liste est longue) | aucune, lecture publique |
-| GitHub (`GET /repos/.../contents`, `raw.githubusercontent.com`) | 0 ou 1 par passage | aucune, lecture publique |
+| `raw.githubusercontent.com` (consignes, sélecteur) | 0 à 2 par passage | aucune, hors quota API |
+| API GitHub (`GET /repos/.../pulls`) | repli seulement | aucune, lecture publique |
+| API GitHub (`GET /repos/.../pulls/N`) | clôture sans `linkKind` seulement | aucune, lecture publique |
 
-L'API GitHub non authentifiée est limitée à 60 requêtes par heure et par adresse IP : un passage consomme
-2 à 3 requêtes, la planification toutes les 10 min tient dans le plafond. Le script n'authentifie pas et
-n'écrit pas sur GitHub.
+L'API GitHub non authentifiée est limitée à 60 requêtes par heure et par adresse IP, partagées avec le reste du
+réseau : deux passages sur 59 ont échoué en HTTP 403 le 26/11. Un passage normal n'y fait plus aucun appel. Le
+script n'écrit pas sur GitHub.
 
 ## Tests
 
@@ -135,8 +171,9 @@ sans), label `agent:opus` (modèle `code/frontier`), ticket assigné (aucun trav
 doublon, PR fermée ou mergée (aucune revue, aucune correction, annulation des travaux encore actifs), nouvelle
 tête de PR (nouvelle revue), tâche échouée (une reprise, puis le plafond), état de la tâche changé entre deux
 lectures, erreur d'API (code de retour non nul, erreur comptée dans le compte rendu), consignes recopiées,
-secret jamais dans la sortie ni dans la ligne de commande, un seul passage à la fois, et la compatibilité
-jq 1.6.
+secret jamais dans la sortie ni dans la ligne de commande, un seul passage à la fois, la compatibilité
+jq 1.6 et, pour PLT-560, les reprises de PR (plafond, tête, CI en attente), les clôtures (Done, « Part of »,
+écriture Linear refusée), les pannes de pod et le repli GitHub.
 
 ## Limites acceptées
 
