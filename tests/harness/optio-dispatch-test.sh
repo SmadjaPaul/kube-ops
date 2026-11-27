@@ -178,6 +178,12 @@ while read -r rmethod rneedle rfile rnext; do
   esac
 done <"$dir/routes.tsv"
 
+# Les requêtes Linear partagent une URL : le nom de l'opération les distingue.
+case "$body_content" in
+  *OptioFollowUp*) response="linear-followup.json" ;;
+  *OptioNote* | *OptioDone*) response="linear-write.json" ;;
+esac
+
 serve=""
 if [ -n "$response" ] && [ -f "$dir/$response" ]; then
   serve="$dir/$response"
@@ -252,16 +258,16 @@ setup_case() {
   : >"$dir/calls.log"
   : >"$dir/argv.log"
   : >"$dir/headers.log"
-  # Le fichier des consignes est servi comme le fait l'API GitHub : base64.
-  base64 <"$intake" | tr -d '\n' >"$dir/intake.b64"
-  jq -n --rawfile b64 "$dir/intake.b64" '{content: $b64, encoding: "base64"}' \
-    >"$dir/github-contents.json"
-  rm -f "$dir/intake.b64"
+  cp "$intake" "$dir/intake.md"
+  # Aucune PR dans la liste d'Optio : le dépôt principal est relu sur GitHub.
+  printf '{"pullRequests":[]}\n' >"$dir/optio-prs.json"
+  printf '{"data":{"issues":{"nodes":[]}}}\n' >"$dir/linear-followup.json"
   # Les routes sont ordonnées : /retry et /cancel avant /api/tasks.
   {
     printf '%s\n' 'POST https://api.linear.app/graphql linear.json'
     printf '%s\n' 'GET https://api.github.com/repos/smadjapaul/kube-ops/pulls github-pulls.json'
-    printf '%s\n' 'GET https://api.github.com/repos/smadjapaul/kube-ops/contents github-contents.json'
+    printf '%s\n' 'GET /main/docs/operations/optio-intake.md intake.md'
+    printf '%s\n' 'GET /api/pull-requests optio-prs.json'
     printf '%s\n' 'POST /retry optio-retry.json'
     printf '%s\n' 'POST /cancel optio-cancel.json'
     printf '%s\n' 'GET /events optio-events.json'
@@ -360,10 +366,10 @@ expect_output_shape() {
   lines="$(wc -l <"$dir/out" | tr -d ' ')"
   [[ "$lines" == "2" ]] ||
     fail "reason=unexpected_output_lines case=$name want=2 got=$lines"
-  jq -e 'keys == ["cancelled", "created", "errors", "fixes", "retried", "reviews", "skipped", "tickets_read"]' \
+  jq -e 'keys == ["cancelled", "closed", "created", "errors", "fixes", "notices", "resumed", "retried", "reviews", "skipped", "tickets_read"]' \
     <<<"$(summary_of "$dir")" >/dev/null ||
     fail "reason=unexpected_summary_keys case=$name summary=$(summary_of "$dir")"
-  jq -e 'has("tasks") and has("reviews") and has("fixes") and has("retries") and has("cancellations") and has("skipped")' \
+  jq -e 'has("tasks") and has("reviews") and has("fixes") and has("retries") and has("resumes") and has("closures") and has("notices") and has("cancellations") and has("skipped")' \
     <<<"$(actions_of "$dir")" >/dev/null ||
     fail "reason=unexpected_actions_keys case=$name actions=$(actions_of "$dir")"
 }
@@ -935,7 +941,345 @@ expect_counter "$dir" retried 1 jq16-multi
 expect_counter "$dir" created 1 jq16-multi
 cases=$((cases + 1))
 
-# --- 19. le script n'écrit pas dans le dépôt ----------------------------------
+# --- 19. PLT-560 : reprises de PR, clôtures, pannes de pod, appels GitHub -----
+
+# add_route <dossier> <fragment> <fichier> : la route passe devant les autres.
+add_route() {
+  printf 'GET %s %s\n' "$2" "$3" | cat - "$1/routes.tsv" >"$1/routes.tmp"
+  mv "$1/routes.tmp" "$1/routes.tsv"
+}
+
+# open_pr <dossier> <numéro> <titre> <brouillon> : une PR ouverte d'agent-harness.
+open_pr() {
+  jq --arg repo "$HARNESS" --argjson n "$2" --arg title "$3" --argjson draft "$4" \
+    '.pullRequests += [{number: $n, title: $title, draft: $draft,
+       url: ("https://github.com/SmadjaPaul/agent-harness/pull/" + ($n | tostring)),
+       headSha: "cccc3333dddd", createdAt: "2026-01-01T01:10:00Z",
+       repo: {repoUrl: $repo}}]' "$1/optio-prs.json" >"$1/optio-prs.tmp"
+  mv "$1/optio-prs.tmp" "$1/optio-prs.json"
+}
+
+# status_of <dossier> <numéro> <état> <checks> [mergeable]
+status_of() {
+  jq -n --arg state "$3" --arg checks "$4" --argjson mergeable "${5:-true}" \
+    '{prState: $state, checksStatus: $checks, mergeable: $mergeable, headSha: "cccc3333dddd"}' \
+    >"$1/status-$2.json"
+  add_route "$1" "agent-harness%2Fpull%2F$2" "status-$2.json"
+}
+
+# harness_tasks <dossier> <programme jq> : travaux d'agent-harness.
+harness_tasks() {
+  write_tasks "$1" 'def h($id; $title; $state): task($id; $title; $state)
+    + {repoUrl: $harness, createdAt: "2026-01-01T01:00:00.000Z",
+       completedAt: "2026-01-01T01:30:00.000Z"};
+    def own($n): . + {prNumber: $n,
+      prUrl: ("https://github.com/SmadjaPaul/agent-harness/pull/" + ($n | tostring))};
+    def nopr: . + {errorMessage: "Agent completed successfully but did not open a pull request."};
+    '"$2"
+}
+
+# followup <dossier> <état du ticket> <linkKind|none> [commentaire] [numéro de PR]
+followup() {
+  jq -n --arg state "$2" --arg kind "$3" --arg comment "${4:-}" --argjson n "${5:-99}" '
+    {data: {issues: {nodes: [{id: "uuid-552", identifier: "PLT-552", state: {type: $state},
+      team: {states: {nodes: [{id: "st-review", name: "In Review", type: "started"},
+        {id: "st-done", name: "Done", type: "completed"}]}},
+      attachments: {nodes: [{url: ("https://github.com/SmadjaPaul/agent-harness/pull/" + ($n | tostring)),
+        title: "feat: travail (PLT-552)", createdAt: "2026-01-01T01:10:00.000Z",
+        metadata: (if $kind == "none" then {} else {linkKind: $kind} end)}]},
+      comments: {nodes: (if $comment == "" then [] else [{body: $comment}] end)}}]}}}' \
+    >"$1/linear-followup.json"
+  printf '{"data":{"commentCreate":{"success":true},"issueUpdate":{"success":true}}}\n' \
+    >"$1/linear-write.json"
+}
+
+count_bodies() {
+  { grep -l -- "$2" "$1"/body.[0-9]* 2>/dev/null || true; } | wc -l | tr -d ' '
+}
+
+expect_writes() {
+  local dir=$1 notes=$2 dones=$3 name=$4
+  [[ "$(count_bodies "$dir" 'mutation OptioNote')" == "$notes" ]] ||
+    fail "reason=unexpected_comments case=$name want=$notes"
+  [[ "$(count_bodies "$dir" 'mutation OptioDone')" == "$dones" ]] ||
+    fail "reason=unexpected_done case=$name want=$dones"
+}
+
+new_case() {
+  setup_case "$1" linear-empty.json optio-tasks-empty.json github-pulls-empty.json
+}
+
+pr98='[h("o1"; "[PLT-552] travail"; "pr_opened") | own(98)]'
+
+# PR verte restée ouverte : une tâche de reprise, dans le dépôt de la PR.
+dir="$(new_case resume)"
+harness_tasks "$dir" "$pr98"
+open_pr "$dir" 98 "feat: travail (PLT-552)" false
+status_of "$dir" 98 open passing
+run_dispatch "$dir"
+expect_rc "$dir" 0 resume-dry
+expect_posts "$dir" "/api/tasks" 0 resume-dry
+jq -e '.resumes[0].name == "[REPRISE agent-harness#98 cccc3333 1]"' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=missing_planned_resume actions=$(actions_of "$dir")"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 resume
+expect_output_shape "$dir" resume
+expect_counter "$dir" resumed 1 resume
+expect_posts "$dir" "/api/tasks" 1 resume
+body="$(body_of "$dir" "/api/tasks")"
+jq -e --arg repo "$HARNESS" '.repoUrl == $repo' <<<"$body" >/dev/null ||
+  fail "reason=unexpected_resume_repo body=$body"
+grep -Fq "la PR #98 du dépôt agent-harness (ticket PLT-552)" <<<"$body" ||
+  fail "reason=missing_resume_consigne body=$body"
+grep -Fq "gh pr merge 98 --squash" <<<"$body" || fail "reason=missing_resume_merge body=$body"
+grep -Fq "gh pr view 98 --json" <<<"$body" || fail "reason=missing_resume_view body=$body"
+for kept in "N'utilise jamais --admin" "N'ouvre aucune autre PR"; do
+  grep -Fq "$kept" <<<"$body" || fail "reason=mangled_resume_consigne text=$kept"
+done
+grep -Eq 'IDENTIFIANT|REPO|PR #N' <<<"$body" && fail "reason=unreplaced_placeholder case=resume"
+run_dispatch "$dir" --apply
+expect_counter "$dir" resumed 0 resume-active
+expect_posts "$dir" "/api/tasks" 1 resume-active
+cases=$((cases + 1))
+
+# Checks en échec ou conflit : reprise. Checks en attente ou brouillon : rien.
+for variant in "failing true 1" "pending false 1" "pending true 0"; do
+  read -r checks mergeable want <<<"$variant"
+  dir="$(new_case "resume-$checks-$mergeable")"
+  harness_tasks "$dir" "$pr98"
+  open_pr "$dir" 98 "feat: travail (PLT-552)" false
+  status_of "$dir" 98 open "$checks" "$mergeable"
+  run_dispatch "$dir" --apply
+  expect_counter "$dir" resumed "$want" "resume-$checks-$mergeable"
+done
+dir="$(new_case resume-draft)"
+harness_tasks "$dir" "$pr98"
+open_pr "$dir" 98 "feat: travail (PLT-552)" true
+run_dispatch "$dir" --apply
+expect_counter "$dir" resumed 0 resume-draft
+dir="$(new_case resume-ticket-running)"
+harness_tasks "$dir" "$pr98 + [h(\"o2\"; \"[PLT-552] travail\"; \"running\")]"
+open_pr "$dir" 98 "feat: travail (PLT-552)" false
+run_dispatch "$dir" --apply
+expect_counter "$dir" resumed 0 resume-ticket-running
+dir="$(new_case resume-no-place)"
+harness_tasks "$dir" "$pr98"
+open_pr "$dir" 98 "feat: travail (PLT-552)" false
+status_of "$dir" 98 open passing
+run_dispatch "$dir" --apply --slots 0
+expect_counter "$dir" resumed 0 resume-no-place
+cases=$((cases + 1))
+
+# Une reprise terminée sur la même tête : PR laissée ouverte, signalée une fois.
+tried="$pr98 + [h(\"p1\"; \"[REPRISE agent-harness#98 cccc3333 1]\"; \"cancelled\")]"
+dir="$(new_case resume-same-head)"
+harness_tasks "$dir" "$tried"
+open_pr "$dir" 98 "feat: travail (PLT-552)" false
+followup "$dir" started closes
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 resume-same-head
+expect_counter "$dir" resumed 0 resume-same-head
+expect_counter "$dir" notices 1 resume-same-head
+expect_writes "$dir" 1 0 resume-same-head
+dir="$(new_case resume-noticed)"
+harness_tasks "$dir" "$tried"
+open_pr "$dir" 98 "feat: travail (PLT-552)" false
+followup "$dir" started closes "optio-dispatch, blocage agent-harness#98 cccc3333 : déjà dit"
+run_dispatch "$dir" --apply
+expect_counter "$dir" notices 0 resume-noticed
+expect_writes "$dir" 0 0 resume-noticed
+cases=$((cases + 1))
+
+# Nouvelle tête : deuxième reprise ; trois reprises : plafond.
+dir="$(new_case resume-new-head)"
+harness_tasks "$dir" "$pr98 + [h(\"p1\"; \"[REPRISE agent-harness#98 aaaa1111 1]\"; \"cancelled\")]"
+open_pr "$dir" 98 "feat: travail (PLT-552)" false
+status_of "$dir" 98 open passing
+run_dispatch "$dir" --apply
+jq -e '.resumes[0].name == "[REPRISE agent-harness#98 cccc3333 2]"' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=missing_second_resume actions=$(actions_of "$dir")"
+dir="$(new_case resume-ceiling)"
+harness_tasks "$dir" "$pr98 + [range(1; 4) as \$k
+  | h(\"p\\(\$k)\"; \"[REPRISE agent-harness#98 aaaa111\\(\$k) \\(\$k)]\"; \"cancelled\")]"
+open_pr "$dir" 98 "feat: travail (PLT-552)" false
+followup "$dir" started closes
+run_dispatch "$dir" --apply
+expect_counter "$dir" resumed 0 resume-ceiling
+expect_counter "$dir" notices 1 resume-ceiling
+jq -e 'any(.skipped[]; .reason | test("plafond"))' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=missing_resume_ceiling actions=$(actions_of "$dir")"
+# Reprise terminée sans PR : elle quitte la file des interventions.
+dir="$(new_case resume-done)"
+harness_tasks "$dir" '[h("p1"; "[REPRISE agent-harness#98 cccc3333 1]"; "needs_attention") | nopr]'
+run_dispatch "$dir" --apply
+expect_counter "$dir" cancelled 1 resume-done
+cases=$((cases + 1))
+
+# PR non enregistrée par la tâche : reconnue par le ticket et la date.
+for variant in "inside 2026-01-01T01:30:00.000Z 1" "outside 2026-01-01T00:00:00.000Z 0"; do
+  read -r label end want <<<"$variant"
+  dir="$(new_case "resume-title-$label")"
+  harness_tasks "$dir" "[h(\"o1\"; \"[PLT-552] travail\"; \"needs_attention\") | nopr
+    | .createdAt = \"2026-01-01T00:00:00.000Z\" | .completedAt = \"$end\"]"
+  open_pr "$dir" 98 "[PLT-552] travail" false
+  status_of "$dir" 98 open passing
+  run_dispatch "$dir" --apply
+  expect_counter "$dir" resumed "$want" "resume-title-$label"
+done
+cases=$((cases + 1))
+
+# Consigne REPRISE absente : aucune reprise, erreur comptée.
+dir="$(new_case resume-no-consigne)"
+harness_tasks "$dir" "$pr98"
+open_pr "$dir" 98 "feat: travail (PLT-552)" false
+status_of "$dir" 98 open passing
+sed 's/^Consigne REPRISE :$/Consigne ABSENTE :/' "$intake" >"$dir/intake-old.md"
+run_dispatch "$dir" --apply --instructions "$dir/intake-old.md"
+expect_rc "$dir" 1 resume-no-consigne
+expect_posts "$dir" "/api/tasks" 0 resume-no-consigne
+cases=$((cases + 1))
+
+# PR mergée, aucune PR détectée : preuve, Done, puis annulation.
+merged_task='[h("m1"; "[PLT-552] travail"; "needs_attention") | nopr]'
+merged_case() {
+  local d
+  d="$(new_case "$1")"
+  harness_tasks "$d" "$merged_task"
+  followup "$d" "$2" "$3"
+  status_of "$d" 99 "${4:-merged}" passing
+  printf '%s' "$d"
+}
+dir="$(merged_case closure started closes)"
+run_dispatch "$dir"
+expect_writes "$dir" 0 0 closure-dry
+expect_posts "$dir" "/cancel" 0 closure-dry
+jq -e '.closures[0].done == true' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=missing_planned_closure actions=$(actions_of "$dir") err=$(tr '\n' ' ' <"$dir/err")"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 closure
+expect_counter "$dir" closed 1 closure
+expect_writes "$dir" 1 1 closure
+expect_posts "$dir" "/cancel" 1 closure
+grep -l 'mutation OptioDone' "$dir"/body.[0-9]* | xargs grep -Fq '"stateId": "st-done"' ||
+  fail "reason=unexpected_done_state case=closure"
+grep -l 'mutation OptioNote' "$dir"/body.[0-9]* | xargs grep -Fq 'agent-harness/pull/99 est mergée' ||
+  fail "reason=missing_proof case=closure"
+# Les écritures Linear précèdent l'annulation.
+[[ "$(grep -nE '/m1/cancel' "$dir/calls.log" | cut -d: -f1)" -gt \
+  "$(grep -n 'api.linear.app' "$dir/calls.log" | tail -n 1 | cut -d: -f1)" ]] ||
+  fail "reason=cancel_before_linear case=closure"
+cases=$((cases + 1))
+
+dir="$(merged_case closure-part-of started contributes)"
+run_dispatch "$dir" --apply
+expect_writes "$dir" 1 0 closure-part-of
+expect_posts "$dir" "/cancel" 1 closure-part-of
+# Sans lien connu, dépôt privé : preuve seule ; ligne Fixes lisible : Done.
+dir="$(merged_case closure-private started none)"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 closure-private
+expect_writes "$dir" 1 0 closure-private
+for variant in "fixes Fixes 1" "partof Part%20of 0"; do
+  read -r label line want <<<"$variant"
+  dir="$(merged_case "closure-body-$label" started none)"
+  jq -n --arg b "${line//%20/ } PLT-552" '{body: $b}' >"$dir/github-pr.json"
+  add_route "$dir" "api.github.com/repos/SmadjaPaul/agent-harness/pulls/99" github-pr.json
+  run_dispatch "$dir" --apply
+  expect_writes "$dir" 1 "$want" "closure-body-$label"
+done
+dir="$(merged_case closure-finished completed closes)"
+run_dispatch "$dir" --apply
+expect_writes "$dir" 0 0 closure-finished
+expect_posts "$dir" "/cancel" 1 closure-finished
+cases=$((cases + 1))
+
+# PR encore ouverte, PR antérieure à la tâche ou Linear en échec : la tâche reste.
+dir="$(merged_case closure-open started closes open)"
+run_dispatch "$dir" --apply
+expect_writes "$dir" 0 0 closure-open
+expect_posts "$dir" "/cancel" 0 closure-open
+dir="$(merged_case closure-old started closes)"
+harness_tasks "$dir" "$merged_task | .[0].createdAt = \"2026-02-01T00:00:00.000Z\""
+run_dispatch "$dir" --apply
+expect_posts "$dir" "/cancel" 0 closure-old
+dir="$(merged_case closure-write-error started closes)"
+printf '{"errors":[{"message":"no"}]}\n' >"$dir/linear-write.json"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 1 closure-write-error
+expect_counter "$dir" closed 0 closure-write-error
+expect_posts "$dir" "/cancel" 0 closure-write-error
+dir="$(merged_case closure-read-error started closes)"
+set_repo_ticket="$(cat "$fixture_dir/linear-one-ticket.json")"
+printf '%s\n' "$set_repo_ticket" >"$dir/linear.json"
+printf '{"errors":[{"message":"no"}]}\n' >"$dir/linear-followup.json"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 1 closure-read-error
+expect_counter "$dir" created 1 closure-read-error
+expect_posts "$dir" "/cancel" 0 closure-read-error
+cases=$((cases + 1))
+
+# Panne de pod : reprise différée, plafonnée, signalée au plafond.
+pod='[h("k1"; "[PLT-552] travail"; "failed") + {errorMessage: "Pod needs recovery; its persistent workspace is retained"}]'
+for variant in "old 0 1 0" "recent 0 0 0" "wait-timeout 5 1 0" "ceiling 6 0 1"; do
+  read -r label events want noted <<<"$variant"
+  dir="$(new_case "pod-$label")"
+  harness_tasks "$dir" "$pod"
+  case "$label" in
+    recent) harness_tasks "$dir" "$pod | .[0].completedAt = (now - 600 | floor | todate)" ;;
+    wait-timeout) harness_tasks "$dir" "$pod | .[0].errorMessage = \"Timed out waiting for pod abc\"" ;;
+  esac
+  history "$dir" "$events"
+  followup "$dir" started closes
+  run_dispatch "$dir" --apply
+  expect_rc "$dir" 0 "pod-$label"
+  expect_counter "$dir" retried "$want" "pod-$label"
+  expect_counter "$dir" notices "$noted" "pod-$label"
+done
+# La revue de kube-ops arrêtée par une panne de pod est reprise elle aussi.
+dir="$(setup_case pod-review linear-empty.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" "$failed_review | .[1].errorMessage = \"Timed out waiting for pod abc\""
+run_dispatch "$dir" --apply
+expect_counter "$dir" retried 1 pod-review
+# Une tâche en échec avec une PR ouverte : la PR est reprise, pas la tâche.
+dir="$(new_case pod-with-pr)"
+harness_tasks "$dir" "$pod"
+open_pr "$dir" 98 "[PLT-552] travail" false
+status_of "$dir" 98 open passing
+run_dispatch "$dir" --apply
+expect_counter "$dir" retried 0 pod-with-pr
+expect_counter "$dir" resumed 1 pod-with-pr
+cases=$((cases + 1))
+
+# La liste d'Optio fait foi pour kube-ops : aucun appel à l'API GitHub.
+dir="$(setup_case optio-pulls linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+write_tasks "$dir" '[task("w42"; "[PLT-842] travail"; "pr_opened") | with_pr(42)]'
+jq -n --arg repo "$KUBE" '{pullRequests: [{number: 42, title: "t", draft: false,
+  url: ($repo + "/pull/42"), headSha: "bbbb2222ffff", createdAt: "2026-01-01T00:00:00Z",
+  repo: {repoUrl: $repo}}]}' >"$dir/optio-prs.json"
+run_dispatch "$dir" --no-instructions --apply
+expect_rc "$dir" 0 optio-pulls
+expect_counter "$dir" reviews 1 optio-pulls
+expect_counter "$dir" created 1 optio-pulls
+grep -q "api.github.com" "$dir/calls.log" &&
+  fail "reason=anonymous_github_call calls=$(tr '\n' ' ' <"$dir/calls.log")"
+# Liste d'Optio illisible : repli sur GitHub, erreur comptée.
+printf '500\n' >"$dir/optio-prs.json.status"
+rm -f "$dir/state-tasks.json"
+run_dispatch "$dir"
+expect_rc "$dir" 1 optio-pulls-error
+grep -q "api.github.com/repos/smadjapaul/kube-ops/pulls" "$dir/calls.log" ||
+  fail "reason=missing_github_fallback"
+cases=$((cases + 1))
+
+# jq 1.6 : reprise et clôture, même décision.
+dir="$(merged_case jq16-closure started closes)"
+cp "$jq16_bin/jq" "$dir/bin/jq"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 jq16-closure
+expect_counter "$dir" closed 1 jq16-closure
+cases=$((cases + 1))
+
+# --- 20. le script n'écrit pas dans le dépôt ----------------------------------
 
 snapshot_after="$(repo_snapshot)"
 
