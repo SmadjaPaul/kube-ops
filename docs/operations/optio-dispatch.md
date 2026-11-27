@@ -28,7 +28,7 @@ bash scripts/optio/dispatch.sh --apply     # exécution
 | `OPTIO_DISPATCH_LOCK_FILE` | variable du travail | fichier de verrou local (défaut `$TMPDIR/optio-dispatch.lock`) |
 
 Options : `--apply`, `--slots N` (places d'agent, 5 par défaut), `--instructions FILE`,
-`--select-actions FILE`, `--api-url URL`, `--repo-url URL`.
+`--select-actions FILE`, `--api-url URL`, `--repo-url URL`, `--pi-release FILE`.
 
 Les secrets ne passent jamais en argument : ils sont écrits dans un fichier d'en-têtes en mode 600, lu par
 curl avec `-H @fichier`. Le test vérifie qu'aucune valeur de secret n'apparaît ni dans la sortie ni dans la
@@ -53,8 +53,8 @@ règle n'est portée que par la consigne : le script ne contrôle ni le diff ni 
 
 ## Dépôts sans merge (PLT-573)
 
-Un dépôt dont le garde-fou refuse le merge par un agent (`website`, garde `agent-guard`) est une exception : la
-liste `NO_MERGE_REPOS` du script le nomme. L'agent y **ouvre la PR, la rend verte et ne merge pas** :
+Le merge de `website` et d'`Atlas` reste humain. La liste `NO_MERGE_REPOS` du script protège ces deux dépôts,
+même sans fichier de release. L'agent ouvre la PR et fournit les preuves requises par le dépôt.
 
 * la tâche de ticket reçoit la consigne SANS-MERGE ([optio-intake.md](optio-intake.md)) au lieu de la consigne
   AUTRE-DEPOT ;
@@ -67,6 +67,65 @@ liste `NO_MERGE_REPOS` du script le nomme. L'agent y **ouvre la PR, la rend vert
 
 Une consigne absente des instructions (fichier de `docs/operations/optio-intake.md` trop ancien) fait échouer le
 passage : aucune tâche d'un dépôt sans merge n'est créée, l'erreur est comptée.
+
+## Admission de nouvelles tâches Pi
+
+Le planificateur accepte un fichier local `--pi-release`. Il part de l'export
+`python3 scripts/ticket_context.py --factory-repos --json` d'Atlas et ajoute l'objet `pi`.
+
+| Champ | Valeur |
+|---|---|
+| `owner`, `repos` | Export Atlas avec `name`, `entrypoint`, `factory_profile`, `factory_merge` pour chaque dépôt |
+| `pi.image` | Référence OCI de l'image de pod Optio dérivée, épinglée par `@sha256:<digest>` |
+| `pi.bundles` | Objet qui associe chaque profil admis à la référence OCI épinglée de son bundle |
+| `pi.admit` | Noms des dépôts autorisés à démarrer de nouvelles tâches d'implémentation en Pi. Comparaison insensible à la casse |
+| `pi.evidence` | Pour `--apply` avec une liste non vide, renseigner `optio: "0.26.4"`, `image` identique à `pi.image` et `task` avec l'UUID de la tâche canari qui a prouvé l'exécution |
+
+L'essai à blanc détaille `agentType: "pi"`, profil, image et bundle des tâches admises. En mode écriture, une
+release invalide, une preuve absente ou un `OPTIO_PI_CREDENTIAL_ID` absent arrêtent le passage avant tout appel
+réseau. Avant toute écriture, le dispatcher relit le UUID auprès d'Optio : la tâche du même espace doit utiliser Pi,
+viser un dépôt admis et être dans l'état `pr_opened` ou `completed`. Le dispatcher envoie
+`agentType: "pi"`, `metadata.agentOptions.piModel` et
+`metadata.agentOptions.credential: "secret:<id>"` à l'API Optio. `autoMerge` et `autoResume` restent à
+`false`, et `maxRetries` vaut `0`. La session Pi ouvre une PR sans la fusionner. Pi reçoit les mêmes alias
+Agentgateway `text/strong` et `code/frontier` que les tâches existantes.
+L'export Atlas peut ajouter des exceptions de merge humain, y compris pour les tâches qui restent sur Claude.
+
+**Avant d'activer une admission**
+
+1. Publier l'image et le bundle. Donner au binaire le manifeste candidat minimal avec le dépôt canari
+   dans `pi.admit` et les références des bundles. Ce manifeste distinct ne contient pas le digest de sa
+   propre image. Le job planifié reste sans `--pi-release` pendant le canari manuel.
+   Le binaire `pi` de l'image doit accepter la commande native
+   d'Optio et produire ses événements JSONL `message_end` et `agent_settled`. L'adaptateur v0.26.4 passe
+   `OPTIO_TASK_ID`, `OPTIO_REPO_URL` et `OPTIO_PROMPT`. Il exécute `pi --print --mode json` avec
+   `--no-extensions` et le seul MCP intégré. Le binaire dérivé relie ce contrat au bundle et au profil
+   résolu depuis le dépôt. Le dispatcher ne transmet ni l'image ni d'environnement personnalisé par tâche.
+   [Commande native Optio](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/utils/pi-command.ts)
+   · [Adaptateur Pi](https://github.com/jonwiggins/optio/blob/v0.26.4/packages/agent-adapters/src/pi.ts)
+2. Faire pointer le preset d'Optio vers l'image de la release en conservant Claude et le cycle de vie Optio.
+   Le worker v0.26.4 utilise le preset du dépôt. Pour les presets, Optio résout
+   `OPTIO_AGENT_IMAGE_PREFIX + preset + ":" + OPTIO_AGENT_IMAGE_TAG`. Rendre compatibles les presets admis
+   et vérifier le digest réellement chargé sur les pods neufs avant de router une tâche. Utiliser le même
+   export Atlas et les mêmes bundles dans le manifeste du binaire et dans la release du planificateur.
+   [Worker Optio](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/workers/task-worker.ts)
+   · [Pool de pods](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/services/repo-pool-service.ts)
+3. Configurer dans Optio une clé virtuelle Agentgateway dédiée sous le nom `OPENAI_API_KEY`. Donner au
+   dispatcher uniquement son identifiant Optio via `OPTIO_PI_CREDENTIAL_ID`. Le binaire contacte l'URL
+   d'Agentgateway inscrite dans le plan compilé du bundle. Le choix explicite du credential évite le repli
+   d'Optio vers toutes les clés de fournisseurs disponibles. Vérifier le modèle servi et l'absence de clé
+   fournisseur brute ou d'identité de production dans la tâche.
+   [Sélection du credential](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/services/pi-provider-secrets.ts)
+4. Créer manuellement une tâche Pi canari bornée sur un pod neuf. Vérifier la sélection du profil, le bundle,
+   le résultat natif visible dans Optio et l'appel Agentgateway. Reporter le UUID et le digest observé dans la
+   release externe où seul le dépôt canari est admis. Comparer le
+   plan du dispatch sans `--apply` avec l'état réel avant la première écriture.
+
+Les nouvelles revues, corrections CI et reprises de PR restent sur Claude. Les reprises d'une tâche Claude
+consomment le même ID d'Optio. Les tâches Pi en échec restent visibles pour traitement explicite, car le bridge
+ne reprend pas les sessions `--session-id`. Vider `pi.admit` ou retirer `--pi-release` remet les nouvelles
+tâches sur Claude sans conversion des tâches existantes. Une image antérieure peut être rétablie une fois
+les tâches Pi en cours terminées. Aucun preset ou réglage du travail planifié n'est changé par ce raccord.
 
 ## Places
 

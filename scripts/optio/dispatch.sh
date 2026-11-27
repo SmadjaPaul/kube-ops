@@ -22,7 +22,7 @@
 # Usage :
 #   bash scripts/optio/dispatch.sh [--apply] [--slots N] [--instructions FILE]
 #                                 [--select-actions FILE] [--api-url URL]
-#                                 [--repo-url URL]
+#                                 [--repo-url URL] [--pi-release FILE]
 #
 # Environnement :
 #   LINEAR_INTAKE_KEY    clé Linear (LINEAR_API_KEY acceptée en repli) ;
@@ -61,9 +61,8 @@ readonly INFRA_RETRY_DELAY=1800
 readonly INFRA_ERROR_PATTERN='Timed out waiting for pod|Pod needs recovery|Pod is recovering'
 # Tâches de REPRISE d'une PR d'un autre dépôt : 3 au plus par PR, une par tête.
 readonly MAX_RESUMES=3
-# Dépôts dont le garde-fou refuse le merge par un agent (website, garde
-# agent-guard). L'agent y ouvre la PR et la rend verte ; le merge reste humain.
-readonly NO_MERGE_REPOS=(website)
+# Dépôts PR-only. L'agent y ouvre la PR et le merge reste humain.
+readonly NO_MERGE_REPOS=(website atlas)
 readonly NO_CHECKS_DELAY=900
 readonly NO_PR_PATTERN='did not open a pull request'
 readonly DEFAULT_SLOTS=5
@@ -80,6 +79,10 @@ select_actions_file=""
 select_actions_path=""
 api_url_override=""
 repo_url=$DEFAULT_REPO_URL
+pi_release=""
+pi_admissions='{}'
+pi_credential_id=""
+pi_evidence_task=""
 
 linear_key=""
 optio_token=""
@@ -122,7 +125,7 @@ no_merge_json=""
 usage() {
   cat >&2 <<'USAGE'
 usage: optio/dispatch.sh [--apply] [--slots N] [--instructions FILE]
-                         [--select-actions FILE] [--api-url URL] [--repo-url URL]
+                         [--select-actions FILE] [--api-url URL] [--repo-url URL] [--pi-release FILE]
 USAGE
 }
 
@@ -139,14 +142,7 @@ die_usage() {
 # Un dépôt dont le garde-fou refuse le merge par un agent : l'agent y ouvre la
 # PR et la rend verte, le merge reste humain.
 is_no_merge_repo() {
-  local name repo
-  name="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')"
-  for repo in "${NO_MERGE_REPOS[@]}"; do
-    if [ "$name" = "$repo" ]; then
-      return 0
-    fi
-  done
-  return 1
+  jq -e --arg repo "${1:-}" 'index($repo | ascii_downcase) != null' <<<"$no_merge_json" >/dev/null
 }
 
 # La même liste, en minuscules, pour jq.
@@ -188,6 +184,11 @@ parse_args() {
         repo_url=$2
         shift 2
         ;;
+      --pi-release)
+        [ "$#" -ge 2 ] || die_usage "--pi-release needs a file"
+        pi_release=$2
+        shift 2
+        ;;
       -h | --help)
         usage
         exit 0
@@ -200,6 +201,59 @@ parse_args() {
   case "$slots" in
     '' | *[!0-9]*) die_usage "--slots must be a non-negative integer" ;;
   esac
+}
+
+# Le fichier est un export Atlas enrichi par la release. Seules les nouvelles
+# tâches d'implémentation de la liste explicite peuvent choisir le runtime Pi.
+load_pi_release() {
+  [ -n "$pi_release" ] || return 0
+  local release uuid owner
+  uuid='^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$'
+  owner="${repo_url%/}"
+  owner="${owner%/*}"
+  owner="${owner##*/}"
+  if ! release="$(jq -cse --arg owner "$owner" --arg uuid "$uuid" '
+    def pin: type == "string" and test("^[a-zA-Z0-9][a-zA-Z0-9._:/-]+@sha256:[a-f0-9]{64}$");
+    def slug: type == "string" and test("^[a-z0-9][a-z0-9-]*$");
+    def repo_name: type == "string" and test("^[a-zA-Z0-9][a-zA-Z0-9._-]*$");
+    select(length == 1) | .[0] as $release | $release
+    | select((.owner | ascii_downcase) == ($owner | ascii_downcase)
+       and (.repos | type) == "array"
+       and all(.repos[]; (.name | repo_name) and (.factory_profile | slug)
+         and (.entrypoint == "AGENTS.md" or .entrypoint == "CLAUDE.md" or .entrypoint == "README.md")
+         and (.factory_merge == "policy" or .factory_merge == "pr-only"))
+       and ([.repos[].name | ascii_downcase] | length == (unique | length))
+       and (.pi.image | pin)
+       and (.pi.bundles | type) == "object"
+       and (.pi.admit | type) == "array"
+       and all(.pi.admit[]; repo_name)
+       and ([.pi.admit[] | ascii_downcase] | length == (unique | length)))
+    | [.pi.admit[] | ascii_downcase] as $admit
+    | [.repos[] | select((.name | ascii_downcase) as $n | $admit | index($n) != null)] as $repos
+    | select(($repos | length) == ($admit | length)
+       and all($repos[]; $release.pi.bundles[.factory_profile] | pin))
+    | {
+        admissions: ($repos | map({key: (.name | ascii_downcase), value: {
+          profile: .factory_profile, entrypoint: .entrypoint,
+          bundle: $release.pi.bundles[.factory_profile], image: $release.pi.image
+        }}) | from_entries),
+        prOnly: [.repos[] | select(.factory_merge == "pr-only") | .name | ascii_downcase],
+        proofTask: (if .pi.evidence.optio == "0.26.4" and .pi.evidence.image == .pi.image
+          and ((.pi.evidence.task // "") | test($uuid)) then .pi.evidence.task else "" end)
+      }
+  ' "$pi_release" 2>/dev/null)"; then
+    die_usage "invalid Pi release: expected Atlas repository mapping and pinned image and bundles"
+  fi
+  pi_admissions="$(jq -c '.admissions' <<<"$release")"
+  no_merge_json="$(jq -c --argjson base "$no_merge_json" '($base + .prOnly) | unique' <<<"$release")"
+  if [ "$apply_mode" = true ] && [ "$pi_admissions" != '{}' ]; then
+    pi_evidence_task="$(jq -r '.proofTask' <<<"$release")"
+    [ -n "$pi_evidence_task" ] ||
+      die_usage "Pi apply requires a recorded Optio v0.26.4 runtime task"
+    pi_credential_id="${OPTIO_PI_CREDENTIAL_ID:-}"
+    [[ "$pi_credential_id" =~ $uuid ]] ||
+      die_usage "Pi apply requires OPTIO_PI_CREDENTIAL_ID for the Agentgateway virtual key"
+  fi
 }
 
 check_environment() {
@@ -369,6 +423,27 @@ fetch_optio_repos() {
        | select(contains("/") | not)]
     | unique | join(",")' "$HTTP_BODY")"
   return 0
+}
+
+# Le UUID de preuve dans la release désigne un vrai canari du même workspace.
+check_pi_evidence() {
+  [ -n "$pi_evidence_task" ] || return 0
+  if ! http_request GET "$api_url/api/tasks/$pi_evidence_task" "$work_dir/optio-headers"; then
+    api_error "Optio" "Pi canary: $HTTP_ERROR"
+    return 1
+  fi
+  if ! jq -e --arg id "$pi_evidence_task" --arg main "$repo_url" --argjson admit "$pi_admissions" '
+    def norm: (ascii_downcase | sub("/+$"; "") | sub("\\.git$"; ""));
+    ($main | norm | sub("[^/]+$"; "")) as $owner
+    | .task
+    | ((.repoUrl // "") | norm) as $repo
+    | .id == $id and .type == "repo-task" and .agentType == "pi"
+      and (.state == "pr_opened" or .state == "completed")
+      and ($repo | startswith($owner) and ($admit[ltrimstr($owner)] != null))
+  ' "$HTTP_BODY" >/dev/null 2>&1; then
+    api_error "Optio" "Pi canary is not a successful repository task in the release"
+    return 1
+  fi
 }
 
 # Toutes les PR ouvertes des dépôts configurés, lues par l'API Optio avec son
@@ -622,6 +697,7 @@ def parts($re): ([(.title // "") | match($re)] | .[0] // null)
 def open_pr($n): ([$pulls[0][] | select((.number | tostring) == $n)] | .[0]) // null;
 def candidate($kind; $pr; $sha):
   {id: (.id | tostring), name: (.title // ""), kind: $kind, prNumber: $pr, sha8: $sha,
+   agentType: (.agentType // ""),
    limit: limit_hit, infra: ((limit_hit | not) and infra_hit),
    failedAt: (.completedAt // .updatedAt // ""),
    retryCount: ((.retryCount // 0)
@@ -693,12 +769,15 @@ plan_retries() {
     [ -n "$entry" ] || continue
     id="$(jq -r '.id' <<<"$entry")"
     count=-1
-    if ! http_request GET "$api_url/api/tasks/$id/events" "$work_dir/optio-headers"; then
-      api_error "Optio" "$HTTP_ERROR"
-    elif ! jq -e '(.events? | type) == "array"' "$HTTP_BODY" >/dev/null 2>&1; then
-      api_error "Optio" "the task history has an unexpected shape"
-    else
-      count="$(jq '[.events[] | select(.trigger == "user_retry")] | length' "$HTTP_BODY")"
+    # Le bridge Pi ne reprend pas encore de session existante.
+    if [ "$(jq -r '.agentType' <<<"$entry")" != pi ]; then
+      if ! http_request GET "$api_url/api/tasks/$id/events" "$work_dir/optio-headers"; then
+        api_error "Optio" "$HTTP_ERROR"
+      elif ! jq -e '(.events? | type) == "array"' "$HTTP_BODY" >/dev/null 2>&1; then
+        api_error "Optio" "the task history has an unexpected shape"
+      else
+        count="$(jq '[.events[] | select(.trigger == "user_retry")] | length' "$HTTP_BODY")"
+      fi
     fi
     jq -c --argjson events "$count" '. + {events: $events}' <<<"$entry" >>"$work_dir/retries.ndjson"
   done < <(jq -c '.[]' "$work_dir/candidates.json")
@@ -714,7 +793,8 @@ plan_retries() {
                wait: (if .limit then $delay elif .infra then $infra_delay else 0 end)}
         | (.failedAt | age) as $age
         | . + {skip:
-            (if .events < 0 then "historique des reprises illisible"
+            (if .agentType == "pi" then "reprise Pi non disponible : session à examiner"
+             elif .events < 0 then "historique des reprises illisible"
              elif .count >= .ceiling then
                "reprise au plafond : " + (.count | tostring) + " reprises déjà faites"
              elif .wait > 0 and $age != null and $age < .wait then
@@ -724,7 +804,7 @@ plan_retries() {
              else null end)})
     | {eligible: map(select(.skip == null)),
        skipped: map(select(.skip != null) | {id: .name, reason: .skip}),
-       pending: map(select(.events < 0 or .count < .ceiling) | .name),
+       pending: map(select(.agentType != "pi" and (.events < 0 or .count < .ceiling)) | .name),
        blocked: map(select(.kind == "ticket" and .events >= 0 and .count >= .ceiling)
                     | ([.name | match("^\\[([A-Za-z][A-Za-z0-9]*-[0-9]+)\\]")] | .[0].captures[0].string) as $i
                     | {identifier: $i, key: ($i + " " + .id), prUrl: "",
@@ -1304,6 +1384,7 @@ build_prompts() {
     --arg suffix "$consigne_suffix" \
     --arg resume "$resume_consigne" \
     --arg resumenomerge "$resume_nomerge_consigne" \
+    --argjson pi_admissions "$pi_admissions" \
     --argjson no_merge "$no_merge_json" '
     .resumes |= map(. as $s
       | (if (($no_merge | index((($s.repo // "") | ascii_downcase))) != null)
@@ -1312,12 +1393,15 @@ build_prompts() {
                    | split("IDENTIFIANT") | join($s.identifier)
                    | split("REPO") | join($s.repo)))
     | .tasks |= map(. as $t
-      | (if $t.main then $code
-         elif (($no_merge | index((($t.repo // "") | ascii_downcase))) != null) then $nomerge
+      | ($pi_admissions[($t.repo | ascii_downcase)] // null) as $pi
+      | ($pi != null or ($no_merge | index(($t.repo | ascii_downcase))) != null) as $pr_only
+      | (if $pr_only then $nomerge
+         elif $t.main then $code
          else $other end) as $consigne
+      | . + (if $pi == null then {} else {agentType: "pi", pi: $pi} end)
       | .prompt = ($t.identifier + "\n" + ($t.url // "") + "\n\n<ticket>\n"
                    + ($t.description // "") + "\n</ticket>\n\n"
-                   + (if $t.main
+                   + (if $t.main and ($pr_only | not)
                       then ($consigne | split("(IDENTIFIANT)") | join("(" + $t.identifier + ")"))
                       else ($consigne | split("IDENTIFIANT") | join($t.identifier)
                             | split("REPO") | join($t.repo))
@@ -1398,6 +1482,10 @@ retry_blocked_reason() {
     printf '%s' "la tâche n'existe plus"
     return 0
   fi
+  if [ "$(jq -r '.agentType // ""' <<<"$task")" = pi ]; then
+    printf '%s' "reprise Pi non disponible : session à examiner"
+    return 0
+  fi
   state="$(jq -r '(.state // "") | ascii_downcase' <<<"$task")"
   if [ "$state" != "failed" ]; then
     printf '%s' "la tâche n'est plus en échec"
@@ -1443,14 +1531,16 @@ retry_blocked_reason() {
 }
 
 create_task() {
-  local name=$1 prompt=$2 model=$3 repo=${4:-$repo_url}
+  local name=$1 prompt=$2 model=$3 repo=$4 agent_type=$5
   jq -n --arg title "$name" --arg prompt "$prompt" --arg repo "$repo" \
-    --arg model "$model" \
-    '{title: $title, prompt: $prompt, repoUrl: $repo, owner: "me",
-      autoMerge: false, autoResume: false,
-      metadata: {agentOptions: {claudeModel: $model,
+    --arg model "$model" --arg agent "$agent_type" --arg credential "$pi_credential_id" \
+    '{title: $title, prompt: $prompt, repoUrl: $repo, owner: "me", agentType: $agent,
+      autoMerge: false, autoResume: false}
+     + (if $agent == "pi" then {maxRetries: 0,
+          metadata: {agentOptions: {piModel: $model, credential: ("secret:" + $credential)}}}
+        else {metadata: {agentOptions: {claudeModel: $model,
                                  claudeContextWindow: "200k",
-                                 claudeEffort: "medium"}}}' \
+                                 claudeEffort: "medium"}}} end)' \
     >"$work_dir/create.json"
   if ! http_request POST "$api_url/api/tasks" "$work_dir/optio-headers" "$work_dir/create.json"; then
     api_error "Optio" "$HTTP_ERROR"
@@ -1548,7 +1638,7 @@ apply_followups() {
 # suivantes ; une lecture impossible arrête le passage.
 apply_creations() {
   # apply_creations <section> ; le compteur est tenu par l'appelant.
-  local section=$1 entry name prompt model repo
+  local section=$1 entry name prompt model repo agent_type
   applied=0
   jq -c ".${section}[]" "$work_dir/plan.json" >"$work_dir/apply-$section.ndjson"
   while IFS= read -r entry; do
@@ -1557,13 +1647,14 @@ apply_creations() {
     prompt="$(jq -r '.prompt' <<<"$entry")"
     model="$(jq -r '.model // "text/strong"' <<<"$entry")"
     repo="$(jq -r --arg main "$repo_url" '.repoUrl // $main' <<<"$entry")"
+    agent_type="$(jq -r '.agentType // "claude-code"' <<<"$entry")"
     if ! refresh_task_names; then return 1; fi
     if jq -e --arg n "$name" 'index($n) != null' <<<"$task_names" >/dev/null; then
       remove_from_plan "$section" "$name"
       add_skip "$name" "travail existant : $name"
       continue
     fi
-    if ! create_task "$name" "$prompt" "$model" "$repo"; then
+    if ! create_task "$name" "$prompt" "$model" "$repo" "$agent_type"; then
       remove_from_plan "$section" "$name"
       add_skip "$name" "création refusée par Optio : $HTTP_ERROR"
       continue
@@ -1674,8 +1765,9 @@ emit_output() {
 
 main() {
   parse_args "$@"
-  check_environment
   load_no_merge_repos
+  load_pi_release
+  check_environment
   work_dir="$(mktemp -d)"
   trap 'rm -rf "$work_dir"' EXIT
   acquire_lock
@@ -1685,6 +1777,10 @@ main() {
     return 1
   fi
   if ! fetch_optio_tasks; then
+    emit_output
+    return 1
+  fi
+  if ! check_pi_evidence; then
     emit_output
     return 1
   fi
@@ -1722,17 +1818,17 @@ main() {
       jq '.resumes = []' "$work_dir/plan.json" >"$work_dir/plan.tmp"
       mv "$work_dir/plan.tmp" "$work_dir/plan.json"
     fi
-    # Une tâche d'un dépôt sans merge a besoin de sa consigne : sans elle, le
-    # script n'envoie pas un agent qui pourrait merger par erreur.
+    # Une tâche Pi ou d'un dépôt PR-only a besoin de sa consigne.
     if [ -z "$nomerge_consigne" ] && [ "$(jq --argjson no_merge "$no_merge_json" \
-      '[.tasks[] | select((((.repo // "") | ascii_downcase) as $r
-         | ($no_merge | index($r)) != null))] | length' \
+      --argjson pi "$pi_admissions" \
+      '[.tasks[] | select(((.repo // "") | ascii_downcase) as $r
+         | ($no_merge | index($r)) != null or $pi[$r] != null)] | length' \
       "$work_dir/plan.json")" != "0" ]; then
       warn "the instructions do not hold the no-merge passage: no ticket task is created"
       errors=$((errors + 1))
-      jq --argjson no_merge "$no_merge_json" \
-        '.tasks |= map(select((((.repo // "") | ascii_downcase) as $r
-           | ($no_merge | index($r))) == null))' \
+      jq --argjson no_merge "$no_merge_json" --argjson pi "$pi_admissions" \
+        '.tasks |= map(select(((.repo // "") | ascii_downcase) as $r
+           | ($no_merge | index($r)) == null and $pi[$r] == null))' \
         "$work_dir/plan.json" >"$work_dir/plan.tmp"
       mv "$work_dir/plan.tmp" "$work_dir/plan.json"
     fi

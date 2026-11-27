@@ -808,6 +808,92 @@ done
 grep -Fq "Ne merge pas." <<<"$body" && fail "reason=kube_ops_consigne case=other-repo"
 cases=$((cases + 1))
 
+# Le fichier de release reprend la forme de ticket_context.py --factory-repos.
+pi_release_fixture() {
+  jq -n --arg image "ghcr.io/test/worker@sha256:$(printf '%064d' 1)" \
+    --arg bundle "ghcr.io/test/bundle@sha256:$(printf '%064d' 2)" \
+    --arg repo "$1" '
+    {owner: "SmadjaPaul", repos: [
+      {name: "agent-harness", factory_profile: "harness", factory_merge: "policy", entrypoint: "README.md"},
+      {name: "Atlas", factory_profile: "atlas", factory_merge: "pr-only", entrypoint: "AGENTS.md"}
+    ], pi: {image: $image, bundles: {harness: $bundle, atlas: $bundle}, admit: [$repo]}}'
+}
+
+dir="$(setup_case pi-plan linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+set_repo "$dir" Atlas
+pi_release_fixture Atlas >"$dir/release.json"
+run_dispatch "$dir" --pi-release "$dir/release.json"
+expect_rc "$dir" 0 pi-plan
+expect_posts "$dir" "/api/tasks" 0 pi-plan
+jq -e '.tasks[0] | .agentType == "pi" and .pi.profile == "atlas" and
+  .pi.entrypoint == "AGENTS.md" and
+  (.pi.bundle | startswith("ghcr.io/test/bundle@sha256:")) and (.prompt | contains("tu ne merges pas"))' \
+  <<<"$(actions_of "$dir")" >/dev/null || fail "reason=invalid_pi_plan"
+run_dispatch "$dir" --apply --pi-release "$dir/release.json"
+expect_rc "$dir" 2 pi-unproven
+expect_posts "$dir" "/api/tasks" 0 pi-unproven
+grep -Fq 'requires a recorded Optio' "$dir/err" || fail "reason=pi_not_blocked"
+cases=$((cases + 1))
+
+dir="$(setup_case pi-apply linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+set_repo "$dir" agent-harness
+pi_release_fixture agent-harness | jq '.pi.evidence = {
+  optio: "0.26.4", image: .pi.image, task: "00000000-0000-4000-8000-000000000001"}' >"$dir/release.json"
+OPTIO_PI_CREDENTIAL_ID="" run_dispatch "$dir" --apply --pi-release "$dir/release.json"
+expect_rc "$dir" 2 pi-credential-missing
+expect_posts "$dir" "/api/tasks" 0 pi-credential-missing
+printf 'GET /api/tasks/00000000-0000-4000-8000-000000000001 proof.json\n' >>"$dir/routes.tsv"
+jq -n --arg repo "$HARNESS" '{task: {id: "00000000-0000-4000-8000-000000000001",
+  type: "repo-task", repoUrl: $repo, agentType: "claude-code", state: "completed"}}' >"$dir/proof.json"
+OPTIO_PI_CREDENTIAL_ID=00000000-0000-4000-8000-000000000002 \
+  run_dispatch "$dir" --apply --pi-release "$dir/release.json"
+expect_rc "$dir" 1 pi-proof-invalid
+expect_posts "$dir" "/api/tasks" 0 pi-proof-invalid
+jq '.task.agentType = "pi"' "$dir/proof.json" >"$dir/proof.tmp"
+mv "$dir/proof.tmp" "$dir/proof.json"
+OPTIO_PI_CREDENTIAL_ID=00000000-0000-4000-8000-000000000002 \
+  run_dispatch "$dir" --apply --pi-release "$dir/release.json"
+expect_rc "$dir" 0 pi-apply
+expect_counter "$dir" created 1 pi-apply
+jq -e '
+  .agentType == "pi" and .owner == "me" and .maxRetries == 0
+  and .autoMerge == false and .autoResume == false
+  and (.prompt | contains("tu ne merges pas"))
+  and .metadata.agentOptions == {
+    piModel: "text/strong", credential: "secret:00000000-0000-4000-8000-000000000002"
+  } and (has("podSecrets") | not)' <<<"$(body_of "$dir" "/api/tasks")" >/dev/null ||
+  fail "reason=invalid_pi_api_payload"
+cases=$((cases + 1))
+
+dir="$(setup_case pi-invalid-release linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+pi_release_fixture agent-harness | jq '.pi.bundles.harness = "ghcr.io/test/bundle:latest"' >"$dir/release.json"
+run_dispatch "$dir" --pi-release "$dir/release.json"
+expect_rc "$dir" 2 pi-invalid-release
+pi_release_fixture agent-harness | jq '.repos[0].entrypoint = "../README.md"' >"$dir/release.json"
+run_dispatch "$dir" --pi-release "$dir/release.json"
+expect_rc "$dir" 2 pi-invalid-entrypoint
+expect_posts "$dir" "/api/tasks" 0 pi-invalid-release
+cases=$((cases + 1))
+
+dir="$(setup_case atlas-rollback linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+set_repo "$dir" Atlas
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 atlas-rollback
+jq -e '.agentType == "claude-code" and (.prompt | contains("tu ne merges pas")) and
+  (.prompt | contains("gh pr merge") | not)' <<<"$(body_of "$dir" "/api/tasks")" >/dev/null ||
+  fail "reason=invalid_atlas_claude_payload"
+cases=$((cases + 1))
+
+dir="$(setup_case pi-no-retry linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+write_tasks "$dir" '[task("pi1"; "[PLT-900] reproduction"; "failed") | .agentType = "pi"]'
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 pi-no-retry
+expect_counter "$dir" retried 0 pi-no-retry
+expect_posts "$dir" "/retry" 0 pi-no-retry
+jq -e 'any(.skipped[]; .reason | contains("reprise Pi non disponible"))' \
+  <<<"$(actions_of "$dir")" >/dev/null || fail "reason=pi_retry_skip_missing"
+cases=$((cases + 1))
+
 # Le ticket kube-ops garde sa consigne, sans merge.
 dir="$(setup_case kube-consigne linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
 run_dispatch "$dir" --apply
