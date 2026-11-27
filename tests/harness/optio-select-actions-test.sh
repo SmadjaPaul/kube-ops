@@ -136,8 +136,8 @@ for case_file in "${cases[@]}"; do
   run_case "$case_file"
 done
 
-# Le nombre de places par défaut est 10 : 9 travaux actifs laissent une place,
-# 10 travaux actifs n'en laissent aucune.
+# Le nombre de places par défaut est 5 : 4 travaux en cours laissent une place,
+# 5 travaux en cours n'en laissent aucune.
 default_places() {
   local active=$1
   local expected=$2
@@ -167,8 +167,21 @@ default_places() {
     fail "reason=unexpected_default_places active=$active expected_tasks=$expected"
 }
 
-default_places 9 1
-default_places 10 0
+default_places 4 1
+default_places 5 0
+
+# --repos limite les tickets aux dépôts configurés dans Optio.
+jq -n '{data: {issues: {nodes: [
+  {identifier: "PLT-950", title: "Site", description: "Dépôt: website\n", priority: 1},
+  {identifier: "PLT-951", title: "Atlas", description: "Dépôt: Atlas\n", priority: 1}
+]}}}' >"$tmp/repos-linear.json"
+printf '%s\n' '{"works":[]}' >"$tmp/repos-work.json"
+bash "$script" --linear "$tmp/repos-linear.json" --work "$tmp/repos-work.json" \
+  --repos "kube-ops,atlas" >"$tmp/repos-out.json"
+jq -e '(.create_tasks | map(.identifier)) == ["PLT-951"]
+  and .skipped == [{id: "PLT-950", reason: "dépôt non configuré dans Optio : website"}]' \
+  "$tmp/repos-out.json" >/dev/null ||
+  fail "reason=unexpected_configured_repos out=$(cat "$tmp/repos-out.json")"
 
 # Usage : sortie 2 sur une entrée absente, illisible ou invalide.
 printf '%s\n' '{"works":[]}' >"$tmp/empty-work.json"

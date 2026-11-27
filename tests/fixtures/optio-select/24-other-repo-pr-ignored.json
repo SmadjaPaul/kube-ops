@@ -1,0 +1,66 @@
+{
+  "slots": 5,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": []
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-930] site",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/website",
+        "prNumber": 42,
+        "prUrl": "https://github.com/smadjapaul/website/pull/42",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-931] site",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/website",
+        "prNumber": 43,
+        "prUrl": "https://github.com/smadjapaul/website/pull/43",
+        "prChecksStatus": "failing"
+      },
+      {
+        "name": "[PLT-932] sans repoUrl",
+        "state": "completed",
+        "repoUrl": "",
+        "prNumber": 44,
+        "prUrl": "https://github.com/smadjapaul/website/pull/44",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[REVUE PR-45]",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/website",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": ""
+      },
+      {
+        "name": "[PLT-933] kube",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 45,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/45",
+        "prChecksStatus": "passing"
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [
+      {
+        "prNumber": 45,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/45",
+        "name": "[REVUE PR-45]"
+      }
+    ],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

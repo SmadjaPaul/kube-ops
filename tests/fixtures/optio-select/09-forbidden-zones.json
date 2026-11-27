@@ -48,6 +48,7 @@
         "identifier": "PLT-403",
         "name": "[PLT-403] Ajouter une alerte de latence",
         "title": "Ajouter une alerte de latence",
+        "repo": "kube-ops",
         "url": "https://linear.app/boule/issue/PLT-403/ajouter-une-alerte-de-latence",
         "priority": 2,
         "createdAt": "2026-01-12T00:00:00.000Z",

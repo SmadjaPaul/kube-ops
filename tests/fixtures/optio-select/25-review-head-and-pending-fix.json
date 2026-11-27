@@ -1,0 +1,100 @@
+{
+  "slots": 5,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": []
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-940] relue",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 50,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/50",
+        "prChecksStatus": "passing",
+        "headSha8": "aaaa1111"
+      },
+      {
+        "name": "[REVUE PR-50 aaaa1111]",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": ""
+      },
+      {
+        "name": "[PLT-941] nouvelle tête",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 51,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/51",
+        "prChecksStatus": "passing",
+        "headSha8": "cccc3333"
+      },
+      {
+        "name": "[REVUE PR-51 bbbb2222]",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": ""
+      },
+      {
+        "name": "[PLT-942] correction en attente",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 52,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/52",
+        "prChecksStatus": "failing"
+      },
+      {
+        "name": "[CORRIGE PR-52 1]",
+        "state": "failed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": "",
+        "retryPending": true
+      },
+      {
+        "name": "[PLT-943] correction finie",
+        "state": "completed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 53,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/53",
+        "prChecksStatus": "failing"
+      },
+      {
+        "name": "[CORRIGE PR-53 1]",
+        "state": "failed",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": ""
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [
+      {
+        "prNumber": 51,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/51",
+        "name": "[REVUE PR-51]"
+      }
+    ],
+    "create_fixes": [
+      {
+        "prNumber": 53,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/53",
+        "name": "[CORRIGE PR-53 2]",
+        "attempt": 2
+      }
+    ],
+    "skipped": []
+  }
+}

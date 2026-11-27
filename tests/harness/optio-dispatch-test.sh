@@ -16,10 +16,13 @@
 # (code de retour non nul, erreur comptée dans le compte rendu, y compris au
 # téléchargement du script de sélection) ; consignes recopiées depuis
 # docs/operations/optio-intake.md ; secret jamais dans la sortie ni dans la
-# ligne de commande ; un seul passage à la fois ; jq 1.6.
+# ligne de commande ; un seul passage à la fois ; jq 1.6. PLT-542 : places,
+# plusieurs dépôts, PR d'un autre dépôt, reprises après la limite du forfait.
 #
 # Lecture seule, aucun accès cluster, aucun appel réseau. Autonome : mktemp,
 # aucune écriture dans le dépôt.
+# Les programmes jq sont entre apostrophes : leurs $variables sont à jq.
+# shellcheck disable=SC2016
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -244,6 +247,8 @@ setup_case() {
   cp "$fixture_dir/optio-retry.json" "$dir/optio-retry.json"
   cp "$fixture_dir/optio-cancel.json" "$dir/optio-cancel.json"
   cp "$fixture_dir/api-error.json" "$dir/api-error.json"
+  cp "$fixture_dir/optio-repos.json" "$dir/optio-repos.json"
+  cp "$fixture_dir/optio-events-empty.json" "$dir/optio-events.json"
   : >"$dir/calls.log"
   : >"$dir/argv.log"
   : >"$dir/headers.log"
@@ -259,7 +264,9 @@ setup_case() {
     printf '%s\n' 'GET https://api.github.com/repos/smadjapaul/kube-ops/contents github-contents.json'
     printf '%s\n' 'POST /retry optio-retry.json'
     printf '%s\n' 'POST /cancel optio-cancel.json'
-    printf 'GET /api/tasks?limit=200 optio-tasks.json %s\n' "$next_tasks"
+    printf '%s\n' 'GET /events optio-events.json'
+    printf '%s\n' 'GET /api/repos optio-repos.json'
+    printf 'GET /api/tasks?limit=1000 optio-tasks.json %s\n' "$next_tasks"
     printf '%s\n' 'POST /api/tasks optio-created.json'
   } >"$dir/routes.tsv"
   make_fake_curl "$dir/bin"
@@ -542,8 +549,8 @@ run_dispatch "$dir" --apply
 expect_rc "$dir" 0 same-head
 expect_counter "$dir" reviews 0 same-head
 expect_posts "$dir" "/api/tasks" 0 same-head
-jq -e '.skipped[0].reason | test("travail existant")' <<<"$(actions_of "$dir")" >/dev/null ||
-  fail "reason=unexpected_skip_reason case=same-head actions=$(actions_of "$dir")"
+# La tête est connue du sélecteur : la revue existante ne prend aucune place.
+expect_counter "$dir" skipped 0 same-head
 cases=$((cases + 1))
 
 # --- 9. tâche échouée : une reprise --------------------------------------------
@@ -730,7 +737,205 @@ expect_counter "$dir" created 1 jq16
 expect_counter "$dir" tickets_read 1 jq16
 cases=$((cases + 1))
 
-# --- 18. le script n'écrit pas dans le dépôt ----------------------------------
+# --- 18. PLT-542 : plusieurs dépôts et places ---------------------------------
+
+# Travaux fabriqués pour un cas : write_tasks <dossier> <programme jq>.
+KUBE="https://github.com/smadjapaul/kube-ops"
+HARNESS="https://github.com/smadjapaul/agent-harness"
+write_tasks() {
+  jq -n --arg kube "$KUBE" --arg harness "$HARNESS" '
+    def task($id; $title; $state): {id: $id, title: $title, state: $state, repoUrl: $kube,
+      prUrl: "", prNumber: null, prChecksStatus: "", retryCount: 0};
+    def with_pr($n): . + {prNumber: $n, prUrl: (.repoUrl + "/pull/" + ($n | tostring)),
+      prChecksStatus: "passing"};
+    '"$2" >"$1/optio-tasks.json"
+}
+
+# Un ticket du dépôt demandé, à la place du ticket kube-ops de la fixture.
+set_repo() {
+  jq --arg repo "$2" '.data.issues.nodes[0].description |= gsub("Dépôt: kube-ops"; "Dépôt: " + $repo)' \
+    "$1/linear.json" >"$1/linear.tmp"
+  mv "$1/linear.tmp" "$1/linear.json"
+  grep -Fq "Dépôt: $2" "$1/linear.json" || fail "reason=fixture_without_repo_line case=$1"
+}
+
+# Dix PR en attente ne prennent aucune place : la revue passe, puis le ticket.
+dir="$(setup_case waiting-prs linear-one-ticket.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" '[range(1; 11) as $i | task("w\($i)"; "[PLT-\(800 + $i)] travail"; "pr_opened") | with_pr(100 + $i)]
+  + [task("w42"; "[PLT-842] travail"; "pr_opened") | with_pr(42)]'
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 waiting-prs
+expect_counter "$dir" reviews 1 waiting-prs
+expect_counter "$dir" created 1 waiting-prs
+jq -e '.title | startswith("[REVUE PR-42 ")' <<<"$(body_of "$dir" "/api/tasks" 1)" >/dev/null ||
+  fail "reason=review_not_first case=waiting-prs"
+cases=$((cases + 1))
+
+# Une seule place libre (quatre agents en cours) : la revue, pas le ticket.
+dir="$(setup_case one-place linear-one-ticket.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" '[range(1; 5) as $i | task("r\($i)"; "[PLT-\(800 + $i)] travail"; "running")]
+  + [task("w42"; "[PLT-842] travail"; "pr_opened") | with_pr(42)]'
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 one-place
+expect_counter "$dir" reviews 1 one-place
+expect_counter "$dir" created 0 one-place
+cases=$((cases + 1))
+
+# Un ticket d'un autre dépôt : son URL et la consigne de merge.
+dir="$(setup_case other-repo linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+set_repo "$dir" agent-harness
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 other-repo
+expect_counter "$dir" created 1 other-repo
+body="$(body_of "$dir" "/api/tasks")"
+jq -e --arg repo "$HARNESS" '.repoUrl == $repo' <<<"$body" >/dev/null ||
+  fail "reason=unexpected_repo_url case=other-repo body=$body"
+for expected in "Livre une seule PR dans le dépôt agent-harness" "(PLT-900)" "gh pr merge --squash" \
+  "Fixes PLT-900" "homelab-infra et ha-config" ".github/"; do
+  grep -Fq -- "$expected" <<<"$body" || fail "reason=missing_merge_consigne case=other-repo text=$expected"
+done
+grep -Fq "Ne merge pas." <<<"$body" && fail "reason=kube_ops_consigne case=other-repo"
+cases=$((cases + 1))
+
+# Le ticket kube-ops garde sa consigne, sans merge.
+dir="$(setup_case kube-consigne linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+run_dispatch "$dir" --apply
+body="$(body_of "$dir" "/api/tasks")"
+jq -e --arg repo "$KUBE" '.repoUrl == $repo' <<<"$body" >/dev/null ||
+  fail "reason=unexpected_repo_url case=kube-consigne body=$body"
+grep -Fq "Ne merge pas." <<<"$body" || fail "reason=missing_no_merge case=kube-consigne"
+grep -Fq "gh pr merge --squash" <<<"$body" && fail "reason=merge_consigne case=kube-consigne"
+cases=$((cases + 1))
+
+# Dépôt absent d'Optio : écart, aucune création.
+dir="$(setup_case unconfigured linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+set_repo "$dir" website
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 unconfigured
+expect_posts "$dir" "/api/tasks" 0 unconfigured
+jq -e '.skipped[0].reason == "dépôt non configuré dans Optio : website"' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=unexpected_skip_reason case=unconfigured actions=$(actions_of "$dir")"
+cases=$((cases + 1))
+
+# Liste des dépôts illisible : aucun ticket, la revue continue, erreur comptée.
+dir="$(setup_case repos-error linear-one-ticket.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" '[task("w42"; "[PLT-842] travail"; "pr_opened") | with_pr(42)]'
+printf '500\n' >"$dir/optio-repos.json.status"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 1 repos-error
+expect_counter "$dir" errors 1 repos-error
+expect_counter "$dir" created 0 repos-error
+expect_counter "$dir" reviews 1 repos-error
+cases=$((cases + 1))
+
+# Les PR d'un autre dépôt : ni revue, ni correction, ni annulation, même quand
+# le numéro existe (ou n'existe pas) dans kube-ops.
+dir="$(setup_case foreign-pr linear-empty.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" '[
+  (task("f1"; "[PLT-851] site"; "pr_opened") + {repoUrl: $harness} | with_pr(42)),
+  (task("f2"; "[PLT-852] site"; "pr_opened") + {repoUrl: $harness} | with_pr(77) | .prChecksStatus = "failing"),
+  (task("f3"; "[PLT-853] site"; "needs_attention") + {repoUrl: $harness} | with_pr(78)),
+  (task("f4"; "[REVUE PR-79]"; "running") + {repoUrl: $harness}),
+  (task("f5"; "[CORRIGE PR-80 1]"; "needs_attention")
+   + {repoUrl: $harness, errorMessage: "Agent did not open a pull request"})]'
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 foreign-pr
+expect_posts "$dir" "/api/tasks" 0 foreign-pr
+expect_posts "$dir" "/cancel" 0 foreign-pr
+expect_posts "$dir" "/retry" 0 foreign-pr
+cases=$((cases + 1))
+
+# Revue arrêtée par la limite du forfait : reprise, sous plafond et après délai.
+failed_review='[task("w42"; "[PLT-842] travail"; "pr_opened") | with_pr(42),
+  task("rv"; "[REVUE PR-42 bbbb2222]"; "failed")
+  + {errorMessage: "API Error: 429 usage limit exceeded", completedAt: "2026-01-01T00:00:00.000Z"}]'
+
+history() {
+  jq -n --argjson n "$2" '{events: [range(0; $n) | {trigger: "user_retry"}]}' >"$1/optio-events.json"
+}
+
+dir="$(setup_case review-limit linear-empty.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" "$failed_review"
+history "$dir" 5
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 review-limit
+expect_counter "$dir" retried 1 review-limit
+expect_counter "$dir" reviews 0 review-limit
+grep -q "/api/tasks/rv/retry" "$dir/calls.log" || fail "reason=missing_retry case=review-limit"
+cases=$((cases + 1))
+
+dir="$(setup_case review-limit-ceiling linear-empty.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" "$failed_review"
+history "$dir" 6
+run_dispatch "$dir" --apply
+expect_counter "$dir" retried 0 review-limit-ceiling
+jq -e '.skipped[0].reason | test("plafond")' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=unexpected_skip_reason case=review-limit-ceiling actions=$(actions_of "$dir")"
+cases=$((cases + 1))
+
+dir="$(setup_case review-limit-wait linear-empty.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" "$failed_review | .[1].completedAt = (now | floor | todate)"
+run_dispatch "$dir" --apply
+expect_counter "$dir" retried 0 review-limit-wait
+jq -e '.skipped[0].reason | test("reprise en attente")' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=unexpected_skip_reason case=review-limit-wait actions=$(actions_of "$dir")"
+cases=$((cases + 1))
+
+# Un autre échec de revue, ou une ancienne tête : pas de reprise.
+dir="$(setup_case review-other-error linear-empty.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" "$failed_review | .[1].errorMessage = \"Exit code: 1\""
+run_dispatch "$dir" --apply
+expect_posts "$dir" "/retry" 0 review-other-error
+cases=$((cases + 1))
+
+dir="$(setup_case review-old-sha linear-empty.json optio-tasks-empty.json github-pulls-old-head.json)"
+write_tasks "$dir" "$failed_review"
+run_dispatch "$dir" --apply
+expect_posts "$dir" "/retry" 0 review-old-sha
+expect_counter "$dir" reviews 1 review-old-sha
+cases=$((cases + 1))
+
+# retryCount reste à 0 dans Optio : le plafond vient de l'historique.
+dir="$(setup_case ticket-history-ceiling linear-empty.json optio-tasks-failed.json github-pulls-empty.json)"
+history "$dir" 2
+run_dispatch "$dir" --apply
+expect_posts "$dir" "/retry" 0 ticket-history-ceiling
+jq -e '.skipped[0].reason | test("plafond")' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=unexpected_skip_reason case=ticket-history-ceiling actions=$(actions_of "$dir")"
+cases=$((cases + 1))
+
+dir="$(setup_case history-error linear-empty.json optio-tasks-failed.json github-pulls-empty.json)"
+printf '500\n' >"$dir/optio-events.json.status"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 1 history-error
+expect_posts "$dir" "/retry" 0 history-error
+cases=$((cases + 1))
+
+# Les reprises prennent des places : revue d'abord, ni ticket repris ni nouveau.
+dir="$(setup_case retry-places linear-one-ticket.json optio-tasks-empty.json github-pulls-new-head.json)"
+write_tasks "$dir" "$failed_review + [task(\"tk\"; \"[PLT-860] échec\"; \"failed\")]"
+run_dispatch "$dir" --apply --slots 1
+expect_rc "$dir" 0 retry-places
+expect_counter "$dir" retried 1 retry-places
+expect_counter "$dir" created 0 retry-places
+grep -q "/api/tasks/rv/retry" "$dir/calls.log" || fail "reason=missing_retry case=retry-places"
+run_dispatch "$dir" --apply --slots 2
+expect_counter "$dir" retried 2 retry-places-two
+expect_counter "$dir" created 0 retry-places-two
+cases=$((cases + 1))
+
+# jq 1.6 : reprises et autre dépôt, même décision.
+dir="$(setup_case jq16-multi linear-one-ticket.json optio-tasks-empty.json github-pulls-new-head.json)"
+set_repo "$dir" agent-harness
+write_tasks "$dir" "$failed_review"
+cp "$jq16_bin/jq" "$dir/bin/jq"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 jq16-multi
+expect_counter "$dir" retried 1 jq16-multi
+expect_counter "$dir" created 1 jq16-multi
+cases=$((cases + 1))
+
+# --- 19. le script n'écrit pas dans le dépôt ----------------------------------
 
 snapshot_after="$(repo_snapshot)"
 

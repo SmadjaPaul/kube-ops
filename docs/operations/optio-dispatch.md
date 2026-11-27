@@ -27,12 +27,33 @@ bash scripts/optio/dispatch.sh --apply     # exécution
 | `OPTIO_WORKSPACE_ID` | variable du travail | en-tête `x-workspace-id` |
 | `OPTIO_DISPATCH_LOCK_FILE` | variable du travail | fichier de verrou local (défaut `$TMPDIR/optio-dispatch.lock`) |
 
-Options : `--apply`, `--slots N` (places du dépôt, 10 par défaut), `--instructions FILE`,
+Options : `--apply`, `--slots N` (places d'agent, 5 par défaut), `--instructions FILE`,
 `--select-actions FILE`, `--api-url URL`, `--repo-url URL`.
 
 Les secrets ne passent jamais en argument : ils sont écrits dans un fichier d'en-têtes en mode 600, lu par
 curl avec `-H @fichier`. Le test vérifie qu'aucune valeur de secret n'apparaît ni dans la sortie ni dans la
 ligne de commande, et que les trois en-têtes sont bien présents.
+
+## Dépôts (PLT-542)
+
+Un ticket est éligible avec une ligne exacte `Dépôt: <nom>` ; noms admis (liste `ALLOWED_REPOS` du sélecteur) :
+kube-ops, agent-harness, website, homelab-infra, Atlas, ha-config, terraform-provider-polyfin,
+terraform-provider-aiostreams. Deux dépôts différents dans un ticket l'écartent. La tâche n'est créée que si le
+dépôt figure dans `GET /api/repos` (`{"repos":[{"repoUrl":…}]}`), sous le même propriétaire que `--repo-url` ;
+si cette liste est illisible, aucun ticket n'est pris et l'erreur est comptée. Les zones interdites restent les
+mêmes ; seule la zone `ha-config` ne s'applique pas à un ticket du dépôt ha-config.
+
+Le script ne lit sur GitHub que les PR de `--repo-url` (kube-ops). Les travaux des autres dépôts ne donnent ni
+revue, ni correction, ni annulation. Leur tâche de code reçoit la consigne AUTRE-DEPOT
+([optio-intake.md](optio-intake.md)) : l'agent merge lui-même sa PR, sauf les exceptions qu'elle liste. Cette
+règle n'est portée que par la consigne : le script ne contrôle ni le diff ni le merge.
+
+## Places
+
+Seuls les travaux qui consomment un agent comptent : `pending`, `queued`, `provisioning`, `running` et tout état
+inconnu. `pr_opened`, `needs_attention`, `waiting_on_deps` et les états terminés ne prennent aucune place. Les
+places libres sont servies dans cet ordre : reprises de revue et de correction, nouvelles revues, nouvelles
+corrections, reprises de ticket, nouveaux tickets.
 
 ## Ce que fait un passage
 
@@ -51,16 +72,20 @@ ligne de commande, et que les trois en-têtes sont bien présents.
    avant l'annulation. Tout autre motif (agent bloqué, CI en échec sur une PR ouverte) reste visible.
    Le sélecteur ne reçoit que les PR ouvertes : une PR fermée ne prend aucune des 5 places de revue ou de
    correction (PLT-537).
-5. **Une création à la fois** — la liste des travaux est relue avant chaque création. Si le nom
+5. **Une création à la fois** — la liste des travaux est relue avant chaque création. Une création refusée
+   par Optio est comptée et n'arrête pas les suivantes. Si le nom
    `[IDENTIFIANT]`, `[REVUE PR-N <sha8>]` ou `[CORRIGE PR-N k]` existe déjà, le script s'abstient et
    l'écarte avec la raison.
-6. **Les reprises** — une tâche de ticket échouée sans PR est reprise, deux reprises au plus (`retryCount`) ;
-   au plafond, la tâche est signalée dans la sortie. Avant une reprise, l'état des travaux et celui des PR
-   sont relus : une tâche qui n'est plus en échec, qui a une PR, ou qui a atteint le plafond n'est pas
-   reprise.
+6. **Les reprises** — une tâche de ticket échouée sans PR est reprise, quel que soit son dépôt. Une revue ou une
+   correction de kube-ops est reprise seulement si `errorMessage` contient `usage limit` ou `429`, si la PR est
+   ouverte (même tête pour une revue ; pour une correction, la plus récente d'une PR encore en échec ou en
+   conflit). Plafond : 2 reprises ; 6 après un échec sur la limite du forfait, avec au moins 60 min depuis
+   l'échec. Le nombre de reprises est le plus grand de `retryCount` et du nombre d'événements `user_retry`
+   (`GET /api/tasks/:id/events`) : Optio v0.26.4 n'incrémente pas `retryCount` pour une tâche de dépôt. Sans
+   historique lisible, aucune reprise. L'état de la tâche et des PR est relu avant la reprise.
 7. **Les consignes** — recopiées mot pour mot depuis `docs/operations/optio-intake.md` : la consigne de code
-   (avec `(IDENTIFIANT)` remplacé par l'identifiant du ticket), la consigne REVUE, la consigne CORRECTION et
-   la phrase de fin. Le fichier est lu quand `--instructions` le donne, sinon téléchargé depuis `main` ; il
+   (avec `(IDENTIFIANT)` remplacé par l'identifiant du ticket), la consigne REVUE, la consigne CORRECTION, la
+   consigne AUTRE-DEPOT et la phrase de fin. Le fichier est lu quand `--instructions` le donne, sinon téléchargé depuis `main` ; il
    n'est téléchargé que s'il y a au moins une création à faire.
 8. **Le modèle** — `text/strong`, ou `code/frontier` si le ticket porte le label `agent:opus`.
 9. **Le compte rendu** — la dernière ligne est un JSON : `{"tickets_read":n,"created":n,"reviews":n,
@@ -91,7 +116,9 @@ En mode `--apply`, la première ligne décrit les actions **effectuées** ; en m
 | Destination | Appels | Authentification |
 |---|---|---|
 | Linear (`POST /graphql`) | 1 par passage | clé Linear, en-tête |
-| API Optio (`GET /api/tasks?limit=200`) | 1 au début, puis 1 avant chaque création | jeton, en-tête |
+| API Optio (`GET /api/tasks?limit=1000`) | 1 au début, puis 1 avant chaque création ou reprise | jeton, en-tête |
+| API Optio (`GET /api/repos`) | 1 par passage | jeton, en-tête |
+| API Optio (`GET /api/tasks/:id/events`) | 1 par tâche en échec candidate | jeton, en-tête |
 | API Optio (`POST /api/tasks`, `/retry`, `/cancel`) | 1 par action | jeton, en-tête |
 | GitHub (`GET /repos/.../pulls`) | 1 par passage (5 au plus si la liste est longue) | aucune, lecture publique |
 | GitHub (`GET /repos/.../contents`, `raw.githubusercontent.com`) | 0 ou 1 par passage | aucune, lecture publique |

@@ -1,0 +1,305 @@
+{
+  "slots": 5,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-910",
+            "title": "Reprise du graphique de latence",
+            "description": "Texte.\n\nDépôt: agent-harness\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-910",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-911",
+            "title": "Reprise du graphique de latence",
+            "description": "Texte.\n\nDépôt: homelab-infra\n",
+            "priority": 2,
+            "createdAt": "2026-01-02T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-911",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-912",
+            "title": "Reprise du graphique de latence",
+            "description": "Texte.\n\nDépôt: ha-config\n",
+            "priority": 2,
+            "createdAt": "2026-01-03T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-912",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-913",
+            "title": "Reprise du graphique de latence",
+            "description": "Texte.\n\nDépôt: Atlas\n",
+            "priority": 2,
+            "createdAt": "2026-01-04T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-913",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-914",
+            "title": "Reprise du graphique de latence",
+            "description": "Texte.\n\ndépôt : ATLAS\n",
+            "priority": 2,
+            "createdAt": "2026-01-05T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-914",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-920",
+            "title": "Reprise du graphique de latence",
+            "description": "Dépôt: autre-depot\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-920",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-921",
+            "title": "Reprise du graphique de latence",
+            "description": "Dépôt: website\nDépôt: Atlas\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-921",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-922",
+            "title": "Reprise du graphique de latence",
+            "description": "Voir la ligne Dépôt: website plus bas.\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-922",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-923",
+            "title": "Reprise du graphique de latence",
+            "description": "Dépôt: kube-ops\n\nModifier ha-config.\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-923",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-924",
+            "title": "Reprise du graphique de latence",
+            "description": "Dépôt: ha-config\n\nChanger un secret.\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-924",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          },
+          {
+            "identifier": "PLT-925",
+            "title": "Reprise du graphique de latence",
+            "description": "Dépôt: homelab-infra\n\nRéglage Proxmox.\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-925",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": []
+  },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-910",
+        "name": "[PLT-910] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "repo": "agent-harness",
+        "url": "https://linear.app/boule/issue/PLT-910",
+        "priority": 2,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "description": "Texte.\n\nDépôt: agent-harness\n"
+      },
+      {
+        "identifier": "PLT-911",
+        "name": "[PLT-911] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "repo": "homelab-infra",
+        "url": "https://linear.app/boule/issue/PLT-911",
+        "priority": 2,
+        "createdAt": "2026-01-02T00:00:00.000Z",
+        "description": "Texte.\n\nDépôt: homelab-infra\n"
+      },
+      {
+        "identifier": "PLT-912",
+        "name": "[PLT-912] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "repo": "ha-config",
+        "url": "https://linear.app/boule/issue/PLT-912",
+        "priority": 2,
+        "createdAt": "2026-01-03T00:00:00.000Z",
+        "description": "Texte.\n\nDépôt: ha-config\n"
+      },
+      {
+        "identifier": "PLT-913",
+        "name": "[PLT-913] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "repo": "Atlas",
+        "url": "https://linear.app/boule/issue/PLT-913",
+        "priority": 2,
+        "createdAt": "2026-01-04T00:00:00.000Z",
+        "description": "Texte.\n\nDépôt: Atlas\n"
+      },
+      {
+        "identifier": "PLT-914",
+        "name": "[PLT-914] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "repo": "Atlas",
+        "url": "https://linear.app/boule/issue/PLT-914",
+        "priority": 2,
+        "createdAt": "2026-01-05T00:00:00.000Z",
+        "description": "Texte.\n\ndépôt : ATLAS\n"
+      }
+    ],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      {
+        "id": "PLT-920",
+        "reason": "description sans ligne Dépôt reconnue"
+      },
+      {
+        "id": "PLT-921",
+        "reason": "plusieurs dépôts désignés : Atlas, website"
+      },
+      {
+        "id": "PLT-922",
+        "reason": "description sans ligne Dépôt reconnue"
+      },
+      {
+        "id": "PLT-923",
+        "reason": "zone interdite citée : ha-config"
+      },
+      {
+        "id": "PLT-924",
+        "reason": "zone interdite citée : des secrets"
+      },
+      {
+        "id": "PLT-925",
+        "reason": "zone interdite citée : Proxmox"
+      }
+    ]
+  }
+}

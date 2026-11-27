@@ -1,0 +1,162 @@
+{
+  "slots": 5,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-900",
+            "title": "Reprise du graphique de latence",
+            "description": "Texte.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-900",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-801] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 1,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/1",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-802] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 2,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/2",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-803] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 3,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/3",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-804] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 4,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/4",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-805] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 5,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/5",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-806] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 6,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/6",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-807] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 7,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/7",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-808] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 8,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/8",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-809] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 9,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/9",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-810] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 10,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/10",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-820] bloqué",
+        "state": "needs_attention",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": ""
+      },
+      {
+        "name": "[PLT-821] dépendance",
+        "state": "waiting_on_deps",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": ""
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [],
+    "create_reviews": [
+      {
+        "prNumber": 1,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/1",
+        "name": "[REVUE PR-1]"
+      },
+      {
+        "prNumber": 2,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/2",
+        "name": "[REVUE PR-2]"
+      },
+      {
+        "prNumber": 3,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/3",
+        "name": "[REVUE PR-3]"
+      },
+      {
+        "prNumber": 4,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/4",
+        "name": "[REVUE PR-4]"
+      },
+      {
+        "prNumber": 5,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/5",
+        "name": "[REVUE PR-5]"
+      }
+    ],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

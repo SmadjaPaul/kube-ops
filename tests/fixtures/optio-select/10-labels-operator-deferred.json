@@ -52,6 +52,7 @@
         "identifier": "PLT-503",
         "name": "[PLT-503] Reprise du graphique de latence",
         "title": "Reprise du graphique de latence",
+        "repo": "kube-ops",
         "url": "https://linear.app/boule/issue/PLT-503/reprise-du-graphique-de-latence",
         "priority": 2,
         "createdAt": "2026-01-15T00:00:00.000Z",

@@ -109,6 +109,7 @@
         "identifier": "PLT-310",
         "name": "[PLT-310] Reprise du graphique de latence",
         "title": "Reprise du graphique de latence",
+        "repo": "kube-ops",
         "url": "https://linear.app/boule/issue/PLT-310/reprise-du-graphique-de-latence",
         "priority": 2,
         "createdAt": "2026-04-01T00:00:00.000Z",

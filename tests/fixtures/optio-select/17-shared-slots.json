@@ -11,9 +11,17 @@
             "priority": 1,
             "createdAt": "2026-01-01T00:00:00.000Z",
             "url": "https://linear.app/boule/issue/PLT-610/reprise-du-graphique-de-latence",
-            "labels": { "nodes": [{ "name": "wip:optio" }] },
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
             "assignee": null,
-            "relations": { "nodes": [] }
+            "relations": {
+              "nodes": []
+            }
           }
         ]
       }
@@ -56,22 +64,17 @@
     ]
   },
   "expected": {
-    "create_tasks": [
-      {
-        "identifier": "PLT-610",
-        "name": "[PLT-610] Reprise du graphique de latence",
-        "title": "Reprise du graphique de latence",
-        "url": "https://linear.app/boule/issue/PLT-610/reprise-du-graphique-de-latence",
-        "priority": 1,
-        "createdAt": "2026-01-01T00:00:00.000Z",
-        "description": "Reprise du graphique de latence.\n\nDépôt: kube-ops\n"
-      }
-    ],
+    "create_tasks": [],
     "create_reviews": [
       {
         "prNumber": 601,
         "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/601",
         "name": "[REVUE PR-601]"
+      },
+      {
+        "prNumber": 602,
+        "prUrl": "https://github.com/SmadjaPaul/kube-ops/pull/602",
+        "name": "[REVUE PR-602]"
       }
     ],
     "create_fixes": [],
