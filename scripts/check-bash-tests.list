@@ -77,3 +77,4 @@ tests/harness/optio-factory-report-test.sh
 tests/harness/plan-replay-retry-test.sh
 tests/harness/run-checks-parallel-test.sh
 tests/harness/github-queued-runs-check-test.sh
+tests/harness/opencode-keda-scale-to-zero-contract-test.sh
