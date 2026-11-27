@@ -76,5 +76,6 @@ tests/harness/optio-dispatch-test.sh
 tests/harness/optio-triage-test.sh
 tests/harness/optio-factory-report-test.sh
 tests/harness/plan-replay-retry-test.sh
+tests/harness/agentgateway-cost-catalog-test.sh
 tests/harness/run-checks-parallel-test.sh
 tests/harness/github-queued-runs-check-test.sh
