@@ -384,10 +384,15 @@ fetch_pr_state() {
   fetch_github_pulls
 }
 
-fetch_github_pulls() {
+# Les en-têtes des lectures anonymes de GitHub, écrits avant chaque usage.
+write_github_headers() {
   write_headers "$work_dir/github-headers" \
     "Accept: application/vnd.github+json" \
     "User-Agent: kube-ops-optio-dispatch"
+}
+
+fetch_github_pulls() {
+  write_github_headers
   : >"$work_dir/pulls.ndjson"
   local page=1 count=0
   while [ "$page" -le "$MAX_PAGES" ]; do
@@ -723,6 +728,7 @@ resolve_select_actions() {
 
 download_to() {
   local url=$1 target=$2
+  write_github_headers
   if ! http_request GET "$url" "$work_dir/github-headers"; then
     api_error "GitHub" "$HTTP_ERROR"
     return 1
@@ -843,9 +849,7 @@ fixes_proven() {
   esac
   api="$(sed -E 's#^https://github\.com/([^/]+)/([^/]+)/pull/([0-9]+)$#https://api.github.com/repos/\1/\2/pulls/\3#' <<<"$url")"
   [ "$api" != "$url" ] || return 1
-  write_headers "$work_dir/github-headers" \
-    "Accept: application/vnd.github+json" \
-    "User-Agent: kube-ops-optio-dispatch"
+  write_github_headers
   # Un dépôt privé répond 404 : la preuve manque, ce n'est pas une erreur.
   http_request GET "$api" "$work_dir/github-headers" || return 1
   jq -e --arg id "$id" '(.body // "") as $b

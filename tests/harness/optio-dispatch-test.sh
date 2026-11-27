@@ -117,6 +117,11 @@ while [ "$i" -lt "${#args[@]}" ]; do
       case "$h" in
         @*)
           hfile="${h#@}"
+          # Comme curl : un fichier d'en-têtes illisible fait échouer l'appel.
+          if [ ! -r "$hfile" ]; then
+            echo "curl: option -H: error encountered when reading a file" >&2
+            exit 26
+          fi
           if [ -r "$hfile" ]; then
             while IFS= read -r line; do
               [ -n "$line" ] || continue
