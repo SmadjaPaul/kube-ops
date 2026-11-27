@@ -48,6 +48,7 @@
         "identifier": "PLT-702",
         "name": "[PLT-702] Reprise du graphique de latence",
         "title": "Reprise du graphique de latence",
+        "repo": "kube-ops",
         "url": "https://linear.app/boule/issue/PLT-702/reprise-du-graphique-de-latence",
         "priority": 2,
         "createdAt": "2026-01-21T00:00:00.000Z",
@@ -57,8 +58,8 @@
     "create_reviews": [],
     "create_fixes": [],
     "skipped": [
-      { "id": "PLT-703", "reason": "description sans la ligne Dépôt: kube-ops" },
-      { "id": "PLT-704", "reason": "description sans la ligne Dépôt: kube-ops" }
+      { "id": "PLT-703", "reason": "description sans ligne Dépôt reconnue" },
+      { "id": "PLT-704", "reason": "description sans ligne Dépôt reconnue" }
     ]
   }
 }

@@ -25,7 +25,7 @@
     "create_reviews": [],
     "create_fixes": [],
     "skipped": [
-      { "id": "PLT-104", "reason": "description sans la ligne Dépôt: kube-ops" }
+      { "id": "PLT-104", "reason": "description sans ligne Dépôt reconnue" }
     ]
   }
 }

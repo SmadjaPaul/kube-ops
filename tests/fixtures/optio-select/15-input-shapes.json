@@ -64,6 +64,7 @@
         "identifier": "PLT-904",
         "name": "[PLT-904] Reprise du graphique de latence",
         "title": "Reprise du graphique de latence",
+        "repo": "kube-ops",
         "url": "https://linear.app/boule/issue/PLT-904/reprise-du-graphique-de-latence",
         "priority": 1,
         "createdAt": "2026-01-03T00:00:00.000Z",

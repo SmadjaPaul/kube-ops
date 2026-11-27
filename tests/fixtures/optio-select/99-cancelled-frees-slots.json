@@ -90,6 +90,7 @@
         "identifier": "PLT-900",
         "name": "[PLT-900] Reprise du graphique de latence",
         "title": "Reprise du graphique de latence",
+        "repo": "kube-ops",
         "url": "https://linear.app/boule/issue/PLT-900",
         "priority": 2,
         "createdAt": "2026-01-01T00:00:00.000Z",

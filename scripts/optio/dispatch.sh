@@ -7,6 +7,11 @@
 # scripts/optio/select-actions.sh, relit l'état réel des PR sur GitHub et crée
 # les tâches de ticket, de revue et de correction.
 #
+# PLT-542 : les tickets peuvent viser plusieurs dépôts configurés dans Optio.
+# Les revues et corrections ne concernent que le dépôt principal (--repo-url),
+# seul dont les PR sont lues sur GitHub. Seules les tâches qui consomment un
+# agent prennent une place.
+#
 # Sans --apply, le script n'écrit rien (ni Optio, ni Linear) : il affiche
 # seulement les actions prévues, en JSON. Avec --apply, il les exécute.
 #
@@ -40,7 +45,13 @@ readonly GITHUB_RAW_BASE="https://raw.githubusercontent.com/smadjapaul/kube-ops/
 readonly INSTRUCTIONS_PATH="docs/operations/optio-intake.md"
 readonly SELECT_ACTIONS_PATH="scripts/optio/select-actions.sh"
 readonly MAX_RETRIES=2
-readonly DEFAULT_SLOTS=10
+# Un échec dû à la limite du forfait (fenêtre de 5 heures) attend entre deux
+# reprises et a un plafond plus haut : 6 reprises espacées d'une heure.
+readonly MAX_LIMIT_RETRIES=6
+readonly LIMIT_RETRY_DELAY=3600
+readonly LIMIT_ERROR_PATTERN='usage limit|(^|[^0-9A-Za-z])429([^0-9A-Za-z]|$)'
+readonly DEFAULT_SLOTS=5
+readonly TASKS_LIMIT=1000
 readonly PER_PAGE=100
 readonly MAX_PAGES=5
 
@@ -73,10 +84,16 @@ HTTP_CODE=""
 HTTP_BODY=""
 HTTP_ERROR=""
 
+configured_repos=""
+free_places=0
+review_retries=0
+applied=0
+
 code_instruction=""
 review_consigne=""
 correction_consigne=""
 consigne_suffix=""
+other_consigne=""
 
 usage() {
   cat >&2 <<'USAGE'
@@ -267,7 +284,7 @@ fetch_optio_tasks() {
   if [ -n "$workspace_id" ]; then
     printf 'x-workspace-id: %s\n' "$workspace_id" >>"$work_dir/optio-headers"
   fi
-  if ! http_request GET "$api_url/api/tasks?limit=200" "$work_dir/optio-headers"; then
+  if ! http_request GET "$api_url/api/tasks?limit=$TASKS_LIMIT" "$work_dir/optio-headers"; then
     api_error "Optio" "$HTTP_ERROR"
     return 1
   fi
@@ -280,11 +297,35 @@ fetch_optio_tasks() {
   jq '[.[] | {
         name: (.title // ""),
         state: (.state // ""),
+        repoUrl: (.repoUrl // ""),
         prUrl: (.prUrl // ""),
         prNumber: (.prNumber // null),
         prChecksStatus: (.prChecksStatus // ""),
         conflicts: (.conflicts // false)
       }]' "$work_dir/tasks.json" >"$work_dir/work.json"
+  return 0
+}
+
+# Les dépôts configurés dans Optio (GET /api/repos, réponse {"repos":[...]}) :
+# seuls les noms sous le même propriétaire que le dépôt principal sont gardés.
+# En cas d'échec la liste reste vide : aucun ticket n'est pris, les revues et
+# corrections continuent, et l'erreur est comptée.
+fetch_optio_repos() {
+  configured_repos=""
+  if ! http_request GET "$api_url/api/repos" "$work_dir/optio-headers"; then
+    api_error "Optio" "$HTTP_ERROR"
+    return 0
+  fi
+  if ! jq -e '(.repos? | type) == "array"' "$HTTP_BODY" >/dev/null 2>&1; then
+    api_error "Optio" "the repository list has an unexpected shape"
+    return 0
+  fi
+  configured_repos="$(jq -r --arg main "$repo_url" '
+    def norm: (ascii_downcase | sub("/+$"; "") | sub("\\.git$"; "") | sub("/+$"; ""));
+    ($main | norm | sub("[^/]+$"; "")) as $owner
+    | [.repos[] | (.repoUrl // "") | norm | select(startswith($owner)) | ltrimstr($owner)
+       | select(contains("/") | not)]
+    | unique | join(",")' "$HTTP_BODY")"
   return 0
 }
 
@@ -321,6 +362,137 @@ fetch_pr_state() {
 pr_is_open() {
   local number=$1
   jq -e --arg n "$number" 'any(.[]; (.number | tostring) == $n)' "$work_dir/pulls.json" >/dev/null
+}
+
+# --- reprises -----------------------------------------------------------------
+
+# Les tâches en échec qui peuvent être reprises : une tâche de ticket sans PR
+# (tous dépôts), ou une revue ou correction du dépôt principal arrêtée par la
+# limite du forfait et encore utile (PR ouverte, même tête pour une revue).
+build_retry_candidates() {
+  local jq_program
+  IFS= read -r -d '' jq_program <<'JQ' || true
+def norm: (ascii_downcase | sub("/+$"; "") | sub("\\.git$"; "") | sub("/+$"; ""));
+def is_main: ((.repoUrl // "") | norm) as $u | ($u == "" or $u == ($repo | norm));
+def st: ((.state // "") | ascii_downcase);
+def has_pr:
+  (((.prUrl // "") | tostring) != "")
+  or (((.prNumber // null) | tostring) as $n | $n != "null" and $n != "" and $n != "0");
+def limit_hit: ((.errorMessage // "") | tostring | test($limit_pattern; "i"));
+def parts($re): ([(.title // "") | match($re)] | .[0] // null)
+  | if . == null then null else [.captures[] | .string] end;
+def open_pr($n): ([$pulls[0][] | select((.number | tostring) == $n)] | .[0]) // null;
+def candidate($kind; $pr; $sha):
+  {id: (.id | tostring), name: (.title // ""), kind: $kind, prNumber: $pr, sha8: $sha,
+   limit: limit_hit,
+   failedAt: (.completedAt // .updatedAt // ""),
+   retryCount: ((.retryCount // 0)
+                | if type == "number" then . else (try tonumber catch 0) end)};
+
+($tasks[0]) as $T
+| ([$T[]
+    | select(st == "failed" and is_main and limit_hit)
+    | . as $t
+    | (parts("^\\[REVUE PR-([0-9]+)(?: ([0-9A-Fa-f]+))?\\]")) as $m
+    | select($m != null)
+    | (open_pr($m[0])) as $p
+    | select($p != null)
+    | (($p.head.sha // "") | .[0:8]) as $head
+    | select(($m[1] // "") == "" or $m[1] == $head)
+    | candidate("review"; ($m[0] | tonumber); ($m[1] // ""))]
+   | group_by(.prNumber) | map(.[0])) as $reviews
+| ([$T[]
+    | select(is_main)
+    | . as $t
+    | (parts("^\\[CORRIGE PR-([0-9]+) ([0-9]+)\\]")) as $m
+    | select($m != null)
+    | {pr: ($m[0] | tonumber), k: ($m[1] | tonumber), task: $t}]) as $corrections
+| ([$corrections[]
+    | . as $c
+    | select(($c.task | st) == "failed" and ($c.task | limit_hit))
+    | select(open_pr($c.pr | tostring) != null)
+    # La correction la plus récente seulement, et aucune autre en cours.
+    | select(all($corrections[]; .pr != $c.pr or .k <= $c.k))
+    | select(all($corrections[];
+                 .pr != $c.pr or ((.task | st) as $s
+                 | $s == "failed" or $s == "completed" or $s == "cancelled" or $s == "canceled")))
+    # La PR doit encore avoir besoin d'une correction.
+    | select(any($T[];
+                 is_main and ((.prNumber // 0) | tostring) == ($c.pr | tostring)
+                 and (((.prChecksStatus // "") | ascii_downcase) as $k
+                      | $k == "failing" or $k == "conflicts" or (.conflicts // false) == true)))
+    | $c.task | candidate("fix"; $c.pr; "")]) as $fixes
+| ([$T[]
+    | select((.title // "") | test("^\\[[A-Za-z][A-Za-z0-9]*-[0-9]+\\]"))
+    | select(st == "failed")
+    | select(has_pr | not)
+    | candidate("ticket"; null; "")]) as $tickets
+| $reviews + $fixes + $tickets
+JQ
+  jq -c -n --slurpfile tasks "$work_dir/tasks.json" \
+    --slurpfile pulls "$work_dir/pulls.json" \
+    --arg repo "$repo_url" \
+    --arg limit_pattern "$LIMIT_ERROR_PATTERN" \
+    "$jq_program" >"$work_dir/candidates.json"
+}
+
+# Le nombre de reprises vient de l'historique de la tâche : Optio v0.26.4
+# n'incrémente pas retryCount quand une tâche de dépôt est reprise par l'API.
+# Sans historique lisible, la tâche n'est pas reprise.
+plan_retries() {
+  if ! build_retry_candidates; then
+    warn "the retry candidates could not be listed"
+    errors=$((errors + 1))
+    return 1
+  fi
+  : >"$work_dir/retries.ndjson"
+  local entry id count
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    id="$(jq -r '.id' <<<"$entry")"
+    count=-1
+    if ! http_request GET "$api_url/api/tasks/$id/events" "$work_dir/optio-headers"; then
+      api_error "Optio" "$HTTP_ERROR"
+    elif ! jq -e '(.events? | type) == "array"' "$HTTP_BODY" >/dev/null 2>&1; then
+      api_error "Optio" "the task history has an unexpected shape"
+    else
+      count="$(jq '[.events[] | select(.trigger == "user_retry")] | length' "$HTTP_BODY")"
+    fi
+    jq -c --argjson events "$count" '. + {events: $events}' <<<"$entry" >>"$work_dir/retries.ndjson"
+  done < <(jq -c '.[]' "$work_dir/candidates.json")
+
+  # eligible : reprise possible ; skipped : écartée avec sa raison ;
+  # pending : sous le plafond (une correction en attente bloque la suivante).
+  jq -s -c --argjson max "$MAX_RETRIES" --argjson limit_max "$MAX_LIMIT_RETRIES" \
+    --argjson delay "$LIMIT_RETRY_DELAY" '
+    def age: (try (now - (sub("\\.[0-9]+"; "") | fromdateiso8601)) catch null);
+    map(. + {count: ([.retryCount, .events] | max)}
+        | . + {ceiling: (if .limit then $limit_max else $max end)}
+        | (.failedAt | age) as $age
+        | . + {skip:
+            (if .events < 0 then "historique des reprises illisible"
+             elif .count >= .ceiling then
+               "reprise au plafond : " + (.count | tostring) + " reprises déjà faites"
+             elif .limit and $age != null and $age < $delay then
+               "reprise en attente : limite du forfait, échec de moins de "
+               + (($delay / 60) | floor | tostring) + " min"
+             else null end)})
+    | {eligible: map(select(.skip == null)),
+       skipped: map(select(.skip != null) | {id: .name, reason: .skip}),
+       pending: map(select(.events < 0 or .count < .ceiling) | .name)}
+  ' "$work_dir/retries.ndjson" >"$work_dir/retries.json"
+}
+
+# Les places libres : les revues et corrections reprises passent en premier,
+# puis le sélecteur reçoit ce qui reste.
+count_places() {
+  free_places="$(jq --argjson slots "$slots" '
+    [.[] | (.state // "" | ascii_downcase)
+     | select(. != "completed" and . != "cancelled" and . != "canceled" and . != "failed"
+              and . != "pr_opened" and . != "needs_attention" and . != "waiting_on_deps")]
+    | ($slots - length) | if . < 0 then 0 else . end' "$work_dir/tasks.json")"
+  review_retries="$(jq --argjson free "$free_places" \
+    '[.eligible[] | select(.kind != "ticket")] | .[0:$free] | length' "$work_dir/retries.json")"
 }
 
 # --- décision ----------------------------------------------------------------
@@ -372,13 +544,23 @@ run_decision() {
   # Le sélecteur plafonne les revues et corrections par numéro de PR croissant :
   # une PR fermée ou mergée prendrait une place à chaque passage et les PR
   # récentes ne seraient jamais choisies. Le travail reste, sans sa PR.
+  # Les numéros de PR d'un autre dépôt ne sont jamais comparés à ceux du dépôt
+  # principal : ils sont retirés avant la sélection.
   if ! jq -n --slurpfile works "$work_dir/work.json" \
-    --slurpfile pulls "$work_dir/pulls.json" '
-      ([$pulls[0][] | .number | tostring]) as $open
+    --slurpfile pulls "$work_dir/pulls.json" \
+    --slurpfile retries "$work_dir/retries.json" \
+    --arg repo "$repo_url" '
+      def norm: (ascii_downcase | sub("/+$"; "") | sub("\\.git$"; "") | sub("/+$"; ""));
+      ($retries[0].pending) as $pending
       | $works[0]
-      | map(((.prNumber // ((.prUrl // "") | split("/") | last)) | tostring) as $n
-            | if ($open | index($n)) != null then .
-              else .prNumber = null | .prUrl = "" end)' >"$work_dir/work-open.json"; then
+      | map(. as $w
+            | ((.prNumber // ((.prUrl // "") | split("/") | last)) | tostring) as $n
+            | ((.repoUrl // "") | norm) as $u
+            | ([$pulls[0][] | select((.number | tostring) == $n)] | .[0]) as $p
+            | (if ($u == "" or $u == ($repo | norm)) and $p != null
+               then .headSha8 = (($p.head.sha // "") | .[0:8])
+               else .prNumber = null | .prUrl = "" end)
+            | .retryPending = (($pending | index($w.name)) != null))' >"$work_dir/work-open.json"; then
     warn "the work list could not be filtered"
     errors=$((errors + 1))
     return 1
@@ -386,7 +568,9 @@ run_decision() {
   if ! bash "$select_actions" \
     --linear "$work_dir/linear.json" \
     --work "$work_dir/work-open.json" \
-    --slots "$slots" >"$work_dir/decision.json" 2>"$work_dir/decision-error"; then
+    --slots "$((slots - review_retries))" \
+    --repos "$configured_repos" \
+    --main-repo "$repo_url" >"$work_dir/decision.json" 2>"$work_dir/decision-error"; then
     warn "the selection failed: $(tr '\n' ' ' <"$work_dir/decision-error" | cut -c1-200)"
     errors=$((errors + 1))
       return 1
@@ -420,8 +604,9 @@ load_instructions() {
   fi
   extract_consignes "$source"
   if [ -z "$code_instruction" ] || [ -z "$review_consigne" ] ||
-    [ -z "$correction_consigne" ] || [ -z "$consigne_suffix" ]; then
-    warn "the instructions do not hold the four expected passages"
+    [ -z "$correction_consigne" ] || [ -z "$consigne_suffix" ] ||
+    [ -z "$other_consigne" ]; then
+    warn "the instructions do not hold the five expected passages"
     errors=$((errors + 1))
       return 1
   fi
@@ -460,9 +645,10 @@ download_instructions() {
   return 0
 }
 
-# Le fichier des consignes contient quatre passages délimités : la consigne de
-# code (entre guillemets, après « puis : »), la consigne REVUE et la consigne
-# CORRECTION (entre <<< et >>>), et la phrase à ajouter à la fin de chacune.
+# Le fichier des consignes contient cinq passages délimités : la consigne de
+# code (entre guillemets, après « puis : »), les consignes REVUE, CORRECTION et
+# AUTRE-DEPOT (entre <<< et >>>), et la phrase à ajouter à la fin de la revue et
+# de la correction.
 extract_consignes() {
   local source=$1
   cat >"$work_dir/extract.awk" <<'AWK'
@@ -474,6 +660,7 @@ extract_consignes() {
     BEGIN { section = ""; text = ""; mode = ""; code = 0; cbuf = ""; suffix = 0; sbuf = "" }
     /^[[:space:]]*Consigne REVUE[[:space:]]*:[[:space:]]*$/ { mode = "REVUE"; next }
     /^[[:space:]]*Consigne CORRECTION[[:space:]]*:[[:space:]]*$/ { mode = "CORRECTION"; next }
+    /^[[:space:]]*Consigne AUTRE-DEPOT[[:space:]]*:[[:space:]]*$/ { mode = "OTHER"; next }
     mode != "" && /^[[:space:]]*<<<[[:space:]]*$/ { section = mode; text = ""; mode = ""; next }
     section != "" && /^[[:space:]]*>>>[[:space:]]*$/ { emit(section, text); section = ""; text = ""; next }
     section != "" { line = $0; sub(/^[[:space:]]+/, "", line); text = text line " "; next }
@@ -515,6 +702,7 @@ AWK
   review_consigne=""
   correction_consigne=""
   consigne_suffix=""
+  other_consigne=""
   local current="" line
   while IFS= read -r line; do
     case "$line" in
@@ -522,12 +710,14 @@ AWK
       "@@REVUE@@") current="review"; continue ;;
       "@@CORRECTION@@") current="fix"; continue ;;
       "@@SUFFIX@@") current="suffix"; continue ;;
+      "@@OTHER@@") current="other"; continue ;;
     esac
     case "$current" in
       code) code_instruction="${code_instruction:+$code_instruction }$line" ;;
       review) review_consigne="${review_consigne:+$review_consigne }$line" ;;
       fix) correction_consigne="${correction_consigne:+$correction_consigne }$line" ;;
       suffix) consigne_suffix="${consigne_suffix:+$consigne_suffix }$line" ;;
+      other) other_consigne="${other_consigne:+$other_consigne }$line" ;;
     esac
   done <"$work_dir/consignes.txt"
   return 0
@@ -539,14 +729,16 @@ build_plan() {
   local jq_program
   IFS= read -r -d '' jq_program <<'JQ' || true
 def lc: ascii_downcase;
+def norm: (lc | sub("/+$"; "") | sub("\\.git$"; "") | sub("/+$"; ""));
+def is_main: ((.repoUrl // "") | norm) as $u | ($u == "" or $u == ($repo | norm));
+# Le dépôt principal garde --repo-url ; les autres sont sous le même propriétaire.
+def url_of($name):
+  ($repo | norm) as $m
+  | ($m | sub("[^/]+$"; "")) as $owner
+  | if ($owner + ($name | lc)) == $m then $repo else $owner + ($name | lc) end;
 def is_active:
   ((.state // "") | lc) as $s
   | ($s != "completed" and $s != "cancelled" and $s != "canceled" and $s != "failed");
-def has_pr:
-  (((.prUrl // "") | tostring) != "")
-  or ((((.prNumber // null) | tostring) != "null")
-      and (((.prNumber // null) | tostring) != "")
-      and (((.prNumber // null) | tostring) != "0"));
 def title_pr_number:
   ([(.title // "")
     | match("\\[(?:REVUE|CORRIGE) PR-(?<n>[0-9]+)")
@@ -570,6 +762,8 @@ def sha8($s):
     | ([($issue.labels.nodes // [])[] | (.name // "") | lc]) as $labels
     | {identifier: $t.identifier, name: $t.name, url: $t.url,
        description: ($t.description // ""),
+       repo: $t.repo, repoUrl: url_of($t.repo),
+       main: ((url_of($t.repo) | norm) == ($repo | norm)),
        model: (if ($labels | index("agent:opus")) != null
                then "code/frontier" else "text/strong" end)}]) as $cand_tasks
 | ([$d.create_reviews[]?
@@ -591,21 +785,14 @@ def sha8($s):
     | select($p == null)
     | {id: ("PR-" + ($a.prNumber | tostring)),
        reason: "PR fermée ou mergée"}]) as $skip_closed_pr
+| ($retries[0]) as $R
+| ($free - $review_retries - ($cand_reviews | length) - ($cand_fixes | length)
+   | if . < 0 then 0 else . end) as $after_reviews
+| ([$R.eligible[] | select(.kind == "ticket")] | .[0:$after_reviews]) as $ticket_retries
+| ($after_reviews - ($ticket_retries | length)) as $task_places
+| (([$R.eligible[] | select(.kind != "ticket")] | .[0:$review_retries]) + $ticket_retries) as $retryable
 | ([$T[]
-    | select(((.title // "") | test("^\\[[A-Za-z][A-Za-z0-9]*-[0-9]+\\]")))
-    | select(((.title // "") | startswith("[REVUE")) | not)
-    | select(((.title // "") | startswith("[CORRIGE")) | not)
-    | select(((.state // "") | lc) == "failed")
-    | select(has_pr | not)
-    | {id: (.id | tostring), name: (.title // ""),
-       retryCount: ((.retryCount // 0)
-                    | if type == "number" then . else (try tonumber catch 0) end)}]) as $failed
-| ([$failed[] | select(.retryCount < $max_retries)]) as $retryable
-| ([$failed[] | select(.retryCount >= $max_retries)
-    | {id: .name,
-       reason: ("reprise au plafond : " + (.retryCount | tostring) + " reprises déjà faites")}]) as $skip_ceiling
-| ([$T[]
-    | select(is_active)
+    | select(is_active and is_main)
     | select(((.title // "") | test("^\\[(REVUE|CORRIGE) PR-[0-9]+")))
     | . as $w
     | ((title_pr_number) // (.prNumber // null)) as $n
@@ -621,11 +808,11 @@ def sha8($s):
     | select(((.state // "") | lc) == "needs_attention")
     | . as $w
     | (title_pr_number) as $tn
-    | (if $tn != null then
+    | (if $tn != null and is_main then
          (if ((.errorMessage // "") | test("did not open a pull request"))
           then {prNumber: $tn, reason: "revue ou correction terminée : aucune PR attendue"}
           else empty end)
-       elif (((.repoUrl // "") | lc | rtrimstr(".git")) == ($repo | lc))
+       elif $tn == null and (((.repoUrl // "") | norm) == ($repo | norm))
             and ((.prNumber // 0) | tostring) != "0"
             and open_pr($P; .prNumber) == null then
          {prNumber: .prNumber, reason: "PR fermée ou mergée"}
@@ -637,20 +824,23 @@ def sha8($s):
     | select(.name as $n | ($names | index($n)) != null)
     | {id: .name, reason: ("travail existant : " + .name)}]) as $skip_existing
 | {
-    tasks: [$cand_tasks[] | . as $c | select(.name as $n | ($names | index($n)) == null)],
+    tasks: ([$cand_tasks[] | . as $c | select(.name as $n | ($names | index($n)) == null)]
+            | .[0:$task_places]),
     reviews: [$cand_reviews[] | . as $c | select(.name as $n | ($names | index($n)) == null)],
     fixes: [$cand_fixes[] | . as $c | select(.name as $n | ($names | index($n)) == null)],
-    retries: $retryable,
+    retries: [$retryable[] | {id, name, kind, prNumber, sha8, retryCount: .count, ceiling}],
     cancellations: ($stale + ([$cancels[] | select(.id as $i | all($stale[]; .id != $i))])),
     skipped: ((($d.skipped // []) | map({id: (.id // ""), reason: (.reason // "")}))
-              + $skip_existing + $skip_closed_pr + $skip_ceiling)
+              + $skip_existing + $skip_closed_pr + $R.skipped)
   }
 JQ
   jq -n --slurpfile decision "$work_dir/decision.json" \
     --slurpfile linear "$work_dir/linear.json" \
     --slurpfile tasks "$work_dir/tasks.json" \
     --slurpfile pulls "$work_dir/pulls.json" \
-    --argjson max_retries "$MAX_RETRIES" \
+    --slurpfile retries "$work_dir/retries.json" \
+    --argjson free "$free_places" \
+    --argjson review_retries "$review_retries" \
     --arg repo "$repo_url" \
     "$jq_program" >"$work_dir/plan.json" || {
     warn "the plan could not be built"
@@ -664,13 +854,18 @@ JQ
 # que lorsqu'il y a une création à faire.
 build_prompts() {
   jq --arg code "$code_instruction" \
+    --arg other "$other_consigne" \
     --arg rev "$review_consigne" \
     --arg corr "$correction_consigne" \
     --arg suffix "$consigne_suffix" '
     .tasks |= map(. as $t
       | .prompt = ($t.identifier + "\n" + ($t.url // "") + "\n\n<ticket>\n"
                    + ($t.description // "") + "\n</ticket>\n\n"
-                   + ($code | split("(IDENTIFIANT)") | join("(" + $t.identifier + ")"))))
+                   + (if $t.main
+                      then ($code | split("(IDENTIFIANT)") | join("(" + $t.identifier + ")"))
+                      else ($other | split("IDENTIFIANT") | join($t.identifier)
+                            | split("REPO") | join($t.repo))
+                      end)))
     | .reviews |= map(. as $r
       | .prompt = (($rev | gsub("\\bN\\b"; ($r.prNumber | tostring))) + "\n\n" + $suffix))
     | .fixes |= map(. as $f
@@ -706,7 +901,7 @@ add_skip() {
 # --- écritures ----------------------------------------------------------------
 
 refresh_task_names() {
-  if ! http_request GET "$api_url/api/tasks?limit=200" "$work_dir/optio-headers"; then
+  if ! http_request GET "$api_url/api/tasks?limit=$TASKS_LIMIT" "$work_dir/optio-headers"; then
     api_error "Optio" "$HTTP_ERROR"
     return 1
   fi
@@ -719,7 +914,7 @@ refresh_task_names() {
 # L'état réel des travaux est relu avant une reprise : la tâche peut avoir
 # changé entre la lecture initiale et l'application du plan.
 refresh_task_states() {
-  if ! http_request GET "$api_url/api/tasks?limit=200" "$work_dir/optio-headers"; then
+  if ! http_request GET "$api_url/api/tasks?limit=$TASKS_LIMIT" "$work_dir/optio-headers"; then
     api_error "Optio" "$HTTP_ERROR"
     return 1
   fi
@@ -732,11 +927,14 @@ refresh_task_states() {
   return 0
 }
 
-# Une reprise n'a lieu que si la tâche est toujours en échec, sans PR et sous
-# le plafond des reprises. La raison du refus est écrite sur la sortie
-# standard ; le code de retour vaut 0 quand la reprise est refusée.
+# Une reprise n'a lieu que si la tâche est toujours en échec, encore utile et
+# sous son plafond. La raison du refus est écrite sur la sortie standard ; le
+# code de retour vaut 0 quand la reprise est refusée.
 retry_blocked_reason() {
-  local id=$1 task state number count
+  local entry=$1 id task state number kind sha ceiling count own
+  id="$(jq -r '.id' <<<"$entry")"
+  kind="$(jq -r '.kind' <<<"$entry")"
+  ceiling="$(jq -r '.ceiling' <<<"$entry")"
   task="$(jq -c --arg id "$id" '[.[] | select((.id | tostring) == $id)] | .[0] // empty' \
     "$work_dir/tasks-now.json")"
   if [ -z "$task" ]; then
@@ -748,17 +946,39 @@ retry_blocked_reason() {
     printf '%s' "la tâche n'est plus en échec"
     return 0
   fi
-  number="$(jq -r '(.prNumber // null) | if . == null then "" else tostring end' <<<"$task")"
-  if [ -n "$number" ] && [ "$number" != "0" ]; then
-    if pr_is_open "$number"; then
-      printf '%s' "la tâche a déjà une PR ouverte"
-    else
-      printf '%s' "PR fermée ou mergée"
+  if [ "$kind" = "ticket" ]; then
+    number="$(jq -r '(.prNumber // null) | if . == null or . == 0 then "" else tostring end' <<<"$task")"
+    own="$(jq -r --arg main "$repo_url" '
+      def norm: (ascii_downcase | sub("/+$"; "") | sub("\\.git$"; "") | sub("/+$"; ""));
+      ((.repoUrl // "") | norm) as $u | $u == "" or $u == ($main | norm)' <<<"$task")"
+    if [ -n "$number" ] && [ "$own" = true ]; then
+      if pr_is_open "$number"; then
+        printf '%s' "la tâche a déjà une PR ouverte"
+      else
+        printf '%s' "PR fermée ou mergée"
+      fi
+      return 0
     fi
-    return 0
+    if [ -n "$number" ] || [ -n "$(jq -r '.prUrl // ""' <<<"$task")" ]; then
+      printf '%s' "la tâche a déjà une PR"
+      return 0
+    fi
+  else
+    number="$(jq -r '.prNumber' <<<"$entry")"
+    sha="$(jq -r '.sha8 // ""' <<<"$entry")"
+    if ! pr_is_open "$number"; then
+      printf '%s' "PR fermée ou mergée"
+      return 0
+    fi
+    if [ -n "$sha" ] && ! jq -e --arg n "$number" --arg sha "$sha" \
+      'any(.[]; (.number | tostring) == $n and (((.head.sha // "") | .[0:8]) == $sha))' \
+      "$work_dir/pulls.json" >/dev/null; then
+      printf '%s' "la PR a une nouvelle tête"
+      return 0
+    fi
   fi
   count="$(jq -r '(.retryCount // 0) | if type == "number" then . else 0 end' <<<"$task")"
-  if [ "$count" -ge "$MAX_RETRIES" ]; then
+  if [ "$count" -ge "$ceiling" ]; then
     printf '%s' "reprise au plafond"
     return 0
   fi
@@ -766,8 +986,8 @@ retry_blocked_reason() {
 }
 
 create_task() {
-  local name=$1 prompt=$2 model=$3
-  jq -n --arg title "$name" --arg prompt "$prompt" --arg repo "$repo_url" \
+  local name=$1 prompt=$2 model=$3 repo=${4:-$repo_url}
+  jq -n --arg title "$name" --arg prompt "$prompt" --arg repo "$repo" \
     --arg model "$model" \
     '{title: $title, prompt: $prompt, repoUrl: $repo, owner: "me",
       autoMerge: false, autoResume: false,
@@ -809,78 +1029,78 @@ recheck_pr_candidates() {
   done
 }
 
-apply_plan() {
-  local entry name prompt model number id
-
-  # Tâches de ticket.
-  jq -c '.tasks[]' "$work_dir/plan.json" >"$work_dir/apply-tasks.ndjson"
+# Une création ou une reprise refusée par l'API est comptée et n'arrête pas les
+# suivantes ; une lecture impossible arrête le passage.
+apply_creations() {
+  # apply_creations <section> ; le compteur est tenu par l'appelant.
+  local section=$1 entry name prompt model repo
+  applied=0
+  jq -c ".${section}[]" "$work_dir/plan.json" >"$work_dir/apply-$section.ndjson"
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
     name="$(jq -r '.name' <<<"$entry")"
     prompt="$(jq -r '.prompt' <<<"$entry")"
-    model="$(jq -r '.model' <<<"$entry")"
+    model="$(jq -r '.model // "text/strong"' <<<"$entry")"
+    repo="$(jq -r --arg main "$repo_url" '.repoUrl // $main' <<<"$entry")"
     if ! refresh_task_names; then return 1; fi
     if jq -e --arg n "$name" 'index($n) != null' <<<"$task_names" >/dev/null; then
-      remove_from_plan tasks "$name"
+      remove_from_plan "$section" "$name"
       add_skip "$name" "travail existant : $name"
       continue
     fi
-    if ! create_task "$name" "$prompt" "$model"; then return 1; fi
-    created=$((created + 1))
-  done <"$work_dir/apply-tasks.ndjson"
-
-  # Revues, corrections et reprises : l'état réel des PR est relu juste avant.
-  if [ "$(plan_count_all)" != "0" ]; then
-    if ! fetch_pr_state; then return 1; fi
-    recheck_pr_candidates
-  fi
-
-  jq -c '.reviews[]' "$work_dir/plan.json" >"$work_dir/apply-reviews.ndjson"
-  while IFS= read -r entry; do
-    [ -n "$entry" ] || continue
-    name="$(jq -r '.name' <<<"$entry")"
-    prompt="$(jq -r '.prompt' <<<"$entry")"
-    if ! refresh_task_names; then return 1; fi
-    if jq -e --arg n "$name" 'index($n) != null' <<<"$task_names" >/dev/null; then
-      remove_from_plan reviews "$name"
-      add_skip "$name" "travail existant : $name"
+    if ! create_task "$name" "$prompt" "$model" "$repo"; then
+      remove_from_plan "$section" "$name"
+      add_skip "$name" "création refusée par Optio : $HTTP_ERROR"
       continue
     fi
-    if ! create_task "$name" "$prompt" "text/strong"; then return 1; fi
-    reviews_created=$((reviews_created + 1))
-  done <"$work_dir/apply-reviews.ndjson"
+    applied=$((applied + 1))
+  done <"$work_dir/apply-$section.ndjson"
+  return 0
+}
 
-  jq -c '.fixes[]' "$work_dir/plan.json" >"$work_dir/apply-fixes.ndjson"
-  while IFS= read -r entry; do
-    [ -n "$entry" ] || continue
-    name="$(jq -r '.name' <<<"$entry")"
-    prompt="$(jq -r '.prompt' <<<"$entry")"
-    if ! refresh_task_names; then return 1; fi
-    if jq -e --arg n "$name" 'index($n) != null' <<<"$task_names" >/dev/null; then
-      remove_from_plan fixes "$name"
-      add_skip "$name" "travail existant : $name"
-      continue
-    fi
-    if ! create_task "$name" "$prompt" "text/strong"; then return 1; fi
-    fixes_created=$((fixes_created + 1))
-  done <"$work_dir/apply-fixes.ndjson"
-
-  # Reprises des tâches échouées sans PR : l'état réel est relu avant.
-  jq -c '.retries[]' "$work_dir/plan.json" >"$work_dir/apply-retries.ndjson"
+apply_retries() {
+  # apply_retries <filtre jq sur la reprise>
+  local filter=$1 entry name id reason
+  jq -c ".retries[] | select($filter)" "$work_dir/plan.json" >"$work_dir/apply-retries.ndjson"
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
     id="$(jq -r '.id' <<<"$entry")"
     name="$(jq -r '.name' <<<"$entry")"
     if ! refresh_task_states; then return 1; fi
     reason=""
-    if reason="$(retry_blocked_reason "$id")"; then
+    if reason="$(retry_blocked_reason "$entry")"; then
       remove_from_plan retries "$name"
       add_skip "$name" "$reason"
       continue
     fi
-    if ! post_action retry "$id"; then return 1; fi
+    if ! post_action retry "$id"; then
+      remove_from_plan retries "$name"
+      add_skip "$name" "reprise refusée par Optio : $HTTP_ERROR"
+      continue
+    fi
     retried=$((retried + 1))
   done <"$work_dir/apply-retries.ndjson"
+  return 0
+}
+
+apply_plan() {
+  local entry name id
+
+  # L'état réel des PR est relu juste avant les écritures.
+  if [ "$(plan_count_all)" != "0" ]; then
+    if ! fetch_pr_state; then return 1; fi
+    recheck_pr_candidates
+  fi
+
+  # Revues et corrections d'abord, puis les tickets.
+  apply_retries '.kind != "ticket"' || return 1
+  apply_creations reviews || return 1
+  reviews_created=$applied
+  apply_creations fixes || return 1
+  fixes_created=$applied
+  apply_retries '.kind == "ticket"' || return 1
+  apply_creations tasks || return 1
+  created=$applied
 
   # Annulations : travaux d'une PR fermée ou mergée, attentes sans objet.
   jq -c '.cancellations[]' "$work_dir/plan.json" >"$work_dir/apply-cancellations.ndjson"
@@ -898,7 +1118,7 @@ apply_plan() {
         continue
       fi
     fi
-    if ! post_action cancel "$id"; then return 1; fi
+    if ! post_action cancel "$id"; then continue; fi
     cancelled=$((cancelled + 1))
   done <"$work_dir/apply-cancellations.ndjson"
 
@@ -945,10 +1165,16 @@ main() {
     emit_output
     return 1
   fi
+  fetch_optio_repos
   if ! fetch_pr_state; then
     emit_output
     return 1
   fi
+  if ! plan_retries; then
+    emit_output
+    return 1
+  fi
+  count_places
   if ! run_decision; then
     emit_output
     return 1

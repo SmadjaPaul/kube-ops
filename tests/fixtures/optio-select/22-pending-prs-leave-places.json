@@ -1,0 +1,94 @@
+{
+  "slots": 5,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-900",
+            "title": "Reprise du graphique de latence",
+            "description": "Texte.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-900",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": []
+            }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": [
+      {
+        "name": "[PLT-801] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 1,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/1",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-802] travail",
+        "state": "pr_opened",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": 2,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/2",
+        "prChecksStatus": "passing"
+      },
+      {
+        "name": "[PLT-820] bloqué",
+        "state": "needs_attention",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": ""
+      },
+      {
+        "name": "[PLT-821] dépendance",
+        "state": "waiting_on_deps",
+        "repoUrl": "https://github.com/smadjapaul/kube-ops",
+        "prNumber": null,
+        "prUrl": "",
+        "prChecksStatus": ""
+      }
+    ]
+  },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-900",
+        "name": "[PLT-900] Reprise du graphique de latence",
+        "title": "Reprise du graphique de latence",
+        "repo": "kube-ops",
+        "url": "https://linear.app/boule/issue/PLT-900",
+        "priority": 2,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "description": "Texte.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [
+      {
+        "prNumber": 1,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/1",
+        "name": "[REVUE PR-1]"
+      },
+      {
+        "prNumber": 2,
+        "prUrl": "https://github.com/smadjapaul/kube-ops/pull/2",
+        "name": "[REVUE PR-2]"
+      }
+    ],
+    "create_fixes": [],
+    "skipped": []
+  }
+}

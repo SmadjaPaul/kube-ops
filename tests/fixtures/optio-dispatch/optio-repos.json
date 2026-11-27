@@ -1,0 +1,7 @@
+{
+  "repos": [
+    { "id": "repo-1", "repoUrl": "https://github.com/smadjapaul/kube-ops", "fullName": "smadjapaul/kube-ops" },
+    { "id": "repo-2", "repoUrl": "https://github.com/smadjapaul/agent-harness", "fullName": "smadjapaul/agent-harness" },
+    { "id": "repo-3", "repoUrl": "https://github.com/smadjapaul/atlas", "fullName": "SmadjaPaul/Atlas" }
+  ]
+}
