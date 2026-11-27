@@ -20,7 +20,7 @@
     "path": "/spec/endpoints/1/metricRelabelings/-",
     "value": {
       "action": "drop",
-      "regex": "^(?:container_(cpu_load_d_average_10s|health_state|last_seen|memory_(failcnt|kernel_usage|max_usage_bytes|total_active_file_bytes|total_inactive_file_bytes|usage_bytes)|pressure_(cpu|io)_(stalled|waiting)_seconds_total|processes|sockets|threads|ulimits_soft|start_time_seconds|cpu_cfs_burst_(periods|seconds)_total|network_(receive|transmit)_(errors|packets|packets_dropped)_total))$",
+      "regex": "^(?:container_(cpu_load_d_average_10s|health_state|last_seen|memory_(failcnt|kernel_usage|max_usage_bytes|total_active_file_bytes|total_inactive_file_bytes|usage_bytes)|oom_events_total|pressure_(cpu|io)_(stalled|waiting)_seconds_total|processes|sockets|threads|ulimits_soft|start_time_seconds|cpu_cfs_burst_(periods|seconds)_total|network_(receive|transmit)_(errors|packets|packets_dropped)_total))$",
       "sourceLabels": [
         "__name__"
       ]
