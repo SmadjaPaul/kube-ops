@@ -6,7 +6,8 @@
 #
 #   - un InterceptorRoute par application : target = le Service de l'app, regle de
 #     routage sur le hostname public, `timeouts.readiness` = 120 s (cold start),
-#     `coldStart.maxPendingRequests` et une metrique de concurrence ;
+#     `coldStart.maxPendingRequests` et une metrique de concurrence ; le Service
+#     vise expose le port vise (sans backend, le proxy KEDA ne reveille rien) ;
 #   - un ScaledObject `external-push` par workload ramene a zero : `minReplicaCount` 0,
 #     `maxReplicaCount` 1, `cooldownPeriod` 300, cible = le Deployment du workload ;
 #     (sure expose deux workloads : le web porte le trafic, le worker attend le web) ;
@@ -83,6 +84,7 @@ check_app() {
     def rt:  [$docs[] | select(.kind == "HTTPRoute")];
     def dep: [$docs[] | select(.kind == "Deployment")];
     def cnp: [$docs[] | select(.kind == "CiliumNetworkPolicy")];
+    def svc: [$docs[] | select(.kind == "Service")];
 
     # InterceptorRoute : target, regle hostname, readiness 120 s, concurrence, cold start
     ([ir[] | select(
@@ -97,6 +99,11 @@ check_app() {
         and (.spec.coldStart.maxPendingRequests > 0)
         and (.spec.timeouts.readiness == "120s")
       )] | length) == 1
+    and
+    # le Service vise par l InterceptorRoute existe et expose le port vise : sans
+    # lui, le proxy KEDA n a aucun backend a reveiller et l application reste a zero
+    ([svc[] | select(.metadata.name == $target and .metadata.namespace == $ns
+       and any(.spec.ports[]?; .port == $target_port))] | length) == 1
     and
     # ScaledObject : un par workload ramene a zero, et pas un de plus
     ([so[] | select(.metadata.namespace == $ns)] | length) == ($workloads | length)
@@ -259,6 +266,10 @@ break_app bad-no-cnp-sure "$sure_root" sure sure sure.smadja.dev sure 80 3000 "s
   mutate networkpolicy.yaml CiliumNetworkPolicy '.spec.ingress = []'
 break_app bad-no-grant-romm "$romm_root" romm romm romm.smadja.dev romm 8080 8080 "romm" \
   mutate_no_grant romm "" ""
+break_app bad-target-service "$romm_root" romm romm romm.smadja.dev romm 8080 8080 "romm" \
+  mutate service.yaml Service '.spec.ports[0].port = 9999'
+break_app bad-target-service-sure "$sure_root" sure sure sure.smadja.dev sure 80 3000 "sure-web sure-worker" \
+  mutate service-route.yaml Service '.spec.ports[0].port = 9999'
 
 # --- le test est branche sur les deux portes du depot ---------------------------------------
 # Le contrat est un sous-check npm (`npm run check:keda-scale-to-zero`) : le CI, qui execute
