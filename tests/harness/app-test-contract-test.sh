@@ -166,6 +166,46 @@ expect "rootfs en ecriture" network FAIL 1
 mk_app nomonitor; drop_file nomonitor monitor.yaml; run_static nomonitor
 expect "sans ServiceMonitor" observability FAIL 1
 
+# --- PLT-539 (1) : dossier sans workload -> selfheal SKIP avec la raison ; un vrai defaut reste FAIL ---
+# Cas reel : agent-operator-access (Roles/RoleBindings seuls) et mastra-sandbox (Namespace, SA, Role,
+# gabarits) ne declarent aucun workload : rien a auto-reparer, donc SKIP et non un PASS/REST vacants.
+mk_app nowl
+rm "$(app nowl)/app.yaml" "$(app nowl)/route.yaml" "$(app nowl)/pvc.yaml" "$(app nowl)/netpol.yaml"
+cat >"$(app nowl)/rbac.yaml" <<K
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: nowl, namespace: nowl }
+rules: []
+K
+printf 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources: [namespace.yaml, rbac.yaml, monitor.yaml]\n' >"$(app nowl)/kustomization.yaml"
+run_static nowl
+expect "dossier sans workload" selfheal SKIP 0
+grep -q 'aucun workload' "$tmp/out" || fail "dossier sans workload: la raison du SKIP doit etre citee ($(grep '^CHECK selfheal' "$tmp/out"))"
+# un vrai defaut reste en FAIL : un workload declare sans probes
+mk_app nowlbad; sed -i.bak '/Probe:/d' "$(app nowlbad)/app.yaml"; run_static nowlbad
+expect "vrai defaut selfheal (workload sans probes)" selfheal FAIL 1
+
+# --- PLT-539 (2, statique) : la forward-auth d'un autre namespace n'efface pas l'exigence d'auth -----
+# Une SecurityPolicy ne protege que sa cible : celle d'une autre app (meme nom de route, autre
+# namespace) ne rend pas l'auth de cette app inutile.
+mkdir -p "$root/k8s/infrastructure/network/policies"
+cat >"$root/k8s/infrastructure/network/policies/kustomization.yaml" <<K
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [policy.yaml]
+K
+cat >"$root/k8s/infrastructure/network/policies/policy.yaml" <<K
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata: { name: tv-auth, namespace: autrens }
+spec:
+  targetRefs: [{ group: gateway.networking.k8s.io, kind: HTTPRoute, name: tv }]
+K
+mk_app polcollide
+sed -i.bak 's/^metadata: { name: polcollide, namespace: polcollide }/metadata: { name: tv, namespace: polcollide }/' "$(app polcollide)/route.yaml"
+sed -i.bak '/OIDC_AUTH_ENABLED/d' "$(app polcollide)/app.yaml"; run_static polcollide
+expect "SecurityPolicy d'un autre namespace" oidc FAIL 1
+
 # --- OKE (PLT-407, PLT-405) : Cilium est en chaining sur OKE (PLT-384), plus d'exemption : la politique reseau est exigee comme sur le homelab
 mk_app oke; drop_file oke netpol.yaml; printf 'name: oke\nnamespace: oke\ncluster: oracle-a1\n' >"$(app oke)/argocd-app.oracle-a1.yaml"; run_static oke
 expect "app OKE sans NetworkPolicy : refusee (plus d'exemption)" network FAIL 1
@@ -225,7 +265,8 @@ cp "$FAKE_DIR/pods-after.json" "$FAKE_DIR/pods.json"
 FAKE_RW
 cat >"$tmp/probe.sh" <<'FAKE_PROBE_SH'
 #!/usr/bin/env bash
-echo "${FAKE_PROBE:-401 }"
+# FAKE_PROBE : code pour tout hostname ; FAKE_PROBE_HOSTS : hotnames qui repondent 200 (aucune auth)
+if [[ -n ${FAKE_PROBE_HOSTS:-} && " ${FAKE_PROBE_HOSTS} " == *" $1 "* ]]; then echo "200 "; else echo "${FAKE_PROBE:-401 }"; fi
 FAKE_PROBE_SH
 chmod +x "$tmp/fake-ro.sh" "$tmp/fake-rw.sh" "$tmp/probe.sh"
 export APP_TEST_CHAOS_INTERVAL=0 FAKE_DIR="$tmp/fake" KUBECTL_RO_SCRIPT="$tmp/fake-ro.sh" KUBECTL_RW_SCRIPT="$tmp/fake-rw.sh" APP_TEST_PUBLIC_PROBE="$tmp/probe.sh"
@@ -305,6 +346,54 @@ grep -q 'other' "$tmp/out" && fail "portee app: une ressource de l autre app est
 mk_app shared; rm "$(app shared)/namespace.yaml"; sed -i.bak 's/namespace.yaml, //' "$(app shared)/kustomization.yaml"
 A=shared; rt_setup unrestricted; run_rt shared
 grep -q '^CHECK network PASS namespace partage' "$tmp/out" || fail "namespace partage: PSA ne doit pas etre impute ($(grep '^CHECK network' "$tmp/out"))"
+A=good
+
+# --- PLT-539 (2) : namespace partage, la route d'une AUTRE app n'est pas attribuee a l'app ----------
+# L'app "aifam" est deployee dans le namespace partage "media" et rend en plus une route "tv" pour un
+# AUTRE namespace ("autrens") : dans "media", la route "tv" appartient a une autre app et ne doit pas
+# etre probee au nom de l'app (le controle oidc n'attribue a une app que ses propres routes).
+mk_app aifam
+rm "$(app aifam)/namespace.yaml"; sed -i.bak 's/namespace.yaml, //' "$(app aifam)/kustomization.yaml"
+sed -i.bak 's/namespace: aifam/namespace: media/g' "$(app aifam)"/*.yaml
+sed -i.bak 's/includedNamespaces: \[aifam\]/includedNamespaces: [media]/' "$(app aifam)/backup.yaml"
+sed -i.bak 's/{ name: external, namespace: gateway }/{ name: internal, namespace: gateway }/' "$(app aifam)/route.yaml"
+cat >"$(app aifam)/route-other.yaml" <<K
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: tv, namespace: autrens }
+spec:
+  parentRefs: [{ name: external, namespace: gateway }]
+  hostnames: [tv.example.test]
+  rules: [{ backendRefs: [{ name: aifam, port: 80 }] }]
+K
+sed -i.bak 's#route.yaml,#route.yaml, route-other.yaml,#' "$(app aifam)/kustomization.yaml"
+rt_setup_shared() { # rt_setup_shared [gateway de la route propre de l app] : cluster du ns partage "media"
+  local gw=${1:-internal}
+  echo '{"metadata":{"name":"media","labels":{"pod-security.kubernetes.io/enforce":"restricted"}}}' >"$FAKE_DIR/ns.json"
+  jq -n --arg a "$A" '{items:[
+    {metadata:{name:($a+"-abc-1"),labels:{app:$a},ownerReferences:[{kind:"ReplicaSet",name:($a+"-abc")}]},status:{phase:"Running",conditions:[{type:"Ready",status:"True"}],containerStatuses:[{name:$a,restartCount:0}]}},
+    {metadata:{name:"other-xyz-1",labels:{app:"other"},ownerReferences:[{kind:"ReplicaSet",name:"other-xyz"}]},status:{phase:"Running",conditions:[{type:"Ready",status:"True"}],containerStatuses:[{name:"other",restartCount:0}]}}]}' >"$FAKE_DIR/pods.json"
+  jq -n --arg a "$A" '{items:[{metadata:{name:$a},spec:{type:"ClusterIP"}},{metadata:{name:"other-lb"},spec:{type:"NodePort"}}]}' >"$FAKE_DIR/svc.json"
+  # la route "tv" d'une AUTRE app sur la gateway external, sans auth : elle ne doit pas etre probee
+  jq -n --arg a "$A" --arg gw "$gw" '{items:[{metadata:{name:$a},spec:{parentRefs:[{name:$gw}],hostnames:[($a+".example.test")]}},
+    {metadata:{name:"tv"},spec:{parentRefs:[{name:"external"}],hostnames:["tv.example.test"]}}]}' >"$FAKE_DIR/routes.json"
+  echo '{"items":[{}]}' >"$FAKE_DIR/pvc.json"; echo '{"items":[]}' >"$FAKE_DIR/cnpg.json"
+  jq -n --arg a "$A" --arg t "$(now_minus_h 5)" '{items:[
+    {status:{phase:"Completed",completionTimestamp:$t},metadata:{labels:{"velero.io/schedule-name":("daily-"+$a)}},spec:{includedNamespaces:["media"]}}]}' >"$FAKE_DIR/vb.json"
+  jq -n --arg a "$A" '{status:"success",data:{result:[{metric:{job:$a,service:$a,pod:($a+"-abc-1")},value:[0,"1"]}]}}' >"$FAKE_DIR/up.json"
+  rm -f "$FAKE_DIR/so.json" "$FAKE_DIR/rw.log"
+}
+A=aifam; rt_setup_shared internal; FAKE_PROBE_HOSTS="tv.example.test" run_rt media
+grep -q '^CHECK oidc SKIP ' "$tmp/out" || fail "namespace partage: la route d une autre app ne doit pas etre attribuee ($(grep '^CHECK oidc' "$tmp/out" || echo absent))"
+grep -q 'tv.example.test' "$tmp/out" && fail "namespace partage: la route d une autre app a etre probee ($(grep 'tv.example.test' "$tmp/out" | head -1))"
+# un vrai defaut reste en FAIL : la PROPRE route externe de l app, sans auth
+mk_app aibad
+rm "$(app aibad)/namespace.yaml"; sed -i.bak 's/namespace.yaml, //' "$(app aibad)/kustomization.yaml"
+sed -i.bak 's/namespace: aibad/namespace: media/g' "$(app aibad)"/*.yaml
+sed -i.bak '/OIDC_AUTH_ENABLED/d' "$(app aibad)/app.yaml"
+sed -i.bak 's/includedNamespaces: \[aibad\]/includedNamespaces: [media]/' "$(app aibad)/backup.yaml"
+A=aibad; rt_setup_shared external; FAKE_PROBE="200 " run_rt media
+grep -q '^CHECK oidc FAIL ' "$tmp/out" || fail "vrai defaut oidc: la propre route externe sans auth doit rester FAIL ($(grep '^CHECK oidc' "$tmp/out" || echo absent))"
 A=good
 
 # cliquet : violation gelee = PASS baselined ; regression = FAIL ; --no-ratchet montre la dette

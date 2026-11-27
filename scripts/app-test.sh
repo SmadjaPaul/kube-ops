@@ -21,11 +21,17 @@
 #
 # static  : rendu `kustomize build --enable-helm` de k8s/applications/**/APP (render-cache),
 #           aucun acces cluster. L'app est jugee sur ce qu'elle declare (NAMESPACE non utilise).
+#           Un dossier sans workload (RBAC, gabarits, ressources seules : agent-operator-access,
+#           mastra-sandbox) : selfheal SKIP "l.app ne declare aucun workload" (rien a auto-reparer) ;
+#           un vrai defaut (probes, requests/limits, PDB) reste en FAIL.
 # runtime : lecture seule via scripts/kubectl-ro.sh. --chaos supprime UN pod via
 #           scripts/kubectl-rw.sh, uniquement si NAMESPACE = pr-* (jamais en prod).
 #
 # Portee runtime : l'app, pas le namespace. Les routes, services, workloads/pods, PVC et clusters CNPG
-# sont ceux du rendu de l'app (un namespace partage comme media est le cas normal). Cliquet : un FAIL
+# sont ceux du rendu de l'app (un namespace partage comme media est le cas normal) ; parmi eux, seules
+# les ressources que l'app deploie dans le namespace teste comptent : sinon la route d'une autre app
+# du namespace partage lui serait attribuee (PLT-539). En preview (pr-*) Argo reecrit le namespace de
+# toutes les ressources de l'app : elles y sont donc toutes. Cliquet : un FAIL
 # deja gele pour cette app dans policy/app-test-baseline.tsv devient PASS "baselined" (--no-ratchet
 # l'ignore) ; seule une regression echoue.
 #
@@ -225,7 +231,12 @@ static_run oidc "auth native OIDC ou forward-auth declaree" '
       | $ext[] as $r
       | ( any($r.spec.rules[]?.filters[]?; .type == "ExtensionRef")
           or (($r.metadata.annotations // {}) | has("auth.smadja.dev/forward-auth"))
-          or any($ctx[0][]?; .kind == "SecurityPolicy" and any(.spec.targetRefs[]?; .name == $r.metadata.name)) ) as $fwd
+          or any($ctx[0][]?; . as $p
+                 | $p.kind == "SecurityPolicy"
+                 # la policy ne vaut que pour sa cible : meme namespace, ou targetRefs.namespace explicite
+                 and any($p.spec.targetRefs[]?; . as $t
+                        | .name == $r.metadata.name
+                        and ((($t.namespace // $p.metadata.namespace) // $ns) == ($r.metadata.namespace // $ns)))) ) as $fwd
       | if $native or $declared or $fwd then empty
         else "HTTPRoute/\($r.metadata.name) sur external sans auth (forward-auth, OIDC natif ou auth: none + raison)" end
     end'
@@ -317,9 +328,13 @@ static_run observability "probes, monitor de scrape et regle d alerte presents" 
      then "aucune PrometheusRule et couverture generique absente" else empty end)'
 
 # 6. selfheal --------------------------------------------------------------------------------
+# Dossier sans workload (RBAC, gabarits, ressources seules) : rien a auto-reparer, donc SKIP avec
+# la raison (PLT-539) au lieu d'un PASS/REST vacants ; un vrai defaut reste en FAIL.
 static_run selfheal "requests/limits, probes et PDB conformes" '
   . as $docs
-  | ([ wls[] | . as $w | allcs[] | . as $c
+  | if ([ wls[] ] | length) == 0 then "SKIP:l.app ne declare aucun workload"
+    else
+  ([ wls[] | . as $w | allcs[] | . as $c
        | ([ [ ["requests","cpu"], ["requests","memory"], ["limits","cpu"], ["limits","memory"] ][]
            | . as $p | select((($c.resources // {}) | getpath($p)) == null) | $p | join(".")] ) as $miss
        | select(($miss | length) > 0)
@@ -330,7 +345,8 @@ static_run selfheal "requests/limits, probes et PDB conformes" '
     ([ wls[] | select(.kind|IN("Deployment","StatefulSet")) | select((.spec.replicas // 1) > 1) | . as $w
        | select(([ $docs[] | select(.kind=="PodDisruptionBudget" and (wns == ($w|wns))
               and ((tmpl | .metadata.labels // {}) as $l | (.spec.selector // {}) | selmatch($l)))] | length) == 0)
-       | "\($w | wid) replicas>1 sans PodDisruptionBudget" ][])'
+       | "\($w | wid) replicas>1 sans PodDisruptionBudget" ][])
+    end'
 
 # 7. network ---------------------------------------------------------------------------------
 static_run network "NetworkPolicy deny par defaut et securityContext PSA restricted" '
@@ -368,6 +384,9 @@ if [[ $PHASE != static ]]; then
   kget() { kro get "$@" -o json 2>"$work/kget.err"; } # kget KIND... -n NS
   kerr() { head -c 300 "$work/kget.err" | grep -v '^KUBE_ACCESS' | tr '\r\n' '  ' | sanitize_line; }
   is_pr_ns() { [[ $NS == pr-* ]]; }
+  # Preview : Argo reecrit le namespace de toutes les ressources de l'app (pr-<n>-<app>) ; le
+  # namespace rendu n'est plus celui du deploiement, la portee couvre donc toutes les ressources.
+  PRNS=no; is_pr_ns && PRNS=yes
 
   # Sonde HTTP publique. La resolution passe par DNS-over-HTTPS (Cloudflare) : le LAN intercepte le
   # DNS UDP (split-DNS UniFi) et renverrait le VIP interne, donc le chemin public ne serait pas teste.
@@ -394,15 +413,19 @@ if [[ $PHASE != static ]]; then
     for id in $IDS; do rr "$id" BLOCKED "portee de l'app indisponible: $scope_err"; done
   else
     # PORTEE de l'app (namespace partage = cas normal) : tout ce qui est lu est filtre sur les
-    # ressources rendues de l'app (noms de routes/services/clusters, selectors des workloads).
-    jq --arg ns "$NS" --slurpfile ctx "$CTX" "$PRE"'
+    # ressources rendues de l'app (routes/services/clusters, selectors des workloads). Seules les
+    # ressources que l'app deploie dans le namespace teste comptent : un nom seul confondrait la
+    # route d'une autre app du namespace partage (PLT-539). En preview (pr-*) Argo reecrit le
+    # namespace de toutes les ressources de l'app : elles y sont donc toutes.
+    jq --arg ns "$NS" --arg prns "$PRNS" --slurpfile ctx "$CTX" "$PRE"'
       . as $d
       | ([ wls[] | select(islong) | (tmpl.metadata.labels // {}) ]) as $wl
-      | {routes: [ .[] | select(.kind=="HTTPRoute") | .metadata.name ],
-         svcs: [ .[] | select(.kind=="Service") | .metadata.name ],
-         wls: [ .[] | select(islong) | {name: .metadata.name, sel: (.spec.selector.matchLabels // {})} ],
-         cnpg: [ .[] | select(.kind=="Cluster" and ((.apiVersion // "")|startswith("postgresql.cnpg.io"))) | .metadata.name ],
-         npvc: (([ .[] | select(.kind=="PersistentVolumeClaim") ] | length) + ([ .[] | select(.kind=="StatefulSet") | (.spec.volumeClaimTemplates // [])[] ] | length)),
+      | (if $prns == "yes" then [.[] | select(.kind!="Namespace")] else [.[] | select(wns == $ns)] end) as $own
+      | {routes: [ $own[] | select(.kind=="HTTPRoute") | .metadata.name ],
+         svcs: [ $own[] | select(.kind=="Service") | .metadata.name ],
+         wls: [ $own[] | select(islong) | {name: .metadata.name, sel: (.spec.selector.matchLabels // {})} ],
+         cnpg: [ $own[] | select(.kind=="Cluster" and ((.apiVersion // "")|startswith("postgresql.cnpg.io"))) | .metadata.name ],
+         npvc: (([ $own[] | select(.kind=="PersistentVolumeClaim") ] | length) + ([ $own[] | select(.kind=="StatefulSet") | (.spec.volumeClaimTemplates // [])[] ] | length)),
          ownns: any(.[]; .kind=="Namespace"),
          scheds: [ $ctx[0][] | select(.kind=="Schedule" and ((.apiVersion // "")|startswith("velero.io")))
                    | . as $s | ($s.spec.template // {}) as $t
