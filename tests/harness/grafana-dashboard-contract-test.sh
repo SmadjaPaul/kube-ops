@@ -324,7 +324,11 @@ jq -e '
     test("estimation") and
     test("MiniMax") and
     test("4 USD/M \\| 20 USD/M \\| 0.20 USD/M") and
-    test("0 USD/M"))
+    test("0.30 USD/M \\| 1.20 USD/M \\| 0.06 USD/M") and
+    test("0.15 USD/M \\| 0.60 USD/M \\| 0.015 USD/M") and
+    test("platform.minimax.io/docs/pricing/overview") and
+    test("platform.claude.com/docs/en/about-claude/pricing") and
+    test("2026-11-27"))
 ' "$agentgateway_dashboard_json" >/dev/null || {
   echo "the Agentgateway dashboard must carry its uid, its title, its panels, the limits and the tariff of the estimate" >&2
   exit 1
@@ -341,15 +345,41 @@ for metric in agentgateway_gen_ai_client_token_usage agentgateway_requests_total
 done
 
 # The estimate applies the tariff written in the dashboard: the rates of the
-# queries and the rates of the text panel must be the same ones.
+# queries and the rates of the text panel must be the same ones. PLT-568: the
+# MiniMax models are priced too (the panel used to cover code/frontier only).
+# The catalogue of the repository (k8s/applications/platform/agentgateway/cost-catalog.yaml)
+# and its contract test carry the detail.
 jq -e '
   [.panels[] | select(.title == "Estimated cost per model (estimation, not an invoice)") | .targets[].expr] as $exprs |
-  ($exprs | length == 3) and
+  ($exprs | length == 9) and
   ($exprs | any(test("\\* 4 / 1000000"))) and
   ($exprs | any(test("\\* 20 / 1000000"))) and
-  ($exprs | any(test("\\* 0.2 / 1000000")))
+  ($exprs | any(test("\\* 0.20 / 1000000"))) and
+  ($exprs | any(test("\\* 0.30 / 1000000"))) and
+  ($exprs | any(test("\\* 1.20 / 1000000"))) and
+  ($exprs | any(test("\\* 0.06 / 1000000"))) and
+  ($exprs | any(test("\\* 0.15 / 1000000"))) and
+  ($exprs | any(test("\\* 0.60 / 1000000"))) and
+  ($exprs | any(test("\\* 0.015 / 1000000")))
 ' "$agentgateway_dashboard_json" >/dev/null || {
   echo "the estimated cost of the Agentgateway dashboard must apply the tariff written in the dashboard" >&2
+  exit 1
+}
+
+# The total cost panel sums the same tariffs, model by model.
+jq -e '
+  [.panels[] | select(.title == "Estimated cost over the selected period (estimation)") | .targets[].expr] as $exprs |
+  ($exprs | length == 1) and
+  ($exprs | all(test("text/strong\\|text/research\\|MiniMax-M3"))) and
+  ($exprs | all(test("text/fast\\|MiniMax-M3.1-Flash"))) and
+  ($exprs | all(test("\\* 0.30 / 1000000"))) and
+  ($exprs | all(test("\\* 1.20 / 1000000"))) and
+  ($exprs | all(test("\\* 0.06 / 1000000"))) and
+  ($exprs | all(test("\\* 0.15 / 1000000"))) and
+  ($exprs | all(test("\\* 0.60 / 1000000"))) and
+  ($exprs | all(test("\\* 0.015 / 1000000")))
+' "$agentgateway_dashboard_json" >/dev/null || {
+  echo "the total estimated cost of the Agentgateway dashboard must apply the tariff of every priced model" >&2
   exit 1
 }
 

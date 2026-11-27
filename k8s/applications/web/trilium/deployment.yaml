@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: trilium
     app.kubernetes.io/part-of: trilium
 spec:
-  replicas: 1
+  # Replica count is controlled by the KEDA ScaledObject; do not pin it in GitOps.
   strategy:
     type: Recreate
   selector:

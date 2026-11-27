@@ -16,6 +16,17 @@ spec:
         - ports:
             - port: "8080"
               protocol: TCP
+    # PLT-564 : le proxy KEDA (namespace keda) relaie le trafic vers Trilium ; c'est
+    # lui qui reveille l'application a zero et qui sert le cold start.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: keda
+            app.kubernetes.io/name: http-add-on
+            app.kubernetes.io/component: interceptor
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
