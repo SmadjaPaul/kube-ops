@@ -72,4 +72,5 @@ tests/harness/optio-metrics-contract-test.sh
 tests/harness/optio-select-actions-test.sh
 tests/harness/optio-pr-scope-check-test.sh
 tests/harness/optio-dispatch-test.sh
+tests/harness/optio-factory-report-test.sh
 tests/harness/plan-replay-retry-test.sh

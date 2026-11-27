@@ -1,0 +1,14 @@
+[
+  {
+    "id": "task-empty"
+  },
+  {
+    "id": "task-state-only",
+    "state": "queued"
+  },
+  {
+    "id": "task-partial",
+    "title": "[PLT-543] Une tâche sans compte",
+    "state": "running"
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "tasks": [
+    {
+      "id": "task-api-shape",
+      "title": "[PLT-544] Une tâche au format de l'API",
+      "state": "completed",
+      "ticketExternalId": "PLT-544",
+      "prUrl": "https://github.com/smadjapaul/kube-ops/pull/2108",
+      "prNumber": 2108,
+      "resultSummary": "La réponse de l'API porte les tâches sous la clé tasks.",
+      "costUsd": "0.1000",
+      "inputTokens": 10,
+      "outputTokens": 5,
+      "createdAt": "2026-01-01T03:00:00.000Z",
+      "updatedAt": "2026-01-01T03:05:00.000Z"
+    }
+  ],
+  "limit": 200,
+  "offset": 0
+}
