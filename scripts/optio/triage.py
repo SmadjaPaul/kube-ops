@@ -73,7 +73,7 @@ ISSUES_QUERY = """query OptioTriage($after: String) {
       children(first: 20) { nodes { state { type } } }
       relations(first: 10) { nodes { type relatedIssue { id identifier state { type } } } }
       inverseRelations(first: 10) { nodes { type issue { identifier state { type } } } }
-      attachments(first: 8) { nodes { url title createdAt updatedAt metadata } }
+      attachments(first: 25) { nodes { url title createdAt updatedAt metadata } }
       comments(first: 30) { nodes { body createdAt } }
     }
   }
@@ -384,7 +384,8 @@ class Triage:
                     self.log(identifier, f"en cours : tâche Optio {running[0].get('state')}")
                 continue
             if written >= MAX_RECONCILE:
-                break
+                self.log(identifier, "contrôle reporté : plafond du passage")
+                continue
             try:
                 if self.reconcile_one(issue, tasks, started):
                     written += 1
@@ -395,7 +396,7 @@ class Triage:
     def reconcile_one(self, issue, tasks, started):
         identifier, names = issue["identifier"], label_names(issue)
         merged, opened = [], []
-        for attachment in self.ticket_prs(issue):
+        for attachment in sorted(self.ticket_prs(issue), key=lambda a: a.get("createdAt") or ""):
             status = self.pr_status(attachment["url"])
             if status.get("prState") == "merged":
                 merged.append((attachment, (status.get("headSha") or "")[:8]))
@@ -406,11 +407,16 @@ class Triage:
                 self.log(identifier, f"PR ouverte ou illisible : {opened[0]}")
             return False
         if merged:
-            proven = [m for m in merged if self.fixes_proven(m[0], identifier)]
-            attachment, sha = (proven or merged)[-1]
+            attachment, sha = merged[-1]  # the latest pull request decides
             proof = f"{attachment['url']} mergée (tête {sha}, état lu par l'API Optio)"
+            # Only a ticket the factory delivered is written: its task opened that pull request, nobody
+            # is assigned and no blocking label is set. Anything else is reported in the journal only.
+            delivered = any((t.get("prUrl") or "").lower() == attachment["url"].lower() for t in tasks)
+            if not delivered or issue.get("assignee") or any(is_blocking_label(name) for name in names):
+                self.log(identifier, f"PR mergée, ticket non soldé par la factory (à contrôler) : {proof}")
+                return False
             done = self.state_id(issue, "completed", "Done")
-            if proven and done:
+            if self.fixes_proven(attachment, identifier) and done:
                 self.comment(issue, f"terminé : {proof} ; la PR corrige le ticket. Ticket passé à Done.")
                 self.update(issue, {"stateId": done})
                 self.counts["closed"] += 1
@@ -517,14 +523,15 @@ class Triage:
         env = {"PATH": self.env.get("PATH", os.defpath), "HOME": home, "TMPDIR": home,
                "ANTHROPIC_BASE_URL": self.env["OPTIO_GATEWAY_URL"],
                "ANTHROPIC_AUTH_TOKEN": self.env["OPTIO_GATEWAY_KEY"],
-               "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1", "DISABLE_AUTOUPDATER": "1"}
+               "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1", "DISABLE_AUTOUPDATER": "1",
+               "CLAUDE_CODE_EFFORT_LEVEL": "low"}
         command = ["claude", "-p", "--model", MODEL, "--tools", "", "--strict-mcp-config",
                    "--setting-sources", "", "--max-turns", "2", "--output-format", "json",
                    "--system-prompt", instructions]
         self.counts["model_calls"] += 1
         try:
             result = subprocess.run(command, input=prompt, capture_output=True, text=True,
-                                    timeout=600, env=env, cwd=home)
+                                    timeout=900, env=env, cwd=home)
         except (OSError, subprocess.TimeoutExpired) as error:
             raise TriageError(f"claude: {type(error).__name__}") from None
         try:
@@ -551,9 +558,12 @@ class Triage:
 
     # --- verdicts -----------------------------------------------------------------
 
-    def reject(self, identifier, reason):
+    def reject(self, identifier, reason, issue=None):
+        """A refused verdict leaves a marker: the ticket is not paid for again at the next pass."""
         self.counts["rejected"] += 1
         self.log(identifier, f"verdict refusé par le script : {reason}")
+        if issue:
+            self.comment(issue, f"écarté : verdict refusé par le script ({clean(reason, 200)}).")
 
     def take(self, issue, verdict, zones):
         identifier = issue["identifier"]
@@ -561,17 +571,17 @@ class Triage:
         description = issue.get("description") or ""
         written = {m.lower() for m in REPO_LINE.findall(description)}
         if identifier in zones:
-            return self.reject(identifier, zones[identifier])
+            return self.reject(identifier, zones[identifier], issue)
         if repo not in self.repos:
-            return self.reject(identifier, "dépôt absent de la liste")
+            return self.reject(identifier, "dépôt absent de la liste", issue)
         if written and written != {repo.lower()}:
-            return self.reject(identifier, "la ligne Dépôt du ticket dit autre chose")
+            return self.reject(identifier, "la ligne Dépôt du ticket dit autre chose", issue)
         updated = dict(issue)
         if not written:
             updated["description"] = f"{description.rstrip()}\n\nDépôt: {repo}"
         refused = self.select([updated])
         if identifier in refused:
-            return self.reject(identifier, refused[identifier])
+            return self.reject(identifier, refused[identifier], issue)
         if not written:
             self.update(issue, {"description": updated["description"]})
         self.add_label(issue, "wip:optio")
@@ -583,15 +593,15 @@ class Triage:
     def block(self, issue, verdict):
         identifier, category = issue["identifier"], verdict.get("category")
         if category not in BLOCK_LABELS:
-            return self.reject(identifier, "catégorie de blocage inconnue")
+            return self.reject(identifier, "catégorie de blocage inconnue", issue)
         reason, action = clean(verdict.get("reason")), clean(verdict.get("action"))
         if not reason or not action:
-            return self.reject(identifier, "blocage sans raison ou sans geste attendu")
+            return self.reject(identifier, "blocage sans raison ou sans geste attendu", issue)
         if category == "dependance":
             target = verdict.get("blocked_by")
             other = next((i for i in self.issues if i["identifier"] == target), None)
             if not other or target == identifier:
-                return self.reject(identifier, "dépendance vers un ticket inconnu")
+                return self.reject(identifier, "dépendance vers un ticket inconnu", issue)
             self.mutate("issueRelationCreate", "mutation($input: IssueRelationCreateInput!) "
                         "{ issueRelationCreate(input: $input) { success } }",
                         {"input": {"issueId": other["id"], "relatedIssueId": issue["id"], "type": "blocks"}})
@@ -606,13 +616,13 @@ class Triage:
         identifier = issue["identifier"]
         parts = verdict.get("subtickets")
         if issue.get("parent") or nodes(issue.get("children")) or identifier in zones:
-            self.reject(identifier, "découpage interdit (sous-ticket, enfants ou zone refusée)")
+            self.reject(identifier, "découpage interdit (sous-ticket, enfants ou zone refusée)", issue)
             return 0
         if self.counts["split"] >= MAX_SPLITS:
             self.log(identifier, "découpage reporté : plafond du passage")
             return 0
         if not isinstance(parts, list) or not 2 <= len(parts) <= MAX_SUBTICKETS:
-            self.reject(identifier, f"découpage hors de 2 à {MAX_SUBTICKETS} sous-tickets")
+            self.reject(identifier, f"découpage hors de 2 à {MAX_SUBTICKETS} sous-tickets", issue)
             return 0
         drafts = []
         for index, part in enumerate(parts):
@@ -620,7 +630,7 @@ class Triage:
             title = clean(part.get("title"), 140) if repo else ""
             body = REPO_LINE.sub("", str(part.get("description") or "") if repo else "").strip()[:4000]
             if repo not in self.repos or not title or not body:
-                self.reject(identifier, "sous-ticket incomplet ou dépôt absent de la liste")
+                self.reject(identifier, "sous-ticket incomplet ou dépôt absent de la liste", issue)
                 return 0
             drafts.append({
                 "identifier": f"NEW-{index}", "title": title, "priority": issue.get("priority") or 3,
@@ -628,7 +638,7 @@ class Triage:
                 "labels": {"nodes": []}, "createdAt": "", "assignee": None})
         refused = self.select(drafts)
         if refused:
-            self.reject(identifier, "sous-ticket refusé par le dispatch : " + next(iter(refused.values())))
+            self.reject(identifier, "sous-ticket refusé par le dispatch : " + next(iter(refused.values())), issue)
             return 0
         dropped = ("Intake", "Research")
         inherited = [label["id"] for label in nodes(issue.get("labels"))
@@ -676,7 +686,7 @@ class Triage:
                     self.counts["later"] += 1
                     self.log(issue["identifier"], f"écarté : {reason}")
                 else:
-                    self.reject(issue["identifier"], "verdict inconnu")
+                    self.reject(issue["identifier"], "verdict inconnu", issue)
             except TriageError as error:
                 self.counts["errors"] += 1
                 self.log(issue["identifier"], f"erreur : {error}")
