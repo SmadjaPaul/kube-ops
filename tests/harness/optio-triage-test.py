@@ -42,6 +42,11 @@ def pr(identifier, number=1, kind="closes", repo="website"):
             "createdAt": OLD, "updatedAt": OLD, "metadata": {"linkKind": kind} if kind else {}}
 
 
+def task(identifier, number=1, repo="website"):
+    return {"title": f"[{identifier}] x", "state": "completed",
+            "prUrl": f"https://github.com/SmadjaPaul/{repo}/pull/{number}"}
+
+
 class World:
     def __init__(self, issues, tasks=(), prs=None, github=None):
         self.issues, self.tasks, self.prs, self.github = issues, list(tasks), prs or {}, github or {}
@@ -155,7 +160,7 @@ class TriageTest(unittest.TestCase):
             {"id": "PLT-99", "verdict": "take", "repo": "kube-ops"},
             {"id": "PLT-2", "verdict": "delete"},
         ])
-        self.assertEqual([], world.writes)
+        self.assertEqual(["commentCreate"] * 3, self.names(world))
         self.assertEqual(5, self.summary["rejected"])
 
     def test_block_marks_once_with_labels_and_expected_action(self):
@@ -212,17 +217,17 @@ class TriageTest(unittest.TestCase):
         self.assertEqual("commentCreate", world.writes[0][0])
         too_many = World([issue("PLT-1")])
         self.run_pass(too_many, [{"id": "PLT-1", "verdict": "split", "subtickets": parts * 3}])
-        self.assertEqual([], too_many.writes)
+        self.assertEqual(["commentCreate"], self.names(too_many))
 
     def test_split_cannot_smuggle_a_forbidden_zone(self):
         world = World([issue("PLT-1")])
         parts = [{"title": "Lot", "repo": "kube-ops", "description": "Lire le secret."}] * 2
         self.run_pass(world, [{"id": "PLT-1", "verdict": "split", "subtickets": parts}])
-        self.assertEqual([], world.writes)
+        self.assertEqual(["commentCreate"], self.names(world))
 
     def test_merged_ticket_goes_done_with_proof(self):
         world = World([issue("PRD-1", state="started", labels=["wip:optio"], attachments={"nodes": [pr("PRD-1")]})],
-                      tasks=[{"title": "[PRD-1] x", "state": "completed"}], prs={"1": "merged"})
+                      tasks=[task("PRD-1")], prs={"1": "merged"})
         self.run_pass(world)
         self.assertEqual(["commentCreate", "issueUpdate"], self.names(world))
         self.assertEqual({"stateId": "PRD-done"}, world.writes[1][1]["input"])
@@ -230,20 +235,30 @@ class TriageTest(unittest.TestCase):
 
     def test_part_of_merge_is_noted_once_and_not_closed(self):
         ticket = issue("PLT-1", state="started", attachments={"nodes": [pr("PLT-1", kind="contributes")]})
-        world = World([ticket], prs={"1": "merged"})
+        world = World([ticket], tasks=[task("PLT-1")], prs={"1": "merged"})
         self.run_pass(world)
         self.assertEqual(["commentCreate"], self.names(world))
         ticket["comments"] = {"nodes": [{"body": world.writes[0][1]["input"]["body"], "createdAt": OLD}]}
-        again = World([ticket], prs={"1": "merged"})
+        again = World([ticket], tasks=[task("PLT-1")], prs={"1": "merged"})
         self.run_pass(again)
         self.assertEqual([], again.writes)
 
     def test_public_fixes_line_proves_the_merge_and_part_of_does_not(self):
         for body, expected in (("Fixes PLT-1", 1), ("Fixes PLT-1\nPart of PLT-1", 0), (None, 0)):
             world = World([issue("PLT-1", state="started", attachments={"nodes": [pr("PLT-1", kind=None)]})],
-                          prs={"1": "merged"}, github={"1": body} if body else {})
+                          tasks=[task("PLT-1")], prs={"1": "merged"}, github={"1": body} if body else {})
             self.run_pass(world)
             self.assertEqual(expected, self.summary["closed"], body)
+
+    def test_merged_ticket_not_delivered_by_the_factory_is_never_written(self):
+        attachments = {"nodes": [pr("PLT-1")]}
+        for extra, tasks in (({}, []), ({"assignee": {"id": "x"}}, [task("PLT-1")]),
+                             ({"labels": ["Attend:tiers"]}, [task("PLT-1")]),
+                             ({}, [task("PLT-1", number=2)])):
+            world = World([issue("PLT-1", state="started", attachments=attachments, **extra)],
+                          tasks=tasks, prs={"1": "merged"})
+            self.run_pass(world)
+            self.assertEqual([], world.writes, extra)
 
     def test_open_pr_or_running_task_keeps_the_ticket(self):
         opened = World([issue("PLT-1", state="started", attachments={"nodes": [pr("PLT-1")]})])
