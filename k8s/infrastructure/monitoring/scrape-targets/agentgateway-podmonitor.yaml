@@ -1,0 +1,22 @@
+# PLT-536: Agentgateway serves its Prometheus metrics on /metrics (STATS_ADDR,
+# default 0.0.0.0:15020) but nothing scraped them. The series are the source of
+# truth for the tokens consumed through the gateway: the Optio API may report
+# empty token counts (MiniMax), the gateway counts every request.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: agentgateway
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: agentgateway
+spec:
+  namespaceSelector:
+    matchNames: [agentgateway]
+  selector:
+    matchLabels:
+      app: agentgateway
+  podMetricsEndpoints:
+    - port: stats
+      scheme: http
+      interval: 60s

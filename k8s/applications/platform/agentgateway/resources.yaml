@@ -32,6 +32,16 @@ data:
     config:
       database:
         url: sqlite://data.db
+      # PLT-536: add the label `api_key` to every metric of the gateway, so the
+      # tokens consumed can be attributed to the API key that consumed them.
+      # `apiKey.name` reads the flattened metadata of the verified key
+      # (schema/cel.md of the upstream v1.6.0), hence the consumer name
+      # (optio, pr-triage, ...) and never the secret. The expression is the one
+      # the upstream uses by default for its `agentgateway.user` attribute.
+      metrics:
+        fields:
+          add:
+            api_key: "apiKey.name"
     gateways:
       default:
         port: 4000
@@ -318,7 +328,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: optio-v3
+        checksum/agentgateway-runtime: optio-v4
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -349,6 +359,10 @@ spec:
             - secretRef: {name: agentgateway-anthropic, optional: true}
           ports:
             - {name: llm, containerPort: 4000}
+            # PLT-536: Prometheus endpoint of the gateway (STATS_ADDR default
+            # 0.0.0.0:15020, path /metrics). The named port is what the
+            # PodMonitor `agentgateway` scrapes.
+            - {name: stats, containerPort: 15020}
           readinessProbe:
             tcpSocket: {port: llm}
             periodSeconds: 10
@@ -427,6 +441,12 @@ spec:
             managed-by: optio
       toPorts:
         - ports: [{port: "4000", protocol: TCP}]
+    # PLT-536: Prometheus scrape of the metrics endpoint of the gateway (:15020).
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports: [{port: "15020", protocol: TCP}]
   egress:
     - toEndpoints:
         - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}

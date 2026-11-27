@@ -8,3 +8,5 @@ resources:
   - cnpg-podmonitor.yaml
   - cloudflared-podmonitor.yaml
   - arc-podmonitor.yaml
+  # PLT-536: metriques du gateway Agentgateway (jetons par cle, par modele).
+  - agentgateway-podmonitor.yaml

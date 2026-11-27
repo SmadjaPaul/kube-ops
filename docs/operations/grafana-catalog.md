@@ -53,7 +53,7 @@ The repair uses only the installed chart's supported settings:
 The values change also rolls the Grafana pod declaratively. Since the old
 files are in `emptyDir`, the new pod starts with a clean provisioning
 directory; no Grafana database, data volume, PVC, metrics, rules or alerts are
-deleted. The expected post-reconcile filesystem is exactly 12 JSON files under
+deleted. The expected post-reconcile filesystem is exactly 13 JSON files under
 the seven catalogue folders. A legitimate No Data result for intermittent
 Factory/dbt executions remains a dashboard/query concern and is not altered
 by this provisioning repair.
@@ -67,7 +67,7 @@ chart catalogue the operational interface.
 
 This change disables only dashboard ConfigMaps from the two charts. Prometheus,
 Loki, Tempo and Alloy metrics, ServiceMonitors, recording rules and alerts stay
-enabled. Twelve versioned ConfigMaps become the GitOps catalogue:
+enabled. Thirteen versioned ConfigMaps become the GitOps catalogue:
 
 | Folder | Dashboard | UID | Decision |
 | --- | --- | --- | --- |
@@ -80,11 +80,12 @@ enabled. Twelve versioned ConfigMaps become the GitOps catalogue:
 | 40 — Software Factory | Factory Operations | `factory-operations` | new observed factory-platform operations view |
 | 40 — Software Factory | Factory Performance | `factory-performance` | new view using existing CI/merge/collection metrics |
 | 40 — Software Factory | Factory Optio | `factory-optio` | later addition (PLT-528): read-only view of the Optio API metrics (queue, tasks, duration, tokens, estimated cost) |
+| 40 — Software Factory | Agentgateway | `agentgateway` | later addition (PLT-536): read-only view of the model consumption through the gateway (tokens per API key and per day, tokens per model, estimated cost, rate of 429) |
 | 50 — Data Platform | dbt V2 Operations | `factory-data-platform-v2` | preserve existing UID and split quality concerns |
 | 50 — Data Platform | Data Quality | `data-quality` | new dbt test/freshness/publication-gate view |
 | 90 — Advanced Diagnostics | Prometheus & Scrape Diagnostics | `9fa0d141-d019-4ad7-8bc5-42196ee308bd` | preserve useful Prometheus Overview URL |
 
-The first eleven are the operational target. The twelfth is intentionally an
+The first twelve are the operational target. The thirteenth is intentionally an
 advanced diagnostic view, not another landing page.
 
 ## Keep / merge / advanced / disable matrix
@@ -132,6 +133,22 @@ gateway (Agentgateway) remains the source of truth for the tokens and the recap
 comment of the ticket in Linear for the billed cost. The runtime check after
 the merge is therefore: the dashboard appears in Grafana and its panels 1 to
 3 carry data.
+
+Agentgateway (PLT-536) is the second exception: it reads the `agentgateway_*`
+metrics of the gateway itself (namespace `agentgateway`), served on `/metrics`
+(port 15020, `STATS_ADDR` default of the deployed v1.6.0) and scraped since
+PLT-536 by the PodMonitor `agentgateway`. The gateway emits no per-key label of
+its own: `api_key` is the custom metric field that the repository declares in
+the gateway configuration (`config.metrics.fields.add` -> `apiKey.name`), which
+resolves to the name of the key (`optio`, `pr-triage`, ...) and never to the
+secret. The cost panel is an estimation computed from the tokens with the
+tariff written in the first panel of the dashboard, marked as an estimation and
+not an invoice: `agentgateway_gen_ai_client_cost_usd_total` needs a model cost
+catalog that this installation does not configure, so it stays empty, and the
+MiniMax credential is a Token Plan subscription whose tokens have no marginal
+cost (0 USD/M). The runtime check after the merge is therefore: the dashboard
+appears in Grafana, its token panels carry data after a real run through the
+gateway, and the estimated cost agrees with the tokens it displays.
 
 The pre-merge Prometheus audit evaluated 81 unique PromQL expressions (94
 panel usages): there were no query errors. Before the blackbox relabel fix,
@@ -185,5 +202,5 @@ Before merging, verify the four preserved UIDs and the replacement rendering in
 Grafana. After merge, verify `infra-monitoring-prometheus-stack` is `Synced/Healthy`, the
 Grafana rollout is complete, the sidecar reports `NAMESPACE=monitoring` and
 `METHOD=SLEEP`, the provisioning directory has no root-level retired files,
-and the authenticated Grafana API exposes exactly 12 curated views in seven
+and the authenticated Grafana API exposes exactly 13 curated views in seven
 folders. A route returning HTTP 302 alone is not dashboard validation.

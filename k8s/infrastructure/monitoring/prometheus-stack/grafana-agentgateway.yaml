@@ -1,0 +1,388 @@
+# PLT-536: read-only Grafana dashboard of the model consumption through the
+# Agentgateway gateway.
+#
+# The panels read the Prometheus metrics of the gateway itself (agentgateway_*),
+# served by the deployed Agentgateway v1.6.0 on /metrics (STATS_ADDR, default
+# 0.0.0.0:15020) and scraped from the namespace `agentgateway` by the
+# PodMonitor `agentgateway` (k8s/infrastructure/monitoring/scrape-targets/).
+#
+# The metric names and the labels are the ones the deployed version really
+# emits (crates/agentgateway/src/telemetry/metrics.rs of the v1.6.0 sources):
+# the token histogram `agentgateway_gen_ai_client_token_usage` (labels
+# gen_ai_token_type, gen_ai_operation_name, gen_ai_system, gen_ai_request_model,
+# gen_ai_response_model, bind, gateway, listener, route, route_rule) and the
+# request counter `agentgateway_requests_total` (label status).
+#
+# `api_key` is not a native label of the gateway: it is the custom metric field
+# that the repository declares in the gateway configuration
+# (config.metrics.fields.add -> apiKey.name). The contract test
+# (tests/harness/grafana-dashboard-contract-test.sh) refuses any other metric
+# or label.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-agentgateway-dashboard
+  namespace: monitoring
+  annotations:
+    grafana_folder: "40 — Software Factory"
+  labels:
+    grafana_dashboard: "1"
+data:
+  agentgateway.json: |
+    {
+      "uid": "agentgateway",
+      "title": "Agentgateway",
+      "description": "Model consumption through the Agentgateway gateway: tokens per API key per day, tokens per model, estimated cost and rate of 429 responses.",
+      "tags": [
+        "platform",
+        "observability"
+      ],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "1m",
+      "time": {
+        "from": "now-24h",
+        "to": "now"
+      },
+      "editable": false,
+      "links": [
+        {
+          "title": "Factory Optio",
+          "type": "link",
+          "url": "/d/factory-optio",
+          "targetBlank": false
+        },
+        {
+          "title": "Platform Overview",
+          "type": "link",
+          "url": "/d/homeops-operations",
+          "targetBlank": false
+        },
+        {
+          "title": "Explore Prometheus",
+          "type": "link",
+          "url": "/explore?orgId=1",
+          "targetBlank": true
+        }
+      ],
+      "panels": [
+        {
+          "id": 1,
+          "type": "text",
+          "title": "Scope, sources and limits",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**Scope.** Prometheus metrics of the Agentgateway gateway (v1.6.0, the version deployed in the namespace `agentgateway`), scraped every 60 s on the pod endpoint `/metrics` (port 15020, `STATS_ADDR` default) by the PodMonitor `agentgateway`.\n\n**Source of the metrics.** The token family is `agentgateway_gen_ai_client_token_usage` (a histogram: `_sum`, `_count`, `_bucket`), the request counter is `agentgateway_requests_total`. The gateway emits no per-key label of its own: `api_key` is the custom metric field that this repository declares in the gateway configuration (`config.metrics.fields.add` -> `api_key: apiKey.name`), so it holds the `metadata.name` of the API key (`optio`, `pr-triage`, `incident-sentinel`, `hindsight-personal`, `librechat`, `gpt-researcher`), never the secret.\n\n**Tariff of the estimate (USD per million tokens).**\n\n| Model | Input | Output | Cache read |\n| --- | --- | --- | --- |\n| `claude-opus-5-5` (alias `code/frontier`) | 4 USD/M | 20 USD/M | 0.20 USD/M |\n| MiniMax `MiniMax-M3`, `MiniMax-M3.1-Flash` (aliases `text/fast`, `text/strong`, `text/research`) | 0 USD/M | 0 USD/M | 0 USD/M |\n\n**Limits.**\n- The cost panel is an estimation computed from the tokens with the tariff above, not an invoice. The gateway cannot price these calls itself: `agentgateway_gen_ai_client_cost_usd_total` needs a model cost catalog, which this installation does not configure, so that metric stays empty.\n- The MiniMax credential is a Token Plan subscription without a pay-as-you-go fallback: its tokens carry no marginal cost, hence 0 USD/M. The subscription itself is a fixed price, outside this dashboard.\n- The Claude API rates are the list price of `claude-opus-5-5`; this dashboard does not follow a change of that price.\n- The estimation covers the `input`, `output` and `input_cache_read` token types. The `input_cache_write` type is not priced here.\n- `gen_ai_request_model` holds the model the gateway was asked for: the alias (`code/frontier`) or the provider model (`claude-opus-5-5`). The cost panel accepts both.\n- The panel of the tokens per key is a rolling 24 h window: each point is the last day of consumption of that key.\n- The 429 counter is the status code returned to the client: it covers the rate limits and the budget blocks (`optio-daily-usd`, `optio-daily-tokens`)."
+          }
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Tokens per API key per day (input / output)",
+          "description": "Tokens consumed through the gateway during the last 24 h, by API key and by direction.",
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (api_key, gen_ai_token_type) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|output\"}[1d]))",
+              "legendFormat": "{{api_key}} {{gen_ai_token_type}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "Tokens per model (input / output)",
+          "description": "Tokens consumed during the selected period, by model asked to the gateway and by direction.",
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|output\"}[$__range_s]))",
+              "legendFormat": "{{gen_ai_request_model}} {{gen_ai_token_type}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Estimated cost per model (estimation, not an invoice)",
+          "description": "Cost estimated from the tokens with the tariff written in the first panel (USD per million tokens).",
+          "gridPos": {
+            "x": 0,
+            "y": 16,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 4 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} input"
+            },
+            {
+              "refId": "B",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"output\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 20 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} output"
+            },
+            {
+              "refId": "C",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 0.2 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} cache read"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "Rate of 429 responses",
+          "description": "Requests answered with a 429 by the gateway (rate limits and budget blocks), by API key, and all the requests for comparison.",
+          "gridPos": {
+            "x": 12,
+            "y": 16,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (api_key) (rate(agentgateway_requests_total{status=\"429\"}[$__rate_interval]))",
+              "legendFormat": "{{api_key}}"
+            },
+            {
+              "refId": "B",
+              "expr": "sum(rate(agentgateway_requests_total[$__rate_interval]))",
+              "legendFormat": "all requests"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "id": 6,
+          "type": "stat",
+          "title": "Tokens over the selected period",
+          "description": "Every token type counted by the gateway during the selected period.",
+          "gridPos": {
+            "x": 0,
+            "y": 24,
+            "w": 8,
+            "h": 5
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(increase(agentgateway_gen_ai_client_token_usage_sum[$__range_s]))",
+              "instant": true,
+              "legendFormat": "tokens"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value",
+            "graphMode": "none"
+          }
+        },
+        {
+          "id": 7,
+          "type": "stat",
+          "title": "Estimated cost over the selected period (estimation)",
+          "description": "Estimation computed from the tokens with the tariff written in the first panel.",
+          "gridPos": {
+            "x": 8,
+            "y": 24,
+            "w": 8,
+            "h": 5
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 4 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"output\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 20 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 0.2 / 1000000",
+              "instant": true,
+              "legendFormat": "estimated cost"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value",
+            "graphMode": "none"
+          }
+        },
+        {
+          "id": 8,
+          "type": "stat",
+          "title": "429 responses over the selected period",
+          "description": "Requests answered with a 429 by the gateway during the selected period.",
+          "gridPos": {
+            "x": 16,
+            "y": 24,
+            "w": 8,
+            "h": 5
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(increase(agentgateway_requests_total{status=\"429\"}[$__range_s]))",
+              "instant": true,
+              "legendFormat": "429 responses"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "No data",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value",
+            "graphMode": "none"
+          }
+        }
+      ]
+    }
