@@ -368,7 +368,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 6
           resources:
-            requests: {cpu: 25m, memory: 192Mi}
+            requests: {cpu: 25m, memory: 96Mi}
             limits: {cpu: "1", memory: 768Mi}
           securityContext:
             runAsNonRoot: true
