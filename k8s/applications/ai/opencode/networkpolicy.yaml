@@ -1,8 +1,10 @@
 # PLT-392 : deny ingress par defaut ; seul le port web 5003 est joignable depuis la Gateway/hote.
 # playwright-mcp (8931) et opencode (127.0.0.1) restent en loopback du pod, non concernes.
 # PLT-567 : le reverse proxy KEDA (namespace keda) devient la porte d'entree du trafic
-# applicatif ; il doit pouvoir joindre le port 5003. Selection par namespace : le chart
-# http-add-on n'est pas fige dans Git (helmCharts), un libelle de pod ne l'est pas.
+# applicatif ; il doit pouvoir joindre le port 5003. Meme selecteur que les autres
+# applications du perimetre KEDA HTTP (searxng, trilium, gpt-researcher) : le namespace
+# seul admet tous les pods du namespace keda (operateur KEDA, metrics server, webhooks),
+# pas seulement le proxy qui relaie le trafic.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata: { name: opencode-web, namespace: opencode }
@@ -17,6 +19,8 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: keda
+            app.kubernetes.io/name: http-add-on
+            app.kubernetes.io/component: interceptor
       toPorts:
         - ports:
             - { protocol: TCP, port: "5003" }

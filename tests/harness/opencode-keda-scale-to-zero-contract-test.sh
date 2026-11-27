@@ -97,7 +97,14 @@ if grep -l '^kind: ReferenceGrant$' "$app"/*.yaml >/dev/null 2>&1; then
 fi
 
 # ------------------------------------------------------------------ 5. le proxy keda doit pouvoir joindre le port 5003
-yq -o=json '.' "$app/networkpolicy.yaml" | jq -e '[.spec.ingress[]? | select(any(.fromEndpoints[]?; .matchLabels["k8s:io.kubernetes.pod.namespace"] == "keda"))
+# Meme selecteur que les autres applications du perimetre KEDA HTTP (searxng, trilium,
+# gpt-researcher) : le namespace seul admet tous les pods du namespace keda (operateur
+# KEDA, metrics server, webhooks...), pas seulement le proxy qui relaie le trafic.
+yq -o=json '.' "$app/networkpolicy.yaml" | jq -e '[.spec.ingress[]?
+  | select(any(.fromEndpoints[]?;
+      .matchLabels["k8s:io.kubernetes.pod.namespace"] == "keda"
+      and .matchLabels["app.kubernetes.io/name"] == "http-add-on"
+      and .matchLabels["app.kubernetes.io/component"] == "interceptor"))
   | .toPorts[]?.ports[]? | select((.port | tostring) == "5003")] | length > 0' >/dev/null ||
   fail "reason=proxy_keda_not_allowed_on_5003 file=$app/networkpolicy.yaml"
 
