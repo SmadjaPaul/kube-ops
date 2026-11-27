@@ -1,0 +1,50 @@
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: searxng
+  namespace: searxng
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  target:
+    service: searxng
+    port: 80
+  rules:
+    - hosts:
+        - search.smadja.dev
+        # gpt-researcher appelle SearXNG en cluster : il doit traverser le proxy KEDA
+        # pour reveiller l'application a zero (PLT-564). Un appel direct au Service
+        # ne sollicite jamais le ScaledObject (cf. d809576c, c9b1d712).
+        - keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local
+  scalingMetric:
+    concurrency:
+      targetValue: 10
+  coldStart:
+    maxPendingRequests: 100
+  timeouts:
+    # PLT-564 : 120 s de cold start (l'application a zero se leve), et une reponse
+    # plus large que le 15 s du pilote it-tools : une recherche agrege plusieurs
+    # moteurs et peut depasser 15 s.
+    readiness: 120s
+    responseHeader: 60s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: searxng
+  namespace: searxng
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: searxng
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 300
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.keda:9090
+        interceptorRoute: searxng

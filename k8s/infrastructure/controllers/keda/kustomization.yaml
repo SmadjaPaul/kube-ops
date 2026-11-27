@@ -4,6 +4,8 @@ resources:
   - namespace.yaml
   - pocket-tts-referencegrant.yaml
   - it-tools-referencegrant.yaml
+  - searxng-referencegrant.yaml
+  - trilium-referencegrant.yaml
   - sure-referencegrant.yaml
   - romm-referencegrant.yaml
 helmCharts:

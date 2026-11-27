@@ -1284,6 +1284,149 @@ expect_rc "$dir" 0 jq16-closure
 expect_counter "$dir" closed 1 jq16-closure
 cases=$((cases + 1))
 
+# --- 21. PLT-573 : le dépôt website refuse le merge par un agent -------------
+
+WEBSITE="https://github.com/smadjapaul/website"
+
+# Le dépôt website fait partie des dépôts configurés dans Optio.
+website_repos() {
+  jq --arg w "$WEBSITE" '.repos += [{id: "repo-4", repoUrl: $w, fullName: "smadjapaul/website"}]' \
+    "$1/optio-repos.json" >"$1/optio-repos.tmp"
+  mv "$1/optio-repos.tmp" "$1/optio-repos.json"
+}
+
+# Travaux du dépôt website : une tâche de ticket et sa PR.
+website_tasks() {
+  jq -n --arg website "$WEBSITE" '
+    def task($id; $title; $state): {id: $id, title: $title, state: $state,
+      repoUrl: $website, prUrl: "", prNumber: null, prChecksStatus: "", retryCount: 0,
+      createdAt: "2026-01-01T01:00:00.000Z", completedAt: "2026-01-01T01:30:00.000Z"};
+    def own($n): . + {prNumber: $n,
+      prUrl: ("https://github.com/smadjapaul/website/pull/" + ($n | tostring))};
+    '"$2" >"$1/optio-tasks.json"
+}
+
+# PR ouverte du dépôt website, dans la liste d'Optio.
+open_website_pr() {
+  jq --arg repo "$WEBSITE" --argjson n "$2" --arg title "$3" --argjson draft "$4" \
+    '.pullRequests += [{number: $n, title: $title, draft: $draft,
+       url: ("https://github.com/SmadjaPaul/website/pull/" + ($n | tostring)),
+       headSha: "cccc3333dddd", createdAt: "2026-01-01T01:10:00Z",
+       repo: {repoUrl: $repo}}]' "$1/optio-prs.json" >"$1/optio-prs.tmp"
+  mv "$1/optio-prs.tmp" "$1/optio-prs.json"
+}
+
+# État d'une PR du dépôt website : la route qui le sert passe devant les autres.
+website_status() {
+  jq -n --arg state "$3" --arg checks "$4" --argjson mergeable "${5:-true}" \
+    '{prState: $state, checksStatus: $checks, mergeable: $mergeable, headSha: "cccc3333dddd"}' \
+    >"$1/status-website-$2.json"
+  add_route "$1" "website%2Fpull%2F$2" "status-website-$2.json"
+}
+
+# Un ticket du dépôt website : la consigne ouvre la PR, la rend verte et ne
+# merge pas.
+dir="$(setup_case website-ticket linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+set_repo "$dir" website
+website_repos "$dir"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 website-ticket
+expect_counter "$dir" created 1 website-ticket
+expect_counter "$dir" errors 0 website-ticket
+body="$(body_of "$dir" "/api/tasks")"
+jq -e --arg repo "$WEBSITE" '.repoUrl == $repo' <<<"$body" >/dev/null ||
+  fail "reason=unexpected_repo_url case=website-ticket body=$body"
+grep -Fq "tu ne merges pas" <<<"$body" ||
+  fail "reason=missing_no_merge_consigne case=website-ticket"
+grep -Fq "gh pr merge" <<<"$body" &&
+  fail "reason=merge_consigne case=website-ticket"
+cases=$((cases + 1))
+
+# Une PR verte du dépôt website n'est pas reprise : le ticket attend le merge
+# d'un humain, et un seul commentaire le dit.
+dir="$(new_case website-green)"
+website_tasks "$dir" '[task("w98"; "[PLT-552] travail"; "pr_opened") | own(98)]'
+open_website_pr "$dir" 98 "feat: travail (PLT-552)" false
+website_status "$dir" 98 open passing
+followup "$dir" started none
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 website-green
+expect_counter "$dir" resumed 0 website-green
+expect_counter "$dir" notices 1 website-green
+expect_posts "$dir" "/api/tasks" 0 website-green
+expect_writes "$dir" 1 0 website-green
+grep -l 'mutation OptioNote' "$dir"/body.[0-9]* | xargs grep -Fq "PR prête, merge attendu" ||
+  fail "reason=missing_ready_comment case=website-green"
+grep -l 'mutation OptioNote' "$dir"/body.[0-9]* | xargs grep -Fq "website/pull/98" ||
+  fail "reason=missing_ready_link case=website-green"
+# Le passage en essai dit pourquoi la PR n'est pas reprise.
+jq -e 'any(.skipped[]; .reason | test("merge attend un humain"))' <<<"$(actions_of "$dir")" >/dev/null ||
+  fail "reason=missing_ready_skip case=website-green actions=$(actions_of "$dir")"
+cases=$((cases + 1))
+
+# Le commentaire n'est écrit qu'une fois : le passage suivant se tait.
+dir="$(new_case website-green-once)"
+website_tasks "$dir" '[task("w98"; "[PLT-552] travail"; "pr_opened") | own(98)]'
+open_website_pr "$dir" 98 "feat: travail (PLT-552)" false
+website_status "$dir" 98 open passing
+followup "$dir" started none "optio-dispatch, PR prête, merge attendu : website#98"
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 website-green-once
+expect_counter "$dir" notices 0 website-green-once
+expect_writes "$dir" 0 0 website-green-once
+cases=$((cases + 1))
+
+# CI en échec : une reprise, dont la consigne ne merge pas.
+dir="$(new_case website-red)"
+website_tasks "$dir" '[task("w98"; "[PLT-552] travail"; "pr_opened") | own(98)]'
+open_website_pr "$dir" 98 "feat: travail (PLT-552)" false
+website_status "$dir" 98 open failing
+followup "$dir" started none
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 website-red
+expect_counter "$dir" resumed 1 website-red
+expect_counter "$dir" notices 0 website-red
+body="$(body_of "$dir" "/api/tasks")"
+grep -Fq "tu ne merges pas" <<<"$body" ||
+  fail "reason=missing_no_merge_resume case=website-red"
+grep -Fq "gh pr merge" <<<"$body" &&
+  fail "reason=merge_consigne case=website-red"
+cases=$((cases + 1))
+
+# Conflit : une reprise, elle aussi sans merge.
+dir="$(new_case website-conflict)"
+website_tasks "$dir" '[task("w98"; "[PLT-552] travail"; "pr_opened") | own(98)]'
+open_website_pr "$dir" 98 "feat: travail (PLT-552)" false
+website_status "$dir" 98 open passing false
+followup "$dir" started none
+run_dispatch "$dir" --apply
+expect_rc "$dir" 0 website-conflict
+expect_counter "$dir" resumed 1 website-conflict
+expect_counter "$dir" notices 0 website-conflict
+cases=$((cases + 1))
+
+# Consigne sans merge absente : aucune tâche, aucune reprise, erreur comptée.
+dir="$(setup_case website-no-consigne linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
+set_repo "$dir" website
+website_repos "$dir"
+sed 's/^Consigne SANS-MERGE :$/Consigne ABSENTE :/' "$intake" >"$dir/intake-old.md"
+run_dispatch "$dir" --apply --instructions "$dir/intake-old.md"
+expect_rc "$dir" 1 website-no-consigne
+expect_posts "$dir" "/api/tasks" 0 website-no-consigne
+cases=$((cases + 1))
+
+# Consigne de reprise sans merge absente : la reprise est écartée.
+dir="$(new_case website-no-resume-consigne)"
+website_tasks "$dir" '[task("w98"; "[PLT-552] travail"; "pr_opened") | own(98)]'
+open_website_pr "$dir" 98 "feat: travail (PLT-552)" false
+website_status "$dir" 98 open failing
+followup "$dir" started none
+sed 's/^Consigne REPRISE-SANS-MERGE :$/Consigne ABSENTE :/' "$intake" >"$dir/intake-old.md"
+run_dispatch "$dir" --apply --instructions "$dir/intake-old.md"
+expect_rc "$dir" 1 website-no-resume-consigne
+expect_posts "$dir" "/api/tasks" 0 website-no-resume-consigne
+cases=$((cases + 1))
+
 # --- 20. le script n'écrit pas dans le dépôt ----------------------------------
 
 snapshot_after="$(repo_snapshot)"

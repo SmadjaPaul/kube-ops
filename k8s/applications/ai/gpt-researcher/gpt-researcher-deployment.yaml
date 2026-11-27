@@ -53,8 +53,11 @@ spec:
               value: 'http://agentgateway.agentgateway.svc.cluster.local:4000/v1'
             - name: RETRIEVER
               value: 'searx'
+            # PLT-564 : l'appel en cluster passe par le proxy KEDA. Un appel direct
+            # au Service searxng echoue quand SearXNG est a zero (aucun endpoint) et
+            # ne sollicite jamais le ScaledObject : le cold start n'a pas lieu.
             - name: SEARX_URL
-              value: 'http://searxng.searxng.svc.cluster.local:80/'
+              value: 'http://keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local:8080/'
             - name: LOGGING_LEVEL
               value: 'INFO'
             # Environment variables take precedence over config.json for FastAPI requests
