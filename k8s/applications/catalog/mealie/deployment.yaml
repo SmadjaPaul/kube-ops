@@ -6,6 +6,7 @@ metadata:
   annotations:
     secret.reloader.stakater.com/reload: "mealie-runtime"
 spec:
+  # Replica count is controlled by the KEDA ScaledObject (minReplicaCount 0); do not pin it in GitOps.
   strategy:
     type: Recreate
   selector:

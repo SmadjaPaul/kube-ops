@@ -18,6 +18,7 @@ metadata:
   namespace: stirling-pdf
 spec:
   strategy: { type: Recreate }
+  # Replica count is controlled by the KEDA ScaledObject (minReplicaCount 0); do not pin it in GitOps.
   selector:
     matchLabels: { app.kubernetes.io/name: stirling-pdf }
   template:
@@ -123,8 +124,15 @@ spec:
     - { name: internal, namespace: gateway }
   hostnames: [pdf.smadja.dev]
   rules:
-    - backendRefs:
-        - { name: stirling-pdf, port: 80 }
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        # KEDA HTTP add-on: the interception proxy wakes the app (scale-to-zero) then relays.
+        - name: keda-add-ons-http-interceptor-proxy
+          namespace: keda
+          port: 8080
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -139,5 +147,10 @@ spec:
         - ports: [{ protocol: TCP, port: "8080" }]
     - fromEndpoints:
         - matchLabels: { k8s:io.kubernetes.pod.namespace: gateway }
+      toPorts:
+        - ports: [{ protocol: TCP, port: "8080" }]
+    # KEDA HTTP add-on: the interceptor (namespace keda) relays the request to the woken pod.
+    - fromEndpoints:
+        - matchLabels: { k8s:io.kubernetes.pod.namespace: keda }
       toPorts:
         - ports: [{ protocol: TCP, port: "8080" }]
