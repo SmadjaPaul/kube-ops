@@ -260,13 +260,19 @@ break_app bad-no-cnp-sure "$sure_root" sure sure sure.smadja.dev sure 80 3000 "s
 break_app bad-no-grant-romm "$romm_root" romm romm romm.smadja.dev romm 8080 8080 "romm" \
   mutate_no_grant romm "" ""
 
-# --- le test est branche sur la porte du depot ----------------------------------------------
-# Le contrat est un sous-check npm (`npm run check:keda-scale-to-zero`) : il tourne donc
-# dans `just check` comme dans le CI, qui execute `npm run check`.
+# --- le test est branche sur les deux portes du depot ---------------------------------------
+# Le contrat est un sous-check npm (`npm run check:keda-scale-to-zero`) : le CI, qui execute
+# `npm run check`, le joue. La porte locale (`just check` = `npm run check:local`) joue la
+# liste bash `scripts/check-bash-tests.list` : le test y est declare, et n'est pas rejoue
+# par le sous-check npm, donc une seule execution par porte.
 grep -q '"check:keda-scale-to-zero": "bash tests/harness/keda-scale-to-zero-contract-test.sh"' \
   "$repo_root/package.json" ||
   fail "le test n est pas branche sur check:keda-scale-to-zero (package.json)"
 [[ "$(jq -r '.scripts.check' "$repo_root/package.json")" == *"check:keda-scale-to-zero"* ]] ||
   fail "check:keda-scale-to-zero n est pas execute par npm run check (le CI ne le jouerait pas)"
+grep -qx 'tests/harness/keda-scale-to-zero-contract-test.sh' "$repo_root/scripts/check-bash-tests.list" ||
+  fail "le test n est pas declare dans scripts/check-bash-tests.list (just check ne le jouerait pas)"
+[[ "$(jq -r '.scripts["check:local"]' "$repo_root/package.json")" != *"check:keda-scale-to-zero"* ]] ||
+  fail "check:keda-scale-to-zero est joue deux fois par just check (liste bash et sous-check npm)"
 
 echo "KEDA_SCALE_TO_ZERO=PASS"
