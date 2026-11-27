@@ -61,6 +61,9 @@ readonly INFRA_RETRY_DELAY=1800
 readonly INFRA_ERROR_PATTERN='Timed out waiting for pod|Pod needs recovery|Pod is recovering'
 # Tâches de REPRISE d'une PR d'un autre dépôt : 3 au plus par PR, une par tête.
 readonly MAX_RESUMES=3
+# Dépôts dont le garde-fou refuse le merge par un agent (website, garde
+# agent-guard). L'agent y ouvre la PR et la rend verte ; le merge reste humain.
+readonly NO_MERGE_REPOS=(website)
 readonly NO_CHECKS_DELAY=900
 readonly NO_PR_PATTERN='did not open a pull request'
 readonly DEFAULT_SLOTS=5
@@ -112,6 +115,9 @@ correction_consigne=""
 consigne_suffix=""
 other_consigne=""
 resume_consigne=""
+nomerge_consigne=""
+resume_nomerge_consigne=""
+no_merge_json=""
 
 usage() {
   cat >&2 <<'USAGE'
@@ -128,6 +134,24 @@ die_usage() {
   warn "$*"
   usage
   exit 2
+}
+
+# Un dépôt dont le garde-fou refuse le merge par un agent : l'agent y ouvre la
+# PR et la rend verte, le merge reste humain.
+is_no_merge_repo() {
+  local name repo
+  name="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')"
+  for repo in "${NO_MERGE_REPOS[@]}"; do
+    if [ "$name" = "$repo" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# La même liste, en minuscules, pour jq.
+load_no_merge_repos() {
+  no_merge_json="$(printf '%s\n' "${NO_MERGE_REPOS[@]}" | jq -Rn '[inputs | ascii_downcase]')"
 }
 
 # --- entrées -----------------------------------------------------------------
@@ -511,7 +535,9 @@ JQ
 }
 
 # La CI est relue pour chaque PR candidate : des checks en attente interdisent
-# la reprise (le passage suivant reviendra).
+# la reprise (le passage suivant reviendra). Une PR d'un dépôt sans merge n'est
+# reprise que pour corriger la CI ou un conflit ; verte, elle attend le merge
+# d'un humain et son ticket est prévenu une seule fois.
 plan_resumes() {
   if ! build_resume_candidates; then
     warn "the pull requests to resume could not be listed"
@@ -520,22 +546,41 @@ plan_resumes() {
   fi
   : >"$work_dir/resumes.ndjson"
   : >"$work_dir/resume-skips.ndjson"
-  local entry reason
+  : >"$work_dir/resume-ready.ndjson"
+  local entry reason state repo
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
+    repo="$(jq -r '.repo // ""' <<<"$entry")"
     reason="$(jq -r '.skip // ""' <<<"$entry")"
     if [ -z "$reason" ]; then
       if ! pr_status "$(jq -r '.prUrl' <<<"$entry")"; then
         reason="état de la PR illisible"
       else
-        reason="$(jq -r --argjson entry "$entry" --argjson wait "$NO_CHECKS_DELAY" '
+        state="$(jq -r --argjson entry "$entry" --argjson wait "$NO_CHECKS_DELAY" '
           (try ($entry.createdAt | sub("\\.[0-9]+"; "") | fromdateiso8601) catch null) as $c
-          | if .prState != "open" then "PR fermée ou mergée"
-            elif .mergeable == false then ""
-            elif .checksStatus == "pending" then "CI en cours"
+          | if .prState != "open" then "closed"
+            elif .mergeable == false then "conflict"
+            elif .checksStatus == "pending" then "pending"
+            elif .checksStatus == "failing" then "failing"
             elif .checksStatus == "none" and $c != null and (now - $c) < $wait then
-              "aucun check encore publié"
-            else "" end' "$work_dir/pr-status.json")"
+              "waiting"
+            elif .checksStatus == "passing" then "green"
+            else "no-ci" end' "$work_dir/pr-status.json")"
+        case "$state" in
+          closed) reason="PR fermée ou mergée";;
+          conflict | failing) reason="";;
+          pending) reason="CI en cours";;
+          waiting) reason="aucun check encore publié";;
+          green | no-ci)
+            # Un dépôt sans merge : la PR n'est jamais reprise pour être mergée.
+            # Elle attend le merge d'un humain, prévenu sur le ticket.
+            if is_no_merge_repo "$repo"; then
+              jq -c --arg state "$state" '. + {ci: $state}' <<<"$entry" \
+                >>"$work_dir/resume-ready.ndjson"
+              continue
+            fi
+            ;;
+        esac
       fi
     fi
     if [ -z "$reason" ]; then
@@ -546,10 +591,12 @@ plan_resumes() {
   done < <(jq -c '.candidates[]' "$work_dir/resume-candidates.json")
   jq -n --slurpfile eligible "$work_dir/resumes.ndjson" \
     --slurpfile skips "$work_dir/resume-skips.ndjson" \
+    --slurpfile ready "$work_dir/resume-ready.ndjson" \
     --slurpfile found "$work_dir/resume-candidates.json" '
     {matched: $found[0].matched,
      eligible: ($eligible | sort_by(.prUrl)),
      skipped: ($skips | map({id: .key, reason: .skip})),
+     ready: ($ready | sort_by(.prUrl)),
      blocked: ($skips | map(select(.blocked == true)
                | {identifier, key, prUrl, reason: .skip}))}' >"$work_dir/resumes.json"
 }
@@ -870,7 +917,8 @@ plan_followups() {
     --slurpfile resumes "$work_dir/resumes.json" \
     --slurpfile retries "$work_dir/retries.json" \
     --arg q "$linear_followup_query" '
-    ([$closures[0][], $resumes[0].blocked[], $retries[0].blocked[] | .identifier | ascii_upcase]
+    ([$closures[0][], $resumes[0].blocked[], $resumes[0].ready[], $retries[0].blocked[]
+      | .identifier | ascii_upcase]
      | unique | .[0:30]) as $ids
     | if ($ids | length) == 0 then empty else
         {query: $q, variables: {filter: {"or":
@@ -884,7 +932,7 @@ plan_followups() {
 
   jq --slurpfile resumes "$work_dir/resumes.json" --slurpfile retries "$work_dir/retries.json" -n \
     --slurpfile issues "$work_dir/followup.json" '
-    [$resumes[0].blocked[], $retries[0].blocked[]
+    ([$resumes[0].blocked[], $retries[0].blocked[]
      | . as $b
      | ($issues[0][] | select(.identifier == ($b.identifier | ascii_upcase))) as $i
      | select($i.state.type != "completed" and $i.state.type != "canceled")
@@ -893,7 +941,18 @@ plan_followups() {
      | {identifier: $i.identifier, issueId: $i.id, key: $b.key,
         body: ($marker + " : " + $b.reason + ". "
                + (if $b.prUrl != "" then "PR : " + $b.prUrl + ". " else "" end)
-               + "Le dispatch ne fera plus rien seul : geste humain attendu.")}]' \
+               + "Le dispatch ne fera plus rien seul : geste humain attendu.")}]
+    + [$resumes[0].ready[]?
+     | . as $r
+     | ($issues[0][] | select(.identifier == ($r.identifier | ascii_upcase))) as $i
+     | select($i.state.type != "completed" and $i.state.type != "canceled")
+     | ("optio-dispatch, PR prête, merge attendu : " + $r.repo + "#" + ($r.prNumber | tostring)) as $marker
+     | select(any($i.comments.nodes[]?; (.body // "") | contains($marker)) | not)
+     | {identifier: $i.identifier, issueId: $i.id, key: ($r.repo + "#" + ($r.prNumber | tostring)),
+        body: ($marker + " : " + $r.prUrl + ". "
+               + (if $r.ci == "green" then "Les checks de la CI sont verts."
+                  else "Aucun check de CI publié : rien à corriger dans la PR." end)
+               + " Le merge attend un humain : le dépôt refuse le merge par un agent.")}])' \
     >"$work_dir/notices.json"
 
   : >"$work_dir/closures.ndjson"
@@ -997,11 +1056,12 @@ download_instructions() {
   download_to "$GITHUB_RAW_BASE/$INSTRUCTIONS_PATH" "$1"
 }
 
-# Le fichier des consignes contient six passages délimités : la consigne de
+# Le fichier des consignes contient huit passages délimités : la consigne de
 # code (entre guillemets, après « puis : »), les consignes REVUE, CORRECTION,
-# AUTRE-DEPOT et REPRISE (entre <<< et >>>), et la phrase à ajouter à la fin de
-# la revue et de la correction. La consigne REPRISE manquante n'écarte que les
-# reprises de PR.
+# AUTRE-DEPOT, SANS-MERGE, REPRISE et REPRISE-SANS-MERGE (entre <<< et >>>), et
+# la phrase à ajouter à la fin de la revue et de la correction. Les consignes
+# REPRISE et SANS-MERGE manquantes n'écartent que les reprises de PR et les
+# tâches des dépôts sans merge.
 extract_consignes() {
   local source=$1
   cat >"$work_dir/extract.awk" <<'AWK'
@@ -1014,6 +1074,8 @@ extract_consignes() {
     /^[[:space:]]*Consigne REVUE[[:space:]]*:[[:space:]]*$/ { mode = "REVUE"; next }
     /^[[:space:]]*Consigne CORRECTION[[:space:]]*:[[:space:]]*$/ { mode = "CORRECTION"; next }
     /^[[:space:]]*Consigne AUTRE-DEPOT[[:space:]]*:[[:space:]]*$/ { mode = "OTHER"; next }
+    /^[[:space:]]*Consigne SANS-MERGE[[:space:]]*:[[:space:]]*$/ { mode = "SANSMERGE"; next }
+    /^[[:space:]]*Consigne REPRISE-SANS-MERGE[[:space:]]*:[[:space:]]*$/ { mode = "RESUMENOMERGE"; next }
     /^[[:space:]]*Consigne REPRISE[[:space:]]*:[[:space:]]*$/ { mode = "RESUME"; next }
     mode != "" && /^[[:space:]]*<<<[[:space:]]*$/ { section = mode; text = ""; mode = ""; next }
     section != "" && /^[[:space:]]*>>>[[:space:]]*$/ { emit(section, text); section = ""; text = ""; next }
@@ -1058,6 +1120,8 @@ AWK
   consigne_suffix=""
   other_consigne=""
   resume_consigne=""
+  nomerge_consigne=""
+  resume_nomerge_consigne=""
   local current="" line
   while IFS= read -r line; do
     case "$line" in
@@ -1067,6 +1131,8 @@ AWK
       "@@SUFFIX@@") current="suffix"; continue ;;
       "@@OTHER@@") current="other"; continue ;;
       "@@RESUME@@") current="resume"; continue ;;
+      "@@SANSMERGE@@") current="nomerge"; continue ;;
+      "@@RESUMENOMERGE@@") current="resumenomerge"; continue ;;
     esac
     case "$current" in
       code) code_instruction="${code_instruction:+$code_instruction }$line" ;;
@@ -1075,6 +1141,8 @@ AWK
       suffix) consigne_suffix="${consigne_suffix:+$consigne_suffix }$line" ;;
       other) other_consigne="${other_consigne:+$other_consigne }$line" ;;
       resume) resume_consigne="${resume_consigne:+$resume_consigne }$line" ;;
+      nomerge) nomerge_consigne="${nomerge_consigne:+$nomerge_consigne }$line" ;;
+      resumenomerge) resume_nomerge_consigne="${resume_nomerge_consigne:+$resume_nomerge_consigne }$line" ;;
     esac
   done <"$work_dir/consignes.txt"
   return 0
@@ -1199,7 +1267,9 @@ def sha8($s):
     cancellations: (($stale + ([$cancels[] | select(.id as $i | all($stale[]; .id != $i))]))
                     | map(select(.id as $i | all($closures[0][]; .taskId != $i)))),
     skipped: ((($d.skipped // []) | map({id: (.id // ""), reason: (.reason // "")}))
-              + $skip_existing + $skip_closed_pr + $R.skipped + $resumes[0].skipped)
+              + $skip_existing + $skip_closed_pr + $R.skipped + $resumes[0].skipped
+              + ($resumes[0].ready | map({id: (.repo + "#" + (.prNumber | tostring)),
+                                          reason: "PR prête : le merge attend un humain"})))
   }
 JQ
   jq -n --slurpfile decision "$work_dir/decision.json" \
@@ -1223,24 +1293,33 @@ JQ
 }
 
 # Les prompts sont ajoutés après le plan : les consignes ne sont téléchargées
-# que lorsqu'il y a une création à faire.
+# que lorsqu'il y a une création à faire. Un dépôt sans merge reçoit la
+# consigne qui interdit le merge, pour la tâche de ticket comme pour la reprise.
 build_prompts() {
   jq --arg code "$code_instruction" \
     --arg other "$other_consigne" \
+    --arg nomerge "$nomerge_consigne" \
     --arg rev "$review_consigne" \
     --arg corr "$correction_consigne" \
     --arg suffix "$consigne_suffix" \
-    --arg resume "$resume_consigne" '
+    --arg resume "$resume_consigne" \
+    --arg resumenomerge "$resume_nomerge_consigne" \
+    --argjson no_merge "$no_merge_json" '
     .resumes |= map(. as $s
-      | .prompt = ($resume | gsub("\\bN\\b(?![^ ,.;:)])"; ($s.prNumber | tostring))
+      | (if (($no_merge | index((($s.repo // "") | ascii_downcase))) != null)
+         then $resumenomerge else $resume end) as $consigne
+      | .prompt = ($consigne | gsub("\\bN\\b(?![^ ,.;:)])"; ($s.prNumber | tostring))
                    | split("IDENTIFIANT") | join($s.identifier)
                    | split("REPO") | join($s.repo)))
     | .tasks |= map(. as $t
+      | (if $t.main then $code
+         elif (($no_merge | index((($t.repo // "") | ascii_downcase))) != null) then $nomerge
+         else $other end) as $consigne
       | .prompt = ($t.identifier + "\n" + ($t.url // "") + "\n\n<ticket>\n"
                    + ($t.description // "") + "\n</ticket>\n\n"
                    + (if $t.main
-                      then ($code | split("(IDENTIFIANT)") | join("(" + $t.identifier + ")"))
-                      else ($other | split("IDENTIFIANT") | join($t.identifier)
+                      then ($consigne | split("(IDENTIFIANT)") | join("(" + $t.identifier + ")"))
+                      else ($consigne | split("IDENTIFIANT") | join($t.identifier)
                             | split("REPO") | join($t.repo))
                       end)))
     | .reviews |= map(. as $r
@@ -1596,6 +1675,7 @@ emit_output() {
 main() {
   parse_args "$@"
   check_environment
+  load_no_merge_repos
   work_dir="$(mktemp -d)"
   trap 'rm -rf "$work_dir"' EXIT
   acquire_lock
@@ -1640,6 +1720,32 @@ main() {
       warn "the instructions do not hold the resume passage: no pull request is resumed"
       errors=$((errors + 1))
       jq '.resumes = []' "$work_dir/plan.json" >"$work_dir/plan.tmp"
+      mv "$work_dir/plan.tmp" "$work_dir/plan.json"
+    fi
+    # Une tâche d'un dépôt sans merge a besoin de sa consigne : sans elle, le
+    # script n'envoie pas un agent qui pourrait merger par erreur.
+    if [ -z "$nomerge_consigne" ] && [ "$(jq --argjson no_merge "$no_merge_json" \
+      '[.tasks[] | select((((.repo // "") | ascii_downcase) as $r
+         | ($no_merge | index($r)) != null))] | length' \
+      "$work_dir/plan.json")" != "0" ]; then
+      warn "the instructions do not hold the no-merge passage: no ticket task is created"
+      errors=$((errors + 1))
+      jq --argjson no_merge "$no_merge_json" \
+        '.tasks |= map(select((((.repo // "") | ascii_downcase) as $r
+           | ($no_merge | index($r))) == null))' \
+        "$work_dir/plan.json" >"$work_dir/plan.tmp"
+      mv "$work_dir/plan.tmp" "$work_dir/plan.json"
+    fi
+    if [ -z "$resume_nomerge_consigne" ] && [ "$(jq --argjson no_merge "$no_merge_json" \
+      '[.resumes[] | select((((.repo // "") | ascii_downcase) as $r
+         | ($no_merge | index($r)) != null))] | length' \
+      "$work_dir/plan.json")" != "0" ]; then
+      warn "the instructions do not hold the no-merge resume passage: no pull request is resumed"
+      errors=$((errors + 1))
+      jq --argjson no_merge "$no_merge_json" \
+        '.resumes |= map(select((((.repo // "") | ascii_downcase) as $r
+           | ($no_merge | index($r))) == null))' \
+        "$work_dir/plan.json" >"$work_dir/plan.tmp"
       mv "$work_dir/plan.tmp" "$work_dir/plan.json"
     fi
     build_prompts
