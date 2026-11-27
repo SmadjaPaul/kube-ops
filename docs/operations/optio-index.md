@@ -7,6 +7,7 @@ Guides d'exploitation d'Optio dans `docs/operations/`, un par sujet :
 - [optio-capacite.md](optio-capacite.md) — plafonds d'agents simultanés, quotas du namespace, ordre pour lever une limite.
 - [optio-dispatch.md](optio-dispatch.md) — l'orchestrateur sans LLM : `scripts/optio/dispatch.sh`, mode essai par défaut, règles de création.
 - [optio-entretien.md](optio-entretien.md) — le CronJob `optio-secret-sync` : secrets privés et nettoyage des pods inactifs.
+- [optio-factory-report.md](optio-factory-report.md) — le rapport Markdown sans modèle de ce que chaque tâche a fait et de ce qu'elle demande.
 - [optio-gateway.md](optio-gateway.md) — travail privé par Agentgateway, vérification des journaux, retour arrière.
 - [optio-intake.md](optio-intake.md) — prise des tickets Linear par l'orchestrateur, configuration et limites.
 - [optio-review.md](optio-review.md) — revue et merge automatiques, ce qui bloque un merge, retour arrière.

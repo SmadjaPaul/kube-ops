@@ -1,0 +1,53 @@
+[
+  {
+    "id": "task-completed",
+    "title": "[PLT-540] Rapport sans modèle de ce que chaque tâche a fait",
+    "state": "completed",
+    "ticketExternalId": "PLT-540",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/2107",
+    "prNumber": 2107,
+    "prState": "open",
+    "prChecksStatus": "passing",
+    "resultSummary": "Le rapport rend une ligne par tâche et n'écrit jamais.",
+    "costUsd": "0.4210",
+    "inputTokens": 800,
+    "outputTokens": 434,
+    "modelUsed": "text/strong",
+    "errorMessage": null,
+    "retryCount": 0,
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:10:00.000Z"
+  },
+  {
+    "id": "task-attention",
+    "title": "[PLT-541] Ouvrir le web public aux pods d'agent",
+    "state": "needs_attention",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": "https://github.com/smadjapaul/kube-ops/pull/2106",
+    "prNumber": 2106,
+    "prState": "open",
+    "prChecksStatus": "failing",
+    "errorMessage": "ci_failing_needs_attention",
+    "retryCount": 0,
+    "createdAt": "2026-01-01T01:00:00.000Z",
+    "updatedAt": "2026-01-01T01:05:00.000Z"
+  },
+  {
+    "id": "task-failed",
+    "title": "[PLT-542] Corriger le rapport | valeurs manquantes",
+    "state": "failed",
+    "repoUrl": "https://github.com/smadjapaul/kube-ops",
+    "prUrl": null,
+    "prNumber": null,
+    "errorMessage": "agent_crashed",
+    "resultSummary": "Le rapport tronque le résumé du résultat au-delà de cent vingt caractères pour que la ligne reste lisible dans un tableau Markdown, et les champs absents sont affichés comme inconnus plutôt que comme zéro.",
+    "inputTokens": 800,
+    "outputTokens": null,
+    "costUsd": "0.0731",
+    "modelUsed": "text/strong",
+    "retryCount": 1,
+    "createdAt": "2026-01-01T02:00:00.000Z",
+    "updatedAt": "2026-01-01T02:05:00.000Z"
+  }
+]
