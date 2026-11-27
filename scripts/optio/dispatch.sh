@@ -266,7 +266,7 @@ linear_query='query OptioIntake {
       labels { nodes { name } }
       assignee { id name }
       relations(first: 50) { nodes { type relatedIssue { identifier state { type name } } } }
-      inverseRelations(first: 50) { nodes { type relatedIssue { identifier state { type name } } } }
+      inverseRelations(first: 50) { nodes { type issue { identifier state { type name } } } }
     }
   }
 }'

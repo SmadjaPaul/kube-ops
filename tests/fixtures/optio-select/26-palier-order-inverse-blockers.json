@@ -1,0 +1,194 @@
+{
+  "slots": 10,
+  "linear": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "PLT-201",
+            "title": "Tâche PLT-201",
+            "description": "Faire.\n\nDépôt: kube-ops\n",
+            "priority": 3,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-201",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                },
+                {
+                  "name": "J5"
+                }
+              ]
+            },
+            "assignee": null
+          },
+          {
+            "identifier": "PLT-202",
+            "title": "Tâche PLT-202",
+            "description": "Faire.\n\nDépôt: kube-ops\n",
+            "priority": 3,
+            "createdAt": "2026-01-02T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-202",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                },
+                {
+                  "name": "J2"
+                }
+              ]
+            },
+            "assignee": null
+          },
+          {
+            "identifier": "PLT-203",
+            "title": "Tâche PLT-203",
+            "description": "Faire.\n\nDépôt: kube-ops\n",
+            "priority": 3,
+            "createdAt": "2026-01-03T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-203",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                },
+                {
+                  "name": "J5"
+                }
+              ]
+            },
+            "assignee": null,
+            "relations": {
+              "nodes": [
+                {
+                  "type": "blocks",
+                  "relatedIssue": {
+                    "identifier": "PLT-300",
+                    "state": {
+                      "type": "backlog"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "identifier": "PLT-204",
+            "title": "Tâche PLT-204",
+            "description": "Faire.\n\nDépôt: kube-ops\n",
+            "priority": 2,
+            "createdAt": "2026-01-04T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-204",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "inverseRelations": {
+              "nodes": [
+                {
+                  "type": "blocks",
+                  "issue": {
+                    "identifier": "PLT-099",
+                    "state": {
+                      "type": "completed"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "identifier": "PLT-205",
+            "title": "Tâche PLT-205",
+            "description": "Faire.\n\nDépôt: kube-ops\n",
+            "priority": 1,
+            "createdAt": "2026-01-05T00:00:00.000Z",
+            "url": "https://linear.app/boule/issue/PLT-205",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "wip:optio"
+                }
+              ]
+            },
+            "assignee": null,
+            "inverseRelations": {
+              "nodes": [
+                {
+                  "type": "blocks",
+                  "issue": {
+                    "identifier": "PLT-098",
+                    "state": {
+                      "type": "started"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "work": {
+    "works": []
+  },
+  "expected": {
+    "create_tasks": [
+      {
+        "identifier": "PLT-204",
+        "name": "[PLT-204] Tâche PLT-204",
+        "title": "Tâche PLT-204",
+        "repo": "kube-ops",
+        "url": "https://linear.app/boule/issue/PLT-204",
+        "priority": 2,
+        "createdAt": "2026-01-04T00:00:00.000Z",
+        "description": "Faire.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-202",
+        "name": "[PLT-202] Tâche PLT-202",
+        "title": "Tâche PLT-202",
+        "repo": "kube-ops",
+        "url": "https://linear.app/boule/issue/PLT-202",
+        "priority": 3,
+        "createdAt": "2026-01-02T00:00:00.000Z",
+        "description": "Faire.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-203",
+        "name": "[PLT-203] Tâche PLT-203",
+        "title": "Tâche PLT-203",
+        "repo": "kube-ops",
+        "url": "https://linear.app/boule/issue/PLT-203",
+        "priority": 3,
+        "createdAt": "2026-01-03T00:00:00.000Z",
+        "description": "Faire.\n\nDépôt: kube-ops\n"
+      },
+      {
+        "identifier": "PLT-201",
+        "name": "[PLT-201] Tâche PLT-201",
+        "title": "Tâche PLT-201",
+        "repo": "kube-ops",
+        "url": "https://linear.app/boule/issue/PLT-201",
+        "priority": 3,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "description": "Faire.\n\nDépôt: kube-ops\n"
+      }
+    ],
+    "create_reviews": [],
+    "create_fixes": [],
+    "skipped": [
+      {
+        "id": "PLT-205",
+        "reason": "bloqué par un ticket non terminé : PLT-098"
+      }
+    ]
+  }
+}
