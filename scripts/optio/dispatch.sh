@@ -247,6 +247,9 @@ load_pi_release() {
   pi_admissions="$(jq -c '.admissions' <<<"$release")"
   no_merge_json="$(jq -c --argjson base "$no_merge_json" '($base + .prOnly) | unique' <<<"$release")"
   if [ "$apply_mode" = true ] && [ "$pi_admissions" != '{}' ]; then
+    # Une preuve unique ne couvre pas d'autres dépôts ou profils.
+    [ "$(jq 'length' <<<"$pi_admissions")" = 1 ] ||
+      die_usage "Pi canary apply admits exactly one repository per release"
     pi_evidence_task="$(jq -r '.proofTask' <<<"$release")"
     [ -n "$pi_evidence_task" ] ||
       die_usage "Pi apply requires a recorded Optio v0.26.4 runtime task"
@@ -432,16 +435,33 @@ check_pi_evidence() {
     api_error "Optio" "Pi canary: $HTTP_ERROR"
     return 1
   fi
-  if ! jq -e --arg id "$pi_evidence_task" --arg main "$repo_url" --argjson admit "$pi_admissions" '
+  local expected
+  if ! expected="$(jq -ce --arg id "$pi_evidence_task" --arg main "$repo_url" --argjson admit "$pi_admissions" '
     def norm: (ascii_downcase | sub("/+$"; "") | sub("\\.git$"; ""));
     ($main | norm | sub("[^/]+$"; "")) as $owner
     | .task
     | ((.repoUrl // "") | norm) as $repo
-    | .id == $id and .type == "repo-task" and .agentType == "pi"
+    | (.id == $id and .type == "repo-task" and .agentType == "pi"
       and (.state == "pr_opened" or .state == "completed")
       and ($repo | startswith($owner) and ($admit[ltrimstr($owner)] != null))
+      and ((.prUrl // "" | ascii_downcase) | startswith($repo + "/pull/")))
+    | if . then $admit[$repo | ltrimstr($owner)] else empty end
+  ' "$HTTP_BODY" 2>/dev/null)"; then
+    api_error "Optio" "Pi canary is not a successful repository task with a detected PR in the release"
+    return 1
+  fi
+  if ! http_request GET "$api_url/api/tasks/$pi_evidence_task/logs?search=FACTORY_PI_EVIDENCE&limit=100" "$work_dir/optio-headers"; then
+    api_error "Optio" "Pi canary evidence: $HTTP_ERROR"
+    return 1
+  fi
+  if ! jq -e --arg id "$pi_evidence_task" --argjson expected "$expected" '
+    (.logs | type) == "array" and any(.logs[];
+      (.content // "" | select(startswith("FACTORY_PI_EVIDENCE="))
+       | ltrimstr("FACTORY_PI_EVIDENCE=") | fromjson?)
+      | .type == "factory_run" and .status == "completed" and .run_id == $id
+        and .profile == $expected.profile and .bundle_ref == $expected.bundle)
   ' "$HTTP_BODY" >/dev/null 2>&1; then
-    api_error "Optio" "Pi canary is not a successful repository task in the release"
+    api_error "Optio" "Pi canary runtime bundle/profile evidence missing or mismatched"
     return 1
   fi
 }
@@ -769,7 +789,7 @@ plan_retries() {
     [ -n "$entry" ] || continue
     id="$(jq -r '.id' <<<"$entry")"
     count=-1
-    # Le bridge Pi ne reprend pas encore de session existante.
+    # La reprise Pi native existe mais le retry reste désactivé avant preuve runtime.
     if [ "$(jq -r '.agentType' <<<"$entry")" != pi ]; then
       if ! http_request GET "$api_url/api/tasks/$id/events" "$work_dir/optio-headers"; then
         api_error "Optio" "$HTTP_ERROR"
@@ -793,7 +813,7 @@ plan_retries() {
                wait: (if .limit then $delay elif .infra then $infra_delay else 0 end)}
         | (.failedAt | age) as $age
         | . + {skip:
-            (if .agentType == "pi" then "reprise Pi non disponible : session à examiner"
+            (if .agentType == "pi" then "reprise Pi non qualifiée : session à examiner"
              elif .events < 0 then "historique des reprises illisible"
              elif .count >= .ceiling then
                "reprise au plafond : " + (.count | tostring) + " reprises déjà faites"
@@ -1483,7 +1503,7 @@ retry_blocked_reason() {
     return 0
   fi
   if [ "$(jq -r '.agentType // ""' <<<"$task")" = pi ]; then
-    printf '%s' "reprise Pi non disponible : session à examiner"
+    printf '%s' "reprise Pi non qualifiée : session à examiner"
     return 0
   fi
   state="$(jq -r '(.state // "") | ascii_downcase' <<<"$task")"

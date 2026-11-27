@@ -842,15 +842,25 @@ pi_release_fixture agent-harness | jq '.pi.evidence = {
 OPTIO_PI_CREDENTIAL_ID="" run_dispatch "$dir" --apply --pi-release "$dir/release.json"
 expect_rc "$dir" 2 pi-credential-missing
 expect_posts "$dir" "/api/tasks" 0 pi-credential-missing
+printf 'GET /api/tasks/00000000-0000-4000-8000-000000000001/logs?search=FACTORY_PI_EVIDENCE&limit=100 evidence.json\n' >>"$dir/routes.tsv"
 printf 'GET /api/tasks/00000000-0000-4000-8000-000000000001 proof.json\n' >>"$dir/routes.tsv"
 jq -n --arg repo "$HARNESS" '{task: {id: "00000000-0000-4000-8000-000000000001",
-  type: "repo-task", repoUrl: $repo, agentType: "claude-code", state: "completed"}}' >"$dir/proof.json"
+  type: "repo-task", repoUrl: $repo, agentType: "claude-code", state: "completed",
+  prUrl: ($repo | sub("\\.git$"; "") | . + "/pull/107")}}' >"$dir/proof.json"
+printf '%s\n' '{"logs":[]}' >"$dir/evidence.json"
 OPTIO_PI_CREDENTIAL_ID=00000000-0000-4000-8000-000000000002 \
   run_dispatch "$dir" --apply --pi-release "$dir/release.json"
 expect_rc "$dir" 1 pi-proof-invalid
 expect_posts "$dir" "/api/tasks" 0 pi-proof-invalid
 jq '.task.agentType = "pi"' "$dir/proof.json" >"$dir/proof.tmp"
 mv "$dir/proof.tmp" "$dir/proof.json"
+OPTIO_PI_CREDENTIAL_ID=00000000-0000-4000-8000-000000000002 \
+  run_dispatch "$dir" --apply --pi-release "$dir/release.json"
+expect_rc "$dir" 1 pi-proof-no-runtime-log
+expect_posts "$dir" "/api/tasks" 0 pi-proof-no-runtime-log
+jq -n --arg bundle "$(jq -r '.pi.bundles.harness' "$dir/release.json")" '
+  {logs: [{content: ("FACTORY_PI_EVIDENCE=" + ({type: "factory_run", status: "completed",
+     run_id: "00000000-0000-4000-8000-000000000001", profile: "harness", bundle_ref: $bundle} | tojson))}]}' >"$dir/evidence.json"
 OPTIO_PI_CREDENTIAL_ID=00000000-0000-4000-8000-000000000002 \
   run_dispatch "$dir" --apply --pi-release "$dir/release.json"
 expect_rc "$dir" 0 pi-apply
@@ -890,7 +900,7 @@ run_dispatch "$dir" --apply
 expect_rc "$dir" 0 pi-no-retry
 expect_counter "$dir" retried 0 pi-no-retry
 expect_posts "$dir" "/retry" 0 pi-no-retry
-jq -e 'any(.skipped[]; .reason | contains("reprise Pi non disponible"))' \
+jq -e 'any(.skipped[]; .reason | contains("reprise Pi non qualifiée"))' \
   <<<"$(actions_of "$dir")" >/dev/null || fail "reason=pi_retry_skip_missing"
 cases=$((cases + 1))
 

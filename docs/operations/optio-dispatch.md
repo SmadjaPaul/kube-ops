@@ -84,7 +84,11 @@ Le planificateur accepte un fichier local `--pi-release`. Il part de l'export
 L'essai à blanc détaille `agentType: "pi"`, profil, image et bundle des tâches admises. En mode écriture, une
 release invalide, une preuve absente ou un `OPTIO_PI_CREDENTIAL_ID` absent arrêtent le passage avant tout appel
 réseau. Avant toute écriture, le dispatcher relit le UUID auprès d'Optio : la tâche du même espace doit utiliser Pi,
-viser un dépôt admis et être dans l'état `pr_opened` ou `completed`. Le dispatcher envoie
+viser l'unique dépôt admis, être dans l'état `pr_opened` ou `completed` et avoir une PR détectée. Le dispatcher
+relit également le journal `FACTORY_PI_EVIDENCE` via l'API Optio et exige le même identifiant de tâche, profil et
+digest de bundle. Une preuve unique ne permet pas d'admettre plusieurs dépôts. Le digest de l'image réellement
+chargée reste une preuve externe à relever depuis `status.containerStatuses[].imageID` du pod ; l'API de tâche
+Optio ne fournit pas cette attestation. Le dispatcher envoie
 `agentType: "pi"`, `metadata.agentOptions.piModel` et
 `metadata.agentOptions.credential: "secret:<id>"` à l'API Optio. `autoMerge` et `autoResume` restent à
 `false`, et `maxRetries` vaut `0`. La session Pi ouvre une PR sans la fusionner. Pi reçoit les mêmes alias
@@ -122,8 +126,9 @@ L'export Atlas peut ajouter des exceptions de merge humain, y compris pour les t
    plan du dispatch sans `--apply` avec l'état réel avant la première écriture.
 
 Les nouvelles revues, corrections CI et reprises de PR restent sur Claude. Les reprises d'une tâche Claude
-consomment le même ID d'Optio. Les tâches Pi en échec restent visibles pour traitement explicite, car le bridge
-ne reprend pas les sessions `--session-id`. Vider `pi.admit` ou retirer `--pi-release` remet les nouvelles
+consomment le même ID d'Optio. Les tâches Pi en échec restent visibles pour traitement explicite : le bridge accepte désormais `--session-id`
+et conserve la session Pi dans le répertoire Git administratif du worktree, mais le retry planifié reste désactivé
+jusqu'à une preuve de reprise sur Optio réel. Vider `pi.admit` ou retirer `--pi-release` remet les nouvelles
 tâches sur Claude sans conversion des tâches existantes. Une image antérieure peut être rétablie une fois
 les tâches Pi en cours terminées. Aucun preset ou réglage du travail planifié n'est changé par ce raccord.
 
