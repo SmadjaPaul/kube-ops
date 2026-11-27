@@ -51,6 +51,23 @@ ni revue ni correction : elles ont les reprises et les clôtures décrites plus 
 ([optio-intake.md](optio-intake.md)) : l'agent merge lui-même sa PR, sauf les exceptions qu'elle liste. Cette
 règle n'est portée que par la consigne : le script ne contrôle ni le diff ni le merge.
 
+## Dépôts sans merge (PLT-573)
+
+Un dépôt dont le garde-fou refuse le merge par un agent (`website`, garde `agent-guard`) est une exception : la
+liste `NO_MERGE_REPOS` du script le nomme. L'agent y **ouvre la PR, la rend verte et ne merge pas** :
+
+* la tâche de ticket reçoit la consigne SANS-MERGE ([optio-intake.md](optio-intake.md)) au lieu de la consigne
+  AUTRE-DEPOT ;
+* une PR n'est reprise que pour corriger la CI ou un conflit (consigne REPRISE-SANS-MERGE) ; une PR verte n'est
+  jamais reprise pour être mergée ;
+* une PR verte et sans conflit fait l'objet d'un seul commentaire sur le ticket, « PR prête, merge attendu », avec
+  le lien de la PR. Le commentaire porte la marque `optio-dispatch, PR prête, merge attendu : <dépôt>#<n>` : le
+  passage suivant relit les commentaires du ticket et se tait. Le ticket n'est pas changé d'état : la fusion
+  GitHub de Linear le ferme au merge, comme pour les autres dépôts.
+
+Une consigne absente des instructions (fichier de `docs/operations/optio-intake.md` trop ancien) fait échouer le
+passage : aucune tâche d'un dépôt sans merge n'est créée, l'erreur est comptée.
+
 ## Places
 
 Seuls les travaux qui consomment un agent comptent : `pending`, `queued`, `provisioning`, `running` et tout état
@@ -93,7 +110,9 @@ nouvelles revues, nouvelles corrections, reprises de ticket, nouveaux tickets.
    historique lisible, aucune reprise. L'état de la tâche et des PR est relu avant la reprise.
 7. **Les consignes** — recopiées mot pour mot depuis `docs/operations/optio-intake.md` : la consigne de code
    (avec `(IDENTIFIANT)` remplacé par l'identifiant du ticket), la consigne REVUE, la consigne CORRECTION, la
-   consigne AUTRE-DEPOT, la consigne REPRISE et la phrase de fin. Le fichier est lu quand `--instructions` le donne,
+   consigne AUTRE-DEPOT, la consigne REPRISE, la consigne SANS-MERGE, la consigne REPRISE-SANS-MERGE et la
+   phrase de fin. La consigne dépend du dépôt : un dépôt sans merge reçoit SANS-MERGE (ou REPRISE-SANS-MERGE)
+   au lieu d'AUTRE-DEPOT (ou REPRISE). Le fichier est lu quand `--instructions` le donne,
    sinon téléchargé depuis `main` par `raw.githubusercontent.com` (hors quota de l'API GitHub) ; il n'est
    téléchargé que s'il y a au moins une création à faire.
 8. **Le modèle** — `text/strong`, ou `code/frontier` si le ticket porte le label `agent:opus`.
@@ -111,7 +130,9 @@ enregistré, une PR dont le titre porte `(IDENTIFIANT)` ou `[IDENTIFIANT]`, cré
 * `GET /api/pull-requests/status` relit la CI. Checks en attente (ou aucun check depuis moins de 15 min) : rien.
   PR en brouillon : rien.
 * Sinon le script crée `[REPRISE <dépôt>#N <sha8> k]` avec la consigne REPRISE : corriger sur la branche, ou
-  merger quand tout est vert, avec les mêmes exceptions que la consigne AUTRE-DEPOT.
+  merger quand tout est vert, avec les mêmes exceptions que la consigne AUTRE-DEPOT. Un dépôt sans merge
+  (`website`) n'est pas repris pour être mergé : une PR verte et sans conflit n'y donne aucune reprise, elle
+  donne un commentaire sur le ticket (« PR prête, merge attendu »).
 * Plafond : 3 reprises par PR et une seule par tête (une reprise en échec est retentée après 60 min). Au plafond, ou
   quand une reprise a laissé la PR ouverte sur la même tête, le ticket reçoit un commentaire, une seule fois.
 * Une reprise terminée sans PR est annulée : elle ne reste pas dans « Needs you ».
@@ -176,7 +197,10 @@ tête de PR (nouvelle revue), tâche échouée (une reprise, puis le plafond), �
 lectures, erreur d'API (code de retour non nul, erreur comptée dans le compte rendu), consignes recopiées,
 secret jamais dans la sortie ni dans la ligne de commande, un seul passage à la fois, la compatibilité
 jq 1.6 et, pour PLT-560, les reprises de PR (plafond, tête, CI en attente), les clôtures (Done, « Part of »,
-écriture Linear refusée), les pannes de pod et le repli GitHub.
+écriture Linear refusée), les pannes de pod et le repli GitHub. Pour PLT-573 : la consigne d'un dépôt sans merge
+(« tu ne merges pas », jamais `gh pr merge`), l'absence de reprise sur une PR verte, le commentaire unique
+« PR prête, merge attendu » (et son absence au passage suivant), la reprise sur CI en échec ou conflit, et le
+refus de créer une tâche ou une reprise quand la consigne manque dans les instructions.
 
 ## Limites acceptées
 
