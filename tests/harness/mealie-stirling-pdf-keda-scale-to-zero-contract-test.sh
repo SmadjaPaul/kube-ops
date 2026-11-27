@@ -13,6 +13,9 @@
 #      nombre de replicas, sinon Argo CD remet le Deployment a 1 et le scale-to-zero est perdu ;
 #   6. la CiliumNetworkPolicy de l'app autorise l'intercepteur (namespace keda) sur le port que
 #      le pod ecoute : sinon la policy bloque la requete avant meme que l'app ne demarre.
+#      Seuls les pods de l'intercepteur sont admis (labels du chart keda-add-ons-http) :
+#      un selecteur plus large (namespace keda seul) est refuse, comme le contrat de la
+#      vague 1 (tests/harness/keda-scale-to-zero-contract-test.sh).
 #
 # Lecture seule : aucun acces cluster, aucun secret, aucune ecriture dans le depot. Le rendu passe
 # par le cache partage (scripts/lib/render-cache.sh), comme les autres controles.
@@ -61,12 +64,16 @@ for entry in "${apps[@]}"; do
       end' <<<"$docs")"
   [[ $pod_port =~ ^[0-9]+$ ]] || fail "$app : port du pod introuvable (Service $service:$svc_port)"
 
-  check() { # <json> <message> <filtre jq>
+  jq_ok() { # <json> <filtre jq> : vrai si le filtre passe
     jq -e --arg ns "$ns" --arg app "$app" --arg service "$service" --arg host "$host" \
       --arg readiness "$readiness" --arg proxy "$proxy_service" --arg scaler "$scaler_address" \
       --argjson svc_port "$svc_port" --argjson proxy_port "$proxy_port" --argjson pod_port "$pod_port" \
       --argjson cooldown "$cooldown_period" --argjson min_replicas "$min_replicas" \
-      "$3" >/dev/null <<<"$1" || fail "$app : $2"
+      "$2" >/dev/null <<<"$1"
+  }
+
+  check() { # <json> <message> <filtre jq>
+    jq_ok "$1" "$3" || fail "$app : $2"
   }
 
   # 1. InterceptorRoute -------------------------------------------------------------------------
@@ -133,11 +140,29 @@ for entry in "${apps[@]}"; do
      | ($d.spec.replicas // null)==null'
 
   # 6. la CiliumNetworkPolicy ouvre l'intercepteur sur le port du pod ----------------------------
-  check "$docs" "la CiliumNetworkPolicy doit autoriser l'intercepteur (namespace keda) sur le port $pod_port" \
-    '([.[] | select(.kind=="CiliumNetworkPolicy" and .metadata.namespace==$ns)] | .[0]) as $c
+  #    Le selecteur vise les pods de l'intercepteur (labels du chart keda-add-ons-http) :
+  #    un selecteur plus large (namespace keda seul) est refuse, comme en vague 1.
+  cnp_filter='([.[] | select(.kind=="CiliumNetworkPolicy" and .metadata.namespace==$ns)] | .[0]) as $c
      | any($c.spec.ingress[]?;
-           any(.fromEndpoints[]?; (.matchLabels // {})["k8s:io.kubernetes.pod.namespace"]=="keda")
+           any(.fromEndpoints[]?;
+               (.matchLabels // {})["k8s:io.kubernetes.pod.namespace"]=="keda"
+               and (.matchLabels // {})["app.kubernetes.io/name"]=="http-add-on"
+               and (.matchLabels // {})["app.kubernetes.io/component"]=="interceptor")
            and any(.toPorts[]?.ports[]?; (.port|tostring)==($pod_port|tostring)))'
+  check "$docs" "la CiliumNetworkPolicy doit autoriser l'intercepteur (namespace keda) sur le port $pod_port" \
+    "$cnp_filter"
+
+  # variante cassee : un selecteur plus large (namespace keda seul) doit etre refuse
+  broad="$(jq --arg ns "$ns" '
+    [.[] | if .kind=="CiliumNetworkPolicy" and .metadata.namespace==$ns
+           then .spec.ingress = [ (.spec.ingress // [])[] | .fromEndpoints = [ (.fromEndpoints // [])[] |
+                   if ((.matchLabels // {})["k8s:io.kubernetes.pod.namespace"]=="keda")
+                   then .matchLabels = {"k8s:io.kubernetes.pod.namespace":"keda"}
+                   else . end ] ]
+           else . end]' <<<"$docs")"
+  if jq_ok "$broad" "$cnp_filter"; then
+    fail "$app : un selecteur large (namespace keda seul) ne doit pas etre admis"
+  fi
 done
 
 echo "KEDA_SCALE_TO_ZERO=PASS apps=${#apps[@]} minReplicaCount=$min_replicas cooldownPeriod=$cooldown_period"
