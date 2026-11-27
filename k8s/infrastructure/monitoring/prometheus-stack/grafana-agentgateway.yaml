@@ -79,7 +79,7 @@ data:
           },
           "options": {
             "mode": "markdown",
-            "content": "**Scope.** Prometheus metrics of the Agentgateway gateway (v1.6.0, the version deployed in the namespace `agentgateway`), scraped every 60 s on the pod endpoint `/metrics` (port 15020, `STATS_ADDR` default) by the PodMonitor `agentgateway`.\n\n**Source of the metrics.** The token family is `agentgateway_gen_ai_client_token_usage` (a histogram: `_sum`, `_count`, `_bucket`), the request counter is `agentgateway_requests_total`. The gateway emits no per-key label of its own: `api_key` is the custom metric field that this repository declares in the gateway configuration (`config.metrics.fields.add` -> `api_key: apiKey.name`), so it holds the `metadata.name` of the API key (`optio`, `pr-triage`, `incident-sentinel`, `hindsight-personal`, `librechat`, `gpt-researcher`), never the secret.\n\n**Tariff of the estimate (USD per million tokens).**\n\n| Model | Input | Output | Cache read |\n| --- | --- | --- | --- |\n| `claude-opus-5-5` (alias `code/frontier`) | 4 USD/M | 20 USD/M | 0.20 USD/M |\n| MiniMax `MiniMax-M3`, `MiniMax-M3.1-Flash` (aliases `text/fast`, `text/strong`, `text/research`) | 0 USD/M | 0 USD/M | 0 USD/M |\n\n**Limits.**\n- The cost panel is an estimation computed from the tokens with the tariff above, not an invoice. The gateway cannot price these calls itself: `agentgateway_gen_ai_client_cost_usd_total` needs a model cost catalog, which this installation does not configure, so that metric stays empty.\n- The MiniMax credential is a Token Plan subscription without a pay-as-you-go fallback: its tokens carry no marginal cost, hence 0 USD/M. The subscription itself is a fixed price, outside this dashboard.\n- The Claude API rates are the list price of `claude-opus-5-5`; this dashboard does not follow a change of that price.\n- The estimation covers the `input`, `output` and `input_cache_read` token types. The `input_cache_write` type is not priced here.\n- `gen_ai_request_model` holds the model the gateway was asked for: the alias (`code/frontier`) or the provider model (`claude-opus-5-5`). The cost panel accepts both.\n- The panel of the tokens per key is a rolling 24 h window: each point is the last day of consumption of that key.\n- The 429 counter is the status code returned to the client: it covers the rate limits and the budget blocks (`optio-daily-usd`, `optio-daily-tokens`)."
+            "content": "**Scope.** Prometheus metrics of the Agentgateway gateway (v1.6.0, the version deployed in the namespace `agentgateway`), scraped every 60 s on the pod endpoint `/metrics` (port 15020, `STATS_ADDR` default) by the PodMonitor `agentgateway`.\n\n**Source of the metrics.** The token family is `agentgateway_gen_ai_client_token_usage` (a histogram: `_sum`, `_count`, `_bucket`), the request counter is `agentgateway_requests_total`. The gateway emits no per-key label of its own: `api_key` is the custom metric field that this repository declares in the gateway configuration (`config.metrics.fields.add` -> `api_key: apiKey.name`), so it holds the `metadata.name` of the API key (`optio`, `pr-triage`, `incident-sentinel`, `hindsight-personal`, `librechat`, `gpt-researcher`), never the secret.\n\n**Tariff of the estimate (USD per million tokens).**\n\n| Model | Input | Output | Cache read |\n| --- | --- | --- | --- |\n| `claude-opus-5-5` (alias `code/frontier`) | 4 USD/M | 20 USD/M | 0.20 USD/M |\n| `MiniMax-M3` (aliases `text/strong`, `text/research`) | 0.30 USD/M | 1.20 USD/M | 0.06 USD/M |\n| `MiniMax-M3.1-Flash` (alias `text/fast`) | 0.15 USD/M | 0.60 USD/M | 0.015 USD/M |\n\n**Sources of the tariff.** The catalogue of the repository is `k8s/applications/platform/agentgateway/cost-catalog.yaml`; the contract test `tests/harness/agentgateway-cost-catalog-test.sh` refuses a routed model without a tariff and a tariff different from the one applied below.\n- MiniMax: <https://platform.minimax.io/docs/pricing/overview> (official pricing page, consulted on 2026-11-27). Standard tier, \"Permanent 50% off\" prices, API `api.minimax.io` (international platform).\n- Anthropic: <https://platform.claude.com/docs/en/about-claude/pricing> (public price of `claude-opus-5-5`, consulted on 2026-11-27).\n\n**Limits.**\n- The cost panel is an estimation computed from the tokens with the tariff above, not an invoice. The gateway cannot price these calls itself: `agentgateway_gen_ai_client_cost_usd_total` needs a model cost catalog, which this installation does not configure, so that metric stays empty.\n- The MiniMax credential is a subscription (Token Plan): the marginal price of a token is zero for the subscriber, so the MiniMax figures are an estimation at the public tariff, not a charge. The subscription itself is a fixed price, outside this dashboard.\n- Above 512k input tokens, MiniMax doubles its rates: `MiniMax-M3` is then billed 0.60 USD/M input, 2.40 USD/M output and 0.12 USD/M cache read. The token metric does not carry the size of the context, so the estimate keeps the tier of 512k tokens or less.\n- The tariff is a snapshot: this dashboard does not follow a change of these prices.\n- The estimation covers the `input`, `output` and `input_cache_read` token types. The `input_cache_write` type is not priced here.\n- `gen_ai_request_model` holds the model the gateway was asked for: the alias (`code/frontier`, `text/strong`, `text/fast`) or the provider model (`claude-opus-5-5`, `MiniMax-M3`). The cost panel accepts both.\n- The panel of the tokens per key is a rolling 24 h window: each point is the last day of consumption of that key.\n- The 429 counter is the status code returned to the client: it covers the rate limits and the budget blocks (`optio-daily-usd`, `optio-daily-tokens`)."
           }
         },
         {
@@ -192,7 +192,37 @@ data:
             },
             {
               "refId": "C",
-              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 0.2 / 1000000",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 0.20 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} cache read"
+            },
+            {
+              "refId": "D",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input\",gen_ai_request_model=~\"text/strong|text/research|MiniMax-M3\"}[$__range_s])) * 0.30 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} input"
+            },
+            {
+              "refId": "E",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"output\",gen_ai_request_model=~\"text/strong|text/research|MiniMax-M3\"}[$__range_s])) * 1.20 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} output"
+            },
+            {
+              "refId": "F",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"text/strong|text/research|MiniMax-M3\"}[$__range_s])) * 0.06 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} cache read"
+            },
+            {
+              "refId": "G",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input\",gen_ai_request_model=~\"text/fast|MiniMax-M3.1-Flash\"}[$__range_s])) * 0.15 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} input"
+            },
+            {
+              "refId": "H",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"output\",gen_ai_request_model=~\"text/fast|MiniMax-M3.1-Flash\"}[$__range_s])) * 0.60 / 1000000",
+              "legendFormat": "{{gen_ai_request_model}} output"
+            },
+            {
+              "refId": "I",
+              "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"text/fast|MiniMax-M3.1-Flash\"}[$__range_s])) * 0.015 / 1000000",
               "legendFormat": "{{gen_ai_request_model}} cache read"
             }
           ],
@@ -320,7 +350,7 @@ data:
           "targets": [
             {
               "refId": "A",
-              "expr": "sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 4 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"output\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 20 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 0.2 / 1000000",
+              "expr": "sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 4 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"output\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 20 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"code/frontier|claude-opus-5-5\"}[$__range_s])) * 0.20 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input\",gen_ai_request_model=~\"text/strong|text/research|MiniMax-M3\"}[$__range_s])) * 0.30 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"output\",gen_ai_request_model=~\"text/strong|text/research|MiniMax-M3\"}[$__range_s])) * 1.20 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"text/strong|text/research|MiniMax-M3\"}[$__range_s])) * 0.06 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input\",gen_ai_request_model=~\"text/fast|MiniMax-M3.1-Flash\"}[$__range_s])) * 0.15 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"output\",gen_ai_request_model=~\"text/fast|MiniMax-M3.1-Flash\"}[$__range_s])) * 0.60 / 1000000 + sum(increase(agentgateway_gen_ai_client_token_usage_sum{gen_ai_token_type=\"input_cache_read\",gen_ai_request_model=~\"text/fast|MiniMax-M3.1-Flash\"}[$__range_s])) * 0.015 / 1000000",
               "instant": true,
               "legendFormat": "estimated cost"
             }

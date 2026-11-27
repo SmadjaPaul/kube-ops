@@ -1,0 +1,66 @@
+# PLT-568 : catalogue des tarifs publics des modeles routes par la passerelle Agentgateway.
+#
+# Une entree par modele fournisseur de `config.llm.models`
+# (k8s/applications/platform/agentgateway/resources.yaml) : le tarif public du fournisseur, la
+# source de ce tarif et la date de consultation. Le tableau Grafana « Agentgateway »
+# (k8s/infrastructure/monitoring/prometheus-stack/grafana-agentgateway.yaml) applique ces tarifs ;
+# le contrat (tests/harness/agentgateway-cost-catalog-test.sh) refuse un modele route sans tarif,
+# un tarif sans source, et un tarif du tableau different de celui du catalogue.
+#
+# Les taux sont ecrits comme le fournisseur les publie (chaine, pas nombre) : le tableau, la
+# documentation et le test portent alors la meme valeur, sans arrondi.
+#
+# Perimetre : les modeles de texte (`config.llm.models`). Les routes de capacite (audio, image,
+# video) ne sont pas facturees au jeton : elles ne produisent pas la metrique de jetons du
+# tableau, donc elles n'ont pas de tarif par million de jetons.
+#
+# L'identite de la passerelle est un abonnement MiniMax (Token Plan) : le cout marginal d'un
+# jeton y est nul pour l'abonne. Les taux MiniMax ci-dessous servent donc a l'estimation au
+# tarif public, pas a une facture.
+catalog:
+  - model: claude-opus-5-5
+    aliases:
+      - code/frontier
+    usd_per_million_tokens:
+      input: "4"
+      output: "20"
+      cache_read: "0.20"
+    source:
+      url: https://platform.claude.com/docs/en/about-claude/pricing
+      retrieved: "2026-11-27"
+      tier: api
+  - model: MiniMax-M3
+    aliases:
+      - text/strong
+      - text/research
+    usd_per_million_tokens:
+      input: "0.30"
+      output: "1.20"
+      cache_read: "0.06"
+    source:
+      url: https://platform.minimax.io/docs/pricing/overview
+      retrieved: "2026-11-27"
+      tier: standard
+      condition: "<= 512k input tokens"
+      note: >-
+        Prix « Permanent 50% off » de la page (le prix barré est le tarif plein) ; l'API
+        utilisee par la passerelle est api.minimax.io (plateforme internationale).
+    # Au-dela de 512k jetons d'entree, MiniMax double les trois taux. La metrique de jetons
+    # ne porte pas la taille du contexte : l'estimation du tableau garde le palier <= 512k.
+    long_context:
+      condition: "> 512k input tokens"
+      usd_per_million_tokens:
+        input: "0.60"
+        output: "2.40"
+        cache_read: "0.12"
+  - model: MiniMax-M3.1-Flash
+    aliases:
+      - text/fast
+    usd_per_million_tokens:
+      input: "0.15"
+      output: "0.60"
+      cache_read: "0.015"
+    source:
+      url: https://platform.minimax.io/docs/pricing/overview
+      retrieved: "2026-11-27"
+      tier: standard
