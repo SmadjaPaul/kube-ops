@@ -38,7 +38,7 @@ grep -qx 'tests/harness/opencode-keda-scale-to-zero-contract-test.sh' "$bash_lis
 # one <kind> <expression> <file> : la valeur doit etre unique dans le fichier.
 one() {
   local kind=$1 expr=$2 file=$3 value
-  value="$(yq eval-all --no-doc "select(.kind == '$kind') | $expr" "$file")"
+  value="$(yq eval-all --no-doc "select(.kind == \"$kind\") | $expr" "$file")"
   [[ "$(printf '%s\n' "$value" | grep -c . || true)" == 1 ]] || fail "reason=expected_one_$kind file=$file"
   printf '%s\n' "$value"
 }
