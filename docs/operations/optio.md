@@ -41,6 +41,8 @@ Le NetworkPolicy du chart est **désactivé** (additivité Cilium : l'activer an
 | `optio-oidc` | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` |
 | `optio-admins` | `OPTIO_DEPLOYMENT_ADMINS` |
 | `optio-github-app` | `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY` |
+| `optio-llm-pi` | `OPENAI_API_KEY` (clé virtuelle Agentgateway `optio-pi`, générée dans le cluster) |
+| `optio-ghcr-pull` | `.dockerconfigjson` (lecture GHCR, clé Doppler `APP_FACTORY_ARC_GHCR_READ_TOKEN`) |
 
 Mot de passe DB : secret `pg-optio` (namespace `databases`), généré dans le cluster (T1, `CreatedOnce`, `Orphan`).
 

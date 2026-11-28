@@ -60,6 +60,7 @@ rules:
       - llm-arc-runners-agent-harness
       - llm-arc-runners-agent-harness--sentinel   # PLT-453: incident-sentinel source (incident-sentinel-key.yaml)
       - llm-optio   # PLT-339: Optio source (optio-key.yaml)
+      - llm-optio--pi   # PLT-542: Optio Pi tasks source (optio-pi-key.yaml)
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

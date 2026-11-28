@@ -263,6 +263,22 @@ data:
                   window:
                     rolling: 24h
                   onBudgetExceeded: Block
+            # PLT-542: Optio repository tasks that run the Pi harness (optio-pi-key.yaml). One alias,
+            # text/strong (MiniMax): no paid Claude API, so no USD budget.
+            - key: "$OPTIO_PI_AGENTGATEWAY_KEY"
+              metadata:
+                name: optio-pi
+                owner: optio
+              allowedModels:
+                - text/strong
+              budgets:
+                - name: optio-pi-daily-tokens
+                  limit:
+                    unit: Tokens
+                    amount: 5000000
+                  window:
+                    rolling: 24h
+                  onBudgetExceeded: Block
       models:
         # PLT-496: capability aliases. Consumers call a capability, never a provider model name; the model
         # behind each alias lives only here. No factory/* alias remains (PLT-496).
@@ -328,7 +344,7 @@ spec:
       # Bump when the config or envFrom secret contract changes so the
       # process starts with the current runtime configuration.
       annotations:
-        checksum/agentgateway-runtime: optio-v4
+        checksum/agentgateway-runtime: optio-pi-v1
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -354,6 +370,8 @@ spec:
             - secretRef: {name: llm-arc-runners-agent-harness--sentinel}
             # PLT-339: generated key of the optio consumer (optio-key.yaml).
             - secretRef: {name: llm-optio}
+            # PLT-542: generated key of the optio-pi consumer (optio-pi-key.yaml).
+            - secretRef: {name: llm-optio--pi}
             # PLT-339: Claude API key of the code/frontier upstream (secrets.yaml, created by Paul).
             # optional: a missing Doppler key must never stop the gateway for its other consumers.
             - secretRef: {name: agentgateway-anthropic, optional: true}

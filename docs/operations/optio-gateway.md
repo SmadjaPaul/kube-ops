@@ -20,6 +20,25 @@ Ne jamais écrire, afficher ni committer une valeur de secret (clé, jeton, en-t
 
 **Comportement non documenté par Optio amont : à revérifier à chaque mise à jour d'Optio.**
 
+## Tâches Pi : clé `optio-pi` (PLT-542)
+
+- Clé virtuelle `optio-pi` (`k8s/applications/platform/agentgateway/optio-pi-key.yaml`), générée dans le
+  cluster. Alias admis : `text/strong` seul. Budget : 5 000 000 tokens par 24 h, blocage au dépassement.
+  `code/frontier` est refusé : un ticket `agent:opus` reste sur Claude Code.
+- `optio-secret-sync` l'écrit dans la ligne privée `OPENAI_API_KEY` (le nom que le sélecteur de
+  credential Pi d'Optio 0.26.4 accepte). Le journal du Job donne `credential=secret:<uuid>` : cet
+  identifiant n'est pas un secret. C'est la valeur de `metadata.agentOptions.credential`, et son UUID est
+  `OPTIO_PI_CREDENTIAL_ID` pour le dispatcher.
+- Toute tâche Pi doit envoyer ce `credential`. Sans lui, Optio donne à Pi toutes les clés de fournisseur
+  qu'il trouve.
+- Ne pas lancer de tâche Codex ou OpenCode pour cet utilisateur : elle prendrait la même ligne
+  `OPENAI_API_KEY` et l'enverrait à un hôte public.
+- La connexion privée de la passerelle s'applique à tous les agents si son affectation n'a pas de filtre :
+  la clé `optio` est alors aussi dans l'environnement du run Pi. Le lanceur Pi ne la transmet pas au
+  harnais. **NON VÉRIFIÉ** : le filtre actuel de l'affectation.
+- Retour arrière : revert du commit, puis suppression de la ligne privée `OPENAI_API_KEY` dans Optio
+  (le revert seul la laisse en place).
+
 ## Vérification
 
 1. Dernier Job : `bash scripts/kubectl-ro.sh logs -n optio job/<job>` doit montrer trois lignes
