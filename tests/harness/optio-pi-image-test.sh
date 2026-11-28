@@ -65,6 +65,14 @@ grep -qF 'validationActions: [Deny]' "$policy" || fail "la validation ne refuse 
 selector_count="$(grep -cF 'optio.repo-url: https___github.com_smadjapaul_terraform-provider-aiostreams' "$policy")"
 [[ "$selector_count" -ge 2 ]] || fail "la validation ne cible pas le même dépôt canari"
 
+# Keep the patch payload as a CEL map literal. A typed Object initializer is
+# converted to *structpb.Struct where Kubernetes expects *structpb.Value and
+# panics the API server during pod admission (observed on Kubernetes v1.36.3).
+grep -qF 'value: [{"name": "optio-ghcr-pull"}]' "$policy" || fail "le secret de tirage doit rester un littéral JSON CEL"
+if grep -qF 'Object.spec.imagePullSecrets{' "$policy"; then
+  fail "un initialiseur CEL typé fait paniquer le convertisseur JSON du control plane"
+fi
+
 grep -qE 'factory-optio-pi@sha256:[a-f0-9]{64}"' "$policy" || fail "image non epinglee par digest"
 if grep -qE 'factory-optio-pi@sha256:0{64}' "$policy"; then
   fail "digest nul : remplacer par le digest publie avant tout merge"
