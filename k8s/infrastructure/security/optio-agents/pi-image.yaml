@@ -25,13 +25,15 @@ spec:
     # `test` first: the main container of an Optio repository pod is the first one, named `main`.
     - patchType: JSONPatch
       jsonPatch:
+        # Keep JSONPatch values as CEL JSON literals: typed Object initializers
+        # panic during structpb.Value conversion in the Kubernetes API server.
         expression: >-
           [
             JSONPatch{op: "test", path: "/spec/containers/0/name", value: "main"},
             JSONPatch{op: "replace", path: "/spec/containers/0/image",
               value: "ghcr.io/smadjapaul/factory-optio-pi@sha256:91b0a9a09d5efed8c5c974c87be462b534eb6207e06797b3a0756d63b8a3b4bd"},
             JSONPatch{op: "add", path: "/spec/imagePullSecrets",
-              value: [Object.spec.imagePullSecrets{name: "optio-ghcr-pull"}]}
+              value: [{"name": "optio-ghcr-pull"}]}
           ]
 ---
 apiVersion: admissionregistration.k8s.io/v1
