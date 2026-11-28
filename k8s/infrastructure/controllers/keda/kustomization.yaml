@@ -6,6 +6,8 @@ resources:
   - it-tools-referencegrant.yaml
   - searxng-referencegrant.yaml
   - trilium-referencegrant.yaml
+  - mealie-referencegrant.yaml
+  - stirling-pdf-referencegrant.yaml
   - opencode-referencegrant.yaml
 helmCharts:
   - name: keda

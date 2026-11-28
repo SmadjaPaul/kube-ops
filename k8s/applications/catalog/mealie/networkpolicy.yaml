@@ -16,3 +16,12 @@ spec:
       toPorts:
         - ports:
             - { protocol: TCP, port: "9000" }
+    # KEDA HTTP add-on: the interceptor (namespace keda) relays the request to the woken pod.
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: keda
+            app.kubernetes.io/name: http-add-on
+            app.kubernetes.io/component: interceptor
+      toPorts:
+        - ports:
+            - { protocol: TCP, port: "9000" }

@@ -79,4 +79,5 @@ tests/harness/plan-replay-retry-test.sh
 tests/harness/agentgateway-cost-catalog-test.sh
 tests/harness/run-checks-parallel-test.sh
 tests/harness/github-queued-runs-check-test.sh
+tests/harness/mealie-stirling-pdf-keda-scale-to-zero-contract-test.sh
 tests/harness/opencode-keda-scale-to-zero-contract-test.sh
