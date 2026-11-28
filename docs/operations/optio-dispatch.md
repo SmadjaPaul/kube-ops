@@ -110,21 +110,24 @@ L'export Atlas peut ajouter des exceptions de merge humain, y compris pour les t
    résolu depuis le dépôt. Le dispatcher ne transmet ni l'image ni d'environnement personnalisé par tâche.
    [Commande native Optio](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/utils/pi-command.ts)
    · [Adaptateur Pi](https://github.com/jonwiggins/optio/blob/v0.26.4/packages/agent-adapters/src/pi.ts)
-2. Faire pointer le preset d'Optio vers l'image de la release en conservant Claude et le cycle de vie Optio.
-   Le worker v0.26.4 utilise le preset du dépôt, sans image propre à un dépôt. Pour les presets, Optio résout
-   `OPTIO_AGENT_IMAGE_PREFIX + preset + ":" + OPTIO_AGENT_IMAGE_TAG`. Le préfixe et le tag sont communs à tous
-   les presets (`agent.image` de `k8s/applications/platform/optio/values.yaml`) : les changer demande de publier
-   sous le nouveau préfixe et tag une image pour chaque preset utilisé par un dépôt, sinon les tâches Claude de
-   ces dépôts ne démarrent plus. Réserver au dépôt canari un preset qu'aucun autre dépôt n'utilise. Rendre
-   compatibles les presets admis et vérifier le digest réellement chargé sur les pods neufs avant de router une tâche. Utiliser le même
-   export Atlas et les mêmes bundles dans le manifeste du binaire et dans la release du planificateur.
+2. Donner l'image Pi aux pods du seul dépôt canari `terraform-provider-aiostreams` par la politique
+   `k8s/infrastructure/security/optio-agents/pi-image.yaml` (MutatingAdmissionPolicy). Elle remplace, à la
+   création du pod, l'image du conteneur `main` par le digest publié et ajoute le secret de tirage
+   `optio-ghcr-pull`. Aucun preset, aucune valeur `agent.image` et aucun autre pod ne changent. Le preset
+   d'Optio ne convient pas : le worker v0.26.4 passe le preset seul, et le préfixe et le tag sont communs à
+   tous les presets. L'image doit dériver d'une image d'agent qui contient un compilateur C
+   (`optio-agent-node`) : `go test -race` en a besoin, `optio-agent-base` n'en a pas. Go vient du dépôt
+   (`.optio/setup.sh`) ou de l'image. Un pod déjà actif garde son image : attendre sa suppression par Optio
+   (inactivité), puis relever `status.containerStatuses[].imageID` du pod neuf.
    [Worker Optio](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/workers/task-worker.ts)
    · [Pool de pods](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/services/repo-pool-service.ts)
-3. Configurer dans Optio une clé virtuelle Agentgateway dédiée sous le nom `OPENAI_API_KEY`. Donner au
-   dispatcher uniquement son identifiant Optio via `OPTIO_PI_CREDENTIAL_ID`. Le binaire contacte l'URL
-   d'Agentgateway inscrite dans le plan compilé du bundle. Le choix explicite du credential évite le repli
-   d'Optio vers toutes les clés de fournisseurs disponibles. Vérifier le modèle servi et l'absence de clé
-   fournisseur brute ou d'identité de production dans la tâche.
+3. La clé virtuelle `optio-pi` et la ligne privée `OPENAI_API_KEY` sont posées par GitOps
+   ([optio-gateway.md](optio-gateway.md)). Lire `credential=secret:<uuid>` dans le journal du dernier Job
+   `optio-secret-sync`. Donner au dispatcher seulement cet UUID par `OPTIO_PI_CREDENTIAL_ID`. Le binaire
+   contacte l'URL d'Agentgateway inscrite dans le plan compilé du bundle. Le choix explicite du credential
+   évite le repli d'Optio vers toutes les clés de fournisseurs disponibles. La tâche ne doit sélectionner
+   aucun secret de pod (`podSecrets` absent). Vérifier le modèle servi (métrique de la passerelle,
+   `api_key="optio-pi"`) et l'absence de clé fournisseur brute ou d'identité de production dans la tâche.
    [Sélection du credential](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/services/pi-provider-secrets.ts)
 4. Créer manuellement une tâche Pi canari bornée sur un pod neuf. Vérifier la sélection du profil, le bundle,
    le résultat natif visible dans Optio et l'appel Agentgateway. Reporter le UUID et le digest observé dans la
@@ -135,8 +138,9 @@ Les nouvelles revues, corrections CI et reprises de PR restent sur Claude. Les r
 consomment le même ID d'Optio. Les tâches Pi en échec restent visibles pour traitement explicite : le bridge accepte désormais `--session-id`
 et conserve la session Pi dans le répertoire Git administratif du worktree, mais le retry planifié reste désactivé
 jusqu'à une preuve de reprise sur Optio réel. Vider `pi.admit` ou retirer `--pi-release` remet les nouvelles
-tâches sur Claude sans conversion des tâches existantes. Une image antérieure peut être rétablie une fois
-les tâches Pi en cours terminées. Aucun preset ou réglage du travail planifié n'est changé par ce raccord.
+tâches sur Claude sans conversion des tâches existantes. Pour rendre au dépôt canari l'image amont, une
+fois ses tâches Pi terminées : revert de la politique `pi-image.yaml`, puis suppression du pod inactif par
+Optio. Aucun preset ou réglage du travail planifié n'est changé par ce raccord.
 
 ## Places
 

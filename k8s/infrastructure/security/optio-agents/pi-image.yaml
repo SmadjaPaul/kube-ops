@@ -1,0 +1,86 @@
+# PLT-542: the Pi canary image, for the agent pods of one repository only. Optio 0.26.4 has no image
+# per repository (the task worker passes the preset alone, and every preset shares one prefix and one
+# tag), and it cannot set imagePullSecrets on the pods it creates. This policy changes, at pod
+# creation, the image of the main container and adds the pull secret `optio-ghcr-pull`. The other
+# repositories and the Job pods keep their images. The Pi image derives from the Optio agent image:
+# Claude Code stays available in it.
+# MutatingAdmissionPolicy en cas d erreur refuse le pod ; un JSONPatch test qui échoue est un no-op.
+# La ValidatingAdmissionPolicy ci-dessous refuse le même pod si son conteneur principal est inattendu.
+# A pod that already runs keeps its image: Optio removes an idle repository pod, the next one changes.
+# Revert: remove this file and its line in kustomization.yaml, then let Optio remove the idle pod.
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: optio-agent-pi-image
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: Never
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE]
+        resources: [pods]
+  mutations:
+    # `test` first: the main container of an Optio repository pod is the first one, named `main`.
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          [
+            JSONPatch{op: "test", path: "/spec/containers/0/name", value: "main"},
+            JSONPatch{op: "replace", path: "/spec/containers/0/image",
+              value: "ghcr.io/smadjapaul/factory-optio-pi@sha256:91b0a9a09d5efed8c5c974c87be462b534eb6207e06797b3a0756d63b8a3b4bd"},
+            JSONPatch{op: "add", path: "/spec/imagePullSecrets",
+              value: [Object.spec.imagePullSecrets{name: "optio-ghcr-pull"}]}
+          ]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: optio-agent-pi-image
+spec:
+  policyName: optio-agent-pi-image
+  matchResources:
+    namespaceSelector:
+      matchLabels: {kubernetes.io/metadata.name: optio}
+    objectSelector:
+      matchLabels:
+        managed-by: optio
+        optio.type: repo-pod
+        # Optio label: the lower-case repository URL, other characters replaced by `_`.
+        optio.repo-url: https___github.com_smadjapaul_terraform-provider-aiostreams
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: optio-agent-pi-main-container-guard
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: [CREATE]
+        resources: [pods]
+  validations:
+    - expression: >-
+        size(object.spec.containers) > 0 &&
+        object.spec.containers[0].name == 'main'
+      message: "Le pod canari doit avoir un conteneur principal nommé main."
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: optio-agent-pi-main-container-guard
+spec:
+  policyName: optio-agent-pi-main-container-guard
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels: {kubernetes.io/metadata.name: optio}
+    objectSelector:
+      matchLabels:
+        managed-by: optio
+        optio.type: repo-pod
+        optio.repo-url: https___github.com_smadjapaul_terraform-provider-aiostreams
