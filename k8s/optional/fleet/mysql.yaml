@@ -63,7 +63,7 @@ spec:
       containers:
         - name: mysql
           # Fleet requires MySQL >= 8.0.44 and is incompatible with 9.6.
-          image: mysql:8.4.13@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902
+          image: mysql:26.10.0@sha256:9092489f49fb59c4ba6c1425c6a59f71f864f24bf4339a5a26b718adc7a8b343
           imagePullPolicy: IfNotPresent
           # The volume root holds ext4 lost+found; MySQL initializes only an
           # empty data directory, so it uses a child directory of the volume.
