@@ -9,7 +9,7 @@ MISE_AUTO_UPDATE = "false"
 
 [tools]
 node = "26.13.1"        # .nvmrc, package.json engines (bundles npm)
-python = "3.12.13"      # tests/harness/*.py, scripts
+python = "3.15.2"      # tests/harness/*.py, scripts
 just = "1.59.0"         # .justfile
 jq = "1.8.2"
 yq = "4.54.3"           # scripts/ci-install-tools.sh pin
