@@ -43,17 +43,38 @@ if grep -Eqi 'HETZNER|hetzner|your-objectstorage' "$pkg/backup.yaml" "$pkg/datab
   echo "BOOKORBIT_STAGE=FAIL: BookOrbit backups must target R2 only, not Hetzner" >&2
   exit 1
 fi
-if grep -Fq -- 'name: external' "$pkg/app.yaml"; then
-  echo "BOOKORBIT_STAGE=FAIL: staged admission must remain private" >&2
+# PRD-122 : seule exposition admise = une HTTPRoute book.smadja.dev sur internal + external,
+# derriere Cloudflare Access (homelab-infra MANDAT 28). L'ancien nom n'est servi nulle part.
+command -v yq >/dev/null || { echo "BOOKORBIT_EXPOSURE=FAIL: yq required" >&2; exit 1; }
+assert_equals() {
+  if [[ $2 != "$3" ]]; then
+    echo "BOOKORBIT_EXPOSURE=FAIL: $1: expected '$3', got '$2'" >&2
+    return 1
+  fi
+}
+route='select(.kind == "HTTPRoute")'
+assert_equals 'route count' "$(yq -N "$route | .metadata.name" "$pkg"/*.yaml)" 'bookorbit'
+assert_equals 'parents' "$(yq -N "$route | .spec.parentRefs[] | .namespace + \"/\" + .name" "$pkg/app.yaml" | sort | paste -sd, -)" 'gateway/external,gateway/internal'
+assert_equals 'hostnames' "$(yq -N "$route | .spec.hostnames[]" "$pkg/app.yaml")" 'book.smadja.dev'
+assert_contains 'smadja.cloudflareaccess.com' "$pkg/app.yaml"
+assert_contains 'Rollback: remove `external` first' "$pkg/app.yaml"
+for variable in APP_URL CLIENT_URL; do
+  assert_equals "$variable" "$(yq -N "select(.kind == \"Deployment\") | .spec.template.spec.containers[0].env[] | select(.name == \"$variable\") | .value" "$pkg/app.yaml")" 'https://book.smadja.dev'
+done
+assert_contains 'auth_probe: /api/v1/opds' "$pkg/app-test.yaml"
+if grep -rFq -- 'bookorbit.smadja.dev' k8s; then
+  echo "BOOKORBIT_EXPOSURE=FAIL: former hostname bookorbit.smadja.dev still referenced under k8s/" >&2
   exit 1
 fi
-assert_contains 'name: internal' "$pkg/app.yaml"
+assert_equals 'OIDC redirect URIs' "$(grep -o '{url: [^,]*' "$oidc_blueprint" | tr -d '"' | paste -sd' ' -)" \
+  '{url: https://book.smadja.dev/oauth2-callback {url: bookorbit://oauth2-callback'
+assert_contains 'meta_launch_url: https://book.smadja.dev' "$oidc_blueprint"
 assert_contains 'OIDC' "$pkg/README.md"
 assert_contains 'owner-approved admission candidate' "$pkg/README.md"
 assert_contains 'explicitly retires Decypharr' "$pkg/README.md"
 assert_contains 'client_id: bookorbit' "$oidc_blueprint"
 assert_contains 'client_secret: !Env BOOKORBIT_CLIENT_SECRET' "$oidc_blueprint"
-assert_contains 'https://bookorbit.smadja.dev/oauth2-callback' "$oidc_blueprint"
+assert_contains 'https://book.smadja.dev/oauth2-callback' "$oidc_blueprint"
 assert_contains 'bookorbit://oauth2-callback' "$oidc_blueprint"
 assert_contains 'APP_BOOKORBIT_OIDC_CLIENT_SECRET' "$oidc_secret"
 assert_contains 'apps-bookorbit.yaml' k8s/infrastructure/auth/authentik/extra/kustomization.yml

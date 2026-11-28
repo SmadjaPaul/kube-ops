@@ -66,9 +66,9 @@ spec:
             - name: PORT
               value: "3000"
             - name: APP_URL
-              value: https://bookorbit.smadja.dev
+              value: https://book.smadja.dev
             - name: CLIENT_URL
-              value: https://bookorbit.smadja.dev
+              value: https://book.smadja.dev
             - name: TZ
               value: Europe/Paris
             - name: PUID
@@ -219,11 +219,21 @@ metadata:
   name: bookorbit
   namespace: media
 spec:
+  # PRD-122: `external` publishes book.smadja.dev through the Cloudflare tunnel,
+  # ONLY behind the Cloudflare Access applications for BookOrbit (homelab-infra
+  # MANDAT 28, SmadjaPaul/homelab-infra#828; ARC apply not before 2026-11-30
+  # 11:00 UTC; mandate expires 2026-12-15). *.smadja.dev already points to the
+  # tunnel: the route is public as soon as it merges. Merge only after Access is
+  # applied and an anonymous request to https://book.smadja.dev/ is redirected to
+  # smadja.cloudflareaccess.com. Only the KOReader and OPDS paths of the mandate
+  # bypass Access; BookOrbit authenticates them. Rollback: remove `external` first
+  # (the Access applications stay).
+  # `internal` keeps the LAN and NetBird path.
   parentRefs:
-    - name: internal
-      namespace: gateway
+    - { name: internal, namespace: gateway }
+    - { name: external, namespace: gateway }
   hostnames:
-    - bookorbit.smadja.dev
+    - book.smadja.dev
   rules:
     - backendRefs:
         - name: bookorbit

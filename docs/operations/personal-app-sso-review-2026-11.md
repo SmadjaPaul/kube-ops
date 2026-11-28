@@ -12,7 +12,7 @@ from Doppler on both sides. Never print the secrets or hand-write one in Git.
 | App | Authentik slug / expected client ID | Browser redirect registered at Authentik | App configuration |
 | --- | --- | --- | --- |
 | Polyfin 0.59 | `polyfin` / `polyfin` | `https://media.smadja.dev/admin/api/provider/callback` | Admin Settings > Notifications: Public address; Security: Identity provider, issuer/client/secret and claim/group; stored in PG |
-| BookOrbit 3.6 | `bookorbit` / `bookorbit` | `https://bookorbit.smadja.dev/oauth2-callback` and `bookorbit://oauth2-callback` (iOS) | Settings > OIDC / SSO: discover, test, set group mapping and local-account linking |
+| BookOrbit 3.6 | `bookorbit` / `bookorbit` | `https://book.smadja.dev/oauth2-callback` and `bookorbit://oauth2-callback` (iOS) | Settings > OIDC / SSO: discover, test, set group mapping and local-account linking |
 | RustiCal 0.18 | `rustical` / `rustical` | `https://calendar.smadja.dev/frontend/login/oidc/callback` | `RUSTICAL_OIDC__*` env; web login OIDC; DAV clients use personal app tokens |
 | SparkyFitness 1.11 | `sparkyfitness` / `sparkyfitness` | `https://fitness.smadja.dev/api/auth/sso/callback/authentik` | Helm env-backed Better Auth; group `authentik-admins`, NO auto-registration while global signup is disabled |
 | La Suite Docs 6.0.4 | `lasuite-docs` / `lasuite-docs` | `https://docs.smadja.dev/api/v1.0/callback/` | `OIDC_OP_*`, `OIDC_RP_*` backend variables; JWKS and logout must use `lasuite-docs` |
