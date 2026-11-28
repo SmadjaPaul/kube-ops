@@ -31,6 +31,10 @@ openid:
   scope: "openid profile email"
   block_login: false
   openid_text: "Login with OpenID / OAuth2"
+  # Access is already gated by the Authentik policy on the Home Assistant app
+  # (group "Home Assistant Users"). Create the matching HA user on first login
+  # instead of requiring a manual People step.
+  create_user: true
 
 bluetooth:
 
