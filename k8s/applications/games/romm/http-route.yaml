@@ -15,5 +15,8 @@ spec:
     - romm.smadja.dev
   rules:
     - backendRefs:
-        - name: romm
+        # PLT-566 : le proxy KEDA (namespace keda) reveille l'application a froid ; le
+        # ReferenceGrant qui autorise cette reference cross-namespace est dans keda/.
+        - name: keda-add-ons-http-interceptor-proxy
+          namespace: keda
           port: 8080

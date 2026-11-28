@@ -7,7 +7,7 @@
     "check:argo-project-namespaces": "bash scripts/check-argo-project-namespaces.sh",
     "check:argo-app-descriptors": "bash scripts/check-argo-app-descriptors.sh",
     "check:backup-contract": "bash scripts/backup-static-contract.sh",
-    "check": "node scripts/run-checks-parallel.mjs check:documentation check:v1-contract check:argo-project-namespaces check:argo-app-descriptors check:backup-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:bookorbit-plugin check:authentik-retirements check:monitoring-cardinality check:policy check:policy-tests",
+    "check": "node scripts/run-checks-parallel.mjs check:documentation check:v1-contract check:argo-project-namespaces check:argo-app-descriptors check:backup-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:bookorbit-plugin check:authentik-retirements check:monitoring-cardinality check:policy check:policy-tests check:keda-scale-to-zero",
     "check:local": "node scripts/run-checks-parallel.mjs --first check:v1-contract,check:agent-harness,check:backup-contract,tests/agent-guard/secret-helpers-test.sh --bash-list scripts/check-bash-tests.list check:documentation check:v1-contract check:argo-project-namespaces check:argo-app-descriptors check:backup-contract check:agent-harness check:alerting-stage check:argocd-roots check:inventory-graph check:resource-efficiency check:bookorbit-plugin check:authentik-retirements check:monitoring-cardinality check:policy check:policy-tests",
     "check:documentation": "node scripts/check-documentation-integrity.mjs && node --test tests/harness/documentation-integrity-test.mjs",
     "check:cluster-contract": "npm run check:v1-contract",
@@ -20,7 +20,8 @@
     "check:policy-tests": "bash scripts/policy-check.sh --tests",
     "check:resource-efficiency": "bash tests/harness/resource-efficiency-dashboard-test.sh",
     "check:monitoring-cardinality": "bash tests/harness/monitoring-cardinality-drop-test.sh",
-    "check:authentik-retirements": "bash tests/harness/authentik-retirements-contract-test.sh"
+    "check:authentik-retirements": "bash tests/harness/authentik-retirements-contract-test.sh",
+    "check:keda-scale-to-zero": "bash tests/harness/keda-scale-to-zero-contract-test.sh"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "21.2.4",
