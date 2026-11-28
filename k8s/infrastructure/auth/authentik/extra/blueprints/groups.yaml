@@ -65,7 +65,15 @@ entries:
   - id: home-assistant-users
     model: authentik_core.group
     identifiers: {name: Home Assistant Users}
-    attrs: {name: Home Assistant Users}
+    # Household access to Home Assistant. Keep the existing E2E and service
+    # account members while adding Maureen's existing Authentik identity.
+    attrs:
+      name: Home Assistant Users
+      is_superuser: false
+      users:
+        - !Find [authentik_core.user, [username, "maureen"]]
+        - !Find [authentik_core.user, [username, "e2e-user"]]
+        - !Find [authentik_core.user, [username, "agent-maison"]]
   - id: immich-users
     model: authentik_core.group
     identifiers: {name: Immich Users}
