@@ -56,6 +56,14 @@ out="$(apply workflow-pod terraform-provider-aiostreams main)"
 grep -q 'pass: 0, fail: 0, warn: 0, error: 0' <<<"$out" || fail "un pod de travail ne doit pas changer : $out"
 out="$(apply repo-pod terraform-provider-aiostreams sidecar)"
 if grep -q 'factory-optio-pi' <<<"$out"; then fail "conteneur inattendu modifie : $out"; fi
+# JSONPatch test failures are a successful no-op in the API server; the matching pod must also
+# be rejected by the bound ValidatingAdmissionPolicy, rather than admitted with its upstream image.
+grep -qF 'kind: ValidatingAdmissionPolicy' "$policy" || fail "garde de validation du conteneur principal absente"
+grep -qF 'name: optio-agent-pi-main-container-guard' "$policy" || fail "garde de validation du conteneur principal absente"
+grep -qF "object.spec.containers[0].name == 'main'" "$policy" || fail "la validation n'impose pas le conteneur main"
+grep -qF 'validationActions: [Deny]' "$policy" || fail "la validation ne refuse pas les conteneurs inattendus"
+selector_count="$(grep -cF 'optio.repo-url: https___github.com_smadjapaul_terraform-provider-aiostreams' "$policy")"
+[[ "$selector_count" -ge 2 ]] || fail "la validation ne cible pas le même dépôt canari"
 
 grep -qE 'factory-optio-pi@sha256:[a-f0-9]{64}"' "$policy" || fail "image non epinglee par digest"
 if grep -qE 'factory-optio-pi@sha256:0{64}' "$policy"; then
