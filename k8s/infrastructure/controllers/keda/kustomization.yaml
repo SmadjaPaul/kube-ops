@@ -8,6 +8,7 @@ resources:
   - trilium-referencegrant.yaml
   - mealie-referencegrant.yaml
   - stirling-pdf-referencegrant.yaml
+  - opencode-referencegrant.yaml
 helmCharts:
   - name: keda
     repo: https://kedacore.github.io/charts

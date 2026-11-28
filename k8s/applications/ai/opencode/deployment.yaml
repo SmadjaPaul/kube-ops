@@ -6,7 +6,8 @@ metadata:
   labels:
     app: opencode-web
 spec:
-  replicas: 1
+  # PLT-567 : le nombre de replicas est possede par le ScaledObject KEDA (min 0) ;
+  # ne pas le figer dans GitOps, Argo le contradirait.
   strategy:
     type: Recreate
   selector:

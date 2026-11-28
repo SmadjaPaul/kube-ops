@@ -1,3 +1,6 @@
+# PLT-567 : le trafic passe par le reverse proxy du http-add-on KEDA (namespace keda),
+# qui redemarre opencode a froid puis relaie la requete (ScaledObject, min 0).
+# Le ReferenceGrant qui autorise cette reference inter-namespace est dans keda/.
 apiVersion: gateway.networking.k8s.io/v1  
 kind: HTTPRoute  
 metadata:  
@@ -14,9 +17,10 @@ spec:
         - path:  
             type: PathPrefix  
             value: /api/sse/  
-      backendRefs:  
-        - name: opencode-web-service  
-          port: 5003
+      backendRefs:
+        - name: keda-add-ons-http-interceptor-proxy
+          namespace: keda
+          port: 8080
       timeouts:  
         request: "0s"
       filters:  
@@ -33,6 +37,7 @@ spec:
         - path:  
             type: PathPrefix  
             value: /  
-      backendRefs:  
-        - name: opencode-web-service  
-          port: 5003
+      backendRefs:
+        - name: keda-add-ons-http-interceptor-proxy
+          namespace: keda
+          port: 8080

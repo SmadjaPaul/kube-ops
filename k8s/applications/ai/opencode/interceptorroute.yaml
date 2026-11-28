@@ -1,0 +1,53 @@
+# PLT-567 : opencode est servi par le reverse proxy du http-add-on KEDA (namespace keda).
+# La HTTPRoute pointe `keda-add-ons-http-interceptor-proxy` (port 8080) ; le ReferenceGrant
+# qui autorise cette reference inter-namespace est dans k8s/infrastructure/controllers/keda/
+# (le projet Argo `apps` interdit ReferenceGrant dans une application).
+#
+# Le proxy est la porte d'entree : le ScaledObject possede le nombre de replicas
+# (min 0), le Deployment ne fige donc plus `replicas`.
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: opencode
+  namespace: opencode
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  target:
+    service: opencode-web-service
+    port: 5003
+  rules:
+    - hosts:
+        - opencode.smadja.dev
+  scalingMetric:
+    concurrency:
+      targetValue: 10
+  coldStart:
+    maxPendingRequests: 100
+  timeouts:
+    # Demarrage a froid : initContainers (kustomize, helm), sonde de demarrage (30 x 10 s)
+    # puis sonde de disponibilite (15 s + 5 x 30 s) sur une image Node/Bun.
+    readiness: 120s
+    responseHeader: 15s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: opencode
+  namespace: opencode
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: opencode-web
+  # Les PVC du workspace et des donnees sont ReadWriteOnce : une seule instance.
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 300
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.keda:9090
+        interceptorRoute: opencode
