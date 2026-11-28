@@ -81,9 +81,12 @@ Le planificateur accepte un fichier local `--pi-release`. Il part de l'export
 | `pi.admit` | Noms des dépôts autorisés à démarrer de nouvelles tâches d'implémentation en Pi. Comparaison insensible à la casse |
 | `pi.evidence` | Pour `--apply` avec une liste non vide, renseigner `optio: "0.26.4"`, `image` identique à `pi.image` et `task` avec l'UUID de la tâche canari qui a prouvé l'exécution |
 
-L'essai à blanc détaille `agentType: "pi"`, profil, image et bundle des tâches admises. En mode écriture, une
-release invalide, une preuve absente ou un `OPTIO_PI_CREDENTIAL_ID` absent arrêtent le passage avant tout appel
-réseau. Avant toute écriture, le dispatcher relit le UUID auprès d'Optio : la tâche du même espace doit utiliser Pi,
+L'essai à blanc détaille `agentType: "pi"`, profil, image et bundle des tâches admises. Une release invalide
+arrête le passage avant tout appel réseau : ses exceptions de merge humain sont illisibles. En mode écriture, une
+preuve absente, illisible ou non conforme, un `OPTIO_PI_CREDENTIAL_ID` absent ou plusieurs dépôts admis désactivent
+Pi pour le passage : les nouvelles tâches restent sur Claude Code (y compris celles du dépôt admis, qui ne pourront
+plus passer en Pi), les autres actions continuent, `errors` augmente et le code de sortie vaut 1. Avant toute
+écriture, le dispatcher relit le UUID auprès d'Optio : la tâche du même espace doit utiliser Pi,
 viser l'unique dépôt admis, être dans l'état `pr_opened` ou `completed` et avoir une PR détectée. Le dispatcher
 relit également le journal `FACTORY_PI_EVIDENCE` via l'API Optio et exige le même identifiant de tâche, profil et
 digest de bundle. Une preuve unique ne permet pas d'admettre plusieurs dépôts. Le digest de l'image réellement

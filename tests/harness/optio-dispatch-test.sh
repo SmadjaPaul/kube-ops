@@ -829,10 +829,26 @@ jq -e '.tasks[0] | .agentType == "pi" and .pi.profile == "atlas" and
   .pi.entrypoint == "AGENTS.md" and
   (.pi.bundle | startswith("ghcr.io/test/bundle@sha256:")) and (.prompt | contains("tu ne merges pas"))' \
   <<<"$(actions_of "$dir")" >/dev/null || fail "reason=invalid_pi_plan"
+# Sans preuve, le passage continue sur Claude Code et signale l'erreur.
+expect_claude_fallback() {
+  local dir=$1 name=$2
+  expect_rc "$dir" 1 "$name"
+  expect_posts "$dir" "/api/tasks" 1 "$name"
+  expect_counter "$dir" created 1 "$name"
+  jq -e '.agentType == "claude-code" and (.metadata.agentOptions | has("claudeModel"))
+    and (.metadata.agentOptions | has("credential") | not) and (has("maxRetries") | not)' \
+    <<<"$(body_of "$dir" "/api/tasks")" >/dev/null || fail "reason=no_claude_fallback case=$name"
+}
+# Le passage suivant du même cas repart d'une file vide.
+reset_creations() {
+  rm -f "$1/state-tasks.json"
+  : >"$1/calls.log"
+}
 run_dispatch "$dir" --apply --pi-release "$dir/release.json"
-expect_rc "$dir" 2 pi-unproven
-expect_posts "$dir" "/api/tasks" 0 pi-unproven
+expect_claude_fallback "$dir" pi-unproven
 grep -Fq 'requires a recorded Optio' "$dir/err" || fail "reason=pi_not_blocked"
+jq -e '.prompt | contains("tu ne merges pas")' <<<"$(body_of "$dir" "/api/tasks")" >/dev/null ||
+  fail "reason=pr_only_lost case=pi-unproven"
 cases=$((cases + 1))
 
 dir="$(setup_case pi-apply linear-one-ticket.json optio-tasks-empty.json github-pulls-empty.json)"
@@ -840,8 +856,8 @@ set_repo "$dir" agent-harness
 pi_release_fixture agent-harness | jq '.pi.evidence = {
   optio: "0.26.4", image: .pi.image, task: "00000000-0000-4000-8000-000000000001"}' >"$dir/release.json"
 OPTIO_PI_CREDENTIAL_ID="" run_dispatch "$dir" --apply --pi-release "$dir/release.json"
-expect_rc "$dir" 2 pi-credential-missing
-expect_posts "$dir" "/api/tasks" 0 pi-credential-missing
+expect_claude_fallback "$dir" pi-credential-missing
+reset_creations "$dir"
 printf 'GET /api/tasks/00000000-0000-4000-8000-000000000001/logs?search=FACTORY_PI_EVIDENCE&limit=100 evidence.json\n' >>"$dir/routes.tsv"
 printf 'GET /api/tasks/00000000-0000-4000-8000-000000000001 proof.json\n' >>"$dir/routes.tsv"
 jq -n --arg repo "$HARNESS" '{task: {id: "00000000-0000-4000-8000-000000000001",
@@ -850,14 +866,14 @@ jq -n --arg repo "$HARNESS" '{task: {id: "00000000-0000-4000-8000-000000000001",
 printf '%s\n' '{"logs":[]}' >"$dir/evidence.json"
 OPTIO_PI_CREDENTIAL_ID=00000000-0000-4000-8000-000000000002 \
   run_dispatch "$dir" --apply --pi-release "$dir/release.json"
-expect_rc "$dir" 1 pi-proof-invalid
-expect_posts "$dir" "/api/tasks" 0 pi-proof-invalid
+expect_claude_fallback "$dir" pi-proof-invalid
+reset_creations "$dir"
 jq '.task.agentType = "pi"' "$dir/proof.json" >"$dir/proof.tmp"
 mv "$dir/proof.tmp" "$dir/proof.json"
 OPTIO_PI_CREDENTIAL_ID=00000000-0000-4000-8000-000000000002 \
   run_dispatch "$dir" --apply --pi-release "$dir/release.json"
-expect_rc "$dir" 1 pi-proof-no-runtime-log
-expect_posts "$dir" "/api/tasks" 0 pi-proof-no-runtime-log
+expect_claude_fallback "$dir" pi-proof-no-runtime-log
+reset_creations "$dir"
 jq -n --arg bundle "$(jq -r '.pi.bundles.harness' "$dir/release.json")" '
   {logs: [{content: ("FACTORY_PI_EVIDENCE=" + ({type: "factory_run", status: "completed",
      run_id: "00000000-0000-4000-8000-000000000001", profile: "harness", bundle_ref: $bundle} | tojson))}]}' >"$dir/evidence.json"

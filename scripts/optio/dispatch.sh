@@ -247,16 +247,27 @@ load_pi_release() {
   pi_admissions="$(jq -c '.admissions' <<<"$release")"
   no_merge_json="$(jq -c --argjson base "$no_merge_json" '($base + .prOnly) | unique' <<<"$release")"
   if [ "$apply_mode" = true ] && [ "$pi_admissions" != '{}' ]; then
-    # Une preuve unique ne couvre pas d'autres dépôts ou profils.
-    [ "$(jq 'length' <<<"$pi_admissions")" = 1 ] ||
-      die_usage "Pi canary apply admits exactly one repository per release"
     pi_evidence_task="$(jq -r '.proofTask' <<<"$release")"
-    [ -n "$pi_evidence_task" ] ||
-      die_usage "Pi apply requires a recorded Optio v0.26.4 runtime task"
     pi_credential_id="${OPTIO_PI_CREDENTIAL_ID:-}"
-    [[ "$pi_credential_id" =~ $uuid ]] ||
-      die_usage "Pi apply requires OPTIO_PI_CREDENTIAL_ID for the Agentgateway virtual key"
+    # Une preuve unique ne couvre pas d'autres dépôts ou profils.
+    if [ "$(jq 'length' <<<"$pi_admissions")" != 1 ]; then
+      disable_pi "Pi canary apply admits exactly one repository per release"
+    elif [ -z "$pi_evidence_task" ]; then
+      disable_pi "Pi apply requires a recorded Optio v0.26.4 runtime task"
+    elif ! [[ "$pi_credential_id" =~ $uuid ]]; then
+      disable_pi "Pi apply requires OPTIO_PI_CREDENTIAL_ID for the Agentgateway virtual key"
+    fi
   fi
+}
+
+# Une admission Pi non prouvée n'arrête pas le passage : les nouvelles tâches
+# restent sur Claude Code, l'erreur est comptée et les exceptions de merge
+# humain de la release restent appliquées.
+disable_pi() {
+  warn "$*: Pi is disabled for this pass, new tasks stay on Claude Code"
+  pi_admissions='{}'
+  pi_evidence_task=""
+  errors=$((errors + 1))
 }
 
 check_environment() {
@@ -1801,8 +1812,9 @@ main() {
     return 1
   fi
   if ! check_pi_evidence; then
-    emit_output
-    return 1
+    # api_error a déjà compté l'échec.
+    warn "Pi is disabled for this pass, new tasks stay on Claude Code"
+    pi_admissions='{}'
   fi
   fetch_optio_repos
   if ! fetch_pr_state; then
