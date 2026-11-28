@@ -111,9 +111,12 @@ L'export Atlas peut ajouter des exceptions de merge humain, y compris pour les t
    [Commande native Optio](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/utils/pi-command.ts)
    · [Adaptateur Pi](https://github.com/jonwiggins/optio/blob/v0.26.4/packages/agent-adapters/src/pi.ts)
 2. Faire pointer le preset d'Optio vers l'image de la release en conservant Claude et le cycle de vie Optio.
-   Le worker v0.26.4 utilise le preset du dépôt. Pour les presets, Optio résout
-   `OPTIO_AGENT_IMAGE_PREFIX + preset + ":" + OPTIO_AGENT_IMAGE_TAG`. Rendre compatibles les presets admis
-   et vérifier le digest réellement chargé sur les pods neufs avant de router une tâche. Utiliser le même
+   Le worker v0.26.4 utilise le preset du dépôt, sans image propre à un dépôt. Pour les presets, Optio résout
+   `OPTIO_AGENT_IMAGE_PREFIX + preset + ":" + OPTIO_AGENT_IMAGE_TAG`. Le préfixe et le tag sont communs à tous
+   les presets (`agent.image` de `k8s/applications/platform/optio/values.yaml`) : les changer demande de publier
+   sous le nouveau préfixe et tag une image pour chaque preset utilisé par un dépôt, sinon les tâches Claude de
+   ces dépôts ne démarrent plus. Réserver au dépôt canari un preset qu'aucun autre dépôt n'utilise. Rendre
+   compatibles les presets admis et vérifier le digest réellement chargé sur les pods neufs avant de router une tâche. Utiliser le même
    export Atlas et les mêmes bundles dans le manifeste du binaire et dans la release du planificateur.
    [Worker Optio](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/workers/task-worker.ts)
    · [Pool de pods](https://github.com/jonwiggins/optio/blob/v0.26.4/apps/api/src/services/repo-pool-service.ts)
