@@ -7,3 +7,4 @@ resources:
   - pr-triage-key.yaml
   - incident-sentinel-key.yaml
   - optio-key.yaml
+  - optio-pi-key.yaml
