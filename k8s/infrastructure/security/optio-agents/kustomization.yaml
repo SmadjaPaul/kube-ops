@@ -5,3 +5,4 @@ resources:
   - volume-retention.yaml
   - priorityclass.yaml
   - job-pod-nonroot.yaml
+  - pi-image.yaml
