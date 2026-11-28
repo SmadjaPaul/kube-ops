@@ -4,7 +4,7 @@ RomM is the active games-library workload for V1.
 
 Architecture:
 
-- RomM stable 5.2.0
+- RomM stable 5.4.1
 - PostgreSQL via CloudNativePG
 - CNPG/Barman WAL + weekly base backup to Cloudflare R2
 - Longhorn bulk for the ROM library/resources
@@ -22,7 +22,7 @@ RomM 5.x requires a verified email claim. The Authentik blueprint intentionally 
 
 Role mapping:
 - `authentik-admins` -> RomM Admin
-- `family` or `media` -> RomM User
+- `family` -> RomM User
 
 Keep local password login enabled until at least one Authentik admin login is proven.
 
@@ -32,4 +32,4 @@ V1 enables Hasheous because it requires no API credential. Additional providers 
 
 ## Security note
 
-The official 5.2.0 image currently runs as root by default. The namespace therefore audits/warns against Pod Security Restricted but does not enforce it yet. The container still drops Linux capabilities and disables privilege escalation. Do not force `runAsNonRoot` without validating a newer upstream image or a deliberate hardened derivative.
+The previous 5.2.0 image runs as root by default; 5.4.1 retains the existing security context pending runtime verification. The namespace therefore audits/warns against Pod Security Restricted but does not enforce it yet. The container still drops Linux capabilities and disables privilege escalation. Do not force `runAsNonRoot` without validating a newer upstream image or a deliberate hardened derivative.
